@@ -122,7 +122,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
         val analysis = SemanticVariableOrder.analyze(formulaPredicates);
         log.debug("SMTDD index analysis:\n{}", analysis.toAnalysisReport());
 
-        val root        = SmtddBuilder.build(analysis, formulas, formulaPredicates, maxIndexNodes);
+        val root        = SmtddBuilder.build(analysis, formulas, maxIndexNodes);
         val binaryOrder = new BinaryVariableOrder(analysis.remainingPredicates(),
                 analysis.formulasPerRemainingPredicate());
 
@@ -137,15 +137,14 @@ public class SmtddPolicyIndex implements PolicyIndex {
 
     private static void collectPredicatesRecursive(BooleanExpression node, List<IndexPredicate> result) {
         switch (node) {
-        case Constant ignored    -> {}
-        case Atom(var predicate) -> {
-            if (!result.contains(predicate)) {
-                result.add(predicate);
-            }
-        }
-        case Not(var operand)    -> collectPredicatesRecursive(operand, result);
-        case Or(var operands)    -> operands.forEach(op -> collectPredicatesRecursive(op, result));
-        case And(var operands)   -> operands.forEach(op -> collectPredicatesRecursive(op, result));
+        case Constant ignored                                     -> {}
+        case Atom(var predicate) when !result.contains(predicate) -> result.add(predicate);
+        case Atom ignored                                         -> { /* already collected */ }
+        case Not(var operand)                                     -> collectPredicatesRecursive(operand, result);
+        case Or(var operands)                                     ->
+            operands.forEach(op -> collectPredicatesRecursive(op, result));
+        case And(var operands)                                    ->
+            operands.forEach(op -> collectPredicatesRecursive(op, result));
         }
     }
 

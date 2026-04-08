@@ -638,6 +638,12 @@ jobs:
           name: sapl-macos-arm64
           path: artifacts/macos
 
+      - name: Download SAPL Node JAR
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-node-jars
+          path: sapl-node/target
+
       - name: Prepare release assets
         env:
           VERSION: ${{ needs.version-check.outputs.version }}

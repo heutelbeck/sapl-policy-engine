@@ -39,6 +39,10 @@ import lombok.val;
  */
 sealed interface MtbddNode {
 
+    int TRUE_CHILD  = 0;
+    int FALSE_CHILD = 1;
+    int ERROR_CHILD = 2;
+
     /**
      * Renders this MTBDD as an indented ASCII tree with level numbers.
      * Shared nodes (DAG edges) are shown as back-references.

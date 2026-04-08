@@ -17,6 +17,10 @@
  */
 package io.sapl.compiler.index.mtbdd;
 
+import static io.sapl.compiler.index.mtbdd.MtbddNode.ERROR_CHILD;
+import static io.sapl.compiler.index.mtbdd.MtbddNode.FALSE_CHILD;
+import static io.sapl.compiler.index.mtbdd.MtbddNode.TRUE_CHILD;
+
 import java.util.BitSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -94,9 +98,9 @@ class MtbddMerger {
         val leftChildren  = childrenAt(left, topLevel);
         val rightChildren = childrenAt(right, topLevel);
 
-        val trueChild  = mergeRecursive(table, leftChildren[0], rightChildren[0], cache);
-        val falseChild = mergeRecursive(table, leftChildren[1], rightChildren[1], cache);
-        val errorChild = mergeRecursive(table, leftChildren[2], rightChildren[2], cache);
+        val trueChild  = mergeRecursive(table, leftChildren[TRUE_CHILD], rightChildren[TRUE_CHILD], cache);
+        val falseChild = mergeRecursive(table, leftChildren[FALSE_CHILD], rightChildren[FALSE_CHILD], cache);
+        val errorChild = mergeRecursive(table, leftChildren[ERROR_CHILD], rightChildren[ERROR_CHILD], cache);
 
         return table.decision(topLevel, trueChild, falseChild, errorChild);
     }

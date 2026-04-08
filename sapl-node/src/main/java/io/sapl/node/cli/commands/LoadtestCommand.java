@@ -55,14 +55,13 @@ import java.util.concurrent.Callable;
     header = "Load test a running SAPL PDP server.",
     description = { """
         Measures server throughput and per-request latency distribution
-        under controlled concurrency.
+        under controlled concurrency. Supports saturation mode (as fast
+        as possible) and paced mode (--rate) with coordinated omission
+        correction for accurate latency measurement under controlled load.
 
-        HTTP mode uses the JDK HttpClient with async request chaining.
-        RSocket mode uses virtual threads with blocking request-response
-        on multiplexed connections.
-
-        Both modes pre-serialize the request payload to eliminate
-        client-side overhead from the measurement.
+        Both HTTP and RSocket modes use reactive request pipelines and
+        pre-serialize the request payload to eliminate client-side
+        overhead from the measurement.
 
         For embedded PDP benchmarking, use 'sapl benchmark' instead.
         """ },
@@ -126,9 +125,6 @@ public class LoadtestCommand implements Callable<Integer> {
     @Option(names = "--rate", defaultValue = "0", description = "Target request rate in req/s (0 = saturation, default: ${DEFAULT-VALUE})")
     int rate;
 
-    @Option(names = "--engine", defaultValue = "reactive", description = "Load generator engine: reactive or virtual-threads (default: ${DEFAULT-VALUE})")
-    String engine;
-
     @Option(names = "--warmup-seconds", defaultValue = "5", description = "Warmup duration in seconds (default: ${DEFAULT-VALUE})")
     int warmupSeconds;
 
@@ -189,7 +185,7 @@ public class LoadtestCommand implements Callable<Integer> {
                     }
                 }
                 result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
-                        vtPerConnection, warmupSeconds, measureSeconds, rate, useVirtualThreads(), progressOut);
+                        vtPerConnection, warmupSeconds, measureSeconds, rate, progressOut);
             } else {
                 val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
                 ctx = LoadtestContext.http(url, concurrency, warmupSeconds, measureSeconds, timestamp, label);
@@ -197,7 +193,7 @@ public class LoadtestCommand implements Callable<Integer> {
                     out.println("HTTP load test: %s".formatted(url));
                 }
                 result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, rate,
-                        useVirtualThreads(), progressOut);
+                        progressOut);
             }
 
             val results = new ArrayList<BenchmarkResult>();
@@ -242,15 +238,12 @@ public class LoadtestCommand implements Callable<Integer> {
             return;
         }
         out.println("  Latency:");
-        out.printf(Locale.US, "    p50:   %,.0f us%n", latency.p50() / 1000.0);
-        out.printf(Locale.US, "    p90:   %,.0f us%n", latency.p90() / 1000.0);
-        out.printf(Locale.US, "    p99:   %,.0f us%n", latency.p99() / 1000.0);
-        out.printf(Locale.US, "    p99.9: %,.0f us%n", latency.p999() / 1000.0);
-        out.printf(Locale.US, "    max:   %,.0f us%n", latency.max() / 1000.0);
+        out.printf(Locale.US, "    p50:   %.1f us%n", latency.p50() / 1000.0);
+        out.printf(Locale.US, "    p90:   %.1f us%n", latency.p90() / 1000.0);
+        out.printf(Locale.US, "    p99:   %.1f us%n", latency.p99() / 1000.0);
+        out.printf(Locale.US, "    p99.9: %.1f us%n", latency.p999() / 1000.0);
+        out.printf(Locale.US, "    max:   %.1f us%n", latency.max() / 1000.0);
         out.flush();
     }
 
-    private boolean useVirtualThreads() {
-        return "virtual-threads".equalsIgnoreCase(engine);
-    }
 }

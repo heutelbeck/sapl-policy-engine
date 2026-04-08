@@ -17,6 +17,10 @@
  */
 package io.sapl.compiler.index.mtbdd;
 
+import static io.sapl.compiler.index.mtbdd.MtbddNode.ERROR_CHILD;
+import static io.sapl.compiler.index.mtbdd.MtbddNode.FALSE_CHILD;
+import static io.sapl.compiler.index.mtbdd.MtbddNode.TRUE_CHILD;
+
 import java.util.BitSet;
 
 import io.sapl.api.model.BooleanExpression;
@@ -177,8 +181,9 @@ class MtbddBuilder {
         val leftChildren  = childrenAt(left, topLevel);
         val rightChildren = childrenAt(right, topLevel);
 
-        return table.decision(topLevel, or(table, leftChildren[0], rightChildren[0]),
-                or(table, leftChildren[1], rightChildren[1]), or(table, leftChildren[2], rightChildren[2]));
+        return table.decision(topLevel, or(table, leftChildren[TRUE_CHILD], rightChildren[TRUE_CHILD]),
+                or(table, leftChildren[FALSE_CHILD], rightChildren[FALSE_CHILD]),
+                or(table, leftChildren[ERROR_CHILD], rightChildren[ERROR_CHILD]));
     }
 
     /**
@@ -207,8 +212,9 @@ class MtbddBuilder {
         val leftChildren  = childrenAt(left, topLevel);
         val rightChildren = childrenAt(right, topLevel);
 
-        return table.decision(topLevel, and(table, leftChildren[0], rightChildren[0]),
-                and(table, leftChildren[1], rightChildren[1]), and(table, leftChildren[2], rightChildren[2]));
+        return table.decision(topLevel, and(table, leftChildren[TRUE_CHILD], rightChildren[TRUE_CHILD]),
+                and(table, leftChildren[FALSE_CHILD], rightChildren[FALSE_CHILD]),
+                and(table, leftChildren[ERROR_CHILD], rightChildren[ERROR_CHILD]));
     }
 
     private static int levelOf(MtbddNode node) {

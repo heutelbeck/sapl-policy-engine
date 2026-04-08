@@ -65,6 +65,10 @@ class MtbddEvaluator {
      * @param ctx the evaluation context
      * @return matched and errored formula indices with the first error value
      */
+    private static ErrorValue firstEncountered(ErrorValue previous, ErrorValue current) {
+        return previous != null ? previous : current;
+    }
+
     static EvaluationResult evaluate(MtbddNode root, VariableOrder order, EvaluationContext ctx) {
         val        accumulatedErrors = new BitSet();
         ErrorValue firstError        = null;
@@ -74,16 +78,14 @@ class MtbddEvaluator {
             val predicate = order.predicateAt(level);
             val result    = predicate.operator().evaluate(ctx);
 
-            if (result instanceof ErrorValue error) {
-                if (firstError == null) {
-                    firstError = error;
-                }
+            switch (result) {
+            case ErrorValue error           -> {
+                firstError = firstEncountered(firstError, error);
                 accumulatedErrors.or(order.erroredFormulas(level));
                 node = errorChild;
-            } else if (result instanceof BooleanValue(var b) && b) {
-                node = trueChild;
-            } else {
-                node = falseChild;
+            }
+            case BooleanValue(var b) when b -> node = trueChild;
+            default                         -> node = falseChild;
             }
         }
 

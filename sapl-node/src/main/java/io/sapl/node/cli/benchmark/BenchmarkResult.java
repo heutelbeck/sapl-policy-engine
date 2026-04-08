@@ -147,7 +147,7 @@ public record BenchmarkResult(
         out.println("%-30s %10s %15s %15s".formatted("Benchmark", "Threads", "Throughput", "95% CI"));
         out.println("-".repeat(75));
         for (val r : results) {
-            out.println(String.format(Locale.US, "%-30s %10d %,13.1f ops/s +/- %,10.1f ops/s", r.method(), r.threads(),
+            out.println(String.format(Locale.US, "%-30s %10d %13.1f ops/s +/- %10.1f ops/s", r.method(), r.threads(),
                     r.mean(), r.ci95()));
             if (r.latency() != null) {
                 out.println(String.format(Locale.US,

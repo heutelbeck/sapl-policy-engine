@@ -61,10 +61,11 @@ import reactor.util.retry.Retry;
 @Slf4j
 public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
 
-    private static final String ROUTE_DECIDE           = "decide";
-    private static final String ROUTE_DECIDE_ONCE      = "decide-once";
-    private static final String ROUTE_MULTI_DECIDE     = "multi-decide";
-    private static final String ROUTE_MULTI_DECIDE_ALL = "multi-decide-all";
+    private static final String ROUTE_DECIDE                = "decide";
+    private static final String ROUTE_DECIDE_ONCE           = "decide-once";
+    private static final String ROUTE_MULTI_DECIDE          = "multi-decide";
+    private static final String ROUTE_MULTI_DECIDE_ALL      = "multi-decide-all";
+    private static final String ROUTE_MULTI_DECIDE_ALL_ONCE = "multi-decide-all-once";
 
     private static final String ERROR_DECODE_AUTHORIZATION_DECISION              = "Failed to decode authorization decision: {}";
     private static final String ERROR_DECODE_IDENTIFIABLE_AUTHORIZATION_DECISION = "Failed to decode identifiable authorization decision: {}";
@@ -169,6 +170,31 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
             log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
             return Flux.just(MultiAuthorizationDecision.indeterminate());
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
+    }
+
+    /**
+     * Evaluates multiple authorization subscriptions and returns all decisions
+     * in a single bundled response. This is a one-shot operation that completes
+     * after the first bundled result.
+     * <p>
+     * Mirrors the {@code MultiDecideAllOnce} RPC in the proto service definition.
+     * Not part of the {@link PolicyDecisionPoint} interface.
+     *
+     * @param multiAuthzSubscription the multi-subscription to evaluate
+     * @return the bundled authorization decisions
+     */
+    public Mono<MultiAuthorizationDecision> decideAllOnce(MultiAuthorizationSubscription multiAuthzSubscription) {
+        return rSocketMono.flatMap(rSocket -> {
+            try {
+                val payload = createPayload(ROUTE_MULTI_DECIDE_ALL_ONCE,
+                        SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
+                return rSocket.requestResponse(payload).map(this::decodeMultiAuthorizationDecision);
+            } catch (IOException e) {
+                log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
+                return Mono.just(MultiAuthorizationDecision.indeterminate());
+            }
+        }).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage()))
+                .onErrorReturn(MultiAuthorizationDecision.indeterminate());
     }
 
     private Payload createPayload(String route, byte[] data) {

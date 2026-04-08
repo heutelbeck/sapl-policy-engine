@@ -285,7 +285,8 @@ public class EmbeddedBenchmarkRunner {
             val opsCount   = runThroughputIteration(seconds, threads, bm.method()) * bm.opsPerInvocation();
             val throughput = (double) opsCount / seconds;
             val nsPerOp    = seconds * 1_000_000_000.0 / opsCount;
-            out.println("%s %d: %,.1f ops/s  (%.0f ns/op)".formatted(phaseName, i + 1, throughput, nsPerOp));
+            out.println(
+                    String.format(Locale.US, "%s %d: %.1f ops/s  (%.0f ns/op)", phaseName, i + 1, throughput, nsPerOp));
             out.flush();
             if (collect) {
                 results.add(throughput);

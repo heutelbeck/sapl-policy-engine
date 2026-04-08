@@ -70,6 +70,40 @@ All properties live under the prefix `io.sapl.node`:
 
 See [Security](../7_6_Security/) for details on each authentication mode and credential generation.
 
+### RSocket Properties
+
+All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is disabled by default.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enables the protobuf RSocket PDP endpoint. |
+| `port` | `int` | `7000` | TCP port for RSocket connections. Ignored when `socket-path` is set. |
+| `socket-path` | `String` | | Unix domain socket path. When set, the server binds to this socket instead of TCP. Requires platform support (Linux epoll or macOS kqueue). |
+| `max-connection-lifetime` | `Duration` | | Maximum connection lifetime. Connections are disposed after this duration regardless of activity. For JWT credentials, the effective lifetime is the minimum of this value and the token's `exp` claim. Useful for forcing credential rotation on long-lived API key or Basic Auth connections. |
+
+Example:
+
+```yaml
+sapl:
+  pdp:
+    rsocket:
+      enabled: true
+      port: 7000
+      max-connection-lifetime: 24h
+```
+
+Unix domain socket (alternative to TCP):
+
+```yaml
+sapl:
+  pdp:
+    rsocket:
+      enabled: true
+      socket-path: /var/run/sapl.sock
+```
+
+The RSocket endpoint shares the same authentication configuration as the HTTP endpoints (`io.sapl.node.users`, `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth`). Authentication occurs once at connection setup. See [RSocket API](../6_1_HTTPApi/#rsocket-api) for the wire protocol specification.
+
 ### CLI Argument Overrides
 
 Any property can be passed as a command line argument using Spring Boot's `--property=value` syntax:

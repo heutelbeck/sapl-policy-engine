@@ -115,29 +115,36 @@ public class SemanticVariableOrder {
             }
         }
 
-        // Phase 2: keep groups with 2+ distinct constants, push others back to
-        // ungroupable
+        // Phase 2: keep groups with 2+ distinct constants, push small groups back
+        val equalityGroups = pruneSmallGroups(groupsByOperandHash, formulaPredicates, ungroupablePredicateFormulas);
+        equalityGroups.sort(Comparator.comparingInt(EqualityGroup::constantCount).reversed());
+
+        val remainingPredicates = new ArrayList<>(ungroupablePredicateFormulas.keySet());
+        return new AnalysisResult(equalityGroups, remainingPredicates, ungroupablePredicateFormulas);
+    }
+
+    private static ArrayList<EqualityGroup> pruneSmallGroups(Map<Long, EqualityGroup> groupsByOperandHash,
+            List<List<IndexPredicate>> formulaPredicates, Map<IndexPredicate, List<Integer>> ungroupable) {
         val equalityGroups = new ArrayList<EqualityGroup>();
         for (val group : groupsByOperandHash.values()) {
             if (group.constantCount() >= 2) {
                 equalityGroups.add(group);
             } else {
-                for (val predicate : group.getTentativePredicates()) {
-                    for (var formulaIndex = 0; formulaIndex < formulaPredicates.size(); formulaIndex++) {
-                        if (formulaPredicates.get(formulaIndex).contains(predicate)) {
-                            ungroupablePredicateFormulas.computeIfAbsent(predicate, k -> new ArrayList<>())
-                                    .add(formulaIndex);
-                        }
-                    }
+                pushBackToUngroupable(group, formulaPredicates, ungroupable);
+            }
+        }
+        return equalityGroups;
+    }
+
+    private static void pushBackToUngroupable(EqualityGroup group, List<List<IndexPredicate>> formulaPredicates,
+            Map<IndexPredicate, List<Integer>> ungroupable) {
+        for (val predicate : group.getTentativePredicates()) {
+            for (var formulaIndex = 0; formulaIndex < formulaPredicates.size(); formulaIndex++) {
+                if (formulaPredicates.get(formulaIndex).contains(predicate)) {
+                    ungroupable.computeIfAbsent(predicate, k -> new ArrayList<>()).add(formulaIndex);
                 }
             }
         }
-
-        // Best discriminator first
-        equalityGroups.sort(Comparator.comparingInt(EqualityGroup::constantCount).reversed());
-
-        val remainingPredicates = new ArrayList<>(ungroupablePredicateFormulas.keySet());
-        return new AnalysisResult(equalityGroups, remainingPredicates, ungroupablePredicateFormulas);
     }
 
     /**

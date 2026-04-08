@@ -150,7 +150,7 @@ class SmtddEvaluatorTests {
     private static EvaluatorContext buildEvaluator(List<BooleanExpression> expressions) {
         val predicatesPerFormula = extractPredicates(expressions);
         val analysis             = SemanticVariableOrder.analyze(predicatesPerFormula);
-        val root                 = SmtddBuilder.build(analysis, expressions, predicatesPerFormula, 0);
+        val root                 = SmtddBuilder.build(analysis, expressions, 0);
         val binaryOrder          = new BinaryVariableOrder(analysis.remainingPredicates(),
                 analysis.formulasPerRemainingPredicate());
         return new EvaluatorContext(root, binaryOrder);

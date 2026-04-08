@@ -41,7 +41,7 @@ For non-Spring JVM applications, an embedded PDP can be used directly:
 
 ### Remote PDP Client (Non-Spring)
 
-For non-Spring JVM applications connecting to a SAPL Node or other remote PDP server:
+For non-Spring JVM applications connecting to a SAPL Node or other remote PDP server. Supports both HTTP/JSON and RSocket/protobuf transports:
 
 ```xml
 <dependency>
@@ -50,6 +50,22 @@ For non-Spring JVM applications connecting to a SAPL Node or other remote PDP se
     <version>4.0.0-SNAPSHOT</version>
 </dependency>
 ```
+
+```java
+// HTTP
+var pdp = RemotePolicyDecisionPoint.builder().http()
+    .baseUrl("https://localhost:8443")
+    .basicAuth("clientKey", "clientSecret")
+    .build();
+
+// RSocket (high-performance protobuf transport)
+var pdp = RemotePolicyDecisionPoint.builder().rsocket()
+    .host("localhost").port(7000)
+    .apiKey("sapl_7f3a...")
+    .build();
+```
+
+Both transports implement `PolicyDecisionPoint`. For the RSocket wire protocol, see [RSocket API](../6_1_HTTPApi/#rsocket-api).
 
 ### Spring Boot Applications
 

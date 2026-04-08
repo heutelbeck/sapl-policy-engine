@@ -88,10 +88,11 @@ import java.util.function.UnaryOperator;
 @Slf4j
 public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
 
-    private static final String DECIDE           = "/api/pdp/decide";
-    private static final String DECIDE_ONCE      = "/api/pdp/decide-once";
-    private static final String MULTI_DECIDE     = "/api/pdp/multi-decide";
-    private static final String MULTI_DECIDE_ALL = "/api/pdp/multi-decide-all";
+    private static final String DECIDE                = "/api/pdp/decide";
+    private static final String DECIDE_ONCE           = "/api/pdp/decide-once";
+    private static final String MULTI_DECIDE          = "/api/pdp/multi-decide";
+    private static final String MULTI_DECIDE_ALL      = "/api/pdp/multi-decide-all";
+    private static final String MULTI_DECIDE_ALL_ONCE = "/api/pdp/multi-decide-all-once";
 
     private static final String ERROR_AUTH_FAILED          = "PDP authentication failed (HTTP {}). Check credentials configuration.";
     private static final String ERROR_HTTP_STATUS          = "PDP returned HTTP {} ({})";
@@ -174,6 +175,24 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
                 .onErrorResume(
                         error -> Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
+    }
+
+    /**
+     * Evaluates multiple authorization subscriptions and returns all decisions
+     * in a single bundled response. This is a one-shot operation that completes
+     * after the first bundled result.
+     * <p>
+     * Not part of the {@link PolicyDecisionPoint} interface.
+     *
+     * @param multiAuthzSubscription the multi-subscription to evaluate
+     * @return the bundled authorization decisions
+     */
+    public Mono<MultiAuthorizationDecision> decideAllOnce(MultiAuthorizationSubscription multiAuthzSubscription) {
+        val type = new ParameterizedTypeReference<MultiAuthorizationDecision>() {};
+        return client.post().uri(MULTI_DECIDE_ALL_ONCE).accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON).bodyValue(multiAuthzSubscription).retrieve().bodyToMono(type)
+                .timeout(Duration.ofMillis(timeoutMillis)).doOnError(this::logStreamError)
+                .onErrorReturn(MultiAuthorizationDecision.indeterminate());
     }
 
     private <T> Flux<T> streamSse(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,

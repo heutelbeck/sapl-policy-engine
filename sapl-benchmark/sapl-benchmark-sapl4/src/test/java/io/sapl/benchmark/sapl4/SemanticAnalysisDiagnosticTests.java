@@ -26,8 +26,6 @@ import io.sapl.api.model.BooleanExpression.Atom;
 import io.sapl.api.model.BooleanExpression.Constant;
 import io.sapl.api.model.BooleanExpression.Not;
 import io.sapl.api.model.BooleanExpression.Or;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
@@ -71,19 +69,10 @@ class SemanticAnalysisDiagnosticTests {
 
         val allPredicatesPerFormula = new ArrayList<List<IndexPredicate>>();
         var formulaCount            = 0;
-        var constantTrue            = 0;
-        var constantFalse           = 0;
-        var constantError           = 0;
 
         for (val document : documents) {
             val expression = document.isApplicable();
-            if (expression instanceof BooleanValue(var b) && b) {
-                constantTrue++;
-            } else if (expression instanceof BooleanValue ignored) {
-                constantFalse++;
-            } else if (expression instanceof ErrorValue) {
-                constantError++;
-            } else if (expression instanceof PureOperator pureOp) {
+            if (expression instanceof PureOperator pureOp) {
                 val predicates = new ArrayList<IndexPredicate>();
                 collectPredicates(pureOp.booleanExpression(), predicates);
                 allPredicatesPerFormula.add(predicates);
@@ -111,7 +100,7 @@ class SemanticAnalysisDiagnosticTests {
         }
 
         // Build the SMTDD - validates it completes without blowup
-        SmtddBuilder.build(result, booleanExpressions, allPredicatesPerFormula, 0);
+        SmtddBuilder.build(result, booleanExpressions, 0);
     }
 
     private static void collectPredicates(BooleanExpression expression, List<IndexPredicate> result) {

@@ -17,6 +17,10 @@
  */
 package io.sapl.compiler.index.smtdd;
 
+import static io.sapl.compiler.index.smtdd.SmtddNode.ERROR_CHILD;
+import static io.sapl.compiler.index.smtdd.SmtddNode.FALSE_CHILD;
+import static io.sapl.compiler.index.smtdd.SmtddNode.TRUE_CHILD;
+
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -29,7 +33,6 @@ import io.sapl.api.model.BooleanExpression.Atom;
 import io.sapl.api.model.BooleanExpression.Constant;
 import io.sapl.api.model.BooleanExpression.Not;
 import io.sapl.api.model.BooleanExpression.Or;
-import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.IndexSizeLimitExceededException;
@@ -67,14 +70,11 @@ public class SmtddBuilder {
      * @param analysis the semantic analysis result with equality groups and
      * remaining predicates
      * @param expressions the boolean expressions per formula
-     * @param allPredicatesPerFormula predicates per formula (for routing through
-     * equality branches)
      * @param maxIndexNodes maximum allowed nodes (0 = unlimited)
      * @return the root SMTDD node
      * @throws IndexSizeLimitExceededException if the node count exceeds the limit
      */
-    public static SmtddNode build(AnalysisResult analysis, List<BooleanExpression> expressions,
-            List<List<IndexPredicate>> allPredicatesPerFormula, int maxIndexNodes) {
+    public static SmtddNode build(AnalysisResult analysis, List<BooleanExpression> expressions, int maxIndexNodes) {
 
         val equalityGroups = analysis.equalityGroups();
         val formulaCount   = expressions.size();
@@ -140,8 +140,8 @@ public class SmtddBuilder {
 
         log.debug("SMTDD: merging bucket with {} formulas", formulasInBucket.cardinality());
 
-        val cache  = new IdentityHashMap<SmtddNode, IdentityHashMap<SmtddNode, SmtddNode>>();
-        var merged = (SmtddNode) null;
+        val       cache  = new IdentityHashMap<SmtddNode, IdentityHashMap<SmtddNode, SmtddNode>>();
+        SmtddNode merged = null;
         for (var formulaIndex = formulasInBucket.nextSetBit(0); formulaIndex >= 0; formulaIndex = formulasInBucket
                 .nextSetBit(formulaIndex + 1)) {
             if (merged == null) {
@@ -193,9 +193,9 @@ public class SmtddBuilder {
         val leftChildren  = childrenAt(left, topLevel);
         val rightChildren = childrenAt(right, topLevel);
 
-        val trueChild  = merge(table, leftChildren[0], rightChildren[0], cache);
-        val falseChild = merge(table, leftChildren[1], rightChildren[1], cache);
-        val errorChild = merge(table, leftChildren[2], rightChildren[2], cache);
+        val trueChild  = merge(table, leftChildren[TRUE_CHILD], rightChildren[TRUE_CHILD], cache);
+        val falseChild = merge(table, leftChildren[FALSE_CHILD], rightChildren[FALSE_CHILD], cache);
+        val errorChild = merge(table, leftChildren[ERROR_CHILD], rightChildren[ERROR_CHILD], cache);
 
         return table.binaryDecision(topLevel, trueChild, falseChild, errorChild);
     }
@@ -291,8 +291,9 @@ public class SmtddBuilder {
         val leftChildren  = childrenAt(left, topLevel);
         val rightChildren = childrenAt(right, topLevel);
 
-        return table.binaryDecision(topLevel, or(table, leftChildren[0], rightChildren[0]),
-                or(table, leftChildren[1], rightChildren[1]), or(table, leftChildren[2], rightChildren[2]));
+        return table.binaryDecision(topLevel, or(table, leftChildren[TRUE_CHILD], rightChildren[TRUE_CHILD]),
+                or(table, leftChildren[FALSE_CHILD], rightChildren[FALSE_CHILD]),
+                or(table, leftChildren[ERROR_CHILD], rightChildren[ERROR_CHILD]));
     }
 
     private static SmtddNode and(SmtddUniqueTable table, SmtddNode left, SmtddNode right) {
@@ -313,8 +314,9 @@ public class SmtddBuilder {
         val leftChildren  = childrenAt(left, topLevel);
         val rightChildren = childrenAt(right, topLevel);
 
-        return table.binaryDecision(topLevel, and(table, leftChildren[0], rightChildren[0]),
-                and(table, leftChildren[1], rightChildren[1]), and(table, leftChildren[2], rightChildren[2]));
+        return table.binaryDecision(topLevel, and(table, leftChildren[TRUE_CHILD], rightChildren[TRUE_CHILD]),
+                and(table, leftChildren[FALSE_CHILD], rightChildren[FALSE_CHILD]),
+                and(table, leftChildren[ERROR_CHILD], rightChildren[ERROR_CHILD]));
     }
 
     private static BinaryVariableOrder buildBinaryVariableOrder(AnalysisResult analysis) {

@@ -93,8 +93,7 @@ public class MtbddPolicyIndex implements PolicyIndex {
             case BooleanValue ignored       -> { /* constant false, drop */ }
             case ErrorValue error           -> alwaysErrorVotes.add(Vote.error(error, document.metadata()));
             case PureOperator pureOp        -> {
-                val boolExpr     = pureOp.booleanExpression();
-                val formulaIndex = expressions.size();
+                val boolExpr = pureOp.booleanExpression();
                 // Group documents by formula: identical expressions share one formula slot
                 var found = false;
                 for (var i = 0; i < expressions.size(); i++) {

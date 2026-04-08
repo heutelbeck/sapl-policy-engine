@@ -56,6 +56,10 @@ class SmtddEvaluator {
      * @param ctx the evaluation context
      * @return matched and errored formula indices
      */
+    private static ErrorValue firstEncountered(ErrorValue previous, ErrorValue current) {
+        return previous != null ? previous : current;
+    }
+
     static EvaluationResult evaluate(SmtddNode root, BinaryVariableOrder binaryOrder, EvaluationContext ctx) {
         val        accumulatedErrors = new BitSet();
         ErrorValue firstError        = null;
@@ -67,9 +71,7 @@ class SmtddEvaluator {
             case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected) -> {
                 val result = operand.evaluate(ctx);
                 if (result instanceof ErrorValue error) {
-                    if (firstError == null) {
-                        firstError = error;
-                    }
+                    firstError = firstEncountered(firstError, error);
                     accumulatedErrors.or(affected);
                     node = errorChild;
                 } else {
@@ -78,18 +80,15 @@ class SmtddEvaluator {
                 }
             }
             case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                  -> {
-                val predicate = binaryOrder.predicateAt(level);
-                val result    = predicate.operator().evaluate(ctx);
-                if (result instanceof ErrorValue error) {
-                    if (firstError == null) {
-                        firstError = error;
-                    }
+                val result = binaryOrder.predicateAt(level).operator().evaluate(ctx);
+                switch (result) {
+                case ErrorValue error           -> {
+                    firstError = firstEncountered(firstError, error);
                     accumulatedErrors.or(binaryOrder.erroredFormulas(level));
                     node = errorChild;
-                } else if (result instanceof BooleanValue(var b) && b) {
-                    node = trueChild;
-                } else {
-                    node = falseChild;
+                }
+                case BooleanValue(var b) when b -> node = trueChild;
+                default                         -> node = falseChild;
                 }
             }
             case Terminal ignored                                                                          ->

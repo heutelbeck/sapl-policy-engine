@@ -199,7 +199,7 @@ public class BenchmarkReportWriter {
         sb.append(sep);
         for (val r : results) {
             sb.append(String.format(Locale.US, "| %-" + mw
-                    + "s | %7d | %,14.0f | %,14.0f | %,14.0f | %,10.0f | %4.1f%% | %,14.0f | %,14.0f | %,14.0f | %,14.0f |",
+                    + "s | %7d | %14.0f | %14.0f | %14.0f | %10.0f | %4.1f%% | %14.0f | %14.0f | %14.0f | %14.0f |",
                     r.method(), r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(),
                     r.p5(), r.p95())).append('\n');
         }
@@ -228,9 +228,8 @@ public class BenchmarkReportWriter {
         sb.append(sep);
         for (val r : withLatency) {
             val l = r.latency();
-            sb.append(String.format(Locale.US,
-                    "| %-" + mw + "s | %7d | %,12.0f | %,12.0f | %,12.0f | %,12.0f | %,12.0f |", r.method(),
-                    r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
+            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %12.0f | %12.0f | %12.0f | %12.0f | %12.0f |",
+                    r.method(), r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
         }
         sb.append('\n');
     }
@@ -252,7 +251,7 @@ public class BenchmarkReportWriter {
             val meanNs  = r.mean() > 0 ? threads * 1_000_000_000.0 / r.mean() : 0;
             val p5Ns    = r.p95() > 0 ? threads * 1_000_000_000.0 / r.p95() : 0;
             val p95Ns   = r.p5() > 0 ? threads * 1_000_000_000.0 / r.p5() : 0;
-            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,14.0f | %,14.0f | %,14.0f |", r.method(),
+            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %14.0f | %14.0f | %14.0f |", r.method(),
                     r.threads(), meanNs, p5Ns, p95Ns)).append('\n');
         }
         sb.append('\n');
@@ -275,7 +274,7 @@ public class BenchmarkReportWriter {
                     .map(BenchmarkResult::mean).orElse(0.0);
             for (val r : methodResults) {
                 val scaling = baseline > 0 ? r.mean() / baseline : 0.0;
-                sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,18.0f | %12.1fx | %4.1fx |", r.method(),
+                sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %18.0f | %12.1fx | %4.1fx |", r.method(),
                         r.threads(), r.mean(), scaling, (double) r.threads())).append('\n');
             }
         }

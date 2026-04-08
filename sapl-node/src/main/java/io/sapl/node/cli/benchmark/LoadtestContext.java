@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * @param target the server address (URL for HTTP, host:port for RSocket)
  * @param concurrency number of concurrent requests
  * @param connections number of TCP connections (RSocket only)
- * @param vtPerConnection virtual threads per connection (RSocket only)
+ * @param vtPerConnection concurrency per connection (RSocket only)
  * @param warmupSeconds warmup duration
  * @param measureSeconds measurement duration
  * @param timestamp run timestamp for filenames

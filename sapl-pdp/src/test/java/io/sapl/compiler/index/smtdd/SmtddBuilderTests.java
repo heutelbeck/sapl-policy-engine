@@ -112,7 +112,7 @@ class SmtddBuilderTests {
             assertThat(root).isInstanceOf(EqualityBranch.class);
             // At least one child branch should be another EqualityBranch (nested)
             val outerBranch = (EqualityBranch) root;
-            assertThat(outerBranch.branches().values()).anyMatch(child -> child instanceof EqualityBranch);
+            assertThat(outerBranch.branches().values()).anyMatch(EqualityBranch.class::isInstance);
         }
     }
 
@@ -264,7 +264,7 @@ class SmtddBuilderTests {
             val predicatesPerFormula = extractPredicates(expressions);
             val analysis             = SemanticVariableOrder.analyze(predicatesPerFormula);
 
-            assertThatThrownBy(() -> SmtddBuilder.build(analysis, expressions, predicatesPerFormula, 1))
+            assertThatThrownBy(() -> SmtddBuilder.build(analysis, expressions, 1))
                     .isInstanceOf(IndexSizeLimitExceededException.class).hasMessageContaining("exceeds limit");
         }
     }
@@ -272,7 +272,7 @@ class SmtddBuilderTests {
     private static SmtddNode buildSmtdd(List<BooleanExpression> expressions) {
         val predicatesPerFormula = extractPredicates(expressions);
         val analysis             = SemanticVariableOrder.analyze(predicatesPerFormula);
-        return SmtddBuilder.build(analysis, expressions, predicatesPerFormula, 0);
+        return SmtddBuilder.build(analysis, expressions, 0);
     }
 
 }

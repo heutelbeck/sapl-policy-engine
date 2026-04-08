@@ -69,11 +69,27 @@ public class EqualityGroup {
      * affected set
      */
     CompactedBranches compact(BitSet formulasInBucket) {
-        val branchFormulas        = new HashMap<Value, BitSet>();
-        val unconstrainedFormulas = new BitSet();
-        val allExcludeInBucket    = new BitSet();
+        val branchFormulas        = collectEqBranches(formulasInBucket);
+        val allExcludeInBucket    = collectExcludesInBucket(formulasInBucket);
+        val unconstrainedFormulas = computeUnconstrained(formulasInBucket, branchFormulas, allExcludeInBucket);
 
-        // EQ formulas per constant, intersected with bucket
+        addExcludesToEqBranches(branchFormulas, formulasInBucket, unconstrainedFormulas);
+        addExplicitExcludeBranches(branchFormulas, formulasInBucket, unconstrainedFormulas);
+
+        val allConstrained = new BitSet();
+        for (val bits : branchFormulas.values()) {
+            allConstrained.or(bits);
+        }
+
+        // Default: unconstrained + all NE formulas (unknown value satisfies all !=)
+        val defaultFormulas = (BitSet) unconstrainedFormulas.clone();
+        defaultFormulas.or(allExcludeInBucket);
+
+        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, allConstrained);
+    }
+
+    private HashMap<Value, BitSet> collectEqBranches(BitSet formulasInBucket) {
+        val branchFormulas = new HashMap<Value, BitSet>();
         for (val entry : equalsFormulas.entrySet()) {
             val inBucket = (BitSet) entry.getValue().clone();
             inBucket.and(formulasInBucket);
@@ -81,24 +97,33 @@ public class EqualityGroup {
                 branchFormulas.put(entry.getKey(), inBucket);
             }
         }
+        return branchFormulas;
+    }
 
-        // All NE formulas in this bucket
+    private BitSet collectExcludesInBucket(BitSet formulasInBucket) {
+        val allExcludeInBucket = new BitSet();
         for (val entry : excludeFormulas.entrySet()) {
             val inBucket = (BitSet) entry.getValue().clone();
             inBucket.and(formulasInBucket);
             allExcludeInBucket.or(inBucket);
         }
+        return allExcludeInBucket;
+    }
 
-        // Unconstrained: in bucket but not in any EQ or NE
+    private static BitSet computeUnconstrained(BitSet formulasInBucket, Map<Value, BitSet> branchFormulas,
+            BitSet allExcludeInBucket) {
         val allConstrained = new BitSet();
         for (val bits : branchFormulas.values()) {
             allConstrained.or(bits);
         }
         allConstrained.or(allExcludeInBucket);
-        unconstrainedFormulas.or(formulasInBucket);
-        unconstrainedFormulas.andNot(allConstrained);
+        val unconstrained = (BitSet) formulasInBucket.clone();
+        unconstrained.andNot(allConstrained);
+        return unconstrained;
+    }
 
-        // Add NE formulas to each EQ branch where they're not excluded
+    private void addExcludesToEqBranches(Map<Value, BitSet> branchFormulas, BitSet formulasInBucket,
+            BitSet unconstrainedFormulas) {
         for (val entry : branchFormulas.entrySet()) {
             val branchValue = entry.getKey();
             val branchBits  = entry.getValue();
@@ -111,32 +136,33 @@ public class EqualityGroup {
             }
             branchBits.or(unconstrainedFormulas);
         }
+    }
 
-        // Excluded keys without an EQ branch need an explicit empty branch
+    private void addExplicitExcludeBranches(Map<Value, BitSet> branchFormulas, BitSet formulasInBucket,
+            BitSet unconstrainedFormulas) {
         for (val excludeEntry : excludeFormulas.entrySet()) {
             val excludedValue = excludeEntry.getKey();
             if (!branchFormulas.containsKey(excludedValue)) {
-                // Value matches excludedValue: != excludedValue is FALSE.
-                // But != otherValue IS satisfied, so add those formulas.
-                val emptyBranchBits = (BitSet) unconstrainedFormulas.clone();
-                for (val otherExclude : excludeFormulas.entrySet()) {
-                    if (!otherExclude.getKey().equals(excludedValue)) {
-                        val inBucket = (BitSet) otherExclude.getValue().clone();
-                        inBucket.and(formulasInBucket);
-                        emptyBranchBits.or(inBucket);
-                    }
-                }
+                val emptyBranchBits = buildExcludeBranchBits(excludedValue, formulasInBucket, unconstrainedFormulas);
                 if (!emptyBranchBits.isEmpty()) {
                     branchFormulas.put(excludedValue, emptyBranchBits);
                 }
             }
         }
+    }
 
-        // Default: unconstrained + all NE formulas (unknown value satisfies all !=)
-        val defaultFormulas = (BitSet) unconstrainedFormulas.clone();
-        defaultFormulas.or(allExcludeInBucket);
-
-        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, allConstrained);
+    private BitSet buildExcludeBranchBits(Value excludedValue, BitSet formulasInBucket, BitSet unconstrainedFormulas) {
+        // Value matches excludedValue: != excludedValue is FALSE.
+        // But != otherValue IS satisfied, so add those formulas.
+        val bits = (BitSet) unconstrainedFormulas.clone();
+        for (val otherExclude : excludeFormulas.entrySet()) {
+            if (!otherExclude.getKey().equals(excludedValue)) {
+                val inBucket = (BitSet) otherExclude.getValue().clone();
+                inBucket.and(formulasInBucket);
+                bits.or(inBucket);
+            }
+        }
+        return bits;
     }
 
     /**
