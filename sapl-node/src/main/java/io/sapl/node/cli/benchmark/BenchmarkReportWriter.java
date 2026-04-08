@@ -84,7 +84,7 @@ public class BenchmarkReportWriter {
         val baseName = ctx.timestamp() + "_" + ctx.protocol().toLowerCase() + "_loadtest";
         try {
             Files.writeString(outputDir.resolve(baseName + ".md"), buildLoadtestMarkdown(results, ctx));
-            Files.writeString(outputDir.resolve(baseName + ".csv"), buildCsv(results));
+            Files.writeString(outputDir.resolve(baseName + ".csv"), buildLoadtestCsv(results, ctx));
         } catch (IOException e) {
             err.println(WARN_REPORT_WRITE_FAILED.formatted(e.getMessage()));
         }
@@ -164,6 +164,35 @@ public class BenchmarkReportWriter {
         return sb.toString();
     }
 
+    static String buildLoadtestCsv(List<BenchmarkResult> results, LoadtestContext ctx) {
+        val sb = new StringBuilder();
+        sb.append("# Protocol: ").append(ctx.protocol()).append('\n');
+        sb.append("# Target: ").append(ctx.target()).append('\n');
+        sb.append("# Concurrency: ").append(ctx.concurrency()).append('\n');
+        if (ctx.connections() > 0) {
+            sb.append("# Connections: ").append(ctx.connections()).append('\n');
+            sb.append("# VT/connection: ").append(ctx.vtPerConnection()).append('\n');
+        }
+        sb.append("# Warmup: convergence-based\n");
+        sb.append("# Measurement: ").append(ctx.measureSeconds()).append(" s\n");
+        sb.append("# Timestamp: ").append(ctx.timestamp()).append('\n');
+        if (ctx.label() != null) {
+            sb.append("# Label: ").append(ctx.label()).append('\n');
+        }
+        sb.append("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,"
+                + "mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns\n");
+        for (val r : results) {
+            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
+            val l      = r.latency();
+            sb.append(String.format(Locale.US,
+                    "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.0f,%.0f,%.0f,%.0f,%.0f", r.method(),
+                    r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95(),
+                    meanNs, l != null ? l.p50() : 0, l != null ? l.p90() : 0, l != null ? l.p99() : 0,
+                    l != null ? l.p999() : 0, l != null ? l.max() : 0)).append('\n');
+        }
+        return sb.toString();
+    }
+
     private static void appendMethodology(StringBuilder sb, BenchmarkContext ctx, BenchmarkRunConfig cfg,
             String runner) {
         sb.append("## Methodology\n\n");
@@ -199,7 +228,7 @@ public class BenchmarkReportWriter {
         sb.append(sep);
         for (val r : results) {
             sb.append(String.format(Locale.US, "| %-" + mw
-                    + "s | %7d | %,14.0f | %,14.0f | %,14.0f | %,10.0f | %4.1f%% | %,14.0f | %,14.0f | %,14.0f | %,14.0f |",
+                    + "s | %7d | %14.0f | %14.0f | %14.0f | %10.0f | %4.1f%% | %14.0f | %14.0f | %14.0f | %14.0f |",
                     r.method(), r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(),
                     r.p5(), r.p95())).append('\n');
         }
@@ -228,9 +257,8 @@ public class BenchmarkReportWriter {
         sb.append(sep);
         for (val r : withLatency) {
             val l = r.latency();
-            sb.append(String.format(Locale.US,
-                    "| %-" + mw + "s | %7d | %,12.0f | %,12.0f | %,12.0f | %,12.0f | %,12.0f |", r.method(),
-                    r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
+            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %12.0f | %12.0f | %12.0f | %12.0f | %12.0f |",
+                    r.method(), r.threads(), l.p50(), l.p90(), l.p99(), l.p999(), l.max())).append('\n');
         }
         sb.append('\n');
     }
@@ -252,7 +280,7 @@ public class BenchmarkReportWriter {
             val meanNs  = r.mean() > 0 ? threads * 1_000_000_000.0 / r.mean() : 0;
             val p5Ns    = r.p95() > 0 ? threads * 1_000_000_000.0 / r.p95() : 0;
             val p95Ns   = r.p5() > 0 ? threads * 1_000_000_000.0 / r.p5() : 0;
-            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,14.0f | %,14.0f | %,14.0f |", r.method(),
+            sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %14.0f | %14.0f | %14.0f |", r.method(),
                     r.threads(), meanNs, p5Ns, p95Ns)).append('\n');
         }
         sb.append('\n');
@@ -275,7 +303,7 @@ public class BenchmarkReportWriter {
                     .map(BenchmarkResult::mean).orElse(0.0);
             for (val r : methodResults) {
                 val scaling = baseline > 0 ? r.mean() / baseline : 0.0;
-                sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %,18.0f | %12.1fx | %4.1fx |", r.method(),
+                sb.append(String.format(Locale.US, "| %-" + mw + "s | %7d | %18.0f | %12.1fx | %4.1fx |", r.method(),
                         r.threads(), r.mean(), scaling, (double) r.threads())).append('\n');
             }
         }

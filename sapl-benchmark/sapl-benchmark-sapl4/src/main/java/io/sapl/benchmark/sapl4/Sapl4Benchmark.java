@@ -17,9 +17,9 @@
  */
 package io.sapl.benchmark.sapl4;
 
-import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IndexingStrategy;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -70,7 +70,9 @@ class Sapl4Benchmark implements Callable<Integer> {
     private static final String ERROR_UNKNOWN_METHOD     = "Unknown method: %s. Valid methods: %s.";
     private static final String WARN_WRITE_FAILED        = "Warning: failed to write results: %s.";
 
-    private static final Set<String> VALID_METHODS = Set.of("decideOnceBlocking", "decideStreamFirst", "noOp");
+    private static final String      FLAG_UNROLL_IN_OPERATOR = "unrollInOperator";
+    private static final Set<String> VALID_METHODS           = Set.of("decideOnceBlocking", "decideStreamFirst",
+            "noOp");
 
     // t-distribution critical values for 95% CI (two-tailed, alpha=0.05).
     // Index 0 = df=1, index 1 = df=2, etc. For df>30, z=1.96 is sufficient.
@@ -214,8 +216,8 @@ class Sapl4Benchmark implements Callable<Integer> {
         }
         try {
             var resolvedScenario = ScenarioFactory.create(scenario, seed);
-            var flags            = new CompilerFlags(IndexingStrategy.valueOf(indexing.toUpperCase()), unroll, 10, 1.5,
-                    10_000);
+            var flags            = ObjectValue.builder().put("indexing", Value.of(indexing.toUpperCase()))
+                    .put(FLAG_UNROLL_IN_OPERATOR, Value.of(unroll)).build();
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
@@ -285,7 +287,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
         err.println(String.format(Locale.US, ERROR_CONVERGENCE_FAILED, maxForks, computeCoV(forkThroughputs),
                 convergenceThresholdPercent));
-        return List.of();
+        return forkThroughputs;
     }
 
     private double runSingleFork(String includePattern, int forkIndex) throws RunnerException {
@@ -434,8 +436,8 @@ class Sapl4Benchmark implements Callable<Integer> {
                 .warmupTime(TimeValue.seconds(warmupTimeSeconds)).measurementIterations(1)
                 .measurementTime(TimeValue.seconds(measurementTimeSeconds)).threads(threads)
                 .param("scenarioName", scenario).param("indexingStrategy", indexing)
-                .param("unrollInOperator", String.valueOf(unroll)).param("seed", String.valueOf(seed)).shouldDoGC(true)
-                .syncIterations(true);
+                .param(FLAG_UNROLL_IN_OPERATOR, String.valueOf(unroll)).param("seed", String.valueOf(seed))
+                .shouldDoGC(true).syncIterations(true);
     }
 
     private void buildJvmArgs(ChainedOptionsBuilder builder) {
@@ -483,8 +485,8 @@ class Sapl4Benchmark implements Callable<Integer> {
 
     private Map<Decision, Integer> countDecisions() {
         var resolvedScenario = ScenarioFactory.create(scenario, seed);
-        var flags            = new CompilerFlags(IndexingStrategy.valueOf(indexing.toUpperCase()), unroll, 10, 1.5,
-                10_000);
+        var flags            = ObjectValue.builder().put("indexing", Value.of(indexing.toUpperCase()))
+                .put(FLAG_UNROLL_IN_OPERATOR, Value.of(unroll)).build();
         var components       = resolvedScenario.buildPdp(flags);
         var pdp              = components.pdp();
         var counts           = new EnumMap<Decision, Integer>(Decision.class);

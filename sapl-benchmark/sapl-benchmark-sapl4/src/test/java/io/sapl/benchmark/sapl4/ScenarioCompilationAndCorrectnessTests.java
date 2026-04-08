@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.stream.Stream;
 
-import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.IndexingStrategy;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,7 +54,7 @@ class ScenarioCompilationAndCorrectnessTests {
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenScenarioThenCompilesAndNoIndeterminate(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val flags    = CompilerFlags.defaults();
+            val flags    = Value.EMPTY_OBJECT;
 
             val components = scenario.buildPdp(flags);
             val pdp        = components.pdp();
@@ -79,32 +79,38 @@ class ScenarioCompilationAndCorrectnessTests {
     }
 
     @Nested
-    @DisplayName("NAIVE and CANONICAL produce identical decisions")
+    @DisplayName("NAIVE, CANONICAL and SMTDD produce identical decisions")
     class IndexConsistency {
 
-        @DisplayName("NAIVE and CANONICAL agree on every subscription")
+        @DisplayName("all indexes agree on every subscription")
         @ParameterizedTest(name = "{0} seed={1}")
         @MethodSource("io.sapl.benchmark.sapl4.ScenarioCompilationAndCorrectnessTests#scenarioArguments")
         void whenDifferentIndexThenSameDecisions(String scenarioName, long seed) {
             val scenario = ScenarioFactory.create(scenarioName, seed);
-            val naive    = new CompilerFlags(IndexingStrategy.NAIVE, false, 10, 1.5, 10_000);
-            val canon    = new CompilerFlags(IndexingStrategy.CANONICAL, false, 10, 1.5, 10_000);
+            val naive    = ObjectValue.builder().put("indexing", Value.of("NAIVE")).build();
+            val canon    = ObjectValue.builder().put("indexing", Value.of("CANONICAL")).build();
+            val smtdd    = ObjectValue.builder().put("indexing", Value.of("SMTDD")).build();
 
             val naiveComponents = scenario.buildPdp(naive);
             val canonComponents = scenario.buildPdp(canon);
+            val smtddComponents = scenario.buildPdp(smtdd);
             val naivePdp        = naiveComponents.pdp();
             val canonPdp        = canonComponents.pdp();
+            val smtddPdp        = smtddComponents.pdp();
 
             val subs = scenario.subscriptions();
             for (int i = 0; i < subs.size(); i++) {
                 val sub           = subs.get(i);
                 val naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
                 val canonDecision = canonPdp.decideOnceBlocking(sub).decision();
-                assertThat(canonDecision).as("subscription[%d] %s", i, sub).isEqualTo(naiveDecision);
+                val smtddDecision = smtddPdp.decideOnceBlocking(sub).decision();
+                assertThat(canonDecision).as("CANONICAL vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
+                assertThat(smtddDecision).as("SMTDD vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
             }
 
             naiveComponents.dispose();
             canonComponents.dispose();
+            smtddComponents.dispose();
         }
     }
 

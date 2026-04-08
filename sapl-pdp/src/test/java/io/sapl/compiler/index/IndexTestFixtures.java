@@ -33,6 +33,7 @@ import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.api.model.BooleanExpression.Atom;
 import io.sapl.api.model.IndexPredicate;
+import io.sapl.compiler.index.dnf.Literal;
 import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 
@@ -46,7 +47,7 @@ public class IndexTestFixtures {
 
     public static final Map<Long, Value> PREDICATE_RESULTS = new ConcurrentHashMap<>();
 
-    static IndexPredicate predicate(long hash) {
+    public static IndexPredicate predicate(long hash) {
         return new IndexPredicate(hash, stubOperator(hash));
     }
 
@@ -54,15 +55,15 @@ public class IndexTestFixtures {
         return new IndexPredicate(hash, configurableOperator(hash));
     }
 
-    static Literal positiveLiteral(long hash) {
+    public static Literal positiveLiteral(long hash) {
         return new Literal(predicate(hash), false);
     }
 
-    static Literal negativeLiteral(long hash) {
+    public static Literal negativeLiteral(long hash) {
         return new Literal(predicate(hash), true);
     }
 
-    static Atom atom(long hash) {
+    public static Atom atom(long hash) {
         return new Atom(predicate(hash));
     }
 

@@ -17,47 +17,30 @@
 # limitations under the License.
 #
 
-# SAPL 4 embedded native benchmark (timing loops, convergence via re-invocation).
-# Uses sapl-benchmark-sapl4 JAR to export scenarios, then runs the native binary.
-# Usage: run-embedded-native.sh [quick|full] [output-dir]
+# SAPL 4 embedded benchmark: JVM (JMH forks(1)) and native (timing loops).
+# Auto-detects native binary availability. Sweeps scenarios, threads, indexing.
+#
+# Usage: run-embedded.sh [quick|full] [output-dir] [experiment]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 QUALITY=${1:-quick}
 OUTPUT_DIR=${2:-$SCRIPT_DIR/../results/${QUALITY}-$(timestamp)}
+EXPERIMENT=${3:-embedded}
 
 load_quality "$QUALITY"
-load_experiment "embedded"
+load_experiment "$EXPERIMENT"
 log_env
 
-if [ ! -x "$SAPL_NATIVE" ]; then
-    echo "ERROR: Native binary not found at $SAPL_NATIVE"
-    echo "Build with: nix develop ~/.dotfiles#graalvm --command mvn package -pl sapl-node -Pnative -DskipTests"
-    exit 1
-fi
+RUNTIMES=(jvm)
+$HAS_NATIVE && RUNTIMES+=(native)
 
-RUN_TIMESTAMP=$(timestamp)
-OUTDIR="$OUTPUT_DIR/embedded-native-${QUALITY}-${RUN_TIMESTAMP}"
 SCENARIO_DIR="/tmp/sapl-benchmark-scenarios"
 rm -rf "$SCENARIO_DIR"
-mkdir -p "$OUTDIR" "$SCENARIO_DIR"
+mkdir -p "$SCENARIO_DIR"
 
-echo "================================================================"
-echo "  SAPL 4 Embedded Native Benchmark"
-echo "  Profile:   $QUALITY"
-echo "  Binary:    $SAPL_NATIVE"
-echo "  Scenarios: ${SCENARIOS[*]}"
-echo "  Methods:   ${METHODS[*]}"
-echo "  Indexing:  ${INDEXING_SWEEP[*]}"
-echo "  Threads:   ${THREAD_SWEEP[*]}"
-echo "  Warmup:    ${WARMUP_ITERATIONS} x ${WARMUP_TIME}s"
-echo "  Measure:   ${MEASUREMENT_TIME}s"
-echo "  Converg:   CoV < ${CONVERGENCE_THRESHOLD}% over ${CONVERGENCE_WINDOW} forks (max ${MAX_FORKS})"
-echo "  Latency:   ${LATENCY}"
-echo "================================================================"
-echo ""
-
+# Export scenarios for native (JVM reads them at runtime, but native needs files)
 echo "Exporting scenarios..."
 for indexing in "${INDEXING_SWEEP[@]}"; do
     for scenario in "${SCENARIOS[@]}"; do
@@ -67,23 +50,18 @@ for indexing in "${INDEXING_SWEEP[@]}"; do
 done
 echo ""
 
+# ---- Native helper functions ----
 
-run_single_fork() {
+run_native_fork() {
     local scenario=$1
     local method=$2
     local threads=$3
     local cpu_range=$4
     local indexing=$5
     local scenario_dir="$SCENARIO_DIR/${scenario}-${indexing}"
-    local latency_flag=""
-    if [ "$LATENCY" = "true" ]; then
-        latency_flag="--latency=true"
-    else
-        latency_flag="--latency=false"
-    fi
+    local latency_flag="--latency=$LATENCY"
 
-    local output
-    output=$(run_pinned "$cpu_range" "$SAPL_NATIVE" benchmark \
+    run_pinned "$cpu_range" "$SAPL_NATIVE" benchmark \
         --dir "$scenario_dir" \
         -f "$scenario_dir/subscription.json" \
         --machine-readable \
@@ -95,12 +73,10 @@ run_single_fork() {
         --measurement-time="$MEASUREMENT_TIME" \
         -o "$OUTDIR" \
         --output-prefix="${scenario}_${indexing}" \
-        $latency_flag 2>/dev/null)
-
-    echo "$output"
+        $latency_flag 2>/dev/null
 }
 
-run_converging() {
+run_native_converging() {
     local scenario=$1
     local method=$2
     local threads=$3
@@ -115,7 +91,7 @@ run_converging() {
         wait_cool
 
         local output
-        output=$(run_single_fork "$scenario" "$method" "$threads" "$cpu_range" "$indexing")
+        output=$(run_native_fork "$scenario" "$method" "$threads" "$cpu_range" "$indexing")
 
         local throughput
         throughput=$(echo "$output" | grep '^THROUGHPUT:' | head -1 | cut -d: -f2)
@@ -146,7 +122,7 @@ run_converging() {
         if [ "$n" -ge 2 ]; then
             cov=$(compute_cov "${throughputs[@]}")
         fi
-        printf "    Fork %d: %'.0f ops/s (CoV: %s%%)\n" "$fork_index" "${throughput%.*}" "$cov"
+        printf "    Fork %d: %.0f ops/s (CoV: %s%%)\n" "$fork_index" "${throughput%.*}" "$cov"
 
         local converged
         converged=$(check_convergence "$CONVERGENCE_WINDOW" "${throughputs[@]}")
@@ -187,80 +163,110 @@ run_converging() {
     return 0
 }
 
-# Count total steps
-MAIN_STEPS=$(( ${#INDEXING_SWEEP[@]} * ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
-EXTRA_STEPS=0
-if [ "$QUALITY" = "full" ]; then
-    EXTRA_STEPS=$(( ${#SCENARIOS[@]} * ${#THREAD_SWEEP[@]} + ${#THREAD_SWEEP[@]} ))
-fi
-TOTAL_STEPS=$(( MAIN_STEPS + EXTRA_STEPS ))
-CURRENT_STEP=0
+# ---- Main benchmark function (dispatches to JVM or native) ----
 
-echo "  Total:     $TOTAL_STEPS benchmark runs"
-echo "  Output:    $OUTDIR"
-echo "================================================================"
-echo ""
+run_benchmark() {
+    local runtime=$1
+    local scenario=$2
+    local method=$3
+    local threads=$4
+    local indexing=$5
 
-for indexing in "${INDEXING_SWEEP[@]}"; do
-    for scenario in "${SCENARIOS[@]}"; do
-        for method in "${METHODS[@]}"; do
-            for threads in "${THREAD_SWEEP[@]}"; do
-                CURRENT_STEP=$((CURRENT_STEP + 1))
-                pcores=$threads
-                cpu_range=$(server_cpus "$pcores")
-                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+    local pcores=$threads
+    local cpu_range
+    cpu_range=$(server_cpus "$pcores")
 
-                echo "================================================================"
-                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-                echo "  $scenario / $method / ${threads}t / $indexing pinned to CPUs $cpu_range"
-                echo "================================================================"
+    CURRENT_STEP=$((CURRENT_STEP + 1))
+    local pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
 
-                run_converging "$scenario" "$method" "$threads" "$cpu_range" "$indexing"
-                echo ""
-            done
-        done
-    done
-done
+    echo "================================================================"
+    echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
+    echo "  $runtime / $scenario / $method / ${threads}t / $indexing pinned to CPUs $cpu_range"
+    echo "================================================================"
 
-if [ "$QUALITY" = "full" ]; then
+    if [ "$runtime" = "jvm" ]; then
+        wait_cool
+        run_pinned "$cpu_range" java -jar "$SAPL4_BENCH_JAR" \
+            --scenario="$scenario" \
+            --method="$method" \
+            --indexing="$indexing" \
+            -t "$threads" \
+            --warmup-iterations="$WARMUP_ITERATIONS" \
+            --warmup-time="$WARMUP_TIME" \
+            --measurement-time="$MEASUREMENT_TIME" \
+            --convergence-threshold="$CONVERGENCE_THRESHOLD" \
+            --convergence-window="$CONVERGENCE_WINDOW" \
+            --max-forks="$MAX_FORKS" \
+            --latency="$LATENCY" \
+            --heap=32g \
+            -o "$OUTDIR"
+    else
+        run_native_converging "$scenario" "$method" "$threads" "$cpu_range" "$indexing"
+    fi
+
+    echo ""
+}
+
+# ---- Run loop ----
+
+for runtime in "${RUNTIMES[@]}"; do
+    RUN_TIMESTAMP=$(timestamp)
+    OUTDIR="$OUTPUT_DIR/${EXPERIMENT}-${runtime}-${QUALITY}-${RUN_TIMESTAMP}"
+    mkdir -p "$OUTDIR"
+
+    MAIN_STEPS=$(( ${#INDEXING_SWEEP[@]} * ${#SCENARIOS[@]} * ${#METHODS[@]} * ${#THREAD_SWEEP[@]} ))
+    EXTRA_STEPS=0
+    if [ "$QUALITY" = "full" ]; then
+        EXTRA_STEPS=$(( ${#SCENARIOS[@]} * ${#THREAD_SWEEP[@]} + ${#THREAD_SWEEP[@]} ))
+    fi
+    TOTAL_STEPS=$(( MAIN_STEPS + EXTRA_STEPS ))
+    CURRENT_STEP=0
+
+    echo "================================================================"
+    echo "  SAPL 4 Embedded Benchmark ($runtime)"
+    echo "  Profile:   $QUALITY"
+    echo "  Experiment:$EXPERIMENT"
+    echo "  Scenarios: ${SCENARIOS[*]}"
+    echo "  Methods:   ${METHODS[*]}"
+    echo "  Indexing:  ${INDEXING_SWEEP[*]}"
+    echo "  Threads:   ${THREAD_SWEEP[*]}"
+    echo "  Warmup:    ${WARMUP_ITERATIONS} x ${WARMUP_TIME}s"
+    echo "  Measure:   ${MEASUREMENT_TIME}s"
+    echo "  Latency:   ${LATENCY}"
+    echo "  Total:     $TOTAL_STEPS benchmark runs"
+    echo "  Output:    $OUTDIR"
+    echo "================================================================"
+    echo ""
+
     for indexing in "${INDEXING_SWEEP[@]}"; do
         for scenario in "${SCENARIOS[@]}"; do
-            for threads in "${THREAD_SWEEP[@]}"; do
-                CURRENT_STEP=$((CURRENT_STEP + 1))
-                pcores=$threads
-                cpu_range=$(server_cpus "$pcores")
-                pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
-
-                echo "================================================================"
-                echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-                echo "  $scenario / decideStreamFirst / ${threads}t / $indexing pinned to CPUs $cpu_range"
-                echo "================================================================"
-
-                run_converging "$scenario" "decideStreamFirst" "$threads" "$cpu_range" "$indexing"
-                echo ""
+            for method in "${METHODS[@]}"; do
+                for threads in "${THREAD_SWEEP[@]}"; do
+                    run_benchmark "$runtime" "$scenario" "$method" "$threads" "$indexing"
+                done
             done
         done
     done
 
-    for threads in "${THREAD_SWEEP[@]}"; do
-        CURRENT_STEP=$((CURRENT_STEP + 1))
-        pcores=$threads
-        cpu_range=$(server_cpus "$pcores")
-        pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+    if [ "$QUALITY" = "full" ]; then
+        for indexing in "${INDEXING_SWEEP[@]}"; do
+            for scenario in "${SCENARIOS[@]}"; do
+                for threads in "${THREAD_SWEEP[@]}"; do
+                    run_benchmark "$runtime" "$scenario" "decideStreamFirst" "$threads" "$indexing"
+                done
+            done
+        done
 
-        echo "================================================================"
-        echo "  Step $CURRENT_STEP of $TOTAL_STEPS ($pct%)"
-        echo "  noOp / ${threads}t pinned to CPUs $cpu_range"
-        echo "================================================================"
+        for threads in "${THREAD_SWEEP[@]}"; do
+            run_benchmark "$runtime" "baseline" "noOp" "$threads" "AUTO"
+        done
+    fi
 
-        run_converging "baseline" "noOp" "$threads" "$cpu_range" "AUTO"
-        echo ""
-    done
-fi
+    python3 "$BENCH_PY" summarize "$OUTDIR"
 
-python3 "$BENCH_PY" summarize "$OUTDIR"
-
-echo "================================================================"
-echo "  SAPL 4 Embedded Native Complete"
-echo "  Results: $OUTDIR"
-echo "================================================================"
+    echo "================================================================"
+    echo "  SAPL 4 Embedded Complete ($runtime)"
+    echo "  Results: $OUTDIR"
+    echo "================================================================"
+    echo ""
+done

@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.index;
+package io.sapl.compiler.index.naive;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.document.CompiledDocument;

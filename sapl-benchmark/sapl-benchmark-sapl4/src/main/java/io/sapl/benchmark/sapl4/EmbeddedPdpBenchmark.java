@@ -19,8 +19,8 @@ package io.sapl.benchmark.sapl4;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CompilerFlags;
-import io.sapl.api.pdp.IndexingStrategy;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.val;
@@ -65,8 +65,8 @@ public class EmbeddedPdpBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         val scenario = ScenarioFactory.create(scenarioName, Long.parseLong(seed));
-        val flags    = new CompilerFlags(IndexingStrategy.valueOf(indexingStrategy.toUpperCase()),
-                Boolean.parseBoolean(unrollInOperator), 10, 1.5, 10_000);
+        val flags    = ObjectValue.builder().put("indexing", Value.of(indexingStrategy.toUpperCase()))
+                .put("unrollInOperator", Value.of(Boolean.parseBoolean(unrollInOperator))).build();
         components    = scenario.buildPdp(flags);
         pdp           = components.pdp();
         subscriptions = scenario.subscriptions().toArray(AuthorizationSubscription[]::new);

@@ -27,7 +27,8 @@ import io.sapl.api.model.EvaluationContext;
  * <p>
  * Replaces the linear applicability evaluation loop in PDP-level combining
  * algorithms. Implementations range from naive linear scan
- * ({@link NaivePolicyIndex}) to the count-and-eliminate algorithm
+ * ({@link io.sapl.compiler.index.naive.NaivePolicyIndex}) to the
+ * count-and-eliminate algorithm
  * ({@link io.sapl.compiler.index.canonical.CanonicalPolicyIndex}).
  */
 public interface PolicyIndex {

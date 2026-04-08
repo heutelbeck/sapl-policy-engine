@@ -15,20 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.compiler.index;
+
+import java.io.Serial;
+
+import io.sapl.api.SaplVersion;
 
 /**
- * Strategy for selecting the policy index implementation.
+ * Thrown when a decision diagram index exceeds the configured maximum
+ * node count during construction. Signals the index factory to fall
+ * back to a simpler index strategy.
  */
-public enum IndexingStrategy {
+public class IndexSizeLimitExceededException extends RuntimeException {
 
-    /** Automatically select based on heuristics (e.g., policy count). */
-    AUTO,
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
-    /** Linear scan over all documents. No indexing overhead. */
-    NAIVE,
+    private static final String ERROR_INDEX_SIZE_LIMIT = "Index node count %d exceeds limit %d";
 
-    /** Count-and-eliminate algorithm from the SACMAT '21 paper. */
-    CANONICAL
+    public IndexSizeLimitExceededException(int actualSize, int limit) {
+        super(ERROR_INDEX_SIZE_LIMIT.formatted(actualSize, limit));
+    }
 
 }

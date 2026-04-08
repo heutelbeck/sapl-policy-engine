@@ -20,37 +20,52 @@ package io.sapl.compiler.index;
 import java.util.List;
 import java.util.stream.Stream;
 
-import io.sapl.api.pdp.CompilerFlags;
-import io.sapl.api.pdp.IndexingStrategy;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Value;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
+import io.sapl.compiler.index.mtbdd.MtbddPolicyIndex;
+import io.sapl.compiler.index.naive.NaivePolicyIndex;
+import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
 import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static io.sapl.compiler.index.IndexTestFixtures.stubDocument;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("IndexFactory")
 class IndexFactoryTests {
 
-    @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource
-    void whenStrategyThenCorrectImplementation(IndexingStrategy strategy, Class<?> expectedType) {
+    @ParameterizedTest(name = "{0} -> {1}")
+    void whenStrategyThenCorrectImplementation(String strategy, Class<?> expectedType) {
         val docs = List.of(stubDocument("p1"));
         val ctx  = SaplTesting.compilationContext();
-        ctx.setCompilerFlags(new CompilerFlags(strategy, false, 10, 1.5, 10_000));
+        ctx.setCompilerOptions(ObjectValue.builder().put("indexing", Value.of(strategy)).build());
         val index = IndexFactory.createIndex(docs, ctx);
         assertThat(index).isInstanceOf(expectedType);
     }
 
     static Stream<Arguments> whenStrategyThenCorrectImplementation() {
-        return Stream.of(arguments(IndexingStrategy.NAIVE, NaivePolicyIndex.class),
-                arguments(IndexingStrategy.CANONICAL, CanonicalPolicyIndex.class),
-                arguments(IndexingStrategy.AUTO, NaivePolicyIndex.class));
+        return Stream.of(arguments("NAIVE", NaivePolicyIndex.class), arguments("CANONICAL", CanonicalPolicyIndex.class),
+                arguments("MTBDD", MtbddPolicyIndex.class), arguments("SMTDD", SmtddPolicyIndex.class),
+                arguments("AUTO", NaivePolicyIndex.class));
+    }
+
+    @Test
+    @DisplayName("unknown strategy throws")
+    void whenUnknownStrategyThenThrows() {
+        val docs = List.of(stubDocument("p1"));
+        val ctx  = SaplTesting.compilationContext();
+        ctx.setCompilerOptions(ObjectValue.builder().put("indexing", Value.of("BOGUS")).build());
+        assertThatThrownBy(() -> IndexFactory.createIndex(docs, ctx)).isInstanceOf(SaplCompilerException.class);
     }
 
 }

@@ -1,13 +1,17 @@
 ---
 layout: default
-title: HTTP API
+title: HTTP and RSocket API
 parent: SDKs and APIs
 nav_order: 601
 ---
 
+## HTTP and RSocket API
+
+The SAPL PDP server exposes two network APIs for authorization decisions: HTTP/JSON and RSocket/protobuf. Both offer the same five operations with identical semantics. HTTP is the default and works with any HTTP client. RSocket is an optional high-performance transport using binary protobuf serialization over persistent TCP or Unix domain socket connections.
+
 ## HTTP API
 
-The SAPL PDP server exposes HTTP endpoints for authorization decisions. Any application that can make HTTP requests can use the PDP -- no SDK required.
+The HTTP API requires no SDK. Any application that can make HTTP requests can use the PDP.
 
 All endpoints accept `POST` requests with `application/json` bodies. Streaming endpoints return `text/event-stream` (Server-Sent Events); one-shot endpoints return `application/json`. All endpoints are located under a shared base URL, typically `https://<host>:<port>/api/pdp/`.
 
@@ -213,7 +217,7 @@ sapl check --remote --url https://localhost:8443 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"' && echo "PERMIT"
 ```
 
-For the full CLI reference, see [Command Line](../7_8_CommandLine/).
+For the full CLI reference, see [Command Line](../7_9_CommandLine/).
 
 ### Multi-Subscription Endpoints
 
@@ -387,3 +391,123 @@ The one-shot endpoints (`/api/pdp/decide-once`, `/api/pdp/multi-decide-all-once`
 ### Server Implementation
 
 The SAPL Policy Engine ships with **SAPL Node**, a standalone PDP server. SAPL Node supports filesystem directories, signed bundles, and remote bundle fetching as policy sources. It is available as a Docker container and as a native binary. See [SAPL Node](../7_0_SaplNode/) for deployment and configuration.
+
+## RSocket API
+
+The RSocket API provides the same five operations as HTTP using protobuf serialization over persistent TCP or Unix domain socket (UDS) connections. It is significantly faster than HTTP/JSON for high-throughput workloads. RSocket is disabled by default. For server configuration, see [Configuration](../7_2_Configuration/#rsocket-properties).
+
+### Wire Format
+
+Each RSocket payload has two parts:
+
+- **Metadata**: the route name as a UTF-8 string (e.g., `"decide-once"`)
+- **Data**: the protobuf-encoded request or response message
+
+No composite metadata, no MIME type negotiation. The route string alone determines the operation.
+
+### Protobuf Specification
+
+The wire format is defined by two `.proto` files shipped in the `sapl-api-proto` module. These are the platform-independent specification. Any language with a protobuf compiler and an RSocket client library can build a compatible client from them.
+
+#### Service Definition (`sapl_service.proto`)
+
+```protobuf
+service PolicyDecisionPointService {
+  rpc Decide(AuthorizationSubscription) returns (stream AuthorizationDecision);
+  rpc DecideOnce(AuthorizationSubscription) returns (AuthorizationDecision);
+  rpc MultiDecide(MultiAuthorizationSubscription) returns (stream IdentifiableAuthorizationDecision);
+  rpc MultiDecideAll(MultiAuthorizationSubscription) returns (stream MultiAuthorizationDecision);
+  rpc MultiDecideAllOnce(MultiAuthorizationSubscription) returns (MultiAuthorizationDecision);
+}
+```
+
+#### Message Definitions (`sapl_types.proto`)
+
+```protobuf
+message AuthorizationSubscription {
+  Value subject = 1;
+  Value action = 2;
+  Value resource = 3;
+  Value environment = 4;
+  Value secrets = 5;
+}
+
+message AuthorizationDecision {
+  Decision decision = 1;
+  ArrayValue obligations = 2;
+  ArrayValue advice = 3;
+  Value resource = 4;
+}
+
+enum Decision {
+  INDETERMINATE = 0;
+  PERMIT = 1;
+  DENY = 2;
+  NOT_APPLICABLE = 3;
+}
+
+message Value {
+  oneof kind {
+    NullValue null_value = 1;
+    bool bool_value = 2;
+    string number_value = 3;      // BigDecimal as string for precision
+    string text_value = 4;
+    ArrayValue array_value = 5;
+    ObjectValue object_value = 6;
+    bool undefined_value = 7;
+    ErrorValue error_value = 8;
+  }
+}
+
+message MultiAuthorizationSubscription {
+  repeated IdentifiableAuthorizationSubscription subscriptions = 1;
+}
+
+message MultiAuthorizationDecision {
+  map<string, AuthorizationDecision> decisions = 1;
+}
+```
+
+Numbers are encoded as decimal strings to preserve arbitrary precision. `INDETERMINATE` is enum value 0 so that uninitialized proto3 fields default to the safe denial state.
+
+### Operations
+
+| Route | RSocket Pattern | Request | Response |
+|-------|----------------|---------|----------|
+| `decide` | Request-Stream | `AuthorizationSubscription` | `AuthorizationDecision` (stream) |
+| `decide-once` | Request-Response | `AuthorizationSubscription` | `AuthorizationDecision` |
+| `multi-decide` | Request-Stream | `MultiAuthorizationSubscription` | `IdentifiableAuthorizationDecision` (stream) |
+| `multi-decide-all` | Request-Stream | `MultiAuthorizationSubscription` | `MultiAuthorizationDecision` (stream) |
+| `multi-decide-all-once` | Request-Response | `MultiAuthorizationSubscription` | `MultiAuthorizationDecision` |
+
+Streaming operations push updated decisions whenever policies, attributes, or context change. Unlike HTTP SSE, RSocket streams support native backpressure.
+
+### Authentication
+
+Authentication is performed once during the RSocket connection setup frame, not per request. Credentials are encoded in the setup frame's metadata using the RSocket authentication metadata extension.
+
+| Method | Metadata Encoding |
+|--------|-------------------|
+| Basic Auth | `AuthMetadataCodec.encodeSimpleMetadata()` |
+| API Key / Bearer Token | `AuthMetadataCodec.encodeBearerMetadata()` |
+
+If authentication fails, the server rejects the setup with a `REJECTED_SETUP` error frame.
+
+### Connection Lifecycle
+
+RSocket connections are persistent. Connection lifetime is bounded by credential expiry (JWT `exp` claim) and an optional server-configured maximum. The effective lifetime is the minimum of these two bounds. Expired connections are disposed by the server; clients must reconnect.
+
+### Error Handling
+
+All operations return `INDETERMINATE` on unparseable requests, encoding failures, or unknown routes. This matches the HTTP API's fail-safe behavior.
+
+### Comparison
+
+| Aspect | HTTP | RSocket |
+|--------|------|---------|
+| Serialization | JSON | Protobuf |
+| Streaming | Server-Sent Events | Native RSocket streams |
+| Connection | Per-request or multiplexed | Persistent TCP or UDS |
+| Authentication | Per-request HTTP headers | Once at connection setup |
+| Backpressure | None (SSE) | Native flow control |
+| Interoperability | Any HTTP client | Requires RSocket + protobuf library |

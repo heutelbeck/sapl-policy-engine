@@ -592,6 +592,149 @@ def cmd_summarize_latency(args):
     summarize_latency_results(args.results_dir)
 
 
+def _parse_loadtest_csv(path):
+    """Parse a loadtest CSV (with comment headers and method,threads,mean_ops_s,... data)."""
+    meta = _parse_csv_metadata(path)
+    rows = []
+    with open(path) as f:
+        header = None
+        for line in f:
+            if line.startswith("#"):
+                continue
+            if header is None:
+                header = line.strip().split(",")
+                continue
+            values = line.strip().split(",")
+            if len(values) != len(header):
+                continue
+            row = dict(zip(header, values))
+            rows.append(row)
+    return meta, rows
+
+
+def summarize_json(results_dir):
+    """Produce a summary.json from all CSV files in a results directory.
+
+    Auto-detects two CSV formats:
+    - Fork CSVs (fork,throughput_ops_s) from embedded/server benchmarks
+    - Loadtest CSVs (method,threads,mean_ops_s,...) from sapl loadtest
+    """
+    results_path = Path(results_dir)
+    csv_files = sorted(results_path.glob("*.csv"))
+    csv_files = [f for f in csv_files
+                 if f.name != "summary.csv" and f.name != "saturation.csv"]
+
+    if not csv_files:
+        print(f"No CSV result files found in {results_dir}")
+        return
+
+    entries = []
+    for f in csv_files:
+        meta = _parse_csv_metadata(f)
+
+        # Detect format: loadtest CSVs have "method" as first column header
+        with open(f) as fh:
+            first_data_line = ""
+            for line in fh:
+                if not line.startswith("#"):
+                    first_data_line = line.strip()
+                    break
+
+        if first_data_line.startswith("method,"):
+            # Loadtest format
+            _, rows = _parse_loadtest_csv(f)
+            # Label from CSV header or fallback to MD file
+            label = meta.get("Label", "")
+            if not label:
+                md_path = f.with_suffix(".md")
+                if md_path.exists():
+                    for line in md_path.read_text().splitlines():
+                        if "| Label" in line:
+                            parts = line.split("|")
+                            label = parts[-2].strip() if len(parts) >= 3 else ""
+                            break
+            for row in rows:
+                entry = {
+                    "file": f.name,
+                    "type": "loadtest",
+                    "label": label,
+                    "protocol": meta.get("Protocol", ""),
+                    "concurrency": int(meta.get("Concurrency", 0)),
+                    "connections": int(meta.get("Connections", 0)) if meta.get("Connections") else 0,
+                    "measurement_s": meta.get("Measurement", ""),
+                    "mean_ops_s": float(row.get("mean_ops_s", 0)),
+                    "p50_ns": int(float(row.get("latency_p50_ns", 0))),
+                    "p90_ns": int(float(row.get("latency_p90_ns", 0))),
+                    "p99_ns": int(float(row.get("latency_p99_ns", 0))),
+                    "p999_ns": int(float(row.get("latency_p999_ns", 0))),
+                    "max_ns": int(float(row.get("latency_max_ns", 0))),
+                }
+                entries.append(entry)
+        elif first_data_line.startswith("fork,"):
+            # Fork format (embedded/server)
+            throughputs = _parse_csv_throughputs(f)
+            if not throughputs:
+                continue
+            mean_thrpt, _, cov = compute_stats(throughputs)
+            ci_lower, ci_upper = confidence_interval_95(throughputs)
+            # Extract indexing from filename first, then metadata
+            # Filename pattern: scenario_seed42_INDEXING_method_threads.csv
+            indexing = ""
+            for strategy in ("NAIVE", "CANONICAL", "SMTDD", "MTBDD", "AUTO"):
+                if f"_{strategy}_" in f.name:
+                    indexing = strategy
+                    break
+            if not indexing:
+                indexing = meta.get("Indexing", meta.get("Runtime", ""))
+            entry = {
+                "file": f.name,
+                "type": "fork",
+                "scenario": meta.get("Scenario", ""),
+                "method": meta.get("Method", ""),
+                "indexing": indexing,
+                "threads": meta.get("Threads", ""),
+                "mean_ops_s": mean_thrpt,
+                "ci_lower": ci_lower,
+                "ci_upper": ci_upper,
+                "cov_pct": cov,
+                "forks": len(throughputs),
+                "p50_ns": int(meta.get("Latency p50 (ns)", 0)) if meta.get("Latency p50 (ns)") else 0,
+                "p90_ns": int(meta.get("Latency p90 (ns)", 0)) if meta.get("Latency p90 (ns)") else 0,
+                "p99_ns": int(meta.get("Latency p99 (ns)", 0)) if meta.get("Latency p99 (ns)") else 0,
+                "permit": meta.get("Decisions PERMIT", ""),
+                "deny": meta.get("Decisions DENY", ""),
+            }
+            entries.append(entry)
+
+    # Also include saturation.csv if present
+    sat_path = results_path / "saturation.csv"
+    if sat_path.exists():
+        sat = []
+        with open(sat_path) as f:
+            for line in f:
+                parts = line.strip().split(",")
+                if len(parts) == 4:
+                    sat.append({
+                        "scenario": parts[0],
+                        "runtime": parts[1],
+                        "pcores": int(parts[2]),
+                        "peak_ops_s": int(parts[3]),
+                    })
+        if sat:
+            for s in sat:
+                entries.append({"type": "saturation", **s})
+
+    out_path = results_path / "summary.json"
+    with open(out_path, "w") as f:
+        json.dump(entries, f, indent=2)
+
+    print(f"summary.json: {len(entries)} entries -> {out_path}")
+
+
+def cmd_summarize_json(args):
+    summarize_json(args.results_dir)
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
@@ -683,6 +826,12 @@ def main():
                         help="Aggregate latency results into summary")
     p.add_argument("results_dir")
     p.set_defaults(func=cmd_summarize_latency)
+
+    # summarize-json
+    p = sub.add_parser("summarize-json",
+                        help="Produce summary.json from all CSVs in a directory")
+    p.add_argument("results_dir")
+    p.set_defaults(func=cmd_summarize_json)
 
     args = parser.parse_args()
     args.func(args)

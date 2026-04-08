@@ -209,23 +209,23 @@ public class EmbeddedBenchmarkRunner {
         metric.put("scorePercentiles", percentiles);
         metric.put("rawDataHistogram", List.of(List.of(rawHistogram)));
 
-        val benchmarkRecord = new LinkedHashMap<String, Object>();
-        benchmarkRecord.put("benchmark", methodName);
-        benchmarkRecord.put("mode", "sample");
-        benchmarkRecord.put("threads", threads);
-        benchmarkRecord.put("runtime", "native");
-        benchmarkRecord.put("forks", 1);
-        benchmarkRecord.put("warmupIterations", cfg.warmupIterations());
-        benchmarkRecord.put("warmupTime", cfg.warmupTimeSeconds() + " s");
-        benchmarkRecord.put("measurementIterations", 1);
-        benchmarkRecord.put("measurementTime", cfg.measurementTimeSeconds() + " s");
-        benchmarkRecord.put("primaryMetric", metric);
+        val entry = new LinkedHashMap<String, Object>();
+        entry.put("benchmark", methodName);
+        entry.put("mode", "sample");
+        entry.put("threads", threads);
+        entry.put("runtime", "native");
+        entry.put("forks", 1);
+        entry.put("warmupIterations", cfg.warmupIterations());
+        entry.put("warmupTime", cfg.warmupTimeSeconds() + " s");
+        entry.put("measurementIterations", 1);
+        entry.put("measurementTime", cfg.measurementTimeSeconds() + " s");
+        entry.put("primaryMetric", metric);
 
         val prefix = cfg.outputPrefix() != null ? cfg.outputPrefix() + "_" : "";
         val path   = cfg.output().resolve(prefix + methodName + "_" + threads + "t_latency.json");
         try {
             val mapper = JsonMapper.builder().build();
-            Files.writeString(path, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(List.of(benchmarkRecord)));
+            Files.writeString(path, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(List.of(entry)));
         } catch (IOException e) {
             err.println(WARN_JSON_WRITE_FAILED.formatted(e.getMessage()));
         }
@@ -285,7 +285,8 @@ public class EmbeddedBenchmarkRunner {
             val opsCount   = runThroughputIteration(seconds, threads, bm.method()) * bm.opsPerInvocation();
             val throughput = (double) opsCount / seconds;
             val nsPerOp    = seconds * 1_000_000_000.0 / opsCount;
-            out.println("%s %d: %,.1f ops/s  (%.0f ns/op)".formatted(phaseName, i + 1, throughput, nsPerOp));
+            out.println(
+                    String.format(Locale.US, "%s %d: %.1f ops/s  (%.0f ns/op)", phaseName, i + 1, throughput, nsPerOp));
             out.flush();
             if (collect) {
                 results.add(throughput);

@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.Set;
 
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.index.ConjunctiveClause;
-import io.sapl.compiler.index.DisjunctiveFormula;
+import io.sapl.compiler.index.dnf.ConjunctiveClause;
+import io.sapl.compiler.index.dnf.DisjunctiveFormula;
 import io.sapl.api.model.IndexPredicate;
 import lombok.experimental.UtilityClass;
 import lombok.val;

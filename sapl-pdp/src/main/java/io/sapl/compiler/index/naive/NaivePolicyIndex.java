@@ -15,12 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.index;
+package io.sapl.compiler.index.naive;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import io.sapl.compiler.index.PolicyIndex;
+import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;

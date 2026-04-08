@@ -41,7 +41,7 @@ echo ""
 
 # Step 1: Build JVM JARs
 echo "Building JVM JARs..."
-mvn package -pl sapl-node,sapl-benchmark/sapl-benchmark-sapl4 -am -DskipTests -q -f "$REPO_ROOT/pom.xml"
+mvn package -pl sapl-node,sapl-benchmark/sapl-benchmark-sapl4 -am -DskipTests -Dlicense.skip -q -f "$REPO_ROOT/pom.xml"
 if [ $? -ne 0 ]; then
     echo "ERROR: JVM build failed"
     exit 1
@@ -59,7 +59,7 @@ if command -v native-image &>/dev/null; then
     echo ""
     echo "Building native image..."
 
-    mvn package -pl sapl-node -am -Pnative -DskipTests -q -f "$REPO_ROOT/pom.xml"
+    mvn package -pl sapl-node -am -Pnative -DskipTests -Dlicense.skip -q -f "$REPO_ROOT/pom.xml"
     if [ $? -ne 0 ]; then
         echo "ERROR: Native build failed"
         exit 1
@@ -68,7 +68,6 @@ if command -v native-image &>/dev/null; then
     cp "$REPO_ROOT/sapl-node/target/sapl" "$BIN_DIR/sapl"
     chmod +x "$BIN_DIR/sapl"
     echo "  sapl (native)              $(du -h "$BIN_DIR/sapl" | cut -f1)"
-fi
 
 else
     echo ""

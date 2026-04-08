@@ -23,7 +23,7 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CompilerFlags;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
@@ -67,7 +67,7 @@ public class CompilationContext {
     private Set<String>                     localVariableNames       = new HashSet<>();
     private final Map<Value, Value>         valueDedup               = new HashMap<>();
     private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
-    private CompilerFlags                   compilerFlags            = CompilerFlags.defaults();
+    private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
     private Map<Long, Value>                foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId,

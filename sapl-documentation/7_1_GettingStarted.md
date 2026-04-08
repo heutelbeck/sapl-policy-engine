@@ -318,7 +318,9 @@ When no `--dir` or `--bundle` flag is given, CLI commands look for policies in `
 
 #### Remote Mode
 
-All evaluation commands accept `--remote` to connect to a running SAPL Node instead of evaluating locally. Connection details can be set via flags or environment variables:
+All evaluation commands accept `--remote` to connect to a running SAPL Node instead of evaluating locally. By default, the connection uses HTTP/JSON. Add `--rsocket` to use RSocket/protobuf transport instead, which provides higher throughput and lower latency for high-volume workloads.
+
+**HTTP (default):**
 
 | Flag | Environment Variable | Default |
 |------|---------------------|---------|
@@ -326,7 +328,14 @@ All evaluation commands accept `--remote` to connect to a running SAPL Node inst
 | `--token` | `SAPL_BEARER_TOKEN` | |
 | `--basic-auth` | `SAPL_BASIC_AUTH` | |
 
-Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_2_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
+**RSocket (`--rsocket`):**
+
+| Flag | Default |
+|------|---------|
+| `--host` | `localhost` |
+| `--port` | `7000` |
+
+Use `--insecure` to skip TLS certificate verification during development. Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_2_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
 
 #### Bundle and Credential Commands
 
@@ -342,6 +351,6 @@ The following commands run locally without starting the server. Use them to mana
 | `sapl generate basic` | Generate Basic Auth credentials and a ready-to-paste YAML block. |
 | `sapl generate apikey` | Generate an API key and a ready-to-paste YAML block. |
 
-Run any command with `--help` for the full option reference. See also the [CLI Reference](../7_8_CommandLine/) for the complete man page documentation.
+Run any command with `--help` for the full option reference. See also the [CLI Reference](../7_9_CommandLine/) for the complete man page documentation.
 
 For authentication and TLS setup, see [Security](../7_6_Security/). For health checks and metrics, see [Monitoring](../7_7_Monitoring/).

@@ -29,8 +29,9 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.index.DnfNormalizer;
-import io.sapl.compiler.index.DisjunctiveFormula;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.index.dnf.DisjunctiveFormula;
+import io.sapl.compiler.index.dnf.DnfNormalizer;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
 import lombok.val;
@@ -88,7 +89,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
                 formulaToDocuments.computeIfAbsent(formula, k -> new ArrayList<>()).add(document);
             }
             default                         ->
-                throw new IllegalStateException(ERROR_NON_BOOLEAN_APPLICABILITY.formatted(expression));
+                throw new SaplCompilerException(ERROR_NON_BOOLEAN_APPLICABILITY.formatted(expression));
             }
         }
 

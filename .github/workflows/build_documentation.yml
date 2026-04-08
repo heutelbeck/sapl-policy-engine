@@ -76,7 +76,7 @@ jobs:
           mkdir -p combined-documentation
           cp -r sapl-documentation/* combined-documentation/
           cp -r sapl-documentation-generator/target/doc/* combined-documentation/
-          cp sapl-node/target/generated-docs/7_8_CommandLine.md combined-documentation/
+          cp sapl-node/target/generated-docs/7_9_CommandLine.md combined-documentation/
 
       - name: Push Documentation to Website
         uses: hpcodecraft/action-deploy-workspace-to-repo@1aa539ca78d3063db25aeb60124c034f6ba9a611 # v2.2

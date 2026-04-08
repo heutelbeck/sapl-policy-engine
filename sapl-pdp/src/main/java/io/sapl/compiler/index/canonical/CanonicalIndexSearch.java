@@ -76,6 +76,10 @@ class CanonicalIndexSearch {
         val originalIndices = data.predicateOriginalIndices();
 
         for (var i = 0; i < predicates.size(); i++) {
+            if (candidateConjunctions.isEmpty()) {
+                break;
+            }
+
             val p = originalIndices[i];
 
             if (!intersects(data.conjunctionsWithPredicate()[p], candidateConjunctions)) {
@@ -129,6 +133,10 @@ class CanonicalIndexSearch {
         val originalIndices = data.predicateOriginalIndices();
 
         for (var i = 0; i < predicates.size(); i++) {
+            if (candidateConjunctions.isEmpty()) {
+                break;
+            }
+
             val p = originalIndices[i];
 
             if (!intersects(data.conjunctionsWithPredicate()[p], candidateConjunctions)) {

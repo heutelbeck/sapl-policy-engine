@@ -164,7 +164,7 @@ Quick mode caps seeds to 3 and scaling factors to the first 2 values.
 ### Quick assessment (Spring Boot fat JAR)
 
 ```bash
-taskset -c 0-15 java -Xmx32g -jar sapl-node.jar benchmark --baseline -t 8
+taskset -c 0-15 java -Xmx32g -jar sapl-node.jar benchmark -t 8
 ```
 
 The `sapl-node benchmark` command uses `forks(0)` (required by nested JAR classloader). The `forks(0)` vs `forks(1)` equivalence is validated in `reference/fork-comparison/`.

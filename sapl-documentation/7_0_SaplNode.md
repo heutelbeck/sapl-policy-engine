@@ -17,3 +17,4 @@ This section covers deploying and operating the SAPL Node standalone PDP server.
 - **[Bundle Wire Protocol](../7_5_BundleWireProtocol/):** The HTTP protocol for distributing bundles between servers and PDP clients.
 - **[Security](../7_6_Security/):** Authentication modes, TLS, interface binding, and a hardened production configuration example.
 - **[Monitoring](../7_7_Monitoring/):** PDP health states, decision metrics, structured decision logging, and evaluation diagnostics.
+- **[Benchmarking](../7_8_Benchmarking/):** Embedded PDP benchmarks and remote server load testing with HTTP and RSocket.

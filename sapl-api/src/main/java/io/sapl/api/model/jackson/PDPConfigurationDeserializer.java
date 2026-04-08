@@ -24,8 +24,6 @@ import tools.jackson.databind.deser.std.StdDeserializer;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CompilerFlags;
-import io.sapl.api.pdp.IndexingStrategy;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 
@@ -54,7 +52,7 @@ import lombok.val;
  * Optional fields:
  * <ul>
  * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.);
- * defaults to {@link CompilerFlags#defaults()}</li>
+ * defaults to an empty ObjectValue</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {
@@ -70,9 +68,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
     private static final String ERROR_CONFIGURATION_ID_REQUIRED    = "PDPConfiguration requires configurationId field.";
     private static final String ERROR_EXPECTED_START_ARRAY         = "Expected START_ARRAY for saplDocuments.";
     private static final String ERROR_EXPECTED_START_OBJECT        = "Expected START_OBJECT for PDPConfiguration.";
-    private static final String ERROR_EXPECTED_START_OBJECT_FLAGS  = "Expected START_OBJECT for compilerFlags.";
     private static final String ERROR_EXPECTED_START_OBJECT_MAP    = "Expected START_OBJECT for value map.";
-    private static final String ERROR_INVALID_INDEXING_STRATEGY    = "Invalid indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL.";
     private static final String ERROR_PDP_ID_REQUIRED              = "PDPConfiguration requires pdpId field.";
 
     private final ValueDeserializer              valueDeserializer              = new ValueDeserializer();
@@ -87,7 +83,7 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
         String             pdpId              = null;
         String             configurationId    = null;
         CombiningAlgorithm combiningAlgorithm = null;
-        CompilerFlags      compilerFlags      = CompilerFlags.defaults();
+        ObjectValue        compilerOptions    = Value.EMPTY_OBJECT;
         List<String>       saplDocuments      = List.of();
         ObjectValue        variables          = Value.EMPTY_OBJECT;
         ObjectValue        secrets            = Value.EMPTY_OBJECT;
@@ -97,15 +93,15 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             parser.nextToken();
 
             switch (fieldName) {
-            case "pdpId"              -> pdpId = parser.getString();
-            case "configurationId"    -> configurationId = parser.getString();
-            case "combiningAlgorithm" ->
+            case "pdpId"                            -> pdpId = parser.getString();
+            case "configurationId"                  -> configurationId = parser.getString();
+            case "combiningAlgorithm"               ->
                 combiningAlgorithm = combiningAlgorithmDeserializer.deserialize(parser, context);
-            case "compilerFlags"      -> compilerFlags = deserializeCompilerFlags(parser, context);
-            case "saplDocuments"      -> saplDocuments = deserializeStringList(parser, context);
-            case "variables"          -> variables = deserializeObjectValue(parser, context);
-            case "secrets"            -> secrets = deserializeObjectValue(parser, context);
-            default                   -> parser.skipChildren();
+            case "compilerFlags", "compilerOptions" -> compilerOptions = deserializeObjectValue(parser, context);
+            case "saplDocuments"                    -> saplDocuments = deserializeStringList(parser, context);
+            case "variables"                        -> variables = deserializeObjectValue(parser, context);
+            case "secrets"                          -> secrets = deserializeObjectValue(parser, context);
+            default                                 -> parser.skipChildren();
             }
         }
 
@@ -119,45 +115,8 @@ public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfigurati
             return context.reportInputMismatch(PDPConfiguration.class, ERROR_COMBINING_ALGORITHM_REQUIRED);
         }
 
-        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerFlags, saplDocuments,
+        return new PDPConfiguration(pdpId, configurationId, combiningAlgorithm, compilerOptions, saplDocuments,
                 new PdpData(variables, secrets));
-    }
-
-    private CompilerFlags deserializeCompilerFlags(JsonParser parser, DeserializationContext context) {
-        if (parser.currentToken() != JsonToken.START_OBJECT) {
-            return context.reportInputMismatch(CompilerFlags.class, ERROR_EXPECTED_START_OBJECT_FLAGS);
-        }
-
-        val defaults                = CompilerFlags.defaults();
-        var indexing                = defaults.indexing();
-        var unrollInOperator        = defaults.unrollInOperator();
-        var minPoliciesForCanonical = defaults.minPoliciesForCanonical();
-        var minSharingForCanonical  = defaults.minSharingForCanonical();
-        var maxPolicyDocuments      = defaults.maxPolicyDocuments();
-
-        while (parser.nextToken() != JsonToken.END_OBJECT) {
-            val flagName = parser.currentName();
-            parser.nextToken();
-
-            switch (flagName) {
-            case "indexing"                -> {
-                try {
-                    indexing = IndexingStrategy.valueOf(parser.getString().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    return context.reportInputMismatch(CompilerFlags.class,
-                            ERROR_INVALID_INDEXING_STRATEGY.formatted(parser.getString()));
-                }
-            }
-            case "unrollInOperator"        -> unrollInOperator = parser.getBooleanValue();
-            case "minPoliciesForCanonical" -> minPoliciesForCanonical = parser.getIntValue();
-            case "minSharingForCanonical"  -> minSharingForCanonical = parser.getDoubleValue();
-            case "maxPolicyDocuments"      -> maxPolicyDocuments = parser.getIntValue();
-            default                        -> parser.skipChildren();
-            }
-        }
-
-        return new CompilerFlags(indexing, unrollInOperator, minPoliciesForCanonical, minSharingForCanonical,
-                maxPolicyDocuments);
     }
 
     private List<String> deserializeStringList(JsonParser parser, DeserializationContext context) {

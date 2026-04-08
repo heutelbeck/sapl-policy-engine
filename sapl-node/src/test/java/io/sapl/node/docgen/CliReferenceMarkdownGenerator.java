@@ -45,7 +45,7 @@ import picocli.CommandLine.Model.PositionalParamSpec;
  */
 public final class CliReferenceMarkdownGenerator {
 
-    private static final String OUTPUT_FILE = "7_8_CommandLine.md";
+    private static final String OUTPUT_FILE = "7_9_CommandLine.md";
 
     private static final Pattern PICOCLI_MARKUP = Pattern.compile("@\\|[a-z,]+ ([^|]+)\\|@");
     private static final Pattern SEE_ALSO_LINE  = Pattern.compile("^\\s*See Also:.*$", Pattern.MULTILINE);
@@ -91,7 +91,7 @@ public final class CliReferenceMarkdownGenerator {
                 layout: default
                 title: Command Line
                 parent: SAPL Node
-                nav_order: 708
+                nav_order: 709
                 ---
 
                 """);
