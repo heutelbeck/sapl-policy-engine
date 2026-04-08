@@ -73,8 +73,9 @@ sealed interface MtbddNode {
         val nextPrefix = prefix + (isLast ? "    " : "|   ");
         val label      = edgeLabel.isEmpty() ? "" : edgeLabel + " ";
 
-        if (nodeIds.containsKey(node)) {
-            output.append(prefix).append(connector).append(label).append("-> #").append(nodeIds.get(node)).append('\n');
+        val existingId = nodeIds.get(node);
+        if (existingId != null) {
+            output.append(prefix).append(connector).append(label).append("-> #").append(existingId).append('\n');
             return;
         }
 
@@ -84,15 +85,15 @@ sealed interface MtbddNode {
         switch (node) {
         case Terminal(var matched)                                              -> {
             if (matched.isEmpty()) {
-                output.append(prefix).append(connector).append(label).append("#").append(id).append(" EMPTY\n");
+                output.append(prefix).append(connector).append(label).append('#').append(id).append(" EMPTY\n");
             } else {
-                output.append(prefix).append(connector).append(label).append("#").append(id).append(" matched=")
+                output.append(prefix).append(connector).append(label).append('#').append(id).append(" matched=")
                         .append(matched).append('\n');
             }
         }
         case Decision(var level, var trueChild, var falseChild, var errorChild) -> {
             val predicateLabel = order != null ? "p" + order.predicateAt(level).semanticHash() : "level" + level;
-            output.append(prefix).append(connector).append(label).append("#").append(id).append(" ")
+            output.append(prefix).append(connector).append(label).append('#').append(id).append(' ')
                     .append(predicateLabel).append("?\n");
             renderNode(trueChild, nextPrefix, false, "T:", output, nodeIds, order);
             renderNode(falseChild, nextPrefix, false, "F:", output, nodeIds, order);

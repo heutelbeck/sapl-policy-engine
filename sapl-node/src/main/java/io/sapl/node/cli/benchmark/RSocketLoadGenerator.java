@@ -82,7 +82,7 @@ public class RSocketLoadGenerator {
         val totalConcurrency = connections * concurrencyPerConnection;
         val sockets          = connectAll(host, port, socketPath, connections, out);
 
-        if (sockets == null) {
+        if (sockets.isEmpty()) {
             return emptyResult(connections, concurrencyPerConnection);
         }
 
@@ -143,7 +143,7 @@ public class RSocketLoadGenerator {
             if (rsocket == null || rsocket.isDisposed()) {
                 out.println("  ERROR: Failed to connect to " + endpoint);
                 sockets.forEach(RSocket::dispose);
-                return null;
+                return List.of();
             }
             sockets.add(rsocket);
         }
@@ -178,16 +178,17 @@ public class RSocketLoadGenerator {
         val ticksPerWorker   = (long) ratePerWorker * seconds;
         val concPerWorker    = Math.max(1, totalConcurrency / workerCount);
 
-        Flux.range(0, workerCount).flatMap(worker -> {
-            return Flux.interval(Duration.ofNanos(workerIntervalNs), Schedulers.newSingle("pacer-" + worker, true))
-                    .take(ticksPerWorker).onBackpressureDrop().flatMap(tick -> Mono.defer(() -> {
-                        val sendTime = System.nanoTime();
-                        return sendOnce(res, worker).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
-                            latency.addSample(System.nanoTime() - sendTime);
-                            ops.incrementAndGet();
-                        });
-                    }), concPerWorker);
-        }, workerCount).blockLast();
+        Flux.range(0, workerCount)
+                .flatMap(worker -> Flux
+                        .interval(Duration.ofNanos(workerIntervalNs), Schedulers.newSingle("pacer-" + worker, true))
+                        .take(ticksPerWorker).onBackpressureDrop().flatMap(tick -> Mono.defer(() -> {
+                            val sendTime = System.nanoTime();
+                            return sendOnce(res, worker).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
+                                latency.addSample(System.nanoTime() - sendTime);
+                                ops.incrementAndGet();
+                            });
+                        }), concPerWorker), workerCount)
+                .blockLast();
     }
 
     private static void warmupUntilConverged(LoadResources res, int totalConcurrency, PrintWriter out) {

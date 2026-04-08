@@ -74,8 +74,9 @@ public sealed interface SmtddNode {
         val nextPrefix = prefix + (isLast ? "    " : "|   ");
         val label      = edgeLabel.isEmpty() ? "" : edgeLabel + " ";
 
-        if (nodeIds.containsKey(node)) {
-            output.append(prefix).append(connector).append(label).append("-> #").append(nodeIds.get(node)).append('\n');
+        val existingId = nodeIds.get(node);
+        if (existingId != null) {
+            output.append(prefix).append(connector).append(label).append("-> #").append(existingId).append('\n');
             return;
         }
 
@@ -85,14 +86,14 @@ public sealed interface SmtddNode {
         switch (node) {
         case Terminal(var matched)                                                                     -> {
             if (matched.isEmpty()) {
-                output.append(prefix).append(connector).append(label).append("#").append(id).append(" EMPTY\n");
+                output.append(prefix).append(connector).append(label).append('#').append(id).append(" EMPTY\n");
             } else {
-                output.append(prefix).append(connector).append(label).append("#").append(id).append(" matched=")
+                output.append(prefix).append(connector).append(label).append('#').append(id).append(" matched=")
                         .append(matched).append('\n');
             }
         }
         case EqualityBranch(var operand, var branches, var defaultChild, var errorChild, var affected) -> {
-            output.append(prefix).append(connector).append(label).append("#").append(id).append(" EQ(hash=")
+            output.append(prefix).append(connector).append(label).append('#').append(id).append(" EQ(hash=")
                     .append(operand.semanticHash()).append(", ").append(branches.size()).append(" branches)\n");
             var branchIndex = 0;
             for (val entry : branches.entrySet()) {
@@ -113,7 +114,7 @@ public sealed interface SmtddNode {
         case BinaryDecision(int level, var trueChild, var falseChild, var errorChild)                  -> {
             val predicateLabel = binaryOrder != null ? "p" + binaryOrder.predicateAt(level).semanticHash()
                     : "level" + level;
-            output.append(prefix).append(connector).append(label).append("#").append(id).append(" ")
+            output.append(prefix).append(connector).append(label).append('#').append(id).append(' ')
                     .append(predicateLabel).append("?\n");
             renderNode(trueChild, nextPrefix, false, "T:", output, nodeIds, binaryOrder);
             renderNode(falseChild, nextPrefix, false, "F:", output, nodeIds, binaryOrder);

@@ -141,16 +141,17 @@ public class HttpLoadGenerator {
         val ticksPerWorker   = (long) ratePerWorker * seconds;
         val concPerWorker    = Math.max(1, concurrency / workerCount);
 
-        Flux.range(0, workerCount).flatMap(worker -> {
-            return Flux.interval(Duration.ofNanos(workerIntervalNs), Schedulers.newSingle("pacer-" + worker, true))
-                    .take(ticksPerWorker).onBackpressureDrop().flatMap(tick -> Mono.defer(() -> {
-                        val sendTime = System.nanoTime();
-                        return sendAsync(client, request).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
-                            latency.addSample(System.nanoTime() - sendTime);
-                            ops.incrementAndGet();
-                        });
-                    }), concPerWorker);
-        }, workerCount).blockLast();
+        Flux.range(0, workerCount)
+                .flatMap(worker -> Flux
+                        .interval(Duration.ofNanos(workerIntervalNs), Schedulers.newSingle("pacer-" + worker, true))
+                        .take(ticksPerWorker).onBackpressureDrop().flatMap(tick -> Mono.defer(() -> {
+                            val sendTime = System.nanoTime();
+                            return sendAsync(client, request).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
+                                latency.addSample(System.nanoTime() - sendTime);
+                                ops.incrementAndGet();
+                            });
+                        }), concPerWorker), workerCount)
+                .blockLast();
     }
 
     private static void warmupUntilConverged(HttpClient client, HttpRequest request, int concurrency, PrintWriter out) {

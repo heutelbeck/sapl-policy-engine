@@ -209,23 +209,23 @@ public class EmbeddedBenchmarkRunner {
         metric.put("scorePercentiles", percentiles);
         metric.put("rawDataHistogram", List.of(List.of(rawHistogram)));
 
-        val record = new LinkedHashMap<String, Object>();
-        record.put("benchmark", methodName);
-        record.put("mode", "sample");
-        record.put("threads", threads);
-        record.put("runtime", "native");
-        record.put("forks", 1);
-        record.put("warmupIterations", cfg.warmupIterations());
-        record.put("warmupTime", cfg.warmupTimeSeconds() + " s");
-        record.put("measurementIterations", 1);
-        record.put("measurementTime", cfg.measurementTimeSeconds() + " s");
-        record.put("primaryMetric", metric);
+        val entry = new LinkedHashMap<String, Object>();
+        entry.put("benchmark", methodName);
+        entry.put("mode", "sample");
+        entry.put("threads", threads);
+        entry.put("runtime", "native");
+        entry.put("forks", 1);
+        entry.put("warmupIterations", cfg.warmupIterations());
+        entry.put("warmupTime", cfg.warmupTimeSeconds() + " s");
+        entry.put("measurementIterations", 1);
+        entry.put("measurementTime", cfg.measurementTimeSeconds() + " s");
+        entry.put("primaryMetric", metric);
 
         val prefix = cfg.outputPrefix() != null ? cfg.outputPrefix() + "_" : "";
         val path   = cfg.output().resolve(prefix + methodName + "_" + threads + "t_latency.json");
         try {
             val mapper = JsonMapper.builder().build();
-            Files.writeString(path, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(List.of(record)));
+            Files.writeString(path, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(List.of(entry)));
         } catch (IOException e) {
             err.println(WARN_JSON_WRITE_FAILED.formatted(e.getMessage()));
         }
