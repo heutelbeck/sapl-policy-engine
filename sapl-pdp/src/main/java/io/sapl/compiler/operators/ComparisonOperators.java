@@ -63,10 +63,6 @@ public class ComparisonOperators {
      * <li>Substring matching in strings</li>
      * </ul>
      */
-    /**
-     * {@code needles any in haystack} - true if at least one element of needles
-     * is contained in haystack.
-     */
     public static Value anyIn(Value needles, Value haystack, SourceLocation location) {
         if (!(needles instanceof ArrayValue arr)) {
             return Value.errorAt(location, ERROR_ANY_ALL_IN_LHS_MUST_BE_ARRAY, needles.getClass().getSimpleName());
