@@ -35,10 +35,10 @@ log_env
 
 if [ "$QUALITY" = "full" ]; then
     SCENARIOS=("${SCENARIOS_FULL[@]}")
-    RATE_STEPS=("${RATE_STEPS_FULL[@]}")
+    LOAD_PCTS=("${LOAD_PCTS_FULL[@]}")
 else
     SCENARIOS=("${SCENARIOS_QUICK[@]}")
-    RATE_STEPS=("${RATE_STEPS_QUICK[@]}")
+    LOAD_PCTS=("${LOAD_PCTS_QUICK[@]}")
 fi
 
 SCENARIO_DIR="/tmp/sapl-benchmark-scenarios"
@@ -57,7 +57,7 @@ echo ""
 RUNTIMES=(jvm)
 $HAS_NATIVE && RUNTIMES+=(native)
 
-TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#SCENARIOS[@]} * (${#RATE_STEPS[@]} + 1) ))
+TOTAL_STEPS=$(( ${#RUNTIMES[@]} * ${#SERVER_PCORES_SWEEP[@]} * ${#SCENARIOS[@]} * (${#LOAD_PCTS[@]} + 1) ))
 CURRENT_STEP=0
 
 run_rate_sweep() {
@@ -119,25 +119,26 @@ for runtime in "${RUNTIMES[@]}"; do
     echo "  Latency-at-Load Benchmark ($runtime)"
     echo "  Profile:    $QUALITY"
     echo "  Scenarios:  ${SCENARIOS[*]}"
-    echo "  Rate steps: ${RATE_STEPS[*]}"
+    echo "  Load pcts:  ${LOAD_PCTS[*]}% (of measured saturation)"
     echo "  Transport:  RSocket ($RSOCKET_CONNECTIONS conns x $RSOCKET_CONCURRENCY concurrent)"
-    echo "  Server:     $SERVER_PCORES P-cores"
+    echo "  Server:     ${SERVER_PCORES_SWEEP[*]} P-cores"
     echo "  Measure:    ${MEASUREMENT_TIME}s per step"
     echo "  Total:      $TOTAL_STEPS runs across all runtimes"
     echo "  Output:     $OUTDIR"
     echo "================================================================"
     echo ""
 
-    local_cpu_range=$(server_cpus "$SERVER_PCORES")
+    for pcores in "${SERVER_PCORES_SWEEP[@]}"; do
+    cpu_range=$(server_cpus "$pcores")
 
     for scenario in "${SCENARIOS[@]}"; do
         stop_server
         wait_cool
 
-        echo "Starting $runtime server: $scenario on CPUs $local_cpu_range"
+        echo "Starting $runtime server: $scenario on CPUs $cpu_range (${pcores} P-cores)"
         if [ "$runtime" = "jvm" ]; then
-            taskset -c "$local_cpu_range" java \
-                -XX:ActiveProcessorCount=$((SERVER_PCORES * 2)) \
+            taskset -c "$cpu_range" java \
+                -XX:ActiveProcessorCount=$((pcores * 2)) \
                 -jar "$SAPL_NODE_JAR" server \
                 --io.sapl.node.allow-no-auth=true \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
@@ -147,7 +148,7 @@ for runtime in "${RUNTIMES[@]}"; do
                 --logging.level.root=WARN \
                 >/dev/null 2>&1 &
         else
-            taskset -c "$local_cpu_range" "$SAPL_NATIVE" server \
+            taskset -c "$cpu_range" "$SAPL_NATIVE" server \
                 --io.sapl.node.allow-no-auth=true \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
@@ -178,25 +179,30 @@ for runtime in "${RUNTIMES[@]}"; do
             continue
         fi
 
-        # Warmup the server with a saturation burst
-        echo "  Warming up server..."
+        # Warmup + measure saturation throughput
+        echo "  Warming up and measuring saturation..."
         client_cpu=$(client_cpus)
-        run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
+        warmup_output=$(run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
             --rsocket --host localhost --port 7000 \
             --connections "$RSOCKET_CONNECTIONS" \
             --vt-per-connection "$RSOCKET_CONCURRENCY" \
-            --warmup-seconds 10 --measurement-seconds 3 \
+            --warmup-seconds 10 --measurement-seconds 5 \
             --machine-readable \
-            -f "$SCENARIO_DIR/$scenario/subscription.json" 2>/dev/null
+            -f "$SCENARIO_DIR/$scenario/subscription.json" 2>/dev/null)
+        peak_throughput=$(echo "$warmup_output" | grep "^THROUGHPUT:" | cut -d: -f2 | cut -d. -f1)
+        peak_throughput=${peak_throughput:-1000000}
+        echo "  Saturation: $peak_throughput req/s"
+        echo "${scenario},${runtime},${pcores},${peak_throughput}" >> "$OUTDIR/saturation.csv"
 
-        # Rate sweep
-        for rate in "${RATE_STEPS[@]}"; do
+        # Rate sweep at percentages of measured peak
+        for load_pct in "${LOAD_PCTS[@]}"; do
+            rate=$((peak_throughput * load_pct / 100))
             CURRENT_STEP=$((CURRENT_STEP + 1))
             pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
-            echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / $rate req/s"
+            echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / ${pcores}P / ${load_pct}% = $rate req/s"
             wait_cool
 
-            prefix="${scenario}_${runtime}_${rate}r"
+            prefix="${scenario}_${runtime}_${pcores}p_${load_pct}pct"
 
             run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
                 --rsocket --host localhost --port 7000 \
@@ -215,10 +221,10 @@ for runtime in "${RUNTIMES[@]}"; do
         # Saturation reference
         CURRENT_STEP=$((CURRENT_STEP + 1))
         pct=$((CURRENT_STEP * 100 / TOTAL_STEPS))
-        echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / saturation"
+        echo "  [$CURRENT_STEP/$TOTAL_STEPS] ($pct%) $scenario / $runtime / ${pcores}P / saturation"
         wait_cool
 
-        prefix="${scenario}_${runtime}_saturation"
+        prefix="${scenario}_${runtime}_${pcores}p_saturation"
         run_pinned "$client_cpu" java -jar "$SAPL_NODE_JAR" loadtest \
             --rsocket --host localhost --port 7000 \
             --connections "$RSOCKET_CONNECTIONS" \
@@ -231,6 +237,7 @@ for runtime in "${RUNTIMES[@]}"; do
 
         echo ""
         stop_server
+    done
     done
 
     echo "================================================================"

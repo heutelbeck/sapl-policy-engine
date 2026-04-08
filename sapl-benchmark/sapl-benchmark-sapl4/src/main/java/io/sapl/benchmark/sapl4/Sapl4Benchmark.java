@@ -287,7 +287,7 @@ class Sapl4Benchmark implements Callable<Integer> {
 
         err.println(String.format(Locale.US, ERROR_CONVERGENCE_FAILED, maxForks, computeCoV(forkThroughputs),
                 convergenceThresholdPercent));
-        return List.of();
+        return forkThroughputs;
     }
 
     private double runSingleFork(String includePattern, int forkIndex) throws RunnerException {

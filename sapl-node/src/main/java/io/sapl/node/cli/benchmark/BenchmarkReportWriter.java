@@ -84,7 +84,7 @@ public class BenchmarkReportWriter {
         val baseName = ctx.timestamp() + "_" + ctx.protocol().toLowerCase() + "_loadtest";
         try {
             Files.writeString(outputDir.resolve(baseName + ".md"), buildLoadtestMarkdown(results, ctx));
-            Files.writeString(outputDir.resolve(baseName + ".csv"), buildCsv(results));
+            Files.writeString(outputDir.resolve(baseName + ".csv"), buildLoadtestCsv(results, ctx));
         } catch (IOException e) {
             err.println(WARN_REPORT_WRITE_FAILED.formatted(e.getMessage()));
         }
@@ -150,6 +150,35 @@ public class BenchmarkReportWriter {
      */
     static String buildCsv(List<BenchmarkResult> results) {
         val sb = new StringBuilder();
+        sb.append("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,"
+                + "mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns\n");
+        for (val r : results) {
+            val meanNs = r.mean() > 0 ? 1_000_000_000.0 / r.mean() : 0;
+            val l      = r.latency();
+            sb.append(String.format(Locale.US,
+                    "%s,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.0f,%.0f,%.0f,%.0f,%.0f", r.method(),
+                    r.threads(), r.mean(), r.ci95(), r.median(), r.stddev(), r.cv(), r.min(), r.max(), r.p5(), r.p95(),
+                    meanNs, l != null ? l.p50() : 0, l != null ? l.p90() : 0, l != null ? l.p99() : 0,
+                    l != null ? l.p999() : 0, l != null ? l.max() : 0)).append('\n');
+        }
+        return sb.toString();
+    }
+
+    static String buildLoadtestCsv(List<BenchmarkResult> results, LoadtestContext ctx) {
+        val sb = new StringBuilder();
+        sb.append("# Protocol: ").append(ctx.protocol()).append('\n');
+        sb.append("# Target: ").append(ctx.target()).append('\n');
+        sb.append("# Concurrency: ").append(ctx.concurrency()).append('\n');
+        if (ctx.connections() > 0) {
+            sb.append("# Connections: ").append(ctx.connections()).append('\n');
+            sb.append("# VT/connection: ").append(ctx.vtPerConnection()).append('\n');
+        }
+        sb.append("# Warmup: convergence-based\n");
+        sb.append("# Measurement: ").append(ctx.measureSeconds()).append(" s\n");
+        sb.append("# Timestamp: ").append(ctx.timestamp()).append('\n');
+        if (ctx.label() != null) {
+            sb.append("# Label: ").append(ctx.label()).append('\n');
+        }
         sb.append("method,threads,mean_ops_s,ci95,median_ops_s,stddev,cv_pct,min_ops_s,max_ops_s,p5_ops_s,p95_ops_s,"
                 + "mean_ns_op,latency_p50_ns,latency_p90_ns,latency_p99_ns,latency_p999_ns,latency_max_ns\n");
         for (val r : results) {
