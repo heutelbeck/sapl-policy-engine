@@ -80,13 +80,11 @@ public class GdriveScenarioGenerator {
             // Policy 0: View access grants read permission.
             // Cedar: resource in principal.documentsAndFoldersWithViewAccess
             // The View entity is an ancestor of docs/folders in the entity hierarchy.
-            // canReach[(resource)] contains the resource's ancestors; we check if the
-            // user's View entity is among them.
             policy "view-access-read"
             permit
                 action == "read";
-                var canReach = graph.transitiveClosureSet(entityGraph);
-                canReach[(resource)] has users[(subject)].documentsAndFoldersWithViewAccess;
+                var containmentHierarchy = graph.transitiveClosureSet(entityGraph);
+                containmentHierarchy[(resource)] has users[(subject)].documentsAndFoldersWithViewAccess;
             """, """
             // Policy 1: Public documents can be read by anyone.
             // Cedar: resource.isPublic
@@ -97,26 +95,35 @@ public class GdriveScenarioGenerator {
             """, """
             // Policy 2: Owners can read, write, and share their docs/folders.
             // Cedar: resource in principal.ownedDocuments || resource in principal.ownedFolders
-            // ownedDocuments/ownedFolders are Set attributes (not hierarchy). SAPL "in" on arrays.
+            // Cedar's "in" traverses the entity hierarchy, so owning a folder
+            // grants access to all documents inside it.
             policy "owner-read-write-share"
             permit
                 action in ["read", "write", "share"];
                 var user = users[(subject)];
-                resource in user.ownedDocuments || resource in user.ownedFolders;
+                var containmentHierarchy = graph.transitiveClosureSet(entityGraph);
+                var resourceAncestors = containmentHierarchy[(resource)];
+                resourceAncestors has any user.ownedFolders || resourceAncestors has any user.ownedDocuments;
             """, """
             // Policy 3: Owners can change document ownership.
             // Cedar: principal.ownedDocuments.contains(resource)
+            // Cedar's contains also checks hierarchy descendants.
             policy "owner-change-owner"
             permit
                 action == "changeOwner";
-                resource in users[(subject)].ownedDocuments;
+                var containmentHierarchy = graph.transitiveClosureSet(entityGraph);
+                var resourceAncestors = containmentHierarchy[(resource)];
+                resourceAncestors has any users[(subject)].ownedDocuments;
             """, """
             // Policy 4: Folder owners can create documents.
             // Cedar: principal.ownedFolders.contains(resource)
+            // Cedar's contains also checks hierarchy descendants.
             policy "folder-owner-create-document"
             permit
                 action == "createDocument";
-                resource in users[(subject)].ownedFolders;
+                var containmentHierarchy = graph.transitiveClosureSet(entityGraph);
+                var resourceAncestors = containmentHierarchy[(resource)];
+                resourceAncestors has any users[(subject)].ownedFolders;
             """);
 
     /**
