@@ -48,8 +48,8 @@ In SAPL Node and bundle-based deployments, the PDP configuration is stored as a 
   "compilerFlags": {
     "indexing": "AUTO",
     "unrollInOperator": false,
-    "minPoliciesForCanonical": 10,
-    "minSharingForCanonical": 1.5
+    "minPoliciesForIndexing": 10,
+    "maxIndexNodes": 500000
   },
   "variables": {
     "tenantId": "acme-corp",
@@ -71,10 +71,10 @@ The `algorithm` object is optional. When absent, the PDP uses the default combin
 
 The `compilerFlags` object is optional. All fields within it are optional and default to the values shown above:
 
-- `indexing` - policy index strategy: `AUTO` (heuristic selection), `NAIVE` (linear scan), or `CANONICAL` (count-and-eliminate algorithm). Default: `AUTO`.
+- `indexing` - policy index strategy: `AUTO` (heuristic selection), `NAIVE` (linear scan), `CANONICAL` (count-and-eliminate algorithm), or `SMTDD` (semantic multi-terminal BDD with equality grouping). Default: `AUTO`. In AUTO mode, the PDP selects NAIVE for small policy sets and attempts SMTDD for larger ones, falling back to CANONICAL if the diagram exceeds the node limit.
 - `unrollInOperator` - when `true`, transforms `EXPR in [a, b, c]` into equality chains for improved index matching. Default: `false`.
-- `minPoliciesForCanonical` - minimum policy count before `AUTO` mode considers the canonical index. Default: `10`.
-- `minSharingForCanonical` - minimum predicate sharing ratio for `AUTO` mode to keep the canonical index. Default: `1.5`.
+- `minPoliciesForIndexing` - minimum policy count before `AUTO` mode considers advanced indexing. Below this threshold, NAIVE is used. Default: `10`.
+- `maxIndexNodes` - maximum number of diagram nodes for SMTDD index construction. If exceeded, AUTO falls back to CANONICAL. Default: `500000`.
 
 The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
 

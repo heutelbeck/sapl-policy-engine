@@ -45,8 +45,8 @@ import lombok.val;
  *   "compilerFlags": {
  *     "indexing": "AUTO",
  *     "unrollInOperator": false,
- *     "minPoliciesForCanonical": 10,
- *     "minSharingForCanonical": 1.5
+ *     "minPoliciesForIndexing": 10,
+ *     "maxIndexNodes": 500000
  *   },
  *   "saplDocuments": ["policy access-control...", "policy audit-log..."],
  *   "variables": {

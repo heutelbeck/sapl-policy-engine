@@ -38,9 +38,8 @@ class SaplNodeInfoContributor implements InfoContributor {
 
     @Override
     public void contribute(Info.Builder builder) {
-        builder.withDetail("sapl",
-                Map.of("configType", pdpProperties.getPdpConfigType().name(), "index", pdpProperties.getIndex().name(),
-                        "configPath", pdpProperties.getConfigPath(), "policiesPath", pdpProperties.getPoliciesPath()));
+        builder.withDetail("sapl", Map.of("configType", pdpProperties.getPdpConfigType().name(), "configPath",
+                pdpProperties.getConfigPath(), "policiesPath", pdpProperties.getPoliciesPath()));
     }
 
 }

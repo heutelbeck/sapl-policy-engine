@@ -35,7 +35,6 @@ All properties live under the prefix `io.sapl.pdp.embedded`:
 |----------|------|---------|-------------|
 | `enabled` | `boolean` | `true` | Enables the embedded PDP auto configuration. |
 | `pdp-config-type` | `PDPDataSource` | `RESOURCES` | Policy source type. One of `RESOURCES`, `DIRECTORY`, `MULTI_DIRECTORY`, `BUNDLES`, or `REMOTE_BUNDLES`. SAPL Node overrides this to `DIRECTORY` (binary) or `BUNDLES` (packages, Docker). See [Policy Sources](../7_3_PolicySources/). |
-| `index` | `IndexType` | `NAIVE` | Indexing algorithm. `NAIVE` for small policy sets, `CANONICAL` for large collections with faster retrieval at the cost of slower index updates. |
 | `config-path` | `String` | `.` | Path to `pdp.json`. For `RESOURCES`, this is relative to the classpath root. For filesystem sources, it is an absolute or relative filesystem path. The SAPL Node default is `.` (current directory). Package installations override this to `/var/lib/sapl`. |
 | `policies-path` | `String` | `.` | Path to `.sapl` files or bundles. Same path resolution rules as `config-path`. The SAPL Node default is `.` (current directory). |
 | `metrics-enabled` | `boolean` | `true` | Records PDP decision metrics for Prometheus via Micrometer. See [Monitoring](../7_7_Monitoring/). |

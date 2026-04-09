@@ -30,7 +30,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.actuate.info.Info;
 
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.IndexType;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import lombok.val;
 
@@ -46,7 +45,6 @@ class SaplNodeInfoContributorTests {
     @SuppressWarnings("unchecked")
     void whenContribute_thenAddsSaplDetails() {
         when(pdpProperties.getPdpConfigType()).thenReturn(PDPDataSource.DIRECTORY);
-        when(pdpProperties.getIndex()).thenReturn(IndexType.NAIVE);
         when(pdpProperties.getConfigPath()).thenReturn("/pdp/data");
         when(pdpProperties.getPoliciesPath()).thenReturn("/pdp/data");
 
@@ -58,8 +56,8 @@ class SaplNodeInfoContributorTests {
         val info = builder.build();
         val sapl = (Map<String, Object>) info.getDetails().get("sapl");
 
-        assertThat(sapl).containsEntry("configType", "DIRECTORY").containsEntry("index", "NAIVE")
-                .containsEntry("configPath", "/pdp/data").containsEntry("policiesPath", "/pdp/data");
+        assertThat(sapl).containsEntry("configType", "DIRECTORY").containsEntry("configPath", "/pdp/data")
+                .containsEntry("policiesPath", "/pdp/data").doesNotContainKey("index");
     }
 
 }

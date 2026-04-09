@@ -66,21 +66,6 @@ public class EmbeddedPDPProperties {
     private PDPDataSource pdpConfigType = PDPDataSource.RESOURCES;
 
     /**
-     * Selects the indexing algorithm used by the PDP.
-     * <p>
-     * The options are:
-     * <p>
-     * - NAIVE : A simple implementation for systems with small numbers of
-     * documents.
-     * <p>
-     * - CANONICAL : An improved index for systems with large numbers of documents.
-     * Takes more time to update and initialize but significantly reduces retrieval
-     * time.
-     */
-    @NotNull
-    private IndexType index = IndexType.NAIVE;
-
-    /**
      * This property sets the path to the folder where the pdp.json configuration
      * file is located.
      * <p>
@@ -144,22 +129,6 @@ public class EmbeddedPDPProperties {
          * ETag-based change detection.
          */
         REMOTE_BUNDLES
-
-    }
-
-    /**
-     * Selects the indexing algorithm.
-     */
-    public enum IndexType {
-
-        /**
-         * Simple default index.
-         */
-        NAIVE,
-        /**
-         * High-performance policy index for large collections of policies.
-         */
-        CANONICAL
 
     }
 

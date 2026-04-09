@@ -24,7 +24,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
-import io.sapl.compiler.index.mtbdd.MtbddPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
 import io.sapl.util.SaplTesting;
@@ -55,8 +54,7 @@ class IndexFactoryTests {
 
     static Stream<Arguments> whenStrategyThenCorrectImplementation() {
         return Stream.of(arguments("NAIVE", NaivePolicyIndex.class), arguments("CANONICAL", CanonicalPolicyIndex.class),
-                arguments("MTBDD", MtbddPolicyIndex.class), arguments("SMTDD", SmtddPolicyIndex.class),
-                arguments("AUTO", NaivePolicyIndex.class));
+                arguments("SMTDD", SmtddPolicyIndex.class), arguments("AUTO", NaivePolicyIndex.class));
     }
 
     @Test

@@ -26,7 +26,6 @@ import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
-import io.sapl.compiler.index.mtbdd.MtbddPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
 import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
 import lombok.experimental.UtilityClass;
@@ -41,7 +40,7 @@ import lombok.val;
 @UtilityClass
 public class IndexFactory {
 
-    private static final String ERROR_UNKNOWN_STRATEGY = "Unknown indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL, MTBDD, SMTDD.";
+    private static final String ERROR_UNKNOWN_STRATEGY = "Unknown indexing strategy: '%s'. Valid values: AUTO, NAIVE, CANONICAL, SMTDD.";
 
     /**
      * Available indexing strategies. Internal to the index factory -
@@ -51,7 +50,6 @@ public class IndexFactory {
         AUTO,
         NAIVE,
         CANONICAL,
-        MTBDD,
         SMTDD
     }
 
@@ -75,7 +73,6 @@ public class IndexFactory {
         return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
         case CANONICAL -> CanonicalPolicyIndex.create(documents);
-        case MTBDD     -> MtbddPolicyIndex.create(documents);
         case SMTDD     -> SmtddPolicyIndex.create(documents, maxNodes);
         case AUTO      -> autoSelect(documents, ctx);
         };

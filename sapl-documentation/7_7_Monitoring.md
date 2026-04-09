@@ -84,7 +84,7 @@ Detail fields are only visible to authenticated users. The default configuration
 | `/actuator/health` | No | Overall health status. Returns UP or DOWN for load balancers. |
 | `/actuator/health/liveness` | No | Kubernetes liveness probe. Reports whether the JVM process is alive. |
 | `/actuator/health/readiness` | No | Kubernetes readiness probe. Reports whether the node is ready to accept traffic. |
-| `/actuator/info` | Yes | PDP configuration details: `configType`, `index`, `configPath`, `policiesPath`. |
+| `/actuator/info` | Yes | PDP configuration details: `configType`, `configPath`, `policiesPath`. |
 | `/actuator/prometheus` | Yes | Prometheus metrics scrape endpoint. |
 
 Health endpoints are unauthenticated so Kubernetes probes work without credentials. The info and prometheus endpoints require authentication to prevent information disclosure.
@@ -174,7 +174,6 @@ The `/actuator/info` endpoint returns PDP configuration under the `sapl` key:
 {
   "sapl": {
     "configType": "BUNDLES",
-    "index": "NAIVE",
     "configPath": "/policies",
     "policiesPath": "bundles"
   }
