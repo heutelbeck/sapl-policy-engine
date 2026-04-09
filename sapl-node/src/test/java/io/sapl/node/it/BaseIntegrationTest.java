@@ -34,7 +34,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 public abstract class BaseIntegrationTest {
 
     protected static final int             SAPL_SERVER_PORT    = 8443;
-    protected static final String          SAPL_SERVER_IMAGE   = "ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT";
+    protected static final String          SAPL_SERVER_IMAGE   = "ghcr.io/heutelbeck/sapl-node:4.0.0";
     protected static final ImagePullPolicy NEVER_PULL          = imageName -> false;
     protected static final Duration        CONTAINER_STARTUP   = Duration.ofMinutes(2);
     protected static final String          STARTUP_LOG_PATTERN = ".*Started SaplNodeApplication.*\\n";

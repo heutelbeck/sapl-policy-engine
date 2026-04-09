@@ -25,7 +25,7 @@ Here's a complete example to show how the pieces fit together.
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-bom</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
+            <version>4.0.0</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

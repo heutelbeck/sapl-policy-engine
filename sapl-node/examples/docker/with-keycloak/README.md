@@ -47,7 +47,7 @@ entry to your hosts file:
    docker compose up -d
    ```
 
-   > **Note:** This example uses the `4.0.0-SNAPSHOT` image. Build it locally
+   > **Note:** This example uses the `4.0.0` image. Build it locally
    > with `mvn spring-boot:build-image -pl sapl-node` or pull from the snapshot
    > registry if available.
 

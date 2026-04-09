@@ -9,13 +9,13 @@ JMH-based benchmark for the embedded SAPL 4.0 Policy Decision Point. Measures la
 mvn package -pl sapl-benchmark/sapl-benchmark-sapl4 -DskipTests
 
 # Run a quick latency measurement
-java -jar target/sapl-benchmark-sapl4-4.0.0-SNAPSHOT.jar \
+java -jar target/sapl-benchmark-sapl4-4.0.0.jar \
     --scenario=hospital-10 --latency-only \
     --warmup-iterations=1 --warmup-time=10 --measurement-time=10 \
     --max-forks=2 -t 1
 
 # Export a scenario for inspection
-java -jar target/sapl-benchmark-sapl4-4.0.0-SNAPSHOT.jar \
+java -jar target/sapl-benchmark-sapl4-4.0.0.jar \
     --scenario=hospital-5 --export=/tmp/hospital-5
 ```
 

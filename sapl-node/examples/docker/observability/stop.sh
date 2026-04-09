@@ -25,7 +25,7 @@ echo "Stopping load generator..."
 pkill -f "load-generator.sh" 2>/dev/null || true
 
 echo "Stopping sapl-node..."
-pkill -f "sapl-node-4.0.0-SNAPSHOT.jar" 2>/dev/null || true
+pkill -f "sapl-node-4.0.0.jar" 2>/dev/null || true
 
 echo "Stopping Prometheus and Grafana..."
 docker compose -f "${SCRIPT_DIR}/docker-compose.yml" down 2>/dev/null || true

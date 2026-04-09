@@ -13,8 +13,8 @@ cd sapl-language-server && mvn install -DskipTests
 ```
 
 This produces two artifacts:
-- `target/sapl-language-server-4.0.0-SNAPSHOT.jar` - Library JAR for Maven dependencies
-- `target/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar` - Executable JAR with all dependencies
+- `target/sapl-language-server-4.0.0.jar` - Library JAR for Maven dependencies
+- `target/sapl-language-server-4.0.0-standalone.jar` - Executable JAR with all dependencies
 
 ### Native Image
 
@@ -36,7 +36,7 @@ This produces `target/sapl-language-server` (or `.exe` on Windows).
 If you encounter reflection errors at runtime, use the GraalVM tracing agent to capture required metadata:
 
 ```shell
-java -agentlib:native-image-agent=security-output-dir=native-security -jar target/sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
+java -agentlib:native-image-agent=security-output-dir=native-security -jar target/sapl-language-server-4.0.0-standalone.jar
 ```
 
 Then copy the generated configs to `src/main/resources/META-INF/native-image/io.sapl/sapl-language-server/`.
@@ -48,7 +48,7 @@ Then copy the generated configs to `src/main/resources/META-INF/native-image/io.
 Most LSP clients use stdio for communication:
 
 ```shell
-java -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
+java -jar sapl-language-server-4.0.0-standalone.jar
 ```
 
 ### Socket Mode
@@ -56,13 +56,13 @@ java -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
 For debugging or testing, use socket mode:
 
 ```shell
-java -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar --socket --port=5007
+java -jar sapl-language-server-4.0.0-standalone.jar --socket --port=5007
 ```
 
 ### Debug Logging
 
 ```shell
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-4.0.0-SNAPSHOT-standalone.jar
+java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar sapl-language-server-4.0.0-standalone.jar
 ```
 
 ## Embedding in Applications

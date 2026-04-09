@@ -30,7 +30,6 @@
 [![SonarCloud Status][sonarcloud-status-shield]][sonarcloud-status-url]
 [![Security Rating][security-rating-shield]][security-rating-url]
 [![Maven Central][maven-central-shield]][maven-central-url]
-[![Maven Snapshot](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fcentral.sonatype.com%2Frepository%2Fmaven-snapshots%2Fio%2Fsapl%2Fsapl-spring-boot-starter%2F4.0.0-SNAPSHOT%2Fmaven-metadata.xml&query=%2Fmetadata%2Fversion&label=snapshot)](https://central.sonatype.com/artifact/io.sapl/sapl-spring-boot-starter)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/heutelbeck/sapl-policy-engine/badge)](https://securityscorecards.dev/viewer/?uri=github.com/heutelbeck/sapl-policy-engine)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8298/badge?cache-control=no-cache)](https://www.bestpractices.dev/projects/8298)
 
@@ -97,7 +96,7 @@ Add the starter:
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -261,5 +260,5 @@ Need a [Software Bill of Materials](https://www.cisa.gov/sbom)? See [dependency 
 [sonarcloud-status-url]: https://sonarcloud.io/dashboard?id=heutelbeck_sapl-policy-engine
 [security-rating-shield]: https://sonarcloud.io/api/project_badges/measure?project=heutelbeck_sapl-policy-engine&metric=security_rating
 [security-rating-url]: https://sonarcloud.io/summary/new_code?id=heutelbeck_sapl-policy-engine
-[maven-central-shield]: https://img.shields.io/maven-central/v/io.sapl/sapl-lang
+[maven-central-shield]: https://img.shields.io/maven-central/v/io.sapl/sapl-spring-boot-starter
 [maven-central-url]: https://mvnrepository.com/artifact/io.sapl

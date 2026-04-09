@@ -86,7 +86,7 @@ logging.level:
 #
 # Start the server:
 #   cd sapl-node/examples/local/bundles
-#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar
+#   java -jar ../../../target/sapl-node-4.0.0.jar
 #
 # Test default tenant (permit all):
 #   curl -s http://localhost:8080/api/pdp/decide \
@@ -120,26 +120,26 @@ logging.level:
 #   # Should be REJECTED (production is NOT in unsigned-tenants)
 #
 # Per-tenant unsigned test: Replace staging bundle with unsigned version:
-#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#   java -jar ../../../target/sapl-node-4.0.0.jar \
 #     bundle create -i policies/staging \
 #     -o bundles/staging.saplbundle
 #   # Should be ACCEPTED (staging IS in unsigned-tenants list)
 #
 # Cross-tenant test: Sign production bundle with staging key:
-#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#   java -jar ../../../target/sapl-node-4.0.0.jar \
 #     bundle create -i policies/production \
 #     -k keys/staging-key.pem --key-id staging-key \
 #     -o bundles/production.saplbundle
 #   # Should be REJECTED (staging-key not trusted for production tenant)
 #
 # Restore production:
-#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#   java -jar ../../../target/sapl-node-4.0.0.jar \
 #     bundle create -i policies/production \
 #     -k keys/production-key.pem --key-id production-key \
 #     -o bundles/production.saplbundle
 #
 # Restore staging (signed):
-#   java -jar ../../../target/sapl-node-4.0.0-SNAPSHOT.jar \
+#   java -jar ../../../target/sapl-node-4.0.0.jar \
 #     bundle create -i policies/staging \
 #     -k keys/staging-key.pem --key-id staging-key \
 #     -o bundles/staging.saplbundle

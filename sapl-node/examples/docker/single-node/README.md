@@ -50,7 +50,7 @@ This example uses HTTP Basic Authentication. The demo user credentials are:
 
 **IMPORTANT:** For production, generate your own credentials using the SAPL Node CLI:
 ```bash
-docker run --rm ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT generate basic
+docker run --rm ghcr.io/heutelbeck/sapl-node:4.0.0 generate basic
 ```
 
 ### Policies

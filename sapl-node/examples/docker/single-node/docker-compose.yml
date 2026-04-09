@@ -18,7 +18,7 @@
 
 services:
   sapl-node:
-    image: ghcr.io/heutelbeck/sapl-node:4.0.0-SNAPSHOT
+    image: ghcr.io/heutelbeck/sapl-node:4.0.0
     container_name: sapl-node
     ports:
       - "8080:8080"

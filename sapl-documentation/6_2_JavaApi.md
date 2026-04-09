@@ -13,7 +13,7 @@ The Java API is based on Project Reactor (<https://projectreactor.io/>). It is d
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-api</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -35,7 +35,7 @@ For non-Spring JVM applications, an embedded PDP can be used directly:
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-pdp</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -47,7 +47,7 @@ For non-Spring JVM applications connecting to a SAPL Node or other remote PDP se
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-pdp-remote</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -75,7 +75,7 @@ For Spring Boot applications, use the unified starter. It includes the embedded 
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -118,7 +118,7 @@ When using only a remote PDP, you can exclude the embedded PDP dependency to red
 <dependency>
     <groupId>io.sapl</groupId>
     <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.0.0-SNAPSHOT</version>
+    <version>4.0.0</version>
     <exclusions>
         <exclusion>
             <groupId>io.sapl</groupId>
@@ -152,7 +152,7 @@ Add the SAPL embedded PDP dependency:
 <dependency>
   <groupId>io.sapl</groupId>
   <artifactId>sapl-pdp-embedded</artifactId>
-  <version>4.0.0-SNAPSHOT</version>
+  <version>4.0.0</version>
 </dependency>
 ```
 
@@ -182,7 +182,7 @@ For projects using multiple SAPL dependencies, use the bill of materials POM:
     <dependency>
       <groupId>io.sapl</groupId>
       <artifactId>sapl-bom</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
+      <version>4.0.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
