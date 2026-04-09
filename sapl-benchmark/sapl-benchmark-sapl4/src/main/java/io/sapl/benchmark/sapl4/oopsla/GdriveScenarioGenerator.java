@@ -107,23 +107,19 @@ public class GdriveScenarioGenerator {
             """, """
             // Policy 3: Owners can change document ownership.
             // Cedar: principal.ownedDocuments.contains(resource)
-            // Cedar's contains also checks hierarchy descendants.
+            // Cedar's .contains() is plain set membership (no hierarchy traversal).
             policy "owner-change-owner"
             permit
                 action == "changeOwner";
-                var containmentHierarchy = graph.transitiveClosureSet(entityGraph);
-                var resourceAncestors = containmentHierarchy[(resource)];
-                resourceAncestors has any users[(subject)].ownedDocuments;
+                resource in users[(subject)].ownedDocuments;
             """, """
             // Policy 4: Folder owners can create documents.
             // Cedar: principal.ownedFolders.contains(resource)
-            // Cedar's contains also checks hierarchy descendants.
+            // Cedar's .contains() is plain set membership (no hierarchy traversal).
             policy "folder-owner-create-document"
             permit
                 action == "createDocument";
-                var containmentHierarchy = graph.transitiveClosureSet(entityGraph);
-                var resourceAncestors = containmentHierarchy[(resource)];
-                resourceAncestors has any users[(subject)].ownedFolders;
+                resource in users[(subject)].ownedFolders;
             """);
 
     /**
