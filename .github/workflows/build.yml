@@ -723,6 +723,12 @@ jobs:
           cd release
           sha256sum ./* > SHA256SUMS.txt
 
+      - name: Move snapshot-node tag to current commit
+        if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
+        run: |
+          git tag -f snapshot-node
+          git push origin snapshot-node --force
+
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
@@ -955,6 +961,12 @@ jobs:
         run: |
           cd release
           sha256sum ./* > SHA256SUMS.txt
+
+      - name: Move snapshot tag to current commit
+        if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
+        run: |
+          git tag -f snapshot
+          git push origin snapshot --force
 
       - name: Update snapshot release
         if: ${{ needs.version-check.outputs.is_snapshot == 'true' }}
