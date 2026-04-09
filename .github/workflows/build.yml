@@ -126,7 +126,9 @@ jobs:
           cache: 'maven'
 
       - name: Compile and Run SpotBugs
-        run: mvn -B package spotbugs:spotbugs -Dmaven.test.skip=true -pl '!sapl-bom,!sapl-code-style' -Pspotbugs -T 1.5C
+        run: |
+          mvn -B install -Dmaven.test.skip=true -pl sapl-code-style -q
+          mvn -B package spotbugs:spotbugs -Dmaven.test.skip=true -pl '!sapl-bom,!sapl-code-style' -Pspotbugs -T 1.5C
 
       - name: Cache Sonar Packages
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -149,7 +151,6 @@ jobs:
           -Dsonar.projectKey=heutelbeck_sapl-policy-engine
           -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
           -Dsonar.qualitygate.wait=true
-          -Dformatter.skip=true
           -Pproduction
 
       - name: Clean up Local Repository before Caching
