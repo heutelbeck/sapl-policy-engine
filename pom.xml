@@ -558,7 +558,6 @@
 								<exclude>**/vite.config.ts</exclude>
 								<exclude>**/vite.generated.ts</exclude>
 								<exclude>**/README</exclude>
-								<exclude>**/.clusterfuzzlite/**</exclude>
 								<exclude>**/node_modules/**</exclude>
 								<exclude>**/frontend/**</exclude>
 								<exclude>**/gen/**</exclude>

@@ -81,6 +81,12 @@ The `algorithm` field changed from a flat string to a nested object.
     "defaultDecision": "DENY",
     "errorHandling": "PROPAGATE"
   },
+  "compilerFlags": {
+    "indexing": "AUTO",
+    "unrollInOperator": false,
+    "minPoliciesForIndexing": 10,
+    "maxIndexNodes": 500000
+  },
   "variables": {},
   "secrets": {}
 }
@@ -292,10 +298,12 @@ The starter uses `@ConditionalOnClass` guards so Spring Data R2DBC and MongoDB b
 
 All enforcement annotations (`@PreEnforce`, `@PostEnforce`, etc.) gain a new `secrets()` SpEL attribute for passing per-request secrets to the PDP. Two subscription builder services (`WebAuthorizationSubscriptionBuilderService` and `WebFluxAuthorizationSubscriptionBuilderService`) are unified into a single `AuthorizationSubscriptionBuilderService`.
 
-**RSocket Support Removed:**
-- Module `sapl-rsocket-endpoint` deleted entirely
-- All RSocket dependencies removed
-- Remote PDP is now HTTP-only
+**RSocket Support Rewritten:**
+- Old `sapl-rsocket-endpoint` module replaced by `sapl-rsocket-endpoint` (new implementation) and `sapl-api-proto` (protobuf/flatbuffers codecs)
+- Protocol: RSocket with protobuf binary framing (lower latency than JSON/SSE)
+- JWT authentication and multi-tenant routing via `MultiTenantPolicyDecisionPoint`
+- Connection TTL for long-lived connections
+- Disabled by default: `io.sapl.pdp.rsocket.enabled=true` to enable
 - `io.sapl.pdp.remote.type` default changed from `rsocket` to `http`
 - `io.sapl.pdp.remote.enabled` must be explicitly set to `true` (default: `false`)
 - Properties `rsocketHost` and `rsocketPort` removed
@@ -388,7 +396,7 @@ io.sapl.node:
 | `sapl-spring-pdp-remote` | Merged into `sapl-spring-boot-starter` |
 | `sapl-spring-security` | Merged into `sapl-spring-boot-starter` |
 | `sapl-spring-data-*` (3 modules) | Merged into `sapl-spring-boot-starter` |
-| `sapl-rsocket-endpoint` | Removed entirely |
+| `sapl-rsocket-endpoint` | Rewritten (protobuf/RSocket, disabled by default) |
 | `sapl-eclipse-plugin/*` (6 modules) | Removed entirely |
 | `sapl-server-lt` / `sapl-server-ce` | Replaced by `sapl-node` + `sapl-playground` |
 | `pdp-extensions/jwt` | Absorbed into `sapl-pdp` |
@@ -578,6 +586,70 @@ requirement "Time-based Access" {
 | Attribute Handling | Basic PIP invocation | Reactive streams with caching + hot-swap |
 | Error Handling | Exceptions | Error values (never throws) |
 | Type System | `Val` (Jackson JsonNode wrapper) | Sealed `Value` interface (type-safe, no Jackson) |
+
+### Policy Indexing (NEW -- Major Performance Feature)
+
+v3.0.0 evaluated every policy linearly for every authorization request. v4.0.0 introduces a policy indexing subsystem that drastically reduces evaluation cost for large policy sets.
+
+**Index strategies** (configured via `compilerFlags.indexing` in `pdp.json`):
+
+| Strategy | Description |
+|----------|-------------|
+| `AUTO` (default) | Heuristic selection: NAIVE for small sets (< 10 policies), SMTDD for larger sets, CANONICAL as fallback |
+| `NAIVE` | Linear scan of all policies. Suitable for small policy sets where indexing overhead is not justified. |
+| `CANONICAL` | Count-and-eliminate algorithm. Evaluates shared predicates once and eliminates non-matching policies incrementally. |
+| `SMTDD` | Semantic multi-terminal binary decision diagram with equality grouping. Collapses predicates with identical semantics (e.g., `subject.role == "doctor"` across multiple policies) into HashMap lookups. Fastest for large policy sets with predicate overlap. |
+
+**Tuning parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `minPoliciesForIndexing` | `10` | Minimum policy count before AUTO considers advanced indexing |
+| `maxIndexNodes` | `500000` | Maximum diagram nodes for SMTDD construction; exceeding falls back to CANONICAL |
+| `unrollInOperator` | `false` | Transforms `EXPR in [a, b, c]` into equality chains for improved index matching |
+
+**Performance impact:** On the hospital-300 benchmark (3,305 policies, 500 subscriptions), SMTDD achieves 3.3M ops/s vs 23K ops/s for CANONICAL -- a 140x improvement.
+
+### Graph Functions with Compile-Time Index (NEW)
+
+The `graph.reachable` function supports compile-time transitive closure via `graph.index()`. When the entity graph is available as a PDP variable, calling `graph.index(staffGraph)` in a policy precomputes all reachability at compile time, enabling O(1) membership queries at evaluation time instead of graph traversal.
+
+```
+policy "staff in department"
+permit
+    var indexed = graph.index(staffGraph);
+    graph.reachable(indexed, subject.id, resource.department)
+```
+
+This is a key performance differentiator for relationship-based access control (ReBAC) workloads.
+
+### Benchmark and Load Test CLI (NEW)
+
+`sapl-node` includes built-in performance measurement tools:
+
+**`sapl benchmark`** -- embedded PDP benchmarking without network overhead:
+- Built-in RBAC scenario (`--rbac`) or custom policies (`--dir`, `--bundle`)
+- Convergence-based warmup with coefficient of variation detection
+- HDR Histogram latency measurement (p50, p90, p99, p99.9)
+- Multi-threaded throughput measurement
+- CSV, Markdown, and JSON report output
+
+**`sapl loadtest`** -- load test a running SAPL PDP server:
+- HTTP and RSocket transport support
+- Saturation mode (max throughput) and paced mode (`--rate` for constant request rate)
+- Coordinated omission correction for accurate latency measurement
+- Multiple TCP connections and virtual threads for RSocket
+
+### Native Binary Distribution (NEW)
+
+`sapl-node` and `sapl-language-server` are distributed as GraalVM native image binaries:
+
+- **Platforms:** Linux x86_64, Linux ARM64, macOS ARM64, Windows x86_64
+- **Packages:** DEB and RPM with systemd service unit, hardened with `NoNewPrivileges`, `ProtectSystem=strict`
+- **Man pages:** Auto-generated from PicoCLI annotations, installed to `/usr/share/man/man1/`
+- **Shell completion:** Bash completion scripts included in packages and archives
+- **Docker:** `ghcr.io/heutelbeck/sapl-node` with multi-architecture support
+- **Snapshot releases:** Automatically published on every successful master build with source archives synced to binary versions
 
 ### Secrets Management (NEW)
 
@@ -1176,7 +1248,7 @@ These changes may silently affect authorization outcomes:
 - [ ] Add `io.sapl.pdp.remote.enabled=true` if using remote PDP
 - [ ] Rename `io.sapl.server-lt.*` to `io.sapl.node.*` (if running server)
 - [ ] Migrate flat key/secret to unified `users` list (if running server)
-- [ ] Remove all RSocket configuration
+- [ ] Update RSocket configuration: old `rsocketHost`/`rsocketPort` removed, new `io.sapl.pdp.rsocket.enabled=true` to enable
 - [ ] Replace Infinispan with Caffeine cache configuration
 
 ### Step 7: Test Code
