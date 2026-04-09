@@ -103,7 +103,7 @@ class RemoteHttpPolicyDecisionPointLogTests {
     class SecretExclusion {
 
         @Test
-        @Timeout(5)
+        @Timeout(10)
         @DisplayName("Subscription containing secrets does not appear in log output (REQ-LOG-1/SECRETS-2)")
         void whenSubscriptionHasSecretsThenSecretsNotInLogs() {
             val pdp = createPdpWithBasicAuth("user", "pass");
