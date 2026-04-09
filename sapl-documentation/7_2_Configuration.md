@@ -114,7 +114,7 @@ sapl --io.sapl.pdp.embedded.pdp-config-type=BUNDLES --io.sapl.pdp.embedded.polic
 In Docker, set the equivalent environment variable:
 
 ```shell
-docker run -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -e IO_SAPL_NODE_ALLOWNOAUTH=true ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 ### Spring Profiles

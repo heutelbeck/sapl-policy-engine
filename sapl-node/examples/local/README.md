@@ -13,7 +13,7 @@ Build the sapl-node jar:
 mvn package -pl sapl-node -q -DskipTests
 ```
 
-The jar is at `sapl-node/target/sapl-node-4.0.0.jar` (relative to the repository root).
+The jar is at `sapl-node/target/sapl-node-4.1.0-SNAPSHOT.jar` (relative to the repository root).
 
 
 ## 1. Single Directory (`singledirectory/`)
@@ -38,7 +38,7 @@ singledirectory/
 
 ```bash
 cd sapl-node/examples/local/singledirectory
-java -jar ../../../target/sapl-node-4.0.0.jar
+java -jar ../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 ```
 
 **Test:**
@@ -85,7 +85,7 @@ multidirectory/
 
 ```bash
 cd sapl-node/examples/local/multidirectory
-java -jar ../../../target/sapl-node-4.0.0.jar
+java -jar ../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 ```
 
 **Tenant routing** uses client-to-tenant binding in `application.yml`. Each authenticated
@@ -175,7 +175,7 @@ bundle-security:
 
 ```bash
 cd sapl-node/examples/local/bundles
-java -jar ../../../target/sapl-node-4.0.0.jar
+java -jar ../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 ```
 
 **Test:**
@@ -208,7 +208,7 @@ curl -s -H "Authorization: Bearer sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ
 ### Security Tests
 
 ```bash
-NODE_JAR=../../../target/sapl-node-4.0.0.jar
+NODE_JAR=../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 
 # 1. Unsigned bundle for production -- REJECTED (not in unsigned-tenants)
 cp unsigned/production-unsigned.saplbundle bundles/production.saplbundle
@@ -240,7 +240,7 @@ java -jar $NODE_JAR bundle create \
 ### Bundle CLI
 
 ```bash
-NODE_JAR=../../../target/sapl-node-4.0.0.jar
+NODE_JAR=../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 
 # Generate a new Ed25519 keypair
 java -jar $NODE_JAR bundle keygen -o keys/new-key

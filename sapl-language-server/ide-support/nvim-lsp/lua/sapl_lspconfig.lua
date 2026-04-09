@@ -30,7 +30,7 @@ if not configs.sapl then
       -- cmd = { '/path/to/sapl-language-server-macos-arm64' },
       -- cmd = { '/path/to/sapl-language-server-windows-amd64.exe' },
       -- Standalone JAR (requires Java 21+):
-      cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.0.0-standalone.jar' },
+      cmd = { 'java', '-jar', '/path/to/sapl-language-server-4.1.0-SNAPSHOT-standalone.jar' },
 
       filetypes = { 'sapl', 'sapltest' },
 

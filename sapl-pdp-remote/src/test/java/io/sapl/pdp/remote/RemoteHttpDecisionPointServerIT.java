@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 @ActiveProfiles(profiles = "quiet")
 class RemoteHttpDecisionPointServerIT {
     private static final int             SAPL_SERVER_PORT = 8443;
-    private static final String          SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-node:4.0.0";
+    private static final String          SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
     private static final ImagePullPolicy NEVER_PULL       = imageName -> false;
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");

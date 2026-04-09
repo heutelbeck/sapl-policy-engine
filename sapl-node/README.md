@@ -15,7 +15,7 @@ cd sapl-policy-engine
 mvn install -DskipTests
 ```
 
-The executable JAR is at `sapl-node/target/sapl-node-4.0.0.jar`.
+The executable JAR is at `sapl-node/target/sapl-node-4.1.0-SNAPSHOT.jar`.
 
 ## Quick Start
 
@@ -461,7 +461,7 @@ spec:
     spec:
       containers:
         - name: sapl
-          image: ghcr.io/heutelbeck/sapl-node:4.0.0
+          image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
           ports:
             - containerPort: 8080
           livenessProbe:
@@ -651,9 +651,9 @@ Benchmark scripts are in `sapl-node/benchmarks/`. See `benchmarks/README.md` for
 
 ```shell
 cd sapl-node/benchmarks
-./run-sapl4.sh "java -jar ../target/sapl-node-4.0.0.jar" /tmp/bench-jvm
+./run-sapl4.sh "java -jar ../target/sapl-node-4.1.0-SNAPSHOT.jar" /tmp/bench-jvm
 ./run-sapl4.sh ../target/sapl /tmp/bench-native quick
-./run-all.sh "java -jar ../target/sapl-node-4.0.0.jar" /tmp/bench-full standard
+./run-all.sh "java -jar ../target/sapl-node-4.1.0-SNAPSHOT.jar" /tmp/bench-full standard
 ```
 
 Each scenario produces a results subdirectory with JSON (JMH-compatible), Markdown, and CSV files.

@@ -164,13 +164,13 @@ Spring Boot automatically loads `config/application.yml` on startup. The `config
 Download the package for your distribution from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases).
 
 ```shell
-sudo dpkg -i sapl_4.0.0_amd64.deb
+sudo dpkg -i sapl_4.1.0-SNAPSHOT_amd64.deb
 ```
 
 Or for RPM-based distributions:
 
 ```shell
-sudo rpm -i sapl-4.0.0.x86_64.rpm
+sudo rpm -i sapl-4.1.0-SNAPSHOT.x86_64.rpm
 ```
 
 #### What the Package Installs
@@ -255,7 +255,7 @@ The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `Pro
 
 For container deployments, the server runs inside Docker while you use the local `sapl` binary for CLI operations like bundle creation and credential generation.
 
-The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.0.0`). The examples below use the current development tag `4.0.0`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT`). The examples below use the current development tag `4.1.0-SNAPSHOT`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To get started with signed bundles:
 
@@ -270,19 +270,19 @@ sapl bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
 Run the container, mounting the bundles directory and the public key:
 
 ```shell
-docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 For development or evaluation without signing, disable signature verification:
 
 ```shell
-docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 To use raw `.sapl` files instead of bundles (for learning or demos), override the policy source type:
 
 ```shell
-docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 The `SERVER_ADDRESS=0.0.0.0` override is required so Docker's port mapping can reach the server. The default `127.0.0.1` only accepts connections from within the container.
@@ -292,7 +292,7 @@ Environment variables follow Spring Boot's naming convention: dots become unders
 You can also mount a full `application.yml` instead of using individual environment variables:
 
 ```shell
-docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 ### CLI Reference

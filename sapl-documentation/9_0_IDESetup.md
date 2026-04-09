@@ -18,13 +18,13 @@ The language server is available as a native binary (no Java required), as Linux
 On Debian/Ubuntu:
 
 ```shell
-sudo dpkg -i sapl-language-server_4.0.0_amd64.deb
+sudo dpkg -i sapl-language-server_4.1.0-SNAPSHOT_amd64.deb
 ```
 
 On RPM-based distributions:
 
 ```shell
-sudo rpm -i sapl-language-server-4.0.0.x86_64.rpm
+sudo rpm -i sapl-language-server-4.1.0-SNAPSHOT.x86_64.rpm
 ```
 
 The package installs the binary to `/usr/bin/sapl-language-server` and a man page to `/usr/share/man/man1/`. No configuration files, services, or system users are needed.

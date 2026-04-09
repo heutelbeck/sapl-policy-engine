@@ -74,7 +74,7 @@ This script prompts for credentials for two different tenants and demonstrates t
    ```bash
    # For no-auth testing (using a local example):
    cd sapl-node/examples/local/singledirectory
-   java -jar ../../../target/sapl-node-4.0.0.jar
+   java -jar ../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 
    # Or with Docker:
    docker run -p 8443:8443 \
@@ -85,7 +85,7 @@ This script prompts for credentials for two different tenants and demonstrates t
      -e SERVER_PORT=8443 \
      -e SERVER_ADDRESS=0.0.0.0 \
      -e JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M \
-     ghcr.io/heutelbeck/sapl-node:4.0.0
+     ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
    ```
 
 3. Run a test script:
