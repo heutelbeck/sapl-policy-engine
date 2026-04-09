@@ -63,7 +63,21 @@ public class CombiningUtils {
     public record StratifiedPolicies(
             List<Vote> foldableVotes,
             List<CompiledDocument> purePolicies,
-            List<CompiledDocument> streamPolicies) {}
+            List<CompiledDocument> streamPolicies) {
+
+        List<CompiledDocument> allIndexedPolicies() {
+            if (streamPolicies.isEmpty()) {
+                return purePolicies;
+            }
+            if (purePolicies.isEmpty()) {
+                return streamPolicies;
+            }
+            val combined = new ArrayList<CompiledDocument>(purePolicies.size() + streamPolicies.size());
+            combined.addAll(purePolicies);
+            combined.addAll(streamPolicies);
+            return combined;
+        }
+    }
 
     public static StratifiedPolicies classifyPoliciesByEvaluationStrategy(
             List<? extends CompiledDocument> compiledPolicies) {

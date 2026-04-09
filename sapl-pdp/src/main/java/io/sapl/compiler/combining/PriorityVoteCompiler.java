@@ -129,15 +129,14 @@ public class PriorityVoteCompiler {
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
-        val pureIndex = IndexFactory.createIndex(classified.purePolicies(), ctx);
+        val index = IndexFactory.createIndex(classified.allIndexedPolicies(), ctx);
 
         if (classified.streamPolicies().isEmpty()) {
-            return new PurePriorityVoter(accumulatorVote, pureIndex, priorityDecision, defaultDecision, errorHandling,
+            return new PurePriorityVoter(accumulatorVote, index, priorityDecision, defaultDecision, errorHandling,
                     voterMetadata);
         }
-        val streamIndex = IndexFactory.createIndex(classified.streamPolicies(), ctx);
-        return new StreamPriorityVoter(accumulatorVote, pureIndex, streamIndex, priorityDecision, defaultDecision,
-                errorHandling, voterMetadata);
+        return new StreamPriorityVoter(accumulatorVote, index, priorityDecision, defaultDecision, errorHandling,
+                voterMetadata);
     }
 
     record PurePriorityVoter(
@@ -156,8 +155,7 @@ public class PriorityVoteCompiler {
 
     record StreamPriorityVoter(
             Vote accumulatorVote,
-            PolicyIndex pureIndex,
-            PolicyIndex streamIndex,
+            PolicyIndex index,
             Decision priorityDecision,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
@@ -165,17 +163,29 @@ public class PriorityVoteCompiler {
         @Override
         public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
-                val evalCtx  = ctxView.get(EvaluationContext.class);
-                var pureVote = combinePureVoters(accumulatorVote, pureIndex, priorityDecision, voterMetadata, evalCtx);
+                val evalCtx = ctxView.get(EvaluationContext.class);
+                val result  = index.match(evalCtx);
 
-                val streamResult = streamIndex.match(evalCtx);
-                for (val errorVote : streamResult.errorVotes()) {
+                var pureVote = accumulatorVote;
+                for (val errorVote : result.errorVotes()) {
                     pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, errorVote, priorityDecision,
                             voterMetadata);
                 }
-                val streamVoters = new ArrayList<Flux<Vote>>(streamResult.matchingDocuments().size());
-                for (val document : streamResult.matchingDocuments()) {
-                    streamVoters.add(((StreamVoter) document.voter()).vote());
+                val streamVoters = new ArrayList<Flux<Vote>>();
+                for (val document : result.matchingDocuments()) {
+                    val voter = document.voter();
+                    if (voter instanceof StreamVoter sv) {
+                        streamVoters.add(sv.vote());
+                    } else {
+                        Vote newVote;
+                        if (voter instanceof Vote constantVote) {
+                            newVote = constantVote;
+                        } else {
+                            newVote = ((PureVoter) voter).vote(evalCtx);
+                        }
+                        pureVote = PriorityBasedVoteCombiner.combineVotes(pureVote, newVote, priorityDecision,
+                                voterMetadata);
+                    }
                 }
 
                 if (streamVoters.isEmpty()) {

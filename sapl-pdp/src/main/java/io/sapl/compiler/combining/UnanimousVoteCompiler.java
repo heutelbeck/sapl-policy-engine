@@ -143,15 +143,14 @@ public class UnanimousVoteCompiler {
             return accumulatorVote.finalizeVote(defaultDecision, errorHandling);
         }
 
-        val pureIndex = IndexFactory.createIndex(classified.purePolicies(), ctx);
+        val index = IndexFactory.createIndex(classified.allIndexedPolicies(), ctx);
 
         if (classified.streamPolicies().isEmpty()) {
-            return new PureUnanimousVoter(accumulatorVote, pureIndex, defaultDecision, errorHandling, voterMetadata,
+            return new PureUnanimousVoter(accumulatorVote, index, defaultDecision, errorHandling, voterMetadata,
                     strictMode);
         }
-        val streamIndex = IndexFactory.createIndex(classified.streamPolicies(), ctx);
-        return new StreamUnanimousVoter(accumulatorVote, pureIndex, streamIndex, defaultDecision, errorHandling,
-                voterMetadata, strictMode);
+        return new StreamUnanimousVoter(accumulatorVote, index, defaultDecision, errorHandling, voterMetadata,
+                strictMode);
     }
 
     record PureUnanimousVoter(
@@ -192,8 +191,7 @@ public class UnanimousVoteCompiler {
 
     record StreamUnanimousVoter(
             Vote accumulatorVote,
-            PolicyIndex pureIndex,
-            PolicyIndex streamIndex,
+            PolicyIndex index,
             DefaultDecision defaultDecision,
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata,
@@ -201,23 +199,30 @@ public class UnanimousVoteCompiler {
         @Override
         public Flux<Vote> vote() {
             return Flux.deferContextual(ctxView -> {
-                val evalCtx  = ctxView.get(EvaluationContext.class);
-                var pureVote = combinePureVoters(accumulatorVote, pureIndex, voterMetadata, strictMode, evalCtx);
+                val evalCtx = ctxView.get(EvaluationContext.class);
+                val result  = index.match(evalCtx);
 
-                if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
-                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
-                }
-
-                val streamResult = streamIndex.match(evalCtx);
-                for (val errorVote : streamResult.errorVotes()) {
+                var pureVote = accumulatorVote;
+                for (val errorVote : result.errorVotes()) {
                     pureVote = UnanimousVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata, strictMode);
                 }
-                if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
-                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
-                }
-                val streamVoters = new ArrayList<Flux<Vote>>(streamResult.matchingDocuments().size());
-                for (val document : streamResult.matchingDocuments()) {
-                    streamVoters.add(((StreamVoter) document.voter()).vote());
+                val streamVoters = new ArrayList<Flux<Vote>>();
+                for (val document : result.matchingDocuments()) {
+                    val voter = document.voter();
+                    if (voter instanceof StreamVoter sv) {
+                        streamVoters.add(sv.vote());
+                    } else {
+                        Vote newVote;
+                        if (voter instanceof Vote constantVote) {
+                            newVote = constantVote;
+                        } else {
+                            newVote = ((PureVoter) voter).vote(evalCtx);
+                        }
+                        pureVote = UnanimousVoteCombiner.combineVotes(pureVote, newVote, voterMetadata, strictMode);
+                        if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
+                            return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
+                        }
+                    }
                 }
 
                 if (streamVoters.isEmpty()) {
