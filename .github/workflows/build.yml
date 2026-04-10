@@ -781,6 +781,16 @@ jobs:
             The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
             Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
 
+            ### macOS users: first-run setup
+
+            macOS Gatekeeper blocks unsigned binaries downloaded from the internet. After extracting the tarball, run this once to allow the binary to execute:
+
+            ```bash
+            xattr -dr com.apple.quarantine ./sapl
+            ```
+
+            Alternatively, right-click `sapl` in Finder, choose **Open**, and confirm in the dialog. After approval, you can run it normally from the command line.
+
             ### Linux Packages
             | Format | x86_64 | ARM64 |
             |--------|--------|-------|
@@ -1051,6 +1061,44 @@ jobs:
           if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
           git commit -m "update sapl-language-server package hashes for ${VERSION}"
           git push
+
+  publish-version-sums:
+    name: Regenerate version-release SHA256SUMS.txt
+    needs: [version-check, publish-native-node, publish-native-lsp]
+    if: ${{ needs.version-check.outputs.is_tag == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Download all current release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p sums-staging
+          gh release download "${TAG}" --repo "${{ github.repository }}" --dir sums-staging --pattern '*.tar.gz' --pattern '*.zip' --pattern '*.deb' --pattern '*.rpm' --pattern '*.jar'
+          ls -lh sums-staging/
+
+      - name: Generate complete SHA256SUMS.txt
+        run: |
+          cd sums-staging
+          sha256sum * > SHA256SUMS.txt
+          echo "=== Final SHA256SUMS.txt ($(wc -l < SHA256SUMS.txt) entries) ==="
+          cat SHA256SUMS.txt
+
+      - name: Upload SHA256SUMS.txt to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "${TAG}" sums-staging/SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
 
   publish-docs:
     needs: [test, version-check]
