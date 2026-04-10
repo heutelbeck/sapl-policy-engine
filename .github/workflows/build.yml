@@ -406,8 +406,6 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/build_native_node.yml
-    with:
-      include-macos: ${{ needs.version-check.outputs.is_tag == 'true' }}
 
   build-native-lsp:
     if: ${{ github.event_name != 'pull_request' }}
@@ -633,13 +631,6 @@ jobs:
           name: sapl-windows-amd64
           path: artifacts/windows
 
-      - name: Download macOS artifact
-        continue-on-error: true
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: sapl-macos-arm64
-          path: artifacts/macos
-
       - name: Download SAPL Node JAR
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -650,7 +641,7 @@ jobs:
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/macos staging/windows
+          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/windows
 
           # Man pages and completion are platform-independent, bundled in the linux-amd64 artifact
           MAN_SRC=artifacts/linux-amd64/generated-man
@@ -685,19 +676,8 @@ jobs:
           # JVM fat JAR
           cp sapl-node/target/sapl-node-*.jar "release/sapl-node-${VERSION}.jar"
 
-          # macOS (tar.gz) - only available on tag builds
-          if [ -f artifacts/macos/sapl ]; then
-            cp artifacts/macos/sapl staging/macos/sapl
-            chmod +x staging/macos/sapl
-            cp LICENSE staging/macos/
-            cp sapl-node/README.md staging/macos/
-            cp -r "$MAN_SRC" staging/macos/man
-            mkdir -p staging/macos/completion
-            cp "$COMPLETION_SRC/sapl.bash" staging/macos/completion/
-            tar -czf "release/sapl-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
-          else
-            echo "::notice::macOS artifact not available (built on tag releases only)"
-          fi
+          # macOS arm64 binary is built and uploaded separately by
+          # FTKeV/sapl-mac-build and attached to the release manually.
 
       # Install nfpm directly instead of using goreleaser/nfpm action.
       # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
@@ -749,7 +729,6 @@ jobs:
 
             Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
             The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
-            macOS native builds are included in tagged releases only.
 
             ### Linux Packages
             | Format | x86_64 | ARM64 |

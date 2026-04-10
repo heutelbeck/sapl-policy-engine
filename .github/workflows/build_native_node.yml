@@ -19,11 +19,6 @@ name: Build Native SAPL Node
 
 on:
   workflow_call:
-    inputs:
-      include-macos:
-        description: Build the macOS native image (slow, ~60 min on free runner)
-        type: boolean
-        default: false
   workflow_dispatch:
 
 jobs:
@@ -118,49 +113,6 @@ jobs:
         shell: bash
         run: rm -rf ~/.m2/repository/io/sapl
 
-  build-native-macos:
-    name: Build (macos-latest)
-    runs-on: macos-latest
-    timeout-minutes: 120
-
-    steps:
-      - name: Check out
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@54b4f5a65c1a84b2fdfdc2078fe43df32819e4b1 # v1.4.5
-        with:
-          java-version: '25'
-          distribution: 'graalvm'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
-
-      - name: Cache Maven packages
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-native-node-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-native-node-
-            ${{ runner.os }}-maven-native-
-            ${{ runner.os }}-maven-
-
-      - name: Build Dependencies
-        shell: bash
-        run: mvn -B install -pl sapl-node -am -DskipTests
-
-      - name: Build Native Image
-        shell: bash
-        run: mvn -B package -pl sapl-node -Pnative-macos -DskipTests
-
-      - name: Upload Native Executable
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: sapl-macos-arm64
-          path: sapl-node/target/sapl
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Clean up Local Repository before Caching
-        shell: bash
-        run: rm -rf ~/.m2/repository/io/sapl
+  # macOS native builds are produced by FTKeV/sapl-mac-build (Apple Silicon
+  # macos-14-xlarge runner) and uploaded to the heutelbeck release manually.
+  # See FTKeV/sapl-mac-build/.github/workflows/build-sapl-binary.yml.
