@@ -119,7 +119,6 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   build-native-macos:
-    if: inputs.include-macos
     name: Build (macos-latest)
     runs-on: macos-latest
     timeout-minutes: 120
@@ -152,7 +151,7 @@ jobs:
 
       - name: Build Native Image
         shell: bash
-        run: mvn -B package -pl sapl-node -Pnative -DskipTests
+        run: mvn -B package -pl sapl-node -Pnative-macos -DskipTests
 
       - name: Upload Native Executable
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

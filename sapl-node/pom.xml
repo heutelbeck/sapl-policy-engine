@@ -43,6 +43,12 @@
 	<properties>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
 		<main.basedir>${project.basedir}/../</main.basedir>
+		<native-maven-plugin.version>0.10.6</native-maven-plugin.version>
+
+		<!-- Native-image optimization level. Overridable per profile.
+		     Default -O3 applies to Windows and Linux builds.
+		     macOS overrides to -Ob due to runner memory constraints. -->
+		<native.optimizationLevel>-O3</native.optimizationLevel>
 	</properties>
 	
 	<dependencies>
@@ -58,21 +64,21 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-spring-boot-starter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-pdp</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-test</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-spring-boot-starter</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-pdp</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-test</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-webflux-endpoint</artifactId>
@@ -107,7 +113,7 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
-            <optional>true</optional>
+			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -174,8 +180,6 @@
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
-
-
 		<dependency>
 			<groupId>org.hdrhistogram</groupId>
 			<artifactId>HdrHistogram</artifactId>
@@ -229,6 +233,41 @@
 	</dependencies>
 
 	<build>
+		<pluginManagement>
+			<plugins>
+				<!-- GraalVM native-image: shared config for all native-* profiles.
+				     Profiles add only their platform-specific buildArgs via
+				     combine.children="append". -->
+				<plugin>
+					<groupId>org.graalvm.buildtools</groupId>
+					<artifactId>native-maven-plugin</artifactId>
+					<version>${native-maven-plugin.version}</version>
+					<extensions>true</extensions>
+					<configuration>
+						<imageName>sapl</imageName>
+						<quickBuild>false</quickBuild>
+						<buildArgs>
+							<buildArg>--no-fallback</buildArg>
+							<buildArg>-H:+ReportExceptionStackTraces</buildArg>
+							<buildArg>--enable-url-protocols=http,https</buildArg>
+							<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+							<buildArg>-march=compatibility</buildArg>
+							<buildArg>${native.optimizationLevel}</buildArg>
+							<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+						</buildArgs>
+					</configuration>
+					<executions>
+						<execution>
+							<id>build-native</id>
+							<goals>
+								<goal>compile-no-fork</goal>
+							</goals>
+							<phase>package</phase>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -273,7 +312,7 @@
 						<builder>paketobuildpacks/builder-jammy-tiny</builder>
 						<buildpacks>
 							<buildpack>urn:cnb:builder:paketo-buildpacks/java</buildpack>
-							</buildpacks>
+						</buildpacks>
 						<name>
 							${docker-registry-url}/${project.artifactId}:${project.version}</name>
 						<createdDate>now</createdDate>
@@ -462,7 +501,8 @@
 				</plugins>
 			</build>
 		</profile>
-		<!-- Profile for building GraalVM native image (Windows/macOS) -->
+		<!-- Native image profile for Windows. Inherits all defaults from
+		     pluginManagement: -O3, all-cores analysis, no heap cap. -->
 		<profile>
 			<id>native</id>
 			<build>
@@ -491,35 +531,56 @@
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
 						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<!-- Native image profile for macOS arm64. Reduced optimization to fit
+		     the free macos-latest GitHub runner (7 GB RAM). Resulting binary
+		     is slower at runtime than -O3 builds. Revisit when a self-hosted
+		     Mac runner with more memory is available. -->
+		<profile>
+			<id>native-macos</id>
+			<properties>
+				<native.optimizationLevel>-Ob</native.optimizationLevel>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.springframework.boot</groupId>
+						<artifactId>spring-boot-maven-plugin</artifactId>
 						<executions>
 							<execution>
-								<id>build-native</id>
+								<id>process-aot</id>
 								<goals>
-									<goal>compile-no-fork</goal>
+									<goal>process-aot</goal>
 								</goals>
-								<phase>package</phase>
+							</execution>
+							<execution>
+								<id>default</id>
+								<goals>
+									<goal>repackage</goal>
+								</goals>
+								<configuration>
+									<skip>true</skip>
+								</configuration>
 							</execution>
 						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
 						<configuration>
-							<imageName>sapl</imageName>
-							<buildArgs>
-								<buildArg>--no-fallback</buildArg>
-								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
-								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>-march=compatibility</buildArg>
-								<buildArg>-O3</buildArg>
-								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+							<buildArgs combine.children="append">
+								<buildArg>-J-Xmx5g</buildArg>
+								<buildArg>-H:NumberOfAnalysisThreads=2</buildArg>
 							</buildArgs>
-							<quickBuild>false</quickBuild>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
-		<!-- Profile for building static musl native image (Linux) -->
+		<!-- Native image profile for Linux x86_64 (static musl). -->
 		<profile>
 			<id>native-linux</id>
 			<build>
@@ -548,37 +609,18 @@
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
 						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
-						<executions>
-							<execution>
-								<id>build-native</id>
-								<goals>
-									<goal>compile-no-fork</goal>
-								</goals>
-								<phase>package</phase>
-							</execution>
-						</executions>
 						<configuration>
-							<imageName>sapl</imageName>
-							<buildArgs>
-								<buildArg>--no-fallback</buildArg>
-								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
-								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>-march=compatibility</buildArg>
+							<buildArgs combine.children="append">
 								<buildArg>--static</buildArg>
 								<buildArg>--libc=musl</buildArg>
-								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
 								<buildArg>-J-Xmx14g</buildArg>
 							</buildArgs>
-							<quickBuild>false</quickBuild>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
-		<!-- Profile for building static native image without musl (Linux ARM64) -->
+		<!-- Native image profile for Linux ARM64 (static, no libc). -->
 		<profile>
 			<id>native-linux-arm</id>
 			<build>
@@ -607,30 +649,11 @@
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
 						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
-						<executions>
-							<execution>
-								<id>build-native</id>
-								<goals>
-									<goal>compile-no-fork</goal>
-								</goals>
-								<phase>package</phase>
-							</execution>
-						</executions>
 						<configuration>
-							<imageName>sapl</imageName>
-							<buildArgs>
-								<buildArg>--no-fallback</buildArg>
-								<buildArg>-H:+ReportExceptionStackTraces</buildArg>
-								<buildArg>--enable-url-protocols=http,https</buildArg>
-								<buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
-								<buildArg>-march=compatibility</buildArg>
+							<buildArgs combine.children="append">
 								<buildArg>--static-nolibc</buildArg>
-								<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
 								<buildArg>-J-Xmx14g</buildArg>
 							</buildArgs>
-							<quickBuild>false</quickBuild>
 						</configuration>
 					</plugin>
 				</plugins>
