@@ -17,10 +17,24 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import java.util.Optional;
+import java.util.Set;
+
 import io.sapl.api.model.Value;
 
-import java.util.Optional;
-
+/**
+ * Implementation of Algorithm 1 of the enforcement framework: maps a constraint
+ * to a scoped handler.
+ * <p>
+ * Returns {@link Optional#empty()} when this provider does not implement the
+ * constraint. Otherwise returns the
+ * triple {@code (handler, signalType, priority)} that the planner will
+ * schedule. Implementations may use
+ * {@code supportedSignals} to bind their handler to the {@link SignalType} the
+ * deployed PEP actually fires
+ * (e.g. picking the {@link Signal.OutputSignal} type with its concrete
+ * {@code valueType}).
+ */
 public interface ConstraintHandlerProvider {
-    Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint);
+    Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals);
 }

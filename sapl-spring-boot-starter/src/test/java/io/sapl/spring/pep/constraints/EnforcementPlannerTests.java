@@ -39,7 +39,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.spring.constraints.providers.AccessConstraintViolationException;
 import io.sapl.spring.pep.constraints.EnforcementPlanner.SubstitutionReason;
 import lombok.val;
 import tools.jackson.databind.ObjectMapper;
@@ -124,11 +123,11 @@ class EnforcementPlannerTests {
                     """, """
                     [{"id": "a1"}]
                     """);
-            lenient().when(provider.getConstraintHandler(id("o1")))
+            lenient().when(provider.getConstraintHandler(id("o1"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
-            lenient().when(provider.getConstraintHandler(id("o2")))
+            lenient().when(provider.getConstraintHandler(id("o2"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
-            lenient().when(provider.getConstraintHandler(id("a1")))
+            lenient().when(provider.getConstraintHandler(id("a1"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -148,11 +147,11 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "a"}, {"id": "b"}, {"id": "c"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("a")))
+            when(provider.getConstraintHandler(id("a"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), CANCEL_SIGNAL_TYPE, 50)));
-            when(provider.getConstraintHandler(id("b")))
+            when(provider.getConstraintHandler(id("b"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), CANCEL_SIGNAL_TYPE, 10)));
-            when(provider.getConstraintHandler(id("c")))
+            when(provider.getConstraintHandler(id("c"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), CANCEL_SIGNAL_TYPE, 30)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -168,11 +167,11 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "m"}, {"id": "c"}, {"id": "r"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("r")))
+            when(provider.getConstraintHandler(id("r"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), OUTPUT_STRING_TYPE, 5)));
-            when(provider.getConstraintHandler(id("m")))
+            when(provider.getConstraintHandler(id("m"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 5)));
-            when(provider.getConstraintHandler(id("c")))
+            when(provider.getConstraintHandler(id("c"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(consumer(), OUTPUT_STRING_TYPE, 5)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -194,7 +193,7 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "bad"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("bad")))
+            when(provider.getConstraintHandler(id("bad"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), CANCEL_SIGNAL_TYPE, 0)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -213,7 +212,7 @@ class EnforcementPlannerTests {
             val decision          = permit("""
                     [{"id": "x"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("x")))
+            when(provider.getConstraintHandler(id("x"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), unsupportedSignal, 0)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -229,7 +228,7 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "r"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("r")))
+            when(provider.getConstraintHandler(id("r"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), CANCEL_SIGNAL_TYPE, 0)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -249,7 +248,7 @@ class EnforcementPlannerTests {
             val decision = permit("[]", """
                     [{"id": "bad-advice-mapper"}]
                     """);
-            when(provider.getConstraintHandler(id("bad-advice-mapper")))
+            when(provider.getConstraintHandler(id("bad-advice-mapper"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 0)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -270,9 +269,9 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "m1"}, {"id": "m2"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("m1")))
+            when(provider.getConstraintHandler(id("m1"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 5)));
-            when(provider.getConstraintHandler(id("m2")))
+            when(provider.getConstraintHandler(id("m2"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 5)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -289,9 +288,9 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "m1"}, {"id": "m2"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("m1")))
+            when(provider.getConstraintHandler(id("m1"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 5)));
-            when(provider.getConstraintHandler(id("m2")))
+            when(provider.getConstraintHandler(id("m2"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 10)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -312,7 +311,7 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "orphan"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("orphan"))).thenReturn(Optional.empty());
+            when(provider.getConstraintHandler(id("orphan"), SUPPORTED_SIGNALS)).thenReturn(Optional.empty());
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
 
@@ -326,9 +325,9 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "dup"}]
                     """, "[]");
-            when(provider.getConstraintHandler(id("dup")))
+            when(provider.getConstraintHandler(id("dup"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
-            when(second.getConstraintHandler(id("dup")))
+            when(second.getConstraintHandler(id("dup"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
 
             val plan = plannerWith(provider, second).plan(decision, SUPPORTED_SIGNALS);
@@ -343,7 +342,7 @@ class EnforcementPlannerTests {
             val decision = permit("[]", """
                     [{"id": "a"}]
                     """);
-            when(provider.getConstraintHandler(id("a"))).thenReturn(Optional.empty());
+            when(provider.getConstraintHandler(id("a"), SUPPORTED_SIGNALS)).thenReturn(Optional.empty());
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
 
@@ -418,7 +417,7 @@ class EnforcementPlannerTests {
             val resourceMapper = (ConstraintHandler.Mapper<Object>) plan.entriesFor(OUTPUT_STRING_TYPE).getFirst()
                     .handler();
             assertThatThrownBy(() -> resourceMapper.apply("anything"))
-                    .isInstanceOf(AccessConstraintViolationException.class).hasMessageContaining("Cannot map resource");
+                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("Cannot map resource");
         }
 
         @Test
@@ -427,7 +426,7 @@ class EnforcementPlannerTests {
             val decision = permit("""
                     [{"id": "user"}]
                     """, "[]", "\"resource\"");
-            when(provider.getConstraintHandler(id("user")))
+            when(provider.getConstraintHandler(id("user"), SUPPORTED_SIGNALS))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, Integer.MIN_VALUE)));
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -446,7 +445,7 @@ class EnforcementPlannerTests {
                 .filter(entry -> entry.constraintType() == ConstraintType.OBLIGATION).findFirst()
                 .orElseThrow(() -> new AssertionError("No obligation runner substitute at " + where));
         val runner     = (ConstraintHandler.Runner) substitute.handler();
-        assertThatThrownBy(runner::run).isInstanceOf(AccessConstraintViolationException.class)
+        assertThatThrownBy(runner::run).isInstanceOf(ConstraintEnforcementException.class)
                 .hasMessageContaining(reason.name());
     }
 }

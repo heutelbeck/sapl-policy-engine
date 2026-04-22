@@ -21,6 +21,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.MapFunction;
 import com.jayway.jsonpath.PathNotFoundException;
+import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.reactivestreams.Publisher;
@@ -178,7 +179,7 @@ public class ContentFilter {
 
     private static void assertConstraintIsAnObjectNode(JsonNode constraint) {
         if (constraint == null || !constraint.isObject())
-            throw new AccessConstraintViolationException(ERROR_CONSTRAINT_INVALID);
+            throw new ConstraintEnforcementException(ERROR_CONSTRAINT_INVALID);
 
     }
 
@@ -187,27 +188,27 @@ public class ContentFilter {
             try {
                 return predicate.test(x);
             } catch (PathNotFoundException e) {
-                throw new AccessConstraintViolationException(ERROR_CONSTRAINT_PATH_NOT_PRESENT, e);
+                throw new ConstraintEnforcementException(ERROR_CONSTRAINT_PATH_NOT_PRESENT, e);
             }
         };
     }
 
     private static Predicate<Object> conditionToPredicate(JsonNode condition, ObjectMapper objectMapper) {
         if (!condition.isObject())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         if (!condition.has(PATH) || !condition.get(PATH).isString())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var path = condition.get(PATH).stringValue();
 
         if (!condition.has(TYPE) || !condition.get(TYPE).isString())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var type = condition.get(TYPE).stringValue();
 
         if (!condition.has(VALUE))
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         if (EQUALS.equals(type))
             return equalsCondition(condition, path, objectMapper);
@@ -230,16 +231,16 @@ public class ContentFilter {
         if (REGEX.equals(type))
             return regexCondition(condition, path, objectMapper);
 
-        throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+        throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
     }
 
     private static Predicate<Object> regexCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isString())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         val patternText = condition.get(VALUE).stringValue();
         if (isDangerousRegex(patternText))
-            throw new AccessConstraintViolationException(ERROR_REGEX_UNSAFE + patternText);
+            throw new ConstraintEnforcementException(ERROR_REGEX_UNSAFE + patternText);
 
         final var regex = Pattern.compile(patternText);
 
@@ -253,7 +254,7 @@ public class ContentFilter {
 
     private static Predicate<Object> leqCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var conditionValue = condition.get(VALUE).asDouble();
 
@@ -267,7 +268,7 @@ public class ContentFilter {
 
     private static Predicate<Object> geqCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var conditionValue = condition.get(VALUE).asDouble();
 
@@ -281,7 +282,7 @@ public class ContentFilter {
 
     private static Predicate<Object> ltCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var conditionValue = condition.get(VALUE).asDouble();
 
@@ -295,7 +296,7 @@ public class ContentFilter {
 
     private static Predicate<Object> gtCondition(JsonNode condition, String path, ObjectMapper objectMapper) {
         if (!condition.get(VALUE).isNumber())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var conditionValue = condition.get(VALUE).asDouble();
 
@@ -324,7 +325,7 @@ public class ContentFilter {
             return numberEqCondition(condition, path, objectMapper);
 
         if (!valueNode.isString())
-            throw new AccessConstraintViolationException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
 
         final var conditionValue = valueNode.stringValue();
 
@@ -350,7 +351,7 @@ public class ContentFilter {
     private static void assertConditionsIsAnArrayNode(JsonNode constraint) {
         final var conditions = constraint.get(CONDITIONS);
         if (!conditions.isArray())
-            throw new AccessConstraintViolationException(ERROR_CONDITIONS_NOT_AN_ARRAY + conditions);
+            throw new ConstraintEnforcementException(ERROR_CONDITIONS_NOT_AN_ARRAY + conditions);
     }
 
     public static UnaryOperator<Object> getTransformationHandler(JsonNode constraint, ObjectMapper objectMapper) {
@@ -360,7 +361,7 @@ public class ContentFilter {
                 return original;
 
             if (!actions.isArray())
-                throw new AccessConstraintViolationException(ERROR_ACTIONS_NOT_AN_ARRAY);
+                throw new ConstraintEnforcementException(ERROR_ACTIONS_NOT_AN_ARRAY);
 
             // Convert to native Java types (Map/List) for jsonpath compatibility
             final var originalAsNative = objectMapper.convertValue(original, Object.class);
@@ -375,14 +376,14 @@ public class ContentFilter {
                 // Convert back to original type
                 return objectMapper.convertValue(modifiedNative, original.getClass());
             } catch (IllegalArgumentException e) {
-                throw new AccessConstraintViolationException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
+                throw new ConstraintEnforcementException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
             }
         };
     }
 
     private static void applyAction(DocumentContext jsonContext, JsonNode action, ObjectMapper objectMapper) {
         if (!action.isObject())
-            throw new AccessConstraintViolationException(ERROR_ACTION_NOT_AN_OBJECT);
+            throw new ConstraintEnforcementException(ERROR_ACTION_NOT_AN_OBJECT);
 
         final var path       = getTextualValueOfActionKey(action, PATH);
         final var actionType = getTextualValueOfActionKey(action, TYPE).trim().toLowerCase();
@@ -390,7 +391,7 @@ public class ContentFilter {
         try {
             jsonContext.read(path);
         } catch (PathNotFoundException e) {
-            throw new AccessConstraintViolationException(ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT, e);
+            throw new ConstraintEnforcementException(ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT, e);
         }
 
         switch (actionType) {
@@ -409,7 +410,7 @@ public class ContentFilter {
         default      -> { /* no-op */ }
         }
 
-        throw new AccessConstraintViolationException(String.format(ERROR_UNKNOWN_ACTION_S, actionType));
+        throw new ConstraintEnforcementException(String.format(ERROR_UNKNOWN_ACTION_S, actionType));
 
     }
 
@@ -420,7 +421,7 @@ public class ContentFilter {
     private static MapFunction replaceNode(JsonNode action, ObjectMapper objectMapper) {
         return (original, configuration) -> {
             if (!action.has(REPLACEMENT))
-                throw new AccessConstraintViolationException(ERROR_NO_REPLACEMENT_SPECIFIED);
+                throw new ConstraintEnforcementException(ERROR_NO_REPLACEMENT_SPECIFIED);
 
             // Convert JsonNode replacement to native Java type
             return objectMapper.convertValue(action.get(REPLACEMENT), Object.class);
@@ -435,7 +436,7 @@ public class ContentFilter {
         return (original, configuration) -> {
             // With native Java types, original is now a String (not JsonNode)
             if (!(original instanceof String originalString))
-                throw new AccessConstraintViolationException(ERROR_PATH_NOT_TEXTUAL);
+                throw new ConstraintEnforcementException(ERROR_PATH_NOT_TEXTUAL);
 
             final var replacementString = determineReplacementString(action);
             final var discloseRight     = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_RIGHT);
@@ -455,7 +456,7 @@ public class ContentFilter {
         if (replacementNode.isNumber() && replacementNode.intValue() >= 0)
             return replacementNode.intValue();
 
-        throw new AccessConstraintViolationException(ERROR_LENGTH_NOT_NUMBER);
+        throw new ConstraintEnforcementException(ERROR_LENGTH_NOT_NUMBER);
     }
 
     private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
@@ -488,14 +489,14 @@ public class ContentFilter {
         if (replacementNode.isString())
             return replacementNode.stringValue();
 
-        throw new AccessConstraintViolationException(ERROR_REPLACEMENT_NOT_TEXTUAL);
+        throw new ConstraintEnforcementException(ERROR_REPLACEMENT_NOT_TEXTUAL);
     }
 
     private static String getTextualValueOfActionKey(JsonNode action, String key) {
         final var value = getValueOfActionKey(action, key);
 
         if (!value.isString())
-            throw new AccessConstraintViolationException(String.format(ERROR_VALUE_NOT_TEXTUAL_S, key));
+            throw new ConstraintEnforcementException(String.format(ERROR_VALUE_NOT_TEXTUAL_S, key));
 
         return value.stringValue();
     }
@@ -507,14 +508,14 @@ public class ContentFilter {
         final var value = action.get(key);
 
         if (!value.canConvertToInt())
-            throw new AccessConstraintViolationException(String.format(ERROR_VALUE_NOT_INTEGER_S, key));
+            throw new ConstraintEnforcementException(String.format(ERROR_VALUE_NOT_INTEGER_S, key));
 
         return value.intValue();
     }
 
     private static JsonNode getValueOfActionKey(JsonNode action, String key) {
         if (!action.hasNonNull(key))
-            throw new AccessConstraintViolationException(String.format(ERROR_UNDEFINED_KEY_S, key));
+            throw new ConstraintEnforcementException(String.format(ERROR_UNDEFINED_KEY_S, key));
 
         return action.get(key);
     }
