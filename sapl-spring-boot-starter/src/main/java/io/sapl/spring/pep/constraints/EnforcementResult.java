@@ -17,21 +17,16 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import io.sapl.spring.util.Maybe;
+
 /**
- * Container that distinguishes {@link Absent} from {@link Present} where the
- * present value may itself be {@code null}.
+ * Outcome of executing the enforcement plan for one signal.
+ *
+ * @param value the (possibly transformed) value carried by the signal, or
+ * {@link Maybe.Absent} for
+ * self-contained signals
+ * @param failureState {@code true} once at least one obligation handler has
+ * failed during execution; once
+ * {@code true} it remains {@code true} for the remainder of the enforcement run
  */
-public sealed interface Maybe<T> {
-
-    record Present<T>(T value) implements Maybe<T> {}
-
-    record Absent<T>() implements Maybe<T> {}
-
-    static <T> Maybe<T> of(T value) {
-        return new Present<>(value);
-    }
-
-    static <T> Maybe<T> absent() {
-        return new Absent<>();
-    }
-}
+public record EnforcementResult<T>(Maybe<T> value, boolean failureState) {}

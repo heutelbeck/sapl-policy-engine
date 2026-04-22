@@ -17,10 +17,6 @@
  */
 package io.sapl.spring.pep.constraints;
 
-import org.jspecify.annotations.NonNull;
-
-import java.util.Comparator;
-
 /**
  * Pairs a {@link ConstraintHandler} with the {@link SignalType} it applies to
  * and a sort priority.
@@ -29,28 +25,4 @@ import java.util.Comparator;
  * @param signalType the signal at which {@code handler} applies
  * @param priority sort key; lower values sort first
  */
-public record ScopedConstraintHandler(ConstraintHandler<?> handler, SignalType signalType, int priority)
-        implements Comparable<ScopedConstraintHandler> {
-
-    private static final Comparator<ScopedConstraintHandler> COMPARATOR = Comparator
-            .comparingInt(ScopedConstraintHandler::priority).thenComparingInt(ScopedConstraintHandler::handlerOrdinal);
-
-    /**
-     * Orders by {@link #priority} ascending, then by handler kind
-     * {@link ConstraintHandler.Runner} &lt; {@link ConstraintHandler.Mapper} &lt;
-     * {@link ConstraintHandler.Consumer}.
-     * {@link #signalType} is not part of the ordering.
-     */
-    @Override
-    public int compareTo(@NonNull ScopedConstraintHandler o) {
-        return COMPARATOR.compare(this, o);
-    }
-
-    private int handlerOrdinal() {
-        return switch (handler) {
-        case ConstraintHandler.Runner ignored      -> 0;
-        case ConstraintHandler.Mapper<?> ignored   -> 1;
-        case ConstraintHandler.Consumer<?> ignored -> 2;
-        };
-    }
-}
+public record ScopedConstraintHandler(ConstraintHandler<?> handler, SignalType signalType, int priority) {}
