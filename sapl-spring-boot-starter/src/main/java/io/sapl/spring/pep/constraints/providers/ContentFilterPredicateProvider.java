@@ -17,8 +17,11 @@
  */
 package io.sapl.spring.pep.constraints.providers;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import org.reactivestreams.Publisher;
 
 import io.sapl.api.model.Value;
 import io.sapl.spring.constraints.providers.ConstraintResponsibility;
@@ -34,16 +37,23 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Translates a {@code jsonContentFilterPredicate} constraint into a
  * {@link Mapper} attached to the PEP's
- * {@link Signal.OutputSignal}. The mapper applies the constraint's predicate as
- * an element filter, dropping
- * non-matching elements from collection-shaped payloads
- * ({@link java.util.Optional}, {@link java.util.List},
- * {@link java.util.Set}, {@link reactor.core.publisher.Mono},
- * {@link reactor.core.publisher.Flux},
- * {@link Object Object[]}). Scalar payloads are dropped to {@code null} when
- * the predicate does not match.
+ * {@link Signal.OutputSignal}. Claims responsibility only for OutputSignals
+ * whose value type is a
+ * {@link List}, {@link Set}, {@link Optional}, {@link Publisher} (e.g.
+ * {@code Mono}, {@code Flux}), or
+ * array. Scalar types and other collection families (e.g. {@code Queue},
+ * {@code Deque}, {@code Map}) are
+ * rejected with {@link Optional#empty()} so the planner can produce a clear
+ * failure substitute rather than
+ * silently returning {@code null}.
  * <p>
- * Returns {@link Optional#empty()} when the PEP does not fire an OutputSignal.
+ * Note: a {@code List} payload is filtered into an {@code ArrayList} and a
+ * {@code Set} payload into a
+ * {@code HashSet}, regardless of the input subtype. Callers that need a
+ * specific subtype (for example
+ * {@code LinkedList} ordering or {@code TreeSet} comparators) must declare the
+ * broader interface in their
+ * method signature.
  */
 @RequiredArgsConstructor
 public class ContentFilterPredicateProvider implements ConstraintHandlerProvider {
@@ -59,9 +69,16 @@ public class ContentFilterPredicateProvider implements ConstraintHandlerProvider
         if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
             return Optional.empty();
         }
-        return OutputSignals.findIn(supportedSignals).map(outputSignal -> {
-            val mapper = ContentFilter.getFilterPredicateHandler(constraint, outputSignal.valueType(), objectMapper);
-            return new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY);
-        });
+        return OutputSignals.findIn(supportedSignals).filter(outputSignal -> isContainer(outputSignal.valueType()))
+                .map(outputSignal -> {
+                    val mapper = ContentFilter.getFilterPredicateHandler(constraint, outputSignal.valueType(),
+                            objectMapper);
+                    return new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY);
+                });
+    }
+
+    private static boolean isContainer(Class<?> type) {
+        return type.isArray() || List.class.isAssignableFrom(type) || Set.class.isAssignableFrom(type)
+                || Optional.class.isAssignableFrom(type) || Publisher.class.isAssignableFrom(type);
     }
 }
