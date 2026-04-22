@@ -275,7 +275,7 @@ public class EnforcementPlanner {
     /**
      * Why a constraint was replaced by a synthetic failure runner during planning.
      */
-    private enum SubstitutionReason {
+    enum SubstitutionReason {
         /** No provider returned a handler for the constraint. */
         UNRESOLVED,
         /** More than one provider returned a handler. */
