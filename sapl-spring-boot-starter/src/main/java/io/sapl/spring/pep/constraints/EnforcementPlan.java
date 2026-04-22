@@ -22,14 +22,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 public class EnforcementPlan {
-    private final Map<SignalType, List<EnforcementStep<?>>> stepsBySignalType = new HashMap<>();
+    private final Map<SignalType, List<EnforcementPlanEntry<?>>> stepsBySignalType = new HashMap<>();
 
-    public void add(SignalType signalType, EnforcementStep<?> enforcementStep) {
-        stepsBySignalType.computeIfAbsent(signalType, k -> List.of()).add(enforcementStep);
+    public void add(SignalType signalType, EnforcementPlanEntry<?> enforcementPlanEntry) {
+        stepsBySignalType.computeIfAbsent(signalType, k -> List.of()).add(enforcementPlanEntry);
     }
 
     public record EnforcementResult<T>(Maybe<T> value, boolean failureState) {}
