@@ -15,28 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.pep.constraints;
-
-import java.util.List;
-import java.util.Map;
+package io.sapl.spring.util;
 
 /**
- * Per-decision schedule mapping each {@link SignalType} to the ordered sequence
- * of
- * {@link EnforcementPlanEntry} instances to discharge when that signal fires.
+ * Container that distinguishes {@link Absent} from {@link Present} where the
+ * present value may itself be {@code null}.
  */
-public record EnforcementPlan(Map<SignalType, List<EnforcementPlanEntry<?>>> entries) {
+public sealed interface Maybe<T> {
 
-    public EnforcementPlan {
-        entries = Map.copyOf(entries);
+    record Present<T>(T value) implements Maybe<T> {}
+
+    record Absent<T>() implements Maybe<T> {}
+
+    /**
+     * Wraps {@code value} as {@link Present}; {@code null} is a legal payload
+     * distinct from {@link Absent}.
+     */
+    static <T> Maybe<T> of(T value) {
+        return new Present<>(value);
     }
 
     /**
-     * Returns the ordered sequence of entries scheduled for {@code signalType}, or
-     * an empty list when no
-     * entries are scheduled at that signal.
+     * Returns the {@link Absent} sentinel: no value is present (semantically
+     * distinct from {@code Present(null)}).
      */
-    public List<EnforcementPlanEntry<?>> entriesFor(SignalType signalType) {
-        return entries.getOrDefault(signalType, List.of());
+    static <T> Maybe<T> absent() {
+        return new Absent<>();
     }
 }

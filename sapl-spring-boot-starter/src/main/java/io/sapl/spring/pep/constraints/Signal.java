@@ -20,11 +20,24 @@ package io.sapl.spring.pep.constraints;
 import io.sapl.api.pdp.AuthorizationDecision;
 import org.aopalliance.intercept.MethodInvocation;
 
+/**
+ * An event fired during enforcement at which constraint handlers may attach.
+ * Sealed into self-contained
+ * {@link VoidSignal}s and data-carrying {@link ValueSignal}s; every concrete
+ * signal exposes its
+ * {@link SignalType} via {@link #type()} for plan keying.
+ */
 public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
+
+    /** A signal that carries no value; only runners are admissible here. */
     sealed interface VoidSignal extends Signal
             permits CancelSignal, CompleteSignal, TerminationSignal, AfterTerminationSignal {
     }
 
+    /**
+     * A signal that carries a value of type {@code T}; mappers, consumers, and
+     * runners are admissible here.
+     */
     sealed interface ValueSignal<T> extends Signal permits DecisionSignal, InputSignal, OutputSignal, ErrorSignal,
             SubscriptionSignal, R2dbcShimSignal, MongoDbShimSignal {
         T value();
@@ -32,8 +45,10 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         Class<? extends T> valueType();
     }
 
+    /** Returns the reified type tag used as the plan key for this signal. */
     SignalType type();
 
+    /** Fires when an authorization decision arrives from the PDP. */
     record DecisionSignal(AuthorizationDecision value) implements ValueSignal<AuthorizationDecision> {
         private static final SignalType TYPE = new SignalType.ValueSignalType<>(DecisionSignal.class,
                 AuthorizationDecision.class);
@@ -49,6 +64,9 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /**
+     * Fires before the RAP is invoked, carrying the intercepted method invocation.
+     */
     record InputSignal(MethodInvocation value) implements ValueSignal<MethodInvocation> {
         private static final SignalType TYPE = new SignalType.ValueSignalType<>(InputSignal.class,
                 MethodInvocation.class);
@@ -64,6 +82,10 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /**
+     * Fires when the RAP emits an output value of type {@code T} (return value or
+     * stream item).
+     */
     record OutputSignal<T>(Class<? extends T> valueType, T value) implements ValueSignal<T> {
         @Override
         @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -73,6 +95,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /** Fires when the RAP raises or emits a {@link Throwable}. */
     record ErrorSignal(Throwable value) implements ValueSignal<Throwable> {
         private static final SignalType TYPE = new SignalType.ValueSignalType<>(ErrorSignal.class, Throwable.class);
 
@@ -87,6 +110,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /** Fires on a downstream subscription request, carrying the demand count. */
     record SubscriptionSignal(Long value) implements ValueSignal<Long> {
         private static final SignalType TYPE = new SignalType.ValueSignalType<>(SubscriptionSignal.class, Long.class);
 
@@ -101,6 +125,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /** Fires when a downstream subscriber cancels the subscription. */
     record CancelSignal() implements VoidSignal {
         private static final SignalType TYPE = new SignalType.VoidSignalType(CancelSignal.class);
 
@@ -110,6 +135,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /** Fires when the upstream completes normally. */
     record CompleteSignal() implements VoidSignal {
         private static final SignalType TYPE = new SignalType.VoidSignalType(CompleteSignal.class);
 
@@ -119,6 +145,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /** Fires on stream termination (any of: complete, error, cancel). */
     record TerminationSignal() implements VoidSignal {
         private static final SignalType TYPE = new SignalType.VoidSignalType(TerminationSignal.class);
 
@@ -128,6 +155,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
+    /** Fires after termination cleanup has finished. */
     record AfterTerminationSignal() implements VoidSignal {
         private static final SignalType TYPE = new SignalType.VoidSignalType(AfterTerminationSignal.class);
 
@@ -138,6 +166,10 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     // TODO: determine correct value type
+    /**
+     * Shim signal fired from inside an R2DBC RAP, carrying the generated query for
+     * interception/rewriting.
+     */
     record R2dbcShimSignal(Object value) implements ValueSignal<Object> {
         private static final SignalType TYPE = new SignalType.ValueSignalType<>(R2dbcShimSignal.class, Object.class);
 
@@ -153,6 +185,10 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     // TODO: determine correct value type
+    /**
+     * Shim signal fired from inside a MongoDB RAP, carrying the generated query for
+     * interception/rewriting.
+     */
     record MongoDbShimSignal(Object value) implements ValueSignal<Object> {
         private static final SignalType TYPE = new SignalType.ValueSignalType<>(MongoDbShimSignal.class, Object.class);
 

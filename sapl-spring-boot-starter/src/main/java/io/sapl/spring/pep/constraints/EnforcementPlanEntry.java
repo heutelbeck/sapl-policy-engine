@@ -17,4 +17,43 @@
  */
 package io.sapl.spring.pep.constraints;
 
-public record EnforcementPlanEntry<T>(ConstraintHandler<T> handler, int priority, ConstraintType constraintType) {}
+import java.util.Comparator;
+
+import org.jspecify.annotations.NonNull;
+
+import io.sapl.api.model.Value;
+
+/**
+ * One entry in an {@link EnforcementPlan}: a typed handler with its priority,
+ * obligation/advice tag, and the
+ * originating constraint value used to drive consistent failure reporting.
+ */
+public record EnforcementPlanEntry<T>(
+        ConstraintHandler<T> handler,
+        int priority,
+        ConstraintType constraintType,
+        Value constraint) implements Comparable<EnforcementPlanEntry<?>> {
+
+    private static final Comparator<EnforcementPlanEntry<?>> COMPARATOR = Comparator
+            .<EnforcementPlanEntry<?>>comparingInt(EnforcementPlanEntry::priority)
+            .thenComparingInt(entry -> handlerOrdinal(entry.handler()));
+
+    /**
+     * Orders by {@link #priority} ascending, then by handler kind
+     * {@link ConstraintHandler.Runner} &lt; {@link ConstraintHandler.Mapper} &lt;
+     * {@link ConstraintHandler.Consumer}.
+     * {@link #constraintType} and {@link #constraint} are not part of the ordering.
+     */
+    @Override
+    public int compareTo(@NonNull EnforcementPlanEntry<?> other) {
+        return COMPARATOR.compare(this, other);
+    }
+
+    private static int handlerOrdinal(ConstraintHandler<?> handler) {
+        return switch (handler) {
+        case ConstraintHandler.Runner ignored      -> 0;
+        case ConstraintHandler.Mapper<?> ignored   -> 1;
+        case ConstraintHandler.Consumer<?> ignored -> 2;
+        };
+    }
+}
