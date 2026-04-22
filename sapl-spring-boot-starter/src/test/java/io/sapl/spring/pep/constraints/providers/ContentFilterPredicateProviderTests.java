@@ -17,7 +17,15 @@
  */
 package io.sapl.spring.pep.constraints.providers;
 
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.DECISION_SIGNAL_TYPE;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.OUTPUT_FLUX_TYPE;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.OUTPUT_LIST_TYPE;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.expectFlux;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.permitWith;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.theUsualSuspects;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.WatchCitizen;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,13 +38,15 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
-import io.sapl.spring.pep.constraints.ConstraintType;
+import io.sapl.spring.pep.constraints.EnforcementExecutor;
+import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.val;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -48,9 +58,6 @@ class ContentFilterPredicateProviderTests {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static final SignalType OUTPUT_MAP_TYPE = new ValueSignalType<Map>(
             (Class<? extends Signal.ValueSignal<Map>>) (Class) Signal.OutputSignal.class, Map.class);
-
-    private static final SignalType DECISION_SIGNAL_TYPE = new ValueSignalType<>(Signal.DecisionSignal.class,
-            AuthorizationDecision.class);
 
     private static final SignalType CANCEL_SIGNAL_TYPE = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 
@@ -69,14 +76,14 @@ class ContentFilterPredicateProviderTests {
         void givenWrongConstraintTypeThenEmpty() {
             val result = provider.getConstraintHandler(v("""
                     {"type": "somethingElse"}
-                    """), Set.of(OUTPUT_MAP_TYPE));
+                    """), Set.of(OUTPUT_LIST_TYPE));
             assertThat(result).isEmpty();
         }
 
         @Test
         @DisplayName("non-object constraint yields empty Optional")
         void givenNonObjectConstraintThenEmpty() {
-            val result = provider.getConstraintHandler(v("\"plain string\""), Set.of(OUTPUT_MAP_TYPE));
+            val result = provider.getConstraintHandler(v("\"plain string\""), Set.of(OUTPUT_LIST_TYPE));
             assertThat(result).isEmpty();
         }
 
@@ -85,7 +92,7 @@ class ContentFilterPredicateProviderTests {
         void givenFilterJsonContentConstraintThenEmpty() {
             val result = provider.getConstraintHandler(v("""
                     {"type": "filterJsonContent"}
-                    """), Set.of(OUTPUT_MAP_TYPE));
+                    """), Set.of(OUTPUT_LIST_TYPE));
             assertThat(result).isEmpty();
         }
 
@@ -95,6 +102,15 @@ class ContentFilterPredicateProviderTests {
             val result = provider.getConstraintHandler(v("""
                     {"type": "jsonContentFilterPredicate"}
                     """), Set.of(DECISION_SIGNAL_TYPE, CANCEL_SIGNAL_TYPE));
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("OutputSignal carries a scalar value type: predicate has no element-filter semantics, empty Optional")
+        void givenScalarOutputSignalThenEmpty() {
+            val result = provider.getConstraintHandler(v("""
+                    {"type": "jsonContentFilterPredicate"}
+                    """), Set.of(OUTPUT_MAP_TYPE, DECISION_SIGNAL_TYPE));
             assertThat(result).isEmpty();
         }
     }
@@ -108,23 +124,13 @@ class ContentFilterPredicateProviderTests {
         void givenMatchingConstraintAndOutputSignalThenReturnsMapper() {
             val result = provider.getConstraintHandler(v("""
                     {"type": "jsonContentFilterPredicate"}
-                    """), Set.of(OUTPUT_MAP_TYPE, DECISION_SIGNAL_TYPE));
+                    """), Set.of(OUTPUT_LIST_TYPE, DECISION_SIGNAL_TYPE));
 
             assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped).satisfies(s -> {
-                assertThat(s.signalType()).isEqualTo(OUTPUT_MAP_TYPE);
+                assertThat(s.signalType()).isEqualTo(OUTPUT_LIST_TYPE);
                 assertThat(s.priority()).isEqualTo(10);
                 assertThat(s.handler()).isInstanceOf(Mapper.class);
             }));
-        }
-
-        @Test
-        @DisplayName("priority is lower than ContentFilteringProvider so filtering runs before transformation")
-        void priorityRunsBeforeContentFiltering() {
-            val result = provider.getConstraintHandler(v("""
-                    {"type": "jsonContentFilterPredicate"}
-                    """), Set.of(OUTPUT_MAP_TYPE));
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped.priority())
-                    .as("predicate priority must be < ContentFilteringProvider priority").isLessThan(30));
         }
 
         @Test
@@ -136,7 +142,7 @@ class ContentFilterPredicateProviderTests {
                       "type": "jsonContentFilterPredicate",
                       "conditions": [{"path": "$.age", "type": ">=", "value": 18}]
                     }
-                    """), Set.of(OUTPUT_MAP_TYPE));
+                    """), Set.of(OUTPUT_LIST_TYPE));
 
             val mapper  = (Mapper<Object>) result.orElseThrow().handler();
             val payload = List.of(new HashMap<>(Map.of("name", "Alice", "age", 30)),
@@ -144,46 +150,48 @@ class ContentFilterPredicateProviderTests {
             val output  = (List<Map<String, Object>>) mapper.apply(payload);
             assertThat(output).hasSize(2).extracting(map -> map.get("name")).containsExactly("Alice", "Carol");
         }
+    }
+
+    @Nested
+    @DisplayName("End-to-end scenarios")
+    class EndToEndScenarios {
+
+        private final EnforcementPlanner  planner  = new EnforcementPlanner(
+                List.of(new ContentFilterPredicateProvider(MAPPER)), MAPPER);
+        private final EnforcementExecutor executor = new EnforcementExecutor();
 
         @Test
-        @DisplayName("returned mapper drops a scalar payload to null when the predicate does not match")
-        void givenResolvedMapperWhenAppliedToScalarNonMatchThenReturnsNull() {
-            val result = provider.getConstraintHandler(v("""
-                    {
-                      "type": "jsonContentFilterPredicate",
-                      "conditions": [{"path": "$.age", "type": ">=", "value": 18}]
-                    }
-                    """), Set.of(OUTPUT_MAP_TYPE));
+        @DisplayName("Filtering a list does not mutate the original list")
+        void givenFilteringWhenAppliedThenInputUnchanged() {
+            val original      = theUsualSuspects();
+            val originalNames = original.stream().map(WatchCitizen::name).toList();
 
-            val mapper  = (Mapper<Object>) result.orElseThrow().handler();
-            val payload = new HashMap<>(Map.of("name", "Eve", "age", 12));
-            assertThat(mapper.apply(payload)).isNull();
+            val decision = permitWith("""
+                    [{ "type": "jsonContentFilterPredicate",
+                       "conditions": [{"path": "$.guild", "type": "==", "value": "Watch"}] }]
+                    """);
+            val plan     = planner.plan(decision, Set.of(OUTPUT_LIST_TYPE, DECISION_SIGNAL_TYPE));
+            executor.execute(plan, new Signal.OutputSignal<>(List.class, original), false);
+
+            assertThat(original).extracting(WatchCitizen::name).containsExactlyElementsOf(originalNames);
         }
 
         @Test
-        @DisplayName("returned mapper passes through a scalar payload that matches the predicate")
-        void givenResolvedMapperWhenAppliedToScalarMatchThenReturnsPayload() {
-            val result = provider.getConstraintHandler(v("""
-                    {
-                      "type": "jsonContentFilterPredicate",
-                      "conditions": [{"path": "$.age", "type": ">=", "value": 18}]
-                    }
-                    """), Set.of(OUTPUT_MAP_TYPE));
+        @DisplayName("Citizens flowing through a Flux are emitted only when they match the predicate")
+        void givenFluxOfCitizensThenFilteredAsStream() {
+            val decision = permitWith("""
+                    [{ "type": "jsonContentFilterPredicate",
+                       "conditions": [{"path": "$.age", "type": ">=", "value": 18}] }]
+                    """);
+            val plan     = planner.plan(decision, Set.of(OUTPUT_FLUX_TYPE, DECISION_SIGNAL_TYPE));
+            val source   = Flux.fromIterable(theUsualSuspects());
+            val result   = executor.execute(plan, new Signal.OutputSignal<>(Flux.class, source), false);
 
-            val mapper  = (Mapper<Object>) result.orElseThrow().handler();
-            val payload = new HashMap<>(Map.of("name", "Alice", "age", 30));
-            assertThat(mapper.apply(payload)).isSameAs(payload);
-        }
-
-        @Test
-        @DisplayName("ConstraintType is not set on the scoped handler (assigned by planner)")
-        void resolvedHandlerHasNoConstraintType() {
-            val result = provider.getConstraintHandler(v("""
-                    {"type": "jsonContentFilterPredicate"}
-                    """), Set.of(OUTPUT_MAP_TYPE));
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped.handler()).isInstanceOf(Mapper.class));
-            assertThat(ConstraintType.OBLIGATION).as("ConstraintType is set later by the planner, not the provider")
-                    .isNotNull();
+            Flux<WatchCitizen> filteredFlux = expectFlux(result);
+            StepVerifier.create(filteredFlux).assertNext(c -> assertThat(c.name()).isEqualTo("Sam Vimes"))
+                    .assertNext(c -> assertThat(c.name()).isEqualTo("Carrot Ironfoundersson"))
+                    .assertNext(c -> assertThat(c.name()).isEqualTo("Cohen the Barbarian"))
+                    .assertNext(c -> assertThat(c.name()).isEqualTo("Rincewind")).verifyComplete();
         }
     }
 }

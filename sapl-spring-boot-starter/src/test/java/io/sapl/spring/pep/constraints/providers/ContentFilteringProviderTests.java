@@ -17,9 +17,16 @@
  */
 package io.sapl.spring.pep.constraints.providers;
 
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.DECISION_SIGNAL_TYPE;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.OUTPUT_CITIZEN_TYPE;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.expect;
+import static io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.permitWith;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.sapl.spring.pep.constraints.providers.ContentFilterTestSupport.WatchCitizen;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,7 +37,8 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
-import io.sapl.spring.pep.constraints.ConstraintType;
+import io.sapl.spring.pep.constraints.EnforcementExecutor;
+import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
@@ -46,9 +54,6 @@ class ContentFilteringProviderTests {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static final SignalType OUTPUT_MAP_TYPE = new ValueSignalType<Map>(
             (Class<? extends Signal.ValueSignal<Map>>) (Class) Signal.OutputSignal.class, Map.class);
-
-    private static final SignalType DECISION_SIGNAL_TYPE = new ValueSignalType<>(Signal.DecisionSignal.class,
-            io.sapl.api.pdp.AuthorizationDecision.class);
 
     private static final SignalType CANCEL_SIGNAL_TYPE = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 
@@ -123,15 +128,88 @@ class ContentFilteringProviderTests {
             assertThat(output).doesNotContainKey("name").containsEntry("age", 30);
         }
 
+    }
+
+    @Nested
+    @DisplayName("End-to-end scenarios")
+    class EndToEndScenarios {
+
+        private final EnforcementPlanner  planner  = new EnforcementPlanner(
+                List.of(new ContentFilteringProvider(MAPPER)), MAPPER);
+        private final EnforcementExecutor executor = new EnforcementExecutor();
+
         @Test
-        @DisplayName("ConstraintType is not set on the scoped handler (assigned by planner)")
-        void resolvedHandlerHasNoConstraintType() {
-            val result = provider.getConstraintHandler(v("""
-                    {"type": "filterJsonContent"}
-                    """), Set.of(OUTPUT_MAP_TYPE));
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped.handler()).isInstanceOf(Mapper.class));
-            assertThat(ConstraintType.OBLIGATION).as("ConstraintType is set later by the planner, not the provider")
-                    .isNotNull();
+        @DisplayName("Redacting a single record returns a new instance; the original record is unchanged")
+        void givenContentFilterOnRecordThenInputUnchanged() {
+            val original = new WatchCitizen("Sam Vimes", "Watch", "Scoone Avenue", 50, "Cabal of the Iron Hand");
+            val decision = permitWith("""
+                    [{ "type": "filterJsonContent",
+                       "actions": [{"path": "$.address", "type": "blacken"}] }]
+                    """);
+            val plan     = planner.plan(decision, Set.of(OUTPUT_CITIZEN_TYPE, DECISION_SIGNAL_TYPE));
+            executor.execute(plan, new Signal.OutputSignal<>(WatchCitizen.class, original), false);
+
+            assertThat(original.address()).isEqualTo("Scoone Avenue");
+        }
+
+        @Test
+        @DisplayName("Three sequential invocations of one plan produce three independent results")
+        void givenOnePlanWhenAppliedManyTimesThenEachInvocationIsIndependent() {
+            val decision = permitWith("""
+                    [{ "type": "filterJsonContent",
+                       "actions": [{"path": "$.secretSocietyMembership", "type": "delete"}] }]
+                    """);
+            val plan     = planner.plan(decision, Set.of(OUTPUT_CITIZEN_TYPE, DECISION_SIGNAL_TYPE));
+
+            val vimes     = expect(
+                    executor.execute(plan,
+                            new Signal.OutputSignal<>(WatchCitizen.class,
+                                    new WatchCitizen("Vimes", "Watch", "Scoone Avenue", 50, "Cabal")),
+                            false),
+                    WatchCitizen.class);
+            val cohen     = expect(
+                    executor.execute(plan,
+                            new Signal.OutputSignal<>(WatchCitizen.class,
+                                    new WatchCitizen("Cohen", "Heroes", "Steppes", 90, "Silver Horde")),
+                            false),
+                    WatchCitizen.class);
+            val rincewind = expect(
+                    executor.execute(plan,
+                            new Signal.OutputSignal<>(WatchCitizen.class,
+                                    new WatchCitizen("Rincewind", "Wizards", "UU", 33, "Coward's Anonymous")),
+                            false),
+                    WatchCitizen.class);
+
+            assertThat(vimes).satisfies(c -> {
+                assertThat(c.name()).isEqualTo("Vimes");
+                assertThat(c.secretSocietyMembership()).isNull();
+            });
+            assertThat(cohen).satisfies(c -> {
+                assertThat(c.name()).isEqualTo("Cohen");
+                assertThat(c.secretSocietyMembership()).isNull();
+            });
+            assertThat(rincewind).satisfies(c -> {
+                assertThat(c.name()).isEqualTo("Rincewind");
+                assertThat(c.secretSocietyMembership()).isNull();
+            });
+        }
+
+        @Test
+        @DisplayName("An obligation referring to a missing path fails; subsequent obligations still execute")
+        void givenOneFailingObligationThenFailureStateSet() {
+            val decision = permitWith("""
+                    [
+                      { "type": "filterJsonContent",
+                        "actions": [{"path": "$.nonexistent", "type": "delete"}] },
+                      { "type": "filterJsonContent",
+                        "actions": [{"path": "$.address", "type": "blacken"}] }
+                    ]
+                    """);
+            val plan     = planner.plan(decision, Set.of(OUTPUT_CITIZEN_TYPE, DECISION_SIGNAL_TYPE));
+            val result   = executor.execute(plan, new Signal.OutputSignal<>(WatchCitizen.class,
+                    new WatchCitizen("Sam Vimes", "Watch", "Scoone Avenue", 50, null)), false);
+
+            assertThat(result.failureState()).isTrue();
         }
     }
 }

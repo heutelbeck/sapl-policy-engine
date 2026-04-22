@@ -34,15 +34,12 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Translates a {@code filterJsonContent} constraint into a {@link Mapper}
  * attached to the PEP's
- * {@link Signal.OutputSignal}. The mapper is bound to the OutputSignal's
- * runtime {@code valueType}, and
- * delegates to {@link ContentFilter#getHandler(Value, Class, ObjectMapper)},
- * which round-trips the payload
- * through JSON to apply the configured redaction/blacken/replace actions.
- * <p>
- * Returns {@link Optional#empty()} when the PEP does not fire an OutputSignal
- * (the provider is not
- * responsible for the constraint at this PEP).
+ * {@link Signal.OutputSignal}. Delegates to
+ * {@link ContentFilter#getHandler(Value, Class, ObjectMapper)},
+ * which applies the constraint's redact/blacken/replace actions to the payload
+ * via JSON round-tripping.
+ * Returns {@link Optional#empty()} if no {@link Signal.OutputSignal} is in
+ * {@code supportedSignals}.
  */
 @RequiredArgsConstructor
 public class ContentFilteringProvider implements ConstraintHandlerProvider {
