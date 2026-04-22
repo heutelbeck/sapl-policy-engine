@@ -17,4 +17,4 @@
  */
 package io.sapl.spring.pep.constraints;
 
-public record EnforcementStep<T>(ConstraintHandler<T> handler, int priority, ConstraintType constraintType) {}
+public record EnforcementPlanEntry<T>(ConstraintHandler<T> handler, int priority, ConstraintType constraintType) {}
