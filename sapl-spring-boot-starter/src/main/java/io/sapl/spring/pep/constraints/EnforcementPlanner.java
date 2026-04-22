@@ -30,6 +30,9 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.providers.AccessConstraintViolationException;
+import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
+import io.sapl.spring.pep.constraints.ConstraintHandler.Runner;
+import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -72,7 +75,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class EnforcementPlanner {
 
-    private static final SignalType DECISION_SIGNAL_TYPE = new SignalType.ValueSignalType<>(Signal.DecisionSignal.class,
+    private static final SignalType DECISION_SIGNAL_TYPE = new ValueSignalType<>(Signal.DecisionSignal.class,
             AuthorizationDecision.class);
 
     private static final int SUBSTITUTE_PRIORITY = 0;
@@ -122,8 +125,8 @@ public class EnforcementPlanner {
             return;
         }
         val outputSignal = supportedSignals.stream()
-                .filter(s -> s instanceof SignalType.ValueSignalType<?> v && Signal.OutputSignal.class.equals(v.type()))
-                .map(s -> (SignalType.ValueSignalType<?>) s).findFirst();
+                .filter(s -> s instanceof ValueSignalType<?> v && Signal.OutputSignal.class.equals(v.type()))
+                .map(s -> (ValueSignalType<?>) s).findFirst();
         if (outputSignal.isEmpty()) {
             val substitute = failureSubstitute(decision.resource(), ConstraintType.OBLIGATION,
                     SubstitutionReason.INADMISSIBLE);
@@ -136,7 +139,7 @@ public class EnforcementPlanner {
                 .add(entry(resourceMapper, Integer.MIN_VALUE, ConstraintType.OBLIGATION, decision.resource()));
     }
 
-    private ConstraintHandler.Mapper<Object> resourceSubstitutionMapper(Value resource, Class<?> targetType) {
+    private Mapper<Object> resourceSubstitutionMapper(Value resource, Class<?> targetType) {
         return ignored -> {
             try {
                 return objectMapper.readValue(ValueJsonMarshaller.toJsonString(resource), targetType);
@@ -235,12 +238,11 @@ public class EnforcementPlanner {
         if (!supportedSignals.contains(scopedHandler.signalType())) {
             return false;
         }
-        if (scopedHandler.handler() instanceof ConstraintHandler.Mapper<?>
-                && constraintType != ConstraintType.OBLIGATION) {
+        if (scopedHandler.handler() instanceof Mapper<?> && constraintType != ConstraintType.OBLIGATION) {
             return false;
         }
-        val dataCarrying = scopedHandler.signalType() instanceof SignalType.ValueSignalType<?>;
-        return dataCarrying || scopedHandler.handler() instanceof ConstraintHandler.Runner;
+        val dataCarrying = scopedHandler.signalType() instanceof ValueSignalType<?>;
+        return dataCarrying || scopedHandler.handler() instanceof Runner;
     }
 
     /**
@@ -275,7 +277,7 @@ public class EnforcementPlanner {
     }
 
     private static boolean isMapper(EnforcementPlanEntry<?> entry) {
-        return entry.handler() instanceof ConstraintHandler.Mapper<?>;
+        return entry.handler() instanceof Mapper<?>;
     }
 
     /**
@@ -311,7 +313,7 @@ public class EnforcementPlanner {
      * non-enforcement without
      * blocking the decision.
      */
-    private static ConstraintHandler.Runner syntheticFailureRunner(Value constraint, ConstraintType constraintType,
+    private static Runner syntheticFailureRunner(Value constraint, ConstraintType constraintType,
             SubstitutionReason reason) {
         return () -> {
             log.warn(WARN_UNHANDLED_CONSTRAINT, constraintType, reason, constraint);
