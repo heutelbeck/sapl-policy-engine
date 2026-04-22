@@ -17,10 +17,12 @@
  */
 package io.sapl.spring.pep.constraints;
 
-import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
-
+import io.sapl.spring.pep.constraints.ConstraintHandler.Consumer;
+import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
+import io.sapl.spring.pep.constraints.ConstraintHandler.Runner;
 import io.sapl.spring.util.Maybe;
+import io.sapl.spring.util.Maybe.Absent;
+import io.sapl.spring.util.Maybe.Present;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.Exceptions;
@@ -84,19 +86,22 @@ public class EnforcementExecutor {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static Maybe<Object> apply(ConstraintHandler<?> handler, Maybe<Object> currentValue) {
         return switch (handler) {
-        case ConstraintHandler.Runner runner        -> {
+        case Runner runner        -> {
             runner.run();
             yield currentValue;
         }
-        case ConstraintHandler.Consumer<?> consumer -> {
-            if (currentValue instanceof Maybe.Present<Object>(var presentValue)) {
-                ((Consumer) consumer).accept(presentValue);
-            }
-            yield currentValue;
-        }
-        case ConstraintHandler.Mapper<?> mapper     -> currentValue instanceof Maybe.Present<Object>(var presentValue)
-                ? Maybe.of(((UnaryOperator) mapper).apply(presentValue))
-                : currentValue;
+        case Consumer<?> consumer -> switch (currentValue) {
+                              case Present<Object>(var presentValue)     -> {
+                                  ((Consumer) consumer).accept(presentValue);
+                                  yield currentValue;
+                              }
+                              case Absent<Object> ignored                -> currentValue;
+                              };
+        case Mapper<?> mapper     -> switch (currentValue) {
+                              case Present<Object>(var presentValue)     ->
+                                  Maybe.of(((Mapper) mapper).apply(presentValue));
+                              case Absent<Object> ignored                -> currentValue;
+                              };
         };
     }
 }

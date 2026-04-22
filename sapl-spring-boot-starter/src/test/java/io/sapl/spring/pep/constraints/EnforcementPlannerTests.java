@@ -54,9 +54,9 @@ class EnforcementPlannerTests {
             AuthorizationDecision.class);
     private static final SignalType INPUT_SIGNAL_TYPE    = new SignalType.ValueSignalType<>(Signal.InputSignal.class,
             org.aopalliance.intercept.MethodInvocation.class);
-    @SuppressWarnings("unchecked")
-    private static final SignalType OUTPUT_STRING_TYPE   = new SignalType.ValueSignalType<>(
-            (Class<? extends Signal.ValueSignal<String>>) Signal.OutputSignal.class, String.class);
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static final SignalType OUTPUT_STRING_TYPE   = new SignalType.ValueSignalType<String>(
+            (Class<? extends Signal.ValueSignal<String>>) (Class) Signal.OutputSignal.class, String.class);
     private static final SignalType CANCEL_SIGNAL_TYPE   = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 
     private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DECISION_SIGNAL_TYPE, INPUT_SIGNAL_TYPE,
@@ -70,8 +70,7 @@ class EnforcementPlannerTests {
                 (ArrayValue) MAPPER.readValue(adviceJson, Value.class), Value.UNDEFINED);
     }
 
-    private static AuthorizationDecision permit(String obligationsJson, String adviceJson, String resourceJson)
-            {
+    private static AuthorizationDecision permit(String obligationsJson, String adviceJson, String resourceJson) {
         return new AuthorizationDecision(Decision.PERMIT, (ArrayValue) MAPPER.readValue(obligationsJson, Value.class),
                 (ArrayValue) MAPPER.readValue(adviceJson, Value.class), MAPPER.readValue(resourceJson, Value.class));
     }
