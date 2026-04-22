@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.assertj.core.api.AbstractAssert;
 
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 
@@ -126,13 +127,19 @@ final class EnforcementPlanAssert extends AbstractAssert<EnforcementPlanAssert, 
         var expectedConstraints = new HashSet<Value>();
         expectedConstraints.addAll(decision.obligations());
         expectedConstraints.addAll(decision.advice());
+        var implicitResource = !(decision.resource() instanceof UndefinedValue);
+        if (implicitResource) {
+            expectedConstraints.add(decision.resource());
+        }
         var coveredConstraints = actual.entries().values().stream().flatMap(List::stream)
                 .map(EnforcementPlanEntry::constraint).collect(java.util.stream.Collectors.toCollection(HashSet::new));
         var totalEntries       = actual.entries().values().stream().mapToInt(List::size).sum();
-        assertThat(coveredConstraints).as("Invariant 6 (Coverage) violated: covered constraints differ from O union A")
+        var expectedSize       = decision.obligations().size() + decision.advice().size() + (implicitResource ? 1 : 0);
+        assertThat(coveredConstraints)
+                .as("Invariant 6 (Coverage) violated: covered constraints differ from O union A union {resource}")
                 .isEqualTo(expectedConstraints);
         assertThat(totalEntries).as("Invariant 6 (Coverage) violated: expected one entry per constraint")
-                .isEqualTo(decision.obligations().size() + decision.advice().size());
+                .isEqualTo(expectedSize);
         return this;
     }
 }

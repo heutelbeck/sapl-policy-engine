@@ -34,9 +34,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
 import io.sapl.spring.constraints.providers.AccessConstraintViolationException;
 import io.sapl.spring.pep.constraints.EnforcementPlanner.SubstitutionReason;
 import lombok.val;
@@ -63,8 +65,15 @@ class EnforcementPlannerTests {
     @Mock
     ConstraintHandlerProvider provider;
 
-    private static AuthorizationDecision decision(String json) {
-        return MAPPER.readValue(json, AuthorizationDecision.class);
+    private static AuthorizationDecision permit(String obligationsJson, String adviceJson) {
+        return new AuthorizationDecision(Decision.PERMIT, (ArrayValue) MAPPER.readValue(obligationsJson, Value.class),
+                (ArrayValue) MAPPER.readValue(adviceJson, Value.class), Value.UNDEFINED);
+    }
+
+    private static AuthorizationDecision permit(String obligationsJson, String adviceJson, String resourceJson)
+            {
+        return new AuthorizationDecision(Decision.PERMIT, (ArrayValue) MAPPER.readValue(obligationsJson, Value.class),
+                (ArrayValue) MAPPER.readValue(adviceJson, Value.class), MAPPER.readValue(resourceJson, Value.class));
     }
 
     private static Value value(String json) {
@@ -76,7 +85,7 @@ class EnforcementPlannerTests {
     }
 
     private EnforcementPlanner plannerWith(ConstraintHandlerProvider... providers) {
-        return new EnforcementPlanner(List.of(providers));
+        return new EnforcementPlanner(List.of(providers), MAPPER);
     }
 
     private static ScopedConstraintHandler scoped(ConstraintHandler<?> handler, SignalType signalType, int priority) {
@@ -102,14 +111,7 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("empty decision yields empty plan")
         void givenEmptyDecisionThenPlanIsEmpty() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("[]", "[]");
             val plan     = plannerWith().plan(decision, SUPPORTED_SIGNALS);
             assertThat(plan.entries()).isEmpty();
             assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
@@ -118,18 +120,10 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("each obligation and advice produces exactly one entry")
         void givenMixedConstraintsThenOneEntryPerConstraint() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [
-                        {"id": "o1"},
-                        {"id": "o2"}
-                      ],
-                      "advice": [
-                        {"id": "a1"}
-                      ],
-                      "resource": null
-                    }
+            val decision = permit("""
+                    [{"id": "o1"}, {"id": "o2"}]
+                    """, """
+                    [{"id": "a1"}]
                     """);
             lenient().when(provider.getConstraintHandler(id("o1")))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
@@ -152,18 +146,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("entries at the same signal are sorted by ascending priority")
         void givenMixedPrioritiesThenSortedAscending() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [
-                        {"id": "a"},
-                        {"id": "b"},
-                        {"id": "c"}
-                      ],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "a"}, {"id": "b"}, {"id": "c"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("a")))
                     .thenReturn(Optional.of(scoped(runner(), CANCEL_SIGNAL_TYPE, 50)));
             when(provider.getConstraintHandler(id("b")))
@@ -181,18 +166,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("at equal priority Runner sorts before Mapper before Consumer")
         void givenSamePriorityThenRunnerBeforeMapperBeforeConsumer() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [
-                        {"id": "m"},
-                        {"id": "c"},
-                        {"id": "r"}
-                      ],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "m"}, {"id": "c"}, {"id": "r"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("r")))
                     .thenReturn(Optional.of(scoped(runner(), OUTPUT_STRING_TYPE, 5)));
             when(provider.getConstraintHandler(id("m")))
@@ -216,14 +192,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("mapper at void signal is replaced by failure substitute")
         void givenMapperAtVoidSignalThenSubstituteAtDecision() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [{"id": "bad"}],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "bad"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("bad")))
                     .thenReturn(Optional.of(scoped(mapper(), CANCEL_SIGNAL_TYPE, 0)));
 
@@ -240,14 +211,9 @@ class EnforcementPlannerTests {
         @DisplayName("handler at signal the PEP does not fire is replaced by INADMISSIBLE substitute")
         void givenHandlerAtUnsupportedSignalThenInadmissibleSubstitute() {
             val unsupportedSignal = new SignalType.VoidSignalType(Signal.CompleteSignal.class);
-            val decision          = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [{"id": "x"}],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision          = permit("""
+                    [{"id": "x"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("x")))
                     .thenReturn(Optional.of(scoped(runner(), unsupportedSignal, 0)));
 
@@ -261,14 +227,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("runner at void signal is admissible")
         void givenRunnerAtVoidSignalThenAdmissible() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [{"id": "r"}],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "r"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("r")))
                     .thenReturn(Optional.of(scoped(runner(), CANCEL_SIGNAL_TYPE, 0)));
 
@@ -286,13 +247,8 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("mapper tagged as advice is replaced by failure substitute")
         void givenMapperAsAdviceThenSubstitute() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [],
-                      "advice": [{"id": "bad-advice-mapper"}],
-                      "resource": null
-                    }
+            val decision = permit("[]", """
+                    [{"id": "bad-advice-mapper"}]
                     """);
             when(provider.getConstraintHandler(id("bad-advice-mapper")))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 0)));
@@ -312,17 +268,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("two mappers at same priority and signal are both replaced")
         void givenTwoMappersSamePriorityThenBothReplaced() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [
-                        {"id": "m1"},
-                        {"id": "m2"}
-                      ],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "m1"}, {"id": "m2"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("m1")))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 5)));
             when(provider.getConstraintHandler(id("m2")))
@@ -339,17 +287,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("mappers at distinct priorities are kept")
         void givenMappersAtDistinctPrioritiesThenKept() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [
-                        {"id": "m1"},
-                        {"id": "m2"}
-                      ],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "m1"}, {"id": "m2"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("m1")))
                     .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, 5)));
             when(provider.getConstraintHandler(id("m2")))
@@ -370,14 +310,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("no provider matches: UNRESOLVED substitute at decision signal")
         void givenNoProviderMatchesThenUnresolvedSubstitute() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [{"id": "orphan"}],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "orphan"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("orphan"))).thenReturn(Optional.empty());
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
@@ -389,14 +324,9 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("two providers match: AMBIGUOUS substitute at decision signal")
         void givenTwoProvidersMatchThenAmbiguousSubstitute(@Mock ConstraintHandlerProvider second) {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [{"id": "dup"}],
-                      "advice": [],
-                      "resource": null
-                    }
-                    """);
+            val decision = permit("""
+                    [{"id": "dup"}]
+                    """, "[]");
             when(provider.getConstraintHandler(id("dup")))
                     .thenReturn(Optional.of(scoped(runner(), DECISION_SIGNAL_TYPE, 0)));
             when(second.getConstraintHandler(id("dup")))
@@ -411,13 +341,8 @@ class EnforcementPlannerTests {
         @Test
         @DisplayName("advice substitute completes silently and does not throw")
         void givenAdviceUnresolvedThenSubstituteCompletes() {
-            val decision = decision("""
-                    {
-                      "decision": "PERMIT",
-                      "obligations": [],
-                      "advice": [{"id": "a"}],
-                      "resource": null
-                    }
+            val decision = permit("[]", """
+                    [{"id": "a"}]
                     """);
             when(provider.getConstraintHandler(id("a"))).thenReturn(Optional.empty());
 
@@ -426,6 +351,91 @@ class EnforcementPlannerTests {
             val substitute = plan.entriesFor(DECISION_SIGNAL_TYPE).getFirst();
             assertThat(substitute.constraintType()).isEqualTo(ConstraintType.ADVICE);
             ((ConstraintHandler.Runner) substitute.handler()).run();
+            assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
+        }
+    }
+
+    @Nested
+    @DisplayName("Implicit resource obligation (SAPL-specific)")
+    class ImplicitResourceObligation {
+
+        @Test
+        @DisplayName("UNDEFINED resource yields no implicit entry")
+        void givenUndefinedResourceThenNoImplicitEntry() {
+            val decision = permit("[]", "[]");
+            val plan     = plannerWith().plan(decision, SUPPORTED_SIGNALS);
+            assertThat(plan.entries()).isEmpty();
+            assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
+        }
+
+        @Test
+        @DisplayName("present resource yields implicit Mapper at OutputSignal at MIN_VALUE")
+        void givenPresentResourceThenImplicitMapper() {
+            val decision = permit("[]", "[]", "\"replaced\"");
+            val plan     = plannerWith().plan(decision, SUPPORTED_SIGNALS);
+
+            val outputEntries = plan.entriesFor(OUTPUT_STRING_TYPE);
+            assertThat(outputEntries).hasSize(1).first().satisfies(entry -> {
+                assertThat(entry.priority()).isEqualTo(Integer.MIN_VALUE);
+                assertThat(entry.constraintType()).isEqualTo(ConstraintType.OBLIGATION);
+                assertThat(entry.handler()).isInstanceOf(ConstraintHandler.Mapper.class);
+                assertThat(entry.constraint()).isEqualTo(decision.resource());
+            });
+            assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
+        }
+
+        @Test
+        @DisplayName("implicit Mapper substitutes the RAP output with the resource value")
+        @SuppressWarnings("unchecked")
+        void givenImplicitMapperWhenAppliedThenReturnsResource() {
+            val decision       = permit("[]", "[]", "\"the-resource\"");
+            val plan           = plannerWith().plan(decision, SUPPORTED_SIGNALS);
+            val resourceMapper = (ConstraintHandler.Mapper<Object>) plan.entriesFor(OUTPUT_STRING_TYPE).getFirst()
+                    .handler();
+            assertThat(resourceMapper.apply("ignored-rap-output")).isEqualTo("the-resource");
+        }
+
+        @Test
+        @DisplayName("resource present but no OutputSignal in supportedSignals: INADMISSIBLE substitute at decision")
+        void givenResourceWithNoOutputSignalThenInadmissibleSubstitute() {
+            val signalsWithoutOutput = Set.of(DECISION_SIGNAL_TYPE, INPUT_SIGNAL_TYPE, CANCEL_SIGNAL_TYPE);
+            val decision             = permit("[]", "[]", "\"orphan\"");
+
+            val plan = plannerWith().plan(decision, signalsWithoutOutput);
+
+            assertThat(plan.entriesFor(OUTPUT_STRING_TYPE)).isEmpty();
+            assertSubstituteFailsWithReason(plan, DECISION_SIGNAL_TYPE, SubstitutionReason.INADMISSIBLE);
+            assertThatPlan(plan).satisfiesAllInvariants(decision, signalsWithoutOutput);
+        }
+
+        @Test
+        @DisplayName("malformed resource fails the obligation at runtime via AccessConstraintViolationException")
+        @SuppressWarnings("unchecked")
+        void givenMalformedResourceWhenMapperAppliedThenThrows() {
+            val decision       = permit("[]", "[]", """
+                    {"not": "a-string"}
+                    """);
+            val plan           = plannerWith().plan(decision, SUPPORTED_SIGNALS);
+            val resourceMapper = (ConstraintHandler.Mapper<Object>) plan.entriesFor(OUTPUT_STRING_TYPE).getFirst()
+                    .handler();
+            assertThatThrownBy(() -> resourceMapper.apply("anything"))
+                    .isInstanceOf(AccessConstraintViolationException.class).hasMessageContaining("Cannot map resource");
+        }
+
+        @Test
+        @DisplayName("user mapper at MIN_VALUE on the same signal collides with implicit and both are replaced")
+        void givenUserMapperAtMinValueThenNonCommutingGroup() {
+            val decision = permit("""
+                    [{"id": "user"}]
+                    """, "[]", "\"resource\"");
+            when(provider.getConstraintHandler(id("user")))
+                    .thenReturn(Optional.of(scoped(mapper(), OUTPUT_STRING_TYPE, Integer.MIN_VALUE)));
+
+            val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
+
+            assertThat(plan.entriesFor(OUTPUT_STRING_TYPE)).hasSize(2)
+                    .allSatisfy(entry -> assertThat(entry.handler()).isInstanceOf(ConstraintHandler.Runner.class));
+            assertSubstituteFailsWithReason(plan, OUTPUT_STRING_TYPE, SubstitutionReason.NON_COMMUTING_GROUP);
             assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
         }
     }

@@ -25,12 +25,15 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.constraints.providers.AccessConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Constructs the enforcement plan P(d) for an authorization decision d,
@@ -51,6 +54,19 @@ import lombok.val;
  * mappers at equal priority of length greater than one is replaced in place by
  * synthetic failure runners,
  * since the planner cannot prove commutativity of arbitrary mapper composition.
+ * <p>
+ * SAPL-specific extension: when {@code decision.resource()} is not
+ * {@link UndefinedValue}, the planner
+ * synthesises an implicit obligation-tagged Mapper at the OutputSignal
+ * supported by the PEP, with priority
+ * {@link Integer#MIN_VALUE}. The mapper ignores the RAP's output and returns
+ * the resource value unmarshalled
+ * to the OutputSignal's value type. If no OutputSignal is in
+ * {@code supportedSignals}, the implicit
+ * obligation is replaced by an {@link SubstitutionReason#INADMISSIBLE} failure
+ * substitute at the decision
+ * signal. Conversion failures at runtime fail the obligation through the
+ * executor's standard catch path.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -61,10 +77,12 @@ public class EnforcementPlanner {
 
     private static final int SUBSTITUTE_PRIORITY = 0;
 
+    private static final String ERROR_CANNOT_MAP_RESOURCE  = "Cannot map resource %s to %s";
     private static final String ERROR_UNHANDLED_OBLIGATION = "Unhandled obligation (%s): %s";
     private static final String WARN_UNHANDLED_CONSTRAINT  = "Unhandled {} constraint ({}): {}";
 
     private final List<ConstraintHandlerProvider> providers;
+    private final ObjectMapper                    objectMapper;
 
     /**
      * Builds the enforcement plan P(d) for {@code decision} as specified by
@@ -82,8 +100,51 @@ public class EnforcementPlanner {
      */
     public EnforcementPlan plan(AuthorizationDecision decision, Set<SignalType> supportedSignals) {
         val entriesBySignal = resolveHandlerForEachConstraint(decision, supportedSignals);
+        addImplicitResourceObligationIfPresent(decision, supportedSignals, entriesBySignal);
         sortAndEnforceCommutativity(entriesBySignal);
         return new EnforcementPlan(entriesBySignal);
+    }
+
+    /**
+     * SAPL-specific step: when {@code decision.resource()} is not
+     * {@link UndefinedValue}, attaches an implicit
+     * obligation-tagged Mapper at the supported OutputSignal at priority
+     * {@link Integer#MIN_VALUE} that
+     * substitutes the RAP's output with the resource value unmarshalled to the
+     * OutputSignal's value type.
+     * Falls back to an {@link SubstitutionReason#INADMISSIBLE} substitute at the
+     * decision signal when no
+     * OutputSignal is supported.
+     */
+    private void addImplicitResourceObligationIfPresent(AuthorizationDecision decision,
+            Set<SignalType> supportedSignals, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
+        if (decision.resource() instanceof UndefinedValue) {
+            return;
+        }
+        val outputSignal = supportedSignals.stream()
+                .filter(s -> s instanceof SignalType.ValueSignalType<?> v && Signal.OutputSignal.class.equals(v.type()))
+                .map(s -> (SignalType.ValueSignalType<?>) s).findFirst();
+        if (outputSignal.isEmpty()) {
+            val substitute = failureSubstitute(decision.resource(), ConstraintType.OBLIGATION,
+                    SubstitutionReason.INADMISSIBLE);
+            entriesBySignal.computeIfAbsent(substitute.signal(), signal -> new ArrayList<>()).add(substitute.entry());
+            return;
+        }
+        val outputType     = outputSignal.get().valueType();
+        val resourceMapper = resourceSubstitutionMapper(decision.resource(), outputType);
+        entriesBySignal.computeIfAbsent(outputSignal.get(), signal -> new ArrayList<>())
+                .add(entry(resourceMapper, Integer.MIN_VALUE, ConstraintType.OBLIGATION, decision.resource()));
+    }
+
+    private ConstraintHandler.Mapper<Object> resourceSubstitutionMapper(Value resource, Class<?> targetType) {
+        return ignored -> {
+            try {
+                return objectMapper.readValue(ValueJsonMarshaller.toJsonString(resource), targetType);
+            } catch (Exception exception) {
+                throw new AccessConstraintViolationException(
+                        ERROR_CANNOT_MAP_RESOURCE.formatted(resource, targetType.getSimpleName()), exception);
+            }
+        };
     }
 
     /**
