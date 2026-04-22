@@ -29,7 +29,6 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.spring.constraints.providers.AccessConstraintViolationException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Runner;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
@@ -144,7 +143,7 @@ public class EnforcementPlanner {
             try {
                 return objectMapper.readValue(ValueJsonMarshaller.toJsonString(resource), targetType);
             } catch (Exception exception) {
-                throw new AccessConstraintViolationException(
+                throw new ConstraintEnforcementException(
                         ERROR_CANNOT_MAP_RESOURCE.formatted(resource, targetType.getSimpleName()), exception);
             }
         };
@@ -207,8 +206,9 @@ public class EnforcementPlanner {
      */
     private Assignment assignHandler(Value constraint, ConstraintType constraintType,
             Set<SignalType> supportedSignals) {
-        val matchingHandlers = providers.stream().map(provider -> provider.getConstraintHandler(constraint))
-                .flatMap(Optional::stream).toList();
+        val matchingHandlers = providers.stream()
+                .map(provider -> provider.getConstraintHandler(constraint, supportedSignals)).flatMap(Optional::stream)
+                .toList();
 
         if (matchingHandlers.isEmpty()) {
             return failureSubstitute(constraint, constraintType, SubstitutionReason.UNRESOLVED);
@@ -307,7 +307,7 @@ public class EnforcementPlanner {
      * Returns the synthetic failure runner of the framework: on invocation it logs
      * the offending constraint;
      * if {@code constraintType} is obligation it additionally throws an
-     * {@link AccessConstraintViolationException} to signal failure to the execution
+     * {@link ConstraintEnforcementException} to signal failure to the execution
      * algorithm; if
      * {@code constraintType} is advice it completes successfully, recording the
      * non-enforcement without
@@ -318,7 +318,7 @@ public class EnforcementPlanner {
         return () -> {
             log.warn(WARN_UNHANDLED_CONSTRAINT, constraintType, reason, constraint);
             if (constraintType == ConstraintType.OBLIGATION) {
-                throw new AccessConstraintViolationException(ERROR_UNHANDLED_OBLIGATION.formatted(reason, constraint));
+                throw new ConstraintEnforcementException(ERROR_UNHANDLED_OBLIGATION.formatted(reason, constraint));
             }
         };
     }

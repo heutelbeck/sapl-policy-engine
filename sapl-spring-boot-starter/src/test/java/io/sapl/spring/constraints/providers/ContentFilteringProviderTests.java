@@ -19,6 +19,7 @@ package io.sapl.spring.constraints.providers;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -114,7 +115,7 @@ class ContentFilteringProviderTests {
         final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
         final var original   = MAPPER.readTree("{\"key1\": \"value1\", \"key2\": \"value2\"}");
-        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     static Stream<Arguments> blackenValidationErrorCases() {
@@ -146,7 +147,7 @@ class ContentFilteringProviderTests {
         final var constraint = toValue(constraintJson);
         final var handler    = sut.getHandler(constraint);
         final var original   = MAPPER.readTree(originalJson);
-        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     static Stream<Arguments> blackenSuccessCases() {
@@ -314,7 +315,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     static Stream<Arguments> malformedConstraintCases() {
@@ -417,13 +418,13 @@ class ContentFilteringProviderTests {
             throws JacksonException {
         final var sut        = new ContentFilteringProvider(MAPPER);
         final var constraint = toValue(constraintJson);
-        assertThatThrownBy(() -> sut.getHandler(constraint)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> sut.getHandler(constraint)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     @Test
     void when_constraintNull_then_AccessConstraintViolationException() {
         final var sut = new ContentFilteringProvider(MAPPER);
-        assertThatThrownBy(() -> sut.getHandler(null)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> sut.getHandler(null)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     @Test
@@ -485,7 +486,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     @Test
@@ -1214,7 +1215,7 @@ class ContentFilteringProviderTests {
                 	"key2" : "value2"
                 }
                 """);
-        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+        assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(ConstraintEnforcementException.class);
     }
 
     @Test
@@ -1348,7 +1349,7 @@ class ContentFilteringProviderTests {
                     """);
             final var handler    = sut.getHandler(constraint);
             final var original   = MAPPER.readTree("{\"name\": \"Alice\"}");
-            assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(AccessConstraintViolationException.class);
+            assertThatThrownBy(() -> handler.apply(original)).isInstanceOf(ConstraintEnforcementException.class);
         }
 
         static Stream<Arguments> prototypePollutionSegments() {
@@ -1372,7 +1373,7 @@ class ContentFilteringProviderTests {
                     	]
                     }
                     """);
-            assertThatThrownBy(() -> sut.getHandler(constraint)).isInstanceOf(AccessConstraintViolationException.class)
+            assertThatThrownBy(() -> sut.getHandler(constraint)).isInstanceOf(ConstraintEnforcementException.class)
                     .hasMessageContaining("Unsafe regex");
         }
 

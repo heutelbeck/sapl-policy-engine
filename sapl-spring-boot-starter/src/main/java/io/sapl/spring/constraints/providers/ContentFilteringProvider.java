@@ -20,6 +20,7 @@ package io.sapl.spring.constraints.providers;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.spring.constraints.api.MappingConstraintHandlerProvider;
+import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
 import lombok.RequiredArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 
@@ -47,7 +48,7 @@ public class ContentFilteringProvider implements MappingConstraintHandlerProvide
     @Override
     public UnaryOperator<Object> getHandler(Value constraint) {
         if (constraint == null) {
-            throw new AccessConstraintViolationException(ERROR_CONSTRAINT_NULL);
+            throw new ConstraintEnforcementException(ERROR_CONSTRAINT_NULL);
         }
         var jsonNode = ValueJsonMarshaller.toJsonNode(constraint);
         return ContentFilter.getHandler(jsonNode, objectMapper);
