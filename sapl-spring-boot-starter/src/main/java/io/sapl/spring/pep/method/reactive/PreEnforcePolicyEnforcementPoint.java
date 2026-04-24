@@ -24,6 +24,7 @@ import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
+import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.EnforcementResult;
 import io.sapl.spring.pep.constraints.Signal;
@@ -36,6 +37,8 @@ import io.sapl.spring.pep.constraints.Signal.InputSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.Signal.SubscriptionSignal;
 import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
+import io.sapl.spring.pep.constraints.SignalType;
+import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.spring.util.Maybe.Present;
 import lombok.NonNull;
@@ -49,6 +52,8 @@ import org.springframework.security.access.AccessDeniedException;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -79,6 +84,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
+    private final ObjectProvider<List<ShimSignalContributor>>             shimSignalContributorsProvider;
 
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
@@ -107,9 +113,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private Mono<Object> enforceDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
         val outputType       = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
-        val supportedSignals = Set.of(DecisionSignal.TYPE, InputSignal.TYPE, ErrorSignal.TYPE,
-                OutputSignal.typeFor(outputType), SubscriptionSignal.TYPE, CancelSignal.TYPE, CompleteSignal.TYPE,
-                TerminationSignal.TYPE, AfterTerminationSignal.TYPE);
+        val supportedSignals = collectSupportedSignals(outputType);
         val plan             = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
 
         return Mono.defer(() -> {
@@ -120,7 +124,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             fireAndEnforce(plan, InputSignal.of(methodInvocation),
                     ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED);
             return applyOutput(plan, outputType, rapStream(methodInvocation, authzDecision));
-        }).onErrorResume(t -> errorPath(plan, t))
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan)).onErrorResume(t -> errorPath(plan, t))
                 .doOnRequest(demand -> fireAndEnforce(plan, SubscriptionSignal.of(demand),
                         ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED))
                 .doOnCancel(() -> fireAndEnforce(plan, CancelSignal.INSTANCE,
@@ -131,6 +135,24 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
                         ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED))
                 .doAfterTerminate(() -> fireAndEnforce(plan, AfterTerminationSignal.INSTANCE,
                         ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED));
+    }
+
+    private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {
+        val signals = new HashSet<SignalType>();
+        signals.add(DecisionSignal.TYPE);
+        signals.add(InputSignal.TYPE);
+        signals.add(ErrorSignal.TYPE);
+        signals.add(OutputSignal.typeFor(outputType));
+        signals.add(SubscriptionSignal.TYPE);
+        signals.add(CancelSignal.TYPE);
+        signals.add(CompleteSignal.TYPE);
+        signals.add(TerminationSignal.TYPE);
+        signals.add(AfterTerminationSignal.TYPE);
+        val contributors = shimSignalContributorsProvider.getIfAvailable(List::of);
+        for (val contributor : contributors) {
+            signals.addAll(contributor.supportedSignals());
+        }
+        return Set.copyOf(signals);
     }
 
     private static Mono<?> rapStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {

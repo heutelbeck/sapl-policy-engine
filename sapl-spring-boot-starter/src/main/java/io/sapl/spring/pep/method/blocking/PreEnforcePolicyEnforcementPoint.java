@@ -23,11 +23,15 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
+import io.sapl.spring.pep.constraints.EnforcementPlan;
+import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.ErrorSignal;
 import io.sapl.spring.pep.constraints.Signal.InputSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
+import io.sapl.spring.pep.constraints.SignalType;
+import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.spring.util.Maybe.Present;
 import lombok.NonNull;
@@ -40,6 +44,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import reactor.core.Exceptions;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -61,6 +67,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
+    private final ObjectProvider<List<ShimSignalContributor>>             shimSignalContributorsProvider;
 
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
@@ -74,8 +81,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val saplAttribute = attribute.get();
         val authzDecision = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute);
 
-        val supportedSignals = Set.of(DecisionSignal.TYPE, InputSignal.TYPE, ErrorSignal.TYPE,
-                OutputSignal.typeForReturnOf(methodInvocation));
+        val supportedSignals = collectSupportedSignals(methodInvocation);
 
         val enforcementPlan = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
 
@@ -96,7 +102,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
                 throw new AccessDeniedException(ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED);
             }
 
-            val returnedObject = methodInvocation.proceed();
+            val returnedObject = invokeWithPlanInContext(methodInvocation, enforcementPlan);
             val outputSignal   = OutputSignal.forResultOf(methodInvocation, returnedObject);
             val outputResult   = enforcementPlan.execute(outputSignal, false);
 
@@ -115,6 +121,36 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             }
             throw t;
         }
+    }
+
+    /**
+     * Invokes the protected method with the given {@link EnforcementPlan} bound
+     * to the thread-local {@link EnforcementPlanContext}. Shim wrappers running
+     * deeper in the call graph (e.g. around Spring Data templates) read the plan
+     * from the context to fire shim signals.
+     */
+    private static Object invokeWithPlanInContext(MethodInvocation methodInvocation, EnforcementPlan plan)
+            throws Throwable {
+        val previous = EnforcementPlanContext.currentBlocking().orElse(null);
+        EnforcementPlanContext.bindBlocking(plan);
+        try {
+            return methodInvocation.proceed();
+        } finally {
+            EnforcementPlanContext.bindBlocking(previous);
+        }
+    }
+
+    private Set<SignalType> collectSupportedSignals(MethodInvocation methodInvocation) {
+        val signals = new HashSet<SignalType>();
+        signals.add(DecisionSignal.TYPE);
+        signals.add(InputSignal.TYPE);
+        signals.add(ErrorSignal.TYPE);
+        signals.add(OutputSignal.typeForReturnOf(methodInvocation));
+        val contributors = shimSignalContributorsProvider.getIfAvailable(List::of);
+        for (val contributor : contributors) {
+            signals.addAll(contributor.supportedSignals());
+        }
+        return Set.copyOf(signals);
     }
 
     private AuthorizationDecision getAuthorizationFromPolicyDecisionPoint(MethodInvocation methodInvocation,
