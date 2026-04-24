@@ -45,7 +45,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      * {@code Mono<String>}) is preserved for provider dispatch.
      */
     sealed interface ValueSignal<T> extends Signal permits DecisionSignal, InputSignal, OutputSignal, ErrorSignal,
-            SubscriptionSignal, R2dbcShimSignal, MongoDbShimSignal {
+            SubscriptionSignal, SqlShimSignal, RelationalQueryShimSignal, MongoDbQueryShimSignal {
         T value();
 
         ResolvableType valueType();
@@ -264,17 +264,20 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
-    // TODO: determine correct value type
     /**
-     * Shim signal fired from inside an R2DBC RAP, carrying the generated query for
-     * interception/rewriting.
+     * Shim signal carrying a raw SQL string just before driver dispatch. Fired by
+     * wrappers around {@code DatabaseClient.sql(String)} (R2DBC), JDBC templates,
+     * and JPA native query execution. Mappers attached here may textually rewrite
+     * the SQL (e.g. inject WHERE clauses) before the underlying driver receives
+     * it. Dialect-agnostic at the signal level; mapper authors handle dialect
+     * concerns.
      */
-    record R2dbcShimSignal(Object value) implements ValueSignal<Object> {
-        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Object.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(R2dbcShimSignal.class, VALUE_TYPE);
+    record SqlShimSignal(String value) implements ValueSignal<String> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(String.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(SqlShimSignal.class, VALUE_TYPE);
 
-        public static R2dbcShimSignal of(Object value) {
-            return new R2dbcShimSignal(value);
+        public static SqlShimSignal of(String sql) {
+            return new SqlShimSignal(sql);
         }
 
         @Override
@@ -288,17 +291,58 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
     }
 
-    // TODO: determine correct value type
     /**
-     * Shim signal fired from inside a MongoDB RAP, carrying the generated query for
-     * interception/rewriting.
+     * Shim signal carrying a Spring Data Relational
+     * {@link org.springframework.data.relational.core.query.Query} just before
+     * driver dispatch. Fired by wrappers around {@code R2dbcEntityTemplate} and
+     * {@code JdbcAggregateTemplate}, which both use the same Query class from
+     * {@code spring-data-relational}. Mappers may append {@code Criteria},
+     * restrict {@code Columns}, or otherwise transform the structured query
+     * semantically before execution. Fully-qualified package name is used to
+     * make the namespace difference vs Mongo's same-named Query explicit at the
+     * signature level.
      */
-    record MongoDbShimSignal(Object value) implements ValueSignal<Object> {
-        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Object.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(MongoDbShimSignal.class, VALUE_TYPE);
+    record RelationalQueryShimSignal(org.springframework.data.relational.core.query.Query value)
+            implements ValueSignal<org.springframework.data.relational.core.query.Query> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType
+                .forClass(org.springframework.data.relational.core.query.Query.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(RelationalQueryShimSignal.class,
+                VALUE_TYPE);
 
-        public static MongoDbShimSignal of(Object value) {
-            return new MongoDbShimSignal(value);
+        public static RelationalQueryShimSignal of(org.springframework.data.relational.core.query.Query query) {
+            return new RelationalQueryShimSignal(query);
+        }
+
+        @Override
+        public ResolvableType valueType() {
+            return VALUE_TYPE;
+        }
+
+        @Override
+        public SignalType type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Shim signal carrying a Spring Data MongoDB
+     * {@link org.springframework.data.mongodb.core.query.Query} just before
+     * driver dispatch. Fired by wrappers around {@code MongoTemplate} and
+     * {@code ReactiveMongoTemplate}. Raw {@code @Query}-annotated methods parse
+     * into {@code BasicQuery extends Query} and travel the same path, so a
+     * single shim signal covers all Mongo query origins. Fully-qualified package
+     * name is used to make the namespace difference vs the relational Query
+     * explicit at the signature level.
+     */
+    record MongoDbQueryShimSignal(org.springframework.data.mongodb.core.query.Query value)
+            implements ValueSignal<org.springframework.data.mongodb.core.query.Query> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType
+                .forClass(org.springframework.data.mongodb.core.query.Query.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(MongoDbQueryShimSignal.class,
+                VALUE_TYPE);
+
+        public static MongoDbQueryShimSignal of(org.springframework.data.mongodb.core.query.Query query) {
+            return new MongoDbQueryShimSignal(query);
         }
 
         @Override

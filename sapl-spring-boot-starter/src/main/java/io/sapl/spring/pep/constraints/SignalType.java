@@ -17,7 +17,12 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import java.util.Optional;
+import java.util.Set;
+
 import org.springframework.core.ResolvableType;
+
+import lombok.val;
 
 /**
  * Reified key identifying a {@link Signal} for plan lookup. Two signal types
@@ -32,4 +37,19 @@ sealed public interface SignalType permits SignalType.VoidSignalType, SignalType
 
     record ValueSignalType<T>(Class<? extends Signal.ValueSignal<T>> type, ResolvableType valueType)
             implements SignalType {}
+
+    /**
+     * Returns the first {@link ValueSignalType} in {@code supported} whose
+     * signal class equals {@code signalClass}, or {@link Optional#empty()} when
+     * the PEP does not fire that signal. Used by providers that need to bind a
+     * handler to a specific value signal contributed by the surrounding PEP.
+     */
+    static Optional<ValueSignalType<?>> findIn(Set<SignalType> supported, Class<? extends Signal> signalClass) {
+        for (val signal : supported) {
+            if (signal instanceof ValueSignalType<?> v && signalClass.equals(v.type())) {
+                return Optional.of(v);
+            }
+        }
+        return Optional.empty();
+    }
 }
