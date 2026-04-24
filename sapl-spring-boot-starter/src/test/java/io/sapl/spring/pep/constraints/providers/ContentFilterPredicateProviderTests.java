@@ -39,9 +39,9 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
-import io.sapl.spring.pep.constraints.EnforcementExecutor;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal;
+import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.val;
@@ -55,10 +55,7 @@ class ContentFilterPredicateProviderTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static final SignalType OUTPUT_MAP_TYPE = new ValueSignalType<Map>(
-            (Class<? extends Signal.ValueSignal<Map>>) (Class) Signal.OutputSignal.class, Map.class);
-
+    private static final SignalType OUTPUT_MAP_TYPE    = Signal.OutputSignal.typeFor(Map.class);
     private static final SignalType CANCEL_SIGNAL_TYPE = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 
     private final ContentFilterPredicateProvider provider = new ContentFilterPredicateProvider(MAPPER);
@@ -156,9 +153,8 @@ class ContentFilterPredicateProviderTests {
     @DisplayName("End-to-end scenarios")
     class EndToEndScenarios {
 
-        private final EnforcementPlanner  planner  = new EnforcementPlanner(
+        private final EnforcementPlanner planner = new EnforcementPlanner(
                 List.of(new ContentFilterPredicateProvider(MAPPER)), MAPPER);
-        private final EnforcementExecutor executor = new EnforcementExecutor();
 
         @Test
         @DisplayName("Filtering a list does not mutate the original list")
@@ -171,7 +167,7 @@ class ContentFilterPredicateProviderTests {
                        "conditions": [{"path": "$.guild", "type": "==", "value": "Watch"}] }]
                     """);
             val plan     = planner.plan(decision, Set.of(OUTPUT_LIST_TYPE, DECISION_SIGNAL_TYPE));
-            executor.execute(plan, new Signal.OutputSignal<>(List.class, original), false);
+            plan.execute(OutputSignal.of(List.class, original), false);
 
             assertThat(original).extracting(WatchCitizen::name).containsExactlyElementsOf(originalNames);
         }
@@ -185,7 +181,7 @@ class ContentFilterPredicateProviderTests {
                     """);
             val plan     = planner.plan(decision, Set.of(OUTPUT_FLUX_TYPE, DECISION_SIGNAL_TYPE));
             val source   = Flux.fromIterable(theUsualSuspects());
-            val result   = executor.execute(plan, new Signal.OutputSignal<>(Flux.class, source), false);
+            val result   = plan.execute(OutputSignal.of(Flux.class, source), false);
 
             Flux<WatchCitizen> filteredFlux = expectFlux(result);
             StepVerifier.create(filteredFlux).assertNext(c -> assertThat(c.name()).isEqualTo("Sam Vimes"))

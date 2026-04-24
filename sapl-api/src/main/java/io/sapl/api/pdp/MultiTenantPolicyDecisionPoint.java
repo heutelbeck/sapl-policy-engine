@@ -71,19 +71,22 @@ public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
     Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Evaluates an authorization subscription against the tenant's policies
-     * and returns only the first decision.
+     * Evaluates an authorization subscription against the tenant's policies and
+     * returns only the first decision. Never emits empty: an empty upstream is
+     * mapped to {@link AuthorizationDecision#INDETERMINATE}.
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant's PDP identifier
      * @return the first authorization decision
      */
     default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        return decide(authorizationSubscription, pdpId).next();
+        return decide(authorizationSubscription, pdpId).next().defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
     }
 
     /**
-     * Synchronous, blocking authorization decision for a specific tenant.
+     * Synchronous, blocking authorization decision for a specific tenant. Returns
+     * {@link AuthorizationDecision#INDETERMINATE} for an empty stream (never
+     * {@code null}).
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant's PDP identifier
@@ -91,7 +94,8 @@ public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
      */
     default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription,
             String pdpId) {
-        return decideOnce(authorizationSubscription, pdpId).block();
+        val decision = decideOnce(authorizationSubscription, pdpId).block();
+        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
     }
 
     /**

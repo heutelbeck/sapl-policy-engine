@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.reactivestreams.Publisher;
+import org.springframework.core.ResolvableType;
 
 import io.sapl.api.model.Value;
 import io.sapl.spring.constraints.providers.ConstraintResponsibility;
@@ -71,14 +72,15 @@ public class ContentFilterPredicateProvider implements ConstraintHandlerProvider
         }
         return OutputSignals.findIn(supportedSignals).filter(outputSignal -> isContainer(outputSignal.valueType()))
                 .map(outputSignal -> {
-                    val mapper = ContentFilter.getFilterPredicateHandler(constraint, outputSignal.valueType(),
-                            objectMapper);
+                    val mapper = ContentFilter.getFilterPredicateHandler(constraint,
+                            outputSignal.valueType().resolve(Object.class), objectMapper);
                     return new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY);
                 });
     }
 
-    private static boolean isContainer(Class<?> type) {
-        return type.isArray() || List.class.isAssignableFrom(type) || Set.class.isAssignableFrom(type)
-                || Optional.class.isAssignableFrom(type) || Publisher.class.isAssignableFrom(type);
+    private static boolean isContainer(ResolvableType type) {
+        val raw = type.toClass();
+        return type.isArray() || List.class.isAssignableFrom(raw) || Set.class.isAssignableFrom(raw)
+                || Optional.class.isAssignableFrom(raw) || Publisher.class.isAssignableFrom(raw);
     }
 }

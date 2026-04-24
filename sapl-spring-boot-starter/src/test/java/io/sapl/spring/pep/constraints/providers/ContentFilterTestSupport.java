@@ -28,7 +28,6 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.spring.pep.constraints.EnforcementResult;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import io.sapl.spring.util.Maybe;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -44,20 +43,10 @@ final class ContentFilterTestSupport {
 
     static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    static final SignalType OUTPUT_LIST_TYPE = new ValueSignalType<List>(
-            (Class<? extends Signal.ValueSignal<List>>) (Class) Signal.OutputSignal.class, List.class);
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    static final SignalType OUTPUT_CITIZEN_TYPE = new ValueSignalType<WatchCitizen>(
-            (Class<? extends Signal.ValueSignal<WatchCitizen>>) (Class) Signal.OutputSignal.class, WatchCitizen.class);
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    static final SignalType OUTPUT_FLUX_TYPE = new ValueSignalType<Flux>(
-            (Class<? extends Signal.ValueSignal<Flux>>) (Class) Signal.OutputSignal.class, Flux.class);
-
-    static final SignalType DECISION_SIGNAL_TYPE = new ValueSignalType<>(Signal.DecisionSignal.class,
-            AuthorizationDecision.class);
+    static final SignalType OUTPUT_LIST_TYPE     = Signal.OutputSignal.typeFor(List.class);
+    static final SignalType OUTPUT_CITIZEN_TYPE  = Signal.OutputSignal.typeFor(WatchCitizen.class);
+    static final SignalType OUTPUT_FLUX_TYPE     = Signal.OutputSignal.typeFor(Flux.class);
+    static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.TYPE;
 
     private ContentFilterTestSupport() {
     }

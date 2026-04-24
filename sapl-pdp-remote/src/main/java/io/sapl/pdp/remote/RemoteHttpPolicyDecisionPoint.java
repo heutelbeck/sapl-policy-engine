@@ -150,7 +150,8 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
         val type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return client.post().uri(DECIDE_ONCE).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToMono(type).timeout(Duration.ofMillis(timeoutMillis))
-                .doOnError(this::logStreamError).onErrorReturn(AuthorizationDecision.INDETERMINATE);
+                .doOnError(this::logStreamError).onErrorReturn(AuthorizationDecision.INDETERMINATE)
+                .defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
     }
 
     @Override

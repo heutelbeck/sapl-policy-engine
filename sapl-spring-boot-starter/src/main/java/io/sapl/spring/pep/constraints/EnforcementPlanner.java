@@ -74,8 +74,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class EnforcementPlanner {
 
-    private static final SignalType DECISION_SIGNAL_TYPE = new ValueSignalType<>(Signal.DecisionSignal.class,
-            AuthorizationDecision.class);
+    private static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.TYPE;
 
     private static final int SUBSTITUTE_PRIORITY = 0;
 
@@ -132,7 +131,7 @@ public class EnforcementPlanner {
             entriesBySignal.computeIfAbsent(substitute.signal(), signal -> new ArrayList<>()).add(substitute.entry());
             return;
         }
-        val outputType     = outputSignal.get().valueType();
+        val outputType     = outputSignal.get().valueType().resolve(Object.class);
         val resourceMapper = resourceSubstitutionMapper(decision.resource(), outputType);
         entriesBySignal.computeIfAbsent(outputSignal.get(), signal -> new ArrayList<>())
                 .add(entry(resourceMapper, Integer.MIN_VALUE, ConstraintType.OBLIGATION, decision.resource()));

@@ -135,7 +135,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
             }
         }).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage()))
-                .onErrorReturn(AuthorizationDecision.INDETERMINATE);
+                .onErrorReturn(AuthorizationDecision.INDETERMINATE).defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
     }
 
     @Override
