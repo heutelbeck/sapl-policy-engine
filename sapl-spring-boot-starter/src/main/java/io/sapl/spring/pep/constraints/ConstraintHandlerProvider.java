@@ -27,12 +27,12 @@ import io.sapl.api.model.Value;
  * to a scoped handler.
  * <p>
  * Returns {@link Optional#empty()} when this provider does not implement the
- * constraint. Otherwise returns the
+ * constraint. Otherwise, returns the
  * triple {@code (handler, signalType, priority)} that the planner will
  * schedule. Implementations may use
  * {@code supportedSignals} to bind their handler to the {@link SignalType} the
  * deployed PEP actually fires
- * (e.g. picking the {@link Signal.OutputSignal} type with its concrete
+ * (e.g., picking the {@link Signal.OutputSignal} type with its concrete
  * {@code valueType}).
  */
 public interface ConstraintHandlerProvider {

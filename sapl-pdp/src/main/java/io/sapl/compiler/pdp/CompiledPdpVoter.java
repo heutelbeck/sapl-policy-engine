@@ -19,6 +19,7 @@ package io.sapl.compiler.pdp;
 
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.PureVoter;
@@ -29,6 +30,7 @@ import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
 import lombok.val;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.function.Supplier;
 
@@ -40,6 +42,8 @@ public record CompiledPdpVoter(
         FunctionBroker functionBroker,
         Supplier<String> timestampSupplier) {
 
+    private static final String ERROR_VOTER_PRODUCED_NO_DECISION = "Voter produced no decision.";
+
     public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
         if (pdpVoter instanceof Vote vote) {
             return new TimestampedVote(vote, timestampSupplier.get());
@@ -49,8 +53,15 @@ public record CompiledPdpVoter(
             return new TimestampedVote(pureVoter.vote(evaluationContext), timestampSupplier.get());
         }
         return ((StreamVoter) pdpVoter).vote()
-                .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext)).take(1)
-                .map(vote -> new TimestampedVote(vote, timestampSupplier.get())).blockFirst();
+                .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext)).next()
+                .map(vote -> new TimestampedVote(vote, timestampSupplier.get()))
+                .switchIfEmpty(Mono.fromSupplier(this::indeterminateVote)).block();
+    }
+
+    private TimestampedVote indeterminateVote() {
+        val error = new ErrorValue(ERROR_VOTER_PRODUCED_NO_DECISION);
+        val vote  = Vote.error(error, voterMetadata);
+        return new TimestampedVote(vote, timestampSupplier.get());
     }
 
     public Flux<TimestampedVote> vote(AuthorizationSubscription authorizationSubscription, String subscriptionId) {

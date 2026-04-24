@@ -17,9 +17,19 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import org.springframework.core.ResolvableType;
+
+/**
+ * Reified key identifying a {@link Signal} for plan lookup. Two signal types
+ * are equal when their signal class and (for value signals) their
+ * {@link ResolvableType} match. Using {@link ResolvableType} preserves generic
+ * information so that providers may dispatch on
+ * {@code Mono<String>} differently from {@code Mono<User>}.
+ */
 sealed public interface SignalType permits SignalType.VoidSignalType, SignalType.ValueSignalType {
+
     record VoidSignalType(Class<? extends Signal.VoidSignal> type) implements SignalType {}
 
-    record ValueSignalType<T>(Class<? extends Signal.ValueSignal<T>> type, Class<? extends T> valueType)
+    record ValueSignalType<T>(Class<? extends Signal.ValueSignal<T>> type, ResolvableType valueType)
             implements SignalType {}
 }

@@ -34,14 +34,15 @@ import org.junit.jupiter.api.Test;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.spring.pep.constraints.Signal.CancelSignal;
+import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
+import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import lombok.val;
 import reactor.core.Exceptions;
 
-class EnforcementExecutorTests {
+class EnforcementPlanTests {
 
     private static final Value DUMMY_CONSTRAINT = Value.of("constraint");
-
-    private final EnforcementExecutor executor = new EnforcementExecutor();
 
     private static EnforcementPlan plan(Signal signal, EnforcementPlanEntry<?>... entries) {
         return new EnforcementPlan(Map.of(signal.type(), List.of(entries)));
@@ -75,15 +76,15 @@ class EnforcementExecutorTests {
     }
 
     private static Signal.OutputSignal<String> outputString(String value) {
-        return new Signal.OutputSignal<>(String.class, value);
+        return OutputSignal.of(String.class, value);
     }
 
     private static Signal.DecisionSignal decisionSignal() {
-        return new Signal.DecisionSignal(AuthorizationDecision.PERMIT);
+        return DecisionSignal.of(AuthorizationDecision.PERMIT);
     }
 
     private static Signal.CancelSignal cancelSignal() {
-        return new Signal.CancelSignal();
+        return CancelSignal.INSTANCE;
     }
 
     @Nested
@@ -96,7 +97,7 @@ class EnforcementExecutorTests {
             val invocations = new AtomicInteger();
             val plan        = plan(outputString("v"), obligation(runner(invocations::incrementAndGet), 0));
 
-            val result = executor.execute(plan, outputString("v"), false);
+            val result = plan.execute(outputString("v"), false);
 
             assertThat(invocations).hasValue(1);
             assertThatResult(result).hasPresentValue("v").hasFailureState(false);
@@ -108,7 +109,7 @@ class EnforcementExecutorTests {
             val received = new ArrayList<String>();
             val plan     = plan(outputString("hello"), obligation(consumer((String value) -> received.add(value)), 0));
 
-            val result = executor.execute(plan, outputString("hello"), false);
+            val result = plan.execute(outputString("hello"), false);
 
             assertThat(received).containsExactly("hello");
             assertThatResult(result).hasPresentValue("hello").hasFailureState(false);
@@ -119,7 +120,7 @@ class EnforcementExecutorTests {
         void givenMapperWhenExecutedThenValueTransformed() {
             val plan = plan(outputString("hello"), obligation(mapper((String value) -> value.toUpperCase()), 0));
 
-            val result = executor.execute(plan, outputString("hello"), false);
+            val result = plan.execute(outputString("hello"), false);
 
             assertThatResult(result).hasPresentValue("HELLO").hasFailureState(false);
         }
@@ -130,7 +131,7 @@ class EnforcementExecutorTests {
             val received = new ArrayList<Object>();
             val plan     = plan(cancelSignal(), obligation(consumer((Object value) -> received.add(value)), 0));
 
-            val result = executor.execute(plan, cancelSignal(), false);
+            val result = plan.execute(cancelSignal(), false);
 
             assertThat(received).isEmpty();
             assertThatResult(result).hasAbsentValue().hasFailureState(false);
@@ -148,7 +149,7 @@ class EnforcementExecutorTests {
             val plan = plan(outputString("v"), obligation(runner(() -> log.add("a")), 0),
                     obligation(runner(() -> log.add("b")), 0), obligation(runner(() -> log.add("c")), 0));
 
-            executor.execute(plan, outputString("v"), false);
+            plan.execute(outputString("v"), false);
 
             assertThat(log).containsExactly("a", "b", "c");
         }
@@ -159,7 +160,7 @@ class EnforcementExecutorTests {
             val plan = plan(outputString("a"), obligation(mapper((String value) -> value + "b"), 0),
                     obligation(mapper((String value) -> value + "c"), 1));
 
-            val result = executor.execute(plan, outputString("a"), false);
+            val result = plan.execute(outputString("a"), false);
 
             assertThatResult(result).hasPresentValue("abc").hasFailureState(false);
         }
@@ -177,7 +178,7 @@ class EnforcementExecutorTests {
                              throw new RuntimeException("boom");
                          }), 0), obligation(runner(ranAfter::incrementAndGet), 1));
 
-            val result = executor.execute(plan, outputString("v"), false);
+            val result = plan.execute(outputString("v"), false);
 
             assertThat(ranAfter).hasValue(1);
             assertThatResult(result).hasPresentValue("v").hasFailureState(true);
@@ -191,7 +192,7 @@ class EnforcementExecutorTests {
                              throw new RuntimeException("boom");
                          }), 0), obligation(runner(ranAfter::incrementAndGet), 1));
 
-            val result = executor.execute(plan, outputString("v"), false);
+            val result = plan.execute(outputString("v"), false);
 
             assertThat(ranAfter).hasValue(1);
             assertThatResult(result).hasFailureState(false);
@@ -205,7 +206,7 @@ class EnforcementExecutorTests {
                          throw new RuntimeException("boom");
                      }), 0), obligation(consumer((String value) -> seen.add(value)), 1));
 
-            val result = executor.execute(plan, outputString("hello"), false);
+            val result = plan.execute(outputString("hello"), false);
 
             assertThat(seen).containsExactly("hello");
             assertThatResult(result).hasPresentValue("hello").hasFailureState(true);
@@ -223,7 +224,7 @@ class EnforcementExecutorTests {
                 throw new RuntimeException("boom");
             }), 0));
 
-            val result = executor.execute(plan, outputString("v"), false);
+            val result = plan.execute(outputString("v"), false);
 
             assertThatResult(result).hasFailureState(true);
         }
@@ -235,7 +236,7 @@ class EnforcementExecutorTests {
                 throw new RuntimeException("boom");
             }), 0));
 
-            val result = executor.execute(plan, outputString("v"), false);
+            val result = plan.execute(outputString("v"), false);
 
             assertThatResult(result).hasFailureState(false);
         }
@@ -245,7 +246,7 @@ class EnforcementExecutorTests {
         void givenPriorFailureTrueAndNoFailuresThenStaysTrue() {
             val plan = plan(outputString("v"), obligation(runner(() -> {}), 0));
 
-            val result = executor.execute(plan, outputString("v"), true);
+            val result = plan.execute(outputString("v"), true);
 
             assertThatResult(result).hasFailureState(true);
         }
@@ -257,7 +258,7 @@ class EnforcementExecutorTests {
                 throw new RuntimeException("boom");
             }), 0));
 
-            val result = executor.execute(plan, outputString("v"), true);
+            val result = plan.execute(outputString("v"), true);
 
             assertThatResult(result).hasFailureState(true);
         }
@@ -272,7 +273,7 @@ class EnforcementExecutorTests {
         void givenValueSignalThenInitialValuePresent() {
             val plan = new EnforcementPlan(Map.of());
 
-            val result = executor.execute(plan, outputString("hello"), false);
+            val result = plan.execute(outputString("hello"), false);
 
             assertThatResult(result).hasPresentValue("hello").hasFailureState(false);
         }
@@ -282,7 +283,7 @@ class EnforcementExecutorTests {
         void givenVoidSignalThenInitialValueAbsent() {
             val plan = new EnforcementPlan(Map.of());
 
-            val result = executor.execute(plan, cancelSignal(), false);
+            val result = plan.execute(cancelSignal(), false);
 
             assertThatResult(result).hasAbsentValue().hasFailureState(false);
         }
@@ -292,7 +293,7 @@ class EnforcementExecutorTests {
         void givenValueSignalWithNullPayloadThenPresentNull() {
             val plan = new EnforcementPlan(Map.of());
 
-            val result = executor.execute(plan, outputString(null), false);
+            val result = plan.execute(outputString(null), false);
 
             assertThatResult(result).hasPresentValue(null).hasFailureState(false);
         }
@@ -309,7 +310,7 @@ class EnforcementExecutorTests {
             val plan              = new EnforcementPlan(
                     Map.of(cancelSignal().type(), List.of(obligation(runner(cancelInvocations::incrementAndGet), 0))));
 
-            val result = executor.execute(plan, outputString("v"), false);
+            val result = plan.execute(outputString("v"), false);
 
             assertThat(cancelInvocations).hasValue(0);
             assertThatResult(result).hasPresentValue("v").hasFailureState(false);
@@ -320,7 +321,7 @@ class EnforcementExecutorTests {
         void givenEmptyPlanThenInputUnchanged() {
             val plan = new EnforcementPlan(Map.of());
 
-            val result = executor.execute(plan, outputString("untouched"), false);
+            val result = plan.execute(outputString("untouched"), false);
 
             assertThatResult(result).hasPresentValue("untouched").hasFailureState(false);
         }
@@ -336,7 +337,7 @@ class EnforcementExecutorTests {
             val invocations = new AtomicInteger();
             val plan        = plan(decisionSignal(), obligation(runner(invocations::incrementAndGet), 0));
 
-            val result = executor.execute(plan, decisionSignal(), false);
+            val result = plan.execute(decisionSignal(), false);
 
             assertThat(invocations).hasValue(1);
             assertThatResult(result).hasPresentValue(AuthorizationDecision.PERMIT).hasFailureState(false);
@@ -354,7 +355,7 @@ class EnforcementExecutorTests {
                 throw new InternalError("simulated VM error");
             }), 0));
 
-            assertThatThrownBy(() -> executor.execute(plan, outputString("v"), false)).isInstanceOf(InternalError.class)
+            assertThatThrownBy(() -> plan.execute(outputString("v"), false)).isInstanceOf(InternalError.class)
                     .hasMessageContaining("simulated VM error");
         }
 
@@ -365,7 +366,7 @@ class EnforcementExecutorTests {
                 throw Exceptions.bubble(new RuntimeException("inner"));
             }), 0));
 
-            assertThatThrownBy(() -> executor.execute(plan, outputString("v"), false)).matches(Exceptions::isBubbling,
+            assertThatThrownBy(() -> plan.execute(outputString("v"), false)).matches(Exceptions::isBubbling,
                     "is a Reactor bubbling exception");
         }
     }

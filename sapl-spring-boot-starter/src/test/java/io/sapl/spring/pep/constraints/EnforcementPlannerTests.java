@@ -49,13 +49,9 @@ class EnforcementPlannerTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    private static final SignalType DECISION_SIGNAL_TYPE = new SignalType.ValueSignalType<>(Signal.DecisionSignal.class,
-            AuthorizationDecision.class);
-    private static final SignalType INPUT_SIGNAL_TYPE    = new SignalType.ValueSignalType<>(Signal.InputSignal.class,
-            org.aopalliance.intercept.MethodInvocation.class);
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static final SignalType OUTPUT_STRING_TYPE   = new SignalType.ValueSignalType<String>(
-            (Class<? extends Signal.ValueSignal<String>>) (Class) Signal.OutputSignal.class, String.class);
+    private static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.TYPE;
+    private static final SignalType INPUT_SIGNAL_TYPE    = Signal.InputSignal.TYPE;
+    private static final SignalType OUTPUT_STRING_TYPE   = Signal.OutputSignal.typeFor(String.class);
     private static final SignalType CANCEL_SIGNAL_TYPE   = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 
     private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DECISION_SIGNAL_TYPE, INPUT_SIGNAL_TYPE,

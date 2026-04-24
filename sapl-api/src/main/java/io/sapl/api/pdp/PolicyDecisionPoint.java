@@ -53,6 +53,9 @@ public interface PolicyDecisionPoint {
 
     /**
      * Evaluates an authorization subscription and returns only the first decision.
+     * Never emits empty: an empty upstream is mapped to
+     * {@link AuthorizationDecision#INDETERMINATE} so callers can rely on receiving
+     * a decision.
      *
      * @param authorizationSubscription
      * the authorization subscription to evaluate
@@ -60,7 +63,7 @@ public interface PolicyDecisionPoint {
      * @return the first authorization decision
      */
     default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
-        return decide(authorizationSubscription).next();
+        return decide(authorizationSubscription).next().defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
     }
 
     /**
@@ -73,7 +76,9 @@ public interface PolicyDecisionPoint {
      * <p>
      * Implementations may use an optimized pure evaluation path that bypasses
      * reactive subscription overhead entirely.
-     * The default implementation falls back to blocking on the reactive stream.
+     * The default implementation falls back to blocking on the reactive stream and
+     * returns {@link AuthorizationDecision#INDETERMINATE} for an empty stream
+     * (never {@code null}).
      *
      * @param authorizationSubscription
      * the authorization subscription to evaluate
@@ -81,7 +86,8 @@ public interface PolicyDecisionPoint {
      * @return the authorization decision
      */
     default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
-        return decideOnce(authorizationSubscription).block();
+        val decision = decideOnce(authorizationSubscription).block();
+        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
     }
 
     /**

@@ -34,9 +34,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.model.Value;
-import io.sapl.spring.pep.constraints.EnforcementExecutor;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal;
+import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import lombok.val;
 
 /**
@@ -48,9 +48,8 @@ import lombok.val;
 @DisplayName("Content filter provider interactions")
 class ContentFilterProviderInteractionTests {
 
-    private final EnforcementPlanner  planner  = new EnforcementPlanner(
+    private final EnforcementPlanner planner = new EnforcementPlanner(
             List.of(new ContentFilteringProvider(MAPPER), new ContentFilterPredicateProvider(MAPPER)), MAPPER);
-    private final EnforcementExecutor executor = new EnforcementExecutor();
 
     private static Value parse(String json) {
         return MAPPER.readValue(json, Value.class);
@@ -68,8 +67,7 @@ class ContentFilterProviderInteractionTests {
                 ]
                 """);
         val                plan       = planner.plan(decision, Set.of(OUTPUT_LIST_TYPE, DECISION_SIGNAL_TYPE));
-        val                result     = executor.execute(plan,
-                new Signal.OutputSignal<>(List.class, theUsualSuspects()), false);
+        val                result     = plan.execute(OutputSignal.of(List.class, theUsualSuspects()), false);
         List<WatchCitizen> outputList = expectList(result);
 
         assertThat(outputList).hasSize(2).extracting(WatchCitizen::name).containsExactly("Sam Vimes",

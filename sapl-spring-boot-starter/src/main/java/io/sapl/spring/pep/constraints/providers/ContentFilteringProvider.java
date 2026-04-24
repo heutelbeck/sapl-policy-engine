@@ -56,7 +56,8 @@ public class ContentFilteringProvider implements ConstraintHandlerProvider {
             return Optional.empty();
         }
         return OutputSignals.findIn(supportedSignals).map(outputSignal -> {
-            val mapper = ContentFilter.getHandler(constraint, outputSignal.valueType(), objectMapper);
+            val mapper = ContentFilter.getHandler(constraint, outputSignal.valueType().resolve(Object.class),
+                    objectMapper);
             return new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY);
         });
     }

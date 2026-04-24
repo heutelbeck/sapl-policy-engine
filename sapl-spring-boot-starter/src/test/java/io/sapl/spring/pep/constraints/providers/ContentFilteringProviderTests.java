@@ -37,9 +37,9 @@ import org.junit.jupiter.api.Test;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
-import io.sapl.spring.pep.constraints.EnforcementExecutor;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal;
+import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.val;
@@ -51,10 +51,7 @@ class ContentFilteringProviderTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static final SignalType OUTPUT_MAP_TYPE = new ValueSignalType<Map>(
-            (Class<? extends Signal.ValueSignal<Map>>) (Class) Signal.OutputSignal.class, Map.class);
-
+    private static final SignalType OUTPUT_MAP_TYPE    = Signal.OutputSignal.typeFor(Map.class);
     private static final SignalType CANCEL_SIGNAL_TYPE = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 
     private final ContentFilteringProvider provider = new ContentFilteringProvider(MAPPER);
@@ -134,9 +131,8 @@ class ContentFilteringProviderTests {
     @DisplayName("End-to-end scenarios")
     class EndToEndScenarios {
 
-        private final EnforcementPlanner  planner  = new EnforcementPlanner(
-                List.of(new ContentFilteringProvider(MAPPER)), MAPPER);
-        private final EnforcementExecutor executor = new EnforcementExecutor();
+        private final EnforcementPlanner planner = new EnforcementPlanner(List.of(new ContentFilteringProvider(MAPPER)),
+                MAPPER);
 
         @Test
         @DisplayName("Redacting a single record returns a new instance; the original record is unchanged")
@@ -147,7 +143,7 @@ class ContentFilteringProviderTests {
                        "actions": [{"path": "$.address", "type": "blacken"}] }]
                     """);
             val plan     = planner.plan(decision, Set.of(OUTPUT_CITIZEN_TYPE, DECISION_SIGNAL_TYPE));
-            executor.execute(plan, new Signal.OutputSignal<>(WatchCitizen.class, original), false);
+            plan.execute(OutputSignal.of(WatchCitizen.class, original), false);
 
             assertThat(original.address()).isEqualTo("Scoone Avenue");
         }
@@ -162,22 +158,16 @@ class ContentFilteringProviderTests {
             val plan     = planner.plan(decision, Set.of(OUTPUT_CITIZEN_TYPE, DECISION_SIGNAL_TYPE));
 
             val vimes     = expect(
-                    executor.execute(plan,
-                            new Signal.OutputSignal<>(WatchCitizen.class,
-                                    new WatchCitizen("Vimes", "Watch", "Scoone Avenue", 50, "Cabal")),
-                            false),
+                    plan.execute(OutputSignal.of(WatchCitizen.class,
+                            new WatchCitizen("Vimes", "Watch", "Scoone Avenue", 50, "Cabal")), false),
                     WatchCitizen.class);
             val cohen     = expect(
-                    executor.execute(plan,
-                            new Signal.OutputSignal<>(WatchCitizen.class,
-                                    new WatchCitizen("Cohen", "Heroes", "Steppes", 90, "Silver Horde")),
-                            false),
+                    plan.execute(OutputSignal.of(WatchCitizen.class,
+                            new WatchCitizen("Cohen", "Heroes", "Steppes", 90, "Silver Horde")), false),
                     WatchCitizen.class);
             val rincewind = expect(
-                    executor.execute(plan,
-                            new Signal.OutputSignal<>(WatchCitizen.class,
-                                    new WatchCitizen("Rincewind", "Wizards", "UU", 33, "Coward's Anonymous")),
-                            false),
+                    plan.execute(OutputSignal.of(WatchCitizen.class,
+                            new WatchCitizen("Rincewind", "Wizards", "UU", 33, "Coward's Anonymous")), false),
                     WatchCitizen.class);
 
             assertThat(vimes).satisfies(c -> {
@@ -206,7 +196,7 @@ class ContentFilteringProviderTests {
                     ]
                     """);
             val plan     = planner.plan(decision, Set.of(OUTPUT_CITIZEN_TYPE, DECISION_SIGNAL_TYPE));
-            val result   = executor.execute(plan, new Signal.OutputSignal<>(WatchCitizen.class,
+            val result   = plan.execute(OutputSignal.of(WatchCitizen.class,
                     new WatchCitizen("Sam Vimes", "Watch", "Scoone Avenue", 50, null)), false);
 
             assertThat(result.failureState()).isTrue();
