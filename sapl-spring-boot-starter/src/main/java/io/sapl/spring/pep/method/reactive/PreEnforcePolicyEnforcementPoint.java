@@ -26,8 +26,6 @@ import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
-import io.sapl.spring.pep.constraints.EnforcementResult;
-import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.Signal.AfterTerminationSignal;
 import io.sapl.spring.pep.constraints.Signal.CancelSignal;
 import io.sapl.spring.pep.constraints.Signal.CompleteSignal;
@@ -40,7 +38,6 @@ import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import io.sapl.spring.util.Maybe.Present;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -49,7 +46,7 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
 import org.springframework.security.access.AccessDeniedException;
-import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashSet;
@@ -65,21 +62,14 @@ import java.util.Set;
  * {@link AuthorizationSubscriptionBuilderService}, which reads from
  * {@link org.springframework.security.core.context.ReactiveSecurityContextHolder}
  * with a fallback to the thread-bound holder.
- * </p>
- * Every {@code plan.execute(...)} is gated through {@link #fireAndEnforce}: a
- * failure of any obligation handler at any signal raises
- * {@link AccessDeniedException} immediately.
- * </p>
- *
+
  * @since 4.1.0
  */
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT               = "Access Denied by @PreEnforce PEP. The PDP decision was %s, not PERMIT.";
-    private static final String ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED = "Access Denied by @PreEnforce PEP. A post-invocation obligation handler failed after the protected method had already executed. Side effects of the invocation may have occurred.";
-    private static final String ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED  = "Access Denied by @PreEnforce PEP. A pre-invocation obligation handler failed. The protected method was not invoked.";
-    private static final String ERROR_UNSUPPORTED_RETURN_TYPE                         = "@PreEnforce reactive PEP currently supports Mono only. Found return type %s.";
+    private static final String ERROR_UNSUPPORTED_RETURN_TYPE                         = "@PreEnforce reactive PEP supports Mono and Flux only. Found return type %s.";
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
@@ -95,47 +85,35 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             return methodInvocation.proceed();
         }
 
-        val returnType = methodInvocation.getMethod().getReturnType();
-        if (!Mono.class.isAssignableFrom(returnType)) {
-            throw new IllegalStateException(ERROR_UNSUPPORTED_RETURN_TYPE.formatted(returnType.getName()));
-        }
-
+        val returnType    = methodInvocation.getMethod().getReturnType();
         val saplAttribute = attribute.get();
-        return requestDecisionAndEnforce(methodInvocation, saplAttribute);
+        val authzDecision = decisionFor(methodInvocation, saplAttribute);
+        if (Mono.class.isAssignableFrom(returnType)) {
+            return authzDecision.flatMap(decision -> enforceDecision(methodInvocation, decision));
+        }
+        if (Flux.class.isAssignableFrom(returnType)) {
+            return authzDecision.flatMapMany(decision -> enforceDecisionAsFlux(methodInvocation, decision));
+        }
+        throw new IllegalStateException(ERROR_UNSUPPORTED_RETURN_TYPE.formatted(returnType.getName()));
     }
 
-    private Mono<Object> requestDecisionAndEnforce(MethodInvocation methodInvocation, SaplAttribute saplAttribute) {
+    private Mono<AuthorizationDecision> decisionFor(MethodInvocation methodInvocation, SaplAttribute saplAttribute) {
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute);
         val pdp               = policyDecisionPointProvider.getObject();
-        val authzDecision     = authzSubscription.flatMap(pdp::decideOnce);
-        return authzDecision.flatMap(decision -> enforceDecision(methodInvocation, decision));
+        return authzSubscription.flatMap(pdp::decideOnce);
     }
 
     private Mono<Object> enforceDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
-        val outputType       = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
-        val supportedSignals = collectSupportedSignals(outputType);
-        val plan             = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
+        val plan = enforcementPlan(methodInvocation, authzDecision);
 
         return Mono.defer(() -> {
-            fireAndEnforce(plan, DecisionSignal.of(authzDecision),
-                    ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED);
-            // Here we can ignore the result of the input enforcement, as it can only have
-            // mutated the pre-existing MethodInvocation.
-            fireAndEnforce(plan, InputSignal.of(methodInvocation),
-                    ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED);
-            return applyOutput(plan, outputType, rapStream(methodInvocation, authzDecision));
-        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan)).onErrorResume(t -> errorPath(plan, t))
-                .doOnRequest(demand -> fireAndEnforce(plan, SubscriptionSignal.of(demand),
-                        ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED))
-                .doOnCancel(() -> fireAndEnforce(plan, CancelSignal.INSTANCE,
-                        ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED))
-                .doOnSuccess(v -> fireAndEnforce(plan, CompleteSignal.INSTANCE,
-                        ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED))
-                .doOnTerminate(() -> fireAndEnforce(plan, TerminationSignal.INSTANCE,
-                        ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED))
-                .doAfterTerminate(() -> fireAndEnforce(plan, AfterTerminationSignal.INSTANCE,
-                        ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED));
+            plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
+            return applyOutput(plan, rapStream(methodInvocation, authzDecision));
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan))
+                .onErrorResume(plan::enforceErrorConstraints).doOnRequest(plan::enforceSubscription)
+                .doOnCancel(plan::enforceCancel).doOnSuccess(v -> plan.enforceComplete())
+                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination);
     }
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {
@@ -156,6 +134,24 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         return Set.copyOf(signals);
     }
 
+    private EnforcementPlan enforcementPlan(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
+        val outputType       = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
+        val supportedSignals = collectSupportedSignals(outputType);
+        return enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
+    }
+
+    private Flux<Object> enforceDecisionAsFlux(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
+        val plan = enforcementPlan(methodInvocation, authzDecision);
+
+        return Flux.defer(() -> {
+            plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
+            return applyOutputFlux(plan, rapFluxStream(methodInvocation, authzDecision));
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan))
+                .onErrorResume(plan::enforceErrorConstraints).doOnRequest(plan::enforceSubscription)
+                .doOnCancel(plan::enforceCancel).doOnComplete(plan::enforceComplete)
+                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination);
+    }
+
     private static Mono<?> rapStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
         if (authzDecision.decision() != Decision.PERMIT) {
             return Mono.error(new AccessDeniedException(
@@ -168,18 +164,28 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         }
     }
 
+    private static Flux<?> rapFluxStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
+        if (authzDecision.decision() != Decision.PERMIT) {
+            return Flux.error(new AccessDeniedException(
+                    ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision())));
+        }
+        try {
+            return (Flux<?>) methodInvocation.proceed();
+        } catch (Throwable t) {
+            return Flux.error(t);
+        }
+    }
+
     /**
      * Fires the output signal once with the whole RAP {@link Mono} as the value
-     * and returns the (possibly Mapper-transformed) Mono. Mappers attached to the
-     * output signal operate on the Mono itself, exactly like content-filter
+     * and returns the (possibly Mapper-transformed) Mono. Mappers attached to
+     * the output signal operate on the Mono itself, exactly like content-filter
      * providers operating on a {@code List} or {@code Map} container in the
      * blocking case. If a Mapper returns {@code null} or a non-Mono value, the
      * chain falls back to {@link Mono#empty()} as a defensive default.
      */
-    private static Mono<Object> applyOutput(EnforcementPlan plan, ResolvableType outputType, Mono<?> rap) {
-        val outputResult = fireAndEnforce(plan, OutputSignal.ofUnchecked(outputType, rap),
-                ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED);
-        if (outputResult.value() instanceof Present<?>(var v) && v instanceof Mono<?> mapped) {
+    private static Mono<Object> applyOutput(EnforcementPlan plan, Mono<?> rap) {
+        if (plan.enforceOutputConstraints(rap, false) instanceof Mono<?> mapped) {
             @SuppressWarnings("unchecked")
             val typed = (Mono<Object>) mapped;
             return typed;
@@ -187,29 +193,18 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         return Mono.empty();
     }
 
-    private static Mono<Object> errorPath(EnforcementPlan plan, Throwable t) {
-        // Maps both RAP exceptions and the PEP's own AccessDeniedException throws
-        // through the error signal, so error handlers may transform either. A failure
-        // of an error-signal obligation itself escalates to a fresh AccessDenied.
-        Exceptions.throwIfFatal(t);
-        EnforcementResult<?> errorResult;
-        try {
-            errorResult = fireAndEnforce(plan, ErrorSignal.of(t),
-                    ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED);
-        } catch (AccessDeniedException denied) {
-            return Mono.error(denied);
+    /**
+     * Flux variant of {@link #applyOutput}. Fires the output signal once with
+     * the whole RAP {@link Flux} as the value and returns the (possibly
+     * Mapper-transformed) Flux. Falls back to {@link Flux#empty()} if a Mapper
+     * returns {@code null} or a non-Flux value.
+     */
+    private static Flux<Object> applyOutputFlux(EnforcementPlan plan, Flux<?> rap) {
+        if (plan.enforceOutputConstraints(rap, false) instanceof Flux<?> mapped) {
+            @SuppressWarnings("unchecked")
+            val typed = (Flux<Object>) mapped;
+            return typed;
         }
-        if (errorResult.value() instanceof Present<?>(var v) && v instanceof Throwable mapped) {
-            return Mono.error(mapped);
-        }
-        return Mono.error(t);
-    }
-
-    private static EnforcementResult<?> fireAndEnforce(EnforcementPlan plan, Signal signal, String denialMessage) {
-        val result = plan.execute(signal, false);
-        if (result.failureState()) {
-            throw new AccessDeniedException(denialMessage);
-        }
-        return result;
+        return Flux.empty();
     }
 }

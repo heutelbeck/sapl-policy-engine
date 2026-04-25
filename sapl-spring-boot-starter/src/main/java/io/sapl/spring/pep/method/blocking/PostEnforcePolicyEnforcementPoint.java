@@ -37,7 +37,6 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import reactor.core.Exceptions;
 
 import java.util.Set;
 
@@ -84,34 +83,20 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
 
         val enforcementPlan = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
 
-        var enforcementFailed = false;
         try {
-            enforcementFailed = enforcementPlan.execute(DecisionSignal.of(authzDecision), enforcementFailed)
-                    .failureState();
+            var enforcementFailed = enforcementPlan.enforceDecisionConstraints(authzDecision);
 
             if (authzDecision.decision() != Decision.PERMIT) {
                 throw new AccessDeniedException(
                         ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision()));
             }
 
-            val outputSignal = OutputSignal.forResultOf(methodInvocation, returnedObject);
-            val outputResult = enforcementPlan.execute(outputSignal, enforcementFailed);
-
-            if (outputResult.failureState()) {
-                throw new AccessDeniedException(ERROR_ACCESS_DENIED_OBLIGATION_FAILED);
-            }
-
-            return outputResult.value() instanceof Present<?>(var v) ? v : null;
+            return enforcementPlan.enforceOutputConstraints(returnedObject, enforcementFailed);
         } catch (Throwable t) {
             // Catches the PEP's own AccessDeniedException throws above so error-signal
             // handlers may transform them. RAP exceptions are not seen here because
             // proceed runs before the plan exists.
-            Exceptions.throwIfFatal(t);
-            val errorResult = enforcementPlan.execute(ErrorSignal.of(t), enforcementFailed);
-            if (errorResult.value() instanceof Present<?>(var v) && v instanceof Throwable mapped) {
-                throw mapped;
-            }
-            throw t;
+            throw enforcementPlan.enforceErrorConstraintsAsThrowable(t);
         }
     }
 
