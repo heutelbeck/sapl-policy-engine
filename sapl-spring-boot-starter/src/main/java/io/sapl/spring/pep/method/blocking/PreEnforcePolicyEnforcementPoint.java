@@ -53,8 +53,9 @@ import java.util.Set;
  * which can determine if an {@link Authentication} may invoke the
  * {@link MethodInvocation} by calling a Policy Decision Point based on the
  * expressions from the {@link PreEnforce} annotation.
+ * </p>
  *
- * @since 3.0.0
+ * @since 4.1.0
  */
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {

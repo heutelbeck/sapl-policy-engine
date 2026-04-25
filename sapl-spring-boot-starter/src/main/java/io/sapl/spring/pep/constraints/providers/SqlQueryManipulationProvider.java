@@ -53,8 +53,9 @@ import net.sf.jsqlparser.statement.update.Update;
  * attached to the PEP's {@link SqlShimSignal}. The mapper rewrites the SQL
  * via JSqlParser AST manipulation, eliminating the precedence and string-
  * literal hazards inherent to regex-based SQL rewriting.
- *
+ * </p>
  * The obligation shape is
+ * </p>
  *
  * <pre>{@code
  * {
@@ -68,12 +69,12 @@ import net.sf.jsqlparser.statement.update.Update;
  * AND-combined with the existing WHERE clause. Each addition is wrapped in
  * parentheses so OR-precedence in either the original or the addition cannot
  * leak rows. When the original statement has no WHERE clause, one is added.
- *
+ * </p>
  * The {@code columns} entry, when present and the statement is a SELECT,
  * narrows the projection by intersection with the original SELECT list. For
  * {@code SELECT *}, the obligation defines the projection. {@code columns}
  * is silently ignored for UPDATE and DELETE.
- *
+ * </p>
  * Failure modes (all fail closed: the mapper throws, the planner sets the
  * obligation's failure state, the PEP raises {@code AccessDeniedException}):
  * <ul>

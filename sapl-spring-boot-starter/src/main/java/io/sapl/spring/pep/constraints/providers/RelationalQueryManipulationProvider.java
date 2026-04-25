@@ -51,8 +51,9 @@ import lombok.val;
  * structured {@link Query} before driver dispatch and optionally narrows the
  * projected columns. Operates on R2DBC and Spring Data JDBC alike since both
  * use the same {@link Query} class from {@code spring-data-relational}.
- *
+ * </p>
  * The obligation shape is
+ * </p>
  *
  * <pre>{@code
  * {
@@ -74,13 +75,13 @@ import lombok.val;
  * binary criterion {@code {column, op, value}}, a unary criterion
  * {@code {column, op}} ({@code isNull}, {@code isNotNull}), or an OR-group
  * {@code {or: [...]}} whose children are AND-combined within the group.
- *
+ * </p>
  * The {@code columns} entry, if present, narrows the projection by
  * intersecting with any pre-existing column list on the original query
  * (least-privilege: an obligation cannot widen what the original query
  * already restricted). When the original has no projection, the obligation
  * defines it.
- *
+ * </p>
  * Supported {@code op} values: {@code =}, {@code !=}, {@code >}, {@code >=},
  * {@code <}, {@code <=}, {@code in}, {@code like}, {@code notLike},
  * {@code isNull}, {@code isNotNull}.

@@ -31,7 +31,7 @@ import reactor.util.context.ContextView;
  * Spring Data templates) read the plan from here and fire shim signals against
  * it. When no plan is in scope, lookups return {@link Optional#empty()} and
  * shim wrappers pass through unchanged.
- *
+ * </p>
  * Reactive flows propagate the plan via the Reactor {@link ContextView} keyed
  * by {@link #REACTOR_KEY}. Blocking flows propagate via a {@link ThreadLocal}.
  */
