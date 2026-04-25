@@ -112,6 +112,7 @@
 		<nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
 		<spotbugs-annotations.version>4.9.8</spotbugs-annotations.version>
 		<json-schema-validator.version>3.0.1</json-schema-validator.version>
+		<jsqlparser.version>5.0</jsqlparser.version>
 		<jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->
@@ -245,6 +246,11 @@
 				<groupId>com.networknt</groupId>
 				<artifactId>json-schema-validator</artifactId>
 				<version>${json-schema-validator.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.jsqlparser</groupId>
+				<artifactId>jsqlparser</artifactId>
+				<version>${jsqlparser.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.vladsch.flexmark</groupId>

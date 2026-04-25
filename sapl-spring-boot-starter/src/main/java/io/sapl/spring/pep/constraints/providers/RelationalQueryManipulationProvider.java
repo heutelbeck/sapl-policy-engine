@@ -18,6 +18,7 @@
 package io.sapl.spring.pep.constraints.providers;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -28,15 +29,18 @@ import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.sql.SqlIdentifier;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.spring.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
-import io.sapl.spring.pep.constraints.Signal.RelationalQueryShimSignal;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
+import io.sapl.spring.pep.constraints.Signal.RelationalQueryShimSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import lombok.val;
 
@@ -44,9 +48,9 @@ import lombok.val;
  * Translates a {@code relational:queryManipulation} constraint into a
  * {@link Mapper} attached to the PEP's {@link RelationalQueryShimSignal}. The
  * mapper appends Spring Data Relational {@link Criteria} predicates to the
- * structured {@link Query} before driver dispatch, and optionally restricts
- * the projected columns. Operates on R2DBC and Spring Data JDBC alike since
- * both use the same {@link Query} class from {@code spring-data-relational}.
+ * structured {@link Query} before driver dispatch and optionally narrows the
+ * projected columns. Operates on R2DBC and Spring Data JDBC alike since both
+ * use the same {@link Query} class from {@code spring-data-relational}.
  *
  * The obligation shape is
  *
@@ -55,27 +59,41 @@ import lombok.val;
  *   "type": "relational:queryManipulation",
  *   "criteria": [
  *     {"column": "tenant_id", "op": "=", "value": 7},
- *     {"column": "status", "op": "=", "value": "active"}
+ *     {"or": [
+ *       {"column": "owner_id", "op": "=", "value": "alice"},
+ *       {"column": "public", "op": "=", "value": true}
+ *     ]},
+ *     {"column": "deleted_at", "op": "isNull"}
  *   ],
  *   "columns": ["id", "name", "email"]
  * }
  * }</pre>
  *
- * The {@code criteria} entries are AND-combined and conjoined with any
- * pre-existing criteria via {@link Criteria#and(Criteria)}. The {@code
- * columns} entry, if present, restricts the SELECT projection via
- * {@link Query#columns(SqlIdentifier...)}.
+ * The {@code criteria} array is AND-combined and conjoined with any
+ * pre-existing criteria on the original query. Each entry is either a
+ * binary criterion {@code {column, op, value}}, a unary criterion
+ * {@code {column, op}} ({@code isNull}, {@code isNotNull}), or an OR-group
+ * {@code {or: [...]}} whose children are AND-combined within the group.
  *
- * Supported {@code op} values: {@code "="}, {@code "!="}, {@code ">"},
- * {@code ">="}, {@code "<"}, {@code "<="}, {@code "in"}, {@code "like"}.
+ * The {@code columns} entry, if present, narrows the projection by
+ * intersecting with any pre-existing column list on the original query
+ * (least-privilege: an obligation cannot widen what the original query
+ * already restricted). When the original has no projection, the obligation
+ * defines it.
+ *
+ * Supported {@code op} values: {@code =}, {@code !=}, {@code >}, {@code >=},
+ * {@code <}, {@code <=}, {@code in}, {@code like}, {@code notLike},
+ * {@code isNull}, {@code isNotNull}.
  */
 public class RelationalQueryManipulationProvider implements ConstraintHandlerProvider {
 
     private static final String CONSTRAINT_TYPE  = "relational:queryManipulation";
+    private static final String FIELD_AND        = "and";
     private static final String FIELD_COLUMN     = "column";
     private static final String FIELD_COLUMNS    = "columns";
     private static final String FIELD_CRITERIA   = "criteria";
     private static final String FIELD_OP         = "op";
+    private static final String FIELD_OR         = "or";
     private static final String FIELD_VALUE      = "value";
     private static final int    DEFAULT_PRIORITY = 30;
 
@@ -87,7 +105,7 @@ public class RelationalQueryManipulationProvider implements ConstraintHandlerPro
         if (!supportedSignals.contains(RelationalQueryShimSignal.TYPE)) {
             return Optional.empty();
         }
-        val criteria = extractCriteria(constraint);
+        val criteria = extractTopLevelCriteria(constraint);
         val columns  = extractColumns(constraint);
         if (criteria.isEmpty() && columns.isEmpty()) {
             return Optional.empty();
@@ -97,17 +115,15 @@ public class RelationalQueryManipulationProvider implements ConstraintHandlerPro
     }
 
     private static Query applyCriteriaAndColumns(Query query, List<Criteria> criteria, List<String> columns) {
-        var result = query;
-        if (!criteria.isEmpty()) {
-            val combined = combineWithExisting(query.getCriteria().orElse(null), criteria);
-            result = Query.query(combined).sort(query.getSort()).limit(query.getLimit()).offset(query.getOffset());
-            if (!query.getColumns().isEmpty()) {
-                result = result.columns(query.getColumns().toArray(new SqlIdentifier[0]));
-            }
-        }
-        if (!columns.isEmpty()) {
-            val identifiers = columns.stream().map(SqlIdentifier::unquoted).toArray(SqlIdentifier[]::new);
-            result = result.columns(identifiers);
+        val combined        = criteria.isEmpty() ? query.getCriteria().orElse(null)
+                : combineWithExisting(query.getCriteria().orElse(null), criteria);
+        val originalColumns = query.getColumns();
+        val intersected     = intersectColumns(originalColumns, columns);
+        val finalColumns    = intersected.isEmpty() ? List.copyOf(originalColumns) : intersected;
+        var result          = (combined instanceof Criteria c) ? Query.query(c) : Query.empty();
+        result = result.sort(query.getSort()).limit(query.getLimit()).offset(query.getOffset());
+        if (!finalColumns.isEmpty()) {
+            result = result.columns(finalColumns.toArray(new SqlIdentifier[0]));
         }
         return result;
     }
@@ -120,7 +136,27 @@ public class RelationalQueryManipulationProvider implements ConstraintHandlerPro
         return additional;
     }
 
-    private static List<Criteria> extractCriteria(Value constraint) {
+    /**
+     * Intersects the original projection with the obligation's column list. An
+     * empty obligation list means no projection narrowing was requested. An
+     * empty original list means the obligation defines the projection. When
+     * both are present, the result is their set intersection ordered by the
+     * obligation's order so policy authors retain control over column order.
+     */
+    private static List<SqlIdentifier> intersectColumns(java.util.Collection<SqlIdentifier> originalColumns,
+            List<String> obligationColumns) {
+        if (obligationColumns.isEmpty()) {
+            return List.of();
+        }
+        val obligationIdentifiers = obligationColumns.stream().map(SqlIdentifier::unquoted).toList();
+        if (originalColumns.isEmpty()) {
+            return obligationIdentifiers;
+        }
+        val originalSet = new LinkedHashSet<>(originalColumns);
+        return obligationIdentifiers.stream().filter(originalSet::contains).toList();
+    }
+
+    private static List<Criteria> extractTopLevelCriteria(Value constraint) {
         if (!(constraint instanceof ObjectValue object)) {
             return List.of();
         }
@@ -129,41 +165,92 @@ public class RelationalQueryManipulationProvider implements ConstraintHandlerPro
         }
         val result = new ArrayList<Criteria>(criteriaArray.size());
         for (val element : criteriaArray) {
-            buildCriterion(element).ifPresent(result::add);
+            buildCriterionNode(element).ifPresent(result::add);
         }
         return List.copyOf(result);
     }
 
-    private static Optional<Criteria> buildCriterion(Value entry) {
+    private static Optional<Criteria> buildCriterionNode(Value entry) {
         if (!(entry instanceof ObjectValue object)) {
             return Optional.empty();
         }
+        if (object.get(FIELD_OR) instanceof ArrayValue orChildren) {
+            return buildGroup(orChildren, Criteria::or);
+        }
+        if (object.get(FIELD_AND) instanceof ArrayValue andChildren) {
+            return buildGroup(andChildren, Criteria::and);
+        }
+        return buildLeaf(object);
+    }
+
+    private static Optional<Criteria> buildGroup(ArrayValue children,
+            java.util.function.BinaryOperator<Criteria> combine) {
+        val parts = new ArrayList<Criteria>(children.size());
+        for (val child : children) {
+            buildCriterionNode(child).ifPresent(parts::add);
+        }
+        if (parts.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(parts.stream().reduce(Criteria.empty(), combine));
+    }
+
+    private static Optional<Criteria> buildLeaf(ObjectValue object) {
         if (!(object.get(FIELD_COLUMN) instanceof TextValue(String column))) {
             return Optional.empty();
         }
         if (!(object.get(FIELD_OP) instanceof TextValue(String op))) {
             return Optional.empty();
         }
-        val rawValue  = object.get(FIELD_VALUE);
-        val javaValue = unwrap(rawValue);
-        val column0   = Criteria.where(column);
+        val builder = Criteria.where(column);
+        if ("isNull".equals(op)) {
+            return Optional.of(builder.isNull());
+        }
+        if ("isNotNull".equals(op)) {
+            return Optional.of(builder.isNotNull());
+        }
+        if (!(object.get(FIELD_VALUE) instanceof Value valueNode) || valueNode instanceof UndefinedValue) {
+            return Optional.empty();
+        }
+        return applyBinaryOp(builder, op, valueNode);
+    }
+
+    private static Optional<Criteria> applyBinaryOp(Criteria.CriteriaStep builder, String op, Value valueNode) {
+        val javaValue = unwrap(valueNode);
+        if (javaValue == null) {
+            return switch (op) {
+            case "="  -> Optional.of(builder.isNull());
+            case "!=" -> Optional.of(builder.isNotNull());
+            default   -> Optional.empty();
+            };
+        }
         return switch (op) {
-        case "="    -> Optional.of(column0.is(javaValue));
-        case "!="   -> Optional.of(column0.not(javaValue));
-        case ">"    -> Optional.of(column0.greaterThan(javaValue));
-        case ">="   -> Optional.of(column0.greaterThanOrEquals(javaValue));
-        case "<"    -> Optional.of(column0.lessThan(javaValue));
-        case "<="   -> Optional.of(column0.lessThanOrEquals(javaValue));
-        case "in"   -> javaValue instanceof List<?> list ? Optional.of(column0.in(list)) : Optional.empty();
-        case "like" -> javaValue instanceof String s ? Optional.of(column0.like(s)) : Optional.empty();
-        default     -> Optional.empty();
+        case "="       -> Optional.of(builder.is(javaValue));
+        case "!="      -> Optional.of(builder.not(javaValue));
+        case ">"       -> Optional.of(builder.greaterThan(javaValue));
+        case ">="      -> Optional.of(builder.greaterThanOrEquals(javaValue));
+        case "<"       -> Optional.of(builder.lessThan(javaValue));
+        case "<="      -> Optional.of(builder.lessThanOrEquals(javaValue));
+        case "in"      -> javaValue instanceof List<?> list ? Optional.of(builder.in(list)) : Optional.empty();
+        case "like"    -> javaValue instanceof String s ? Optional.of(builder.like(s)) : Optional.empty();
+        case "notLike" -> javaValue instanceof String s ? Optional.of(builder.notLike(s)) : Optional.empty();
+        default        -> Optional.empty();
         };
     }
 
+    /**
+     * Unwraps a SAPL {@link Value} into the corresponding Java type that
+     * Spring Data Relational's {@link Criteria} accepts. Returns {@code null}
+     * only for explicit {@link NullValue}; all other unhandled value kinds
+     * (including {@link UndefinedValue}) are filtered out earlier so they
+     * never reach this method.
+     */
     private static Object unwrap(Value value) {
         return switch (value) {
         case TextValue(String text)              -> text;
         case NumberValue(java.math.BigDecimal n) -> n;
+        case BooleanValue(boolean b)             -> b;
+        case NullValue ignored                   -> null;
         case ArrayValue array                    -> {
             val list = new ArrayList<Object>(array.size());
             for (val element : array) {

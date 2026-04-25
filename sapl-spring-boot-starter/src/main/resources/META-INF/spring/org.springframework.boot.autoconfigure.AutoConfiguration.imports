@@ -10,3 +10,5 @@ io.sapl.spring.data.r2dbc.config.SaplR2dbcAutoConfiguration
 io.sapl.spring.data.mongo.config.SaplMongoReactiveAutoConfiguration
 io.sapl.spring.config.JwtSecretsAutoConfiguration
 io.sapl.spring.config.PdpIdWebFilterAutoConfiguration
+io.sapl.spring.pep.data.r2dbc.R2dbcShimAutoConfiguration
+io.sapl.spring.pep.data.mongo.MongoShimAutoConfiguration
