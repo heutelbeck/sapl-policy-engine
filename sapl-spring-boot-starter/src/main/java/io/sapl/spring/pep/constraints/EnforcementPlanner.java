@@ -100,10 +100,21 @@ public class EnforcementPlanner {
      * commutativity, supported signals, and coverage invariants
      */
     public EnforcementPlan plan(AuthorizationDecision decision, Set<SignalType> supportedSignals) {
-        val entriesBySignal = resolveHandlerForEachConstraint(decision, supportedSignals);
-        addImplicitResourceObligationIfPresent(decision, supportedSignals, entriesBySignal);
+        val entriesBySignal  = resolveHandlerForEachConstraint(decision, supportedSignals);
+        val outputSignalType = findOutputSignalType(supportedSignals);
+        addImplicitResourceObligationIfPresent(decision, outputSignalType, entriesBySignal);
         sortAndEnforceCommutativity(entriesBySignal);
-        return new EnforcementPlan(entriesBySignal);
+        val outputType = outputSignalType.map(ValueSignalType::valueType).orElse(null);
+        return new EnforcementPlan(outputType, entriesBySignal);
+    }
+
+    private static Optional<ValueSignalType<?>> findOutputSignalType(Set<SignalType> supportedSignals) {
+        for (val signal : supportedSignals) {
+            if (signal instanceof ValueSignalType<?> v && Signal.OutputSignal.class.equals(v.type())) {
+                return Optional.of(v);
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -118,13 +129,10 @@ public class EnforcementPlanner {
      * OutputSignal is supported.
      */
     private void addImplicitResourceObligationIfPresent(AuthorizationDecision decision,
-            Set<SignalType> supportedSignals, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
+            Optional<ValueSignalType<?>> outputSignal, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
         if (decision.resource() instanceof UndefinedValue) {
             return;
         }
-        val outputSignal = supportedSignals.stream()
-                .filter(s -> s instanceof ValueSignalType<?> v && Signal.OutputSignal.class.equals(v.type()))
-                .map(s -> (ValueSignalType<?>) s).findFirst();
         if (outputSignal.isEmpty()) {
             val substitute = failureSubstitute(decision.resource(), ConstraintType.OBLIGATION,
                     SubstitutionReason.INADMISSIBLE);

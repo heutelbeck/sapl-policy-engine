@@ -30,19 +30,14 @@ import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
-import io.sapl.spring.pep.constraints.EnforcementResult;
-import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.ErrorSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import io.sapl.spring.util.Maybe.Present;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
 /**
@@ -68,7 +63,6 @@ import reactor.core.publisher.Mono;
 public final class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PostEnforce PEP. The PDP decision was %s, not PERMIT.";
-    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED   = "Access Denied by @PostEnforce PEP. A post-invocation obligation handler failed after the protected method had already executed. Side effects of the invocation may have occurred.";
     private static final String ERROR_NULL_RAP_RETURN                   = "@PostEnforce method returned null instead of a Mono.";
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE           = "@PostEnforce reactive PEP currently supports Mono only. Found return type %s.";
 
@@ -122,40 +116,15 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
                 OutputSignal.typeForReturnOf(methodInvocation));
         val plan             = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
         try {
-            fireAndEnforce(plan, DecisionSignal.of(authzDecision));
+            var failed = plan.enforceDecisionConstraints(authzDecision);
             if (authzDecision.decision() != Decision.PERMIT) {
                 throw new AccessDeniedException(
                         ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision()));
             }
-            val outputResult = fireAndEnforce(plan, OutputSignal.forResultOf(methodInvocation, returnedObject));
-            if (outputResult.value() instanceof Present<?>(var v)) {
-                return Mono.just(v);
-            }
-            return Mono.empty();
+            val v = plan.enforceOutputConstraints(returnedObject, failed);
+            return v == null ? Mono.empty() : Mono.just(v);
         } catch (Throwable t) {
-            return errorPath(plan, t);
+            return plan.enforceErrorConstraints(t);
         }
-    }
-
-    private static Mono<Object> errorPath(EnforcementPlan plan, Throwable t) {
-        Exceptions.throwIfFatal(t);
-        EnforcementResult<?> errorResult;
-        try {
-            errorResult = fireAndEnforce(plan, ErrorSignal.of(t));
-        } catch (AccessDeniedException denied) {
-            return Mono.error(denied);
-        }
-        if (errorResult.value() instanceof Present<?>(var v) && v instanceof Throwable mapped) {
-            return Mono.error(mapped);
-        }
-        return Mono.error(t);
-    }
-
-    private static EnforcementResult<?> fireAndEnforce(EnforcementPlan plan, Signal signal) {
-        val result = plan.execute(signal, false);
-        if (result.failureState()) {
-            throw new AccessDeniedException(ERROR_ACCESS_DENIED_OBLIGATION_FAILED);
-        }
-        return result;
     }
 }

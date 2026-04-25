@@ -33,7 +33,6 @@ import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import io.sapl.spring.util.Maybe.Present;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -42,7 +41,6 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import reactor.core.Exceptions;
 
 import java.util.HashSet;
 import java.util.List;
@@ -104,23 +102,11 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             }
 
             val returnedObject = invokeWithPlanInContext(methodInvocation, enforcementPlan);
-            val outputSignal   = OutputSignal.forResultOf(methodInvocation, returnedObject);
-            val outputResult   = enforcementPlan.execute(outputSignal, false);
-
-            if (outputResult.failureState()) {
-                throw new AccessDeniedException(ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED);
-            }
-
-            return outputResult.value() instanceof Present<?>(var v) ? v : null;
+            return enforcementPlan.enforceOutputConstraints(returnedObject, false);
         } catch (Throwable t) {
             // Catches both Throwables from the RAP and the PEP's own AccessDeniedException
             // throws above, so error-signal handlers may transform either.
-            Exceptions.throwIfFatal(t);
-            val errorResult = enforcementPlan.execute(ErrorSignal.of(t), enforcementFailed);
-            if (errorResult.value() instanceof Present<?>(var v) && v instanceof Throwable mapped) {
-                throw mapped;
-            }
-            throw t;
+            throw enforcementPlan.enforceErrorConstraintsAsThrowable(t);
         }
     }
 
