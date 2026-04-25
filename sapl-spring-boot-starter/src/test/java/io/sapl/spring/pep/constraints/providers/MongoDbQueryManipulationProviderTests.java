@@ -223,14 +223,73 @@ class MongoDbQueryManipulationProviderTests {
         }
 
         @Test
-        @DisplayName("Malformed JSON in a condition causes the mapper to throw (fail closed)")
+        @DisplayName("Malformed JSON in a condition raises a parse exception that the planner treats as obligation failure")
         void givenMalformedJsonInConditionThenMapperThrows() {
             val mapper = mapperFor("""
                     {"type": "mongo:queryManipulation",
                      "conditions": ["this is not bson"]}
                     """);
             val query  = new Query();
-            assertThatThrownBy(() -> mapper.apply(query)).isNotNull();
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(org.bson.json.JsonParseException.class)
+                    .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Sort, limit, and skip preservation")
+    class PagingPreservation {
+
+        @Test
+        @DisplayName("Sort is preserved when string conditions are merged into the BSON document")
+        void givenOriginalSortWhenStringConditionsAppliedThenSortPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryManipulation",
+                     "conditions": ["{'tenantId': 7}"]}
+                    """);
+            val original = new Query().with(org.springframework.data.domain.Sort.by("name").ascending());
+            val result   = mapper.apply(original);
+            assertThat(result.getSortObject()).isEqualTo(original.getSortObject());
+        }
+
+        @Test
+        @DisplayName("Limit is preserved when string conditions are merged into the BSON document")
+        void givenOriginalLimitWhenStringConditionsAppliedThenLimitPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryManipulation",
+                     "conditions": ["{'tenantId': 7}"]}
+                    """);
+            val original = new Query().limit(25);
+            val result   = mapper.apply(original);
+            assertThat(result.getLimit()).isEqualTo(25);
+        }
+
+        @Test
+        @DisplayName("Skip is preserved when string conditions are merged into the BSON document")
+        void givenOriginalSkipWhenStringConditionsAppliedThenSkipPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryManipulation",
+                     "conditions": ["{'tenantId': 7}"]}
+                    """);
+            val original = new Query().skip(50L);
+            val result   = mapper.apply(original);
+            assertThat(result.getSkip()).isEqualTo(50L);
+        }
+
+        @Test
+        @DisplayName("Sort, limit, and skip all preserved when typed criteria are added")
+        void givenTypedCriteriaObligationWhenAppliedThenPagingPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryManipulation",
+                     "criteria": [{"column": "tenantId", "op": "=", "value": 7}]}
+                    """);
+            val original = new Query().with(org.springframework.data.domain.Sort.by("name").ascending()).limit(10)
+                    .skip(20L);
+            val result   = mapper.apply(original);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.getSortObject()).isEqualTo(original.getSortObject());
+                assertThat(r.getLimit()).isEqualTo(10);
+                assertThat(r.getSkip()).isEqualTo(20L);
+            });
         }
     }
 }

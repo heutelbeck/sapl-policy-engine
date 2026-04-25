@@ -263,6 +263,64 @@ class RelationalQueryManipulationProviderTests {
     }
 
     @Nested
+    @DisplayName("Sort, limit, and offset preservation")
+    class PagingPreservation {
+
+        @Test
+        @DisplayName("Sort is preserved when criteria are AND-combined into the query")
+        void givenOriginalSortWhenObligationAppliesThenSortPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "relational:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+            val original = Query.empty().sort(org.springframework.data.domain.Sort.by("name").ascending());
+            val result   = mapper.apply(original);
+            assertThat(result.getSort()).isEqualTo(original.getSort());
+        }
+
+        @Test
+        @DisplayName("Limit is preserved when criteria are AND-combined into the query")
+        void givenOriginalLimitWhenObligationAppliesThenLimitPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "relational:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+            val original = Query.empty().limit(25);
+            val result   = mapper.apply(original);
+            assertThat(result.getLimit()).isEqualTo(25);
+        }
+
+        @Test
+        @DisplayName("Offset is preserved when criteria are AND-combined into the query")
+        void givenOriginalOffsetWhenObligationAppliesThenOffsetPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "relational:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+            val original = Query.empty().offset(50L);
+            val result   = mapper.apply(original);
+            assertThat(result.getOffset()).isEqualTo(50L);
+        }
+
+        @Test
+        @DisplayName("Sort, limit, and offset all preserved when only column projection is narrowed")
+        void givenColumnsObligationWhenAppliedThenPagingPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "relational:queryManipulation",
+                     "columns": ["id"]}
+                    """);
+            val original = Query.empty().columns(SqlIdentifier.unquoted("id"))
+                    .sort(org.springframework.data.domain.Sort.by("name").ascending()).limit(10).offset(20L);
+            val result   = mapper.apply(original);
+            assertThat(result).satisfies(r -> {
+                assertThat(r.getSort()).isEqualTo(original.getSort());
+                assertThat(r.getLimit()).isEqualTo(10);
+                assertThat(r.getOffset()).isEqualTo(20L);
+            });
+        }
+    }
+
+    @Nested
     @DisplayName("Malformed input handling")
     class MalformedInput {
 
