@@ -46,7 +46,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.spring.constraints.providers.ConstraintResponsibility;
+import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;

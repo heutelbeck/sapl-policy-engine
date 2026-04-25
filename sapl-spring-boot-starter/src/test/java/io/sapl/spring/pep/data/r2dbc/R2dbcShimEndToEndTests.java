@@ -202,7 +202,7 @@ class R2dbcShimEndToEndTests {
                                      @Override
                                      public java.util.Optional<io.sapl.spring.pep.constraints.ScopedConstraintHandler> getConstraintHandler(
                                              Value constraint, java.util.Set<SignalType> supportedSignals) {
-                                         if (!io.sapl.spring.constraints.providers.ConstraintResponsibility
+                                         if (!io.sapl.spring.pep.constraints.providers.ConstraintResponsibility
                                                  .isResponsible(constraint, "test:throwingShimHandler")) {
                                              return java.util.Optional.empty();
                                          }

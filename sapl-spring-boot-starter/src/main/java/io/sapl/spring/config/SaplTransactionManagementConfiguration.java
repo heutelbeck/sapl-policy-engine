@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.config;
 
-import io.sapl.spring.method.blocking.SaplAuthorizationInterceptorsOrder;
+import io.sapl.spring.pep.method.blocking.SaplAuthorizationInterceptorsOrder;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;

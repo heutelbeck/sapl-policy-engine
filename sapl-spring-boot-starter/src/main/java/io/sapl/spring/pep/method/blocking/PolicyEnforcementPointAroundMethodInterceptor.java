@@ -17,7 +17,6 @@
  */
 package io.sapl.spring.pep.method.blocking;
 
-import io.sapl.spring.method.blocking.SaplAuthorizationInterceptorsOrder;
 import io.sapl.spring.method.metadata.EnforceDropWhileDenied;
 import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
 import io.sapl.spring.method.metadata.EnforceTillDenied;

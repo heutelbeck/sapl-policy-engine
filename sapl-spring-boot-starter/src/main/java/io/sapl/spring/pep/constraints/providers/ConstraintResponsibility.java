@@ -15,28 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.constraints.providers;
+package io.sapl.spring.pep.constraints.providers;
+
+import java.util.Objects;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 
-import java.util.Objects;
-
+/**
+ * Standard responsibility check used by
+ * {@link io.sapl.spring.pep.constraints.ConstraintHandlerProvider}
+ * implementations: returns {@code true} when the obligation/advice value is an
+ * object whose {@code type} field equals the provider's claimed constraint
+ * type.
+ */
 @UtilityClass
 public class ConstraintResponsibility {
+
     private static final String TYPE = "type";
 
     public static boolean isResponsible(Value constraint, String requiredType) {
-        if (!(constraint instanceof ObjectValue objectConstraint))
+        if (!(constraint instanceof ObjectValue objectConstraint)) {
             return false;
-
+        }
         var type = objectConstraint.get(TYPE);
-
-        if (!(type instanceof TextValue(String value)))
+        if (!(type instanceof TextValue(String value))) {
             return false;
-
+        }
         return Objects.equals(value, requiredType);
     }
 }
