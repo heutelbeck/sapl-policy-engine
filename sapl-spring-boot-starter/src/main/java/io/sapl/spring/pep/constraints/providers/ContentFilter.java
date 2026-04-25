@@ -105,6 +105,7 @@ public class ContentFilter {
      * {@link List}, {@link Set}, {@link Object Object[]}, and reactive
      * {@link Publisher} are filtered
      * elementwise; any other payload is filtered as a single element.
+     * </p>
      *
      * @param constraint the SAPL constraint value (an object with
      * conditions/actions)
@@ -150,6 +151,7 @@ public class ContentFilter {
      * applies the predicate as
      * an element filter (drops non-matching elements) rather than guarding a
      * transformation.
+     * </p>
      *
      * @param constraint the SAPL constraint value carrying the {@code conditions}
      * @param targetType the target type the mapper claims at the type system level

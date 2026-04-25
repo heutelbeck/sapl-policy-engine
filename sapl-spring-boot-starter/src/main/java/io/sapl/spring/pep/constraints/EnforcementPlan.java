@@ -61,6 +61,7 @@ public record EnforcementPlan(Map<SignalType, List<EnforcementPlanEntry<?>>> ent
      * is logged and skipped; only obligation-tagged failures flip the returned
      * failure state. JVM-fatal and Reactor-fatal throwables are re-raised via
      * {@link Exceptions#throwIfFatal}.
+     * </p>
      *
      * @param signal the fired signal; data-carrying signals contribute their value
      * as the initial current value, self-contained signals start with

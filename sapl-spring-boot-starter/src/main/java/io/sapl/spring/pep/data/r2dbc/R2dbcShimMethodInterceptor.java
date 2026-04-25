@@ -43,7 +43,7 @@ import reactor.util.context.ContextView;
  * {@code count}, {@code exists}, {@code update}, {@code delete}) before
  * delegating to the target template. Pass-through when no plan is in scope or
  * the invoked method is not a shimmed entry point.
- *
+ * </p>
  * Mutates the live arguments array on the {@link MethodInvocation} to insert
  * the rewritten {@link Query} before {@code proceed()}. Spring's
  * {@code ReflectiveMethodInvocation} treats {@code getArguments()} as the
@@ -79,8 +79,8 @@ public class R2dbcShimMethodInterceptor implements MethodInterceptor {
         return Flux.deferContextual(ctx -> {
             val rewriteOutcome = applyShim(ctx, invocation, originalQuery);
             return switch (rewriteOutcome) {
-            case Denied denied -> Flux.error(denied.cause());
-            case Proceed ok    -> proceedAsFlux(invocation);
+            case Denied denied   -> Flux.error(denied.cause());
+            case Proceed ignored -> proceedAsFlux(invocation);
             };
         });
     }
@@ -90,8 +90,8 @@ public class R2dbcShimMethodInterceptor implements MethodInterceptor {
         return Mono.deferContextual(ctx -> {
             val rewriteOutcome = applyShim(ctx, invocation, originalQuery);
             return switch (rewriteOutcome) {
-            case Denied denied -> Mono.error(denied.cause());
-            case Proceed ok    -> proceedAsMono(invocation);
+            case Denied denied   -> Mono.error(denied.cause());
+            case Proceed ignored -> proceedAsMono(invocation);
             };
         });
     }

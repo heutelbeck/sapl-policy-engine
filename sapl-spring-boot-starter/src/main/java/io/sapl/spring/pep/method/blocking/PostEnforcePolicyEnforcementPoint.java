@@ -47,8 +47,9 @@ import java.util.Set;
  * {@link MethodInvocation} by calling a Policy Decision Point with the method's
  * return value, based on the expressions from the {@link PostEnforce}
  * annotation.
+ * </p>
  *
- * @since 3.0.0
+ * @since 4.1.0
  */
 @RequiredArgsConstructor
 public final class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {

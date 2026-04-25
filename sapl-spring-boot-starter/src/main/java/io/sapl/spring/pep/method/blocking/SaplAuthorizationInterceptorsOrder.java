@@ -42,8 +42,9 @@ import lombok.Getter;
  * <p>
  * To configure the transaction interceptor order, use
  * {@code @EnableTransactionManagement(order = SaplAuthorizationInterceptorsOrder.TRANSACTION_ORDER)}.
+ * </p>
  *
- * @since 3.0.0
+ * @since 4.1.0
  */
 @Getter
 public enum SaplAuthorizationInterceptorsOrder {

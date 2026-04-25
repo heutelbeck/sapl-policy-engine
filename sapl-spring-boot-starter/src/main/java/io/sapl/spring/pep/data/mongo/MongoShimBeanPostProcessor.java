@@ -19,6 +19,7 @@ package io.sapl.spring.pep.data.mongo;
 
 import java.util.Set;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.DelegatingIntroductionInterceptor;
 import org.springframework.beans.BeansException;
@@ -26,7 +27,6 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 
 import io.sapl.spring.pep.constraints.Signal.MongoDbQueryShimSignal;
-import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import lombok.val;
 
@@ -38,17 +38,17 @@ import lombok.val;
  * (b) introduces the {@link ShimSignalContributor} interface so the proxy is
  * picked up by the PEP's contributor lookup as the source of truth for which
  * shim signals are actually fired.
- *
+ * </p>
  * Since the proxy is a CGLIB subclass of {@link ReactiveMongoTemplate},
  * injection sites typed as the concrete class continue to work, unlike the
  * earlier composition-based wrapper.
  */
 public class MongoShimBeanPostProcessor implements BeanPostProcessor {
 
-    private static final ShimSignalContributor CONTRIBUTOR = () -> Set.<SignalType>of(MongoDbQueryShimSignal.TYPE);
+    private static final ShimSignalContributor CONTRIBUTOR = () -> Set.of(MongoDbQueryShimSignal.TYPE);
 
     @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    public Object postProcessAfterInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {
         if (!(bean instanceof ReactiveMongoTemplate template)) {
             return bean;
         }

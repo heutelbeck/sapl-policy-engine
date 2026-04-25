@@ -65,10 +65,11 @@ import java.util.Set;
  * {@link AuthorizationSubscriptionBuilderService}, which reads from
  * {@link org.springframework.security.core.context.ReactiveSecurityContextHolder}
  * with a fallback to the thread-bound holder.
- *
+ * </p>
  * Every {@code plan.execute(...)} is gated through {@link #fireAndEnforce}: a
  * failure of any obligation handler at any signal raises
  * {@link AccessDeniedException} immediately.
+ * </p>
  *
  * @since 4.1.0
  */

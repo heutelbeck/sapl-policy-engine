@@ -38,7 +38,7 @@ import reactor.core.publisher.Flux;
  * Class)} and {@code find(Query, Class, String)} entry points before
  * delegating to the target template. Pass-through when no plan is in scope or
  * the invoked method is not a shimmed entry point.
- *
+ * </p>
  * Mutates the live arguments array on the {@link MethodInvocation} to insert
  * the rewritten {@link Query} before {@code proceed()}. Spring's
  * {@code ReflectiveMethodInvocation} treats {@code getArguments()} as the
@@ -55,7 +55,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             return invocation.proceed();
         }
         val originalQuery = (Query) invocation.getArguments()[0];
-        return Flux.<Object>deferContextual(ctx -> {
+        return Flux.deferContextual(ctx -> {
             val planOpt = EnforcementPlanContext.currentReactor(ctx);
             if (planOpt.isEmpty()) {
                 return proceedAsFlux(invocation);

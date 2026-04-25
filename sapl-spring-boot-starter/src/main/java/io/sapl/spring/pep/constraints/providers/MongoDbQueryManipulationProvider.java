@@ -47,9 +47,10 @@ import lombok.val;
  * {@link Mapper} attached to the PEP's {@link MongoDbQueryShimSignal}. The
  * mapper appends MongoDB {@link Criteria} predicates to the original
  * {@link Query} before driver dispatch.
- *
+ * </p>
  * Two obligation shapes are supported. The typed shape mirrors the
  * relational provider for cross-backend symmetry:
+ * </p>
  *
  * <pre>{@code
  * {
@@ -68,6 +69,7 @@ import lombok.val;
  * The string-conditions shape remains as an escape hatch for
  * MongoDB-specific operators (e.g. {@code $exists}, {@code $regex},
  * {@code $geoWithin}) that are not exposed via the typed form:
+ * </p>
  *
  * <pre>{@code
  * {
@@ -82,7 +84,7 @@ import lombok.val;
  * any field they share with the original query (mirrors MongoDB document-
  * append semantics; for obligation enforcement this is the safer default
  * since the obligation always wins over the original).
- *
+ * </p>
  * Supported {@code op} values for typed criteria: {@code =}, {@code !=},
  * {@code >}, {@code >=}, {@code <}, {@code <=}, {@code in}, {@code isNull},
  * {@code isNotNull}. For LIKE-style matching use the string-conditions form
@@ -147,7 +149,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
      * {@link BasicQuery} carrying the merged document. Sort, limit, skip, and
      * projection fields are transferred from the original query so the
      * non-filter parts of the query remain intact.
-     *
+     * </p>
      * Rebuilding (rather than mutating {@code getQueryObject()}) is required
      * because for queries built from typed {@link Criteria} the document is a
      * fresh snapshot computed from the criteria tree on each call; in-place
