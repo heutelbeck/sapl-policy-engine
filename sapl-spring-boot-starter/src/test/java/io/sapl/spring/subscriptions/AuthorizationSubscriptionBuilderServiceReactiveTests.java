@@ -86,7 +86,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
             val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
             val securityContext     = new MockSecurityContext(authentication);
-            val attribute           = attribute(null, null, null, null, Object.class);
+            val attribute           = attribute(null, null, null, null);
             val multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                     "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { 1, "X" });
             val subscription        = sut.reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
@@ -128,7 +128,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
             val serverWebExchange   = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
             val securityContext     = new MockSecurityContext(authentication);
-            val attribute           = attribute(null, null, null, null, Object.class);
+            val attribute           = attribute(null, null, null, null);
             val multiArgsInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                     "publicSeveralArgs", new Class<?>[] { Integer.class, String.class }, new Object[] { "X", "X" });
             val subscription        = sut.reactiveConstructAuthorizationSubscription(multiArgsInvocation, attribute)
@@ -160,7 +160,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
             val serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
             val securityContext   = new MockSecurityContext(authentication);
-            val attribute         = attribute("(#gewrq/0)", null, null, null, Object.class);
+            val attribute         = attribute("(#gewrq/0)", null, null, null);
             val subscription      = sut.reactiveConstructAuthorizationSubscription(invocation, attribute)
                     .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                     .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext)));
@@ -180,7 +180,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
 
             val serverWebExchange = MockServerWebExchange.from(MockServerHttpRequest.get("/foo/bar"));
             val securityContext   = new MockSecurityContext(authentication);
-            val attribute         = attribute(null, null, null, null, Object.class);
+            val attribute         = attribute(null, null, null, null);
             val subscription      = sut.reactiveConstructAuthorizationSubscription(invocation, attribute)
                     .contextWrite(Context.of(ServerWebExchange.class, serverWebExchange))
                     .contextWrite(Context.of(SecurityContext.class, Mono.just(securityContext))).block();
@@ -209,7 +209,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
             val invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
                     null);
 
-            val attribute    = attribute(null, null, null, null, Object.class);
+            val attribute    = attribute(null, null, null, null);
             val subscription = sut.reactiveConstructAuthorizationSubscription(invocation, attribute).block();
 
             var subject = toJson(subscription.subject());
@@ -238,7 +238,7 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
             val invocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "publicVoid", null,
                     null);
 
-            val attribute    = attribute(null, null, "returnObject", null, Object.class);
+            val attribute    = attribute(null, null, "returnObject", null);
             val subscription = sut.reactiveConstructAuthorizationSubscription(invocation, attribute, "the returnObject")
                     .block();
 
@@ -257,9 +257,9 @@ class AuthorizationSubscriptionBuilderServiceReactiveTests {
         });
     }
 
-    private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
+    private SaplAttribute attribute(String subject, String action, String resource, String environment) {
         return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
-                parameterToExpression(resource), parameterToExpression(environment), null, type);
+                parameterToExpression(resource), parameterToExpression(environment), null);
     }
 
     private Expression parameterToExpression(String parameter) {

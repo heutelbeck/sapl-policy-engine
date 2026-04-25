@@ -62,14 +62,14 @@ import java.util.Set;
  * {@link AuthorizationSubscriptionBuilderService}, which reads from
  * {@link org.springframework.security.core.context.ReactiveSecurityContextHolder}
  * with a fallback to the thread-bound holder.
-
+ *
  * @since 4.1.0
  */
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-    private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT               = "Access Denied by @PreEnforce PEP. The PDP decision was %s, not PERMIT.";
-    private static final String ERROR_UNSUPPORTED_RETURN_TYPE                         = "@PreEnforce reactive PEP supports Mono and Flux only. Found return type %s.";
+    private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PreEnforce PEP. The PDP decision was %s, not PERMIT.";
+    private static final String ERROR_UNSUPPORTED_RETURN_TYPE           = "@PreEnforce reactive PEP supports Mono and Flux only. Found return type %s.";
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
@@ -105,7 +105,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     }
 
     private Mono<Object> enforceDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
-        val plan = enforcementPlan(methodInvocation, authzDecision);
+        val itemType = ResolvableType.forMethodReturnType(methodInvocation.getMethod()).getGeneric(0);
+        val plan     = enforcementPlan(authzDecision, itemType);
 
         return Mono.defer(() -> {
             plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
@@ -134,14 +135,14 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         return Set.copyOf(signals);
     }
 
-    private EnforcementPlan enforcementPlan(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
-        val outputType       = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
+    private EnforcementPlan enforcementPlan(AuthorizationDecision authzDecision, ResolvableType outputType) {
         val supportedSignals = collectSupportedSignals(outputType);
         return enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
     }
 
     private Flux<Object> enforceDecisionAsFlux(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
-        val plan = enforcementPlan(methodInvocation, authzDecision);
+        val publisherType = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
+        val plan          = enforcementPlan(authzDecision, publisherType);
 
         return Flux.defer(() -> {
             plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
@@ -177,20 +178,14 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     }
 
     /**
-     * Fires the output signal once with the whole RAP {@link Mono} as the value
-     * and returns the (possibly Mapper-transformed) Mono. Mappers attached to
-     * the output signal operate on the Mono itself, exactly like content-filter
-     * providers operating on a {@code List} or {@code Map} container in the
-     * blocking case. If a Mapper returns {@code null} or a non-Mono value, the
-     * chain falls back to {@link Mono#empty()} as a defensive default.
+     * Fires the OutputSignal per emitted item. Mappers attached to the output
+     * signal operate on the inner item type, exactly like the blocking case.
+     * If the RAP is empty no signal fires and the result is empty; if a Mapper
+     * returns {@code null} the item is dropped (matches the "value may be null"
+     * blocking semantic without violating Reactor's no-null-emission rule).
      */
     private static Mono<Object> applyOutput(EnforcementPlan plan, Mono<?> rap) {
-        if (plan.enforceOutputConstraints(rap, false) instanceof Mono<?> mapped) {
-            @SuppressWarnings("unchecked")
-            val typed = (Mono<Object>) mapped;
-            return typed;
-        }
-        return Mono.empty();
+        return rap.mapNotNull(plan::enforceOutputConstraints);
     }
 
     /**

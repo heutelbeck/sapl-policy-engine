@@ -32,7 +32,6 @@ import org.springframework.expression.Expression;
  * @param resourceExpression SpEL expression for the resource, or null
  * @param environmentExpression SpEL expression for the environment, or null
  * @param secretsExpression SpEL expression for secrets, or null
- * @param genericsType the generic type for collection returns
  */
 public record SaplAttribute(
         Class<?> annotationType,
@@ -40,21 +39,19 @@ public record SaplAttribute(
         Expression actionExpression,
         Expression resourceExpression,
         Expression environmentExpression,
-        Expression secretsExpression,
-        Class<?> genericsType) {
+        Expression secretsExpression) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
-    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, null);
+    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null);
 
     @Override
     public @NonNull String toString() {
         return "@" + (annotationType() == null ? "null" : annotationType().getSimpleName()) + "(subject="
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
-                + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets() + ", genericsType="
-                + (genericsType() == null ? "null" : genericsType().getName()) + ")";
+                + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets() + ")";
     }
 
     private String maskSecrets() {

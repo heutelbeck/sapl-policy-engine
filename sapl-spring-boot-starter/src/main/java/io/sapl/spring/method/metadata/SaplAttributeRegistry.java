@@ -148,24 +148,24 @@ public final class SaplAttributeRegistry {
             Class<T> annotationType) {
         val annotation = findAnnotation(method, targetClass, annotationType);
         return switch (annotation) {
-        case PreEnforce a                 -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case PostEnforce a                -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case EnforceRecoverableIfDenied a -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case EnforceTillDenied a          -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case EnforceDropWhileDenied a     -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
+        case PreEnforce a                 ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets());
+        case PostEnforce a                ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets());
+        case EnforceRecoverableIfDenied a ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets());
+        case EnforceTillDenied a          ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets());
+        case EnforceDropWhileDenied a     ->
+            buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(), a.secrets());
         case null, default                -> SaplAttribute.NULL_ATTRIBUTE;
         };
     }
 
     private SaplAttribute buildAttribute(Class<?> annotationType, String subject, String action, String resource,
-            String environment, String secrets, Class<?> genericsType) {
+            String environment, String secrets) {
         return new SaplAttribute(annotationType, parseExpression(subject), parseExpression(action),
-                parseExpression(resource), parseExpression(environment), parseExpression(secrets), genericsType);
+                parseExpression(resource), parseExpression(environment), parseExpression(secrets));
     }
 
     private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
