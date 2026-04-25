@@ -21,38 +21,34 @@ import org.junit.jupiter.api.Test;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SaplAttributeTests {
 
     @Test
     void whenToStringCalled_thenStringContainsTheKeywords() {
-        var sut         = new SaplAttribute(null, null, null, null, null, null, null);
+        var sut         = new SaplAttribute(null, null, null, null, null, null);
         var stringValue = sut.toString();
-        assertThat(stringValue).contains("subject", "action", "resource", "environment", "secrets", "genericsType");
+        assertThat(stringValue).contains("subject", "action", "resource", "environment", "secrets");
     }
 
     @Test
     void whenPassingNonNull_thenStringContainsTheKeywords() {
         var sut         = new SaplAttribute(PreEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
-                toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null,
-                Integer.class);
+                toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
         var stringValue = sut.toString();
-        assertThat(stringValue).contains("subject", "action", "resource", "environment", "secrets", "genericsType");
+        assertThat(stringValue).contains("subject", "action", "resource", "environment", "secrets");
     }
 
     @Test
     void whenPassingNull_thenExpressionsAreNull() {
-        var sut = new SaplAttribute(null, null, null, null, null, null, null);
+        var sut = new SaplAttribute(null, null, null, null, null, null);
         assertThat(sut).satisfies(s -> {
             assertThat(s.subjectExpression()).isNull();
             assertThat(s.actionExpression()).isNull();
             assertThat(s.resourceExpression()).isNull();
             assertThat(s.environmentExpression()).isNull();
             assertThat(s.secretsExpression()).isNull();
-            assertThat(s.genericsType()).isNull();
         });
     }
 
@@ -60,7 +56,7 @@ class SaplAttributeTests {
     void whenExpressions_thenExpressionsAreSet() {
         var sut = new SaplAttribute(PostEnforce.class, toExpression("19 + 1"), toExpression("1 ne 1"),
                 toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"),
-                toExpression("{key: 'value'}"), String.class);
+                toExpression("{key: 'value'}"));
         assertThat(sut).satisfies(s -> {
             assertThat(s.subjectExpression()).isNotNull();
             assertThat(s.actionExpression()).isNotNull();
@@ -68,32 +64,29 @@ class SaplAttributeTests {
             assertThat(s.environmentExpression()).isNotNull();
             assertThat(s.secretsExpression()).isNotNull();
             assertThat(s.annotationType()).isEqualTo(PostEnforce.class);
-            assertThat(s.genericsType()).isEqualTo(String.class);
         });
     }
 
     @Test
     void whenExpressionsSet_thenToStringContainsThem() {
         var sut         = new SaplAttribute(EnforceTillDenied.class, toExpression("19 + 1"), toExpression("1 ne 1"),
-                toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null,
-                Map.class);
+                toExpression("2 > 1 ? 'a' : 'b'"), toExpression("workersHolder.salaryByWorkers['John']"), null);
         var stringValue = sut.toString();
         assertThat(stringValue).contains("19 + 1", "1 ne 1", "2 > 1 ? 'a' : 'b'",
                 "workersHolder.salaryByWorkers['John']");
         assertThat(sut.annotationType()).isEqualTo(EnforceTillDenied.class);
-        assertThat(sut.genericsType()).isEqualTo(Map.class);
     }
 
     @Test
     void whenSecretsNull_thenToStringShowsNoSecrets() {
-        var sut         = new SaplAttribute(null, null, null, null, null, null, null);
+        var sut         = new SaplAttribute(null, null, null, null, null, null);
         var stringValue = sut.toString();
         assertThat(stringValue).contains("secrets=NO SECRETS");
     }
 
     @Test
     void whenSecretsSet_thenToStringShowsRedacted() {
-        var sut         = new SaplAttribute(null, null, null, null, null, toExpression("{key: 'secretValue'}"), null);
+        var sut         = new SaplAttribute(null, null, null, null, null, toExpression("{key: 'secretValue'}"));
         var stringValue = sut.toString();
         assertThat(stringValue).contains("secrets=SECRETS REDACTED").doesNotContain("secretValue");
     }

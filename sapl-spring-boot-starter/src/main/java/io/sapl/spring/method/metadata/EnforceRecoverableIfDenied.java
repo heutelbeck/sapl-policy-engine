@@ -96,12 +96,6 @@ public @interface EnforceRecoverableIfDenied {
     String secrets() default "";
 
     /**
-     * @return the type of the generic parameter of the return type being secured.
-     * Helps due to Java type erasure at runtime. Defaults to {@code Object.class}.
-     */
-    Class<?> genericsType() default Object.class;
-
-    /**
      * When enabled, the PEP emits an
      * {@link io.sapl.spring.method.reactive.AccessRecoveredException} on each
      * DENY-to-PERMIT transition. This allows subscribers to distinguish "access

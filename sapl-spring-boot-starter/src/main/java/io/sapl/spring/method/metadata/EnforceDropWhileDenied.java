@@ -92,10 +92,4 @@ public @interface EnforceDropWhileDenied {
      */
     String secrets() default "";
 
-    /**
-     * @return the type of the generic parameter of the return type being secured.
-     * Helps due to Java type erasure at runtime. Defaults to {@code Object.class}.
-     */
-    Class<?> genericsType() default Object.class;
-
 }

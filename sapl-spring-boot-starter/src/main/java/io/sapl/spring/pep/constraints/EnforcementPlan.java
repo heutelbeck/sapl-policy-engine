@@ -200,6 +200,16 @@ public record EnforcementPlan(
      * upstream failure is not silently dropped. Returns the (possibly
      * Mapper-transformed) value, or {@code null} for empty results.
      */
+    /**
+     * Convenience overload of {@link #enforceOutputConstraints(Object, boolean)}
+     * with no prior failure to thread in. Suitable as a method reference for
+     * {@code rap.mapNotNull(plan::enforceOutputConstraints)} in reactive Mono
+     * pipelines where OutputSignal fires once per emitted item.
+     */
+    public @Nullable Object enforceOutputConstraints(@Nullable Object value) {
+        return enforceOutputConstraints(value, false);
+    }
+
     public @Nullable Object enforceOutputConstraints(@Nullable Object value, boolean priorFailure) {
         if (outputType == null) {
             if (priorFailure) {

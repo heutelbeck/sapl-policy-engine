@@ -22,6 +22,7 @@ import java.util.Set;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.ResolvableType;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -112,8 +113,8 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
 
     private Mono<Object> applyDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision,
             Object returnedObject) {
-        val supportedSignals = Set.of(DecisionSignal.TYPE, ErrorSignal.TYPE,
-                OutputSignal.typeForReturnOf(methodInvocation));
+        val itemType         = ResolvableType.forMethodReturnType(methodInvocation.getMethod()).getGeneric(0);
+        val supportedSignals = Set.of(DecisionSignal.TYPE, ErrorSignal.TYPE, OutputSignal.typeFor(itemType));
         val plan             = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
         try {
             var failed = plan.enforceDecisionConstraints(authzDecision);
