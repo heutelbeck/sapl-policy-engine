@@ -27,7 +27,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.spring.constraints.providers.ConstraintResponsibility;
+import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;

@@ -17,70 +17,48 @@
  */
 package io.sapl.spring.manager;
 
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import lombok.RequiredArgsConstructor;
-
 import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
-import org.springframework.security.access.AccessDeniedException;
+
+import java.util.Set;
+
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.authorization.ReactiveAuthorizationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.server.authorization.AuthorizationContext;
+
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
+import io.sapl.spring.pep.constraints.SignalType;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
 import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Policy Enforcement Point to authorize requests in the reactive Spring
- * Security web filter chain.
- * <p>
- * This
- * {@link org.springframework.security.authorization.ReactiveAuthorizationManager}
- * can be applied to the reactive Spring Security web filter chain as follows:
- *
- * <pre>
- * {@code
- * &#64;Bean
- * public SecurityWebFilterChain configureChain(ServerHttpSecurity http,
- *         ReactiveAuthorizationManager<AuthorizationContext> pepAuthorizationManager) {
- *     return http.authorizeExchange().anyExchange().access(pepAuthorizationManager).and().build();
- * }
- * }
- * </pre>
- *
- * The {@link #authorize authorize} method is then called by the Spring Security
- * framework whenever a request needs to be authorized.
+ * Reactive {@link ReactiveAuthorizationManager} for the WebFlux filter chain.
+ * Mirrors {@link SaplAuthorizationManager} for the reactive runtime: builds a
+ * per-request subscription, asks the PDP for the first decision, runs it
+ * through the {@link EnforcementPlanner} with {@link DecisionSignal} as the
+ * sole supported signal, and translates the outcome to allow/deny.
  */
 @RequiredArgsConstructor
 public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationManager<AuthorizationContext> {
+
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-    private final PolicyDecisionPoint          pdp;
-    private final ConstraintEnforcementService constraintEnforcementService;
-    private final ObjectMapper                 mapper;
+    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DecisionSignal.TYPE);
 
-    /**
-     * Determines if access is granted for a specific authentication and context
-     * <p>
-     * The incoming authentication is mapped to the decision of a Policy Decision
-     * Point (PDP). <br>
-     * The PDP returns its decision as a Flux which may change over time, but the
-     * reactive Spring Security web filter framework only accepts a Mono. <br>
-     * Consequently, only the first PDP decision is used, meaning the request is
-     * only authorized according to the status of the authentication and context at
-     * this moment in time.
-     *
-     * @param authentication the Authentication to check
-     * @param context the context to check
-     * @return a decision
-     */
+    private final PolicyDecisionPoint pdp;
+    private final EnforcementPlanner  enforcementPlanner;
+    private final ObjectMapper        mapper;
+
     @Override
     public Mono<AuthorizationResult> authorize(Mono<Authentication> authentication, AuthorizationContext context) {
         return reactiveConstructAuthorizationSubscription(authentication, context).flatMap(this::isPermitted)
@@ -93,24 +71,19 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     }
 
     private boolean enforceDecision(AuthorizationDecision authzDecision) {
-        if (!(authzDecision.resource() instanceof UndefinedValue))
-            return false;
-
-        try {
-            constraintEnforcementService.accessManagerBundleFor(authzDecision).handleOnDecisionConstraints();
-        } catch (AccessDeniedException e) {
+        val plan          = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);
+        val decisionPhase = plan.execute(DecisionSignal.of(authzDecision), false);
+        if (decisionPhase.failureState()) {
             return false;
         }
-
         return authzDecision.decision() == Decision.PERMIT;
     }
 
     private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
             Mono<Authentication> authentication, AuthorizationContext context) {
-        final var request      = context.getExchange().getRequest();
-        final var requestValue = fromJsonNode(mapper.valueToTree(request));
+        val request      = context.getExchange().getRequest();
+        val requestValue = fromJsonNode(mapper.valueToTree(request));
         return authentication.defaultIfEmpty(ANONYMOUS)
                 .map(authn -> AuthorizationSubscription.of(authn, requestValue, requestValue, mapper));
     }
-
 }

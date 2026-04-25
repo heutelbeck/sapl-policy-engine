@@ -17,55 +17,63 @@
  */
 package io.sapl.spring.manager;
 
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import lombok.RequiredArgsConstructor;
-
 import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
-import org.springframework.security.access.AccessDeniedException;
+
+import java.util.Set;
+import java.util.function.Supplier;
+
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
+import io.sapl.spring.pep.constraints.SignalType;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.function.Supplier;
-
 /**
- * {@link AuthorizationManager} for the HTTP filter chain.
+ * {@link AuthorizationManager} for the HTTP filter chain. Builds a per-request
+ * {@code AuthorizationSubscription} from the request, asks the PDP, runs the
+ * decision through the {@link EnforcementPlanner} with a single supported
+ * signal ({@link DecisionSignal}), and translates the outcome to allow/deny.
+ * </p>
+ * Because the access manager has no body to enforce on, it advertises only
+ * {@code DecisionSignal} as supported. A decision carrying a resource
+ * transformation is therefore treated as inadmissible by the planner (the
+ * implicit resource mapper has no Output signal to attach to) and resolves to
+ * a denial via the planner's failure-substitute mechanism.
  */
 @RequiredArgsConstructor
 public class SaplAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 
-    private final PolicyDecisionPoint          pdp;
-    private final ConstraintEnforcementService constraintEnforcementService;
-    private final ObjectMapper                 mapper;
+    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DecisionSignal.TYPE);
+
+    private final PolicyDecisionPoint pdp;
+    private final EnforcementPlanner  enforcementPlanner;
+    private final ObjectMapper        mapper;
 
     @Override
     public AuthorizationResult authorize(Supplier<? extends Authentication> authenticationSupplier,
             RequestAuthorizationContext requestAuthorizationContext) {
-        final var request        = requestAuthorizationContext.getRequest();
-        final var authentication = authenticationSupplier.get();
-        final var requestValue   = fromJsonNode(mapper.valueToTree(request));
-        final var subscription   = AuthorizationSubscription.of(authentication, requestValue, requestValue, mapper);
-        final var authzDecision  = pdp.decideOnceBlocking(subscription);
+        val request        = requestAuthorizationContext.getRequest();
+        val authentication = authenticationSupplier.get();
+        val requestValue   = fromJsonNode(mapper.valueToTree(request));
+        val subscription   = AuthorizationSubscription.of(authentication, requestValue, requestValue, mapper);
+        val authzDecision  = pdp.decideOnceBlocking(subscription);
 
-        if (authzDecision == null || !(authzDecision.resource() instanceof UndefinedValue))
-            return new AuthorizationDecision(false);
+        val plan          = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);
+        val decisionPhase = plan.execute(DecisionSignal.of(authzDecision), false);
 
-        try {
-            constraintEnforcementService.accessManagerBundleFor(authzDecision).handleOnDecisionConstraints();
-        } catch (AccessDeniedException e) {
+        if (decisionPhase.failureState()) {
             return new AuthorizationDecision(false);
         }
-
-        if (authzDecision.decision() != Decision.PERMIT)
-            return new AuthorizationDecision(false);
-
-        return new AuthorizationDecision(true);
+        return new AuthorizationDecision(authzDecision.decision() == Decision.PERMIT);
     }
 }

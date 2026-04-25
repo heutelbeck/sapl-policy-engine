@@ -17,132 +17,91 @@
  */
 package io.sapl.spring.config;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.constraints.ConstraintEnforcementService;
-import io.sapl.spring.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
-import io.sapl.spring.method.metadata.SaplAttributeRegistry;
-import io.sapl.spring.method.reactive.PostEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.reactive.PreEnforcePolicyEnforcementPoint;
-import io.sapl.spring.method.reactive.ReactiveSaplMethodInterceptor;
-import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
-import io.sapl.spring.subscriptions.SubscriptionSecretsInjector;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.aopalliance.intercept.MethodInvocation;
+import java.util.List;
+
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
-import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
-import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
-import org.springframework.security.authorization.DefaultAuthorizationManagerFactory;
-import org.springframework.security.config.core.GrantedAuthorityDefaults;
-import tools.jackson.databind.ObjectMapper;
+
+import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.spring.method.metadata.SaplAttributeRegistry;
+import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.spring.pep.data.ShimSignalContributor;
+import io.sapl.spring.pep.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
+import io.sapl.spring.pep.method.reactive.EnforceDropWhileDeniedPolicyEnforcementPoint;
+import io.sapl.spring.pep.method.reactive.EnforceRecoverableIfDeniedPolicyEnforcementPoint;
+import io.sapl.spring.pep.method.reactive.EnforceTillDeniedPolicyEnforcementPoint;
+import io.sapl.spring.pep.method.reactive.PostEnforcePolicyEnforcementPoint;
+import io.sapl.spring.pep.method.reactive.PreEnforcePolicyEnforcementPoint;
+import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
- * Sets up automatic PEP generation for Methods with reactive return types. Bean
- * can be customized by sub classing.
+ * Wires the reactive @PreEnforce, @PostEnforce, and the three streaming PEPs
+ * ({@link EnforceTillDeniedPolicyEnforcementPoint},
+ * {@link EnforceDropWhileDeniedPolicyEnforcementPoint},
+ * {@link EnforceRecoverableIfDeniedPolicyEnforcementPoint}) to the new
+ * shim-signal-based PEP framework. Streaming PEPs are currently scaffolded
+ * pass-through implementations; their signal-driven implementations are
+ * pending.
  */
 @Slf4j
-@RequiredArgsConstructor
 @Configuration(proxyBeanMethods = false)
 @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-public final class ReactiveSaplMethodSecurityConfiguration {
-
-    @NonNull
-    private final PolicyDecisionPoint pdp;
-
-    @NonNull
-    private final ConstraintEnforcementService constraintHandlerService;
-
-    @NonNull
-    private final ObjectMapper mapper;
-
-    @NonNull
-    private final ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider;
-
-    @NonNull
-    private final ObjectProvider<GrantedAuthorityDefaults> defaultsProvider;
-
-    @NonNull
-    private final ApplicationContext applicationContext;
+final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor reactiveSaplMethodSecurityPolicyEnforcementPoint(SaplAttributeRegistry source,
-            AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
-            PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
-            PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
-
-        log.debug("Deploy ReactiveSaplMethodInterceptor");
-        val expressionHandler      = resolveExpressionHandler();
-        val policyEnforcementPoint = new ReactiveSaplMethodInterceptor(source, expressionHandler, pdp,
-                constraintHandlerService, mapper, authorizationSubscriptionBuilderService,
-                preEnforcePolicyEnforcementPoint, postEnforcePolicyEnforcementPoint);
-        return PolicyEnforcementPointAroundMethodInterceptor.reactive(policyEnforcementPoint);
+    Advisor reactivePreEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
+            ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
+            ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider,
+            ObjectProvider<List<ShimSignalContributor>> shimSignalContributorsProvider) {
+        log.debug("Deploy reactive @PreEnforce Policy Enforcement Point");
+        val pep = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
+                enforcementPlannerProvider, subscriptionBuilderProvider, shimSignalContributorsProvider);
+        return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    ReactiveSaplMethodInterceptor securityMethodInterceptor(SaplAttributeRegistry source,
-            AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService,
-            PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint,
-            PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint) {
-        return new ReactiveSaplMethodInterceptor(source, resolveExpressionHandler(), pdp, constraintHandlerService,
-                mapper, authorizationSubscriptionBuilderService, preEnforcePolicyEnforcementPoint,
-                postEnforcePolicyEnforcementPoint);
+    Advisor reactivePostEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
+            ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
+            ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
+        log.debug("Deploy reactive @PostEnforce Policy Enforcement Point");
+        val pep = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
+                enforcementPlannerProvider, subscriptionBuilderProvider);
+        return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PreEnforcePolicyEnforcementPoint preEnforcePolicyEnforcementPoint(
-            ConstraintEnforcementService constraintHandlerService) {
-        return new PreEnforcePolicyEnforcementPoint(constraintHandlerService);
+    Advisor enforceTillDeniedPolicyEnforcementPoint(ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
+        log.debug("Deploy scaffolded @EnforceTillDenied Policy Enforcement Point (pass-through)");
+        val pep = new EnforceTillDeniedPolicyEnforcementPoint(attributeRegistryProvider);
+        return PolicyEnforcementPointAroundMethodInterceptor.reactive(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PostEnforcePolicyEnforcementPoint postEnforcePolicyEnforcementPoint(PolicyDecisionPoint pdp,
-            ConstraintEnforcementService constraintHandlerService,
-            AuthorizationSubscriptionBuilderService subscriptionBuilder) {
-        return new PostEnforcePolicyEnforcementPoint(pdp, constraintHandlerService, subscriptionBuilder);
+    Advisor enforceDropWhileDeniedPolicyEnforcementPoint(
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
+        log.debug("Deploy scaffolded @EnforceDropWhileDenied Policy Enforcement Point (pass-through)");
+        val pep = new EnforceDropWhileDeniedPolicyEnforcementPoint(attributeRegistryProvider);
+        return PolicyEnforcementPointAroundMethodInterceptor.reactive(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AuthorizationSubscriptionBuilderService authorizationSubscriptionBuilderService(
-            ObjectProvider<SubscriptionSecretsInjector> secretsInjectorProvider) {
-        return new AuthorizationSubscriptionBuilderService(resolveExpressionHandler(), mapper,
-                secretsInjectorProvider.getIfAvailable());
+    Advisor enforceRecoverableIfDeniedPolicyEnforcementPoint(
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
+        log.debug("Deploy scaffolded @EnforceRecoverableIfDenied Policy Enforcement Point (pass-through)");
+        val pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint(attributeRegistryProvider);
+        return PolicyEnforcementPointAroundMethodInterceptor.reactive(pep);
     }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    SaplAttributeRegistry saplAttributeRegistry() {
-        return new SaplAttributeRegistry(resolveExpressionHandler());
-    }
-
-    private MethodSecurityExpressionHandler resolveExpressionHandler() {
-        return expressionHandlerProvider
-                .getIfAvailable(() -> defaultExpressionHandler(defaultsProvider, applicationContext));
-    }
-
-    private static MethodSecurityExpressionHandler defaultExpressionHandler(
-            ObjectProvider<GrantedAuthorityDefaults> defaultsProvider, ApplicationContext context) {
-        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
-        defaultsProvider.ifAvailable(d -> {
-            var authFactory = new DefaultAuthorizationManagerFactory<MethodInvocation>();
-            var rolePrefix  = d.getRolePrefix();
-            authFactory.setRolePrefix(rolePrefix != null ? rolePrefix : "");
-            handler.setAuthorizationManagerFactory(authFactory);
-        });
-        handler.setApplicationContext(context);
-        return handler;
-    }
-
 }

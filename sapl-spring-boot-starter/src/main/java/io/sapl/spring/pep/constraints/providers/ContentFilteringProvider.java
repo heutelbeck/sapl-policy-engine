@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.sapl.api.model.Value;
-import io.sapl.spring.constraints.providers.ConstraintResponsibility;
+import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;

@@ -1,5 +1,5 @@
 io.sapl.spring.config.ObjectMapperAutoConfiguration
-io.sapl.spring.config.ConstraintsHandlerAutoconfiguration
+io.sapl.spring.config.PepInfrastructureAutoConfiguration
 io.sapl.spring.config.AuthorizationManagerConfiguration
 io.sapl.spring.pdp.remote.RemotePDPAutoConfiguration
 io.sapl.spring.pdp.embedded.PDPAutoConfiguration
