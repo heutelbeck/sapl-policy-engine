@@ -20,6 +20,7 @@ package io.sapl.spring.pep.data.mongo;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
@@ -31,11 +32,15 @@ import io.sapl.spring.pep.constraints.providers.MongoDbQueryManipulationProvider
  * {@code mongo:queryManipulation} constraint handler provider, declares the
  * {@code MongoDbQueryShimSignal} as a supported PEP signal, and wraps every
  * {@code ReactiveMongoTemplate} bean in a CGLIB proxy via
- * {@link MongoShimBeanPostProcessor} so {@code find} operations fire the
- * shim. Active when Spring Data MongoDB Reactive is on the classpath.
+ * {@link MongoShimBeanPostProcessor} so {@code find} operations and the
+ * fluent {@code query(Class).matching(Query).all()} chain fire the shim.
+ * Active when Spring Data MongoDB Reactive is on the classpath and not
+ * explicitly disabled by
+ * {@code io.sapl.method-security.mongo-shim.enabled=false}.
  */
 @AutoConfiguration
 @ConditionalOnClass(ReactiveMongoRepository.class)
+@ConditionalOnProperty(name = "io.sapl.method-security.mongo-shim.enabled", matchIfMissing = true)
 public class MongoShimAutoConfiguration {
 
     @Bean

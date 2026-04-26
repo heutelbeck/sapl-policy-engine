@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
+import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.SignalType;
@@ -193,7 +193,7 @@ class SqlQueryManipulationProviderTests {
                     {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
                     """);
             assertThatThrownBy(() -> mapper.apply("INSERT INTO users (id, name) VALUES (1, 'x')"))
-                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("does not support");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("does not support");
         }
 
         @Test
@@ -202,8 +202,8 @@ class SqlQueryManipulationProviderTests {
             val mapper = mapperFor("""
                     {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
                     """);
-            assertThatThrownBy(() -> mapper.apply("SELEKT * FROM users"))
-                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("Cannot parse SQL");
+            assertThatThrownBy(() -> mapper.apply("SELEKT * FROM users")).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Cannot parse SQL");
         }
 
         @Test
@@ -212,8 +212,7 @@ class SqlQueryManipulationProviderTests {
             val mapper = mapperFor("""
                     {"type": "sql:queryManipulation", "conditions": ["this is not sql"]}
                     """);
-            assertThatThrownBy(() -> mapper.apply("SELECT * FROM users"))
-                    .isInstanceOf(ConstraintEnforcementException.class)
+            assertThatThrownBy(() -> mapper.apply("SELECT * FROM users")).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Cannot parse obligation condition");
         }
     }
@@ -287,6 +286,173 @@ class SqlQueryManipulationProviderTests {
                              "columns": ["id", "name", "ssn"]}
                             """, "SELECT id, name FROM users WHERE active = true",
                             new String[] { "tenant_id = 7", "id", "name", "active" }, new String[] { "ssn" }));
+        }
+    }
+
+    @Nested
+    @DisplayName("Typed criteria input (cross-backend symmetry with Relational and Mongo providers)")
+    class TypedCriteriaInput {
+
+        @Test
+        @DisplayName("Single equality criterion is rendered to a SQL fragment and AND-injected into the WHERE")
+        void whenSingleEqualityCriterionThenInjectedAsSqlFragment() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("tenant_id = 7").contains("WHERE");
+        }
+
+        @Test
+        @DisplayName("Text value is single-quoted and embedded single quotes are doubled")
+        void whenTextValueThenSingleQuotedAndEscaped() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "name", "op": "=", "value": "O'Brien"}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("name = 'O''Brien'");
+        }
+
+        @Test
+        @DisplayName("Boolean value renders as TRUE / FALSE literal")
+        void whenBooleanValueThenLiteralTrueOrFalse() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "active", "op": "=", "value": true}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("active = TRUE");
+        }
+
+        @Test
+        @DisplayName("Null value as = renders to IS NULL idiom (semantically correct SQL)")
+        void whenIsNullOperatorThenRendersIsNull() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "deleted_at", "op": "isNull"}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("deleted_at IS NULL");
+        }
+
+        @Test
+        @DisplayName("isNotNull operator renders to IS NOT NULL")
+        void whenIsNotNullOperatorThenRendersIsNotNull() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "verified_at", "op": "isNotNull"}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("verified_at IS NOT NULL");
+        }
+
+        @Test
+        @DisplayName("In operator with array value renders as IN (...)")
+        void whenInOperatorThenRendersAsInList() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "category", "op": "in", "value": [1, 2, 3]}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM books");
+
+            assertThat(rewritten).contains("category IN (1, 2, 3)");
+        }
+
+        @Test
+        @DisplayName("Like operator with text value renders as LIKE 'pattern'")
+        void whenLikeOperatorThenRendersAsLike() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "title", "op": "like", "value": "%Krynn%"}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM books");
+
+            assertThat(rewritten).contains("title LIKE '%Krynn%'");
+        }
+
+        @Test
+        @DisplayName("Multiple top-level criteria are AND-combined")
+        void whenMultipleTopLevelCriteriaThenAndCombined() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [
+                       {"column": "tenant_id", "op": "=", "value": 7},
+                       {"column": "deleted_at", "op": "isNull"}
+                     ]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("tenant_id = 7").contains("deleted_at IS NULL").contains("AND");
+        }
+
+        @Test
+        @DisplayName("OR group within criteria array renders as parenthesised OR-expression")
+        void whenOrGroupThenRendersAsParenthesisedOr() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"or": [
+                       {"column": "owner_id", "op": "=", "value": "alice"},
+                       {"column": "is_public", "op": "=", "value": true}
+                     ]}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM resources");
+
+            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = TRUE").contains("OR");
+        }
+
+        @Test
+        @DisplayName("Typed criteria + string conditions can coexist on one obligation; both contribute")
+        void whenTypedCriteriaAndStringConditionsCoexistThenBothApplied() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}],
+                     "conditions": ["status = 'active'"]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("tenant_id = 7").contains("status = 'active'");
+        }
+
+        @Test
+        @DisplayName("Unsupported operator on a typed criterion fails closed at planning time")
+        void whenUnsupportedOperatorOnTypedCriterionThenThrowsAccessDeniedException() {
+            val constraint = v("""
+                    {"type": "sql:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "is_secretly_equal", "value": 7}]}
+                    """);
+
+            assertThatThrownBy(() -> provider.getConstraintHandler(constraint, Set.of(SQL_SIGNAL)))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unsupported operator");
+        }
+
+        @Test
+        @DisplayName("Obligation type 'relational:queryManipulation' is accepted as alias")
+        void whenRelationalTypeAliasThenProviderClaimsObligation() {
+            val mapper = mapperFor("""
+                    {"type": "relational:queryManipulation",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("tenant_id = 7");
         }
     }
 }

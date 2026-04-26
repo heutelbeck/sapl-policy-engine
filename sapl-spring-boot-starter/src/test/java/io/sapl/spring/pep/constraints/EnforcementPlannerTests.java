@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
@@ -412,8 +413,8 @@ class EnforcementPlannerTests {
             val plan           = plannerWith().plan(decision, SUPPORTED_SIGNALS);
             val resourceMapper = (ConstraintHandler.Mapper<Object>) plan.entriesFor(OUTPUT_STRING_TYPE).getFirst()
                     .handler();
-            assertThatThrownBy(() -> resourceMapper.apply("anything"))
-                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("Cannot map resource");
+            assertThatThrownBy(() -> resourceMapper.apply("anything")).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Cannot map resource");
         }
 
         @Test
@@ -441,7 +442,6 @@ class EnforcementPlannerTests {
                 .filter(entry -> entry.constraintType() == ConstraintType.OBLIGATION).findFirst()
                 .orElseThrow(() -> new AssertionError("No obligation runner substitute at " + where));
         val runner     = (ConstraintHandler.Runner) substitute.handler();
-        assertThatThrownBy(runner::run).isInstanceOf(ConstraintEnforcementException.class)
-                .hasMessageContaining(reason.name());
+        assertThatThrownBy(runner::run).isInstanceOf(AccessDeniedException.class).hasMessageContaining(reason.name());
     }
 }
