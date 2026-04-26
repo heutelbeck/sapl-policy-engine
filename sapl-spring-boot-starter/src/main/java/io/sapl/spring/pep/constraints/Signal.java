@@ -45,7 +45,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      * {@code Mono<String>}) is preserved for provider dispatch.
      */
     sealed interface ValueSignal<T> extends Signal permits DecisionSignal, InputSignal, OutputSignal, ErrorSignal,
-            SubscriptionSignal, SqlShimSignal, RelationalQueryShimSignal, MongoDbQueryShimSignal {
+            SubscriptionSignal, SqlShimSignal, MongoDbQueryShimSignal {
         T value();
 
         ResolvableType valueType();
@@ -302,28 +302,6 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      * make the namespace difference vs Mongo's same-named Query explicit at the
      * signature level.
      */
-    record RelationalQueryShimSignal(org.springframework.data.relational.core.query.Query value)
-            implements ValueSignal<org.springframework.data.relational.core.query.Query> {
-        public static final ResolvableType VALUE_TYPE = ResolvableType
-                .forClass(org.springframework.data.relational.core.query.Query.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(RelationalQueryShimSignal.class,
-                VALUE_TYPE);
-
-        public static RelationalQueryShimSignal of(org.springframework.data.relational.core.query.Query query) {
-            return new RelationalQueryShimSignal(query);
-        }
-
-        @Override
-        public ResolvableType valueType() {
-            return VALUE_TYPE;
-        }
-
-        @Override
-        public SignalType type() {
-            return TYPE;
-        }
-    }
-
     /**
      * Shim signal carrying a Spring Data MongoDB
      * {@link org.springframework.data.mongodb.core.query.Query} just before

@@ -38,7 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
+import org.springframework.security.access.AccessDeniedException;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -250,13 +250,12 @@ class ContentFilterTests {
         }
 
         @Test
-        @DisplayName("path absent in payload raises ConstraintEnforcementException at evaluation")
+        @DisplayName("path absent in payload raises AccessDeniedException at evaluation")
         void pathNotPresentRaisesException() {
             val predicate = ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"path": "$.missing", "type": "==", "value": "x"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> predicate.test(Map.of("name", "Alice")))
-                    .isInstanceOf(ConstraintEnforcementException.class)
+            assertThatThrownBy(() -> predicate.test(Map.of("name", "Alice"))).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("path defined in the constraint is not present");
         }
     }
@@ -364,8 +363,7 @@ class ContentFilterTests {
         @DisplayName("non-object constraint is rejected")
         void nonObjectConstraintRejected() {
             assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("\"plain string\""), MAPPER))
-                    .isInstanceOf(ConstraintEnforcementException.class)
-                    .hasMessageContaining("Expected an object value");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Expected an object value");
         }
 
         @Test
@@ -373,7 +371,7 @@ class ContentFilterTests {
         void conditionsNotArrayRejected() {
             assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
                     {"conditions": "not-an-array"}
-                    """), MAPPER)).isInstanceOf(ConstraintEnforcementException.class)
+                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("'conditions' not an array");
         }
 
@@ -382,7 +380,7 @@ class ContentFilterTests {
         void conditionWithoutPathRejected() {
             assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"type": "==", "value": "x"}]}
-                    """), MAPPER)).isInstanceOf(ConstraintEnforcementException.class)
+                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Not a valid predicate condition");
         }
 
@@ -391,7 +389,7 @@ class ContentFilterTests {
         void conditionWithUnknownTypeRejected() {
             assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"path": "$.x", "type": "??", "value": 1}]}
-                    """), MAPPER)).isInstanceOf(ConstraintEnforcementException.class)
+                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Not a valid predicate condition");
         }
 
@@ -400,7 +398,7 @@ class ContentFilterTests {
         void dangerousRegexRejected() {
             assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"path": "$.x", "type": "=~", "value": "(a+)+"}]}
-                    """), MAPPER)).isInstanceOf(ConstraintEnforcementException.class)
+                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Unsafe regex pattern");
         }
 
@@ -410,7 +408,7 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": "not-an-array"}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(Map.of("x", 1))).isInstanceOf(ConstraintEnforcementException.class)
+            assertThatThrownBy(() -> transform.apply(Map.of("x", 1))).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("'actions' is not an array");
         }
 
@@ -420,7 +418,7 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": ["not-an-object"]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(Map.of("x", 1))).isInstanceOf(ConstraintEnforcementException.class)
+            assertThatThrownBy(() -> transform.apply(Map.of("x", 1))).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("not an object");
         }
 
@@ -431,7 +429,7 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.x", "type": "unknown"}]}
                     """), MAPPER);
             assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", 1))))
-                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("Unknown action type");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unknown action type");
         }
 
         @Test
@@ -441,7 +439,7 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.x", "type": "blacken"}]}
                     """), MAPPER);
             assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", 42))))
-                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("not a text note");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("not a text note");
         }
 
         @Test
@@ -451,7 +449,7 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.x", "type": "blacken", "length": "five"}]}
                     """), MAPPER);
             assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", "Alice"))))
-                    .isInstanceOf(ConstraintEnforcementException.class).hasMessageContaining("'length'");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("'length'");
         }
 
         @Test
@@ -461,8 +459,7 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.x", "type": "replace"}]}
                     """), MAPPER);
             assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", "Alice"))))
-                    .isInstanceOf(ConstraintEnforcementException.class)
-                    .hasMessageContaining("does not specify a 'replacement'");
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("does not specify a 'replacement'");
         }
 
         @Test
@@ -472,7 +469,7 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.missing", "type": "delete"}]}
                     """), MAPPER);
             assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", 1))))
-                    .isInstanceOf(ConstraintEnforcementException.class)
+                    .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("path defined in the constraint is not present");
         }
     }

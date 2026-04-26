@@ -40,7 +40,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
+import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -233,7 +233,7 @@ public class ContentFilter {
             return anything -> true;
         }
         if (!(conditionsValue instanceof ArrayValue conditions)) {
-            throw new ConstraintEnforcementException(ERROR_CONDITIONS_NOT_AN_ARRAY + conditionsValue);
+            throw new AccessDeniedException(ERROR_CONDITIONS_NOT_AN_ARRAY + conditionsValue);
         }
         Predicate<Object> combined = anything -> true;
         for (var condition : conditions) {
@@ -246,31 +246,31 @@ public class ContentFilter {
             try {
                 return finalPredicate.test(x);
             } catch (PathNotFoundException e) {
-                throw new ConstraintEnforcementException(ERROR_CONSTRAINT_PATH_NOT_PRESENT, e);
+                throw new AccessDeniedException(ERROR_CONSTRAINT_PATH_NOT_PRESENT, e);
             }
         };
     }
 
     private static ObjectValue requireObject(Value constraint) {
         if (!(constraint instanceof ObjectValue object)) {
-            throw new ConstraintEnforcementException(ERROR_CONSTRAINT_INVALID);
+            throw new AccessDeniedException(ERROR_CONSTRAINT_INVALID);
         }
         return object;
     }
 
     private static Predicate<Object> conditionToPredicate(Value condition, ObjectMapper objectMapper) {
         if (!(condition instanceof ObjectValue conditionObject)) {
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         if (!(conditionObject.get(PATH) instanceof TextValue(var path))) {
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         if (!(conditionObject.get(TYPE) instanceof TextValue(var type))) {
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         val conditionValue = conditionObject.get(VALUE);
         if (conditionValue == null) {
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         return switch (type) {
         case EQUALS -> equalsCondition(condition, path, conditionValue, objectMapper);
@@ -280,7 +280,7 @@ public class ContentFilter {
         case LT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a < b);
         case GT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a > b);
         case REGEX  -> regexCondition(condition, path, conditionValue, objectMapper);
-        default     -> throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+        default     -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         };
     }
 
@@ -292,7 +292,7 @@ public class ContentFilter {
     private static Predicate<Object> numericCondition(Value condition, String path, Value conditionValue,
             ObjectMapper objectMapper, DoubleComparison comparison) {
         if (!(conditionValue instanceof NumberValue(var conditionNumber))) {
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         val threshold = conditionNumber.doubleValue();
         return original -> {
@@ -307,10 +307,10 @@ public class ContentFilter {
     private static Predicate<Object> regexCondition(Value condition, String path, Value conditionValue,
             ObjectMapper objectMapper) {
         if (!(conditionValue instanceof TextValue(var patternText))) {
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+            throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
         if (isDangerousRegex(patternText)) {
-            throw new ConstraintEnforcementException(ERROR_REGEX_UNSAFE + patternText);
+            throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
         }
         val regex = Pattern.compile(patternText);
         return original -> {
@@ -332,8 +332,7 @@ public class ContentFilter {
         }
         case TextValue(var s)    ->
             original -> getValueAtPath(original, path, objectMapper) instanceof String str && s.equals(str);
-        default                  ->
-            throw new ConstraintEnforcementException(ERROR_PREDICATE_CONDITION_INVALID + condition);
+        default                  -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         };
     }
 
@@ -352,7 +351,7 @@ public class ContentFilter {
                 return original;
             }
             if (!(actionsValue instanceof ArrayValue actions)) {
-                throw new ConstraintEnforcementException(ERROR_ACTIONS_NOT_AN_ARRAY);
+                throw new AccessDeniedException(ERROR_ACTIONS_NOT_AN_ARRAY);
             }
 
             // Convert to native Java types (Map/List) for jsonpath compatibility
@@ -367,27 +366,27 @@ public class ContentFilter {
             try {
                 return objectMapper.convertValue(modifiedNative, original.getClass());
             } catch (IllegalArgumentException e) {
-                throw new ConstraintEnforcementException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
+                throw new AccessDeniedException(ERROR_CONVERTING_MODIFIED_OBJECT, e);
             }
         };
     }
 
     private static void applyAction(DocumentContext jsonContext, Value action, ObjectMapper objectMapper) {
         if (!(action instanceof ObjectValue actionObject)) {
-            throw new ConstraintEnforcementException(ERROR_ACTION_NOT_AN_OBJECT);
+            throw new AccessDeniedException(ERROR_ACTION_NOT_AN_OBJECT);
         }
         val path       = getTextualValueOfActionKey(actionObject, PATH);
         val actionType = getTextualValueOfActionKey(actionObject, TYPE).trim().toLowerCase();
         try {
             jsonContext.read(path);
         } catch (PathNotFoundException e) {
-            throw new ConstraintEnforcementException(ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT, e);
+            throw new AccessDeniedException(ERROR_CONSTRAINT_PATH_NOT_PRESENT_ENFORCEMENT, e);
         }
         switch (actionType) {
         case DELETE  -> jsonContext.delete(path);
         case BLACKEN -> blacken(jsonContext, path, actionObject);
         case REPLACE -> replace(jsonContext, path, actionObject, objectMapper);
-        default      -> throw new ConstraintEnforcementException(ERROR_UNKNOWN_ACTION_S.formatted(actionType));
+        default      -> throw new AccessDeniedException(ERROR_UNKNOWN_ACTION_S.formatted(actionType));
         }
     }
 
@@ -400,7 +399,7 @@ public class ContentFilter {
         return (original, configuration) -> {
             val replacement = action.get(REPLACEMENT);
             if (replacement == null) {
-                throw new ConstraintEnforcementException(ERROR_NO_REPLACEMENT_SPECIFIED);
+                throw new AccessDeniedException(ERROR_NO_REPLACEMENT_SPECIFIED);
             }
             return objectMapper.convertValue(replacement, Object.class);
         };
@@ -413,7 +412,7 @@ public class ContentFilter {
     private static MapFunction blackenNode(ObjectValue action) {
         return (original, configuration) -> {
             if (!(original instanceof String originalString)) {
-                throw new ConstraintEnforcementException(ERROR_PATH_NOT_TEXTUAL);
+                throw new AccessDeniedException(ERROR_PATH_NOT_TEXTUAL);
             }
             val replacementString = determineReplacementString(action);
             val discloseRight     = getIntegerValueOfActionKeyOrDefaultToZero(action, DISCLOSE_RIGHT);
@@ -427,8 +426,7 @@ public class ContentFilter {
         return switch (action.get(LENGTH)) {
         case null                                      -> BLACKEN_LENGTH_INVALID_VALUE;
         case NumberValue(var bd) when bd.signum() >= 0 -> bd.intValue();
-        default                                        ->
-            throw new ConstraintEnforcementException(ERROR_LENGTH_NOT_NUMBER);
+        default                                        -> throw new AccessDeniedException(ERROR_LENGTH_NOT_NUMBER);
         };
     }
 
@@ -454,13 +452,13 @@ public class ContentFilter {
         return switch (action.get(REPLACEMENT)) {
         case null             -> BLACK_SQUARE;
         case TextValue(var s) -> s;
-        default               -> throw new ConstraintEnforcementException(ERROR_REPLACEMENT_NOT_TEXTUAL);
+        default               -> throw new AccessDeniedException(ERROR_REPLACEMENT_NOT_TEXTUAL);
         };
     }
 
     private static String getTextualValueOfActionKey(ObjectValue action, String key) {
         if (!(action.get(key) instanceof TextValue(var value))) {
-            throw new ConstraintEnforcementException(ERROR_VALUE_NOT_TEXTUAL_S.formatted(key));
+            throw new AccessDeniedException(ERROR_VALUE_NOT_TEXTUAL_S.formatted(key));
         }
         return value;
     }
@@ -471,12 +469,12 @@ public class ContentFilter {
             return 0;
         }
         if (!(value instanceof NumberValue(var bd))) {
-            throw new ConstraintEnforcementException(ERROR_VALUE_NOT_INTEGER_S.formatted(key));
+            throw new AccessDeniedException(ERROR_VALUE_NOT_INTEGER_S.formatted(key));
         }
         try {
             return bd.intValueExact();
         } catch (ArithmeticException e) {
-            throw new ConstraintEnforcementException(ERROR_VALUE_NOT_INTEGER_S.formatted(key), e);
+            throw new AccessDeniedException(ERROR_VALUE_NOT_INTEGER_S.formatted(key), e);
         }
     }
 

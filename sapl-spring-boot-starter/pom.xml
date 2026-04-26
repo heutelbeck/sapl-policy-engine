@@ -40,6 +40,10 @@
 	
 	<dependencies>
 		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>context-propagation</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>

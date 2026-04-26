@@ -24,11 +24,14 @@ import java.util.Optional;
 import java.util.Set;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.NullValue;
+import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
-import io.sapl.spring.pep.constraints.ConstraintEnforcementException;
+import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -49,32 +52,45 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.update.Update;
 
 /**
- * Translates a {@code sql:queryManipulation} constraint into a {@link Mapper}
+ * Translates a {@code sql:queryManipulation} (or alias
+ * {@code relational:queryManipulation}) constraint into a {@link Mapper}
  * attached to the PEP's {@link SqlShimSignal}. The mapper rewrites the SQL
  * via JSqlParser AST manipulation, eliminating the precedence and string-
  * literal hazards inherent to regex-based SQL rewriting.
- * </p>
- * The obligation shape is
- * </p>
+ * <p>
+ * The obligation supports two complementary input shapes that may be combined
+ * on a single obligation:
  *
  * <pre>{@code
  * {
  *   "type": "sql:queryManipulation",
- *   "conditions": ["tenant_id = 7", "status = 'active'"],
+ *   "criteria": [
+ *     {"column": "tenant_id", "op": "=", "value": 7},
+ *     {"or": [
+ *       {"column": "owner_id", "op": "=", "value": "alice"},
+ *       {"column": "public", "op": "=", "value": true}
+ *     ]},
+ *     {"column": "deleted_at", "op": "isNull"}
+ *   ],
+ *   "conditions": ["status IN ('active', 'pending')"],
  *   "columns": ["id", "name", "email"]
  * }
  * }</pre>
  *
- * Each entry in {@code conditions} is parsed as a boolean SQL expression and
- * AND-combined with the existing WHERE clause. Each addition is wrapped in
- * parentheses so OR-precedence in either the original or the addition cannot
- * leak rows. When the original statement has no WHERE clause, one is added.
- * </p>
+ * The typed {@code criteria} array uses the same shape as the relational and
+ * Mongo providers for cross-backend symmetry. Supported {@code op} values:
+ * {@code =}, {@code !=}, {@code >}, {@code >=}, {@code <}, {@code <=},
+ * {@code in}, {@code like}, {@code notLike}, {@code isNull},
+ * {@code isNotNull}. Typed criteria are rendered to SQL fragments internally
+ * and AND-combined with the obligation's string {@code conditions} (and with
+ * any existing WHERE clause), each addition wrapped in parentheses so OR-
+ * precedence cannot leak rows.
+ * <p>
  * The {@code columns} entry, when present and the statement is a SELECT,
  * narrows the projection by intersection with the original SELECT list. For
  * {@code SELECT *}, the obligation defines the projection. {@code columns}
  * is silently ignored for UPDATE and DELETE.
- * </p>
+ * <p>
  * Failure modes (all fail closed: the mapper throws, the planner sets the
  * obligation's failure state, the PEP raises {@code AccessDeniedException}):
  * <ul>
@@ -88,30 +104,50 @@ import net.sf.jsqlparser.statement.update.Update;
  */
 public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
 
-    private static final String CONSTRAINT_TYPE  = "sql:queryManipulation";
+    private static final String CONSTRAINT_TYPE_SQL        = "sql:queryManipulation";
+    private static final String CONSTRAINT_TYPE_RELATIONAL = "relational:queryManipulation";
+
+    private static final String FIELD_AND        = "and";
+    private static final String FIELD_COLUMN     = "column";
     private static final String FIELD_COLUMNS    = "columns";
     private static final String FIELD_CONDITIONS = "conditions";
+    private static final String FIELD_CRITERIA   = "criteria";
+    private static final String FIELD_OP         = "op";
+    private static final String FIELD_OR         = "or";
+    private static final String FIELD_VALUE      = "value";
     private static final int    DEFAULT_PRIORITY = 30;
 
     private static final String ERROR_PARSE_OBLIGATION_CONDITION = "Cannot parse obligation condition '%s': %s";
     private static final String ERROR_PARSE_SQL                  = "Cannot parse SQL '%s': %s";
     private static final String ERROR_UNSUPPORTED_STATEMENT      = "Statement type %s does not support WHERE injection: %s";
+    private static final String ERROR_UNSUPPORTED_OPERATOR       = "Unsupported operator in typed criterion: %s";
+    private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
+    private static final String ERROR_VALUE_KIND_FOR_OPERATOR    = "Value kind %s incompatible with operator %s";
 
     @Override
     public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals) {
-        if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
+        if (!isResponsible(constraint)) {
             return Optional.empty();
         }
         if (!supportedSignals.contains(SqlShimSignal.TYPE)) {
             return Optional.empty();
         }
-        val conditions = extractStringArray(constraint, FIELD_CONDITIONS);
-        val columns    = extractStringArray(constraint, FIELD_COLUMNS);
-        if (conditions.isEmpty() && columns.isEmpty()) {
+        val typedCriteria = extractTypedCriteriaFragments(constraint);
+        val conditions    = extractStringArray(constraint, FIELD_CONDITIONS);
+        val columns       = extractStringArray(constraint, FIELD_COLUMNS);
+        if (typedCriteria.isEmpty() && conditions.isEmpty() && columns.isEmpty()) {
             return Optional.empty();
         }
-        Mapper<String> mapper = sql -> rewrite(sql, conditions, columns);
+        val allConditions = new ArrayList<String>(typedCriteria.size() + conditions.size());
+        allConditions.addAll(typedCriteria);
+        allConditions.addAll(conditions);
+        Mapper<String> mapper = sql -> rewrite(sql, List.copyOf(allConditions), columns);
         return Optional.of(new ScopedConstraintHandler(mapper, SqlShimSignal.TYPE, DEFAULT_PRIORITY));
+    }
+
+    private static boolean isResponsible(Value constraint) {
+        return ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE_SQL)
+                || ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE_RELATIONAL);
     }
 
     private static String rewrite(String sql, List<String> conditions, List<String> columns) {
@@ -126,7 +162,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         try {
             return CCJSqlParserUtil.parse(sql);
         } catch (JSQLParserException e) {
-            throw new ConstraintEnforcementException(ERROR_PARSE_SQL.formatted(sql, e.getMessage()), e);
+            throw new AccessDeniedException(ERROR_PARSE_SQL.formatted(sql, e.getMessage()), e);
         }
     }
 
@@ -147,8 +183,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         try {
             return CCJSqlParserUtil.parseCondExpression(condition);
         } catch (JSQLParserException e) {
-            throw new ConstraintEnforcementException(
-                    ERROR_PARSE_OBLIGATION_CONDITION.formatted(condition, e.getMessage()), e);
+            throw new AccessDeniedException(ERROR_PARSE_OBLIGATION_CONDITION.formatted(condition, e.getMessage()), e);
         }
     }
 
@@ -169,7 +204,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
             delete.setWhere(combineWhere(delete.getWhere(), wrapped));
             return;
         }
-        throw new ConstraintEnforcementException(
+        throw new AccessDeniedException(
                 ERROR_UNSUPPORTED_STATEMENT.formatted(statement.getClass().getSimpleName(), originalSql));
     }
 
@@ -221,5 +256,108 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
             }
         }
         return List.copyOf(result);
+    }
+
+    private static List<String> extractTypedCriteriaFragments(Value constraint) {
+        if (!(constraint instanceof ObjectValue object)) {
+            return List.of();
+        }
+        if (!(object.get(FIELD_CRITERIA) instanceof ArrayValue criteriaArray)) {
+            return List.of();
+        }
+        val result = new ArrayList<String>(criteriaArray.size());
+        for (val element : criteriaArray) {
+            renderCriterionNode(element).ifPresent(result::add);
+        }
+        return List.copyOf(result);
+    }
+
+    private static Optional<String> renderCriterionNode(Value entry) {
+        if (!(entry instanceof ObjectValue object)) {
+            return Optional.empty();
+        }
+        if (object.get(FIELD_OR) instanceof ArrayValue orChildren) {
+            return renderGroup(orChildren, " OR ");
+        }
+        if (object.get(FIELD_AND) instanceof ArrayValue andChildren) {
+            return renderGroup(andChildren, " AND ");
+        }
+        return Optional.of(renderLeaf(object));
+    }
+
+    private static Optional<String> renderGroup(ArrayValue children, String joiner) {
+        val parts = new ArrayList<String>(children.size());
+        for (val child : children) {
+            renderCriterionNode(child).ifPresent(parts::add);
+        }
+        if (parts.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of("(" + String.join(joiner, parts) + ")");
+    }
+
+    private static String renderLeaf(ObjectValue object) {
+        if (!(object.get(FIELD_COLUMN) instanceof TextValue(String column))) {
+            throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted("missing 'column'"));
+        }
+        if (!(object.get(FIELD_OP) instanceof TextValue(String op))) {
+            throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted("missing 'op'"));
+        }
+        if ("isNull".equals(op)) {
+            return column + " IS NULL";
+        }
+        if ("isNotNull".equals(op)) {
+            return column + " IS NOT NULL";
+        }
+        if (!(object.get(FIELD_VALUE) instanceof Value valueNode) || valueNode instanceof UndefinedValue) {
+            throw new AccessDeniedException(ERROR_VALUE_REQUIRED.formatted(op));
+        }
+        return renderBinary(column, op, valueNode);
+    }
+
+    private static String renderBinary(String column, String op, Value valueNode) {
+        return switch (op) {
+        case "="       -> column + " = " + renderValue(valueNode, op);
+        case "!="      -> column + " <> " + renderValue(valueNode, op);
+        case ">"       -> column + " > " + renderValue(valueNode, op);
+        case ">="      -> column + " >= " + renderValue(valueNode, op);
+        case "<"       -> column + " < " + renderValue(valueNode, op);
+        case "<="      -> column + " <= " + renderValue(valueNode, op);
+        case "in"      -> column + " IN " + renderArray(valueNode, op);
+        case "like"    -> column + " LIKE " + renderText(valueNode, op);
+        case "notLike" -> column + " NOT LIKE " + renderText(valueNode, op);
+        default        -> throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted(op));
+        };
+    }
+
+    private static String renderValue(Value value, String op) {
+        return switch (value) {
+        case TextValue(String text)              -> "'" + text.replace("'", "''") + "'";
+        case NumberValue(java.math.BigDecimal n) -> n.toPlainString();
+        case BooleanValue(boolean b)             -> b ? "TRUE" : "FALSE";
+        case NullValue ignored                   -> "NULL";
+        default                                  -> throw new AccessDeniedException(
+                ERROR_VALUE_KIND_FOR_OPERATOR.formatted(value.getClass().getSimpleName(), op));
+        };
+    }
+
+    private static String renderArray(Value value, String op) {
+        if (!(value instanceof ArrayValue array)) {
+            throw new AccessDeniedException(
+                    ERROR_VALUE_KIND_FOR_OPERATOR.formatted(value.getClass().getSimpleName(), op));
+        }
+        val parts = new ArrayList<String>(array.size());
+        for (val element : array) {
+            parts.add(renderValue(element, op));
+        }
+        return "(" + String.join(", ", parts) + ")";
+    }
+
+    private static String renderText(Value value, String op) {
+        if (!(value instanceof TextValue(String text))) {
+            throw new AccessDeniedException(
+                    ERROR_VALUE_KIND_FOR_OPERATOR.formatted(value.getClass().getSimpleName(), op));
+        }
+        return "'" + text.replace("'", "''") + "'";
     }
 }

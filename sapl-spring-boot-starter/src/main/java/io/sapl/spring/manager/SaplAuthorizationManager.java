@@ -65,8 +65,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         val request        = requestAuthorizationContext.getRequest();
         val authentication = authenticationSupplier.get();
         val requestValue   = fromJsonNode(mapper.valueToTree(request));
-        val subscription   = AuthorizationSubscription.of(authentication, requestValue, req
-                Honest concerns:                                                                          uestValue, mapper);
+        val subscription   = AuthorizationSubscription.of(authentication, requestValue, requestValue, mapper);
         val authzDecision  = pdp.decideOnceBlocking(subscription);
 
         val plan          = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);

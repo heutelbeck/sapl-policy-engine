@@ -20,30 +20,37 @@ package io.sapl.spring.pep.data.r2dbc;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
-import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import org.springframework.r2dbc.core.DatabaseClient;
 
-import io.sapl.spring.pep.constraints.providers.RelationalQueryManipulationProvider;
 import io.sapl.spring.pep.constraints.providers.SqlQueryManipulationProvider;
+import io.sapl.spring.pep.data.SaplContextPropagationActivator;
 
 /**
  * Activates the R2DBC arm of the shim-signal architecture: registers the
- * {@code relational:queryManipulation} constraint handler provider, declares
- * the {@code RelationalQueryShimSignal} as a supported PEP signal, and wraps
- * every {@code R2dbcEntityTemplate} bean in a CGLIB proxy via
- * {@link R2dbcShimBeanPostProcessor} so Query-bearing operations fire the
- * shim. Active when Spring Data R2DBC is on the classpath.
+ * {@code sql:queryManipulation} (alias {@code relational:queryManipulation})
+ * constraint handler provider, declares {@code SqlShimSignal} as a supported
+ * PEP signal, and wraps every {@code DatabaseClient} bean in a CGLIB proxy
+ * via {@link DatabaseClientShimBeanPostProcessor} so all SQL paths fire the
+ * shim before reaching the driver.
+ * <p>
+ * Active when Spring R2DBC is on the classpath and not explicitly disabled
+ * by {@code io.sapl.method-security.r2dbc-shim.enabled=false}.
+ * <p>
+ * Wrapping at the {@code DatabaseClient} level requires that the active
+ * {@code EnforcementPlan} is reachable from a synchronous Java method called
+ * inside a Reactor flow. To satisfy that, the auto-configuration declares
+ * {@link SaplContextPropagationActivator} which enables Reactor's automatic
+ * context propagation. The hook is JVM-wide; opting out via the property
+ * disables both the shim and the hook activation triggered by it.
  */
 @AutoConfiguration
-@ConditionalOnClass(R2dbcRepository.class)
+@ConditionalOnClass(DatabaseClient.class)
+@ConditionalOnProperty(name = "io.sapl.method-security.r2dbc-shim.enabled", matchIfMissing = true)
 public class R2dbcShimAutoConfiguration {
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    RelationalQueryManipulationProvider relationalQueryManipulationProvider() {
-        return new RelationalQueryManipulationProvider();
-    }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
@@ -53,7 +60,14 @@ public class R2dbcShimAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    R2dbcShimBeanPostProcessor r2dbcShimBeanPostProcessor() {
-        return new R2dbcShimBeanPostProcessor();
+    DatabaseClientShimBeanPostProcessor databaseClientShimBeanPostProcessor() {
+        return new DatabaseClientShimBeanPostProcessor();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnMissingBean
+    SaplContextPropagationActivator saplContextPropagationActivator() {
+        return new SaplContextPropagationActivator();
     }
 }

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.security.access.AccessDeniedException;
+
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -150,7 +152,7 @@ public class EnforcementPlanner {
             try {
                 return objectMapper.readValue(ValueJsonMarshaller.toJsonString(resource), targetType);
             } catch (Exception exception) {
-                throw new ConstraintEnforcementException(
+                throw new AccessDeniedException(
                         ERROR_CANNOT_MAP_RESOURCE.formatted(resource, targetType.getSimpleName()), exception);
             }
         };
@@ -314,7 +316,7 @@ public class EnforcementPlanner {
      * Returns the synthetic failure runner of the framework: on invocation it logs
      * the offending constraint;
      * if {@code constraintType} is obligation it additionally throws an
-     * {@link ConstraintEnforcementException} to signal failure to the execution
+     * {@link AccessDeniedException} to signal failure to the execution
      * algorithm; if
      * {@code constraintType} is advice it completes successfully, recording the
      * non-enforcement without
@@ -325,7 +327,7 @@ public class EnforcementPlanner {
         return () -> {
             log.warn(WARN_UNHANDLED_CONSTRAINT, constraintType, reason, constraint);
             if (constraintType == ConstraintType.OBLIGATION) {
-                throw new ConstraintEnforcementException(ERROR_UNHANDLED_OBLIGATION.formatted(reason, constraint));
+                throw new AccessDeniedException(ERROR_UNHANDLED_OBLIGATION.formatted(reason, constraint));
             }
         };
     }
