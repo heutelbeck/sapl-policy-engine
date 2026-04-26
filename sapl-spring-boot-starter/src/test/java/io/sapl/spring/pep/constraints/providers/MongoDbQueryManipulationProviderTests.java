@@ -211,15 +211,15 @@ class MongoDbQueryManipulationProviderTests {
         }
 
         @Test
-        @DisplayName("Obligation field overrides existing field with the same key (intentional: obligation wins)")
-        void givenSameFieldInOriginalAndObligationThenObligationWins() {
+        @DisplayName("Obligation condition is intersected with the original predicate on the same field via $and (never widens)")
+        void givenSameFieldInOriginalAndObligationThenIntersectedViaAnd() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
                      "conditions": ["{'tenantId': 7}"]}
                     """);
             val original = new Query(Criteria.where("tenantId").is(99));
             val rendered = renderQueryDocument(mapper.apply(original));
-            assertThat(rendered).contains("\"tenantId\": 7").doesNotContain("99");
+            assertThat(rendered).contains("$and").contains("99").contains("\"tenantId\": 7");
         }
 
         @Test

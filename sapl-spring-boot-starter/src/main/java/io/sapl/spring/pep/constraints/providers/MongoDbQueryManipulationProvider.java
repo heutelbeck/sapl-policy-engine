@@ -78,12 +78,14 @@ import lombok.val;
  * }
  * }</pre>
  *
- * Both forms may appear together; typed criteria are applied first via
- * {@link Criteria#andOperator(Criteria...)}, then string-condition fragments
- * are merged into the BSON document. String-condition fragments overwrite
- * any field they share with the original query (mirrors MongoDB document-
- * append semantics; for obligation enforcement this is the safer default
- * since the obligation always wins over the original).
+ * Both forms may appear together. Typed criteria are wrapped in
+ * {@link Criteria#andOperator(Criteria...)} before being added to the query
+ * (so the wrapper has a null root key and never collides with a field the
+ * user query is already filtering on). String-condition fragments are then
+ * intersected with the resulting query by AND-ing the original BSON
+ * document and each condition document inside a top-level {@code $and}
+ * array. The obligation never replaces or widens the user's filter; it can
+ * only narrow it.
  * </p>
  * Supported {@code op} values for typed criteria: {@code =}, {@code !=},
  * {@code >}, {@code >=}, {@code <}, {@code <=}, {@code in}, {@code isNull},
@@ -121,7 +123,13 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
 
     private static Query applyToQuery(Query query, List<Criteria> criteria, List<String> conditions) {
         if (!criteria.isEmpty()) {
-            query.addCriteria(combine(criteria, Criteria::andOperator));
+            // Wrap obligation criteria in $and so the resulting Criteria has a
+            // null root key. Without this wrapping, addCriteria fails with
+            // InvalidMongoDbApiUsageException whenever an obligation field
+            // collides with a field already present in the user's query
+            // (e.g. obligation requires moon IN [...] and the user query
+            // already filters on moon).
+            query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
         }
         if (conditions.isEmpty()) {
             return query;
@@ -138,17 +146,26 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
         if (parts.size() == 1) {
             return parts.getFirst();
         }
-        val first = parts.getFirst();
-        val rest  = parts.subList(1, parts.size()).toArray(new Criteria[0]);
-        return combiner.apply(first, rest);
+        // Use a fresh host Criteria so the resulting document is exactly
+        // {$and: [c1, c2, ...]} or {$or: [c1, c2, ...]}. Combining onto
+        // parts.getFirst() would leak its content as a top-level AND
+        // peer of the group operator, which silently breaks OR semantics
+        // (c1 OR c2 OR c3 becomes c1 AND ($or: [c2, c3])).
+        return combiner.apply(new Criteria(), parts.toArray(new Criteria[0]));
     }
 
     /**
-     * Snapshots the query's BSON document, merges the obligation conditions on
-     * top (obligation overrides existing keys), and constructs a fresh
-     * {@link BasicQuery} carrying the merged document. Sort, limit, skip, and
-     * projection fields are transferred from the original query so the
+     * Builds a {@code $and} array of the original query's BSON document and
+     * each obligation condition fragment, then constructs a fresh
+     * {@link BasicQuery} carrying the merged document. Sort, limit, skip,
+     * and projection fields are transferred from the original query so the
      * non-filter parts of the query remain intact.
+     * </p>
+     * The original-query document is included as the first element of the
+     * {@code $and} so the user's filter still applies; the obligation
+     * conditions are AND-ed onto it, never replacing it. This matches the
+     * intersection semantic of the typed-criteria path: an obligation can
+     * only narrow access, never widen it.
      * </p>
      * Rebuilding (rather than mutating {@code getQueryObject()}) is required
      * because for queries built from typed {@link Criteria} the document is a
@@ -156,12 +173,18 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
      * mutations there are dropped on the next access.
      */
     private static Query rebuildWithMergedBson(Query query, List<String> conditions) {
-        val merged = new org.bson.Document();
-        merged.putAll(query.getQueryObject());
+        val original = query.getQueryObject();
+        val parts    = new ArrayList<org.bson.Document>(conditions.size() + 1);
+        if (!original.isEmpty()) {
+            parts.add(new org.bson.Document(original));
+        }
         for (val condition : conditions) {
             val parsed = new BasicQuery(condition).getQueryObject();
-            parsed.forEach(merged::append);
+            if (!parsed.isEmpty()) {
+                parts.add(parsed);
+            }
         }
+        val merged  = parts.size() == 1 ? parts.getFirst() : new org.bson.Document("$and", parts);
         val rebuilt = new BasicQuery(merged, query.getFieldsObject());
         if (query.getSkip() > 0) {
             rebuilt.skip(query.getSkip());

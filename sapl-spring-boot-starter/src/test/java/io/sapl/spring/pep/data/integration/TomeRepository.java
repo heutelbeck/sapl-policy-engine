@@ -17,12 +17,25 @@
  */
 package io.sapl.spring.pep.data.integration;
 
+import java.util.Collection;
+
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 import io.sapl.spring.pep.data.integration.RelationalShimChainIT.Tome;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface TomeRepository extends ReactiveCrudRepository<Tome, Integer> {
 
     Flux<Tome> findByForbiddenTierLessThanEqual(Integer maxTier);
+
+    Mono<Long> countByMoon(String moon);
+
+    Flux<Tome> findByMoonAndForbiddenTierLessThanEqual(String moon, Integer maxTier);
+
+    Flux<Tome> findByMoonInOrderByForbiddenTierDescIdAsc(Collection<String> moons);
+
+    @Query("SELECT * FROM tome WHERE title LIKE :pattern")
+    Flux<Tome> findRareTomes(String pattern);
 }

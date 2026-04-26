@@ -18,6 +18,7 @@
 package io.sapl.spring.pep.data.mongo;
 
 import java.lang.reflect.Method;
+import java.util.Set;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -39,24 +40,33 @@ import reactor.core.publisher.Mono;
 
 /**
  * AOP {@link MethodInterceptor} for the reactive Mongo template proxy. Catches
- * both the legacy {@code find(Query, Class)} entry points and the fluent
- * {@link ReactiveFindOperation} chain ({@code template.query(Class)
- * .matching(Query).all()}) used by Spring Data Mongo's derived-query and
- * {@code @Query}-annotated repository methods.
+ * both the legacy {@code find(Query, Class)} family of entry points
+ * ({@code find}, {@code findOne}, {@code exists}, {@code count},
+ * {@code remove}) and the fluent {@link ReactiveFindOperation} chain
+ * ({@code template.query(Class).matching(Query).all()}) used by Spring Data
+ * Mongo's derived-query and {@code @Query}-annotated repository methods. The
+ * legacy entry points cover {@code SimpleReactiveMongoRepository}'s CRUD
+ * surface ({@code findById}, {@code existsById}, {@code count()},
+ * {@code findAll}, {@code deleteById}, {@code findOne(Example)}, etc.) since
+ * each of them ultimately bottoms out at one of these methods on
+ * {@code ReactiveMongoTemplate}.
  * <p>
- * For the fluent chain, the interceptor returns a JDK proxy implementing
- * {@link FindWithProjection} on top of the template's real chain. The proxy
- * captures the {@link Query} passed to {@code matching(...)}, defers the
- * SAPL rewrite to the terminating method (where the returned {@link Mono} or
- * {@link Flux} can deferContextual to read the active plan), and re-invokes
- * the real chain with the rewritten query.
+ * For the fluent chain, the interceptor returns a Spring AOP proxy
+ * implementing {@link FindWithProjection} on top of the template's real chain
+ * and re-wraps the result of {@code as(Class)} so that {@code matching(Query)}
+ * is intercepted regardless of whether projection retyping was applied first
+ * (which {@code AbstractReactiveMongoQuery.doExecute} does for derived
+ * queries). The shim defers to the terminating method (where the returned
+ * {@link Mono} or {@link Flux} can {@code deferContextual} to read the active
+ * plan) and re-invokes the real chain with the rewritten query.
  */
 public class MongoShimMethodInterceptor implements MethodInterceptor {
 
     private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A MongoDB query-manipulation obligation handler failed.";
 
-    private static final String METHOD_FIND  = "find";
-    private static final String METHOD_QUERY = "query";
+    private static final String      METHOD_QUERY                = "query";
+    private static final Set<String> SHIMMED_LEGACY_QUERY_METHOD = Set.of("find", "findOne", "exists", "count",
+            "remove");
 
     @Override
     public Object invoke(MethodInvocation invocation) throws Throwable {
@@ -66,21 +76,32 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             val realFindWithProjection = (FindWithProjection<?>) invocation.proceed();
             return wrapFindWithProjection(realFindWithProjection);
         }
-        if (isShimmedFind(method)) {
-            return interceptLegacyFind(invocation);
+        if (isShimmedLegacyQueryMethod(method)) {
+            return interceptLegacyQueryMethod(invocation);
         }
         return invocation.proceed();
     }
 
-    private static boolean isShimmedFind(Method method) {
-        if (!METHOD_FIND.equals(method.getName())) {
+    private static boolean isShimmedLegacyQueryMethod(Method method) {
+        if (!SHIMMED_LEGACY_QUERY_METHOD.contains(method.getName())) {
             return false;
         }
         val params = method.getParameterTypes();
-        return (params.length == 2 || params.length == 3) && params[0] == Query.class && params[1] == Class.class;
+        return params.length >= 1 && params[0] == Query.class;
     }
 
-    private static Object interceptLegacyFind(MethodInvocation invocation) {
+    private static Object interceptLegacyQueryMethod(MethodInvocation invocation) {
+        val returnType = invocation.getMethod().getReturnType();
+        if (returnType == Flux.class) {
+            return deferLegacyAsFlux(invocation);
+        }
+        if (returnType == Mono.class) {
+            return deferLegacyAsMono(invocation);
+        }
+        return proceedSafely(invocation);
+    }
+
+    private static Flux<Object> deferLegacyAsFlux(MethodInvocation invocation) {
         val originalQuery = (Query) invocation.getArguments()[0];
         return Flux.deferContextual(ctx -> {
             val planOpt = EnforcementPlanContext.currentReactor(ctx);
@@ -98,12 +119,49 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         });
     }
 
+    private static Mono<Object> deferLegacyAsMono(MethodInvocation invocation) {
+        val originalQuery = (Query) invocation.getArguments()[0];
+        return Mono.deferContextual(ctx -> {
+            val planOpt = EnforcementPlanContext.currentReactor(ctx);
+            if (planOpt.isEmpty()) {
+                return proceedAsMono(invocation);
+            }
+            val rewriteOutcome = applyShim(planOpt.get(), originalQuery);
+            return switch (rewriteOutcome) {
+            case Denied denied              -> Mono.error(denied.cause());
+            case Rewritten(Query rewritten) -> {
+                invocation.getArguments()[0] = rewritten;
+                yield proceedAsMono(invocation);
+            }
+            };
+        });
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static Flux<Object> proceedAsFlux(MethodInvocation invocation) {
         try {
             return (Flux) invocation.proceed();
         } catch (Throwable throwable) {
             return Flux.error(throwable);
+        }
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static Mono<Object> proceedAsMono(MethodInvocation invocation) {
+        try {
+            return (Mono) invocation.proceed();
+        } catch (Throwable throwable) {
+            return Mono.error(throwable);
+        }
+    }
+
+    private static Object proceedSafely(MethodInvocation invocation) {
+        try {
+            return invocation.proceed();
+        } catch (RuntimeException runtimeException) {
+            throw runtimeException;
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
         }
     }
 
@@ -139,7 +197,6 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
 
     private static Object dispatchTerminatingFind(FindWithQuery<?> delegate, Query originalQuery, Method method,
             Object[] args) throws Throwable {
-        val name       = method.getName();
         val returnType = method.getReturnType();
         if (returnType == Flux.class) {
             return Flux.deferContextual(ctx -> applyShimAndInvokeTerminating(ctx, delegate, originalQuery, method, args)
