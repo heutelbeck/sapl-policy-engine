@@ -42,21 +42,21 @@ import lombok.val;
 import reactor.core.publisher.Mono;
 
 /**
- * Reactive variant of the @{@link PostEnforce} PEP. Currently supports
- * {@link Mono} return types. Mirrors the blocking PostEnforce flow: the RAP
- * runs first (the value is part of the authorization request), then the PDP
- * is consulted, then the {@link DecisionSignal} and {@link OutputSignal} are
- * fired against the resulting plan. RAP errors propagate unmapped because the
- * plan does not yet exist when {@code proceed()} is invoked.
- * </p>
- * Empty-Mono RAP returns are passed through without consulting the PDP: there
- * is no value to authorize on.
- * </p>
- * No {@link io.sapl.spring.pep.data.ShimSignalContributor} wiring here. The
- * RAP runs before the plan exists, so a downstream shim wrapper would never
- * see a plan in context. Advertising shim signals would violate the
+ * Reactive {@link Mono} variant of the @{@link PostEnforce} PEP.
+ * <p>
+ * RAP errors propagate unmapped: the plan does not exist when {@code proceed()}
+ * runs, so {@link ErrorSignal} handlers cannot transform them.
+ * <p>
+ * Empty-Mono RAPs still consult the PDP - a {@code null} returnedObject is
+ * threaded through enforcement so an empty result cannot bypass policy.
+ * {@link Mono}{@code <Void>} returns ride this same path: the OutputSignal
+ * fires with {@code Maybe.absent} (Mappers and Consumers skip, Runners fire),
+ * matching blocking {@code void}.
+ * <p>
+ * No {@link io.sapl.spring.pep.data.ShimSignalContributor} wiring: the RAP
+ * runs before the plan exists, so any downstream shim wrapper would never see
+ * a plan in context, and advertising shim signals would violate the
  * supportedSignals invariant.
- * </p>
  *
  * @since 4.1.0
  */
@@ -66,6 +66,8 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PostEnforce PEP. The PDP decision was %s, not PERMIT.";
     private static final String ERROR_NULL_RAP_RETURN                   = "@PostEnforce method returned null instead of a Mono.";
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE           = "@PostEnforce reactive PEP currently supports Mono only. Found return type %s.";
+
+    private static final Object EMPTY_RAP_MARKER = new Object();
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
@@ -99,7 +101,11 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
         if (rap == null) {
             return Mono.error(new IllegalStateException(ERROR_NULL_RAP_RETURN));
         }
-        return rap.flatMap(returnedObject -> enforceForValue(methodInvocation, saplAttribute, returnedObject));
+        // Sentinel, not switchIfEmpty downstream of flatMap: enforcement may
+        // legitimately produce an empty Mono (null Mapper return, void output type)
+        // and a downstream switchIfEmpty would re-trigger enforcement.
+        return rap.cast(Object.class).defaultIfEmpty(EMPTY_RAP_MARKER).flatMap(
+                value -> enforceForValue(methodInvocation, saplAttribute, value == EMPTY_RAP_MARKER ? null : value));
     }
 
     private Mono<Object> enforceForValue(MethodInvocation methodInvocation, SaplAttribute saplAttribute,

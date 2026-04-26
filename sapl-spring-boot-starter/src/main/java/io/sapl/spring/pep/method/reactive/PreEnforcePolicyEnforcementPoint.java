@@ -71,6 +71,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PreEnforce PEP. The PDP decision was %s, not PERMIT.";
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE           = "@PreEnforce reactive PEP supports Mono and Flux only. Found return type %s.";
 
+    private static final Object EMPTY_RAP_MARKER = new Object();
+
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
@@ -178,14 +180,19 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     }
 
     /**
-     * Fires the OutputSignal per emitted item. Mappers attached to the output
-     * signal operate on the inner item type, exactly like the blocking case.
-     * If the RAP is empty no signal fires and the result is empty; if a Mapper
-     * returns {@code null} the item is dropped (matches the "value may be null"
+     * Fires the OutputSignal per emitted item, and once with a {@code null}
+     * value when the RAP completes empty so policy still applies. Mappers
+     * returning {@code null} drop the item (matches the "value may be null"
      * blocking semantic without violating Reactor's no-null-emission rule).
      */
     private static Mono<Object> applyOutput(EnforcementPlan plan, Mono<?> rap) {
-        return rap.mapNotNull(plan::enforceOutputConstraints);
+        // Sentinel, not switchIfEmpty downstream of mapNotNull: enforcement may
+        // legitimately produce an empty Mono (null Mapper return, void output type)
+        // and a downstream switchIfEmpty would re-trigger enforcement.
+        return rap.cast(Object.class).defaultIfEmpty(EMPTY_RAP_MARKER).flatMap(value -> {
+            val enforced = plan.enforceOutputConstraints(value == EMPTY_RAP_MARKER ? null : value);
+            return enforced == null ? Mono.empty() : Mono.just(enforced);
+        });
     }
 
     /**
