@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -186,6 +187,89 @@ class RelationalShimChainIT {
     }
 
     @Nested
+    @DisplayName("Complex obligations: OR-groups, IN-lists, LIKE patterns, nested OR-of-AND, multi-criteria")
+    class ComplexObligations {
+
+        @Test
+        @DisplayName("OR-group obligation on findById: only tomes whose moon is in the Conclave's permitted set are returned")
+        void whenOrGroupObligationOnFindByIdThenOnlyAllowedMoonReturned() {
+            decide(decisionWithRelationalCriteria(orGroup(eqColumn("moon", SOLINARI), eqColumn("moon", LUNITARI))));
+
+            StepVerifier.create(library.tomeById(1).map(Tome::title)).expectNext("The Disks of Mishakal")
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("OR-group obligation on findById: lookup of disallowed moon yields empty Mono")
+        void whenOrGroupObligationOnFindByIdAndDisallowedMoonThenEmpty() {
+            decide(decisionWithRelationalCriteria(orGroup(eqColumn("moon", SOLINARI), eqColumn("moon", LUNITARI))));
+
+            StepVerifier.create(library.tomeById(5)).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("IN-list obligation on countByMoon: count of allowed moon equals seeded rows for that moon")
+        void whenInListObligationOnCountAllowedMoonThenSeededCount() {
+            decide(decisionWithRelationalCriteria(inColumn("moon", SOLINARI, LUNITARI)));
+
+            StepVerifier.create(library.countByMoon(LUNITARI)).expectNext(2L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("IN-list obligation on countByMoon: count of moon outside the allowed set is zero")
+        void whenInListObligationOnCountDisallowedMoonThenZero() {
+            decide(decisionWithRelationalCriteria(inColumn("moon", SOLINARI, LUNITARI)));
+
+            StepVerifier.create(library.countByMoon(NUITARI)).expectNext(0L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Nested OR-of-AND obligation imposes per-moon tier ceilings on a multi-condition derived query")
+        void whenNestedOrOfAndObligationThenPerMoonTierCeilingApplied() {
+            val perMoonCeilings = orGroup(andGroup(eqColumn("moon", SOLINARI), cmpColumn("forbidden_tier", "<=", 0)),
+                    andGroup(eqColumn("moon", LUNITARI), cmpColumn("forbidden_tier", "<=", 2)),
+                    andGroup(eqColumn("moon", NUITARI), cmpColumn("forbidden_tier", "<=", 3)));
+            decide(decisionWithRelationalCriteria(perMoonCeilings));
+
+            StepVerifier.create(library.tomesAtMoonNotMoreForbiddenThan(SOLINARI, 5).map(Tome::title).collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactly("The Disks of Mishakal")).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("LIKE obligation intersects with @Query LIKE: empty result when patterns disjoint")
+        void whenLikeObligationDisjointFromUserPatternThenEmpty() {
+            decide(decisionWithRelationalCriteria(likeColumn("title", "%Compendium%")));
+
+            StepVerifier.create(library.tomesByTitle("%Chronicles%").collectList())
+                    .assertNext(titles -> assertThat(titles).isEmpty()).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("LIKE obligation intersects with @Query LIKE: row whose title matches both patterns is returned")
+        void whenLikeObligationIntersectsUserPatternThenMatchingRowReturned() {
+            decide(decisionWithRelationalCriteria(likeColumn("title", "%Compendium%")));
+
+            StepVerifier.create(library.tomesByTitle("%Necromancers%").map(Tome::title).collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactly("Necromancers' Compendium"))
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Multi-criteria obligation (IN + isNotNull) preserves derived-query ORDER BY")
+        void whenMultiCriteriaObligationOnInOrderByThenIntersectedAndOrdered() {
+            decide(decisionWithRelationalCriteria(inColumn("moon", SOLINARI, LUNITARI),
+                    isNotNullColumn("forbidden_tier")));
+
+            StepVerifier
+                    .create(library.tomesByMoonsRanked(List.of(SOLINARI, LUNITARI, NUITARI)).map(Tome::title)
+                            .collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactly("The Lost Chronicles",
+                            "The Bestiary of Krynn", "The Disks of Mishakal", "Songs of the Bards"))
+                    .verifyComplete();
+        }
+    }
+
+    @Nested
     @DisplayName("Fail-closed: malformed obligation does not silently bypass the proxy")
     class FailClosed {
 
@@ -217,6 +301,34 @@ class RelationalShimChainIT {
         return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("="), "value", Value.of(value)));
     }
 
+    private static ObjectValue cmpColumn(String column, String op, int value) {
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of(op), "value", Value.of(value)));
+    }
+
+    private static ObjectValue inColumn(String column, String... values) {
+        val arr = new Value[values.length];
+        for (int i = 0; i < values.length; i++) {
+            arr[i] = Value.of(values[i]);
+        }
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("in"), "value", Value.ofArray(arr)));
+    }
+
+    private static ObjectValue likeColumn(String column, String pattern) {
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("like"), "value", Value.of(pattern)));
+    }
+
+    private static ObjectValue isNotNullColumn(String column) {
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("isNotNull")));
+    }
+
+    private static ObjectValue orGroup(ObjectValue... children) {
+        return Value.ofObject(Map.of("or", arrayOf(children)));
+    }
+
+    private static ObjectValue andGroup(ObjectValue... children) {
+        return Value.ofObject(Map.of("and", arrayOf(children)));
+    }
+
     private static ArrayValue arrayOf(ObjectValue... values) {
         return Value.ofArray((Value[]) values);
     }
@@ -241,6 +353,31 @@ class RelationalShimChainIT {
         @PreEnforce(action = "'tomesNotMoreForbiddenThan'")
         public Flux<Tome> tomesNotMoreForbiddenThan(int maxTier) {
             return repository.findByForbiddenTierLessThanEqual(maxTier);
+        }
+
+        @PreEnforce(action = "'tomeById'")
+        public Mono<Tome> tomeById(int id) {
+            return repository.findById(id);
+        }
+
+        @PreEnforce(action = "'countByMoon'")
+        public Mono<Long> countByMoon(String moon) {
+            return repository.countByMoon(moon);
+        }
+
+        @PreEnforce(action = "'tomesAtMoonNotMoreForbiddenThan'")
+        public Flux<Tome> tomesAtMoonNotMoreForbiddenThan(String moon, int maxTier) {
+            return repository.findByMoonAndForbiddenTierLessThanEqual(moon, maxTier);
+        }
+
+        @PreEnforce(action = "'tomesByMoonsRanked'")
+        public Flux<Tome> tomesByMoonsRanked(Collection<String> moons) {
+            return repository.findByMoonInOrderByForbiddenTierDescIdAsc(moons);
+        }
+
+        @PreEnforce(action = "'tomesByTitle'")
+        public Flux<Tome> tomesByTitle(String pattern) {
+            return repository.findRareTomes(pattern);
         }
     }
 

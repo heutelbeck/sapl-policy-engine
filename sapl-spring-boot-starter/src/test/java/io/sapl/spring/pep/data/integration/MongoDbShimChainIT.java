@@ -22,6 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -175,6 +177,90 @@ class MongoDbShimChainIT {
     }
 
     @Nested
+    @DisplayName("Complex obligations: OR-groups, IN-lists, $regex via conditions, nested OR-of-AND, multi-criteria")
+    class ComplexObligations {
+
+        @Test
+        @DisplayName("OR-group obligation on findById: only chronicles whose moon is in the Conclave's permitted set are returned")
+        void whenOrGroupObligationOnFindByIdThenOnlyAllowedMoonReturned() {
+            decide(decisionWithMongoCriteria(orGroup(eqColumn("moon", SOLINARI), eqColumn("moon", LUNITARI))));
+
+            StepVerifier.create(chronicles.chronicleById("1").map(Chronicle::title)).expectNext("The Disks of Mishakal")
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("OR-group obligation on findById: lookup of disallowed moon yields empty Mono")
+        void whenOrGroupObligationOnFindByIdAndDisallowedMoonThenEmpty() {
+            decide(decisionWithMongoCriteria(orGroup(eqColumn("moon", SOLINARI), eqColumn("moon", LUNITARI))));
+
+            StepVerifier.create(chronicles.chronicleById("5")).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("IN-list obligation on countByMoon: count of allowed moon equals seeded documents for that moon")
+        void whenInListObligationOnCountAllowedMoonThenSeededCount() {
+            decide(decisionWithMongoCriteria(inColumn("moon", SOLINARI, LUNITARI)));
+
+            StepVerifier.create(chronicles.countByMoon(LUNITARI)).expectNext(2L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("IN-list obligation on countByMoon: count of moon outside the allowed set is zero")
+        void whenInListObligationOnCountDisallowedMoonThenZero() {
+            decide(decisionWithMongoCriteria(inColumn("moon", SOLINARI, LUNITARI)));
+
+            StepVerifier.create(chronicles.countByMoon(NUITARI)).expectNext(0L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Nested OR-of-AND obligation imposes per-moon tier ceilings on a multi-condition derived query")
+        void whenNestedOrOfAndObligationThenPerMoonTierCeilingApplied() {
+            val perMoonCeilings = orGroup(andGroup(eqColumn("moon", SOLINARI), cmpColumn("forbiddenTier", "<=", 0)),
+                    andGroup(eqColumn("moon", LUNITARI), cmpColumn("forbiddenTier", "<=", 2)),
+                    andGroup(eqColumn("moon", NUITARI), cmpColumn("forbiddenTier", "<=", 3)));
+            decide(decisionWithMongoCriteria(perMoonCeilings));
+
+            StepVerifier
+                    .create(chronicles.chroniclesAtMoonNotMoreForbiddenThan(SOLINARI, 5).map(Chronicle::title)
+                            .collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactly("The Disks of Mishakal")).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("$regex obligation via conditions intersects with @Query $regex: empty result when patterns disjoint")
+        void whenRegexObligationDisjointFromUserPatternThenEmpty() {
+            decide(decisionWithMongoConditions("{ 'title': { '$regex': '.*Compendium.*' } }"));
+
+            StepVerifier.create(chronicles.chroniclesByTitle(".*Chronicles.*").collectList())
+                    .assertNext(titles -> assertThat(titles).isEmpty()).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("$regex obligation via conditions intersects with @Query $regex: document matching both patterns is returned")
+        void whenRegexObligationIntersectsUserPatternThenMatchingDocumentReturned() {
+            decide(decisionWithMongoConditions("{ 'title': { '$regex': '.*Compendium.*' } }"));
+
+            StepVerifier.create(chronicles.chroniclesByTitle(".*Necromancers.*").map(Chronicle::title).collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactly("Necromancers' Compendium"))
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Multi-criteria obligation (IN + isNotNull) preserves derived-query ORDER BY")
+        void whenMultiCriteriaObligationOnInOrderByThenIntersectedAndOrdered() {
+            decide(decisionWithMongoCriteria(inColumn("moon", SOLINARI, LUNITARI), isNotNullColumn("forbiddenTier")));
+
+            StepVerifier
+                    .create(chronicles.chroniclesByMoonsRanked(List.of(SOLINARI, LUNITARI, NUITARI))
+                            .map(Chronicle::title).collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactly("The Lost Chronicles",
+                            "The Bestiary of Krynn", "The Disks of Mishakal", "Songs of the Bards"))
+                    .verifyComplete();
+        }
+    }
+
+    @Nested
     @DisplayName("Fail-closed: malformed obligation does not silently bypass the proxy")
     class FailClosed {
 
@@ -206,6 +292,41 @@ class MongoDbShimChainIT {
         return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("="), "value", Value.of(value)));
     }
 
+    private static ObjectValue cmpColumn(String column, String op, int value) {
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of(op), "value", Value.of(value)));
+    }
+
+    private static ObjectValue inColumn(String column, String... values) {
+        val arr = new Value[values.length];
+        for (int i = 0; i < values.length; i++) {
+            arr[i] = Value.of(values[i]);
+        }
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("in"), "value", Value.ofArray(arr)));
+    }
+
+    private static ObjectValue isNotNullColumn(String column) {
+        return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("isNotNull")));
+    }
+
+    private static ObjectValue orGroup(ObjectValue... children) {
+        return Value.ofObject(Map.of("or", arrayOf(children)));
+    }
+
+    private static ObjectValue andGroup(ObjectValue... children) {
+        return Value.ofObject(Map.of("and", arrayOf(children)));
+    }
+
+    private static AuthorizationDecision decisionWithMongoConditions(String... conditions) {
+        val conditionValues = new Value[conditions.length];
+        for (int i = 0; i < conditions.length; i++) {
+            conditionValues[i] = Value.of(conditions[i]);
+        }
+        val obligation = Value.ofObject(
+                Map.of("type", Value.of("mongo:queryManipulation"), "conditions", Value.ofArray(conditionValues)));
+        return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
+                Value.UNDEFINED);
+    }
+
     private static ArrayValue arrayOf(ObjectValue... values) {
         return Value.ofArray((Value[]) values);
     }
@@ -230,6 +351,31 @@ class MongoDbShimChainIT {
         @PreEnforce(action = "'notMoreForbiddenThan'")
         public Flux<Chronicle> notMoreForbiddenThan(int maxTier) {
             return repository.findByForbiddenTierLessThanEqual(maxTier);
+        }
+
+        @PreEnforce(action = "'chronicleById'")
+        public Mono<Chronicle> chronicleById(String id) {
+            return repository.findById(id);
+        }
+
+        @PreEnforce(action = "'countByMoon'")
+        public Mono<Long> countByMoon(String moon) {
+            return repository.countByMoon(moon);
+        }
+
+        @PreEnforce(action = "'chroniclesAtMoonNotMoreForbiddenThan'")
+        public Flux<Chronicle> chroniclesAtMoonNotMoreForbiddenThan(String moon, int maxTier) {
+            return repository.findByMoonAndForbiddenTierLessThanEqual(moon, maxTier);
+        }
+
+        @PreEnforce(action = "'chroniclesByMoonsRanked'")
+        public Flux<Chronicle> chroniclesByMoonsRanked(Collection<String> moons) {
+            return repository.findByMoonInOrderByForbiddenTierDescIdAsc(moons);
+        }
+
+        @PreEnforce(action = "'chroniclesByTitle'")
+        public Flux<Chronicle> chroniclesByTitle(String pattern) {
+            return repository.findRareChronicles(pattern);
         }
     }
 

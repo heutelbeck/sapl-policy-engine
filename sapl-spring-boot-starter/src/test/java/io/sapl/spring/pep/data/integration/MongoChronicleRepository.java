@@ -17,12 +17,25 @@
  */
 package io.sapl.spring.pep.data.integration;
 
+import java.util.Collection;
+
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 
 import io.sapl.spring.pep.data.integration.MongoDbShimChainIT.Chronicle;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface MongoChronicleRepository extends ReactiveMongoRepository<Chronicle, String> {
 
     Flux<Chronicle> findByForbiddenTierLessThanEqual(Integer maxTier);
+
+    Mono<Long> countByMoon(String moon);
+
+    Flux<Chronicle> findByMoonAndForbiddenTierLessThanEqual(String moon, Integer maxTier);
+
+    Flux<Chronicle> findByMoonInOrderByForbiddenTierDescIdAsc(Collection<String> moons);
+
+    @Query("{ 'title': { '$regex': ?0 } }")
+    Flux<Chronicle> findRareChronicles(String pattern);
 }
