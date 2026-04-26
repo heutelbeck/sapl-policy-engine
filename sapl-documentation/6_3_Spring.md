@@ -454,6 +454,8 @@ There are three handler shapes, all under the sealed `ConstraintHandler<T>` inte
 | `Consumer<T>` | `void accept(T)` | You need a side effect that has access to the value but does not change it. Example: structured audit logging that records the return value. |
 | `Runner` | `void run()` | You need a side effect that does not need a value. Examples include logging the decision or sending a notification. |
 
+One subtle rule is worth knowing before you hit it. A `Mapper` may only be returned for an obligation, never for advice. If a constraint arrived as advice and your provider returns a `Mapper`, the planner replaces it with a synthetic failure runner during planning. The reasoning is that advice is allowed to fail silently. A value transformation that silently does not happen would leave the caller unable to tell whether the result was transformed or not, which is an unsafe contract. If you want a transformation to apply, the policy must mark the constraint as an obligation. `Consumer` and `Runner` handlers can be returned for either obligation or advice.
+
 Here is a complete example that logs access attempts on every decision.
 
 ```java
@@ -530,12 +532,12 @@ obligation {
 
 The full schema.
 
-```json
+```jsonc
 {
-  "type":     "sql:queryManipulation",
-  "criteria": [ ... ],         // typed criteria, AND-joined at top level
-  "conditions": [ ... ],       // raw SQL fragments, AND-joined
-  "columns":  [ "..." ]        // SELECT projection narrowing
+  "type":       "sql:queryManipulation",
+  "criteria":   [],   // typed criteria, AND-joined at top level
+  "conditions": [],   // raw SQL fragments, AND-joined
+  "columns":    []    // SELECT projection narrowing
 }
 ```
 
@@ -564,7 +566,7 @@ Each top-level entry in the `criteria` array is AND-joined with the others.
 The `conditions` array carries raw SQL fragments. Use this for SQL features the typed language does not cover, such as `BETWEEN`, `EXISTS`, or vendor functions.
 
 ```json
-"conditions": [ "created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'" ]
+{ "conditions": [ "created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'" ] }
 ```
 
 The `columns` array narrows the SELECT projection. If the original query is `SELECT *`, the obligation columns become the projection. If the original query already projects specific columns, the obligation columns intersect with them. The `columns` array applies only to SELECT statements. For UPDATE and DELETE it is ignored.
@@ -584,18 +586,18 @@ obligation {
 
 The schema mirrors the SQL provider, minus the `columns` projection feature.
 
-```json
+```jsonc
 {
   "type":       "mongo:queryManipulation",
-  "criteria":   [ ... ],         // typed criteria, AND-joined at top level
-  "conditions": [ ... ]          // raw BSON fragments, AND-joined
+  "criteria":   [],   // typed criteria, AND-joined at top level
+  "conditions": []    // raw BSON fragments, AND-joined
 }
 ```
 
 The typed criteria language accepts the same operators as SQL except `like` and `notLike`. For pattern matching use the `conditions` escape hatch with `$regex`.
 
 ```json
-"conditions": [ "{ 'name': { '$regex': '^A' } }" ]
+{ "conditions": [ "{ 'name': { '$regex': '^A' } }" ] }
 ```
 
 Conditions use the standard MongoDB BSON query syntax. The provider parses each fragment and intersects it with the user's query inside a top-level `$and` array. The original query is preserved. The obligation can never overwrite a field the user is already filtering on.
