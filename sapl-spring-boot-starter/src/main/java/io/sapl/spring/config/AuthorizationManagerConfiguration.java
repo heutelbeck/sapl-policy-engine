@@ -19,93 +19,93 @@ package io.sapl.spring.config;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
-import io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager;
-import io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter;
-import io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler;
-import io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler;
-import io.sapl.spring.pep.http.servlet.SaplAuthorizationManager;
-import io.sapl.spring.pep.http.servlet.SaplHttpPepFilter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 
 /**
  * Deploys the SAPL HTTP enforcement infrastructure. Servlet runtime gets the
- * blocking {@link SaplAuthorizationManager}, the
- * {@link SaplAccessDeniedHandler}
- * for obligation-shaped denials, and the {@link SaplHttpPepFilter} that fires
- * the request-mutation and response signals. Reactive runtime gets the
- * non-blocking {@link ReactiveSaplAuthorizationManager}. Both runtimes share
- * the same {@link EnforcementPlanner} bean (defined by the method-security
- * configuration).
+ * blocking authorization manager, access-denied handler, and HTTP PEP filter
+ * via {@link Servlet}; reactive runtime gets the non-blocking equivalents
+ * via {@link Reactive}. Each inner configuration is gated at class level by
+ * {@link ConditionalOnWebApplication} so that servlet types are not loaded
+ * when only WebFlux is on the classpath, and vice versa. Both runtimes
+ * share the same {@link EnforcementPlanner} bean defined by the
+ * method-security configuration.
  * <p>
- * The supporting servlet beans are auto-applied to {@code HttpSecurity} via
- * {@link SaplHttpSecurityConfigurer}; users opt in with
- * {@code http.with(SaplHttpSecurityConfigurer.saplHttp(), Customizer.withDefaults())}.
+ * Users opt SAPL into {@code HttpSecurity} or {@code ServerHttpSecurity}
+ * via the dedicated configurer that the corresponding inner class
+ * documents. The configurers are not auto-applied; the user calls them
+ * explicitly.
  */
 @Slf4j
 @AutoConfiguration
-@RequiredArgsConstructor
 public class AuthorizationManagerConfiguration {
 
-    private final PolicyDecisionPoint pdp;
-    private final EnforcementPlanner  enforcementPlanner;
-    private final ObjectMapper        mapper;
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    SaplAuthorizationManager saplAuthorizationManager() {
-        log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
-        return new SaplAuthorizationManager(pdp, enforcementPlanner, mapper);
+    @ConditionalOnClass(name = "io.sapl.spring.pep.http.servlet.SaplAuthorizationManager")
+    static class Servlet {
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        io.sapl.spring.pep.http.servlet.SaplAuthorizationManager saplAuthorizationManager(PolicyDecisionPoint pdp,
+                EnforcementPlanner enforcementPlanner, ObjectMapper mapper) {
+            log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
+            return new io.sapl.spring.pep.http.servlet.SaplAuthorizationManager(pdp, enforcementPlanner, mapper);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler saplAccessDeniedHandler() {
+            return new io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        io.sapl.spring.pep.http.servlet.SaplHttpPepFilter saplHttpPepFilter() {
+            return new io.sapl.spring.pep.http.servlet.SaplHttpPepFilter();
+        }
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    SaplAccessDeniedHandler saplAccessDeniedHandler() {
-        return new SaplAccessDeniedHandler();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-    SaplHttpPepFilter saplHttpPepFilter() {
-        return new SaplHttpPepFilter();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-    ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager() {
-        log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
-        return new ReactiveSaplAuthorizationManager(pdp, enforcementPlanner, mapper);
-    }
+    @ConditionalOnClass(name = "io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager")
+    static class Reactive {
 
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-    SaplServerAccessDeniedHandler saplServerAccessDeniedHandler() {
-        return new SaplServerAccessDeniedHandler();
-    }
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(
+                PolicyDecisionPoint pdp, EnforcementPlanner enforcementPlanner, ObjectMapper mapper) {
+            log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
+            return new io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager(pdp, enforcementPlanner,
+                    mapper);
+        }
 
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-    SaplHttpPepWebFilter saplHttpPepWebFilter() {
-        return new SaplHttpPepWebFilter();
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler saplServerAccessDeniedHandler() {
+            return new io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler();
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter saplHttpPepWebFilter() {
+            return new io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter();
+        }
     }
 }
