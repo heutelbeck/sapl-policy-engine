@@ -195,9 +195,11 @@ class EnforcementPlannerTests {
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
 
-            assertThat(plan.entriesFor(CANCEL_SIGNAL_TYPE)).isEmpty();
-            assertThat(plan.entriesFor(DECISION_SIGNAL_TYPE)).hasSize(1).first()
-                    .extracting(entry -> entry.handler() instanceof ConstraintHandler.Runner).isEqualTo(true);
+            assertThat(plan).satisfies(p -> {
+                assertThat(p.entriesFor(CANCEL_SIGNAL_TYPE)).isEmpty();
+                assertThat(p.entriesFor(DECISION_SIGNAL_TYPE)).hasSize(1).first()
+                        .extracting(entry -> entry.handler() instanceof ConstraintHandler.Runner).isEqualTo(true);
+            });
             assertSubstituteFailsWithReason(plan, DECISION_SIGNAL_TYPE, SubstitutionReason.INADMISSIBLE);
             assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
         }
@@ -250,8 +252,10 @@ class EnforcementPlannerTests {
 
             val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
 
-            assertThat(plan.entriesFor(OUTPUT_STRING_TYPE)).isEmpty();
-            assertThat(plan.entriesFor(DECISION_SIGNAL_TYPE)).hasSize(1);
+            assertThat(plan).satisfies(p -> {
+                assertThat(p.entriesFor(OUTPUT_STRING_TYPE)).isEmpty();
+                assertThat(p.entriesFor(DECISION_SIGNAL_TYPE)).hasSize(1);
+            });
             assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
         }
     }

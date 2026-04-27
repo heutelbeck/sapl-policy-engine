@@ -43,6 +43,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpRequest;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -354,8 +355,7 @@ class SaplHttpServletEnforcementTests {
                 if (!supportedSignals.contains(Signal.HttpRequestSignal.TYPE)) {
                     return List.of();
                 }
-                ConstraintHandler.Consumer<org.springframework.http.HttpRequest> h = req -> probes
-                        .observePath(req.getURI().getPath());
+                ConstraintHandler.Consumer<HttpRequest> h = req -> probes.observePath(req.getURI().getPath());
                 return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestSignal.TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, INJECT_HEADER)) {

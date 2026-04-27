@@ -37,6 +37,7 @@ import io.sapl.spring.util.Maybe.Present;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 
 /**
  * AOP {@link MethodInterceptor} for the reactive Mongo template proxy. Catches
@@ -209,8 +210,8 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         return method.invoke(delegate.matching(originalQuery), args);
     }
 
-    private static Mono<Object> applyShimAndInvokeTerminating(reactor.util.context.ContextView ctx,
-            FindWithQuery<?> delegate, Query originalQuery, Method method, Object[] args) {
+    private static Mono<Object> applyShimAndInvokeTerminating(ContextView ctx, FindWithQuery<?> delegate,
+            Query originalQuery, Method method, Object[] args) {
         val   planOpt    = EnforcementPlanContext.currentReactor(ctx);
         Query queryToUse = originalQuery;
         if (planOpt.isPresent()) {

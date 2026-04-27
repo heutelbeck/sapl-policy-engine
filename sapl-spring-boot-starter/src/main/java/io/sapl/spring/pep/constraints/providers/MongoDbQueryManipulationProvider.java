@@ -18,6 +18,7 @@
 package io.sapl.spring.pep.constraints.providers;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -265,7 +266,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
         case ">=" -> Optional.of(builder.gte(javaValue));
         case "<"  -> Optional.of(builder.lt(javaValue));
         case "<=" -> Optional.of(builder.lte(javaValue));
-        case "in" -> javaValue instanceof java.util.Collection<?> c ? Optional.of(builder.in(c)) : Optional.empty();
+        case "in" -> javaValue instanceof Collection<?> c ? Optional.of(builder.in(c)) : Optional.empty();
         default   -> Optional.empty();
         };
     }
