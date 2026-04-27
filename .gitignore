@@ -41,3 +41,4 @@ target/
 sapl-benchmark/sapl-benchmark-sapl3/dependency-reduced-pom.xml
 sapl-benchmark/sapl-benchmark-sapl3/dependency-reduced-pom.xml
 sapl-benchmark/bin/
+.attach_pid*
