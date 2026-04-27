@@ -57,7 +57,7 @@ class MongoDbQueryManipulationProviderTests {
 
     @SuppressWarnings("unchecked")
     private Mapper<Query> mapperFor(String constraintJson) {
-        return (Mapper<Query>) provider.getConstraintHandler(v(constraintJson), Set.of(MONGO_SIGNAL)).orElseThrow()
+        return (Mapper<Query>) provider.getConstraintHandlers(v(constraintJson), Set.of(MONGO_SIGNAL)).getFirst()
                 .handler();
     }
 
@@ -72,7 +72,7 @@ class MongoDbQueryManipulationProviderTests {
         @Test
         @DisplayName("non-matching constraint type yields empty Optional")
         void givenWrongConstraintTypeThenEmpty() {
-            assertThat(provider.getConstraintHandler(v("""
+            assertThat(provider.getConstraintHandlers(v("""
                     {"type": "somethingElse"}
                     """), Set.of(MONGO_SIGNAL))).isEmpty();
         }
@@ -80,13 +80,13 @@ class MongoDbQueryManipulationProviderTests {
         @Test
         @DisplayName("non-object constraint yields empty Optional")
         void givenNonObjectConstraintThenEmpty() {
-            assertThat(provider.getConstraintHandler(v("\"plain\""), Set.of(MONGO_SIGNAL))).isEmpty();
+            assertThat(provider.getConstraintHandlers(v("\"plain\""), Set.of(MONGO_SIGNAL))).isEmpty();
         }
 
         @Test
         @DisplayName("matching constraint without MongoDbQueryShimSignal yields empty Optional")
         void givenMatchingConstraintWithoutSignalThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "mongo:queryManipulation",
                      "conditions": ["{'tenantId': 7}"]}
                     """), Set.of(DECISION_SIGNAL));
@@ -96,7 +96,7 @@ class MongoDbQueryManipulationProviderTests {
         @Test
         @DisplayName("matching constraint with neither criteria nor conditions yields empty Optional")
         void givenMatchingConstraintWithEmptyPayloadThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "mongo:queryManipulation"}
                     """), Set.of(MONGO_SIGNAL));
             assertThat(result).isEmpty();
@@ -105,11 +105,11 @@ class MongoDbQueryManipulationProviderTests {
         @Test
         @DisplayName("returns Mapper at MongoDbQueryShimSignal with default priority")
         void givenMatchingConstraintAndSignalThenReturnsMapper() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "mongo:queryManipulation",
                      "conditions": ["{'tenantId': 7}"]}
                     """), Set.of(MONGO_SIGNAL));
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped).satisfies(s -> {
+            assertThat(result).singleElement().satisfies(scoped -> assertThat(scoped).satisfies(s -> {
                 assertThat(s.signalType()).isEqualTo(MONGO_SIGNAL);
                 assertThat(s.priority()).isEqualTo(30);
                 assertThat(s.handler()).isInstanceOf(Mapper.class);

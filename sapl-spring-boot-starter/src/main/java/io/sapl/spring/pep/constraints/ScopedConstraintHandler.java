@@ -20,7 +20,6 @@ package io.sapl.spring.pep.constraints;
 /**
  * Pairs a {@link ConstraintHandler} with the {@link SignalType} it applies to
  * and a sort priority.
- * </p>
  *
  * @param handler the constraint handler
  * @param signalType the signal at which {@code handler} applies

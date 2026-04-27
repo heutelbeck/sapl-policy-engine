@@ -342,6 +342,21 @@ SecurityWebFilterChain filterChain(ServerHttpSecurity http, ReactiveSaplAuthoriz
 
 The authorization manager constructs subscriptions from the HTTP request. Your policies can then check paths, headers, query parameters, and other request attributes. This is useful for coarse-grained rules such as "only employees can access /internal/*" without annotating every controller method.
 
+When the security context has no `Authentication` (an unauthenticated request), the manager defaults to an anonymous token rather than failing. Policies can then express "permit anyone" or "deny anonymous" without the authorization machinery raising a `NullPointerException`.
+
+### Constraint Handlers at the HTTP Layer
+
+Both managers fire two signals through the same `EnforcementPlanner` used by method security. Constraint handlers may attach to either.
+
+| Signal | When it fires | Typical handler |
+|---|---|---|
+| `DecisionSignal` | When the PDP decision arrives | Audit logging, metrics, decision-tagged side effects |
+| `HttpRequestSignal` | After the decision, before the allow/deny gate | Request-aware audit, per-user rate limiting, structured access logs |
+
+`HttpRequestSignal` carries an `org.springframework.http.HttpRequest` view of the inbound request. The same signal fires from both managers. The carried value is a common abstraction with method, URI, and headers. For backend-specific access, downcast to `org.springframework.http.server.ServletServerHttpRequest` (servlet) or `org.springframework.http.server.reactive.ServerHttpRequest` (reactive).
+
+The signal accepts `Consumer<HttpRequest>` and `Runner` handlers. Mappers that would mutate the request are not supported through this signal because the managers treat the request as read-only at the authorization point.
+
 ## Constraints
 
 So far we have talked about permit and deny decisions. SAPL can do more. A decision can include constraints that the PEP must enforce. The obligation and advice contract was covered above in [The Deny Invariant](#the-deny-invariant). This section shows how to write policies with constraints, and how to implement the handlers that enforce them.
@@ -433,18 +448,20 @@ The interface is small.
 
 ```java
 public interface ConstraintHandlerProvider {
-    Optional<ScopedConstraintHandler> getConstraintHandler(
+    List<ScopedConstraintHandler> getConstraintHandlers(
         Value constraint, Set<SignalType> supportedSignals);
 }
 ```
 
-The PEP calls `getConstraintHandler` for each constraint in a decision. Your provider inspects the constraint and decides whether it can handle it. If yes, return a `ScopedConstraintHandler` that bundles three things together.
+The PEP calls `getConstraintHandlers` for each constraint in a decision. Your provider inspects the constraint and decides whether it can handle it. If yes, return one or more `ScopedConstraintHandler` entries. Each entry bundles three things together.
 
 - A `ConstraintHandler<T>`, which is the actual logic.
 - The `SignalType` it should attach to.
 - A priority (lower runs earlier among handlers on the same signal).
 
-If no, return `Optional.empty()`, and the PEP will ask other providers. If no provider claims a constraint that arrived as an obligation, the PEP denies access.
+If no, return an empty list, and the PEP will ask other providers. If no provider claims a constraint that arrived as an obligation, the PEP denies access. If more than one provider claims the same constraint, the planner treats that as ambiguous and denies access.
+
+A single obligation can drive several handlers across different lifecycle points. For example, an `auditAndStamp` obligation can return both a `DecisionSignal` runner that records the decision and an `HttpResponseSignal` consumer that adds an audit header to the response. The planner schedules each handler against its own signal independently. The bundle is all-or-nothing during admissibility checks. If any handler in the returned list is not well-formed (for example a mapper attached to a signal the calling PEP does not advertise), the entire claim is rejected.
 
 There are three handler shapes, all under the sealed `ConstraintHandler<T>` interface.
 
@@ -466,17 +483,17 @@ public class LogAccessHandler implements ConstraintHandlerProvider {
     private static final String CONSTRAINT_TYPE = "logAccess";
 
     @Override
-    public Optional<ScopedConstraintHandler> getConstraintHandler(
+    public List<ScopedConstraintHandler> getConstraintHandlers(
             Value constraint, Set<SignalType> supportedSignals) {
 
         if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
-            return Optional.empty();
+            return List.of();
         }
 
         var message = extractMessage(constraint);
         ConstraintHandler.Runner handler = () -> log.info(message);
 
-        return Optional.of(new ScopedConstraintHandler(handler, DecisionSignal.TYPE, 0));
+        return List.of(new ScopedConstraintHandler(handler, DecisionSignal.TYPE, 0));
     }
 
     private static String extractMessage(Value constraint) {

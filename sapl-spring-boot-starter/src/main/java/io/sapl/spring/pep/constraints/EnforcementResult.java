@@ -21,7 +21,6 @@ import io.sapl.spring.util.Maybe;
 
 /**
  * Outcome of executing the enforcement plan for one signal.
- * </p>
  *
  * @param value the (possibly transformed) value carried by the signal, or
  * {@link Maybe.Absent} for

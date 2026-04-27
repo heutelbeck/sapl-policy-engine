@@ -615,25 +615,24 @@ class PreEnforcePolicyEnforcementPointTests {
         }
 
         @Override
-        public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint,
-                Set<SignalType> supportedSignals) {
+        public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
             if (!(constraint instanceof ObjectValue obj)) {
-                return Optional.empty();
+                return List.of();
             }
             if (!(obj.get("type") instanceof TextValue(String type))) {
-                return Optional.empty();
+                return List.of();
             }
             return switch (type) {
             case Obligation.PATRICIAN_COUNTERSIGNS       ->
-                Optional.of(new ScopedConstraintHandler((Runner) logbook.patricianCountersignatures::incrementAndGet,
+                List.of(new ScopedConstraintHandler((Runner) logbook.patricianCountersignatures::incrementAndGet,
                         DecisionSignal.TYPE, 0));
-            case Obligation.COLON_NOTES_REQUEST          -> Optional
-                    .of(new ScopedConstraintHandler((Runner) logbook.colonNotes::incrementAndGet, InputSignal.TYPE, 0));
-            case Obligation.CARROT_INSPECTS_WARRANT      -> Optional.of(new ScopedConstraintHandler(
+            case Obligation.COLON_NOTES_REQUEST          ->
+                List.of(new ScopedConstraintHandler((Runner) logbook.colonNotes::incrementAndGet, InputSignal.TYPE, 0));
+            case Obligation.CARROT_INSPECTS_WARRANT      -> List.of(new ScopedConstraintHandler(
                     (Consumer<MethodInvocation>) ignored -> logbook.carrotInspections.incrementAndGet(),
                     InputSignal.TYPE, 0));
             case Obligation.NOBBY_REWRITES_WARRANT       ->
-                Optional.of(new ScopedConstraintHandler((Mapper<MethodInvocation>) inv -> {
+                List.of(new ScopedConstraintHandler((Mapper<MethodInvocation>) inv -> {
                                                              if (inv.getArguments().length > 0) {
                                                                  inv.getArguments()[0] = CARCER_DUN_THE_REAL_CULPRIT;
                                                              }
@@ -646,11 +645,11 @@ class PreEnforcePolicyEnforcementPointTests {
                 outputAt(supportedSignals, (Consumer<Object>) logbook.lastDetritusObservation::set);
             case Obligation.LIBRARIAN_REDACTS_OUTPUT     ->
                 outputAt(supportedSignals, (Mapper<Object>) ignored -> CASE_FILE_REDACTED);
-            case Obligation.BURSAR_COLLAPSES_DECISION    -> Optional.of(new ScopedConstraintHandler((Runner) () -> {
+            case Obligation.BURSAR_COLLAPSES_DECISION    -> List.of(new ScopedConstraintHandler((Runner) () -> {
                                                          throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
                                                      },
                     DecisionSignal.TYPE, 0));
-            case Obligation.NOBBY_LOSES_PAPERWORK_INPUT  -> Optional.of(new ScopedConstraintHandler((Runner) () -> {
+            case Obligation.NOBBY_LOSES_PAPERWORK_INPUT  -> List.of(new ScopedConstraintHandler((Runner) () -> {
                                                          throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
                                                      },
                     InputSignal.TYPE, 0));
@@ -660,23 +659,23 @@ class PreEnforcePolicyEnforcementPointTests {
             case Obligation.RINCEWIND_PANICS_CONSUMER    -> outputAt(supportedSignals, (Consumer<Object>) ignored -> {
                                                          throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
                                                      });
-            case Obligation.DEATH_CLAIMS_EXCEPTION       -> Optional.of(new ScopedConstraintHandler(
+            case Obligation.DEATH_CLAIMS_EXCEPTION       -> List.of(new ScopedConstraintHandler(
                     (Mapper<Throwable>) ignored -> new IllegalStateException(DEATH_CLAIMS_THE_EXCEPTION),
                     ErrorSignal.TYPE, 0));
-            case Obligation.CLERKS_LOG_FAILED_WARRANT    -> Optional.of(
+            case Obligation.CLERKS_LOG_FAILED_WARRANT    -> List.of(
                     new ScopedConstraintHandler((Runner) logbook.clerkErrorLogs::incrementAndGet, ErrorSignal.TYPE, 0));
-            default                                      -> Optional.empty();
+            default                                      -> List.of();
             };
         }
 
-        private static Optional<ScopedConstraintHandler> outputAt(Set<SignalType> supportedSignals,
+        private static List<ScopedConstraintHandler> outputAt(Set<SignalType> supportedSignals,
                 ConstraintHandler<?> handler) {
             for (val s : supportedSignals) {
                 if (s instanceof ValueSignalType<?> v && OutputSignal.class.equals(v.type())) {
-                    return Optional.of(new ScopedConstraintHandler(handler, s, 30));
+                    return List.of(new ScopedConstraintHandler(handler, s, 30));
                 }
             }
-            return Optional.empty();
+            return List.of();
         }
     }
 }

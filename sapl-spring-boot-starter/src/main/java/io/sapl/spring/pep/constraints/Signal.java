@@ -18,11 +18,15 @@
 package io.sapl.spring.pep.constraints;
 
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.spring.pep.http.MutableHttpRequest;
+import io.sapl.spring.pep.http.MutableHttpResponse;
 import io.sapl.spring.util.Maybe;
 import io.sapl.spring.util.Maybe.Present;
 import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.core.ResolvableType;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpRequest;
 
 /**
  * An event fired during enforcement at which constraint handlers may attach.
@@ -44,8 +48,9 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      * {@link ResolvableType} so generic information (e.g. the {@code String} in
      * {@code Mono<String>}) is preserved for provider dispatch.
      */
-    sealed interface ValueSignal<T> extends Signal permits DecisionSignal, InputSignal, OutputSignal, ErrorSignal,
-            SubscriptionSignal, SqlShimSignal, MongoDbQueryShimSignal {
+    sealed interface ValueSignal<T> extends Signal
+            permits DecisionSignal, InputSignal, OutputSignal, ErrorSignal, SubscriptionSignal, SqlShimSignal,
+            MongoDbQueryShimSignal, HttpRequestSignal, HttpRequestMutationSignal, HttpResponseSignal, HttpDenialSignal {
         T value();
 
         ResolvableType valueType();
@@ -292,35 +297,129 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     /**
-     * Shim signal carrying a Spring Data Relational
-     * {@link org.springframework.data.relational.core.query.Query} just before
-     * driver dispatch. Fired by wrappers around {@code R2dbcEntityTemplate} and
-     * {@code JdbcAggregateTemplate}, which both use the same Query class from
-     * {@code spring-data-relational}. Mappers may append {@code Criteria},
-     * restrict {@code Columns}, or otherwise transform the structured query
-     * semantically before execution. Fully-qualified package name is used to
-     * make the namespace difference vs Mongo's same-named Query explicit at the
-     * signature level.
-     */
-    /**
-     * Shim signal carrying a Spring Data MongoDB
-     * {@link org.springframework.data.mongodb.core.query.Query} just before
+     * Shim signal carrying a Spring Data MongoDB {@link Query} just before
      * driver dispatch. Fired by wrappers around {@code MongoTemplate} and
      * {@code ReactiveMongoTemplate}. Raw {@code @Query}-annotated methods parse
      * into {@code BasicQuery extends Query} and travel the same path, so a
-     * single shim signal covers all Mongo query origins. Fully-qualified package
-     * name is used to make the namespace difference vs the relational Query
-     * explicit at the signature level.
+     * single shim signal covers all Mongo query origins. The carried type is
+     * Spring Data Mongo's
+     * {@code org.springframework.data.mongodb.core.query.Query},
+     * not the relational query type.
      */
-    record MongoDbQueryShimSignal(org.springframework.data.mongodb.core.query.Query value)
-            implements ValueSignal<org.springframework.data.mongodb.core.query.Query> {
-        public static final ResolvableType VALUE_TYPE = ResolvableType
-                .forClass(org.springframework.data.mongodb.core.query.Query.class);
+    record MongoDbQueryShimSignal(Query value) implements ValueSignal<Query> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Query.class);
         public static final SignalType TYPE = new SignalType.ValueSignalType<>(MongoDbQueryShimSignal.class,
                 VALUE_TYPE);
 
-        public static MongoDbQueryShimSignal of(org.springframework.data.mongodb.core.query.Query query) {
+        public static MongoDbQueryShimSignal of(Query query) {
             return new MongoDbQueryShimSignal(query);
+        }
+
+        @Override
+        public ResolvableType valueType() {
+            return VALUE_TYPE;
+        }
+
+        @Override
+        public SignalType type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Fires inside the HTTP authorization manager once the PDP decision is
+     * known. Carries a read-only view of the inbound request as a Spring
+     * {@link HttpRequest}. Use {@code Consumer} or {@code Runner}
+     * handlers for audit, metrics, or rate-limit checks. The request is
+     * treated as read-only at this point. Mutations belong to
+     * {@link HttpRequestMutationSignal}.
+     */
+    record HttpRequestSignal(HttpRequest value) implements ValueSignal<HttpRequest> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(HttpRequest.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpRequestSignal.class, VALUE_TYPE);
+
+        public static HttpRequestSignal of(HttpRequest request) {
+            return new HttpRequestSignal(request);
+        }
+
+        @Override
+        public ResolvableType valueType() {
+            return VALUE_TYPE;
+        }
+
+        @Override
+        public SignalType type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Fires from the SAPL HTTP filter on the permit path, before the
+     * request reaches downstream filters and the controller. Carries a
+     * {@link MutableHttpRequest} that handlers may use to set or remove
+     * headers and request attributes.
+     */
+    record HttpRequestMutationSignal(MutableHttpRequest value) implements ValueSignal<MutableHttpRequest> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpRequest.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpRequestMutationSignal.class,
+                VALUE_TYPE);
+
+        public static HttpRequestMutationSignal of(MutableHttpRequest request) {
+            return new HttpRequestMutationSignal(request);
+        }
+
+        @Override
+        public ResolvableType valueType() {
+            return VALUE_TYPE;
+        }
+
+        @Override
+        public SignalType type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Fires from the SAPL HTTP filter on the permit path after the
+     * controller has returned, before the response is committed to the
+     * client. Carries a {@link MutableHttpResponse}. Consumer handlers
+     * may observe the response (status, headers) or modify it (set
+     * status, set or add headers, write body). The signal serves both
+     * observation and modification through the standard handler shapes.
+     */
+    record HttpResponseSignal(MutableHttpResponse value) implements ValueSignal<MutableHttpResponse> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpResponse.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpResponseSignal.class, VALUE_TYPE);
+
+        public static HttpResponseSignal of(MutableHttpResponse response) {
+            return new HttpResponseSignal(response);
+        }
+
+        @Override
+        public ResolvableType valueType() {
+            return VALUE_TYPE;
+        }
+
+        @Override
+        public SignalType type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Fires from the SAPL access-denied handler when an authenticated
+     * request is denied by the policy. Carries a
+     * {@link MutableHttpResponse} that handlers may use to set the
+     * status, write headers, or issue a redirect. Anonymous denials route
+     * through Spring's authentication entry point and do not fire this
+     * signal.
+     */
+    record HttpDenialSignal(MutableHttpResponse value) implements ValueSignal<MutableHttpResponse> {
+        public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpResponse.class);
+        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpDenialSignal.class, VALUE_TYPE);
+
+        public static HttpDenialSignal of(MutableHttpResponse response) {
+            return new HttpDenialSignal(response);
         }
 
         @Override

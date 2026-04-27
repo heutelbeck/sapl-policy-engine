@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.model.ArrayValue;
@@ -106,17 +106,17 @@ public class EnforcementPlanner {
         val outputSignalType = findOutputSignalType(supportedSignals);
         addImplicitResourceObligationIfPresent(decision, outputSignalType, entriesBySignal);
         sortAndEnforceCommutativity(entriesBySignal);
-        val outputType = outputSignalType.map(ValueSignalType::valueType).orElse(null);
+        val outputType = outputSignalType == null ? null : outputSignalType.valueType();
         return new EnforcementPlan(outputType, entriesBySignal);
     }
 
-    private static Optional<ValueSignalType<?>> findOutputSignalType(Set<SignalType> supportedSignals) {
+    private static @Nullable ValueSignalType<?> findOutputSignalType(Set<SignalType> supportedSignals) {
         for (val signal : supportedSignals) {
             if (signal instanceof ValueSignalType<?> v && Signal.OutputSignal.class.equals(v.type())) {
-                return Optional.of(v);
+                return v;
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     /**
@@ -131,19 +131,19 @@ public class EnforcementPlanner {
      * OutputSignal is supported.
      */
     private void addImplicitResourceObligationIfPresent(AuthorizationDecision decision,
-            Optional<ValueSignalType<?>> outputSignal, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
+            @Nullable ValueSignalType<?> outputSignal, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
         if (decision.resource() instanceof UndefinedValue) {
             return;
         }
-        if (outputSignal.isEmpty()) {
+        if (outputSignal == null) {
             val substitute = failureSubstitute(decision.resource(), ConstraintType.OBLIGATION,
                     SubstitutionReason.INADMISSIBLE);
             entriesBySignal.computeIfAbsent(substitute.signal(), signal -> new ArrayList<>()).add(substitute.entry());
             return;
         }
-        val outputType     = outputSignal.get().valueType().resolve(Object.class);
+        val outputType     = outputSignal.valueType().resolve(Object.class);
         val resourceMapper = resourceSubstitutionMapper(decision.resource(), outputType);
-        entriesBySignal.computeIfAbsent(outputSignal.get(), signal -> new ArrayList<>())
+        entriesBySignal.computeIfAbsent(outputSignal, signal -> new ArrayList<>())
                 .add(entry(resourceMapper, Integer.MIN_VALUE, ConstraintType.OBLIGATION, decision.resource()));
     }
 
@@ -197,40 +197,49 @@ public class EnforcementPlanner {
     private void scheduleHandlersFor(ArrayValue constraints, ConstraintType constraintType,
             Set<SignalType> supportedSignals, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
         for (val constraint : constraints) {
-            val assignment = assignHandler(constraint, constraintType, supportedSignals);
-            entriesBySignal.computeIfAbsent(assignment.signal(), signal -> new ArrayList<>()).add(assignment.entry());
+            for (val assignment : assignHandlers(constraint, constraintType, supportedSignals)) {
+                entriesBySignal.computeIfAbsent(assignment.signal(), signal -> new ArrayList<>())
+                        .add(assignment.entry());
+            }
         }
     }
 
     /**
-     * Resolves the handler for one constraint by collecting all providers' results.
-     * Returns the well-formed
-     * scoped handler when exactly one provider claims the constraint and that
-     * handler is admissible;
-     * otherwise returns a failure substitute attached to the decision signal with
-     * the matching reason
+     * Resolves all handlers for one constraint by collecting providers' results.
+     * Exactly one provider must claim the constraint (return a non-empty list).
+     * That provider may return one or more handlers, each scoped to its own
+     * signal and priority. Each well-formed handler is scheduled independently;
+     * any inadmissible handler in the bundle fails the entire claim.
+     * <p>
+     * Returns a singleton failure substitute attached to the decision signal
+     * when no provider claims, multiple providers claim, or any returned handler
+     * is not admissible
      * ({@link SubstitutionReason#UNRESOLVED}, {@link SubstitutionReason#AMBIGUOUS},
-     * or
-     * {@link SubstitutionReason#INADMISSIBLE}).
+     * or {@link SubstitutionReason#INADMISSIBLE}).
      */
-    private Assignment assignHandler(Value constraint, ConstraintType constraintType,
+    private List<Assignment> assignHandlers(Value constraint, ConstraintType constraintType,
             Set<SignalType> supportedSignals) {
-        val matchingHandlers = providers.stream()
-                .map(provider -> provider.getConstraintHandler(constraint, supportedSignals)).flatMap(Optional::stream)
-                .toList();
+        val claims = providers.stream().map(provider -> provider.getConstraintHandlers(constraint, supportedSignals))
+                .filter(claim -> !claim.isEmpty()).toList();
 
-        if (matchingHandlers.isEmpty()) {
-            return failureSubstitute(constraint, constraintType, SubstitutionReason.UNRESOLVED);
+        if (claims.isEmpty()) {
+            return List.of(failureSubstitute(constraint, constraintType, SubstitutionReason.UNRESOLVED));
         }
-        if (matchingHandlers.size() > 1) {
-            return failureSubstitute(constraint, constraintType, SubstitutionReason.AMBIGUOUS);
+        if (claims.size() > 1) {
+            return List.of(failureSubstitute(constraint, constraintType, SubstitutionReason.AMBIGUOUS));
         }
-        val scopedHandler = matchingHandlers.getFirst();
-        if (!isAdmissible(scopedHandler, constraintType, supportedSignals)) {
-            return failureSubstitute(constraint, constraintType, SubstitutionReason.INADMISSIBLE);
+        val scopedHandlers = claims.getFirst();
+        for (val scopedHandler : scopedHandlers) {
+            if (!isAdmissible(scopedHandler, constraintType, supportedSignals)) {
+                return List.of(failureSubstitute(constraint, constraintType, SubstitutionReason.INADMISSIBLE));
+            }
         }
-        return new Assignment(scopedHandler.signalType(),
-                entry(scopedHandler.handler(), scopedHandler.priority(), constraintType, constraint));
+        val assignments = new ArrayList<Assignment>(scopedHandlers.size());
+        for (val scopedHandler : scopedHandlers) {
+            assignments.add(new Assignment(scopedHandler.signalType(),
+                    entry(scopedHandler.handler(), scopedHandler.priority(), constraintType, constraint)));
+        }
+        return assignments;
     }
 
     /**

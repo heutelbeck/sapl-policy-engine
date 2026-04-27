@@ -67,7 +67,7 @@ class ContentFilteringProviderTests {
         @Test
         @DisplayName("non-matching constraint type yields empty Optional")
         void givenWrongConstraintTypeThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "somethingElse"}
                     """), Set.of(OUTPUT_MAP_TYPE));
             assertThat(result).isEmpty();
@@ -76,14 +76,14 @@ class ContentFilteringProviderTests {
         @Test
         @DisplayName("non-object constraint yields empty Optional")
         void givenNonObjectConstraintThenEmpty() {
-            val result = provider.getConstraintHandler(v("\"plain string\""), Set.of(OUTPUT_MAP_TYPE));
+            val result = provider.getConstraintHandlers(v("\"plain string\""), Set.of(OUTPUT_MAP_TYPE));
             assertThat(result).isEmpty();
         }
 
         @Test
         @DisplayName("matching constraint but no OutputSignal supported yields empty Optional")
         void givenMatchingConstraintWithoutOutputSignalThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "filterJsonContent"}
                     """), Set.of(DECISION_SIGNAL_TYPE, CANCEL_SIGNAL_TYPE));
             assertThat(result).isEmpty();
@@ -97,11 +97,11 @@ class ContentFilteringProviderTests {
         @Test
         @DisplayName("returns Mapper at the supported OutputSignal with default priority")
         void givenMatchingConstraintAndOutputSignalThenReturnsMapper() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "filterJsonContent"}
                     """), Set.of(OUTPUT_MAP_TYPE, DECISION_SIGNAL_TYPE));
 
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped).satisfies(s -> {
+            assertThat(result).singleElement().satisfies(scoped -> assertThat(scoped).satisfies(s -> {
                 assertThat(s.signalType()).isEqualTo(OUTPUT_MAP_TYPE);
                 assertThat(s.priority()).isEqualTo(30);
                 assertThat(s.handler()).isInstanceOf(Mapper.class);
@@ -112,14 +112,14 @@ class ContentFilteringProviderTests {
         @DisplayName("returned mapper executes the configured filter actions")
         @SuppressWarnings("unchecked")
         void givenResolvedMapperWhenAppliedThenFiltersPayload() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {
                       "type": "filterJsonContent",
                       "actions": [{"path": "$.name", "type": "delete"}]
                     }
                     """), Set.of(OUTPUT_MAP_TYPE));
 
-            val mapper  = (Mapper<Object>) result.orElseThrow().handler();
+            val mapper  = (Mapper<Object>) result.getFirst().handler();
             val payload = new HashMap<>(Map.of("name", "Alice", "age", 30));
             val output  = (Map<String, Object>) mapper.apply(payload);
             assertThat(output).doesNotContainKey("name").containsEntry("age", 30);
