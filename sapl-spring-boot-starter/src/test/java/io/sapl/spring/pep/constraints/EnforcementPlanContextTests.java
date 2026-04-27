@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
@@ -200,7 +201,7 @@ class EnforcementPlanContextTests {
         @Test
         @DisplayName("Reactor binding does not leak into ThreadLocal")
         void givenReactorBoundWhenCurrentBlockingThenEmpty() {
-            val seenInside = new AtomicReference<java.util.Optional<EnforcementPlan>>();
+            val seenInside = new AtomicReference<Optional<EnforcementPlan>>();
             val body       = Mono.fromRunnable(() -> seenInside.set(EnforcementPlanContext.currentBlocking()));
 
             StepVerifier.create(EnforcementPlanContext.withReactor(PLAN_A, body.then(Mono.just("ok")))).expectNext("ok")

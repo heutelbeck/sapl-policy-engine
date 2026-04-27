@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,7 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
@@ -332,9 +334,9 @@ class SaplHttpPepFilterTests {
     }
 
     private static final class RecordingFilterChain extends MockFilterChain {
-        private final ChainBody                                    body;
-        private @org.jspecify.annotations.Nullable ServletRequest  seenRequest;
-        private @org.jspecify.annotations.Nullable ServletResponse seenResponse;
+        private final ChainBody           body;
+        private @Nullable ServletRequest  seenRequest;
+        private @Nullable ServletResponse seenResponse;
 
         RecordingFilterChain(ChainBody body) {
             super(new NoopServlet(), new Filter[0]);
@@ -363,7 +365,7 @@ class SaplHttpPepFilterTests {
         }
     }
 
-    private static final class NoopServlet extends jakarta.servlet.http.HttpServlet {
+    private static final class NoopServlet extends HttpServlet {
         private static final long serialVersionUID = 1L;
     }
 }

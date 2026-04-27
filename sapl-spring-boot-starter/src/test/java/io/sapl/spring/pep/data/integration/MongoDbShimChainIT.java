@@ -98,7 +98,7 @@ class MongoDbShimChainIT {
     @BeforeEach
     void resetCollection() {
         mongoTemplate.dropCollection(Chronicle.class).block(STEP_TIMEOUT);
-        mongoTemplate.insertAll(java.util.List.of(new Chronicle("1", "The Disks of Mishakal", SOLINARI, 0),
+        mongoTemplate.insertAll(List.of(new Chronicle("1", "The Disks of Mishakal", SOLINARI, 0),
                 new Chronicle("2", "The Bestiary of Krynn", SOLINARI, 1),
                 new Chronicle("3", "Songs of the Bards", LUNITARI, 0),
                 new Chronicle("4", "The Lost Chronicles", LUNITARI, 2),

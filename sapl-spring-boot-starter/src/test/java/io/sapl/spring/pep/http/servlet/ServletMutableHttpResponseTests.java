@@ -18,13 +18,19 @@
 package io.sapl.spring.pep.http.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -48,13 +54,15 @@ class ServletMutableHttpResponseTests {
 
         @Test
         @DisplayName("nothing reaches the delegate before commit")
-        void nothingBeforeCommit() throws Exception {
+        void nothingBeforeCommit() {
             mutable.setStatusCode(404);
             mutable.setHeader("X-Trace", "abc");
             mutable.setBody("hidden");
-            assertThat(delegate.getStatus()).isEqualTo(200);
-            assertThat(delegate.getHeader("X-Trace")).isNull();
-            assertThat(delegate.getContentAsString()).isEmpty();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getStatus()).isEqualTo(200);
+                assertThat(d.getHeader("X-Trace")).isNull();
+                assertThat(d.getContentAsString()).isEmpty();
+            });
         }
 
         @Test
@@ -64,9 +72,11 @@ class ServletMutableHttpResponseTests {
             mutable.setHeader("X-Trace", "abc");
             mutable.setBody("hello");
             mutable.commit();
-            assertThat(delegate.getStatus()).isEqualTo(404);
-            assertThat(delegate.getHeader("X-Trace")).isEqualTo("abc");
-            assertThat(delegate.getContentAsString()).isEqualTo("hello");
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getStatus()).isEqualTo(404);
+                assertThat(d.getHeader("X-Trace")).isEqualTo("abc");
+                assertThat(d.getContentAsString()).isEqualTo("hello");
+            });
         }
 
         @Test
@@ -87,8 +97,10 @@ class ServletMutableHttpResponseTests {
         @Test
         @DisplayName("default status is 200 OK")
         void defaultIsOk() {
-            assertThat(mutable.getStatus()).isEqualTo(200);
-            assertThat(mutable.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(mutable).satisfies(m -> {
+                assertThat(m.getStatus()).isEqualTo(200);
+                assertThat(m.getStatusCode()).isEqualTo(HttpStatus.OK);
+            });
         }
 
         @Test
@@ -127,8 +139,10 @@ class ServletMutableHttpResponseTests {
         void removeDropsAll() {
             mutable.addHeader("X-A", "1");
             mutable.removeHeader("X-A");
-            assertThat(mutable.getHeader("X-A")).isNull();
-            assertThat(mutable.getHeaders("X-A")).isEmpty();
+            assertThat(mutable).satisfies(m -> {
+                assertThat(m.getHeader("X-A")).isNull();
+                assertThat(m.getHeaders("X-A")).isEmpty();
+            });
         }
 
         @Test
@@ -145,8 +159,10 @@ class ServletMutableHttpResponseTests {
             mutable.setIntHeader("X-Count", 7);
             mutable.addIntHeader("X-Count", 8);
             mutable.setDateHeader("X-When", 1700000000000L);
-            assertThat(mutable.getHeaders("X-Count")).containsExactly("7", "8");
-            assertThat(mutable.getHeader("X-When")).isEqualTo("1700000000000");
+            assertThat(mutable).satisfies(m -> {
+                assertThat(m.getHeaders("X-Count")).containsExactly("7", "8");
+                assertThat(m.getHeader("X-When")).isEqualTo("1700000000000");
+            });
         }
 
         @Test
@@ -208,8 +224,10 @@ class ServletMutableHttpResponseTests {
         @DisplayName("writeBody sets Content-Type and replaces body")
         void writeBodySetsContentType() {
             mutable.writeBody("text/plain;charset=UTF-8", "hello");
-            assertThat(mutable.getBody()).isEqualTo("hello");
-            assertThat(mutable.getContentType()).startsWith("text/plain");
+            assertThat(mutable).satisfies(m -> {
+                assertThat(m.getBody()).isEqualTo("hello");
+                assertThat(m.getContentType()).startsWith("text/plain");
+            });
         }
 
         @Test
@@ -240,33 +258,22 @@ class ServletMutableHttpResponseTests {
             assertThat(mutable.isModified()).isFalse();
         }
 
-        @Test
-        @DisplayName("ticks on setStatus, setHeader, addHeader, removeHeader, setBody, writeBody")
-        void typedSettersTickFlag() {
-            assertThat(new ServletMutableHttpResponse(new MockHttpServletResponse())).satisfies(r -> {
-                r.setStatus(404);
-                assertThat(r.isModified()).isTrue();
-            });
-            assertThat(new ServletMutableHttpResponse(new MockHttpServletResponse())).satisfies(r -> {
-                r.setHeader("X", "1");
-                assertThat(r.isModified()).isTrue();
-            });
-            assertThat(new ServletMutableHttpResponse(new MockHttpServletResponse())).satisfies(r -> {
-                r.addHeader("X", "1");
-                assertThat(r.isModified()).isTrue();
-            });
-            assertThat(new ServletMutableHttpResponse(new MockHttpServletResponse())).satisfies(r -> {
-                r.removeHeader("X");
-                assertThat(r.isModified()).isTrue();
-            });
-            assertThat(new ServletMutableHttpResponse(new MockHttpServletResponse())).satisfies(r -> {
-                r.setBody("x");
-                assertThat(r.isModified()).isTrue();
-            });
-            assertThat(new ServletMutableHttpResponse(new MockHttpServletResponse())).satisfies(r -> {
-                r.writeBody("text/plain", "x");
-                assertThat(r.isModified()).isTrue();
-            });
+        @ParameterizedTest(name = "{0} ticks isModified")
+        @MethodSource("typedSetters")
+        @DisplayName("typed setters tick the modified flag")
+        void typedSettersTickFlag(String name, Consumer<ServletMutableHttpResponse> setter) {
+            val response = new ServletMutableHttpResponse(new MockHttpServletResponse());
+            setter.accept(response);
+            assertThat(response.isModified()).isTrue();
+        }
+
+        static Stream<Arguments> typedSetters() {
+            return Stream.of(arguments("setStatus", (Consumer<ServletMutableHttpResponse>) r -> r.setStatus(404)),
+                    arguments("setHeader", (Consumer<ServletMutableHttpResponse>) r -> r.setHeader("X", "1")),
+                    arguments("addHeader", (Consumer<ServletMutableHttpResponse>) r -> r.addHeader("X", "1")),
+                    arguments("removeHeader", (Consumer<ServletMutableHttpResponse>) r -> r.removeHeader("X")),
+                    arguments("setBody", (Consumer<ServletMutableHttpResponse>) r -> r.setBody("x")),
+                    arguments("writeBody", (Consumer<ServletMutableHttpResponse>) r -> r.writeBody("text/plain", "x")));
         }
 
         @Test
@@ -285,17 +292,21 @@ class ServletMutableHttpResponseTests {
         @DisplayName("sendError sets status, replaces body, ticks modified")
         void sendErrorBuffers() throws Exception {
             mutable.sendError(503, "service down");
-            assertThat(mutable.getStatus()).isEqualTo(503);
-            assertThat(mutable.getBody()).isEqualTo("service down");
-            assertThat(mutable.isModified()).isTrue();
+            assertThat(mutable).satisfies(m -> {
+                assertThat(m.getStatus()).isEqualTo(503);
+                assertThat(m.getBody()).isEqualTo("service down");
+                assertThat(m.isModified()).isTrue();
+            });
         }
 
         @Test
         @DisplayName("sendRedirect sets 302 and Location header")
         void sendRedirectBuffers() throws Exception {
             mutable.sendRedirect("/login");
-            assertThat(mutable.getStatus()).isEqualTo(302);
-            assertThat(mutable.getHeader("Location")).isEqualTo("/login");
+            assertThat(mutable).satisfies(m -> {
+                assertThat(m.getStatus()).isEqualTo(302);
+                assertThat(m.getHeader("Location")).isEqualTo("/login");
+            });
         }
     }
 }

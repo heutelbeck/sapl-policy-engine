@@ -219,8 +219,10 @@ class ContentFilterTests {
             val predicate = ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"path": "$.name", "type": "!=", "value": "Alice"}]}
                     """), MAPPER);
-            assertThat(predicate.test(Map.of("name", "Bob"))).isTrue();
-            assertThat(predicate.test(Map.of("name", "Alice"))).isFalse();
+            assertThat(predicate).satisfies(p -> {
+                assertThat(p.test(Map.of("name", "Bob"))).isTrue();
+                assertThat(p.test(Map.of("name", "Alice"))).isFalse();
+            });
         }
 
         @Test
@@ -229,8 +231,10 @@ class ContentFilterTests {
             val predicate = ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"path": "$.email", "type": "=~", "value": "[a-z]+@example\\\\.com"}]}
                     """), MAPPER);
-            assertThat(predicate.test(Map.of("email", "alice@example.com"))).isTrue();
-            assertThat(predicate.test(Map.of("email", "alice@other.com"))).isFalse();
+            assertThat(predicate).satisfies(p -> {
+                assertThat(p.test(Map.of("email", "alice@example.com"))).isTrue();
+                assertThat(p.test(Map.of("email", "alice@other.com"))).isFalse();
+            });
         }
 
         @Test
@@ -244,9 +248,11 @@ class ContentFilterTests {
                       ]
                     }
                     """), MAPPER);
-            assertThat(predicate.test(Map.of("name", "Alice", "age", 30))).isTrue();
-            assertThat(predicate.test(Map.of("name", "Alice", "age", 10))).isFalse();
-            assertThat(predicate.test(Map.of("name", "Bob", "age", 30))).isFalse();
+            assertThat(predicate).satisfies(p -> {
+                assertThat(p.test(Map.of("name", "Alice", "age", 30))).isTrue();
+                assertThat(p.test(Map.of("name", "Alice", "age", 10))).isFalse();
+                assertThat(p.test(Map.of("name", "Bob", "age", 30))).isFalse();
+            });
         }
 
         @Test
