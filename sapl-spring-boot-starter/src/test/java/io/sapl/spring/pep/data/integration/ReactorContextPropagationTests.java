@@ -52,7 +52,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
-import io.sapl.spring.pep.data.integration.RelationalShimChainIT.Tome;
+import io.sapl.spring.pep.data.integration.RelationalShimChainTests.Tome;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -67,7 +67,7 @@ import reactor.test.StepVerifier;
  * runs on, so the shim proxy should still see the active plan when a service's
  * downstream pipeline is published or subscribed on a different scheduler.
  * <p>
- * Scenario continues from {@link RelationalShimChainIT}: same Palanthas
+ * Scenario continues from {@link RelationalShimChainTests}: same Palanthas
  * library, same Tome data, same {@code relational:queryManipulation}
  * obligation. The service method introduces a deliberate scheduler hop between
  * the {@code @PreEnforce}-annotated boundary and the repository call.

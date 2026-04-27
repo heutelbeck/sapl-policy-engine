@@ -33,14 +33,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
 
 /**
- * Servlet {@link AccessDeniedHandler} that fires
- * {@link HttpDenialSignal} against the {@link EnforcementPlan} published
- * by {@link SaplAuthorizationManager} so policy obligations can shape the
- * deny response (status, headers, redirect).
+ * Servlet {@link AccessDeniedHandler} that fires {@link HttpDenialSignal}
+ * against the {@link EnforcementPlan} published by
+ * {@link SaplAuthorizationManager} so policy obligations can shape the deny
+ * response (status, headers, body, redirect).
  * <p>
  * Falls back to Spring Security's default 403 behaviour when no plan is
- * present, no handler claims the denial, or a handler returns without
- * committing the response.
+ * present, when no handler claims the denial (no entries scheduled at the
+ * denial signal, or the registered handlers leave the buffered response
+ * untouched), or when an obligation handler fails. Otherwise the buffered
+ * response shaped by the handlers is committed to the client.
  */
 public class SaplAccessDeniedHandler implements AccessDeniedHandler {
 
@@ -50,16 +52,17 @@ public class SaplAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException denied)
             throws IOException, ServletException {
         val plan = (EnforcementPlan) request.getAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE);
-        if (plan == null) {
+        if (plan == null || plan.entriesFor(HttpDenialSignal.TYPE).isEmpty()) {
             fallback.handle(request, response, denied);
             return;
         }
 
         val mutableResponse = new ServletMutableHttpResponse(response);
-        plan.execute(HttpDenialSignal.of(mutableResponse), false);
-
-        if (!response.isCommitted()) {
+        val result          = plan.execute(HttpDenialSignal.of(mutableResponse), false);
+        if (result.failureState() || !mutableResponse.isModified()) {
             fallback.handle(request, response, denied);
+            return;
         }
+        mutableResponse.commit();
     }
 }

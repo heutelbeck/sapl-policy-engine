@@ -77,9 +77,9 @@ import reactor.test.StepVerifier;
  * alignment (Solinari, Lunitari, Nuitari) and a forbidden tier. Robe-color
  * users see only tomes their moon permits.
  */
-@SpringBootTest(classes = RelationalShimChainIT.PalanthasLibraryTestApp.class)
+@SpringBootTest(classes = RelationalShimChainTests.PalanthasLibraryTestApp.class)
 @WithMockUser(username = "raistlin", roles = "BLACK_ROBE")
-class RelationalShimChainIT {
+class RelationalShimChainTests {
 
     private static final String SOLINARI = "Solinari";
     private static final String LUNITARI = "Lunitari";

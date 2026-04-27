@@ -46,6 +46,8 @@ public final class ServletMutableHttpRequest extends HttpServletRequestWrapper i
     private final Map<String, List<String>> overrides = new LinkedHashMap<>();
     private final Set<String>               removed   = new LinkedHashSet<>();
 
+    private boolean modified = false;
+
     public ServletMutableHttpRequest(HttpServletRequest delegate) {
         super(delegate);
     }
@@ -55,6 +57,7 @@ public final class ServletMutableHttpRequest extends HttpServletRequestWrapper i
         val key = canonical(name);
         removed.remove(key);
         overrides.put(key, new ArrayList<>(List.of(value)));
+        modified = true;
     }
 
     @Override
@@ -62,10 +65,12 @@ public final class ServletMutableHttpRequest extends HttpServletRequestWrapper i
         val key = canonical(name);
         if (removed.remove(key)) {
             overrides.put(key, new ArrayList<>(List.of(value)));
+            modified = true;
             return;
         }
         val current = overrides.computeIfAbsent(key, k -> new ArrayList<>(headerValuesFromDelegate(name)));
         current.add(value);
+        modified = true;
     }
 
     @Override
@@ -73,16 +78,23 @@ public final class ServletMutableHttpRequest extends HttpServletRequestWrapper i
         val key = canonical(name);
         overrides.remove(key);
         removed.add(key);
+        modified = true;
     }
 
     @Override
     public void setAttribute(String name, Object value) {
         super.setAttribute(name, value);
+        modified = true;
     }
 
     @Override
     public HttpRequest snapshot() {
         return new ServletServerHttpRequest(this);
+    }
+
+    @Override
+    public boolean isModified() {
+        return modified;
     }
 
     @Override

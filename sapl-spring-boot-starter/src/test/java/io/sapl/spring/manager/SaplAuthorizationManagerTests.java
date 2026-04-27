@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +47,14 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
+import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
+import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
+import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
+import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.serialization.SaplServletJacksonModule;
 import lombok.val;
 import tools.jackson.databind.ObjectMapper;
@@ -190,5 +195,42 @@ class SaplAuthorizationManagerTests {
             };
             return List.of(new ScopedConstraintHandler(handler, HttpRequestSignal.TYPE, 0));
         };
+    }
+
+    @Nested
+    @DisplayName("Downstream wiring contract")
+    class DownstreamWiring {
+
+        @Test
+        @DisplayName("Stores the EnforcementPlan on the request attribute keyed by HttpEnforcementContext.PLAN_ATTRIBUTE")
+        void storesPlanOnRequestAttribute() {
+            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            val request = sampleRequest();
+            managerWith().authorize(SaplAuthorizationManagerTests::userAuthentication, context(request));
+
+            val planAttribute = request.getAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE);
+            assertThat(planAttribute).isInstanceOf(EnforcementPlan.class);
+        }
+
+        @Test
+        @DisplayName("Advertises the full HTTP signal set so downstream filters and handlers are admissible at planning")
+        void advertisesFullSignalSet() {
+            val                       captured          = new AtomicReference<Set<SignalType>>();
+            ConstraintHandlerProvider capturingProvider = (constraint, supportedSignals) -> {
+                                                            if (ConstraintResponsibility.isResponsible(constraint,
+                                                                    CAPTURE_REQUEST)) {
+                                                                captured.set(supportedSignals);
+                                                            }
+                                                            return List.of();
+                                                        };
+            when(pdp.decideOnceBlocking(any())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
+
+            managerWith(capturingProvider).authorize(SaplAuthorizationManagerTests::userAuthentication,
+                    context(sampleRequest()));
+
+            assertThat(captured.get()).containsExactlyInAnyOrder(Signal.DecisionSignal.TYPE, HttpRequestSignal.TYPE,
+                    Signal.HttpRequestMutationSignal.TYPE, Signal.HttpResponseSignal.TYPE,
+                    Signal.HttpDenialSignal.TYPE);
+        }
     }
 }

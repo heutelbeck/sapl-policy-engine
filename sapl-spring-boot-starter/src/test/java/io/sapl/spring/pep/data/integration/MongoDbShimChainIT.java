@@ -63,7 +63,7 @@ import reactor.test.StepVerifier;
 
 /**
  * Engine-side end-to-end test of the Mongo shim chain. Mirrors
- * {@link RelationalShimChainIT} for MongoDB. Same scenario, different
+ * {@link RelationalShimChainTests} for MongoDB. Same scenario, different
  * collection: chronicles of Krynn (Astinus's annals) tagged by moon and
  * forbidden tier; the obligation filters access by moon alignment.
  * <p>
