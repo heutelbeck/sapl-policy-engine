@@ -71,7 +71,7 @@ class ContentFilterPredicateProviderTests {
         @Test
         @DisplayName("non-matching constraint type yields empty Optional")
         void givenWrongConstraintTypeThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "somethingElse"}
                     """), Set.of(OUTPUT_LIST_TYPE));
             assertThat(result).isEmpty();
@@ -80,14 +80,14 @@ class ContentFilterPredicateProviderTests {
         @Test
         @DisplayName("non-object constraint yields empty Optional")
         void givenNonObjectConstraintThenEmpty() {
-            val result = provider.getConstraintHandler(v("\"plain string\""), Set.of(OUTPUT_LIST_TYPE));
+            val result = provider.getConstraintHandlers(v("\"plain string\""), Set.of(OUTPUT_LIST_TYPE));
             assertThat(result).isEmpty();
         }
 
         @Test
         @DisplayName("the filterJsonContent constraint is not claimed (different provider's responsibility)")
         void givenFilterJsonContentConstraintThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "filterJsonContent"}
                     """), Set.of(OUTPUT_LIST_TYPE));
             assertThat(result).isEmpty();
@@ -96,7 +96,7 @@ class ContentFilterPredicateProviderTests {
         @Test
         @DisplayName("matching constraint but no OutputSignal supported yields empty Optional")
         void givenMatchingConstraintWithoutOutputSignalThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "jsonContentFilterPredicate"}
                     """), Set.of(DECISION_SIGNAL_TYPE, CANCEL_SIGNAL_TYPE));
             assertThat(result).isEmpty();
@@ -105,7 +105,7 @@ class ContentFilterPredicateProviderTests {
         @Test
         @DisplayName("OutputSignal carries a scalar value type: predicate has no element-filter semantics, empty Optional")
         void givenScalarOutputSignalThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "jsonContentFilterPredicate"}
                     """), Set.of(OUTPUT_MAP_TYPE, DECISION_SIGNAL_TYPE));
             assertThat(result).isEmpty();
@@ -119,11 +119,11 @@ class ContentFilterPredicateProviderTests {
         @Test
         @DisplayName("returns Mapper at the supported OutputSignal with default priority 10")
         void givenMatchingConstraintAndOutputSignalThenReturnsMapper() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "jsonContentFilterPredicate"}
                     """), Set.of(OUTPUT_LIST_TYPE, DECISION_SIGNAL_TYPE));
 
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped).satisfies(s -> {
+            assertThat(result).singleElement().satisfies(scoped -> assertThat(scoped).satisfies(s -> {
                 assertThat(s.signalType()).isEqualTo(OUTPUT_LIST_TYPE);
                 assertThat(s.priority()).isEqualTo(10);
                 assertThat(s.handler()).isInstanceOf(Mapper.class);
@@ -134,14 +134,14 @@ class ContentFilterPredicateProviderTests {
         @DisplayName("returned mapper drops list elements that do not match the predicate")
         @SuppressWarnings("unchecked")
         void givenResolvedMapperWhenAppliedToListThenFiltersElements() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {
                       "type": "jsonContentFilterPredicate",
                       "conditions": [{"path": "$.age", "type": ">=", "value": 18}]
                     }
                     """), Set.of(OUTPUT_LIST_TYPE));
 
-            val mapper  = (Mapper<Object>) result.orElseThrow().handler();
+            val mapper  = (Mapper<Object>) result.getFirst().handler();
             val payload = List.of(new HashMap<>(Map.of("name", "Alice", "age", 30)),
                     new HashMap<>(Map.of("name", "Bob", "age", 12)), new HashMap<>(Map.of("name", "Carol", "age", 45)));
             val output  = (List<Map<String, Object>>) mapper.apply(payload);

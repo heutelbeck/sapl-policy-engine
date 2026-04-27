@@ -17,24 +17,37 @@
  */
 package io.sapl.spring.pep.constraints;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 
 import io.sapl.api.model.Value;
 
 /**
- * Implementation of Algorithm 1 of the enforcement framework: maps a constraint
- * to a scoped handler.
+ * Translates one constraint into the constraint handlers that enforce it.
  * <p>
- * Returns {@link Optional#empty()} when this provider does not implement the
- * constraint. Otherwise, returns the
- * triple {@code (handler, signalType, priority)} that the planner will
- * schedule. Implementations may use
- * {@code supportedSignals} to bind their handler to the {@link SignalType} the
- * deployed PEP actually fires
- * (e.g., picking the {@link Signal.OutputSignal} type with its concrete
- * {@code valueType}).
+ * A provider returns an empty list when it does not recognise the
+ * constraint. Otherwise it returns one or more
+ * {@link ScopedConstraintHandler} entries. Each entry pairs a handler
+ * with the {@link SignalType} it attaches to and a priority. The planner
+ * schedules every returned handler against its signal independently, so
+ * a single obligation can drive several handlers across different
+ * lifecycle points (for example, audit on the decision and a header
+ * stamp on the response).
+ * <p>
+ * Implementations use {@code supportedSignals} to discover which
+ * {@link SignalType} instances the deployed PEP actually fires (such as
+ * the {@link Signal.OutputSignal} type bound to a concrete value type)
+ * and only return handlers whose signal type is in that set.
  */
 public interface ConstraintHandlerProvider {
-    Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals);
+
+    /**
+     * Returns the handlers that enforce {@code constraint}.
+     *
+     * @param constraint the constraint value from the authorization decision.
+     * @param supportedSignals signal types the deployed PEP advertises.
+     * @return an empty list when the provider does not handle this
+     * constraint, or a non-empty list of scoped handlers to schedule.
+     */
+    List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals);
 }

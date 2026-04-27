@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pep.constraints.providers;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.Set;
 
 import io.sapl.api.model.Value;
@@ -51,14 +51,14 @@ public class ContentFilteringProvider implements ConstraintHandlerProvider {
     private final ObjectMapper objectMapper;
 
     @Override
-    public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals) {
+    public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
         if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
-            return Optional.empty();
+            return List.of();
         }
         return SignalType.findIn(supportedSignals, Signal.OutputSignal.class).map(outputSignal -> {
             val mapper = ContentFilter.getHandler(constraint, outputSignal.valueType().resolve(Object.class),
                     objectMapper);
-            return new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY);
-        });
+            return List.of(new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY));
+        }).orElseGet(List::of);
     }
 }

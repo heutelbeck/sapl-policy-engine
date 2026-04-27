@@ -66,16 +66,16 @@ public class ContentFilterPredicateProvider implements ConstraintHandlerProvider
     private final ObjectMapper objectMapper;
 
     @Override
-    public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals) {
+    public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
         if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
-            return Optional.empty();
+            return List.of();
         }
         return SignalType.findIn(supportedSignals, Signal.OutputSignal.class)
                 .filter(outputSignal -> isContainer(outputSignal.valueType())).map(outputSignal -> {
                     val mapper = ContentFilter.getFilterPredicateHandler(constraint,
                             outputSignal.valueType().resolve(Object.class), objectMapper);
-                    return new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY);
-                });
+                    return List.of(new ScopedConstraintHandler(mapper, outputSignal, DEFAULT_PRIORITY));
+                }).orElseGet(List::of);
     }
 
     private static boolean isContainer(ResolvableType type) {

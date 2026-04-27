@@ -82,12 +82,12 @@ class ContentFilterProviderInteractionTests {
         val predicateProvider = new ContentFilterPredicateProvider(MAPPER);
         val signals           = Set.of(OUTPUT_LIST_TYPE);
 
-        val contentScoped   = contentProvider.getConstraintHandler(parse("""
+        val contentScoped   = contentProvider.getConstraintHandlers(parse("""
                 {"type": "filterJsonContent"}
-                """), signals).orElseThrow();
-        val predicateScoped = predicateProvider.getConstraintHandler(parse("""
+                """), signals).getFirst();
+        val predicateScoped = predicateProvider.getConstraintHandlers(parse("""
                 {"type": "jsonContentFilterPredicate"}
-                """), signals).orElseThrow();
+                """), signals).getFirst();
 
         assertThat(predicateScoped.priority()).isLessThan(contentScoped.priority());
     }

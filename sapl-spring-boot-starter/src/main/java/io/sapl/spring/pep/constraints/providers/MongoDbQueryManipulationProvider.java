@@ -105,20 +105,20 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
     private static final int    DEFAULT_PRIORITY = 30;
 
     @Override
-    public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals) {
+    public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
         if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
-            return Optional.empty();
+            return List.of();
         }
         if (!supportedSignals.contains(MongoDbQueryShimSignal.TYPE)) {
-            return Optional.empty();
+            return List.of();
         }
         val criteria   = extractTopLevelCriteria(constraint);
         val conditions = extractConditions(constraint);
         if (criteria.isEmpty() && conditions.isEmpty()) {
-            return Optional.empty();
+            return List.of();
         }
         Mapper<Query> mapper = query -> applyToQuery(query, criteria, conditions);
-        return Optional.of(new ScopedConstraintHandler(mapper, MongoDbQueryShimSignal.TYPE, DEFAULT_PRIORITY));
+        return List.of(new ScopedConstraintHandler(mapper, MongoDbQueryShimSignal.TYPE, DEFAULT_PRIORITY));
     }
 
     private static Query applyToQuery(Query query, List<Criteria> criteria, List<String> conditions) {

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -68,8 +69,11 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
+import java.util.List;
 import java.util.Set;
+import java.util.List;
 
 /**
  * Reactive twin of {@link BlockingTransactionalEnforcementTests}: confirms
@@ -312,23 +316,22 @@ class ReactiveTransactionalEnforcementTests {
         private static final String OBLIGATION_TYPE = "miskatonic:gateRefusesToOpenMapper";
 
         @Override
-        public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint,
-                Set<SignalType> supportedSignals) {
+        public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
             if (!(constraint instanceof ObjectValue obj)) {
-                return Optional.empty();
+                return List.of();
             }
             if (!(obj.get("type") instanceof TextValue(String type)) || !OBLIGATION_TYPE.equals(type)) {
-                return Optional.empty();
+                return List.of();
             }
             for (val s : supportedSignals) {
                 if (s instanceof ValueSignalType<?> v && OutputSignal.class.equals(v.type())) {
                     Mapper<Object> failing = ignored -> {
                         throw new IllegalStateException("the gate refuses to open");
                     };
-                    return Optional.of(new ScopedConstraintHandler((ConstraintHandler<?>) failing, s, 30));
+                    return List.of(new ScopedConstraintHandler((ConstraintHandler<?>) failing, s, 30));
                 }
             }
-            return Optional.empty();
+            return List.of();
         }
     }
 }

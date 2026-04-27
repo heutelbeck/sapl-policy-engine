@@ -87,7 +87,6 @@ public record EnforcementPlan(
      * is logged and skipped; only obligation-tagged failures flip the returned
      * failure state. JVM-fatal and Reactor-fatal throwables are re-raised via
      * {@link Exceptions#throwIfFatal}.
-     * </p>
      *
      * @param signal the fired signal; data-carrying signals contribute their value
      * as the initial current value, self-contained signals start with
@@ -136,7 +135,6 @@ public record EnforcementPlan(
     /**
      * Blocking error-path entry point: fires {@link ErrorSignal} for {@code t}
      * and returns the resolved {@link Throwable} for the caller to {@code throw}.
-     * </p>
      * Resolution rules: a fatal Throwable is re-raised immediately; a failure of
      * the error-signal obligation itself escalates to a fresh
      * {@link AccessDeniedException}; a Mapper that returned a Throwable replaces
@@ -190,6 +188,16 @@ public record EnforcementPlan(
     }
 
     /**
+     * Convenience overload of {@link #enforceOutputConstraints(Object, boolean)}
+     * with no prior failure to thread in. Suitable as a method reference for
+     * {@code rap.mapNotNull(plan::enforceOutputConstraints)} in reactive Mono
+     * pipelines where OutputSignal fires once per emitted item.
+     */
+    public @Nullable Object enforceOutputConstraints(@Nullable Object value) {
+        return enforceOutputConstraints(value, false);
+    }
+
+    /**
      * Output entry point: fires {@link OutputSignal} carrying {@code value} typed
      * by this plan's output type, threading {@code priorFailure} into the
      * execution. For void or {@link Void} output types the signal fires with no
@@ -200,16 +208,6 @@ public record EnforcementPlan(
      * upstream failure is not silently dropped. Returns the (possibly
      * Mapper-transformed) value, or {@code null} for empty results.
      */
-    /**
-     * Convenience overload of {@link #enforceOutputConstraints(Object, boolean)}
-     * with no prior failure to thread in. Suitable as a method reference for
-     * {@code rap.mapNotNull(plan::enforceOutputConstraints)} in reactive Mono
-     * pipelines where OutputSignal fires once per emitted item.
-     */
-    public @Nullable Object enforceOutputConstraints(@Nullable Object value) {
-        return enforceOutputConstraints(value, false);
-    }
-
     public @Nullable Object enforceOutputConstraints(@Nullable Object value, boolean priorFailure) {
         if (outputType == null) {
             if (priorFailure) {
@@ -223,11 +221,6 @@ public record EnforcementPlan(
             throw new AccessDeniedException(ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED);
         }
         return result.value() instanceof Present<?>(var v) ? v : null;
-    }
-
-    private boolean isVoidReturn() {
-        val resolved = outputType.resolve();
-        return resolved == void.class || resolved == Void.class;
     }
 
     /**
@@ -276,6 +269,11 @@ public record EnforcementPlan(
         if (execute(signal, false).failureState()) {
             throw new AccessDeniedException(ERROR_ACCESS_DENIED_AT_SIGNAL.formatted(signal.type()));
         }
+    }
+
+    private boolean isVoidReturn() {
+        val resolved = outputType.resolve();
+        return resolved == void.class || resolved == Void.class;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

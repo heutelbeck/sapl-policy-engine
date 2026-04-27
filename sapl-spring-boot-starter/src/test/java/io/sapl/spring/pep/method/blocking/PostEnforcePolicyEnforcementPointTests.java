@@ -573,13 +573,12 @@ class PostEnforcePolicyEnforcementPointTests {
         }
 
         @Override
-        public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint,
-                Set<SignalType> supportedSignals) {
+        public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
             if (!(constraint instanceof ObjectValue obj)) {
-                return Optional.empty();
+                return List.of();
             }
             if (!(obj.get("type") instanceof TextValue(String type))) {
-                return Optional.empty();
+                return List.of();
             }
             return switch (type) {
             case Obligation.ARMITAGE_LOGS_ACCESS            ->
@@ -589,9 +588,9 @@ class PostEnforcePolicyEnforcementPointTests {
             case Obligation.LIBRARIAN_REDACTS               ->
                 outputAt(supportedSignals, (Mapper<Object>) ignored -> REDACTED_BY_LIBRARIAN);
             case Obligation.DEAN_COUNTERSIGNS               ->
-                Optional.of(new ScopedConstraintHandler((Runner) journal.deanCountersignatures::incrementAndGet,
+                List.of(new ScopedConstraintHandler((Runner) journal.deanCountersignatures::incrementAndGet,
                         DecisionSignal.TYPE, 0));
-            case Obligation.CULTIST_SABOTAGES_DECISION      -> Optional.of(new ScopedConstraintHandler((Runner) () -> {
+            case Obligation.CULTIST_SABOTAGES_DECISION      -> List.of(new ScopedConstraintHandler((Runner) () -> {
                                                             throw new IllegalStateException(SEAL_HAS_BROKEN);
                                                         },
                     DecisionSignal.TYPE, 0));
@@ -602,24 +601,24 @@ class PostEnforcePolicyEnforcementPointTests {
                 outputAt(supportedSignals, (Consumer<Object>) ignored -> {
                                                                 throw new IllegalStateException(SEAL_HAS_BROKEN);
                                                             });
-            case Obligation.NYARLATHOTEP_REWRITES_THROWABLE -> Optional.of(new ScopedConstraintHandler(
+            case Obligation.NYARLATHOTEP_REWRITES_THROWABLE -> List.of(new ScopedConstraintHandler(
                     (Mapper<Throwable>) ignored -> new IllegalStateException(CRAWLING_CHAOS_CONSUMED_THE_THROWABLE),
                     ErrorSignal.TYPE, 0));
             case Obligation.KEEPER_LOGS_ERRORS              ->
-                Optional.of(new ScopedConstraintHandler((Runner) journal.keeperErrorLogs::incrementAndGet,
-                        ErrorSignal.TYPE, 0));
-            default                                         -> Optional.empty();
+                List.of(new ScopedConstraintHandler((Runner) journal.keeperErrorLogs::incrementAndGet, ErrorSignal.TYPE,
+                        0));
+            default                                         -> List.of();
             };
         }
 
-        private static Optional<ScopedConstraintHandler> outputAt(Set<SignalType> supportedSignals,
+        private static List<ScopedConstraintHandler> outputAt(Set<SignalType> supportedSignals,
                 ConstraintHandler<?> handler) {
             for (val s : supportedSignals) {
                 if (s instanceof ValueSignalType<?> v && OutputSignal.class.equals(v.type())) {
-                    return Optional.of(new ScopedConstraintHandler(handler, s, 30));
+                    return List.of(new ScopedConstraintHandler(handler, s, 30));
                 }
             }
-            return Optional.empty();
+            return List.of();
         }
     }
 }

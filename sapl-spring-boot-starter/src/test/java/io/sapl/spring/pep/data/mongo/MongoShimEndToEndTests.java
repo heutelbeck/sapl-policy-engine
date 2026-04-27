@@ -206,17 +206,17 @@ class MongoShimEndToEndTests {
         void givenMapperThatThrowsWhenFindThenAccessDenied() {
             val throwingProvider = new ConstraintHandlerProvider() {
                                      @Override
-                                     public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint,
+                                     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
                                              Set<SignalType> supportedSignals) {
                                          if (!ConstraintResponsibility.isResponsible(constraint,
                                                  "test:throwingShimHandler")) {
-                                             return Optional.empty();
+                                             return List.of();
                                          }
                                          ConstraintHandler.Mapper<Query> bad = q -> {
                                                                   throw new RuntimeException(
                                                                           "simulated handler failure");
                                                               };
-                                         return Optional
+                                         return List
                                                  .of(new ScopedConstraintHandler(bad, MongoDbQueryShimSignal.TYPE, 30));
                                      }
                                  };

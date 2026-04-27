@@ -56,7 +56,7 @@ class SqlQueryManipulationProviderTests {
 
     @SuppressWarnings("unchecked")
     private Mapper<String> mapperFor(String constraintJson) {
-        return (Mapper<String>) provider.getConstraintHandler(v(constraintJson), Set.of(SQL_SIGNAL)).orElseThrow()
+        return (Mapper<String>) provider.getConstraintHandlers(v(constraintJson), Set.of(SQL_SIGNAL)).getFirst()
                 .handler();
     }
 
@@ -67,7 +67,7 @@ class SqlQueryManipulationProviderTests {
         @Test
         @DisplayName("non-matching constraint type yields empty Optional")
         void givenWrongConstraintTypeThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "somethingElse"}
                     """), Set.of(SQL_SIGNAL));
             assertThat(result).isEmpty();
@@ -76,13 +76,13 @@ class SqlQueryManipulationProviderTests {
         @Test
         @DisplayName("non-object constraint yields empty Optional")
         void givenNonObjectConstraintThenEmpty() {
-            assertThat(provider.getConstraintHandler(v("\"plain string\""), Set.of(SQL_SIGNAL))).isEmpty();
+            assertThat(provider.getConstraintHandlers(v("\"plain string\""), Set.of(SQL_SIGNAL))).isEmpty();
         }
 
         @Test
         @DisplayName("matching constraint without SqlShimSignal supported yields empty Optional")
         void givenMatchingConstraintWithoutSqlSignalThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "sql:queryManipulation", "conditions": ["x = 1"]}
                     """), Set.of(DECISION_SIGNAL));
             assertThat(result).isEmpty();
@@ -91,7 +91,7 @@ class SqlQueryManipulationProviderTests {
         @Test
         @DisplayName("matching constraint with neither conditions nor columns yields empty Optional")
         void givenMatchingConstraintWithEmptyPayloadThenEmpty() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "sql:queryManipulation"}
                     """), Set.of(SQL_SIGNAL));
             assertThat(result).isEmpty();
@@ -100,10 +100,10 @@ class SqlQueryManipulationProviderTests {
         @Test
         @DisplayName("returns Mapper at SqlShimSignal with default priority")
         void givenMatchingConstraintAndSignalThenReturnsMapper() {
-            val result = provider.getConstraintHandler(v("""
+            val result = provider.getConstraintHandlers(v("""
                     {"type": "sql:queryManipulation", "conditions": ["x = 1"]}
                     """), Set.of(SQL_SIGNAL));
-            assertThat(result).hasValueSatisfying(scoped -> assertThat(scoped).satisfies(s -> {
+            assertThat(result).singleElement().satisfies(scoped -> assertThat(scoped).satisfies(s -> {
                 assertThat(s.signalType()).isEqualTo(SQL_SIGNAL);
                 assertThat(s.priority()).isEqualTo(30);
                 assertThat(s.handler()).isInstanceOf(Mapper.class);
@@ -438,7 +438,7 @@ class SqlQueryManipulationProviderTests {
                      "criteria": [{"column": "tenant_id", "op": "is_secretly_equal", "value": 7}]}
                     """);
 
-            assertThatThrownBy(() -> provider.getConstraintHandler(constraint, Set.of(SQL_SIGNAL)))
+            assertThatThrownBy(() -> provider.getConstraintHandlers(constraint, Set.of(SQL_SIGNAL)))
                     .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unsupported operator");
         }
 

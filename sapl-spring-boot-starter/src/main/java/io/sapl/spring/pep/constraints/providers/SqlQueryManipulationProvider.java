@@ -125,24 +125,24 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
     private static final String ERROR_VALUE_KIND_FOR_OPERATOR    = "Value kind %s incompatible with operator %s";
 
     @Override
-    public Optional<ScopedConstraintHandler> getConstraintHandler(Value constraint, Set<SignalType> supportedSignals) {
+    public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
         if (!isResponsible(constraint)) {
-            return Optional.empty();
+            return List.of();
         }
         if (!supportedSignals.contains(SqlShimSignal.TYPE)) {
-            return Optional.empty();
+            return List.of();
         }
         val typedCriteria = extractTypedCriteriaFragments(constraint);
         val conditions    = extractStringArray(constraint, FIELD_CONDITIONS);
         val columns       = extractStringArray(constraint, FIELD_COLUMNS);
         if (typedCriteria.isEmpty() && conditions.isEmpty() && columns.isEmpty()) {
-            return Optional.empty();
+            return List.of();
         }
         val allConditions = new ArrayList<String>(typedCriteria.size() + conditions.size());
         allConditions.addAll(typedCriteria);
         allConditions.addAll(conditions);
         Mapper<String> mapper = sql -> rewrite(sql, List.copyOf(allConditions), columns);
-        return Optional.of(new ScopedConstraintHandler(mapper, SqlShimSignal.TYPE, DEFAULT_PRIORITY));
+        return List.of(new ScopedConstraintHandler(mapper, SqlShimSignal.TYPE, DEFAULT_PRIORITY));
     }
 
     private static boolean isResponsible(Value constraint) {
