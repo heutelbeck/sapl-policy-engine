@@ -19,24 +19,34 @@ package io.sapl.spring.config;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.manager.ReactiveSaplAuthorizationManager;
+import io.sapl.spring.manager.SaplAccessDeniedHandler;
 import io.sapl.spring.manager.SaplAuthorizationManager;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.spring.pep.http.servlet.SaplHttpPepFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Deploys an AuthorizationManager for the HTTP filter chain. Servlet runtime
- * gets the blocking {@link SaplAuthorizationManager}; reactive runtime gets
- * {@link ReactiveSaplAuthorizationManager}. Both share the same
- * {@link EnforcementPlanner} bean (defined by the method-security
+ * Deploys the SAPL HTTP enforcement infrastructure. Servlet runtime gets the
+ * blocking {@link SaplAuthorizationManager}, the
+ * {@link SaplAccessDeniedHandler}
+ * for obligation-shaped denials, and the {@link SaplHttpPepFilter} that fires
+ * the request-mutation and response signals. Reactive runtime gets the
+ * non-blocking {@link ReactiveSaplAuthorizationManager}. Both runtimes share
+ * the same {@link EnforcementPlanner} bean (defined by the method-security
  * configuration).
+ * <p>
+ * The supporting servlet beans are auto-applied to {@code HttpSecurity} via
+ * {@link SaplHttpSecurityConfigurer}; users opt in with
+ * {@code http.with(SaplHttpSecurityConfigurer.saplHttp(), Customizer.withDefaults())}.
  */
 @Slf4j
 @AutoConfiguration
@@ -48,6 +58,7 @@ public class AuthorizationManagerConfiguration {
     private final ObjectMapper        mapper;
 
     @Bean
+    @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SaplAuthorizationManager saplAuthorizationManager() {
@@ -56,6 +67,23 @@ public class AuthorizationManagerConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    SaplAccessDeniedHandler saplAccessDeniedHandler() {
+        return new SaplAccessDeniedHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    SaplHttpPepFilter saplHttpPepFilter() {
+        return new SaplHttpPepFilter();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
     ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager() {

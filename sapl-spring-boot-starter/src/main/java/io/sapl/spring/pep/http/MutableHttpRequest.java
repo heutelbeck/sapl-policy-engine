@@ -62,4 +62,12 @@ public interface MutableHttpRequest {
      * Reflects mutations made through this interface up to the call.
      */
     HttpRequest snapshot();
+
+    /**
+     * Returns {@code true} once any mutation method on this request has
+     * been called (header set / add / remove, attribute set). Used by the
+     * PEP filter to skip forwarding the wrapper to downstream filters when
+     * the obligation handler did not actually change the request.
+     */
+    boolean isModified();
 }

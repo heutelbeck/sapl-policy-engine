@@ -22,17 +22,20 @@ import org.springframework.http.HttpStatusCode;
 
 /**
  * A view of the outbound HTTP response that constraint handlers can mutate
- * before the response is committed. Used as the value type of the
- * response-mutation and denial signals.
+ * before the response is committed to the client. Used as the value type of
+ * the response signal and the denial signal.
  * <p>
- * Status and headers may be changed up to the moment the response body is
- * written. Body mutation is not exposed by this interface. For body
- * rewriting on the success path, attach handlers to the deeper layer that
- * produced the body, or wait for a future signal that supports it.
+ * Status, headers, and body are buffered until the surrounding component
+ * (PEP filter on the success path, access-denied handler on the deny path)
+ * flushes them. Handlers may freely read the controller-produced body via
+ * {@link #getBody()} and replace it via {@link #setBody(String)} or
+ * {@link #writeBody(String, String)}; header changes go through
+ * {@link #setHeader(String, String)}, {@link #addHeader(String, String)},
+ * {@link #removeHeader(String)}, or the {@link #headers()} view.
  * <p>
- * Servlet and reactive backends provide their own implementations.
- * Handlers see this interface and write portable code. Cast to a backend
- * type only when a feature outside this interface is required.
+ * Servlet and reactive backends provide their own implementations. Handlers
+ * see this interface and write portable code. Cast to a backend type only
+ * when a feature outside this interface is required.
  */
 public interface MutableHttpResponse {
 
@@ -49,8 +52,8 @@ public interface MutableHttpResponse {
     }
 
     /**
-     * Returns the HTTP status code currently set on the response. Returns
-     * {@code 200 OK} when no status has been explicitly set.
+     * Returns the HTTP status code currently buffered on the response.
+     * Returns {@code 200 OK} when no status has been explicitly set.
      */
     HttpStatusCode getStatusCode();
 
@@ -66,18 +69,43 @@ public interface MutableHttpResponse {
     void addHeader(String name, String value);
 
     /**
-     * Returns the response headers as currently configured. Mutations to
-     * the returned object are reflected in the outgoing response on
-     * backends that support it.
+     * Removes all values for {@code name}.
+     */
+    void removeHeader(String name);
+
+    /**
+     * Returns the response headers as currently buffered. Mutations to the
+     * returned object are reflected in the outgoing response.
      */
     HttpHeaders headers();
 
     /**
-     * Writes the given body to the response and commits it. After this
-     * call the response is final and downstream code cannot append further
-     * content. Typical use is in a deny handler that needs to render a
-     * custom error page or a redirect target. The {@code contentType}
-     * value is set on the response (replacing any previous Content-Type).
+     * Returns the response body as currently buffered, decoded with the
+     * response's character encoding. Reflects bytes written by the
+     * controller as well as subsequent {@link #setBody(String)} or
+     * {@link #writeBody(String, String)} calls.
+     */
+    String getBody();
+
+    /**
+     * Replaces the buffered body with {@code body}, encoded with the
+     * response's character encoding. Does not change the Content-Type
+     * header; use {@link #writeBody(String, String)} to set both at once.
+     */
+    void setBody(String body);
+
+    /**
+     * Replaces the buffered body with {@code body} and sets the
+     * Content-Type header to {@code contentType}. Convenience for deny
+     * handlers and obligation-driven response shaping.
      */
     void writeBody(String contentType, String body);
+
+    /**
+     * Returns {@code true} once any mutation method on this response has
+     * been called (status, header, body). Used by the access-denied handler
+     * to decide whether a handler claimed the denial; callers on the success
+     * path do not normally consult this flag.
+     */
+    boolean isModified();
 }

@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.pep.http.servlet;
 
+import static io.sapl.spring.config.SaplHttpSecurityConfigurer.saplHttp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -26,14 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.Map;
-import java.util.List;
-import java.util.Optional;
-import java.util.List;
 import java.util.Set;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,10 +45,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomiz
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,8 +59,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.manager.SaplAccessDeniedHandler;
-import io.sapl.spring.manager.SaplAuthorizationManager;
+import io.sapl.spring.config.SaplHttpSecurityConfigurer;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -75,14 +71,13 @@ import io.sapl.spring.pep.http.MutableHttpResponse;
 import lombok.val;
 
 /**
- * End-to-end servlet test of the SAPL HTTP authorization chain. Real
- * Spring Boot context, real {@link SaplAuthorizationManager}, real
- * {@link SaplHttpPepFilter}, real {@link SaplAccessDeniedHandler}, real
+ * End-to-end servlet test of the SAPL HTTP authorization chain. Real Spring
+ * Boot context wired through {@link SaplHttpSecurityConfigurer}, real
  * controller, real {@link MockMvc}. The PDP is the only mock.
  */
-@SpringBootTest(classes = SaplHttpServletEnforcementIT.TestApp.class)
+@SpringBootTest(classes = SaplHttpServletEnforcementTests.TestApp.class)
 @AutoConfigureMockMvc
-class SaplHttpServletEnforcementIT {
+class SaplHttpServletEnforcementTests {
 
     private static final String AUDIT_LOG       = "auditLog";
     private static final String CAPTURE_REQUEST = "captureRequest";
@@ -90,6 +85,10 @@ class SaplHttpServletEnforcementIT {
     private static final String OBSERVE_STATUS  = "observeStatus";
     private static final String SET_HEADER      = "setResponseHeader";
     private static final String CUSTOM_DENY     = "customDeny";
+    private static final String REWRITE_BODY    = "rewriteResponseBody";
+    private static final String REQUEST_FAIL    = "failOnRequestMutation";
+    private static final String REDIRECT_DENY   = "redirectDeny";
+    private static final String AUDIT_AND_STAMP = "auditAndStamp";
 
     @Autowired
     MockMvc mockMvc;
@@ -191,6 +190,34 @@ class SaplHttpServletEnforcementIT {
             mockMvc.perform(get("/hello")).andExpect(status().isOk())
                     .andExpect(header().string("X-Trace-Id", "abc-123"));
         }
+
+        @Test
+        @DisplayName("HttpResponseSignal body rewrite: client receives the obligation-replaced body")
+        @WithMockUser
+        void givenResponseBodyRewriteObligationThenClientReceivesRewrittenBody() throws Exception {
+            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(REWRITE_BODY));
+
+            mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(content().string("REWRITTEN"));
+        }
+
+        @Test
+        @DisplayName("Multi-handler bundle: one obligation produces audit on DecisionSignal and header on HttpResponseSignal")
+        @WithMockUser
+        void givenMultiHandlerObligationThenBothHandlersFire() throws Exception {
+            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(AUDIT_AND_STAMP));
+
+            mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(header().string("X-Audit", "stamped"));
+            assertThat(probes.auditCount()).isGreaterThanOrEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("HttpRequestMutationSignal failure: routed back through the deny handler as 403")
+        @WithMockUser
+        void givenRequestMutationFailureObligationThen403() throws Exception {
+            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(REQUEST_FAIL));
+
+            mockMvc.perform(get("/hello")).andExpect(status().isForbidden());
+        }
     }
 
     @Nested
@@ -204,6 +231,16 @@ class SaplHttpServletEnforcementIT {
             when(pdp.decideOnceBlocking(any())).thenReturn(denyWith(CUSTOM_DENY));
 
             mockMvc.perform(get("/hello")).andExpect(status().is(451)).andExpect(content().string("denied by policy"));
+        }
+
+        @Test
+        @DisplayName("HttpDenialSignal redirect obligation: handler issues 302 with Location header")
+        @WithMockUser
+        void givenRedirectDenyObligationThen302WithLocation() throws Exception {
+            when(pdp.decideOnceBlocking(any())).thenReturn(denyWith(REDIRECT_DENY));
+
+            mockMvc.perform(get("/hello")).andExpect(status().isFound())
+                    .andExpect(header().string("Location", "/access-denied"));
         }
     }
 
@@ -224,27 +261,14 @@ class SaplHttpServletEnforcementIT {
     static class TestApp {
 
         @Bean
-        SecurityFilterChain securityFilterChain(HttpSecurity http, SaplAuthorizationManager saplManager,
-                SaplAccessDeniedHandler saplDeniedHandler, SaplHttpPepFilter saplHttpPepFilter) throws Exception {
-            return http.csrf(csrf -> csrf.disable()).httpBasic(withDefaults())
-                    .authorizeHttpRequests(auth -> auth.anyRequest().access(saplManager))
-                    .exceptionHandling(eh -> eh.accessDeniedHandler(saplDeniedHandler))
-                    .addFilterAfter(saplHttpPepFilter, AuthorizationFilter.class).build();
+        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+            return http.with(saplHttp(), withDefaults()).csrf(AbstractHttpConfigurer::disable).httpBasic(withDefaults())
+                    .build();
         }
 
         @Bean
         MockMvcBuilderCustomizer saplSecurityMockMvcCustomizer() {
             return builder -> builder.apply(SecurityMockMvcConfigurers.springSecurity());
-        }
-
-        @Bean
-        SaplAccessDeniedHandler saplAccessDeniedHandler() {
-            return new SaplAccessDeniedHandler();
-        }
-
-        @Bean
-        SaplHttpPepFilter saplHttpPepFilter() {
-            return new SaplHttpPepFilter();
         }
 
         @Bean
@@ -312,11 +336,6 @@ class SaplHttpServletEnforcementIT {
         }
     }
 
-    /**
-     * Single provider that serves all six demonstrated obligation types
-     * by dispatching on the constraint type. Keeps the test class
-     * compact compared to one provider per type.
-     */
     static class ProbeProvider implements ConstraintHandlerProvider {
 
         private final Probes probes;
@@ -370,6 +389,38 @@ class SaplHttpServletEnforcementIT {
                     resp.writeBody("text/plain;charset=UTF-8", "denied by policy");
                 };
                 return List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0));
+            }
+            if (ConstraintResponsibility.isResponsible(constraint, REWRITE_BODY)) {
+                if (!supportedSignals.contains(Signal.HttpResponseSignal.TYPE)) {
+                    return List.of();
+                }
+                ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setBody("REWRITTEN");
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+            }
+            if (ConstraintResponsibility.isResponsible(constraint, REQUEST_FAIL)) {
+                if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.TYPE)) {
+                    return List.of();
+                }
+                ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
+                    throw new IllegalStateException("request mutation refused by handler");
+                };
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.TYPE, 0));
+            }
+            if (ConstraintResponsibility.isResponsible(constraint, REDIRECT_DENY)) {
+                if (!supportedSignals.contains(Signal.HttpDenialSignal.TYPE)) {
+                    return List.of();
+                }
+                ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
+                    resp.setStatusCode(302);
+                    resp.setHeader("Location", "/access-denied");
+                };
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0));
+            }
+            if (ConstraintResponsibility.isResponsible(constraint, AUDIT_AND_STAMP)) {
+                ConstraintHandler.Runner                        audit = probes::incrementAudit;
+                ConstraintHandler.Consumer<MutableHttpResponse> stamp = resp -> resp.setHeader("X-Audit", "stamped");
+                return List.of(new ScopedConstraintHandler(audit, Signal.DecisionSignal.TYPE, 0),
+                        new ScopedConstraintHandler(stamp, Signal.HttpResponseSignal.TYPE, 0));
             }
             return List.of();
         }

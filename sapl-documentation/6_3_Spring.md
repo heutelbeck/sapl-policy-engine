@@ -316,20 +316,30 @@ With this property set, the transaction interceptor keeps its default order. Be 
 
 ## HTTP Request Security
 
-Beyond method security, you can apply SAPL to the HTTP layer. This protects endpoints based on request attributes before any controller code runs.
+Beyond method security, you can apply SAPL to the HTTP layer. This protects endpoints based on request attributes before any controller code runs and lets policy obligations shape the request that reaches the controller, the response that goes back to the client, and the deny page rendered when access is refused.
 
-For servlet applications.
+### Servlet Wiring
+
+Apply SAPL to `HttpSecurity` through the dedicated configurer the starter ships. One call wires the authorization manager, the HTTP PEP filter, and the access-denied handler.
 
 ```java
+import static io.sapl.spring.config.SaplHttpSecurityConfigurer.saplHttp;
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Bean
-SecurityFilterChain filterChain(HttpSecurity http, SaplAuthorizationManager sapl) throws Exception {
-    return http
-        .authorizeHttpRequests(auth -> auth.anyRequest().access(sapl))
-        .build();
+SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    return http.with(saplHttp(), withDefaults())
+               .formLogin(withDefaults())
+               .httpBasic(withDefaults())
+               .build();
 }
 ```
 
-For reactive applications.
+`saplHttp()` is `io.sapl.spring.config.SaplHttpSecurityConfigurer.saplHttp()`. The configurer pulls `SaplAuthorizationManager`, `SaplAccessDeniedHandler`, and `SaplHttpPepFilter` from the application context. All three are deployed by `AuthorizationManagerConfiguration` as `@ConditionalOnMissingBean` beans, so applications can override any of them by declaring their own bean of the same type.
+
+### Reactive Wiring
+
+Reactive applications still use the manual wiring pattern.
 
 ```java
 @Bean
@@ -340,22 +350,106 @@ SecurityWebFilterChain filterChain(ServerHttpSecurity http, ReactiveSaplAuthoriz
 }
 ```
 
-The authorization manager constructs subscriptions from the HTTP request. Your policies can then check paths, headers, query parameters, and other request attributes. This is useful for coarse-grained rules such as "only employees can access /internal/*" without annotating every controller method.
+The reactive PEP fires only `DecisionSignal` and `HttpRequestSignal`. The full HTTP signal set described below (request mutation, response shaping, denial customisation) is currently servlet only and will be ported to the reactive backend in a future release.
 
-When the security context has no `Authentication` (an unauthenticated request), the manager defaults to an anonymous token rather than failing. Policies can then express "permit anyone" or "deny anonymous" without the authorization machinery raising a `NullPointerException`.
+### What the Servlet PEP Fires
+
+Five signals reach the planner over the course of a single HTTP exchange. Constraint handlers attach to whichever fits the work they do.
+
+| Signal                       | Fires from                    | Carrier                | Typical handler                                                                 |
+|------------------------------|-------------------------------|------------------------|---------------------------------------------------------------------------------|
+| `DecisionSignal`             | `SaplAuthorizationManager`    | `AuthorizationDecision` | Audit logging, metrics, decision-tagged side effects.                          |
+| `HttpRequestSignal`          | `SaplAuthorizationManager`    | `HttpRequest`          | Read-only request observation (audit, structured access logs, rate limiting).   |
+| `HttpRequestMutationSignal`  | `SaplHttpPepFilter` pre-chain | `MutableHttpRequest`   | Inject headers or attributes that downstream filters and the controller see.    |
+| `HttpResponseSignal`         | `SaplHttpPepFilter` post-chain | `MutableHttpResponse` | Read or replace status, headers, and body produced by the controller.           |
+| `HttpDenialSignal`           | `SaplAccessDeniedHandler`     | `MutableHttpResponse`  | Shape the deny response for an authenticated denial (status, headers, body, redirect). |
+
+`SaplAuthorizationManager` stores the active `EnforcementPlan` on a request attribute keyed by `HttpEnforcementContext.PLAN_ATTRIBUTE` so the downstream PEP filter and access-denied handler find the same plan and dispatch additional signals against it.
+
+`HttpRequestSignal` carries an `org.springframework.http.HttpRequest` view of the inbound request. Mappers are not admissible at this signal because the manager treats the request as read-only at the authorization point. For request mutation use `HttpRequestMutationSignal`, which fires on the permit path before the controller runs.
+
+`HttpResponseSignal` fires only on the normal-return path. If the chain throws, the buffered response is discarded and the exception propagates so the standard Spring error pipeline can produce its own response. Authenticated denials route through `SaplAccessDeniedHandler` and fire `HttpDenialSignal` instead. Anonymous denials route through Spring Security's `AuthenticationEntryPoint` (typically a login redirect or a 401 challenge) and never reach the SAPL deny handler.
+
+### MutableHttpRequest and MutableHttpResponse
+
+`MutableHttpRequest` and `MutableHttpResponse` are SAPL abstractions over the underlying servlet request and response. Handlers see this interface and write portable code. The servlet implementations live under `io.sapl.spring.pep.http.servlet`; cast to a backend type only when a feature outside the interface is required.
+
+```java
+public interface MutableHttpRequest {
+    void setHeader(String name, String value);
+    void addHeader(String name, String value);
+    void removeHeader(String name);
+    void setAttribute(String name, Object value);
+    HttpRequest snapshot();
+    boolean isModified();
+}
+
+public interface MutableHttpResponse {
+    void setStatusCode(HttpStatusCode status);
+    HttpStatusCode getStatusCode();
+    void setHeader(String name, String value);
+    void addHeader(String name, String value);
+    void removeHeader(String name);
+    HttpHeaders headers();
+    String getBody();
+    void setBody(String body);
+    void writeBody(String contentType, String body);
+    boolean isModified();
+}
+```
+
+`isModified()` ticks for every typed mutation. The PEP filter uses it to skip forwarding the request wrapper down the chain when the obligation handler observed without changing anything. The access-denied handler uses it together with the plan's denial-signal entry list to decide whether to commit the obligation-shaped response or fall back to Spring's default 403.
+
+### Performance Characteristics
+
+The HTTP PEP filter wraps the request and response only when it has work to do. It checks the active plan for handlers scheduled at `HttpRequestMutationSignal` and `HttpResponseSignal` before installing either wrapper. The common case (a permit decision with no HTTP signal handlers) runs against the raw servlet request and response with no extra copy.
+
+When response-side handlers are scheduled, the filter installs a buffering wrapper that captures every controller byte in memory and re-emits it on commit. This makes body inspection and rewrite possible but is unsuitable for unbounded streaming bodies. Constraint handler authors who need response shaping should be aware of the in-memory capture; routes that intentionally stream large payloads should not register response-signal handlers.
+
+When request-side handlers are scheduled, the filter installs a header-override wrapper, fires the mutation signal, and only forwards the wrapper to the chain when at least one handler actually called a setter. Pure observation handlers cost nothing beyond the signal dispatch.
 
 ### Constraint Handlers at the HTTP Layer
 
-Both managers fire two signals through the same `EnforcementPlanner` used by method security. Constraint handlers may attach to either.
+Constraint handlers attach to HTTP signals exactly the way they attach to method-security signals. The provider returns a list of `ScopedConstraintHandler` entries scoped to the signal each handler should fire on. See [Writing Custom Handlers](#writing-custom-handlers) below for the general shape.
 
-| Signal | When it fires | Typical handler |
-|---|---|---|
-| `DecisionSignal` | When the PDP decision arrives | Audit logging, metrics, decision-tagged side effects |
-| `HttpRequestSignal` | After the decision, before the allow/deny gate | Request-aware audit, per-user rate limiting, structured access logs |
+A short example, an obligation that injects an `X-Tenant` header on the request before the controller runs:
 
-`HttpRequestSignal` carries an `org.springframework.http.HttpRequest` view of the inbound request. The same signal fires from both managers. The carried value is a common abstraction with method, URI, and headers. For backend-specific access, downcast to `org.springframework.http.server.ServletServerHttpRequest` (servlet) or `org.springframework.http.server.reactive.ServerHttpRequest` (reactive).
+```java
+@Component
+public class TenantHeaderHandler implements ConstraintHandlerProvider {
 
-The signal accepts `Consumer<HttpRequest>` and `Runner` handlers. Mappers that would mutate the request are not supported through this signal because the managers treat the request as read-only at the authorization point.
+    @Override
+    public List<ScopedConstraintHandler> getConstraintHandlers(
+            Value constraint, Set<SignalType> supportedSignals) {
+
+        if (!ConstraintResponsibility.isResponsible(constraint, "tenant-header")) {
+            return List.of();
+        }
+        if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.TYPE)) {
+            return List.of();
+        }
+        if (!(constraint instanceof ObjectValue obj)
+                || !(obj.get("value") instanceof TextValue(String tenant))) {
+            return List.of();
+        }
+        ConstraintHandler.Consumer<MutableHttpRequest> handler =
+                request -> request.setHeader("X-Tenant", tenant);
+        return List.of(new ScopedConstraintHandler(
+                handler, Signal.HttpRequestMutationSignal.TYPE, 0));
+    }
+}
+```
+
+The matching policy:
+
+```sapl
+policy "stamp_tenant"
+permit
+    action.method == "GET";
+    resource.requestedURI =~ "/api/.*";
+obligation
+    { "type": "tenant-header", "value": "demo-tenant" }
+```
 
 ## Constraints
 
