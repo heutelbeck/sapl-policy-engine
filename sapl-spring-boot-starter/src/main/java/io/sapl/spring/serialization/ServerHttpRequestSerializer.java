@@ -29,17 +29,21 @@ import tools.jackson.databind.ser.std.StdSerializer;
  */
 public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest> {
 
+    static final String CONTENT_TYPE   = "contentType";
     static final String CONTEXT_PATH   = "contextPath";
     static final String COOKIES        = "cookies";
     static final String HEADERS        = "headers";
+    static final String IS_SECURE      = "isSecure";
     static final String LOCAL_ADDRESS  = "localAddress";
     static final String LOCAL_NAME     = "localName";
     static final String LOCAL_PORT     = "localPort";
     static final String METHOD         = "method";
     static final String PARAMETERS     = "parameters";
+    static final String QUERY_STRING   = "queryString";
     static final String REMOTE_ADDRESS = "remoteAddress";
     static final String REMOTE_HOST    = "remoteHost";
     static final String REMOTE_PORT    = "remotePort";
+    static final String REQUEST_URL    = "requestURL";
     static final String REQUESTED_URI  = "requestedURI";
     static final String SCHEME         = "scheme";
     static final String SERVER_NAME    = "serverName";
@@ -51,10 +55,12 @@ public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest
 
     @Override
     public void serialize(ServerHttpRequest value, JsonGenerator gen, SerializationContext serializers) {
+        val uri = value.getURI();
         gen.writeStartObject();
-        gen.writeStringProperty(SCHEME, value.getURI().getScheme());
-        gen.writeStringProperty(SERVER_NAME, value.getURI().getHost());
-        gen.writeNumberProperty(SERVER_PORT, value.getURI().getPort());
+        gen.writeStringProperty(SCHEME, uri.getScheme());
+        gen.writeBooleanProperty(IS_SECURE, "https".equalsIgnoreCase(uri.getScheme()));
+        gen.writeStringProperty(SERVER_NAME, uri.getHost());
+        gen.writeNumberProperty(SERVER_PORT, uri.getPort());
         val remoteAddress = value.getRemoteAddress();
         if (remoteAddress != null) {
             gen.writeStringProperty(REMOTE_ADDRESS, remoteAddress.toString());
@@ -68,8 +74,16 @@ public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest
             gen.writeNumberProperty(LOCAL_PORT, localAddress.getPort());
         }
         gen.writeStringProperty(METHOD, value.getMethod().name());
-        gen.writeStringProperty(CONTEXT_PATH, String.valueOf(value.getPath()));
-        gen.writeStringProperty(REQUESTED_URI, String.valueOf(value.getURI()));
+        gen.writeStringProperty(CONTEXT_PATH, value.getPath().contextPath().value());
+        gen.writeStringProperty(REQUESTED_URI, value.getPath().value());
+        gen.writeStringProperty(REQUEST_URL, uri.toString());
+        if (uri.getRawQuery() != null) {
+            gen.writeStringProperty(QUERY_STRING, uri.getRawQuery());
+        }
+        val contentType = value.getHeaders().getContentType();
+        if (contentType != null) {
+            gen.writeStringProperty(CONTENT_TYPE, contentType.toString());
+        }
         writeHeaders(value, gen);
         writeCookies(value, gen);
         writeParameters(value, gen);

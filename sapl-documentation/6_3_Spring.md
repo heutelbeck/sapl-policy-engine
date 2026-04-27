@@ -97,7 +97,7 @@ Method security is where most applications start with SAPL. You annotate methods
 
 ### Blocking Applications
 
-For traditional Spring MVC applications, enable method security and use `@PreEnforce` or `@PostEnforce`.
+For servlet-based Spring Web applications, enable method security and use `@PreEnforce` or `@PostEnforce`.
 
 ```java
 @Configuration
@@ -339,40 +339,94 @@ SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
 ### Reactive Wiring
 
-Reactive applications still use the manual wiring pattern.
+Reactive applications use the dedicated reactive configurer, applied
+explicitly to `ServerHttpSecurity`.
 
 ```java
+import io.sapl.spring.pep.http.reactive.SaplServerHttpSecurityConfigurer;
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Bean
-SecurityWebFilterChain filterChain(ServerHttpSecurity http, ReactiveSaplAuthorizationManager sapl) {
-    return http
-        .authorizeExchange(exchange -> exchange.anyExchange().access(sapl))
-        .build();
+SecurityWebFilterChain filterChain(ServerHttpSecurity http, ApplicationContext context) {
+    SaplServerHttpSecurityConfigurer.apply(http, context);
+    return http.formLogin(withDefaults()).httpBasic(withDefaults()).build();
 }
 ```
 
-The reactive PEP fires only `DecisionSignal` and `HttpRequestSignal`. The full HTTP signal set described below (request mutation, response shaping, denial customisation) is currently servlet only and will be ported to the reactive backend in a future release.
+`SaplServerHttpSecurityConfigurer.apply(http, context)` pulls
+`ReactiveSaplAuthorizationManager`, `SaplServerAccessDeniedHandler`, and
+`SaplHttpPepWebFilter` from the application context. All three are deployed
+by `AuthorizationManagerConfiguration` as `@ConditionalOnMissingBean` beans,
+so applications can override any of them by declaring their own bean of the
+same type.
 
-### What the Servlet PEP Fires
+The reactive backend fires the same five signals as the servlet backend
+(documented below) and the request serializer exposes the same field names
+on both stacks: `resource.requestedURI` is the request path,
+`resource.contextPath` is the application's deployment context (usually
+empty for root deployments). The same policy works against both backends.
+
+### Customizing the Authorization Subscription
+
+By default both authorization managers serialize the inbound request and place it on `action` and `resource`, with the resolved `Authentication` on `subject` and `environment` left undefined. That default is verbose. Most applications eventually want a tighter shape that lines up with what their policies actually reference.
+
+The shape is owned by an `AuthorizationSubscriptionFactory` (servlet) or `ReactiveAuthorizationSubscriptionFactory` (reactive) bean. The starter registers a default factory under `@ConditionalOnMissingBean`. Three override paths are available, in increasing order of locality.
+
+Replace the global factory bean. A single `@Bean` of `AuthorizationSubscriptionFactory` (or its reactive sibling) replaces the default everywhere.
+
+```java
+@Bean
+AuthorizationSubscriptionFactory subscriptionFactory(ObjectMapper mapper) {
+    return (auth, request) -> AuthorizationSubscription.of(
+            auth.getName(),
+            request.getMethod(),
+            Map.of("path", request.getRequestURI(), "tenant", request.getHeader("X-Tenant")),
+            mapper);
+}
+```
+
+Override per filter chain via the configurer. The customizer parameter of `http.with(saplHttp(), ...)` carries the same fluent setter. This is the right place when one chain wants a different subscription shape from another.
+
+```java
+http.with(saplHttp(), c -> c.subscriptionFactory(
+        (auth, req) -> AuthorizationSubscription.of(auth.getName(),
+                req.getMethod(), req.getRequestURI(), mapper)));
+```
+
+The reactive form is the same idea, with the second `apply(...)` overload taking the customizer:
+
+```java
+SaplServerHttpSecurityConfigurer.apply(http, context, c -> c.subscriptionFactory(
+        (auth, exchange) -> Mono.just(AuthorizationSubscription.of(auth.getName(),
+                exchange.getRequest().getMethod().name(),
+                exchange.getRequest().getURI().getPath(), mapper))));
+```
+
+The reactive factory returns `Mono<AuthorizationSubscription>` so it can enrich the subscription asynchronously (for example resolving subject attributes from a reactive store) without blocking the event loop. Synchronous customizations stay one-line via `Mono.just(...)`.
+
+Replace the manager outright. When you need behaviour beyond shaping the subscription (for example pre-authorization caching), construct your own `SaplAuthorizationManager` (or its reactive sibling) and pass it through `c.authorizationManager(...)`. The configurer then skips the factory lookup entirely.
+
+### What the HTTP PEP Fires
 
 Five signals reach the planner over the course of a single HTTP exchange. Constraint handlers attach to whichever fits the work they do.
 
-| Signal                       | Fires from                    | Carrier                | Typical handler                                                                 |
-|------------------------------|-------------------------------|------------------------|---------------------------------------------------------------------------------|
-| `DecisionSignal`             | `SaplAuthorizationManager`    | `AuthorizationDecision` | Audit logging, metrics, decision-tagged side effects.                          |
-| `HttpRequestSignal`          | `SaplAuthorizationManager`    | `HttpRequest`          | Read-only request observation (audit, structured access logs, rate limiting).   |
-| `HttpRequestMutationSignal`  | `SaplHttpPepFilter` pre-chain | `MutableHttpRequest`   | Inject headers or attributes that downstream filters and the controller see.    |
-| `HttpResponseSignal`         | `SaplHttpPepFilter` post-chain | `MutableHttpResponse` | Read or replace status, headers, and body produced by the controller.           |
-| `HttpDenialSignal`           | `SaplAccessDeniedHandler`     | `MutableHttpResponse`  | Shape the deny response for an authenticated denial (status, headers, body, redirect). |
+| Signal                       | Fires from                                                                                | Carrier                | Typical handler                                                                 |
+|------------------------------|-------------------------------------------------------------------------------------------|------------------------|---------------------------------------------------------------------------------|
+| `DecisionSignal`             | The authorization manager (servlet or reactive)                                           | `AuthorizationDecision` | Audit logging, metrics, decision-tagged side effects.                          |
+| `HttpRequestSignal`          | The authorization manager                                                                 | `HttpRequest`          | Read-only request observation (audit, structured access logs, rate limiting).   |
+| `HttpRequestMutationSignal`  | The HTTP PEP filter pre-chain (`SaplHttpPepFilter` / `SaplHttpPepWebFilter`)              | `MutableHttpRequest`   | Inject headers or attributes that downstream filters and the controller see.    |
+| `HttpResponseSignal`         | The HTTP PEP filter post-chain                                                            | `MutableHttpResponse`  | Read or replace status, headers, and body produced by the controller.           |
+| `HttpDenialSignal`           | The access-denied handler (`SaplAccessDeniedHandler` / `SaplServerAccessDeniedHandler`)   | `MutableHttpResponse`  | Shape the deny response for an authenticated denial (status, headers, body, redirect). |
 
-`SaplAuthorizationManager` stores the active `EnforcementPlan` on a request attribute keyed by `HttpEnforcementContext.PLAN_ATTRIBUTE` so the downstream PEP filter and access-denied handler find the same plan and dispatch additional signals against it.
+The authorization manager stores the active `EnforcementPlan` on a request or exchange attribute keyed by `HttpEnforcementContext.PLAN_ATTRIBUTE` so the downstream PEP filter and access-denied handler find the same plan and dispatch additional signals against it.
 
 `HttpRequestSignal` carries an `org.springframework.http.HttpRequest` view of the inbound request. Mappers are not admissible at this signal because the manager treats the request as read-only at the authorization point. For request mutation use `HttpRequestMutationSignal`, which fires on the permit path before the controller runs.
 
-`HttpResponseSignal` fires only on the normal-return path. If the chain throws, the buffered response is discarded and the exception propagates so the standard Spring error pipeline can produce its own response. Authenticated denials route through `SaplAccessDeniedHandler` and fire `HttpDenialSignal` instead. Anonymous denials route through Spring Security's `AuthenticationEntryPoint` (typically a login redirect or a 401 challenge) and never reach the SAPL deny handler.
+`HttpResponseSignal` fires only on the normal-return path. If the chain throws, the buffered response is discarded and the exception propagates so the standard Spring error pipeline can produce its own response. Authenticated denials route through the SAPL access-denied handler and fire `HttpDenialSignal` instead. Anonymous denials route through Spring Security's `AuthenticationEntryPoint` (typically a login redirect or a 401 challenge) and never reach the SAPL deny handler.
 
 ### MutableHttpRequest and MutableHttpResponse
 
-`MutableHttpRequest` and `MutableHttpResponse` are SAPL abstractions over the underlying servlet request and response. Handlers see this interface and write portable code. The servlet implementations live under `io.sapl.spring.pep.http.servlet`; cast to a backend type only when a feature outside the interface is required.
+`MutableHttpRequest` and `MutableHttpResponse` are SAPL abstractions over the underlying request and response on either backend. Handlers see this interface and write portable code. Servlet implementations live under `io.sapl.spring.pep.http.servlet`, reactive implementations under `io.sapl.spring.pep.http.reactive`; cast to a backend type only when a feature outside the interface is required.
 
 ```java
 public interface MutableHttpRequest {
@@ -385,7 +439,8 @@ public interface MutableHttpRequest {
 }
 
 public interface MutableHttpResponse {
-    void setStatusCode(HttpStatusCode status);
+    boolean setStatusCode(HttpStatusCode status);
+    boolean setStatusCode(int statusValue);
     HttpStatusCode getStatusCode();
     void setHeader(String name, String value);
     void addHeader(String name, String value);
@@ -398,11 +453,13 @@ public interface MutableHttpResponse {
 }
 ```
 
+`setStatusCode` returns `boolean` to match the reactive `ServerHttpResponse.setStatusCode` contract: `true` when the status was applied, `false` when the response is already committed. Servlet implementations always return `true` since the buffered status is set on a buffer, not on the underlying response. Most callers ignore the return value.
+
 `isModified()` ticks for every typed mutation. The PEP filter uses it to skip forwarding the request wrapper down the chain when the obligation handler observed without changing anything. The access-denied handler uses it together with the plan's denial-signal entry list to decide whether to commit the obligation-shaped response or fall back to Spring's default 403.
 
 ### Performance Characteristics
 
-The HTTP PEP filter wraps the request and response only when it has work to do. It checks the active plan for handlers scheduled at `HttpRequestMutationSignal` and `HttpResponseSignal` before installing either wrapper. The common case (a permit decision with no HTTP signal handlers) runs against the raw servlet request and response with no extra copy.
+The HTTP PEP filter wraps the request and response only when it has work to do. It checks the active plan for handlers scheduled at `HttpRequestMutationSignal` and `HttpResponseSignal` before installing either wrapper. The common case (a permit decision with no HTTP signal handlers) runs against the raw request and response with no extra copy.
 
 When response-side handlers are scheduled, the filter installs a buffering wrapper that captures every controller byte in memory and re-emits it on commit. This makes body inspection and rewrite possible but is unsuitable for unbounded streaming bodies. Constraint handler authors who need response shaping should be aware of the in-memory capture; routes that intentionally stream large payloads should not register response-signal handlers.
 

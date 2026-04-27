@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpCookie;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 
@@ -138,19 +139,61 @@ class ServerHttpRequestSerializerTests {
     }
 
     @Test
-    void whenContextPathSet_thenItIsTheSameInJson() throws JacksonException {
-        val expected = "/a/b/c";
-        val request  = MockServerHttpRequest.get(expected).build();
-        val actual   = serialize(request);
-        assertThat(actual.get(ServerHttpRequestSerializer.CONTEXT_PATH).asString()).isEqualTo(expected);
+    void requestedURIIsTheRequestPathToMatchServletSemantics() throws JacksonException {
+        val request = MockServerHttpRequest.get("/a/b/c").build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.REQUESTED_URI).asString()).isEqualTo("/a/b/c");
     }
 
     @Test
-    void whenRequestedUriIsSet_thenItIsTheSameInJson() throws JacksonException {
-        val expected = "https://localhost";
-        val request  = MockServerHttpRequest.get(expected).build();
-        val actual   = serialize(request);
-        assertThat(actual.get(ServerHttpRequestSerializer.REQUESTED_URI).asString()).isEqualTo(expected);
+    void contextPathIsEmptyByDefaultMatchingServletDefaultDeployment() throws JacksonException {
+        val request = MockServerHttpRequest.get("/a/b/c").build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.CONTEXT_PATH).asString()).isEmpty();
+    }
+
+    @Test
+    void requestURLIsTheFullURIIncludingSchemeAndHost() throws JacksonException {
+        val request = MockServerHttpRequest.get("https://api.example.com/orders/42").build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.REQUEST_URL).asString())
+                .isEqualTo("https://api.example.com/orders/42");
+    }
+
+    @Test
+    void queryStringIsRawQueryWhenPresent() throws JacksonException {
+        val request = MockServerHttpRequest.get("/search?q=foo+bar&page=2").build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.QUERY_STRING).asString()).isEqualTo("q=foo+bar&page=2");
+    }
+
+    @Test
+    void queryStringIsAbsentWhenRequestHasNoQuery() throws JacksonException {
+        val request = MockServerHttpRequest.get("/search").build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.QUERY_STRING)).isNull();
+    }
+
+    @Test
+    void isSecureIsTrueForHttpsAndFalseForHttp() throws JacksonException {
+        assertThat(serialize(MockServerHttpRequest.get("https://api.example.com/x").build())
+                .get(ServerHttpRequestSerializer.IS_SECURE).asBoolean()).isTrue();
+        assertThat(serialize(MockServerHttpRequest.get("http://api.example.com/x").build())
+                .get(ServerHttpRequestSerializer.IS_SECURE).asBoolean()).isFalse();
+    }
+
+    @Test
+    void contentTypeIsExtractedFromTheContentTypeHeaderWhenPresent() throws JacksonException {
+        val request = MockServerHttpRequest.post("/upload").contentType(MediaType.APPLICATION_JSON).build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.CONTENT_TYPE).asString()).startsWith("application/json");
+    }
+
+    @Test
+    void contentTypeIsAbsentWhenNoContentTypeHeaderIsSet() throws JacksonException {
+        val request = MockServerHttpRequest.get("/x").build();
+        val actual  = serialize(request);
+        assertThat(actual.get(ServerHttpRequestSerializer.CONTENT_TYPE)).isNull();
     }
 
 }
