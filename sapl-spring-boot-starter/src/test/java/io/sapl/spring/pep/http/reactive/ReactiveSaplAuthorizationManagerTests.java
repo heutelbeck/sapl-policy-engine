@@ -80,7 +80,8 @@ class ReactiveSaplAuthorizationManagerTests {
 
     private ReactiveSaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new ReactiveSaplAuthorizationManager(pdp, planner, MAPPER);
+        return new ReactiveSaplAuthorizationManager(pdp, planner,
+                new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER));
     }
 
     private static AuthorizationContext exchangeContext() {

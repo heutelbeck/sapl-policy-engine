@@ -76,7 +76,7 @@ class SaplAuthorizationManagerTests {
 
     private SaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new SaplAuthorizationManager(pdp, planner, MAPPER);
+        return new SaplAuthorizationManager(pdp, planner, new DefaultAuthorizationSubscriptionFactory(MAPPER));
     }
 
     private static RequestAuthorizationContext context(MockHttpServletRequest request) {

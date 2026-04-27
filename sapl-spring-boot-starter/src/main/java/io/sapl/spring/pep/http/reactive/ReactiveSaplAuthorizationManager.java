@@ -17,8 +17,6 @@
  */
 package io.sapl.spring.pep.http.reactive;
 
-import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
-
 import java.util.Set;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -44,13 +42,13 @@ import io.sapl.spring.pep.http.HttpEnforcementContext;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import reactor.core.publisher.Mono;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Reactive {@link ReactiveAuthorizationManager} for the WebFlux filter
  * chain. Mirrors
  * {@link io.sapl.spring.pep.http.servlet.SaplAuthorizationManager} for the
- * reactive runtime: builds a per-request subscription, asks the PDP for the
+ * reactive runtime: delegates subscription construction to a
+ * {@link ReactiveAuthorizationSubscriptionFactory}, asks the PDP for the
  * first decision, runs it through the {@link EnforcementPlanner} with the
  * full HTTP signal set, publishes the resulting plan on the exchange
  * attribute {@link HttpEnforcementContext#PLAN_ATTRIBUTE} so the downstream
@@ -67,14 +65,14 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DecisionSignal.TYPE, HttpRequestSignal.TYPE,
             HttpRequestMutationSignal.TYPE, HttpResponseSignal.TYPE, HttpDenialSignal.TYPE);
 
-    private final PolicyDecisionPoint pdp;
-    private final EnforcementPlanner  enforcementPlanner;
-    private final ObjectMapper        mapper;
+    private final PolicyDecisionPoint                      pdp;
+    private final EnforcementPlanner                       enforcementPlanner;
+    private final ReactiveAuthorizationSubscriptionFactory subscriptionFactory;
 
     @Override
     public Mono<AuthorizationResult> authorize(Mono<Authentication> authentication, AuthorizationContext context) {
         val exchange = context.getExchange();
-        return reactiveConstructAuthorizationSubscription(authentication, exchange)
+        return authentication.defaultIfEmpty(ANONYMOUS).flatMap(authn -> subscriptionFactory.build(authn, exchange))
                 .flatMap(subscription -> enforce(subscription, exchange))
                 .map(org.springframework.security.authorization.AuthorizationDecision::new);
     }
@@ -94,12 +92,5 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
             return false;
         }
         return authzDecision.decision() == Decision.PERMIT;
-    }
-
-    private Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(
-            Mono<Authentication> authentication, ServerWebExchange exchange) {
-        val requestValue = fromJsonNode(mapper.valueToTree(exchange.getRequest()));
-        return authentication.defaultIfEmpty(ANONYMOUS)
-                .map(authn -> AuthorizationSubscription.of(authn, requestValue, requestValue, mapper));
     }
 }

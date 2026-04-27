@@ -28,6 +28,16 @@ import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.spring.pep.http.reactive.DefaultReactiveAuthorizationSubscriptionFactory;
+import io.sapl.spring.pep.http.reactive.ReactiveAuthorizationSubscriptionFactory;
+import io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager;
+import io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter;
+import io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler;
+import io.sapl.spring.pep.http.servlet.AuthorizationSubscriptionFactory;
+import io.sapl.spring.pep.http.servlet.DefaultAuthorizationSubscriptionFactory;
+import io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler;
+import io.sapl.spring.pep.http.servlet.SaplAuthorizationManager;
+import io.sapl.spring.pep.http.servlet.SaplHttpPepFilter;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.ObjectMapper;
 
@@ -51,61 +61,74 @@ import tools.jackson.databind.ObjectMapper;
 public class AuthorizationManagerConfiguration {
 
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     @ConditionalOnClass(name = "io.sapl.spring.pep.http.servlet.SaplAuthorizationManager")
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     static class Servlet {
 
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        io.sapl.spring.pep.http.servlet.SaplAuthorizationManager saplAuthorizationManager(PolicyDecisionPoint pdp,
-                EnforcementPlanner enforcementPlanner, ObjectMapper mapper) {
+        AuthorizationSubscriptionFactory saplAuthorizationSubscriptionFactory(ObjectMapper mapper) {
+            return new DefaultAuthorizationSubscriptionFactory(mapper);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        SaplAuthorizationManager saplAuthorizationManager(PolicyDecisionPoint pdp,
+                EnforcementPlanner enforcementPlanner, AuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
-            return new io.sapl.spring.pep.http.servlet.SaplAuthorizationManager(pdp, enforcementPlanner, mapper);
+            return new SaplAuthorizationManager(pdp, enforcementPlanner, subscriptionFactory);
         }
 
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler saplAccessDeniedHandler() {
-            return new io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler();
+        SaplAccessDeniedHandler saplAccessDeniedHandler() {
+            return new SaplAccessDeniedHandler();
         }
 
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        io.sapl.spring.pep.http.servlet.SaplHttpPepFilter saplHttpPepFilter() {
-            return new io.sapl.spring.pep.http.servlet.SaplHttpPepFilter();
+        SaplHttpPepFilter saplHttpPepFilter() {
+            return new SaplHttpPepFilter();
         }
     }
 
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
     @ConditionalOnClass(name = "io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager")
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
     static class Reactive {
 
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(
-                PolicyDecisionPoint pdp, EnforcementPlanner enforcementPlanner, ObjectMapper mapper) {
+        ReactiveAuthorizationSubscriptionFactory reactiveSaplAuthorizationSubscriptionFactory(ObjectMapper mapper) {
+            return new DefaultReactiveAuthorizationSubscriptionFactory(mapper);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(PolicyDecisionPoint pdp,
+                EnforcementPlanner enforcementPlanner, ReactiveAuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
-            return new io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager(pdp, enforcementPlanner,
-                    mapper);
+            return new ReactiveSaplAuthorizationManager(pdp, enforcementPlanner, subscriptionFactory);
         }
 
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler saplServerAccessDeniedHandler() {
-            return new io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler();
+        SaplServerAccessDeniedHandler saplServerAccessDeniedHandler() {
+            return new SaplServerAccessDeniedHandler();
         }
 
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter saplHttpPepWebFilter() {
-            return new io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter();
+        SaplHttpPepWebFilter saplHttpPepWebFilter() {
+            return new SaplHttpPepWebFilter();
         }
     }
 }
