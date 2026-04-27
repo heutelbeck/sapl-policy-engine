@@ -15,21 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.pep.http.servlet;
+package io.sapl.spring.pep.http.reactive;
 
-import static io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer.saplHttp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.config.Customizer.withDefaults;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -40,18 +37,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpRequest;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
@@ -69,15 +64,15 @@ import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.http.MutableHttpRequest;
 import io.sapl.spring.pep.http.MutableHttpResponse;
 import lombok.val;
+import reactor.core.publisher.Flux;
 
 /**
- * End-to-end servlet test of the SAPL HTTP authorization chain. Real Spring
- * Boot context wired through {@link SaplHttpSecurityConfigurer}, real
- * controller, real {@link MockMvc}. The PDP is the only mock.
+ * End-to-end reactive test of the SAPL HTTP authorization chain. Real
+ * Spring Boot context wired through {@link SaplServerHttpSecurityConfigurer},
+ * real controller, real {@link WebTestClient}. The PDP is the only mock.
  */
-@SpringBootTest(classes = SaplHttpServletEnforcementTests.TestApp.class)
-@AutoConfigureMockMvc
-class SaplHttpServletEnforcementTests {
+@SpringBootTest(classes = SaplHttpReactiveEnforcementTests.TestApp.class, properties = "spring.main.web-application-type=reactive")
+class SaplHttpReactiveEnforcementTests {
 
     private static final String AUDIT_LOG       = "auditLog";
     private static final String CAPTURE_REQUEST = "captureRequest";
@@ -91,7 +86,7 @@ class SaplHttpServletEnforcementTests {
     private static final String AUDIT_AND_STAMP = "auditAndStamp";
 
     @Autowired
-    MockMvc mockMvc;
+    ApplicationContext context;
 
     @MockitoBean
     PolicyDecisionPoint pdp;
@@ -99,9 +94,14 @@ class SaplHttpServletEnforcementTests {
     @Autowired
     Probes probes;
 
+    private WebTestClient client;
+
     @BeforeEach
-    void resetProbes() {
+    void setUp() {
         probes.reset();
+        client = WebTestClient.bindToApplicationContext(context).apply(
+                org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.springSecurity())
+                .configureClient().build();
     }
 
     @Nested
@@ -111,27 +111,21 @@ class SaplHttpServletEnforcementTests {
         @Test
         @DisplayName("Authenticated PERMIT, no obligations: 200, body returned")
         @WithMockUser
-        void givenPermitThenOk() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(content().string("hello"));
+        void givenPermitThenOk() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk().expectBody(String.class).isEqualTo("hello");
         }
 
         @Test
         @DisplayName("Authenticated DENY: 403 default body")
         @WithMockUser
-        void givenAuthenticatedDenyThen403() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
-
-            mockMvc.perform(get("/hello")).andExpect(status().isForbidden());
-        }
-
-        @Test
-        @DisplayName("Anonymous DENY: routed to authentication entry point (401), SAPL deny handler does not fire")
-        void givenAnonymousDenyThenEntryPoint() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
-
-            mockMvc.perform(get("/hello")).andExpect(status().isUnauthorized());
+        void givenAuthenticatedDenyThen403() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isForbidden();
         }
     }
 
@@ -142,81 +136,89 @@ class SaplHttpServletEnforcementTests {
         @Test
         @DisplayName("DecisionSignal audit obligation: handler fires once on every decision")
         @WithMockUser
-        void givenAuditObligationThenHandlerFires() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(AUDIT_LOG));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk());
-
+        void givenAuditObligationThenHandlerFires() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(AUDIT_LOG)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk();
             assertThat(probes.auditCount()).isGreaterThanOrEqualTo(1);
         }
 
         @Test
         @DisplayName("HttpRequestSignal observation obligation: handler captures the inbound request path")
         @WithMockUser
-        void givenRequestObservationObligationThenHandlerCapturesRequest() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(CAPTURE_REQUEST));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk());
-
+        void givenRequestObservationObligationThenHandlerCapturesRequest() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(CAPTURE_REQUEST)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk();
             assertThat(probes.observedPath()).isEqualTo("/hello");
         }
 
         @Test
         @DisplayName("HttpRequestMutationSignal obligation: controller sees the obligation-injected header")
         @WithMockUser
-        void givenRequestHeaderInjectionObligationThenControllerSeesHeader() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(INJECT_HEADER));
-
-            mockMvc.perform(get("/echo-tenant")).andExpect(status().isOk()).andExpect(content().string("krynn"));
+        void givenRequestHeaderInjectionObligationThenControllerSeesHeader() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(INJECT_HEADER)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/echo-tenant").exchange().expectStatus().isOk().expectBody(String.class)
+                    .isEqualTo("krynn");
         }
 
         @Test
         @DisplayName("HttpResponseSignal observation obligation: handler observes the post-controller status")
         @WithMockUser
-        void givenResponseObservationObligationThenHandlerObservesStatus() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(OBSERVE_STATUS));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk());
-
+        void givenResponseObservationObligationThenHandlerObservesStatus() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(OBSERVE_STATUS)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk();
             assertThat(probes.observedStatus()).isEqualTo(200);
         }
 
         @Test
         @DisplayName("HttpResponseSignal mutation obligation: client receives the obligation-added header")
         @WithMockUser
-        void givenResponseHeaderObligationThenClientReceivesHeader() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(SET_HEADER));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk())
-                    .andExpect(header().string("X-Trace-Id", "abc-123"));
+        void givenResponseHeaderObligationThenClientReceivesHeader() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(SET_HEADER)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk().expectHeader()
+                    .valueEquals("X-Trace-Id", "abc-123");
         }
 
         @Test
         @DisplayName("HttpResponseSignal body rewrite: client receives the obligation-replaced body")
         @WithMockUser
-        void givenResponseBodyRewriteObligationThenClientReceivesRewrittenBody() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(REWRITE_BODY));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(content().string("REWRITTEN"));
+        void givenResponseBodyRewriteObligationThenClientReceivesRewrittenBody() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(REWRITE_BODY)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk().expectBody(String.class)
+                    .isEqualTo("REWRITTEN");
         }
 
         @Test
         @DisplayName("Multi-handler bundle: one obligation produces audit on DecisionSignal and header on HttpResponseSignal")
         @WithMockUser
-        void givenMultiHandlerObligationThenBothHandlersFire() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(AUDIT_AND_STAMP));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(header().string("X-Audit", "stamped"));
+        void givenMultiHandlerObligationThenBothHandlersFire() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(AUDIT_AND_STAMP)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isOk().expectHeader()
+                    .valueEquals("X-Audit", "stamped");
             assertThat(probes.auditCount()).isGreaterThanOrEqualTo(1);
         }
 
         @Test
         @DisplayName("HttpRequestMutationSignal failure: routed back through the deny handler as 403")
         @WithMockUser
-        void givenRequestMutationFailureObligationThen403() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(REQUEST_FAIL));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isForbidden());
+        void givenRequestMutationFailureObligationThen403() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(REQUEST_FAIL)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isForbidden();
         }
     }
 
@@ -227,20 +229,23 @@ class SaplHttpServletEnforcementTests {
         @Test
         @DisplayName("HttpDenialSignal obligation: handler writes a custom 451 body")
         @WithMockUser
-        void givenCustomDenyObligationThenHandlerShapesResponse() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(denyWith(CUSTOM_DENY));
-
-            mockMvc.perform(get("/hello")).andExpect(status().is(451)).andExpect(content().string("denied by policy"));
+        void givenCustomDenyObligationThenHandlerShapesResponse() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(denyWith(CUSTOM_DENY)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isEqualTo(451).expectBody(String.class)
+                    .isEqualTo("denied by policy");
         }
 
         @Test
         @DisplayName("HttpDenialSignal redirect obligation: handler issues 302 with Location header")
         @WithMockUser
-        void givenRedirectDenyObligationThen302WithLocation() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(denyWith(REDIRECT_DENY));
-
-            mockMvc.perform(get("/hello")).andExpect(status().isFound())
-                    .andExpect(header().string("Location", "/access-denied"));
+        void givenRedirectDenyObligationThen302WithLocation() {
+            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(denyWith(REDIRECT_DENY)));
+            client.mutateWith(
+                    org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
+                    .get().uri("/hello").exchange().expectStatus().isEqualTo(HttpStatus.FOUND).expectHeader()
+                    .valueEquals("Location", "/access-denied");
         }
     }
 
@@ -257,18 +262,21 @@ class SaplHttpServletEnforcementTests {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @EnableWebSecurity
+    @EnableWebFluxSecurity
     static class TestApp {
 
         @Bean
-        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-            return http.with(saplHttp(), withDefaults()).csrf(AbstractHttpConfigurer::disable).httpBasic(withDefaults())
-                    .build();
+        SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, ApplicationContext ctx) {
+            SaplServerHttpSecurityConfigurer.apply(http, ctx);
+            return http.csrf(ServerHttpSecurity.CsrfSpec::disable).httpBasic(withDefaults()).build();
         }
 
         @Bean
-        MockMvcBuilderCustomizer saplSecurityMockMvcCustomizer() {
-            return builder -> builder.apply(SecurityMockMvcConfigurers.springSecurity());
+        org.springframework.security.core.userdetails.MapReactiveUserDetailsService userDetailsService() {
+            @SuppressWarnings("deprecation")
+            org.springframework.security.core.userdetails.UserDetails user = org.springframework.security.core.userdetails.User
+                    .withDefaultPasswordEncoder().username("user").password("user").roles("USER").build();
+            return new org.springframework.security.core.userdetails.MapReactiveUserDetailsService(user);
         }
 
         @Bean
@@ -301,16 +309,16 @@ class SaplHttpServletEnforcementTests {
     }
 
     static class Probes {
-        private int                            auditCount     = 0;
+        private final AtomicInteger            auditCount     = new AtomicInteger();
         private final AtomicReference<String>  observedPath   = new AtomicReference<>();
         private final AtomicReference<Integer> observedStatus = new AtomicReference<>();
 
-        synchronized void incrementAudit() {
-            auditCount++;
+        void incrementAudit() {
+            auditCount.incrementAndGet();
         }
 
-        synchronized int auditCount() {
-            return auditCount;
+        int auditCount() {
+            return auditCount.get();
         }
 
         void observePath(String path) {
@@ -330,7 +338,7 @@ class SaplHttpServletEnforcementTests {
         }
 
         void reset() {
-            auditCount = 0;
+            auditCount.set(0);
             observedPath.set(null);
             observedStatus.set(null);
         }

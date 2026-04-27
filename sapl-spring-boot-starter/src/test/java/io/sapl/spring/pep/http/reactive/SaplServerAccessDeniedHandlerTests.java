@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.manager;
+package io.sapl.spring.pep.http.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,8 +26,8 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.model.Value;
@@ -44,11 +44,12 @@ import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.pep.http.MutableHttpResponse;
 import lombok.val;
+import reactor.test.StepVerifier;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-@DisplayName("SaplAccessDeniedHandler")
-class SaplAccessDeniedHandlerTests {
+@DisplayName("SaplServerAccessDeniedHandler")
+class SaplServerAccessDeniedHandlerTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
@@ -57,7 +58,7 @@ class SaplAccessDeniedHandlerTests {
 
     private static final AccessDeniedException DENIED = new AccessDeniedException("denied");
 
-    private final SaplAccessDeniedHandler handler = new SaplAccessDeniedHandler();
+    private final SaplServerAccessDeniedHandler handler = new SaplServerAccessDeniedHandler();
 
     @Nested
     @DisplayName("Fallback paths")
@@ -65,40 +66,37 @@ class SaplAccessDeniedHandlerTests {
 
         @Test
         @DisplayName("no plan attribute: falls back to Spring's default 403")
-        void noPlan() throws Exception {
-            val request  = new MockHttpServletRequest("GET", "/r");
-            val response = new MockHttpServletResponse();
-            handler.handle(request, response, DENIED);
-            assertThat(response.getStatus()).isEqualTo(403);
+        void noPlan() {
+            val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/r"));
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse().getStatusCode().value()).isEqualTo(403);
         }
 
         @Test
         @DisplayName("plan present but no handler scheduled at HttpDenialSignal: falls back to 403")
-        void planWithoutDenialHandler() throws Exception {
+        void planWithoutDenialHandler() {
             val plan     = planFor(denyWith("none"), provider(constraint -> List.of()));
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
-            val response = new MockHttpServletResponse();
-            handler.handle(request, response, DENIED);
-            assertThat(response.getStatus()).isEqualTo(403);
+            val exchange = withPlan(plan);
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse().getStatusCode().value()).isEqualTo(403);
         }
 
         @Test
         @DisplayName("denial handler is a Runner that does not shape the response: falls back to 403")
-        void runnerOnlyDoesNotShape() throws Exception {
+        void runnerOnlyDoesNotShape() {
             ConstraintHandler.Runner h        = () -> { /* logs only */ };
             val                      plan     = planFor(denyWith("audit"),
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "audit")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
                             : List.of()));
-            val                      request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
-            val                      response = new MockHttpServletResponse();
-            handler.handle(request, response, DENIED);
-            assertThat(response.getStatus()).isEqualTo(403);
+            val                      exchange = withPlan(plan);
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse().getStatusCode().value()).isEqualTo(403);
         }
 
         @Test
         @DisplayName("denial obligation handler throws: falls back to 403")
-        void handlerFailureFallsBack() throws Exception {
+        void handlerFailureFallsBack() {
             ConstraintHandler.Consumer<MutableHttpResponse> h        = resp -> {
                                                                          throw new IllegalStateException("nope");
                                                                      };
@@ -106,11 +104,9 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "boom")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
                             : List.of()));
-            val                                             request  = withPlan(plan,
-                    new MockHttpServletRequest("GET", "/r"));
-            val                                             response = new MockHttpServletResponse();
-            handler.handle(request, response, DENIED);
-            assertThat(response.getStatus()).isEqualTo(403);
+            val                                             exchange = withPlan(plan);
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse().getStatusCode().value()).isEqualTo(403);
         }
     }
 
@@ -120,7 +116,7 @@ class SaplAccessDeniedHandlerTests {
 
         @Test
         @DisplayName("handler that writes a custom body and status commits both to the underlying response")
-        void writesCustomBody() throws Exception {
+        void writesCustomBody() {
             ConstraintHandler.Consumer<MutableHttpResponse> h        = resp -> {
                                                                          resp.setStatusCode(451);
                                                                          resp.writeBody("text/plain;charset=UTF-8",
@@ -130,18 +126,18 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "custom")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
                             : List.of()));
-            val                                             request  = withPlan(plan,
-                    new MockHttpServletRequest("GET", "/r"));
-            val                                             response = new MockHttpServletResponse();
-            handler.handle(request, response, DENIED);
-            assertThat(response.getStatus()).isEqualTo(451);
-            assertThat(response.getContentAsString()).isEqualTo("denied by policy");
-            assertThat(response.getContentType()).startsWith("text/plain");
+            val                                             exchange = withPlan(plan);
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse()).satisfies(r -> {
+                assertThat(r.getStatusCode().value()).isEqualTo(451);
+                assertThat(r.getHeaders().getContentType().toString()).startsWith("text/plain");
+                assertThat(r.getBodyAsString().block()).isEqualTo("denied by policy");
+            });
         }
 
         @Test
         @DisplayName("handler that issues a redirect commits a 302 with Location header")
-        void redirect() throws Exception {
+        void redirect() {
             ConstraintHandler.Consumer<MutableHttpResponse> h        = resp -> {
                                                                          resp.setStatusCode(302);
                                                                          resp.setHeader("Location", "/login");
@@ -150,18 +146,19 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "redir")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
                             : List.of()));
-            val                                             request  = withPlan(plan,
-                    new MockHttpServletRequest("GET", "/r"));
-            val                                             response = new MockHttpServletResponse();
-            handler.handle(request, response, DENIED);
-            assertThat(response.getStatus()).isEqualTo(302);
-            assertThat(response.getHeader("Location")).isEqualTo("/login");
+            val                                             exchange = withPlan(plan);
+            StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
+            assertThat(exchange.getResponse()).satisfies(r -> {
+                assertThat(r.getStatusCode().value()).isEqualTo(302);
+                assertThat(r.getHeaders().getFirst("Location")).isEqualTo("/login");
+            });
         }
     }
 
-    private static MockHttpServletRequest withPlan(EnforcementPlan plan, MockHttpServletRequest request) {
-        request.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);
-        return request;
+    private static MockServerWebExchange withPlan(EnforcementPlan plan) {
+        val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/r"));
+        exchange.getAttributes().put(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);
+        return exchange;
     }
 
     private static EnforcementPlan planFor(AuthorizationDecision decision, ConstraintHandlerProvider provider) {
