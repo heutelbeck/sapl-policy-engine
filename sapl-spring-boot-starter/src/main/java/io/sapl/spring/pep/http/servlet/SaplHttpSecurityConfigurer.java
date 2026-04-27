@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.spring.config;
+package io.sapl.spring.pep.http.servlet;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
-import io.sapl.spring.manager.SaplAccessDeniedHandler;
-import io.sapl.spring.manager.SaplAuthorizationManager;
+import io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler;
+import io.sapl.spring.pep.http.servlet.SaplAuthorizationManager;
 import io.sapl.spring.pep.http.servlet.SaplHttpPepFilter;
 import lombok.val;
 

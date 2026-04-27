@@ -40,15 +40,21 @@ import org.springframework.http.HttpStatusCode;
 public interface MutableHttpResponse {
 
     /**
-     * Sets the HTTP status code on the response.
+     * Sets the HTTP status code on the response. Return value mirrors the
+     * reactive
+     * {@link org.springframework.http.server.reactive.ServerHttpResponse#setStatusCode(HttpStatusCode)}
+     * contract: {@code true} when the status was applied, {@code false}
+     * when the response is already committed and the status cannot change.
+     * Servlet implementations always return {@code true} since the buffered
+     * status is set on a buffer, not on the underlying servlet response.
      */
-    void setStatusCode(HttpStatusCode status);
+    boolean setStatusCode(HttpStatusCode status);
 
     /**
      * Sets the HTTP status code from a numeric value (such as 302 or 403).
      */
-    default void setStatusCode(int statusValue) {
-        setStatusCode(HttpStatusCode.valueOf(statusValue));
+    default boolean setStatusCode(int statusValue) {
+        return setStatusCode(HttpStatusCode.valueOf(statusValue));
     }
 
     /**

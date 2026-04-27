@@ -79,8 +79,9 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
     }
 
     @Override
-    public void setStatusCode(HttpStatusCode status) {
+    public boolean setStatusCode(HttpStatusCode status) {
         setStatus(status.value());
+        return true;
     }
 
     @Override

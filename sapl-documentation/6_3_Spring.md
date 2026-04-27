@@ -323,7 +323,7 @@ Beyond method security, you can apply SAPL to the HTTP layer. This protects endp
 Apply SAPL to `HttpSecurity` through the dedicated configurer the starter ships. One call wires the authorization manager, the HTTP PEP filter, and the access-denied handler.
 
 ```java
-import static io.sapl.spring.config.SaplHttpSecurityConfigurer.saplHttp;
+import static io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer.saplHttp;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Bean
@@ -335,7 +335,7 @@ SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 }
 ```
 
-`saplHttp()` is `io.sapl.spring.config.SaplHttpSecurityConfigurer.saplHttp()`. The configurer pulls `SaplAuthorizationManager`, `SaplAccessDeniedHandler`, and `SaplHttpPepFilter` from the application context. All three are deployed by `AuthorizationManagerConfiguration` as `@ConditionalOnMissingBean` beans, so applications can override any of them by declaring their own bean of the same type.
+`saplHttp()` is `io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer.saplHttp()`. The configurer pulls `SaplAuthorizationManager`, `SaplAccessDeniedHandler`, and `SaplHttpPepFilter` from the application context. All three are deployed by `AuthorizationManagerConfiguration` as `@ConditionalOnMissingBean` beans, so applications can override any of them by declaring their own bean of the same type.
 
 ### Reactive Wiring
 

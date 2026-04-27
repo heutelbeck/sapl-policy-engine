@@ -25,10 +25,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 
 import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.spring.manager.ReactiveSaplAuthorizationManager;
-import io.sapl.spring.manager.SaplAccessDeniedHandler;
-import io.sapl.spring.manager.SaplAuthorizationManager;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager;
+import io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter;
+import io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler;
+import io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler;
+import io.sapl.spring.pep.http.servlet.SaplAuthorizationManager;
 import io.sapl.spring.pep.http.servlet.SaplHttpPepFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,5 +91,21 @@ public class AuthorizationManagerConfiguration {
     ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager() {
         log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
         return new ReactiveSaplAuthorizationManager(pdp, enforcementPlanner, mapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+    SaplServerAccessDeniedHandler saplServerAccessDeniedHandler() {
+        return new SaplServerAccessDeniedHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+    SaplHttpPepWebFilter saplHttpPepWebFilter() {
+        return new SaplHttpPepWebFilter();
     }
 }

@@ -37,7 +37,7 @@ import lombok.val;
 /**
  * Servlet filter that fires the HTTP request-mutation and response signals
  * against the {@link EnforcementPlan} published by
- * {@link io.sapl.spring.manager.SaplAuthorizationManager}.
+ * {@link io.sapl.spring.pep.http.servlet.SaplAuthorizationManager}.
  * <p>
  * Sits immediately after Spring Security's {@code AuthorizationFilter}. On
  * every request that reaches it (the request was permitted by the
