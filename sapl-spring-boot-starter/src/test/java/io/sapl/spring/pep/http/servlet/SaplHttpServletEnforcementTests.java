@@ -261,7 +261,7 @@ class SaplHttpServletEnforcementTests {
     static class TestApp {
 
         @Bean
-        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        SecurityFilterChain securityFilterChain(HttpSecurity http) {
             return http.with(saplHttp(), withDefaults()).csrf(AbstractHttpConfigurer::disable).httpBasic(withDefaults())
                     .build();
         }

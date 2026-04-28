@@ -49,7 +49,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -68,9 +67,7 @@ import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.val;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**

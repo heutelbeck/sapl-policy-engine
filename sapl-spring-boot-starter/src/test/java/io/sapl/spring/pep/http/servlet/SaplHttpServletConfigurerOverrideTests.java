@@ -94,7 +94,7 @@ class SaplHttpServletConfigurerOverrideTests {
     static class TestApp {
 
         @Bean
-        SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper mapper) throws Exception {
+        SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper mapper) {
             return http
                     .with(saplHttp(),
                             c -> c.subscriptionFactory((auth, req) -> AuthorizationSubscription.of(auth.getName(),
