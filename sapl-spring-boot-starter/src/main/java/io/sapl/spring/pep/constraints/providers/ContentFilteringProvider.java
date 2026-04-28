@@ -33,13 +33,11 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Translates a {@code filterJsonContent} constraint into a {@link Mapper}
- * attached to the PEP's
- * {@link Signal.OutputSignal}. Delegates to
- * {@link ContentFilter#getHandler(Value, Class, ObjectMapper)},
- * which applies the constraint's redact/blacken/replace actions to the payload
- * via JSON round-tripping.
- * Returns {@link Optional#empty()} if no {@link Signal.OutputSignal} is in
- * {@code supportedSignals}.
+ * attached to the PEP's {@link Signal.OutputSignal}. Delegates to
+ * {@link ContentFilter#getHandler(Value, ObjectMapper)}, which applies the
+ * constraint's redact/blacken/replace actions to the payload via JSON
+ * round-tripping. Returns an empty list when no {@link Signal.OutputSignal}
+ * is in {@code supportedSignals}.
  */
 @RequiredArgsConstructor
 public class ContentFilteringProvider implements ConstraintHandlerProvider {
