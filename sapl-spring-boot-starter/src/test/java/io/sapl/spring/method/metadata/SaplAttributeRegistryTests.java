@@ -249,12 +249,100 @@ class SaplAttributeRegistryTests {
         expectSubjectExpressionStringInAttribute(TestClass.class, "'onDefaultInterfaceMethod'");
     }
 
+    @Test
+    void whenStreamEnforceCanonicalAnnotation_ThenStreamModeIsResolved() {
+
+        class TestClass {
+            @StreamEnforce(mode = StreamMode.DROP_WHILE_DENIED, subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectStreamModeInAttribute(TestClass.class, StreamMode.DROP_WHILE_DENIED);
+    }
+
+    @Test
+    void whenEnforceTillDeniedAlias_ThenStreamModeIsTillDenied() {
+
+        class TestClass {
+            @EnforceTillDenied(subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectStreamModeInAttribute(TestClass.class, StreamMode.TILL_DENIED);
+    }
+
+    @Test
+    void whenEnforceDropWhileDeniedAlias_ThenStreamModeIsDropWhileDenied() {
+
+        class TestClass {
+            @EnforceDropWhileDenied(subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectStreamModeInAttribute(TestClass.class, StreamMode.DROP_WHILE_DENIED);
+    }
+
+    @Test
+    void whenEnforceAccessAwareAlias_ThenStreamModeIsAccessAware() {
+
+        class TestClass {
+            @EnforceAccessAware(subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectStreamModeInAttribute(TestClass.class, StreamMode.ACCESS_AWARE);
+    }
+
+    @Test
+    void whenEnforceRecoverableIfDeniedLegacyAlias_ThenStreamModeIsAccessAware() {
+
+        class TestClass {
+            @EnforceRecoverableIfDenied(subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectStreamModeInAttribute(TestClass.class, StreamMode.ACCESS_AWARE);
+    }
+
+    @Test
+    void whenPreEnforce_ThenStreamModeIsNull() {
+
+        class TestClass {
+            @PreEnforce(subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        final var sut       = new SaplAttributeRegistry();
+        final var mi        = MethodInvocationUtils.createFromClass(TestClass.class, "doSomething");
+        final var attribute = sut.getSaplAttributeForAnnotationType(mi, PreEnforce.class);
+        assertThat(attribute).hasValueSatisfying(a -> assertThat(a.streamMode()).isNull());
+    }
+
     private void expectSubjectExpressionStringInAttribute(Class<?> clazz, String expectedExpressionString) {
         final var sut        = new SaplAttributeRegistry();
         final var mi         = MethodInvocationUtils.createFromClass(clazz, "doSomething");
         final var attributes = sut.getAllSaplAttributes(mi);
         assertThat(attributes.values()).anySatisfy(
                 attr -> assertThat(attr.subjectExpression().getExpressionString()).isEqualTo(expectedExpressionString));
+    }
+
+    private void expectStreamModeInAttribute(Class<?> clazz, StreamMode expectedMode) {
+        final var sut       = new SaplAttributeRegistry();
+        final var mi        = MethodInvocationUtils.createFromClass(clazz, "doSomething");
+        final var attribute = sut.getSaplAttributeForAnnotationType(mi, StreamEnforce.class);
+        assertThat(attribute).hasValueSatisfying(a -> assertThat(a.streamMode()).isEqualTo(expectedMode));
     }
 
 }

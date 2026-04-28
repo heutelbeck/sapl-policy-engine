@@ -24,88 +24,49 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.core.annotation.AliasFor;
+
 /**
- * The @EnforceRecoverableIfDenied annotation establishes a reactive policy
- * enforcement point (PEP). The PEP is only applicable to methods returning a
- * {@link org.reactivestreams.Publisher Publisher}, i.e., a
- * {@link reactor.core.publisher.Flux Flux} or a
- * {@link reactor.core.publisher.Mono Mono}.
+ * Streaming PEP alias that pins {@link StreamEnforce#mode()} to
+ * {@link StreamMode#ACCESS_AWARE}.
  * <p>
- * The publisher returned by the method is wrapped by the PEP. The PEP starts
- * processing, i.e, sending a subscription to the PDP, upon subscription time.
+ * Equivalent to {@code @StreamEnforce(mode = ACCESS_AWARE)}. The
+ * subscription stays alive across denials and emits transition events on
+ * every PENDING/PERMIT/DENY change so the client can disambiguate denial
+ * from an idle source. Data items are dropped while denied.
  * <p>
- * The established PEP also wires in matching handlers for obligations and
- * advice into the matching signal paths of the publisher.
- * <p>
- * Subscribe to the resource after the first decision, make it a hot source.
- * Filter out all events from the data stream wile the most recent decision is
- * not PERMIT. However, on a non-permit signal an AccessDeniedException
- * downstream. Enable the client to recover and wait for the resource to become
- * available again.
- * <p>
- * Keep the subscription alive as long as the client does.
- * <p>
- * The client is aware of access denied events.
- * <p>
+ * The name "RecoverableIfDenied" is preserved for backward compatibility
+ * with earlier 4.x releases. {@link EnforceAccessAware} is the equivalent
+ * paper-aligned alias and is preferred for new code.
  *
- * The parameters subject, action, resource, and environment can be used to
- * explicitly set the corresponding keys in the SAPL authorization subscription,
- * assuming that the Spring context and ObjectMapper are configured to be able
- * to serialize the resulting value into JSON.
+ * @see StreamEnforce
+ * @see StreamMode#ACCESS_AWARE
+ * @see EnforceAccessAware
  */
 @Inherited
 @Documented
+@StreamEnforce(mode = StreamMode.ACCESS_AWARE)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface EnforceRecoverableIfDenied {
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the subject in the authorization subscription to the PDP. If empty, the PEP
-     * attempts to derive a guess to describe the subject based on the current
-     * Principal.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String subject() default "";
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the action in the authorization subscription to the PDP. If empty, the PEP
-     * attempts to derive a guess to describe the action based on reflection.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String action() default "";
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the action in the authorization subscription to the PDP. If empty, the PEP
-     * attempts to derive a guess to describe the resource based on reflection.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String resource() default "";
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the action in the authorization subscription to the PDP. If empty, no
-     * environment is set in the subscription.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String environment() default "";
 
-    /**
-     * @return the Spring-EL expression whose evaluation result is to be used as the
-     * secrets in the authorization subscription to the PDP. Must evaluate to an
-     * object. If empty, no secrets are set in the subscription.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String secrets() default "";
-
-    /**
-     * When enabled, the PEP emits a recovery signal on each DENY-to-PERMIT
-     * transition so subscribers can distinguish "access restored, source idle"
-     * from "still denied." The recovery signal type and its
-     * {@code onErrorContinue} delivery shape will be defined when the
-     * streaming PEPs ship as real enforcement (the current implementation is
-     * a pass-through scaffold; this attribute is preserved to keep user code
-     * forward-compatible).
-     *
-     * @return true to emit recovery signals, false (default) for silent recovery
-     */
-    boolean signalAccessRecovery() default false;
-
 }

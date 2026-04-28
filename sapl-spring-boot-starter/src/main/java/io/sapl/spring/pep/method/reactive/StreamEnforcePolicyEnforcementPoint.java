@@ -21,37 +21,45 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.beans.factory.ObjectProvider;
 
-import io.sapl.spring.method.metadata.EnforceDropWhileDenied;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
+import io.sapl.spring.method.metadata.StreamEnforce;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
- * Scaffolded reactive PEP for {@link EnforceDropWhileDenied}.
- * </p>
- * Pass-through scaffold (logs WARN on application). See sibling
- * {@link EnforceTillDeniedPolicyEnforcementPoint} for the full rationale.
+ * Scaffolded reactive PEP for {@link StreamEnforce} (and its four named
+ * aliases: {@code @EnforceTillDenied}, {@code @EnforceDropWhileDenied},
+ * {@code @EnforceAccessAware}, {@code @EnforceRecoverableIfDenied}).
+ * <p>
+ * Currently a pass-through: when the annotation is present on the invoked
+ * method, the PEP logs a WARN advertising that no enforcement is applied
+ * and returns the protected method's {@code Publisher} unchanged. The
+ * full streaming state machine (per-decision re-planning, mode-driven
+ * lifecycle, transition signals) will replace this scaffold in a follow-up.
+ * The scaffold exists so the rest of the wiring (advisor registration,
+ * attribute lookup, mode resolution from the merged annotation) is
+ * exercised end-to-end while the streaming logic is built.
  *
  * @since 4.1.0
  */
 @Slf4j
 @RequiredArgsConstructor
-public final class EnforceDropWhileDeniedPolicyEnforcementPoint implements MethodInterceptor {
+public final class StreamEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-    private static final String WARN_SCAFFOLD_NOT_ENFORCING = "@EnforceDropWhileDenied scaffold on {}: no enforcement applied (streaming PEP implementation pending in 4.1.0).";
+    private static final String WARN_SCAFFOLD_NOT_ENFORCING = "@StreamEnforce(mode={}) scaffold on {}: no enforcement applied (streaming PEP implementation pending in 4.1.0).";
 
     private final ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider;
 
     @Override
     public Object invoke(@NonNull MethodInvocation methodInvocation) throws Throwable {
         val attribute = attributeRegistryProvider.getObject().getSaplAttributeForAnnotationType(methodInvocation,
-                EnforceDropWhileDenied.class);
+                StreamEnforce.class);
         if (attribute.isEmpty()) {
             return methodInvocation.proceed();
         }
-        log.warn(WARN_SCAFFOLD_NOT_ENFORCING, methodInvocation.getMethod());
+        log.warn(WARN_SCAFFOLD_NOT_ENFORCING, attribute.get().streamMode(), methodInvocation.getMethod());
         return methodInvocation.proceed();
     }
 }

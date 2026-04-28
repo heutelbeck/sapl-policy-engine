@@ -18,6 +18,7 @@
 package io.sapl.spring.method.metadata;
 
 import lombok.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.expression.Expression;
 
 /**
@@ -32,6 +33,9 @@ import org.springframework.expression.Expression;
  * @param resourceExpression SpEL expression for the resource, or null
  * @param environmentExpression SpEL expression for the environment, or null
  * @param secretsExpression SpEL expression for secrets, or null
+ * @param streamMode lifecycle mode for {@link StreamEnforce}-derived
+ * attributes; {@code null} for non-streaming annotations
+ * ({@link PreEnforce}, {@link PostEnforce}).
  */
 public record SaplAttribute(
         Class<?> annotationType,
@@ -39,19 +43,21 @@ public record SaplAttribute(
         Expression actionExpression,
         Expression resourceExpression,
         Expression environmentExpression,
-        Expression secretsExpression) {
+        Expression secretsExpression,
+        @Nullable StreamMode streamMode) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
-    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null);
+    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, null);
 
     @Override
     public @NonNull String toString() {
         return "@" + (annotationType() == null ? "null" : annotationType().getSimpleName()) + "(subject="
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
-                + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets() + ")";
+                + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets()
+                + (streamMode() == null ? "" : ", streamMode=" + streamMode()) + ")";
     }
 
     private String maskSecrets() {
