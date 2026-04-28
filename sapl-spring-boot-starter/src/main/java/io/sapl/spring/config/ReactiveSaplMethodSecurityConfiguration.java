@@ -31,23 +31,19 @@ import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.pep.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
-import io.sapl.spring.pep.method.reactive.EnforceDropWhileDeniedPolicyEnforcementPoint;
-import io.sapl.spring.pep.method.reactive.EnforceRecoverableIfDeniedPolicyEnforcementPoint;
-import io.sapl.spring.pep.method.reactive.EnforceTillDeniedPolicyEnforcementPoint;
 import io.sapl.spring.pep.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.pep.method.reactive.PreEnforcePolicyEnforcementPoint;
+import io.sapl.spring.pep.method.reactive.StreamEnforcePolicyEnforcementPoint;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
- * Wires the reactive @PreEnforce, @PostEnforce, and the three streaming PEPs
- * ({@link EnforceTillDeniedPolicyEnforcementPoint},
- * {@link EnforceDropWhileDeniedPolicyEnforcementPoint},
- * {@link EnforceRecoverableIfDeniedPolicyEnforcementPoint}) to the new
- * shim-signal-based PEP framework. Streaming PEPs are currently scaffolded
- * pass-through implementations; their signal-driven implementations are
- * pending.
+ * Wires the reactive @PreEnforce, @PostEnforce, and the unified
+ * {@code @StreamEnforce} (plus its four named aliases) PEPs to the
+ * shim-signal-based PEP framework. {@link StreamEnforcePolicyEnforcementPoint}
+ * is currently a scaffolded pass-through; the full streaming state machine
+ * implementation is pending.
  */
 @Slf4j
 @Configuration(proxyBeanMethods = false)
@@ -81,27 +77,9 @@ final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor enforceTillDeniedPolicyEnforcementPoint(ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
-        log.debug("Deploy scaffolded @EnforceTillDenied Policy Enforcement Point (pass-through)");
-        val pep = new EnforceTillDeniedPolicyEnforcementPoint(attributeRegistryProvider);
-        return PolicyEnforcementPointAroundMethodInterceptor.reactive(pep);
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor enforceDropWhileDeniedPolicyEnforcementPoint(
-            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
-        log.debug("Deploy scaffolded @EnforceDropWhileDenied Policy Enforcement Point (pass-through)");
-        val pep = new EnforceDropWhileDeniedPolicyEnforcementPoint(attributeRegistryProvider);
-        return PolicyEnforcementPointAroundMethodInterceptor.reactive(pep);
-    }
-
-    @Bean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor enforceRecoverableIfDeniedPolicyEnforcementPoint(
-            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
-        log.debug("Deploy scaffolded @EnforceRecoverableIfDenied Policy Enforcement Point (pass-through)");
-        val pep = new EnforceRecoverableIfDeniedPolicyEnforcementPoint(attributeRegistryProvider);
-        return PolicyEnforcementPointAroundMethodInterceptor.reactive(pep);
+    Advisor streamEnforcePolicyEnforcementPoint(ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
+        log.debug("Deploy scaffolded @StreamEnforce Policy Enforcement Point (pass-through)");
+        val pep = new StreamEnforcePolicyEnforcementPoint(attributeRegistryProvider);
+        return PolicyEnforcementPointAroundMethodInterceptor.streamEnforce(pep);
     }
 }

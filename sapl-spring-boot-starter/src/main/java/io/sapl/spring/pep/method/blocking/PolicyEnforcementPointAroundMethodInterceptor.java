@@ -17,11 +17,9 @@
  */
 package io.sapl.spring.pep.method.blocking;
 
-import io.sapl.spring.method.metadata.EnforceDropWhileDenied;
-import io.sapl.spring.method.metadata.EnforceRecoverableIfDenied;
-import io.sapl.spring.method.metadata.EnforceTillDenied;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
+import io.sapl.spring.method.metadata.StreamEnforce;
 import lombok.Getter;
 import lombok.NonNull;
 import org.aopalliance.aop.Advice;
@@ -56,15 +54,10 @@ public class PolicyEnforcementPointAroundMethodInterceptor
                 SaplAuthorizationInterceptorsOrder.POST_ENFORCE.getOrder(), policyEnforcementPoint);
     }
 
-    public static PolicyEnforcementPointAroundMethodInterceptor reactive(MethodInterceptor policyEnforcementPoint) {
-        return new PolicyEnforcementPointAroundMethodInterceptor(
+    public static PolicyEnforcementPointAroundMethodInterceptor streamEnforce(
+            MethodInterceptor policyEnforcementPoint) {
+        return new PolicyEnforcementPointAroundMethodInterceptor(StreamEnforce.class,
                 SaplAuthorizationInterceptorsOrder.STREAMING.getOrder(), policyEnforcementPoint);
-    }
-
-    PolicyEnforcementPointAroundMethodInterceptor(int order, MethodInterceptor policyEnforcementPoint) {
-        this.pointcut               = pointcutForAllAnnotations();
-        this.order                  = order;
-        this.policyEnforcementPoint = policyEnforcementPoint;
     }
 
     PolicyEnforcementPointAroundMethodInterceptor(Class<? extends Annotation> annotation,
@@ -77,15 +70,6 @@ public class PolicyEnforcementPointAroundMethodInterceptor
 
     private static Pointcut pointcutForAnnotation(Class<? extends Annotation> annotation) {
         return new ComposablePointcut(classOrMethod(annotation));
-
-    }
-
-    private static Pointcut pointcutForAllAnnotations() {
-        var cut = new ComposablePointcut(classOrMethod(PreEnforce.class));
-        cut = cut.union(classOrMethod(PostEnforce.class));
-        cut = cut.union(classOrMethod(EnforceRecoverableIfDenied.class));
-        cut = cut.union(classOrMethod(EnforceDropWhileDenied.class));
-        return cut.union(classOrMethod(EnforceTillDenied.class));
     }
 
     private static Pointcut classOrMethod(Class<? extends Annotation> annotation) {

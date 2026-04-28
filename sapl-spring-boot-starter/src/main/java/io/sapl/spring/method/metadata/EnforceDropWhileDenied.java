@@ -24,72 +24,46 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.springframework.core.annotation.AliasFor;
+
 /**
- * The @EnforceDropWhileDenied annotation establishes a reactive policy
- * enforcement point (PEP). The PEP is only applicable to methods returning a
- * {@link org.reactivestreams.Publisher Publisher}, i.e., a
- * {@link reactor.core.publisher.Flux Flux} or a
- * {@link reactor.core.publisher.Mono Mono}.
+ * Streaming PEP alias that pins {@link StreamEnforce#mode()} to
+ * {@link StreamMode#DROP_WHILE_DENIED}.
  * <p>
- * The publisher returned by the method is wrapped by the PEP. The PEP starts
- * processing, i.e, sending a subscription to the PDP, upon subscription time.
- * <p>
- * The established PEP also wires in matching handlers for obligations and
- * advice into the matching signal paths of the publisher.
- * <p>
- * Subscribe to the resource after the first decision, make it a hot source.
- * Filter out all events from the data stream wile the most recent decision is
- * not PERMIT.
- * <p>
- * Keep the subscription alive as long as the client does.
- * <p>
- * The client is not aware of access denied events.
- * <p>
- * The parameters subject, action, resource, and environment can be used to
- * explicitly set the corresponding keys in the SAPL authorization subscription,
- * assuming that the Spring context and ObjectMapper are configured to be able
- * to serialize the resulting value into JSON.
+ * Equivalent to {@code @StreamEnforce(mode = DROP_WHILE_DENIED)}. The
+ * subscription stays alive across denials and silently drops events while
+ * denied; emission resumes when a fresh enforceable PERMIT arrives. The
+ * client cannot distinguish denial from an idle source. Use when denial
+ * itself must be hidden from the client (insider-threat monitoring,
+ * legacy clients that cannot renegotiate).
+ *
+ * @see StreamEnforce
+ * @see StreamMode#DROP_WHILE_DENIED
  */
 @Inherited
 @Documented
+@StreamEnforce(mode = StreamMode.DROP_WHILE_DENIED)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface EnforceDropWhileDenied {
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the subject in the authorization subscription to the PDP. If empty, the PEP
-     * attempts to derive a guess to describe the subject based on the current
-     * Principal.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String subject() default "";
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the action in the authorization subscription to the PDP. If empty, the PEP
-     * attempts to derive a guess to describe the action based on reflection.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String action() default "";
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the action in the authorization subscription to the PDP. If empty, the PEP
-     * attempts to derive a guess to describe the resource based on reflection.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String resource() default "";
 
-    /**
-     * @return the Spring-EL expression to whose evaluation result is to be used as
-     * the action in the authorization subscription to the PDP. If empty, no
-     * environment is set in the subscription.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String environment() default "";
 
-    /**
-     * @return the Spring-EL expression whose evaluation result is to be used as the
-     * secrets in the authorization subscription to the PDP. Must evaluate to an
-     * object. If empty, no secrets are set in the subscription.
-     */
+    /** {@inheritDoc} */
+    @AliasFor(annotation = StreamEnforce.class)
     String secrets() default "";
-
 }

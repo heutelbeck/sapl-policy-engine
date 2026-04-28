@@ -28,23 +28,28 @@ import org.springframework.core.annotation.AliasFor;
 
 /**
  * Streaming PEP alias that pins {@link StreamEnforce#mode()} to
- * {@link StreamMode#TILL_DENIED}.
+ * {@link StreamMode#ACCESS_AWARE}.
  * <p>
- * Equivalent to {@code @StreamEnforce(mode = TILL_DENIED)}. The
- * subscription terminates with an
- * {@link org.springframework.security.access.AccessDeniedException} on the
- * first deny or unenforceable PERMIT decision. Use when the data feed is
- * subscription-gated and denial must be visible to the client.
+ * Equivalent to {@code @StreamEnforce(mode = ACCESS_AWARE)}. The
+ * subscription stays alive across denials. Data events are dropped while
+ * denied, and transition events are emitted on every PENDING/PERMIT/DENY
+ * change so the client can disambiguate denial from an idle source.
+ * <p>
+ * Use this annotation when the client needs to know the access state in
+ * real time (UI badges, telemetry dashboards, mobile apps moving across
+ * authorization zones). For the same semantic under the legacy name, see
+ * {@link EnforceRecoverableIfDenied}.
  *
  * @see StreamEnforce
- * @see StreamMode#TILL_DENIED
+ * @see StreamMode#ACCESS_AWARE
+ * @see EnforceRecoverableIfDenied
  */
 @Inherited
 @Documented
-@StreamEnforce(mode = StreamMode.TILL_DENIED)
+@StreamEnforce(mode = StreamMode.ACCESS_AWARE)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
-public @interface EnforceTillDenied {
+public @interface EnforceAccessAware {
 
     /** {@inheritDoc} */
     @AliasFor(annotation = StreamEnforce.class)
