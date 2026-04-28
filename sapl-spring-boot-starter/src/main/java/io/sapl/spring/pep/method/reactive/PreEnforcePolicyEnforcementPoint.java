@@ -121,15 +121,15 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {
         val signals = new HashSet<SignalType>();
-        signals.add(DecisionSignal.TYPE);
-        signals.add(InputSignal.TYPE);
-        signals.add(ErrorSignal.TYPE);
+        signals.add(DecisionSignal.SIGNAL_TYPE);
+        signals.add(InputSignal.SIGNAL_TYPE);
+        signals.add(ErrorSignal.SIGNAL_TYPE);
         signals.add(OutputSignal.typeFor(outputType));
-        signals.add(SubscriptionSignal.TYPE);
-        signals.add(CancelSignal.TYPE);
-        signals.add(CompleteSignal.TYPE);
-        signals.add(TerminationSignal.TYPE);
-        signals.add(AfterTerminationSignal.TYPE);
+        signals.add(SubscriptionSignal.SIGNAL_TYPE);
+        signals.add(CancelSignal.SIGNAL_TYPE);
+        signals.add(CompleteSignal.SIGNAL_TYPE);
+        signals.add(TerminationSignal.SIGNAL_TYPE);
+        signals.add(AfterTerminationSignal.SIGNAL_TYPE);
         val contributors = shimSignalContributorsProvider.getIfAvailable(List::of);
         for (val contributor : contributors) {
             signals.addAll(contributor.supportedSignals());

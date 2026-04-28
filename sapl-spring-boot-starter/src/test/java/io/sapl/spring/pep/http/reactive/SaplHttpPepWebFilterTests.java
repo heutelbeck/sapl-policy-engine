@@ -60,8 +60,9 @@ class SaplHttpPepWebFilterTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(Signal.DecisionSignal.TYPE,
-            Signal.HttpRequestSignal.TYPE, Signal.HttpRequestMutationSignal.TYPE, Signal.HttpResponseSignal.TYPE);
+    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(Signal.DecisionSignal.SIGNAL_TYPE,
+            Signal.HttpRequestSignal.SIGNAL_TYPE, Signal.HttpRequestMutationSignal.SIGNAL_TYPE,
+            Signal.HttpResponseSignal.SIGNAL_TYPE);
 
     private final SaplHttpPepWebFilter filter = new SaplHttpPepWebFilter();
 
@@ -214,7 +215,7 @@ class SaplHttpPepWebFilterTests {
                 return List.of();
             }
             ConstraintHandler.Runner h = () -> {};
-            return List.of(new ScopedConstraintHandler(h, Signal.DecisionSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.DecisionSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -224,7 +225,7 @@ class SaplHttpPepWebFilterTests {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setHeader("X-Trace", "abc");
-            return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -234,7 +235,7 @@ class SaplHttpPepWebFilterTests {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> { /* observe only, no mutation */ };
-            return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -244,7 +245,7 @@ class SaplHttpPepWebFilterTests {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> req.setHeader("X-Tenant", "krynn");
-            return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -256,7 +257,7 @@ class SaplHttpPepWebFilterTests {
             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
                 throw new IllegalStateException("nope");
             };
-            return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -268,7 +269,7 @@ class SaplHttpPepWebFilterTests {
             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
                 throw new IllegalStateException("nope");
             };
-            return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -278,7 +279,7 @@ class SaplHttpPepWebFilterTests {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setBody("REWRITTEN");
-            return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
         };
     }
 }

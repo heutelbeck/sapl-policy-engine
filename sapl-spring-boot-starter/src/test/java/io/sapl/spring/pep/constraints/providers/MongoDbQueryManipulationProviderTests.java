@@ -46,8 +46,8 @@ import tools.jackson.databind.json.JsonMapper;
 class MongoDbQueryManipulationProviderTests {
 
     private static final ObjectMapper MAPPER          = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
-    private static final SignalType   MONGO_SIGNAL    = Signal.MongoDbQueryShimSignal.TYPE;
-    private static final SignalType   DECISION_SIGNAL = Signal.DecisionSignal.TYPE;
+    private static final SignalType   MONGO_SIGNAL    = Signal.MongoDbQueryShimSignal.SIGNAL_TYPE;
+    private static final SignalType   DECISION_SIGNAL = Signal.DecisionSignal.SIGNAL_TYPE;
 
     private final MongoDbQueryManipulationProvider provider = new MongoDbQueryManipulationProvider();
 

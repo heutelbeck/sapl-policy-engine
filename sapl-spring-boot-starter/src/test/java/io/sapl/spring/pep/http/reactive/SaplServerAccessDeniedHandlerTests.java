@@ -53,8 +53,8 @@ class SaplServerAccessDeniedHandlerTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(Signal.DecisionSignal.TYPE,
-            Signal.HttpDenialSignal.TYPE);
+    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(Signal.DecisionSignal.SIGNAL_TYPE,
+            Signal.HttpDenialSignal.SIGNAL_TYPE);
 
     private static final AccessDeniedException DENIED = new AccessDeniedException("denied");
 
@@ -87,7 +87,7 @@ class SaplServerAccessDeniedHandlerTests {
             ConstraintHandler.Runner h        = () -> { /* logs only */ };
             val                      plan     = planFor(denyWith("audit"),
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "audit")
-                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
+                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                      exchange = withPlan(plan);
             StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
@@ -102,7 +102,7 @@ class SaplServerAccessDeniedHandlerTests {
                                                                      };
             val                                             plan     = planFor(denyWith("boom"),
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "boom")
-                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
+                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                                             exchange = withPlan(plan);
             StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
@@ -124,7 +124,7 @@ class SaplServerAccessDeniedHandlerTests {
                                                                      };
             val                                             plan     = planFor(denyWith("custom"),
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "custom")
-                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
+                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                                             exchange = withPlan(plan);
             StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();
@@ -144,7 +144,7 @@ class SaplServerAccessDeniedHandlerTests {
                                                                      };
             val                                             plan     = planFor(denyWith("redir"),
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "redir")
-                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0))
+                            ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                                             exchange = withPlan(plan);
             StepVerifier.create(handler.handle(exchange, DENIED)).verifyComplete();

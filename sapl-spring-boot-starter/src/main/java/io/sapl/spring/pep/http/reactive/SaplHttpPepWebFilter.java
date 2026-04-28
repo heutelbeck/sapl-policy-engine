@@ -61,8 +61,8 @@ public class SaplHttpPepWebFilter implements WebFilter {
             return chain.filter(exchange);
         }
 
-        val requestHandlersScheduled  = !plan.entriesFor(HttpRequestMutationSignal.TYPE).isEmpty();
-        val responseHandlersScheduled = !plan.entriesFor(HttpResponseSignal.TYPE).isEmpty();
+        val requestHandlersScheduled  = !plan.entriesFor(HttpRequestMutationSignal.SIGNAL_TYPE).isEmpty();
+        val responseHandlersScheduled = !plan.entriesFor(HttpResponseSignal.SIGNAL_TYPE).isEmpty();
         if (!requestHandlersScheduled && !responseHandlersScheduled) {
             return chain.filter(exchange);
         }

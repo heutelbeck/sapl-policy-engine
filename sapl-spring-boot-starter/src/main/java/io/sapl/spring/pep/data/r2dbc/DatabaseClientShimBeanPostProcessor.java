@@ -48,7 +48,7 @@ import lombok.val;
  */
 public class DatabaseClientShimBeanPostProcessor implements BeanPostProcessor {
 
-    private static final ShimSignalContributor CONTRIBUTOR = () -> Set.of(SqlShimSignal.TYPE);
+    private static final ShimSignalContributor CONTRIBUTOR = () -> Set.of(SqlShimSignal.SIGNAL_TYPE);
 
     @Override
     public Object postProcessAfterInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {

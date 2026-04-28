@@ -782,12 +782,13 @@ class PreEnforcePolicyEnforcementPointTests {
             return switch (type) {
             case Obligation.PATRICIAN_COUNTERSIGNS       ->
                 List.of(new ScopedConstraintHandler((Runner) logbook.patricianCountersignatures::incrementAndGet,
-                        DecisionSignal.TYPE, 0));
+                        DecisionSignal.SIGNAL_TYPE, 0));
             case Obligation.COLON_NOTES_REQUEST          ->
-                List.of(new ScopedConstraintHandler((Runner) logbook.colonNotes::incrementAndGet, InputSignal.TYPE, 0));
+                List.of(new ScopedConstraintHandler((Runner) logbook.colonNotes::incrementAndGet,
+                        InputSignal.SIGNAL_TYPE, 0));
             case Obligation.CARROT_INSPECTS_WARRANT      -> List.of(new ScopedConstraintHandler(
                     (Consumer<MethodInvocation>) ignored -> logbook.carrotInspections.incrementAndGet(),
-                    InputSignal.TYPE, 0));
+                    InputSignal.SIGNAL_TYPE, 0));
             case Obligation.NOBBY_REWRITES_WARRANT       ->
                 List.of(new ScopedConstraintHandler((Mapper<MethodInvocation>) inv -> {
                                                              if (inv.getArguments().length > 0) {
@@ -795,7 +796,7 @@ class PreEnforcePolicyEnforcementPointTests {
                                                              }
                                                              return inv;
                                                          },
-                        InputSignal.TYPE, 0));
+                        InputSignal.SIGNAL_TYPE, 0));
             case Obligation.ANGUA_AUDITS_OUTPUT          ->
                 outputAt(supportedSignals, (Runner) logbook.anguaAudits::incrementAndGet);
             case Obligation.DETRITUS_EYEBALLS_OUTPUT     ->
@@ -805,11 +806,11 @@ class PreEnforcePolicyEnforcementPointTests {
             case Obligation.BURSAR_COLLAPSES_DECISION    -> List.of(new ScopedConstraintHandler((Runner) () -> {
                                                          throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
                                                      },
-                    DecisionSignal.TYPE, 0));
+                    DecisionSignal.SIGNAL_TYPE, 0));
             case Obligation.NOBBY_LOSES_PAPERWORK_INPUT  -> List.of(new ScopedConstraintHandler((Runner) () -> {
                                                          throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
                                                      },
-                    InputSignal.TYPE, 0));
+                    InputSignal.SIGNAL_TYPE, 0));
             case Obligation.CARROT_DROPS_EVIDENCE_MAPPER -> outputAt(supportedSignals, (Mapper<Object>) ignored -> {
                                                          throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
                                                      });
@@ -818,25 +819,27 @@ class PreEnforcePolicyEnforcementPointTests {
                                                      });
             case Obligation.DEATH_CLAIMS_EXCEPTION       -> List.of(new ScopedConstraintHandler(
                     (Mapper<Throwable>) ignored -> new IllegalStateException(DEATH_CLAIMS_THE_EXCEPTION),
-                    ErrorSignal.TYPE, 0));
-            case Obligation.CLERKS_LOG_FAILED_WARRANT    -> List.of(
-                    new ScopedConstraintHandler((Runner) logbook.clerkErrorLogs::incrementAndGet, ErrorSignal.TYPE, 0));
+                    ErrorSignal.SIGNAL_TYPE, 0));
+            case Obligation.CLERKS_LOG_FAILED_WARRANT    ->
+                List.of(new ScopedConstraintHandler((Runner) logbook.clerkErrorLogs::incrementAndGet,
+                        ErrorSignal.SIGNAL_TYPE, 0));
             case Obligation.WIZARDS_FILTER_PATROL_FLUX   -> outputAt(supportedSignals,
-                    (Mapper<Object>) flux -> ((Flux<?>) flux).filter(s -> CASE_VANISHED_ASSASSIN.equals(s)));
+                    (Mapper<Object>) flux -> ((Flux<?>) flux).filter(CASE_VANISHED_ASSASSIN::equals));
             case Obligation.SUBSCRIPTION_RUNNER          ->
                 List.of(new ScopedConstraintHandler((Runner) logbook.subscriptionRuns::incrementAndGet,
-                        SubscriptionSignal.TYPE, 0));
-            case Obligation.CANCEL_RUNNER                -> List.of(
-                    new ScopedConstraintHandler((Runner) logbook.cancelRuns::incrementAndGet, CancelSignal.TYPE, 0));
+                        SubscriptionSignal.SIGNAL_TYPE, 0));
+            case Obligation.CANCEL_RUNNER                ->
+                List.of(new ScopedConstraintHandler((Runner) logbook.cancelRuns::incrementAndGet,
+                        CancelSignal.SIGNAL_TYPE, 0));
             case Obligation.COMPLETE_RUNNER              ->
-                List.of(new ScopedConstraintHandler((Runner) logbook.completeRuns::incrementAndGet, CompleteSignal.TYPE,
-                        0));
+                List.of(new ScopedConstraintHandler((Runner) logbook.completeRuns::incrementAndGet,
+                        CompleteSignal.SIGNAL_TYPE, 0));
             case Obligation.TERMINATE_RUNNER             ->
                 List.of(new ScopedConstraintHandler((Runner) logbook.terminateRuns::incrementAndGet,
-                        TerminationSignal.TYPE, 0));
+                        TerminationSignal.SIGNAL_TYPE, 0));
             case Obligation.AFTER_TERMINATE_RUNNER       ->
                 List.of(new ScopedConstraintHandler((Runner) logbook.afterTerminateRuns::incrementAndGet,
-                        AfterTerminationSignal.TYPE, 0));
+                        AfterTerminationSignal.SIGNAL_TYPE, 0));
             default                                      -> List.of();
             };
         }

@@ -42,11 +42,11 @@ public class EnforcementPlanThreadLocalAccessor implements ThreadLocalAccessor<E
      * plan; matches {@link EnforcementPlanContext#REACTOR_KEY} so a single
      * Context entry is observable on both sides of the bridge.
      */
-    public static final String KEY = EnforcementPlanContext.REACTOR_KEY;
+    public static final String REACTOR_KEY = EnforcementPlanContext.REACTOR_KEY;
 
     @Override
     public Object key() {
-        return KEY;
+        return REACTOR_KEY;
     }
 
     @Override

@@ -118,7 +118,8 @@ class EnforcementPlanTests {
         @Test
         @DisplayName("Mapper transforms the present value")
         void givenMapperWhenExecutedThenValueTransformed() {
-            val plan = plan(outputString("hello"), obligation(mapper((String value) -> value.toUpperCase()), 0));
+            val plan = plan(outputString("hello"),
+                    obligation(mapper((String s) -> s.toUpperCase(java.util.Locale.ROOT)), 0));
 
             val result = plan.execute(outputString("hello"), false);
 
@@ -351,22 +352,24 @@ class EnforcementPlanTests {
         @Test
         @DisplayName("VirtualMachineError propagates instead of being caught")
         void givenJvmFatalErrorThenPropagates() {
-            val plan = plan(outputString("v"), obligation(runner(() -> {
-                throw new InternalError("simulated VM error");
-            }), 0));
+            val plan   = plan(outputString("v"), obligation(runner(() -> {
+                           throw new InternalError("simulated VM error");
+                       }), 0));
+            val signal = outputString("v");
 
-            assertThatThrownBy(() -> plan.execute(outputString("v"), false)).isInstanceOf(InternalError.class)
+            assertThatThrownBy(() -> plan.execute(signal, false)).isInstanceOf(InternalError.class)
                     .hasMessageContaining("simulated VM error");
         }
 
         @Test
         @DisplayName("Reactor BubblingException propagates via throwIfFatal")
         void givenReactorBubblingExceptionThenPropagates() {
-            val plan = plan(outputString("v"), obligation(runner(() -> {
-                throw Exceptions.bubble(new RuntimeException("inner"));
-            }), 0));
+            val plan   = plan(outputString("v"), obligation(runner(() -> {
+                           throw Exceptions.bubble(new RuntimeException("inner"));
+                       }), 0));
+            val signal = outputString("v");
 
-            assertThatThrownBy(() -> plan.execute(outputString("v"), false)).matches(Exceptions::isBubbling,
+            assertThatThrownBy(() -> plan.execute(signal, false)).matches(Exceptions::isBubbling,
                     "is a Reactor bubbling exception");
         }
     }

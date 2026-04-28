@@ -629,11 +629,11 @@ class PostEnforcePolicyEnforcementPointTests {
                 outputAt(supportedSignals, (Mapper<Object>) ignored -> REDACTED_BY_LIBRARIAN);
             case Obligation.DEAN_COUNTERSIGNS               ->
                 List.of(new ScopedConstraintHandler((Runner) journal.deanCountersignatures::incrementAndGet,
-                        DecisionSignal.TYPE, 0));
+                        DecisionSignal.SIGNAL_TYPE, 0));
             case Obligation.CULTIST_SABOTAGES_DECISION      -> List.of(new ScopedConstraintHandler((Runner) () -> {
                                                             throw new IllegalStateException(SEAL_HAS_BROKEN);
                                                         },
-                    DecisionSignal.TYPE, 0));
+                    DecisionSignal.SIGNAL_TYPE, 0));
             case Obligation.GATE_REFUSES_TO_OPEN            -> outputAt(supportedSignals, (Mapper<Object>) ignored -> {
                                                             throw new IllegalStateException(SEAL_HAS_BROKEN);
                                                         });
@@ -643,10 +643,10 @@ class PostEnforcePolicyEnforcementPointTests {
                                                             });
             case Obligation.NYARLATHOTEP_REWRITES_THROWABLE -> List.of(new ScopedConstraintHandler(
                     (Mapper<Throwable>) ignored -> new IllegalStateException(CRAWLING_CHAOS_CONSUMED_THE_THROWABLE),
-                    ErrorSignal.TYPE, 0));
+                    ErrorSignal.SIGNAL_TYPE, 0));
             case Obligation.KEEPER_LOGS_ERRORS              ->
-                List.of(new ScopedConstraintHandler((Runner) journal.keeperErrorLogs::incrementAndGet, ErrorSignal.TYPE,
-                        0));
+                List.of(new ScopedConstraintHandler((Runner) journal.keeperErrorLogs::incrementAndGet,
+                        ErrorSignal.SIGNAL_TYPE, 0));
             default                                         -> List.of();
             };
         }

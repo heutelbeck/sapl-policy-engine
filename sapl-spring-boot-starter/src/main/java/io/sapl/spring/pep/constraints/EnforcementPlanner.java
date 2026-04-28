@@ -76,7 +76,7 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class EnforcementPlanner {
 
-    private static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.TYPE;
+    private static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.SIGNAL_TYPE;
 
     private static final int SUBSTITUTE_PRIORITY = 0;
 

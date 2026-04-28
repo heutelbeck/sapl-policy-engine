@@ -31,7 +31,7 @@ import lombok.val;
  * information so that providers may dispatch on
  * {@code Mono<String>} differently from {@code Mono<User>}.
  */
-sealed public interface SignalType permits SignalType.VoidSignalType, SignalType.ValueSignalType {
+public sealed interface SignalType permits SignalType.VoidSignalType, SignalType.ValueSignalType {
 
     record VoidSignalType(Class<? extends Signal.VoidSignal> type) implements SignalType {}
 

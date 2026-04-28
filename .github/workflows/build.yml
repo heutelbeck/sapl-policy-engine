@@ -1089,7 +1089,7 @@ jobs:
       - name: Generate complete SHA256SUMS.txt
         run: |
           cd sums-staging
-          sha256sum * > SHA256SUMS.txt
+          sha256sum -- * > SHA256SUMS.txt
           echo "=== Final SHA256SUMS.txt ($(wc -l < SHA256SUMS.txt) entries) ==="
           cat SHA256SUMS.txt
 

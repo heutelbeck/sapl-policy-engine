@@ -72,7 +72,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
     @Override
     public Object invoke(MethodInvocation invocation) throws Throwable {
         val method = invocation.getMethod();
-        if (METHOD_QUERY.equals(method.getName()) && method.getParameterCount() == 1
+        if (method.getParameterCount() == 1 && METHOD_QUERY.equals(method.getName())
                 && method.getParameterTypes()[0] == Class.class) {
             val realFindWithProjection = (FindWithProjection<?>) invocation.proceed();
             return wrapFindWithProjection(realFindWithProjection);
@@ -111,7 +111,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             }
             val rewriteOutcome = applyShim(planOpt.get(), originalQuery);
             return switch (rewriteOutcome) {
-            case Denied denied              -> Flux.error(denied.cause());
+            case Denied(Throwable cause)    -> Flux.error(cause);
             case Rewritten(Query rewritten) -> {
                 invocation.getArguments()[0] = rewritten;
                 yield proceedAsFlux(invocation);
@@ -129,7 +129,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             }
             val rewriteOutcome = applyShim(planOpt.get(), originalQuery);
             return switch (rewriteOutcome) {
-            case Denied denied              -> Mono.error(denied.cause());
+            case Denied(Throwable cause)    -> Mono.error(cause);
             case Rewritten(Query rewritten) -> {
                 invocation.getArguments()[0] = rewritten;
                 yield proceedAsMono(invocation);
@@ -217,8 +217,8 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         if (planOpt.isPresent()) {
             val outcome = applyShim(planOpt.get(), originalQuery);
             switch (outcome) {
-            case Denied denied              -> {
-                return Mono.error(denied.cause());
+            case Denied(Throwable cause)    -> {
+                return Mono.error(cause);
             }
             case Rewritten(Query rewritten) -> queryToUse = rewritten;
             }

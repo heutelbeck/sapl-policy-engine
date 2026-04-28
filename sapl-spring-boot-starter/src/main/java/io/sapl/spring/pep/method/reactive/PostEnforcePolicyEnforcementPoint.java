@@ -120,7 +120,8 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
     private Mono<Object> applyDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision,
             Object returnedObject) {
         val itemType         = ResolvableType.forMethodReturnType(methodInvocation.getMethod()).getGeneric(0);
-        val supportedSignals = Set.of(DecisionSignal.TYPE, ErrorSignal.TYPE, OutputSignal.typeFor(itemType));
+        val supportedSignals = Set.of(DecisionSignal.SIGNAL_TYPE, ErrorSignal.SIGNAL_TYPE,
+                OutputSignal.typeFor(itemType));
         val plan             = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);
         try {
             var failed = plan.enforceDecisionConstraints(authzDecision);
