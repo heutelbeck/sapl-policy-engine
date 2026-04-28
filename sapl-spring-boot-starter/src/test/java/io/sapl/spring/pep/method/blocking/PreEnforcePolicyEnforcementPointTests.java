@@ -20,6 +20,7 @@ package io.sapl.spring.pep.method.blocking;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -41,7 +42,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import io.sapl.api.model.ArrayValue;
@@ -180,7 +180,9 @@ class PreEnforcePolicyEnforcementPointTests {
             when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
 
             watch.escortDrumknottHome();
+
             // PreEnforce on void still consults the PDP, satisfied by the mock.
+            verify(pdp).decideOnceBlocking(any());
         }
     }
 
@@ -500,7 +502,6 @@ class PreEnforcePolicyEnforcementPointTests {
         return Value.ofObject(Map.of("type", Value.of(type)));
     }
 
-    @Service
     static class WatchHouse {
 
         @PreEnforce

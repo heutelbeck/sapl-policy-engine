@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -301,16 +302,16 @@ class SaplHttpServletEnforcementTests {
     }
 
     static class Probes {
-        private int                            auditCount     = 0;
+        private final AtomicInteger            auditCount     = new AtomicInteger();
         private final AtomicReference<String>  observedPath   = new AtomicReference<>();
         private final AtomicReference<Integer> observedStatus = new AtomicReference<>();
 
-        synchronized void incrementAudit() {
-            auditCount++;
+        void incrementAudit() {
+            auditCount.incrementAndGet();
         }
 
-        synchronized int auditCount() {
-            return auditCount;
+        int auditCount() {
+            return auditCount.get();
         }
 
         void observePath(String path) {
@@ -330,7 +331,7 @@ class SaplHttpServletEnforcementTests {
         }
 
         void reset() {
-            auditCount = 0;
+            auditCount.set(0);
             observedPath.set(null);
             observedStatus.set(null);
         }

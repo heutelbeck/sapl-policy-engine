@@ -37,7 +37,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.ReactiveTransactionManager;
 
@@ -172,7 +171,6 @@ class ReactorContextPropagationTests {
         return Value.ofObject(Map.of("column", Value.of(column), "op", Value.of("="), "value", Value.of(value)));
     }
 
-    @Service
     static class LibraryService {
 
         private final TomeRepository repository;
