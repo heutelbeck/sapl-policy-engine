@@ -97,7 +97,7 @@ public record EnforcementPlan(
      * with the updated failure state
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public EnforcementResult<?> execute(Signal signal, boolean priorFailureState) {
+    public EnforcementResult<Object> execute(Signal signal, boolean priorFailureState) {
         val           signalEntries = entriesFor(signal.type());
         Maybe<Object> currentValue  = switch (signal) {
                                     case Signal.OutputSignal<?> output     -> (Maybe) output.maybeValue();
@@ -142,7 +142,7 @@ public record EnforcementPlan(
      */
     public Throwable enforceErrorConstraintsAsThrowable(Throwable t) {
         Exceptions.throwIfFatal(t);
-        EnforcementResult<?> errorResult;
+        EnforcementResult<Object> errorResult;
         try {
             errorResult = execute(ErrorSignal.of(t), false);
         } catch (Throwable handlerFailure) {

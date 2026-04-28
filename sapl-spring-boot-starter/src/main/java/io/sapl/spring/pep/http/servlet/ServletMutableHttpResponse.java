@@ -232,12 +232,12 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
     }
 
     @Override
-    public void sendError(int sc) throws IOException {
+    public void sendError(int sc) {
         sendError(sc, "");
     }
 
     @Override
-    public void sendError(int sc, String msg) throws IOException {
+    public void sendError(int sc, String msg) {
         statusCode = sc;
         bodyBuffer.reset();
         bodyBuffer.writeBytes(msg.getBytes(charset()));
@@ -245,7 +245,7 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
     }
 
     @Override
-    public void sendRedirect(String location) throws IOException {
+    public void sendRedirect(String location) {
         statusCode = HttpServletResponse.SC_FOUND;
         headers.setLocation(URI.create(location));
         bodyBuffer.reset();

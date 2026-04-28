@@ -135,7 +135,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
          * Erased-{@code T} factory for callers that hold {@code Class<?>} and
          * {@code Object} at runtime (e.g. AOP method interceptors).
          */
-        public static OutputSignal<?> ofUnchecked(ResolvableType valueType, Object value) {
+        public static OutputSignal<Object> ofUnchecked(ResolvableType valueType, Object value) {
             return new OutputSignal<>(valueType, Maybe.of(value));
         }
 
@@ -146,7 +146,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
          * the method's generic return type so inner generics (e.g.
          * {@code Mono<String>}) are preserved.
          */
-        public static OutputSignal<?> forResultOf(MethodInvocation invocation, Object returned) {
+        public static OutputSignal<Object> forResultOf(MethodInvocation invocation, Object returned) {
             val returnClass = invocation.getMethod().getReturnType();
             val valueType   = ResolvableType.forMethodReturnType(invocation.getMethod());
             if (returnClass == void.class || returnClass == Void.class) {
@@ -166,13 +166,13 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
-        public static <T> SignalType typeFor(ResolvableType valueType) {
-            return new SignalType.ValueSignalType<>((Class<? extends ValueSignal<T>>) (Class<?>) OutputSignal.class,
-                    valueType);
+        public static SignalType typeFor(ResolvableType valueType) {
+            return new SignalType.ValueSignalType<>(
+                    (Class<? extends ValueSignal<Object>>) (Class<?>) OutputSignal.class, valueType);
         }
 
         /** Convenience overload keyed on a raw {@link Class}. */
-        public static <T> SignalType typeFor(Class<T> valueType) {
+        public static SignalType typeFor(Class<?> valueType) {
             return typeFor(ResolvableType.forClass(valueType));
         }
 

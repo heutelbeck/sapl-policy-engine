@@ -197,7 +197,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
     }
 
     private static Object dispatchTerminatingFind(FindWithQuery<?> delegate, Query originalQuery, Method method,
-            Object[] args) throws Throwable {
+            Object[] args) throws ReflectiveOperationException {
         val returnType = method.getReturnType();
         if (returnType == Flux.class) {
             return Flux.deferContextual(ctx -> applyShimAndInvokeTerminating(ctx, delegate, originalQuery, method, args)
