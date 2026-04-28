@@ -129,7 +129,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         if (!isResponsible(constraint)) {
             return List.of();
         }
-        if (!supportedSignals.contains(SqlShimSignal.TYPE)) {
+        if (!supportedSignals.contains(SqlShimSignal.SIGNAL_TYPE)) {
             return List.of();
         }
         val typedCriteria = extractTypedCriteriaFragments(constraint);
@@ -142,7 +142,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         allConditions.addAll(typedCriteria);
         allConditions.addAll(conditions);
         Mapper<String> mapper = sql -> rewrite(sql, List.copyOf(allConditions), columns);
-        return List.of(new ScopedConstraintHandler(mapper, SqlShimSignal.TYPE, DEFAULT_PRIORITY));
+        return List.of(new ScopedConstraintHandler(mapper, SqlShimSignal.SIGNAL_TYPE, DEFAULT_PRIORITY));
     }
 
     private static boolean isResponsible(Value constraint) {
@@ -309,7 +309,8 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         if ("isNotNull".equals(op)) {
             return column + " IS NOT NULL";
         }
-        if (!(object.get(FIELD_VALUE) instanceof Value valueNode) || valueNode instanceof UndefinedValue) {
+        val valueNode = object.get(FIELD_VALUE);
+        if (valueNode == null || valueNode instanceof UndefinedValue) {
             throw new AccessDeniedException(ERROR_VALUE_REQUIRED.formatted(op));
         }
         return renderBinary(column, op, valueNode);

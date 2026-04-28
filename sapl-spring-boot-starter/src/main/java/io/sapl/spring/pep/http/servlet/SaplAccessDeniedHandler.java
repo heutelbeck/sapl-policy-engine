@@ -52,7 +52,7 @@ public class SaplAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException denied)
             throws IOException, ServletException {
         val plan = (EnforcementPlan) request.getAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE);
-        if (plan == null || plan.entriesFor(HttpDenialSignal.TYPE).isEmpty()) {
+        if (plan == null || plan.entriesFor(HttpDenialSignal.SIGNAL_TYPE).isEmpty()) {
             fallback.handle(request, response, denied);
             return;
         }

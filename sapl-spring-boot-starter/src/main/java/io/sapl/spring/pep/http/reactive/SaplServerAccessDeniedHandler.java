@@ -47,7 +47,7 @@ public class SaplServerAccessDeniedHandler implements ServerAccessDeniedHandler 
     @Override
     public @NonNull Mono<Void> handle(@NonNull ServerWebExchange exchange, @NonNull AccessDeniedException denied) {
         val plan = exchange.<EnforcementPlan>getAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE);
-        if (plan == null || plan.entriesFor(HttpDenialSignal.TYPE).isEmpty()) {
+        if (plan == null || plan.entriesFor(HttpDenialSignal.SIGNAL_TYPE).isEmpty()) {
             return fallback.handle(exchange, denied);
         }
         val mutableResponse = new ReactiveMutableHttpResponse(exchange.getResponse());

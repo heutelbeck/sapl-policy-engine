@@ -172,14 +172,14 @@ class ContentFilterTests {
         }
 
         @ParameterizedTest(name = "{0}")
-        @MethodSource("equalsScenarios")
-        @DisplayName("== condition")
-        void equalsCondition(String name, String constraintJson, Object payload, boolean expected) {
+        @MethodSource("comparisonAndEqualityScenarios")
+        @DisplayName("comparison and equality conditions")
+        void comparisonAndEqualityCondition(String name, String constraintJson, Object payload, boolean expected) {
             val predicate = ContentFilter.predicateFromConditions(v(constraintJson), MAPPER);
             assertThat(predicate.test(payload)).isEqualTo(expected);
         }
 
-        static Stream<Arguments> equalsScenarios() {
+        static Stream<Arguments> comparisonAndEqualityScenarios() {
             return Stream.of(arguments("text-equal matches", """
                     {"conditions": [{"path": "$.name", "type": "==", "value": "Alice"}]}
                     """, Map.of("name", "Alice"), true), arguments("text-equal does not match", """
@@ -188,19 +188,7 @@ class ContentFilterTests {
                     {"conditions": [{"path": "$.age", "type": "==", "value": 30}]}
                     """, Map.of("age", 30), true), arguments("number-equal does not match", """
                     {"conditions": [{"path": "$.age", "type": "==", "value": 30}]}
-                    """, Map.of("age", 31), false));
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("comparisonScenarios")
-        @DisplayName("numeric comparisons")
-        void numericComparisons(String name, String constraintJson, Object payload, boolean expected) {
-            val predicate = ContentFilter.predicateFromConditions(v(constraintJson), MAPPER);
-            assertThat(predicate.test(payload)).isEqualTo(expected);
-        }
-
-        static Stream<Arguments> comparisonScenarios() {
-            return Stream.of(arguments(">=  matches at boundary", """
+                    """, Map.of("age", 31), false), arguments(">=  matches at boundary", """
                     {"conditions": [{"path": "$.age", "type": ">=", "value": 30}]}
                     """, Map.of("age", 30), true), arguments(">=  rejects below", """
                     {"conditions": [{"path": "$.age", "type": ">=", "value": 30}]}
@@ -261,7 +249,8 @@ class ContentFilterTests {
             val predicate = ContentFilter.predicateFromConditions(v("""
                     {"conditions": [{"path": "$.missing", "type": "==", "value": "x"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> predicate.test(Map.of("name", "Alice"))).isInstanceOf(AccessDeniedException.class)
+            val input     = Map.of("name", "Alice");
+            assertThatThrownBy(() -> predicate.test(input)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("path defined in the constraint is not present");
         }
     }
@@ -300,64 +289,29 @@ class ContentFilterTests {
             assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "REDACTED"));
         }
 
-        @Test
-        @DisplayName("blacken default replaces every char with the black square")
-        void blackenDefault() {
-            val transform = ContentFilter.getTransformationHandler(v("""
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("blackenScenarios")
+        @DisplayName("blacken on $.name")
+        void blackenOnName(String name, String constraintJson, String expected) {
+            val transform = ContentFilter.getTransformationHandler(v(constraintJson), MAPPER);
+            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
+            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", expected));
+        }
+
+        static Stream<Arguments> blackenScenarios() {
+            return Stream.of(arguments("default replaces every char with the black square", """
                     {"actions": [{"path": "$.name", "type": "blacken"}]}
-                    """), MAPPER);
-            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
-            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "█████"));
-        }
-
-        @Test
-        @DisplayName("blacken with discloseLeft keeps left chars visible")
-        void blackenWithDiscloseLeft() {
-            val transform = ContentFilter.getTransformationHandler(v("""
+                    """, "█████"), arguments("discloseLeft keeps left chars visible", """
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": 2}]}
-                    """), MAPPER);
-            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
-            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "Al███"));
-        }
-
-        @Test
-        @DisplayName("blacken with discloseRight keeps right chars visible")
-        void blackenWithDiscloseRight() {
-            val transform = ContentFilter.getTransformationHandler(v("""
+                    """, "Al███"), arguments("discloseRight keeps right chars visible", """
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseRight": 2}]}
-                    """), MAPPER);
-            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
-            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "███ce"));
-        }
-
-        @Test
-        @DisplayName("blacken with explicit length overrides the replaced range")
-        void blackenWithExplicitLength() {
-            val transform = ContentFilter.getTransformationHandler(v("""
+                    """, "███ce"), arguments("explicit length overrides the replaced range", """
                     {"actions": [{"path": "$.name", "type": "blacken", "length": 3}]}
-                    """), MAPPER);
-            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
-            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "███"));
-        }
-
-        @Test
-        @DisplayName("blacken with custom replacement")
-        void blackenWithCustomReplacement() {
-            val transform = ContentFilter.getTransformationHandler(v("""
+                    """, "███"), arguments("custom replacement character", """
                     {"actions": [{"path": "$.name", "type": "blacken", "replacement": "*"}]}
-                    """), MAPPER);
-            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
-            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "*****"));
-        }
-
-        @Test
-        @DisplayName("blacken returns original when full disclosure exceeds string length")
-        void blackenFullDisclosureReturnsOriginal() {
-            val transform = ContentFilter.getTransformationHandler(v("""
+                    """, "*****"), arguments("returns original when full disclosure exceeds string length", """
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": 100}]}
-                    """), MAPPER);
-            val result    = transform.apply(new HashMap<>(Map.of("name", "Alice")));
-            assertThat(result).isInstanceOfSatisfying(Map.class, m -> assertThat(m).containsEntry("name", "Alice"));
+                    """, "Alice"));
         }
     }
 
@@ -368,44 +322,49 @@ class ContentFilterTests {
         @Test
         @DisplayName("non-object constraint is rejected")
         void nonObjectConstraintRejected() {
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("\"plain string\""), MAPPER))
+            val constraint = v("\"plain string\"");
+            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
                     .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Expected an object value");
         }
 
         @Test
         @DisplayName("conditions not an array is rejected")
         void conditionsNotArrayRejected() {
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
+            val constraint = v("""
                     {"conditions": "not-an-array"}
-                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
-                    .hasMessageContaining("'conditions' not an array");
+                    """);
+            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("'conditions' not an array");
         }
 
         @Test
         @DisplayName("condition without path is rejected")
         void conditionWithoutPathRejected() {
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
+            val constraint = v("""
                     {"conditions": [{"type": "==", "value": "x"}]}
-                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
-                    .hasMessageContaining("Not a valid predicate condition");
+                    """);
+            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Not a valid predicate condition");
         }
 
         @Test
         @DisplayName("condition with unknown type is rejected")
         void conditionWithUnknownTypeRejected() {
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
+            val constraint = v("""
                     {"conditions": [{"path": "$.x", "type": "??", "value": 1}]}
-                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
-                    .hasMessageContaining("Not a valid predicate condition");
+                    """);
+            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Not a valid predicate condition");
         }
 
         @Test
         @DisplayName("dangerous regex is rejected")
         void dangerousRegexRejected() {
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(v("""
+            val constraint = v("""
                     {"conditions": [{"path": "$.x", "type": "=~", "value": "(a+)+"}]}
-                    """), MAPPER)).isInstanceOf(AccessDeniedException.class)
-                    .hasMessageContaining("Unsafe regex pattern");
+                    """);
+            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unsafe regex pattern");
         }
 
         @Test
@@ -414,7 +373,8 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": "not-an-array"}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(Map.of("x", 1))).isInstanceOf(AccessDeniedException.class)
+            val input     = Map.of("x", 1);
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("'actions' is not an array");
         }
 
@@ -424,7 +384,8 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": ["not-an-object"]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(Map.of("x", 1))).isInstanceOf(AccessDeniedException.class)
+            val input     = Map.of("x", 1);
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("not an object");
         }
 
@@ -434,8 +395,9 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": [{"path": "$.x", "type": "unknown"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", 1))))
-                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unknown action type");
+            val input     = new HashMap<>(Map.of("x", 1));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Unknown action type");
         }
 
         @Test
@@ -444,8 +406,9 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": [{"path": "$.x", "type": "blacken"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", 42))))
-                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("not a text note");
+            val input     = new HashMap<>(Map.of("x", 42));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("not a text note");
         }
 
         @Test
@@ -454,8 +417,9 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": [{"path": "$.x", "type": "blacken", "length": "five"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", "Alice"))))
-                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("'length'");
+            val input     = new HashMap<>(Map.of("x", "Alice"));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("'length'");
         }
 
         @Test
@@ -464,8 +428,9 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": [{"path": "$.x", "type": "replace"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", "Alice"))))
-                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("does not specify a 'replacement'");
+            val input     = new HashMap<>(Map.of("x", "Alice"));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("does not specify a 'replacement'");
         }
 
         @Test
@@ -474,8 +439,8 @@ class ContentFilterTests {
             val transform = ContentFilter.getTransformationHandler(v("""
                     {"actions": [{"path": "$.missing", "type": "delete"}]}
                     """), MAPPER);
-            assertThatThrownBy(() -> transform.apply(new HashMap<>(Map.of("x", 1))))
-                    .isInstanceOf(AccessDeniedException.class)
+            val input     = new HashMap<>(Map.of("x", 1));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("path defined in the constraint is not present");
         }
     }

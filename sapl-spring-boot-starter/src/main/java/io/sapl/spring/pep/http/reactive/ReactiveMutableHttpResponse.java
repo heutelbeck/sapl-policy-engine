@@ -65,7 +65,6 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
     private @Nullable HttpStatusCode bufferedStatus;
     private byte[]                   capturedBody = new byte[0];
     private boolean                  modified     = false;
-    private boolean                  bodyCaptured = false;
 
     public ReactiveMutableHttpResponse(ServerHttpResponse delegate) {
         super(delegate);
@@ -123,7 +122,6 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
     @Override
     public void setBody(String body) {
         capturedBody = body.getBytes(charset());
-        bodyCaptured = true;
         modified     = true;
     }
 
@@ -151,7 +149,6 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
                 i += len;
             }
             capturedBody = all;
-            bodyCaptured = true;
         }).then();
     }
 
@@ -166,7 +163,6 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
         // flush. Forwarding to the delegate here would commit the underlying
         // response prematurely and cause subsequent writes from commit() to
         // fail with UnsupportedOperationException.
-        bodyCaptured = true;
         return Mono.empty();
     }
 

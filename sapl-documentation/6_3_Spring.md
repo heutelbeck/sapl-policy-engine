@@ -482,7 +482,7 @@ public class TenantHeaderHandler implements ConstraintHandlerProvider {
         if (!ConstraintResponsibility.isResponsible(constraint, "tenant-header")) {
             return List.of();
         }
-        if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.TYPE)) {
+        if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.SIGNAL_TYPE)) {
             return List.of();
         }
         if (!(constraint instanceof ObjectValue obj)
@@ -492,7 +492,7 @@ public class TenantHeaderHandler implements ConstraintHandlerProvider {
         ConstraintHandler.Consumer<MutableHttpRequest> handler =
                 request -> request.setHeader("X-Tenant", tenant);
         return List.of(new ScopedConstraintHandler(
-                handler, Signal.HttpRequestMutationSignal.TYPE, 0));
+                handler, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
     }
 }
 ```
@@ -644,7 +644,7 @@ public class LogAccessHandler implements ConstraintHandlerProvider {
         var message = extractMessage(constraint);
         ConstraintHandler.Runner handler = () -> log.info(message);
 
-        return List.of(new ScopedConstraintHandler(handler, DecisionSignal.TYPE, 0));
+        return List.of(new ScopedConstraintHandler(handler, DecisionSignal.SIGNAL_TYPE, 0));
     }
 
     private static String extractMessage(Value constraint) {
@@ -661,7 +661,7 @@ Two things are worth pointing out.
 
 First, the responsibility check uses the helper `ConstraintResponsibility.isResponsible(constraint, type)`, which checks whether the constraint is a JSON object with a `type` field matching the given string. This is the convention used by all built-in providers. You are free to use a different convention if it makes more sense for your obligations.
 
-Second, the handler attaches to `DecisionSignal.TYPE`. The PEP fires `DecisionSignal` once when the decision arrives, before the method runs. If you want to log on completion instead, attach to `CompleteSignal.TYPE`. If you want to inspect the return value, attach to `OutputSignal.typeFor(SomeReturnType.class)` and use a `Consumer<SomeReturnType>` handler.
+Second, the handler attaches to `DecisionSignal.SIGNAL_TYPE`. The PEP fires `DecisionSignal` once when the decision arrives, before the method runs. If you want to log on completion instead, attach to `CompleteSignal.SIGNAL_TYPE`. If you want to inspect the return value, attach to `OutputSignal.typeFor(SomeReturnType.class)` and use a `Consumer<SomeReturnType>` handler.
 
 Spring auto-discovers any bean implementing `ConstraintHandlerProvider`. Just annotate with `@Component` and put it in a scanned package.
 

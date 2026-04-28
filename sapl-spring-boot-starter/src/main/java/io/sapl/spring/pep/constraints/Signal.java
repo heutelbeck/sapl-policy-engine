@@ -62,7 +62,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     /** Fires when an authorization decision arrives from the PDP. */
     record DecisionSignal(AuthorizationDecision value) implements ValueSignal<AuthorizationDecision> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(AuthorizationDecision.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(DecisionSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(DecisionSignal.class, VALUE_TYPE);
 
         public static DecisionSignal of(AuthorizationDecision decision) {
             return new DecisionSignal(decision);
@@ -75,7 +75,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -84,7 +84,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record InputSignal(MethodInvocation value) implements ValueSignal<MethodInvocation> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MethodInvocation.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(InputSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(InputSignal.class, VALUE_TYPE);
 
         public static InputSignal of(MethodInvocation invocation) {
             return new InputSignal(invocation);
@@ -97,7 +97,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -167,7 +167,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
         public static <T> SignalType typeFor(ResolvableType valueType) {
-            return new SignalType.ValueSignalType<>((Class<? extends ValueSignal<T>>) (Class) OutputSignal.class,
+            return new SignalType.ValueSignalType<>((Class<? extends ValueSignal<T>>) (Class<?>) OutputSignal.class,
                     valueType);
         }
 
@@ -188,7 +188,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     /** Fires when the RAP raises or emits a {@link Throwable}. */
     record ErrorSignal(Throwable value) implements ValueSignal<Throwable> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Throwable.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(ErrorSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(ErrorSignal.class, VALUE_TYPE);
 
         public static ErrorSignal of(Throwable throwable) {
             return new ErrorSignal(throwable);
@@ -201,14 +201,15 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
     /** Fires on a downstream subscription request, carrying the demand count. */
     record SubscriptionSignal(Long value) implements ValueSignal<Long> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Long.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(SubscriptionSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(SubscriptionSignal.class,
+                VALUE_TYPE);
 
         public static SubscriptionSignal of(Long demand) {
             return new SubscriptionSignal(demand);
@@ -221,51 +222,51 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
     /** Fires when a downstream subscriber cancels the subscription. */
     record CancelSignal() implements VoidSignal {
-        public static final SignalType TYPE = new SignalType.VoidSignalType(CancelSignal.class);
+        public static final SignalType SIGNAL_TYPE = new SignalType.VoidSignalType(CancelSignal.class);
         public static final CancelSignal INSTANCE = new CancelSignal();
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
     /** Fires when the upstream completes normally. */
     record CompleteSignal() implements VoidSignal {
-        public static final SignalType TYPE = new SignalType.VoidSignalType(CompleteSignal.class);
+        public static final SignalType SIGNAL_TYPE = new SignalType.VoidSignalType(CompleteSignal.class);
         public static final CompleteSignal INSTANCE = new CompleteSignal();
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
     /** Fires on stream termination (any of: complete, error, cancel). */
     record TerminationSignal() implements VoidSignal {
-        public static final SignalType TYPE = new SignalType.VoidSignalType(TerminationSignal.class);
+        public static final SignalType SIGNAL_TYPE = new SignalType.VoidSignalType(TerminationSignal.class);
         public static final TerminationSignal INSTANCE = new TerminationSignal();
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
     /** Fires after termination cleanup has finished. */
     record AfterTerminationSignal() implements VoidSignal {
-        public static final SignalType TYPE = new SignalType.VoidSignalType(AfterTerminationSignal.class);
+        public static final SignalType SIGNAL_TYPE = new SignalType.VoidSignalType(AfterTerminationSignal.class);
         public static final AfterTerminationSignal INSTANCE = new AfterTerminationSignal();
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -279,7 +280,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record SqlShimSignal(String value) implements ValueSignal<String> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(String.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(SqlShimSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(SqlShimSignal.class, VALUE_TYPE);
 
         public static SqlShimSignal of(String sql) {
             return new SqlShimSignal(sql);
@@ -292,7 +293,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -308,7 +309,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record MongoDbQueryShimSignal(Query value) implements ValueSignal<Query> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Query.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(MongoDbQueryShimSignal.class,
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(MongoDbQueryShimSignal.class,
                 VALUE_TYPE);
 
         public static MongoDbQueryShimSignal of(Query query) {
@@ -322,7 +323,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -336,7 +337,8 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record HttpRequestSignal(HttpRequest value) implements ValueSignal<HttpRequest> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(HttpRequest.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpRequestSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(HttpRequestSignal.class,
+                VALUE_TYPE);
 
         public static HttpRequestSignal of(HttpRequest request) {
             return new HttpRequestSignal(request);
@@ -349,7 +351,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -361,7 +363,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record HttpRequestMutationSignal(MutableHttpRequest value) implements ValueSignal<MutableHttpRequest> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpRequest.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpRequestMutationSignal.class,
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(HttpRequestMutationSignal.class,
                 VALUE_TYPE);
 
         public static HttpRequestMutationSignal of(MutableHttpRequest request) {
@@ -375,7 +377,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -389,7 +391,8 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record HttpResponseSignal(MutableHttpResponse value) implements ValueSignal<MutableHttpResponse> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpResponse.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpResponseSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(HttpResponseSignal.class,
+                VALUE_TYPE);
 
         public static HttpResponseSignal of(MutableHttpResponse response) {
             return new HttpResponseSignal(response);
@@ -402,7 +405,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 
@@ -416,7 +419,8 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      */
     record HttpDenialSignal(MutableHttpResponse value) implements ValueSignal<MutableHttpResponse> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpResponse.class);
-        public static final SignalType TYPE = new SignalType.ValueSignalType<>(HttpDenialSignal.class, VALUE_TYPE);
+        public static final SignalType SIGNAL_TYPE = new SignalType.ValueSignalType<>(HttpDenialSignal.class,
+                VALUE_TYPE);
 
         public static HttpDenialSignal of(MutableHttpResponse response) {
             return new HttpDenialSignal(response);
@@ -429,7 +433,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         @Override
         public SignalType type() {
-            return TYPE;
+            return SIGNAL_TYPE;
         }
     }
 

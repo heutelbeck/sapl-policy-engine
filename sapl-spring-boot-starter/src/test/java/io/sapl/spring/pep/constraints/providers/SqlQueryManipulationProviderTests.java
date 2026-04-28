@@ -45,8 +45,8 @@ import tools.jackson.databind.json.JsonMapper;
 class SqlQueryManipulationProviderTests {
 
     private static final ObjectMapper MAPPER          = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
-    private static final SignalType   SQL_SIGNAL      = Signal.SqlShimSignal.TYPE;
-    private static final SignalType   DECISION_SIGNAL = Signal.DecisionSignal.TYPE;
+    private static final SignalType   SQL_SIGNAL      = Signal.SqlShimSignal.SIGNAL_TYPE;
+    private static final SignalType   DECISION_SIGNAL = Signal.DecisionSignal.SIGNAL_TYPE;
 
     private final SqlQueryManipulationProvider provider = new SqlQueryManipulationProvider();
 
@@ -437,8 +437,9 @@ class SqlQueryManipulationProviderTests {
                     {"type": "sql:queryManipulation",
                      "criteria": [{"column": "tenant_id", "op": "is_secretly_equal", "value": 7}]}
                     """);
+            val supported  = Set.of(SQL_SIGNAL);
 
-            assertThatThrownBy(() -> provider.getConstraintHandlers(constraint, Set.of(SQL_SIGNAL)))
+            assertThatThrownBy(() -> provider.getConstraintHandlers(constraint, supported))
                     .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unsupported operator");
         }
 

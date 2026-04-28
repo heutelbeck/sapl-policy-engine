@@ -74,8 +74,9 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DecisionSignal.TYPE, HttpRequestSignal.TYPE,
-            HttpRequestMutationSignal.TYPE, HttpResponseSignal.TYPE, HttpDenialSignal.TYPE);
+    private static final Set<SignalType> SUPPORTED_SIGNALS = Set.of(DecisionSignal.SIGNAL_TYPE,
+            HttpRequestSignal.SIGNAL_TYPE, HttpRequestMutationSignal.SIGNAL_TYPE, HttpResponseSignal.SIGNAL_TYPE,
+            HttpDenialSignal.SIGNAL_TYPE);
 
     private final PolicyDecisionPoint              pdp;
     private final EnforcementPlanner               enforcementPlanner;

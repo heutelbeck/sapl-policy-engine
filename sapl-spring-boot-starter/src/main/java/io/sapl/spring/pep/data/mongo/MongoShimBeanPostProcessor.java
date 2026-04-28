@@ -45,7 +45,7 @@ import lombok.val;
  */
 public class MongoShimBeanPostProcessor implements BeanPostProcessor {
 
-    private static final ShimSignalContributor CONTRIBUTOR = () -> Set.of(MongoDbQueryShimSignal.TYPE);
+    private static final ShimSignalContributor CONTRIBUTOR = () -> Set.of(MongoDbQueryShimSignal.SIGNAL_TYPE);
 
     @Override
     public Object postProcessAfterInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {

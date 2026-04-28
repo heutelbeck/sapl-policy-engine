@@ -356,78 +356,78 @@ class SaplHttpReactiveEnforcementTests {
         public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
             if (ConstraintResponsibility.isResponsible(constraint, AUDIT_LOG)) {
                 ConstraintHandler.Runner h = probes::incrementAudit;
-                return List.of(new ScopedConstraintHandler(h, Signal.DecisionSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.DecisionSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
-                if (!supportedSignals.contains(Signal.HttpRequestSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpRequestSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<HttpRequest> h = req -> probes.observePath(req.getURI().getPath());
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, INJECT_HEADER)) {
-                if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpRequest> h = req -> req.setHeader("X-Tenant", "krynn");
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, OBSERVE_STATUS)) {
-                if (!supportedSignals.contains(Signal.HttpResponseSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpResponseSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> probes
                         .observeStatus(resp.getStatusCode().value());
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, SET_HEADER)) {
-                if (!supportedSignals.contains(Signal.HttpResponseSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpResponseSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setHeader("X-Trace-Id", "abc-123");
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, CUSTOM_DENY)) {
-                if (!supportedSignals.contains(Signal.HttpDenialSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpDenialSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
                     resp.setStatusCode(451);
                     resp.writeBody("text/plain;charset=UTF-8", "denied by policy");
                 };
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, REWRITE_BODY)) {
-                if (!supportedSignals.contains(Signal.HttpResponseSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpResponseSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setBody("REWRITTEN");
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, REQUEST_FAIL)) {
-                if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
                     throw new IllegalStateException("request mutation refused by handler");
                 };
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, REDIRECT_DENY)) {
-                if (!supportedSignals.contains(Signal.HttpDenialSignal.TYPE)) {
+                if (!supportedSignals.contains(Signal.HttpDenialSignal.SIGNAL_TYPE)) {
                     return List.of();
                 }
                 ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
                     resp.setStatusCode(302);
                     resp.setHeader("Location", "/access-denied");
                 };
-                return List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0));
             }
             if (ConstraintResponsibility.isResponsible(constraint, AUDIT_AND_STAMP)) {
                 ConstraintHandler.Runner                        audit = probes::incrementAudit;
                 ConstraintHandler.Consumer<MutableHttpResponse> stamp = resp -> resp.setHeader("X-Audit", "stamped");
-                return List.of(new ScopedConstraintHandler(audit, Signal.DecisionSignal.TYPE, 0),
-                        new ScopedConstraintHandler(stamp, Signal.HttpResponseSignal.TYPE, 0));
+                return List.of(new ScopedConstraintHandler(audit, Signal.DecisionSignal.SIGNAL_TYPE, 0),
+                        new ScopedConstraintHandler(stamp, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
             }
             return List.of();
         }

@@ -174,11 +174,11 @@ class SaplAuthorizationManagerTests {
             if (!ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
                 return List.of();
             }
-            if (!supportedSignals.contains(HttpRequestSignal.TYPE)) {
+            if (!supportedSignals.contains(HttpRequestSignal.SIGNAL_TYPE)) {
                 return List.of();
             }
             ConstraintHandler.Consumer<HttpRequest> handler = sink::set;
-            return List.of(new ScopedConstraintHandler(handler, HttpRequestSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(handler, HttpRequestSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -187,13 +187,13 @@ class SaplAuthorizationManagerTests {
             if (!ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
                 return List.of();
             }
-            if (!supportedSignals.contains(HttpRequestSignal.TYPE)) {
+            if (!supportedSignals.contains(HttpRequestSignal.SIGNAL_TYPE)) {
                 return List.of();
             }
             ConstraintHandler.Consumer<HttpRequest> handler = req -> {
                 throw new IllegalStateException("audit handler failed");
             };
-            return List.of(new ScopedConstraintHandler(handler, HttpRequestSignal.TYPE, 0));
+            return List.of(new ScopedConstraintHandler(handler, HttpRequestSignal.SIGNAL_TYPE, 0));
         };
     }
 
@@ -228,9 +228,9 @@ class SaplAuthorizationManagerTests {
             managerWith(capturingProvider).authorize(SaplAuthorizationManagerTests::userAuthentication,
                     context(sampleRequest()));
 
-            assertThat(captured.get()).containsExactlyInAnyOrder(Signal.DecisionSignal.TYPE, HttpRequestSignal.TYPE,
-                    Signal.HttpRequestMutationSignal.TYPE, Signal.HttpResponseSignal.TYPE,
-                    Signal.HttpDenialSignal.TYPE);
+            assertThat(captured.get()).containsExactlyInAnyOrder(Signal.DecisionSignal.SIGNAL_TYPE,
+                    HttpRequestSignal.SIGNAL_TYPE, Signal.HttpRequestMutationSignal.SIGNAL_TYPE,
+                    Signal.HttpResponseSignal.SIGNAL_TYPE, Signal.HttpDenialSignal.SIGNAL_TYPE);
         }
     }
 }

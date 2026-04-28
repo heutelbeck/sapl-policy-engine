@@ -46,7 +46,7 @@ final class ContentFilterTestSupport {
     static final SignalType OUTPUT_LIST_TYPE     = Signal.OutputSignal.typeFor(List.class);
     static final SignalType OUTPUT_CITIZEN_TYPE  = Signal.OutputSignal.typeFor(WatchCitizen.class);
     static final SignalType OUTPUT_FLUX_TYPE     = Signal.OutputSignal.typeFor(Flux.class);
-    static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.TYPE;
+    static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.SIGNAL_TYPE;
 
     private ContentFilterTestSupport() {
     }

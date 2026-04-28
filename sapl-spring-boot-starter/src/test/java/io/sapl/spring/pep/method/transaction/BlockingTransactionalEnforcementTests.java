@@ -68,12 +68,10 @@ import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.val;
 
+import java.util.List;
 import java.util.Map;
-import java.util.List;
 import java.util.Optional;
-import java.util.List;
 import java.util.Set;
-import java.util.List;
 
 /**
  * Verifies that SAPL method-security PEPs nest correctly inside the Spring
@@ -128,9 +126,10 @@ class BlockingTransactionalEnforcementTests {
         @DisplayName("DENY blocks the protected method entirely; no row is ever written")
         void whenDenyThenMethodNeverInvokedAndNoRowWritten() {
             when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            val loanId = NEXT_LOAN_ID.getAndIncrement();
 
             assertThatExceptionOfType(AccessDeniedException.class)
-                    .isThrownBy(() -> ledger.recordLoanWithPreEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY));
+                    .isThrownBy(() -> ledger.recordLoanWithPreEnforce(loanId, LOAN_ENTRY_BODY));
 
             assertThat(rowCount()).isZero();
         }
@@ -146,9 +145,10 @@ class BlockingTransactionalEnforcementTests {
         @DisplayName("OutputSignal Mapper failure rolls the insert back (post-invocation handler-throws path)")
         void whenOutputMapperObligationFailsAfterInsertThenRollback() {
             when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(GATE_REFUSES));
+            val loanId = NEXT_LOAN_ID.getAndIncrement();
 
             assertThatExceptionOfType(AccessDeniedException.class)
-                    .isThrownBy(() -> ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
+                    .isThrownBy(() -> ledger.recordLoanWithPostEnforce(loanId, LOAN_ENTRY_BODY))
                     .withMessageContaining("post-invocation");
 
             assertThat(rowCount())
@@ -182,9 +182,10 @@ class BlockingTransactionalEnforcementTests {
         @DisplayName("DENY after the insert rolls the transaction back; the row is expunged")
         void whenDenyAfterInsertThenTransactionRollsBack() {
             when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            val loanId = NEXT_LOAN_ID.getAndIncrement();
 
-            assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(
-                    () -> ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY));
+            assertThatExceptionOfType(AccessDeniedException.class)
+                    .isThrownBy(() -> ledger.recordLoanWithPostEnforce(loanId, LOAN_ENTRY_BODY));
 
             assertThat(rowCount()).as("row count after DENY (must be 0 if rollback ordering is correct)").isZero();
         }

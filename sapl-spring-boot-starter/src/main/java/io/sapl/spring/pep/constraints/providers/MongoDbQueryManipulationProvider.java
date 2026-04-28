@@ -110,7 +110,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
         if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
             return List.of();
         }
-        if (!supportedSignals.contains(MongoDbQueryShimSignal.TYPE)) {
+        if (!supportedSignals.contains(MongoDbQueryShimSignal.SIGNAL_TYPE)) {
             return List.of();
         }
         val criteria   = extractTopLevelCriteria(constraint);
@@ -119,7 +119,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
             return List.of();
         }
         Mapper<Query> mapper = query -> applyToQuery(query, criteria, conditions);
-        return List.of(new ScopedConstraintHandler(mapper, MongoDbQueryShimSignal.TYPE, DEFAULT_PRIORITY));
+        return List.of(new ScopedConstraintHandler(mapper, MongoDbQueryShimSignal.SIGNAL_TYPE, DEFAULT_PRIORITY));
     }
 
     private static Query applyToQuery(Query query, List<Criteria> criteria, List<String> conditions) {
@@ -251,7 +251,8 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
         if ("isNotNull".equals(op)) {
             return Optional.of(builder.ne(null));
         }
-        if (!(object.get(FIELD_VALUE) instanceof Value valueNode) || valueNode instanceof UndefinedValue) {
+        val valueNode = object.get(FIELD_VALUE);
+        if (valueNode == null || valueNode instanceof UndefinedValue) {
             return Optional.empty();
         }
         return applyBinaryOp(builder, op, valueNode);
@@ -296,7 +297,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
      * {@code double} which accepts the precision loss inherent to JSON
      * numerics in the obligation payload.
      */
-    private static Object compactNumber(java.math.BigDecimal n) {
+    private static Number compactNumber(java.math.BigDecimal n) {
         if (n.scale() <= 0) {
             try {
                 return n.intValueExact();

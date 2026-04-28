@@ -58,7 +58,11 @@ import tools.jackson.databind.ObjectMapper;
  */
 @Slf4j
 @AutoConfiguration
-public class AuthorizationManagerConfiguration {
+public final class AuthorizationManagerConfiguration {
+
+    private AuthorizationManagerConfiguration() {
+        // Holder for inner @Configuration classes; never instantiated.
+    }
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.sapl.spring.pep.http.servlet.SaplAuthorizationManager")

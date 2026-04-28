@@ -78,7 +78,7 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
         val saplAttribute = attribute.get();
         val authzDecision = getAuthorizationFromPolicyDecisionPoint(methodInvocation, saplAttribute, returnedObject);
 
-        val supportedSignals = Set.of(DecisionSignal.TYPE, ErrorSignal.TYPE,
+        val supportedSignals = Set.of(DecisionSignal.SIGNAL_TYPE, ErrorSignal.SIGNAL_TYPE,
                 OutputSignal.typeForReturnOf(methodInvocation));
 
         val enforcementPlan = enforcementPlannerProvider.getObject().plan(authzDecision, supportedSignals);

@@ -50,8 +50,8 @@ class EnforcementPlannerTests {
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
-    private static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.TYPE;
-    private static final SignalType INPUT_SIGNAL_TYPE    = Signal.InputSignal.TYPE;
+    private static final SignalType DECISION_SIGNAL_TYPE = Signal.DecisionSignal.SIGNAL_TYPE;
+    private static final SignalType INPUT_SIGNAL_TYPE    = Signal.InputSignal.SIGNAL_TYPE;
     private static final SignalType OUTPUT_STRING_TYPE   = Signal.OutputSignal.typeFor(String.class);
     private static final SignalType CANCEL_SIGNAL_TYPE   = new SignalType.VoidSignalType(Signal.CancelSignal.class);
 

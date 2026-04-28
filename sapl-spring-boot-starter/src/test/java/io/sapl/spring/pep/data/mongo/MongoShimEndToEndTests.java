@@ -109,7 +109,7 @@ class MongoShimEndToEndTests {
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
-            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.TYPE));
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             when(delegate.find(any(Query.class), eq(Citizen.class))).thenReturn(Flux.empty());
 
@@ -132,7 +132,7 @@ class MongoShimEndToEndTests {
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
-            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.TYPE));
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             when(delegate.find(any(Query.class), eq(Citizen.class))).thenReturn(Flux.empty());
 
@@ -180,7 +180,7 @@ class MongoShimEndToEndTests {
                       "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]
                     }
                     """);
-            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.TYPE));
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             when(delegate.find(any(Query.class), eq(Citizen.class))).thenReturn(Flux.empty());
 
@@ -216,15 +216,16 @@ class MongoShimEndToEndTests {
                                                                   throw new RuntimeException(
                                                                           "simulated handler failure");
                                                               };
-                                         return List
-                                                 .of(new ScopedConstraintHandler(bad, MongoDbQueryShimSignal.TYPE, 30));
+                                         return List.of(new ScopedConstraintHandler(bad,
+                                                 MongoDbQueryShimSignal.SIGNAL_TYPE, 30));
                                      }
                                  };
             val throwingPlanner  = new EnforcementPlanner(List.of(throwingProvider), MAPPER);
             val decision         = permitWithObligation("""
                     {"type": "test:throwingShimHandler"}
                     """);
-            val plan             = throwingPlanner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.TYPE));
+            val plan             = throwingPlanner.plan(decision,
+                    Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             StepVerifier
                     .create(EnforcementPlanContext.withReactor(plan,
@@ -248,7 +249,7 @@ class MongoShimEndToEndTests {
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
-            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.TYPE));
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             when(delegate.find(any(Query.class), eq(Citizen.class))).thenReturn(Flux.empty());
 
@@ -276,7 +277,7 @@ class MongoShimEndToEndTests {
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
-            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.TYPE));
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
 
             when(delegate.find(any(Query.class), eq(Citizen.class), eq("citizens"))).thenReturn(Flux.empty());
 
