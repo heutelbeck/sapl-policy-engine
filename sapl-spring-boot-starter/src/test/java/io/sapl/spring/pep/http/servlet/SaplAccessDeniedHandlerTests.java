@@ -76,7 +76,7 @@ class SaplAccessDeniedHandlerTests {
         @DisplayName("plan present but no handler scheduled at HttpDenialSignal: falls back to 403")
         void planWithoutDenialHandler() throws Exception {
             val plan     = planFor(denyWith("none"), provider(constraint -> List.of()));
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             handler.handle(request, response, DENIED);
             assertThat(response.getStatus()).isEqualTo(403);
@@ -90,7 +90,7 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "audit")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
-            val                      request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val                      request  = requestFor(plan);
             val                      response = new MockHttpServletResponse();
             handler.handle(request, response, DENIED);
             assertThat(response.getStatus()).isEqualTo(403);
@@ -106,8 +106,7 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "boom")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
-            val                                             request  = withPlan(plan,
-                    new MockHttpServletRequest("GET", "/r"));
+            val                                             request  = requestFor(plan);
             val                                             response = new MockHttpServletResponse();
             handler.handle(request, response, DENIED);
             assertThat(response.getStatus()).isEqualTo(403);
@@ -130,8 +129,7 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "custom")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
-            val                                             request  = withPlan(plan,
-                    new MockHttpServletRequest("GET", "/r"));
+            val                                             request  = requestFor(plan);
             val                                             response = new MockHttpServletResponse();
             handler.handle(request, response, DENIED);
             assertThat(response.getStatus()).isEqualTo(451);
@@ -150,8 +148,7 @@ class SaplAccessDeniedHandlerTests {
                     provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "redir")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
-            val                                             request  = withPlan(plan,
-                    new MockHttpServletRequest("GET", "/r"));
+            val                                             request  = requestFor(plan);
             val                                             response = new MockHttpServletResponse();
             handler.handle(request, response, DENIED);
             assertThat(response.getStatus()).isEqualTo(302);
@@ -159,7 +156,8 @@ class SaplAccessDeniedHandlerTests {
         }
     }
 
-    private static MockHttpServletRequest withPlan(EnforcementPlan plan, MockHttpServletRequest request) {
+    private static MockHttpServletRequest requestFor(EnforcementPlan plan) {
+        val request = new MockHttpServletRequest("GET", "/r");
         request.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);
         return request;
     }

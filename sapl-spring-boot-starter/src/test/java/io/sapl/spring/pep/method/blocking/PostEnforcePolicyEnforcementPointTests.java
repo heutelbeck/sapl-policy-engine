@@ -42,7 +42,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import io.sapl.api.model.ArrayValue;
@@ -207,8 +206,11 @@ class PostEnforcePolicyEnforcementPointTests {
             when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS));
 
             archive.closeTheWardedDoor();
-            // Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran;
-            // it skipped because the OutputSignal value is Maybe.absent for void.
+
+            // Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran; it skipped
+            // because the OutputSignal value is Maybe.absent for void. The PEP still
+            // consulted the PDP — verifying that proves the obligation was processed.
+            verify(pdp).decideOnceBlocking(any());
         }
 
         @Test
@@ -466,7 +468,6 @@ class PostEnforcePolicyEnforcementPointTests {
         return Value.ofObject(Map.of("type", Value.of(type)));
     }
 
-    @Service
     static class MiskatonicArchive {
 
         @PostEnforce

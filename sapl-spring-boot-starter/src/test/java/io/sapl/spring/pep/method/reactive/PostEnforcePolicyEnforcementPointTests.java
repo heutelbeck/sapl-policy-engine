@@ -41,7 +41,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import io.sapl.api.model.ArrayValue;
@@ -498,7 +497,6 @@ class PostEnforcePolicyEnforcementPointTests {
         return Value.ofObject(Map.of("type", Value.of(type)));
     }
 
-    @Service
     static class MiskatonicArchive {
 
         @PostEnforce

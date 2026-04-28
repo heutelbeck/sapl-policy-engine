@@ -42,7 +42,6 @@ import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.ReactiveTransactionManager;
 
@@ -336,7 +335,6 @@ class RelationalShimChainTests {
     @Table("TOME")
     public record Tome(@Id Integer id, String title, String moon, Integer forbiddenTier) {}
 
-    @Service
     static class LibraryService {
 
         private final TomeRepository repository;

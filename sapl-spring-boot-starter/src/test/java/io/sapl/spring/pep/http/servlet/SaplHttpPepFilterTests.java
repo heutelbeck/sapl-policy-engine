@@ -94,7 +94,7 @@ class SaplHttpPepFilterTests {
         @DisplayName("plan with no HTTP signal handlers: chain bypasses the wrappers entirely")
         void planWithoutHttpHandlersBypassesWrappers() throws Exception {
             val plan     = planFor(permitWith("audit"), runnerProvider());
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> {
                              ((HttpServletResponse) res).setStatus(200);
@@ -110,7 +110,7 @@ class SaplHttpPepFilterTests {
         @DisplayName("only response handlers scheduled: chain receives the original request, wrapped response")
         void onlyResponseHandlersBypassRequestWrapper() throws Exception {
             val plan     = planFor(permitWith("stamp"), responseStampProvider());
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> ((HttpServletResponse) res).setStatus(200));
             filter.doFilter(request, response, chain);
@@ -122,7 +122,7 @@ class SaplHttpPepFilterTests {
         @DisplayName("request handler that does not mutate: chain receives the original request")
         void requestHandlerWithoutMutationDiscardsWrapper() throws Exception {
             val plan     = planFor(permitWith("noop"), noopRequestObserverProvider());
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> ((HttpServletResponse) res).setStatus(200));
             filter.doFilter(request, response, chain);
@@ -180,7 +180,7 @@ class SaplHttpPepFilterTests {
                                          Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
                              }
                          });
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val seen     = new AtomicReference<String>();
             val chain    = new RecordingFilterChain(
@@ -206,7 +206,7 @@ class SaplHttpPepFilterTests {
                                          Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
                              }
                          });
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> {});
             assertThatThrownBy(() -> filter.doFilter(request, response, chain))
@@ -233,7 +233,7 @@ class SaplHttpPepFilterTests {
                                          .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                              }
                          });
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> {
                              ((HttpServletResponse) res).setStatus(200);
@@ -259,7 +259,7 @@ class SaplHttpPepFilterTests {
                                          .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                              }
                          });
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> ((HttpServletResponse) res).setStatus(200));
             filter.doFilter(request, response, chain);
@@ -283,7 +283,7 @@ class SaplHttpPepFilterTests {
                                          .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                              }
                          });
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> ((HttpServletResponse) res).setStatus(200));
             assertThatThrownBy(() -> filter.doFilter(request, response, chain))
@@ -308,7 +308,7 @@ class SaplHttpPepFilterTests {
                                          .of(new ScopedConstraintHandler(h, Signal.HttpResponseSignal.SIGNAL_TYPE, 0));
                              }
                          });
-            val request  = withPlan(plan, new MockHttpServletRequest("GET", "/r"));
+            val request  = requestFor(plan);
             val response = new MockHttpServletResponse();
             val chain    = new RecordingFilterChain((req, res) -> res.getWriter().write("from-controller"));
             filter.doFilter(request, response, chain);
@@ -317,7 +317,8 @@ class SaplHttpPepFilterTests {
         }
     }
 
-    private static MockHttpServletRequest withPlan(EnforcementPlan plan, MockHttpServletRequest request) {
+    private static MockHttpServletRequest requestFor(EnforcementPlan plan) {
+        val request = new MockHttpServletRequest("GET", "/r");
         request.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);
         return request;
     }

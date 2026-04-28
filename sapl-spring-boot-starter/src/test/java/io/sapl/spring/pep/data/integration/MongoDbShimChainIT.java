@@ -334,7 +334,6 @@ class MongoDbShimChainIT {
     @Document("chronicles")
     public record Chronicle(@Id String id, String title, String moon, Integer forbiddenTier) {}
 
-    @Service
     static class ChronicleService {
 
         private final MongoChronicleRepository repository;
