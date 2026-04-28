@@ -290,7 +290,7 @@ class ServletMutableHttpResponseTests {
 
         @Test
         @DisplayName("sendError sets status, replaces body, ticks modified")
-        void sendErrorBuffers() throws Exception {
+        void sendErrorBuffers() {
             mutable.sendError(503, "service down");
             assertThat(mutable).satisfies(m -> {
                 assertThat(m.getStatus()).isEqualTo(503);
@@ -301,7 +301,7 @@ class ServletMutableHttpResponseTests {
 
         @Test
         @DisplayName("sendRedirect sets 302 and Location header")
-        void sendRedirectBuffers() throws Exception {
+        void sendRedirectBuffers() {
             mutable.sendRedirect("/login");
             assertThat(mutable).satisfies(m -> {
                 assertThat(m.getStatus()).isEqualTo(302);

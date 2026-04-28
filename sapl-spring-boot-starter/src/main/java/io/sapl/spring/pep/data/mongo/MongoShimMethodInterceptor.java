@@ -72,8 +72,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
     @Override
     public Object invoke(MethodInvocation invocation) throws Throwable {
         val method = invocation.getMethod();
-        if (method.getParameterCount() == 1 && METHOD_QUERY.equals(method.getName())
-                && method.getParameterTypes()[0] == Class.class) {
+        if (isProjectionEntryPoint(method)) {
             val realFindWithProjection = (FindWithProjection<?>) invocation.proceed();
             return wrapFindWithProjection(realFindWithProjection);
         }
@@ -81,6 +80,16 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             return interceptLegacyQueryMethod(invocation);
         }
         return invocation.proceed();
+    }
+
+    private static boolean isProjectionEntryPoint(Method method) {
+        if (method.getParameterCount() != 1) {
+            return false;
+        }
+        if (!METHOD_QUERY.equals(method.getName())) {
+            return false;
+        }
+        return method.getParameterTypes()[0] == Class.class;
     }
 
     private static boolean isShimmedLegacyQueryMethod(Method method) {
