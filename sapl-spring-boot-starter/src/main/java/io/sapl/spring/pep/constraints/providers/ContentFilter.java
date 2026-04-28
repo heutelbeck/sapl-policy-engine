@@ -109,79 +109,51 @@ public class ContentFilter {
      *
      * @param constraint the SAPL constraint value (an object with
      * conditions/actions)
-     * @param targetType the target type the mapper claims at the type system level
      * @param objectMapper Jackson mapper used to round-trip payloads through native
      * Java types for JsonPath
-     * @return a mapper from {@code T} to {@code T}
-     *
-     * @apiNote {@code targetType} declares the mapper's outer type at the
-     * type-system level. The per-element
-     * back-conversion uses each element's runtime class so collection payloads
-     * round-trip elements
-     * as their actual element type, not as the collection type. {@code targetType}
-     * therefore has no
-     * runtime effect on collection-shaped payloads.
+     * @return a mapper from {@code Object} to {@code Object}; collection-shaped
+     * payloads round-trip per element using each element's runtime class.
      */
-    public static <T> Mapper<T> getHandler(Value constraint, Class<T> targetType, ObjectMapper objectMapper) {
+    public static Mapper<Object> getHandler(Value constraint, ObjectMapper objectMapper) {
         val predicate      = predicateFromConditions(constraint, objectMapper);
         val transformation = getTransformationHandler(constraint, objectMapper);
-        return payload -> {
-            val result = switch (payload) {
-                       case null                 -> null;
-                       case Optional<?> optional -> optional.map(x -> mapElement(x, transformation, predicate));
-                       case List<?> list         ->
-                           mutableList(list.stream().map(x -> mapElement(x, transformation, predicate)));
-                       case Set<?> set           ->
-                           set.stream().map(x -> mapElement(x, transformation, predicate)).collect(Collectors.toSet());
-                       case Mono<?> mono         -> mono.map(x -> mapElement(x, transformation, predicate));
-                       case Flux<?> flux         -> flux.map(x -> mapElement(x, transformation, predicate));
-                       case Object[] array       -> mapArrayContents(array, transformation, predicate);
-                       default                   -> mapElement(payload, transformation, predicate);
-                       };
-            @SuppressWarnings("unchecked")
-            val typed  = (T) result;
-            return typed;
+        return payload -> switch (payload) {
+        case null                 -> null;
+        case Optional<?> optional -> optional.map(x -> mapElement(x, transformation, predicate));
+        case List<?> list         -> mutableList(list.stream().map(x -> mapElement(x, transformation, predicate)));
+        case Set<?> set           ->
+            set.stream().map(x -> mapElement(x, transformation, predicate)).collect(Collectors.toSet());
+        case Mono<?> mono         -> mono.map(x -> mapElement(x, transformation, predicate));
+        case Flux<?> flux         -> flux.map(x -> mapElement(x, transformation, predicate));
+        case Object[] array       -> mapArrayContents(array, transformation, predicate);
+        default                   -> mapElement(payload, transformation, predicate);
         };
     }
 
     /**
-     * Builds a typed mapper that filters out elements not matching the constraint's
-     * predicate. Mirrors the
-     * payload-shape dispatch of {@link #getHandler(Value, Class, ObjectMapper)} but
-     * applies the predicate as
+     * Builds a mapper that filters out elements not matching the constraint's
+     * predicate. Mirrors the payload-shape dispatch of
+     * {@link #getHandler(Value, ObjectMapper)} but applies the predicate as
      * an element filter (drops non-matching elements) rather than guarding a
      * transformation.
-     * </p>
      *
      * @param constraint the SAPL constraint value carrying the {@code conditions}
-     * @param targetType the target type the mapper claims at the type system level
      * @param objectMapper Jackson mapper used to evaluate JsonPath expressions in
      * conditions
-     * @return a mapper from {@code T} to {@code T}
-     *
-     * @apiNote Same {@code targetType} caveat as
-     * {@link #getHandler(Value, Class, ObjectMapper)} — type-system
-     * witness only, no runtime effect on collection-shaped payloads.
+     * @return a mapper from {@code Object} to {@code Object}
      */
-    public static <T> Mapper<T> getFilterPredicateHandler(Value constraint, Class<T> targetType,
-            ObjectMapper objectMapper) {
+    @SuppressWarnings("unchecked")
+    public static Mapper<Object> getFilterPredicateHandler(Value constraint, ObjectMapper objectMapper) {
         val predicate = predicateFromConditions(constraint, objectMapper);
-        return payload -> {
-            @SuppressWarnings("unchecked")
-            val result = switch (payload) {
-                       case null                 -> null;
-                       case Optional<?> optional -> ((Optional<Object>) optional).filter(predicate);
-                       case List<?> list         -> mutableList(((List<Object>) list).stream().filter(predicate));
-                       case Set<?> set           ->
-                           ((Set<Object>) set).stream().filter(predicate).collect(Collectors.toSet());
-                       case Mono<?> mono         -> ((Mono<Object>) mono).filter(predicate);
-                       case Flux<?> flux         -> ((Flux<Object>) flux).filter(predicate);
-                       case Object[] array       -> filterArrayContents(array, predicate);
-                       default                   -> predicate.test(payload) ? payload : null;
-                       };
-            @SuppressWarnings("unchecked")
-            val typed  = (T) result;
-            return typed;
+        return payload -> switch (payload) {
+        case null                 -> null;
+        case Optional<?> optional -> ((Optional<Object>) optional).filter(predicate);
+        case List<?> list         -> mutableList(((List<Object>) list).stream().filter(predicate));
+        case Set<?> set           -> ((Set<Object>) set).stream().filter(predicate).collect(Collectors.toSet());
+        case Mono<?> mono         -> ((Mono<Object>) mono).filter(predicate);
+        case Flux<?> flux         -> ((Flux<Object>) flux).filter(predicate);
+        case Object[] array       -> filterArrayContents(array, predicate);
+        default                   -> predicate.test(payload) ? payload : null;
         };
     }
 

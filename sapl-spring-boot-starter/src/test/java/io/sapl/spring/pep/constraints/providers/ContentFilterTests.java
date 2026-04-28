@@ -69,14 +69,14 @@ class ContentFilterTests {
         @Test
         @DisplayName("null payload returns null")
         void givenNullPayloadThenReturnsNull() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             assertThat(handler.apply(null)).isNull();
         }
 
         @Test
         @DisplayName("scalar map payload is filtered as a single element")
         void givenScalarMapPayloadThenFilteredAsElement() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             assertThat(handler.apply(new HashMap<>(Map.of("name", "Alice", "age", 30))))
                     .isInstanceOfSatisfying(Map.class, m -> assertThat(m).doesNotContainKey("name"));
         }
@@ -85,7 +85,7 @@ class ContentFilterTests {
         @DisplayName("Optional payload with present value is filtered elementwise")
         @SuppressWarnings("unchecked")
         void givenOptionalPresentThenFilteredElementwise() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (Optional<Map<String, Object>>) handler
                     .apply(Optional.of(new HashMap<>(Map.of("name", "Alice", "age", 30))));
             assertThat(result)
@@ -96,7 +96,7 @@ class ContentFilterTests {
         @DisplayName("Optional empty payload remains empty")
         @SuppressWarnings("unchecked")
         void givenOptionalEmptyThenRemainsEmpty() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (Optional<Object>) handler.apply(Optional.empty());
             assertThat(result).isEmpty();
         }
@@ -105,7 +105,7 @@ class ContentFilterTests {
         @DisplayName("List payload is filtered elementwise")
         @SuppressWarnings("unchecked")
         void givenListPayloadThenFilteredElementwise() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (List<Map<String, Object>>) handler
                     .apply(List.of(new HashMap<>(Map.of("name", "Alice", "age", 30)),
                             new HashMap<>(Map.of("name", "Bob", "age", 40))));
@@ -119,7 +119,7 @@ class ContentFilterTests {
             val input = new LinkedHashSet<Map<String, Object>>();
             input.add(new HashMap<>(Map.of("name", "Alice", "age", 30)));
             input.add(new HashMap<>(Map.of("name", "Bob", "age", 40)));
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (Set<Map<String, Object>>) handler.apply(input);
             assertThat(result).hasSize(2).allSatisfy(m -> assertThat(m).doesNotContainKey("name"));
         }
@@ -130,7 +130,7 @@ class ContentFilterTests {
         void givenArrayPayloadThenFilteredElementwise() {
             val input   = new Map[] { new HashMap<>(Map.of("name", "Alice", "age", 30)),
                     new HashMap<>(Map.of("name", "Bob", "age", 40)) };
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (Map[]) handler.apply(input);
             assertThat(result).hasSize(2)
                     .allSatisfy(m -> assertThat((Map<String, Object>) m).doesNotContainKey("name"));
@@ -140,7 +140,7 @@ class ContentFilterTests {
         @DisplayName("Mono payload is filtered elementwise")
         @SuppressWarnings("unchecked")
         void givenMonoPayloadThenFilteredElementwise() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (Mono<Map<String, Object>>) handler
                     .apply(Mono.just(new HashMap<>(Map.of("name", "Alice", "age", 30))));
             StepVerifier.create(result)
@@ -151,7 +151,7 @@ class ContentFilterTests {
         @Test
         @DisplayName("Flux payload is filtered elementwise")
         void givenFluxPayloadThenFilteredElementwise() {
-            val handler = ContentFilter.getHandler(deleteName, Object.class, MAPPER);
+            val handler = ContentFilter.getHandler(deleteName, MAPPER);
             val result  = (Flux<?>) handler.apply(Flux.just(new HashMap<>(Map.of("name", "Alice", "age", 30)),
                     new HashMap<>(Map.of("name", "Bob", "age", 40))));
             StepVerifier.create(result).expectNextCount(2).verifyComplete();
