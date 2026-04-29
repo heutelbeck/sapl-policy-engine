@@ -21,6 +21,7 @@ import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Effect;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
@@ -260,16 +261,16 @@ public class CoverageExtractor {
 
     /**
      * Determines if the actual decision matches the expected outcome (effect).
+     * The outcome carries the effect set the policy was configured for; the
+     * decision is what actually came out. They match iff the outcome's effect
+     * set contains the decision-as-effect (and the decision is concrete).
      */
     private static boolean isEffectReturned(Outcome outcome, Decision decision) {
-        return switch (outcome) {
-        case PERMIT         -> decision == Decision.PERMIT;
-        case DENY           -> decision == Decision.DENY;
-        case PERMIT_OR_DENY -> decision == Decision.PERMIT || decision == Decision.DENY;
-        // TODO: implement SUSPEND-bearing coverage outcome matching when
-        // SUSPEND policy-coverage semantics are ratified.
-        case SUSPEND, PERMIT_OR_SUSPEND, DENY_OR_SUSPEND, PERMIT_OR_DENY_OR_SUSPEND ->
-            throw new UnsupportedOperationException("SUSPEND-bearing coverage isEffectReturned not yet implemented");
+        return switch (decision) {
+        case PERMIT                        -> outcome.contains(Effect.PERMIT);
+        case DENY                          -> outcome.contains(Effect.DENY);
+        case SUSPEND                       -> outcome.contains(Effect.SUSPEND);
+        case INDETERMINATE, NOT_APPLICABLE -> false;
         };
     }
 }

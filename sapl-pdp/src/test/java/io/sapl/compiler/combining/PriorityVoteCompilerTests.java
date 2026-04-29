@@ -830,4 +830,218 @@ class PriorityVoteCompilerTests {
             assertThat(result.authorizationDecision().decision()).isEqualTo(expected);
         }
     }
+
+    @Nested
+    @DisplayName("Priority SUSPEND support")
+    class PrioritySuspendSupport {
+
+        private static final String DEFAULT_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND-only policy returns SUSPEND")
+        void whenPrioritySuspendAndOnlySuspendPolicyThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain errors propagate
+
+                    policy "suspending" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND wins over PERMIT")
+        void whenPrioritySuspendAndPermitVsSuspendThenSuspendWins() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain errors propagate
+
+                    policy "permitting" permit
+                    policy "suspending" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND wins over DENY")
+        void whenPrioritySuspendAndDenyVsSuspendThenSuspendWins() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain errors propagate
+
+                    policy "denying" deny
+                    policy "suspending" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: PERMIT vs DENY (no SUSPEND) - DENY wins per chain")
+        void whenPrioritySuspendAndPermitVsDenyThenDenyWins() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain errors propagate
+
+                    policy "permitting" permit
+                    policy "denying" deny
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+        }
+
+        @Test
+        @DisplayName("priority deny: PERMIT vs SUSPEND (no DENY) - SUSPEND wins per chain")
+        void whenPriorityDenyAndPermitVsSuspendThenSuspendWins() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority deny or abstain errors propagate
+
+                    policy "permitting" permit
+                    policy "suspending" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority permit: DENY vs SUSPEND (no PERMIT) - SUSPEND wins per chain")
+        void whenPriorityPermitAndDenyVsSuspendThenSuspendWins() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority permit or abstain errors propagate
+
+                    policy "denying" deny
+                    policy "suspending" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: all NOT_APPLICABLE returns default decision")
+        void whenPrioritySuspendAllNotApplicableThenReturnsDefault() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or deny errors propagate
+
+                    policy "never" suspend false;
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+        }
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND with obligations preserved")
+        void whenPrioritySuspendAndSuspendWithObligationsThenPreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain
+
+                    policy "suspending"
+                    suspend
+                    obligation
+                        { "type": "logSuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("priority suspend: multiple SUSPEND policies merge constraints")
+        void whenPrioritySuspendAndMultipleSuspendThenMerged() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain
+
+                    policy "p1" suspend obligation { "type": "logA" }
+                    policy "p2" suspend obligation { "type": "logB" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations().size()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("priority suspend: streaming SUSPEND policy emits SUSPEND")
+        void whenPrioritySuspendAndStreamingSuspendThenSuspend() {
+            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
+            val compiled     = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain errors propagate
+
+                    policy "stream-suspend"
+                    suspend
+                      <test.attr>;
+                    """, attrBroker);
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND))
+                    .expectComplete().verify(TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("priority suspend: static SUSPEND-only set compiles to constant Vote")
+        void whenPrioritySuspendStaticSuspendThenCompilesToVote() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    priority suspend or abstain
+
+                    policy "static-suspend" suspend
+                    """);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(Vote.class);
+            assertThat(((Vote) compiled.applicabilityAndVote()).authorizationDecision().decision())
+                    .isEqualTo(Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> errorHandlingCases() {
+            return Stream.of(arguments("errors abstain", "priority suspend or abstain"),
+                    arguments("errors propagate", "priority suspend or abstain errors propagate"));
+        }
+
+        @ParameterizedTest(name = "{0} passes SUSPEND through unchanged")
+        @MethodSource("errorHandlingCases")
+        @DisplayName("priority suspend: error handling does not affect a SUSPEND vote")
+        void whenSuspendVoteUnderAnyErrorHandlingThenReturnsSuspend(String description, String algorithm) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    policy "suspending" suspend
+                    """.formatted(algorithm));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+    }
 }
