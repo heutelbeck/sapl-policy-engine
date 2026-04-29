@@ -246,10 +246,9 @@ class CoverageExtractorTests {
         return switch (decision) {
         case PERMIT         -> AuthorizationDecision.PERMIT;
         case DENY           -> AuthorizationDecision.DENY;
+        case SUSPEND        -> AuthorizationDecision.SUSPEND;
         case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
-        // TODO: implement SUSPEND case when AuthorizationDecision carries SUSPEND.
-        case SUSPEND -> throw new UnsupportedOperationException("SUSPEND authorization decision not yet implemented");
         };
     }
 

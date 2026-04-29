@@ -167,12 +167,9 @@ class ReportingDecisionInterceptorTests {
         val authzDecision = switch (decision) {
                           case PERMIT         -> AuthorizationDecision.PERMIT;
                           case DENY           -> AuthorizationDecision.DENY;
+                          case SUSPEND        -> AuthorizationDecision.SUSPEND;
                           case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
                           case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
-                          // TODO: implement SUSPEND case in createTimestampedVote
-                          // when AuthorizationDecision.SUSPEND constant is added.
-                          case SUSPEND -> throw new UnsupportedOperationException(
-                                  "createTimestampedVote SUSPEND case not yet implemented");
                           };
         val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, false);
