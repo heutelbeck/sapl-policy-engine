@@ -85,6 +85,7 @@ votingMode
     : FIRST            # first
     | PRIORITY DENY    # priorityDeny
     | PRIORITY PERMIT  # priorityPermit
+    | PRIORITY SUSPEND # prioritySuspend
     | UNANIMOUS STRICT # unanimousStrict
     | UNANIMOUS        # unanimous
     | UNIQUE           # unique

@@ -160,6 +160,7 @@ import io.sapl.grammar.antlr.SAPLParser.PolicySetContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PriorityDenyContext;
 import io.sapl.grammar.antlr.SAPLParser.PriorityPermitContext;
+import io.sapl.grammar.antlr.SAPLParser.PrioritySuspendContext;
 import io.sapl.grammar.antlr.SAPLParser.PropagateErrorsContext;
 import io.sapl.grammar.antlr.SAPLParser.RecursiveIdKeyStepContext;
 import io.sapl.grammar.antlr.SAPLParser.RecursiveIndexDotDotStepContext;
@@ -1029,6 +1030,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case FirstContext ignored           -> VotingMode.FIRST;
         case PriorityDenyContext ignored    -> VotingMode.PRIORITY_DENY;
         case PriorityPermitContext ignored  -> VotingMode.PRIORITY_PERMIT;
+        case PrioritySuspendContext ignored -> VotingMode.PRIORITY_SUSPEND;
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
         case UniqueContext ignored          -> VotingMode.UNIQUE;

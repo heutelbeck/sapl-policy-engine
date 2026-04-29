@@ -352,6 +352,7 @@ public class ScenarioInterpreter {
         case FirstContext ignored           -> VotingMode.FIRST;
         case PriorityDenyContext ignored    -> VotingMode.PRIORITY_DENY;
         case PriorityPermitContext ignored  -> VotingMode.PRIORITY_PERMIT;
+        case PrioritySuspendContext ignored -> VotingMode.PRIORITY_SUSPEND;
         case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UniqueContext ignored          -> VotingMode.UNIQUE;

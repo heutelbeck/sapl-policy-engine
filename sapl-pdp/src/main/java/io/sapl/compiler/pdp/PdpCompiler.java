@@ -97,12 +97,16 @@ public class PdpCompiler {
         val errorHandling   = algorithm.errorHandling();
 
         val voter = switch (algorithm.votingMode()) {
-        case FIRST            ->
+        case FIRST           ->
             throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
-        case PRIORITY_DENY    -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.DENY,
+        case PRIORITY_DENY   -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.DENY,
                 defaultDecision, errorHandling, ctx);
-        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.PERMIT,
+        case PRIORITY_PERMIT -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.PERMIT,
                 defaultDecision, errorHandling, ctx);
+        // TODO: implement PRIORITY_SUSPEND voter compilation when SUSPEND combiner
+        // semantics are ratified.
+        case PRIORITY_SUSPEND ->
+            throw new UnsupportedOperationException("PRIORITY_SUSPEND voter compilation not yet implemented");
         case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
                 errorHandling, false, ctx);
         case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
@@ -112,12 +116,16 @@ public class PdpCompiler {
         };
 
         val coverageStream = switch (algorithm.votingMode()) {
-        case FIRST            ->
+        case FIRST           ->
             throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
-        case PRIORITY_DENY    -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
+        case PRIORITY_DENY   -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
                 Decision.DENY, defaultDecision, errorHandling);
-        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
+        case PRIORITY_PERMIT -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
                 Decision.PERMIT, defaultDecision, errorHandling);
+        // TODO: implement PRIORITY_SUSPEND coverage stream when SUSPEND combiner
+        // semantics are ratified.
+        case PRIORITY_SUSPEND ->
+            throw new UnsupportedOperationException("PRIORITY_SUSPEND coverage stream not yet implemented");
         case UNANIMOUS        -> UnanimousVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
                 defaultDecision, errorHandling, false);
         case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
