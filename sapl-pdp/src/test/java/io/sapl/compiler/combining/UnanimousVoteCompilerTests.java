@@ -681,4 +681,239 @@ class UnanimousVoteCompilerTests {
             });
         }
     }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        private static final String DEFAULT_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("single SUSPEND policy returns SUSPEND")
+        void whenSinglePolicySuspendsThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "only-one" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("multiple SUSPEND policies all agree -> SUSPEND with merged constraints")
+        void whenAllSuspendThenReturnsSuspendMerged() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "p1" suspend obligation { "type": "logA" }
+                    policy "p2" suspend obligation { "type": "logB" }
+                    policy "p3" suspend obligation { "type": "logC" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations().size()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("SUSPEND + PERMIT (both applicable) -> INDETERMINATE (disagreement)")
+        void whenSuspendAndPermitThenIndeterminate() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    policy "p1" suspend
+                    policy "p2" permit
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("SUSPEND + DENY (both applicable) -> INDETERMINATE (disagreement)")
+        void whenSuspendAndDenyThenIndeterminate() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    policy "p1" suspend
+                    policy "p2" deny
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with NOT_APPLICABLE policies -> SUSPEND (NOT_APPLICABLE ignored)")
+        void whenSuspendAmongNotApplicableThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "skip-1" permit false;
+                    policy "suspending" suspend
+                    policy "skip-2" deny false;
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("strict mode: identical SUSPEND policies -> SUSPEND")
+        void whenIdenticalSuspendStrictModeThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous strict or abstain
+
+                    policy "p1" suspend
+                    policy "p2" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("strict mode: SUSPEND with different obligations -> INDETERMINATE")
+        void whenSuspendDifferentObligationsStrictModeThenIndeterminate() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous strict or abstain errors propagate
+
+                    policy "p1" suspend obligation { "type": "logA" }
+                    policy "p2" suspend obligation { "type": "logB" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with obligation -> obligation preserved")
+        void whenSuspendWithObligationThenObligationPreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "suspending"
+                    suspend
+                    obligation
+                        { "type": "logSuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with advice -> advice preserved")
+        void whenSuspendWithAdviceThenAdvicePreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "suspending"
+                    suspend
+                    advice
+                        { "type": "notifySuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().advice()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with transform -> resource transformed")
+        void whenSuspendWithTransformThenResourceTransformed() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "suspending"
+                    suspend
+                    transform
+                        { "redacted": true }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().resource()).isNotEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("static SUSPEND-only set compiles to constant Vote")
+        void whenStaticSuspendThenCompilesToVote() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "static-suspend" suspend
+                    """);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(Vote.class);
+            assertThat(((Vote) compiled.applicabilityAndVote()).authorizationDecision().decision())
+                    .isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("streaming SUSPEND policy emits SUSPEND when applicable")
+        void whenStreamingSuspendApplicableThenReturnsSuspend() {
+            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
+            val compiled     = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    policy "stream-suspend"
+                    suspend
+                      <test.attr>;
+                    """, attrBroker);
+            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
+            assertStreamPathEquivalence(compiled, ctx, Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> errorHandlingCases() {
+            return Stream.of(arguments("errors abstain", "unanimous or abstain"),
+                    arguments("errors propagate", "unanimous or abstain errors propagate"));
+        }
+
+        @ParameterizedTest(name = "{0} passes SUSPEND through unchanged")
+        @MethodSource("errorHandlingCases")
+        @DisplayName("error handling does not affect a SUSPEND vote")
+        void whenSuspendVoteUnderAnyErrorHandlingThenReturnsSuspend(String description, String algorithm) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    policy "suspending" suspend
+                    """.formatted(algorithm));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+    }
 }

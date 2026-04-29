@@ -113,6 +113,20 @@ class UnanimousVoteCombinerTests {
                 testMetadata(name, Outcome.DENY), List.of());
     }
 
+    static Vote suspendVote(String name) {
+        return Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND), List.of());
+    }
+
+    static Vote suspendVoteWithObligations(String name, Value... obligations) {
+        val obligationsArray = ArrayValue.builder();
+        for (var o : obligations) {
+            obligationsArray.add(o);
+        }
+        return Vote.tracedVote(Decision.SUSPEND, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND), List.of());
+    }
+
     static Vote notApplicableVote(String name) {
         return Vote.abstain(testMetadata(name, Outcome.PERMIT));
     }
@@ -155,18 +169,27 @@ class UnanimousVoteCombinerTests {
             return Stream.of(arguments(Decision.NOT_APPLICABLE, Decision.NOT_APPLICABLE, Decision.NOT_APPLICABLE),
                     arguments(Decision.NOT_APPLICABLE, Decision.PERMIT, Decision.PERMIT),
                     arguments(Decision.NOT_APPLICABLE, Decision.DENY, Decision.DENY),
+                    arguments(Decision.NOT_APPLICABLE, Decision.SUSPEND, Decision.SUSPEND),
                     arguments(Decision.NOT_APPLICABLE, Decision.INDETERMINATE, Decision.INDETERMINATE),
                     arguments(Decision.PERMIT, Decision.NOT_APPLICABLE, Decision.PERMIT),
                     arguments(Decision.PERMIT, Decision.PERMIT, Decision.PERMIT),
                     arguments(Decision.PERMIT, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.PERMIT, Decision.SUSPEND, Decision.INDETERMINATE),
                     arguments(Decision.PERMIT, Decision.INDETERMINATE, Decision.INDETERMINATE),
                     arguments(Decision.DENY, Decision.NOT_APPLICABLE, Decision.DENY),
                     arguments(Decision.DENY, Decision.PERMIT, Decision.INDETERMINATE),
                     arguments(Decision.DENY, Decision.DENY, Decision.DENY),
+                    arguments(Decision.DENY, Decision.SUSPEND, Decision.INDETERMINATE),
                     arguments(Decision.DENY, Decision.INDETERMINATE, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.NOT_APPLICABLE, Decision.SUSPEND),
+                    arguments(Decision.SUSPEND, Decision.PERMIT, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.SUSPEND, Decision.SUSPEND),
+                    arguments(Decision.SUSPEND, Decision.INDETERMINATE, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.NOT_APPLICABLE, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.PERMIT, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.INDETERMINATE, Decision.SUSPEND, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.INDETERMINATE, Decision.INDETERMINATE));
         }
 
@@ -174,11 +197,9 @@ class UnanimousVoteCombinerTests {
             return switch (decision) {
             case PERMIT         -> permitVote("p");
             case DENY           -> denyVote("p");
+            case SUSPEND        -> suspendVote("p");
             case NOT_APPLICABLE -> notApplicableVote("p");
             case INDETERMINATE  -> indeterminateVote("p", Outcome.PERMIT);
-            // TODO: implement SUSPEND case in voteFor when SUSPEND test
-            // arguments are added to the pairwise table.
-            case SUSPEND -> throw new UnsupportedOperationException("voteFor SUSPEND case not yet implemented");
             };
         }
 
@@ -680,6 +701,146 @@ class UnanimousVoteCombinerTests {
             assertThat(result).satisfies(r -> {
                 assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
                 assertThat(r.contributingVotes()).hasSize(1);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        @Test
+        @DisplayName("normal mode: three SUSPEND policies all agree -> SUSPEND with merged constraints")
+        void whenAllAgreeOnSuspendThenReturnsSuspendMerged() {
+            val ob1   = Value.of("{\"action\":\"log-1\"}");
+            val ob2   = Value.of("{\"action\":\"log-2\"}");
+            val ob3   = Value.of("{\"action\":\"log-3\"}");
+            val votes = List.of(suspendVoteWithObligations("p1", ob1), suspendVoteWithObligations("p2", ob2),
+                    suspendVoteWithObligations("p3", ob3));
+
+            val result = UnanimousVoteCombiner.combineMultipleVotes(votes, TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                assertThat(r.outcome()).isEqualTo(Outcome.SUSPEND);
+                assertThat(r.authorizationDecision().obligations().size()).isEqualTo(3);
+            });
+        }
+
+        @Test
+        @DisplayName("normal mode: SUSPEND vs PERMIT -> INDETERMINATE with PERMIT_OR_SUSPEND outcome")
+        void whenSuspendDisagreesWithPermitNormalModeThenOutcomeIsPermitOrSuspend() {
+            val acc    = UnanimousVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = UnanimousVoteCombiner.combineVotes(acc, permitVote("p2"), TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("normal mode: SUSPEND vs DENY -> INDETERMINATE with DENY_OR_SUSPEND outcome")
+        void whenSuspendDisagreesWithDenyNormalModeThenOutcomeIsDenyOrSuspend() {
+            val acc    = UnanimousVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = UnanimousVoteCombiner.combineVotes(acc, denyVote("p2"), TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.DENY_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("strict mode: identical SUSPEND policies -> SUSPEND with merged constraints")
+        void whenIdenticalSuspendStrictModeThenReturnsSuspend() {
+            val ob1   = Value.of("{\"action\":\"log\"}");
+            val acc   = UnanimousVoteCombiner.accumulatorVoteFrom(suspendVoteWithObligations("p1", ob1), TEST_METADATA);
+            val other = suspendVoteWithObligations("p2", ob1);
+
+            val result = UnanimousVoteCombiner.combineVotes(acc, other, TEST_METADATA, true);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                assertThat(r.outcome()).isEqualTo(Outcome.SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("strict mode: SUSPEND with different obligations -> INDETERMINATE with SUSPEND outcome")
+        void whenSuspendDifferentObligationsStrictModeThenIndeterminateWithSuspendOutcome() {
+            val ob1 = Value.of("{\"action\":\"log-A\"}");
+            val ob2 = Value.of("{\"action\":\"log-B\"}");
+            val acc = UnanimousVoteCombiner.accumulatorVoteFrom(suspendVoteWithObligations("p1", ob1), TEST_METADATA);
+
+            val result = UnanimousVoteCombiner.combineVotes(acc, suspendVoteWithObligations("p2", ob2), TEST_METADATA,
+                    true);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("strict mode: SUSPEND vs PERMIT -> INDETERMINATE with PERMIT_OR_SUSPEND outcome")
+        void whenSuspendVsPermitStrictModeThenOutcomeIsPermitOrSuspend() {
+            val acc    = UnanimousVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = UnanimousVoteCombiner.combineVotes(acc, permitVote("p2"), TEST_METADATA, true);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("isTerminal: INDETERMINATE(SUSPEND) is not terminal in normal mode")
+        void whenIndeterminateSuspendThenNotTerminalInNormalMode() {
+            val vote = indeterminateVote("p", Outcome.SUSPEND);
+            assertThat(UnanimousVoteCombiner.isTerminal(vote, false)).isFalse();
+        }
+
+        @Test
+        @DisplayName("isTerminal: INDETERMINATE(PERMIT_OR_SUSPEND) is terminal in normal mode")
+        void whenIndeterminatePermitOrSuspendThenTerminalInNormalMode() {
+            val vote = indeterminateVote("p", Outcome.PERMIT_OR_SUSPEND);
+            assertThat(UnanimousVoteCombiner.isTerminal(vote, false)).isTrue();
+        }
+
+        @Test
+        @DisplayName("isTerminal: INDETERMINATE(DENY_OR_SUSPEND) is terminal in normal mode")
+        void whenIndeterminateDenyOrSuspendThenTerminalInNormalMode() {
+            val vote = indeterminateVote("p", Outcome.DENY_OR_SUSPEND);
+            assertThat(UnanimousVoteCombiner.isTerminal(vote, false)).isTrue();
+        }
+
+        @Test
+        @DisplayName("isTerminal: INDETERMINATE(PERMIT_OR_DENY_OR_SUSPEND) is terminal in normal mode")
+        void whenIndeterminateAllThreeThenTerminalInNormalMode() {
+            val vote = indeterminateVote("p", Outcome.PERMIT_OR_DENY_OR_SUSPEND);
+            assertThat(UnanimousVoteCombiner.isTerminal(vote, false)).isTrue();
+        }
+
+        @Test
+        @DisplayName("isTerminal: INDETERMINATE(SUSPEND) is terminal in strict mode")
+        void whenIndeterminateSuspendStrictModeThenTerminal() {
+            val vote = indeterminateVote("p", Outcome.SUSPEND);
+            assertThat(UnanimousVoteCombiner.isTerminal(vote, true)).isTrue();
+        }
+
+        @Test
+        @DisplayName("short-circuit: PERMIT, SUSPEND, PERMIT -> INDETERMINATE(PERMIT_OR_SUSPEND), third vote not folded")
+        void whenPermitSuspendPermitThenShortCircuitsAfterFirstAmbiguous() {
+            val votes  = List.of(permitVote("p1"), suspendVote("p2"), permitVote("p3"));
+            val result = UnanimousVoteCombiner.combineMultipleVotes(votes, TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+                // p3 not contributed because the loop short-circuited on the
+                // ambiguous result from p1+p2.
+                assertThat(r.contributingVotes()).hasSize(2);
             });
         }
     }

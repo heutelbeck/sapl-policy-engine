@@ -69,4 +69,14 @@ public enum Outcome {
     public boolean contains(Effect effect) {
         return (mask & (1 << effect.ordinal())) != 0;
     }
+
+    /**
+     * Tests whether this outcome carries more than one effect, i.e. represents
+     * disagreement that no further single-effect contribution can collapse.
+     *
+     * @return true if the outcome's effect set has cardinality &gt; 1
+     */
+    public boolean isAmbiguous() {
+        return Integer.bitCount(mask) > 1;
+    }
 }

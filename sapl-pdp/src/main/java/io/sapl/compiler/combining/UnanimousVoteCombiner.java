@@ -20,7 +20,6 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
@@ -28,6 +27,7 @@ import lombok.val;
 
 import java.util.List;
 
+import static io.sapl.ast.Outcome.combine;
 import static io.sapl.compiler.combining.CombiningUtils.appendToList;
 import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
 import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
@@ -192,8 +192,9 @@ public class UnanimousVoteCombiner {
 
         // Disagreement on effect
         if (accDec != newDec) {
-            val error = Value.error(ERROR_EFFECT_DISAGREEMENT);
-            return indeterminateResult(Outcome.PERMIT_OR_DENY, List.of(error), contributingVotes, voterMetadata);
+            val error   = Value.error(ERROR_EFFECT_DISAGREEMENT);
+            val outcome = combine(decisionToOutcome(accDec), decisionToOutcome(newDec));
+            return indeterminateResult(outcome, List.of(error), contributingVotes, voterMetadata);
         }
 
         // Same effect - check transformation uncertainty
@@ -222,8 +223,7 @@ public class UnanimousVoteCombiner {
 
         // Not identical
         val error   = Value.error(ERROR_NOT_IDENTICAL);
-        val outcome = accAuthz.decision() == newAuthz.decision() ? decisionToOutcome(accAuthz.decision())
-                : Outcome.PERMIT_OR_DENY;
+        val outcome = combine(decisionToOutcome(accAuthz.decision()), decisionToOutcome(newAuthz.decision()));
         return indeterminateResult(outcome, List.of(error), contributingVotes, voterMetadata);
     }
 
@@ -240,8 +240,9 @@ public class UnanimousVoteCombiner {
         if (strictMode) {
             return true;
         }
-        // In normal mode, only PERMIT_OR_DENY outcome is terminal (disagreement)
-        return vote.outcome() == Outcome.PERMIT_OR_DENY;
+        // In normal mode, terminal once the outcome carries multi-effect disagreement
+        // that no further single-effect contribution can collapse.
+        return vote.outcome().isAmbiguous();
     }
 
 }

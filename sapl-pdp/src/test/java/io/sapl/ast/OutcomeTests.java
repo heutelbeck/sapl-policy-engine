@@ -97,4 +97,17 @@ class OutcomeTests {
         }
     }
 
+    @ParameterizedTest(name = "{0}.isAmbiguous() = {1}")
+    @MethodSource("ambiguityCases")
+    void whenIsAmbiguousCalled_thenReturnsTrueForMultiEffectOutcomes(Outcome outcome, boolean expected) {
+        assertThat(outcome.isAmbiguous()).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> ambiguityCases() {
+        return Stream.of(arguments(Outcome.PERMIT, false), arguments(Outcome.DENY, false),
+                arguments(Outcome.SUSPEND, false), arguments(Outcome.PERMIT_OR_DENY, true),
+                arguments(Outcome.PERMIT_OR_SUSPEND, true), arguments(Outcome.DENY_OR_SUSPEND, true),
+                arguments(Outcome.PERMIT_OR_DENY_OR_SUSPEND, true));
+    }
+
 }
