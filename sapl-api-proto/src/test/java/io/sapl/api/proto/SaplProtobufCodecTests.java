@@ -190,7 +190,7 @@ class SaplProtobufCodecTests {
 
         static Stream<Arguments> decisionTestCases() {
             return Stream.of(arguments("PERMIT", Decision.PERMIT), arguments("DENY", Decision.DENY),
-                    arguments("INDETERMINATE", Decision.INDETERMINATE),
+                    arguments("SUSPEND", Decision.SUSPEND), arguments("INDETERMINATE", Decision.INDETERMINATE),
                     arguments("NOT_APPLICABLE", Decision.NOT_APPLICABLE));
         }
 

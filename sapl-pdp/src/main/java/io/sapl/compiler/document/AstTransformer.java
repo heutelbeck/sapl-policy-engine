@@ -444,12 +444,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         val documentId     = toDocumentId(name);
         val effect         = toEffect(ctx.effect());
         val outcome        = switch (effect) {
-                           case PERMIT -> Outcome.PERMIT;
-                           case DENY   -> Outcome.DENY;
-                           // TODO: implement SUSPEND outcome assignment when
-                           // Outcome carries SUSPEND distinctly.
-                           case SUSPEND -> throw new UnsupportedOperationException(
-                                   "SUSPEND outcome assignment not yet implemented");
+                           case PERMIT  -> Outcome.PERMIT;
+                           case DENY    -> Outcome.DENY;
+                           case SUSPEND -> Outcome.SUSPEND;
                            };
         val hasConstraints = !ctx.obligations.isEmpty() || !ctx.adviceExpressions.isEmpty()
                 || ctx.transformation != null;
