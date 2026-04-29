@@ -27,21 +27,20 @@ import java.lang.annotation.Target;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Streaming PEP alias that pins {@link StreamEnforce#mode()} to
- * {@link StreamMode#TILL_DENIED}.
+ * Streaming PEP alias equivalent to {@link StreamEnforce} with default
+ * flags ({@code survivesDeny = false}, {@code signalTransitions = false}).
  * <p>
- * Equivalent to {@code @StreamEnforce(mode = TILL_DENIED)}. The
- * subscription terminates with an
+ * The subscription terminates with an
  * {@link org.springframework.security.access.AccessDeniedException} on the
  * first deny or unenforceable PERMIT decision. Use when the data feed is
- * subscription-gated and denial must be visible to the client.
+ * subscription-gated and denial must be visible to the client as a
+ * terminal error.
  *
  * @see StreamEnforce
- * @see StreamMode#TILL_DENIED
  */
 @Inherited
 @Documented
-@StreamEnforce(mode = StreamMode.TILL_DENIED)
+@StreamEnforce
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface EnforceTillDenied {

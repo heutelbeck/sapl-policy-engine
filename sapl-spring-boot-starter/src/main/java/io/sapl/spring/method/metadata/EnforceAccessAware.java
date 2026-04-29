@@ -27,26 +27,30 @@ import java.lang.annotation.Target;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Streaming PEP alias that pins {@link StreamEnforce#mode()} to
- * {@link StreamMode#ACCESS_AWARE}.
+ * Streaming PEP alias equivalent to
+ * {@code @StreamEnforce(survivesDeny = true, signalTransitions = true)}.
  * <p>
- * Equivalent to {@code @StreamEnforce(mode = ACCESS_AWARE)}. The
- * subscription stays alive across denials. Data events are dropped while
- * denied, and transition events are emitted on every PENDING/PERMIT/DENY
- * change so the client can disambiguate denial from an idle source.
+ * The subscription survives deny decisions and surfaces every boundary
+ * crossing to the subscriber as a non-terminal exception on the error
+ * channel: an
+ * {@link org.springframework.security.access.AccessDeniedException} on
+ * entry into Denying, an
+ * {@link io.sapl.spring.pep.streaming.AccessGrantedException} on entry
+ * into Permitting (initial grant or recovery from Denying). Subscribers
+ * consume both via {@code onErrorContinue} or via
+ * {@link io.sapl.spring.pep.streaming.RecoverableFluxes}.
  * <p>
- * Use this annotation when the client needs to know the access state in
- * real time (UI badges, telemetry dashboards, mobile apps moving across
- * authorization zones). For the same semantic under the legacy name, see
+ * Use when the client needs to know the access state in real time (UI
+ * badges, telemetry dashboards, mobile apps moving across authorization
+ * zones). For the same semantic under the legacy name, see
  * {@link EnforceRecoverableIfDenied}.
  *
  * @see StreamEnforce
- * @see StreamMode#ACCESS_AWARE
  * @see EnforceRecoverableIfDenied
  */
 @Inherited
 @Documented
-@StreamEnforce(mode = StreamMode.ACCESS_AWARE)
+@StreamEnforce(survivesDeny = true, signalTransitions = true)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface EnforceAccessAware {

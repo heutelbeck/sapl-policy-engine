@@ -33,7 +33,7 @@ import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.pep.method.blocking.PolicyEnforcementPointAroundMethodInterceptor;
 import io.sapl.spring.pep.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.pep.method.reactive.PreEnforcePolicyEnforcementPoint;
-import io.sapl.spring.pep.method.reactive.StreamEnforcePolicyEnforcementPoint;
+import io.sapl.spring.pep.streaming.StreamEnforcePolicyEnforcementPoint;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -77,9 +77,14 @@ final class ReactiveSaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor streamEnforcePolicyEnforcementPoint(ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider) {
-        log.debug("Deploy scaffolded @StreamEnforce Policy Enforcement Point (pass-through)");
-        val pep = new StreamEnforcePolicyEnforcementPoint(attributeRegistryProvider);
+    Advisor streamEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
+            ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
+            ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider,
+            ObjectProvider<List<ShimSignalContributor>> shimSignalContributorsProvider) {
+        log.debug("Deploy reactive @StreamEnforce Policy Enforcement Point");
+        val pep = new StreamEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
+                enforcementPlannerProvider, subscriptionBuilderProvider, shimSignalContributorsProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.streamEnforce(pep);
     }
 }
