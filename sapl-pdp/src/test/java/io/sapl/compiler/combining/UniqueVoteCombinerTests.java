@@ -76,11 +76,10 @@ class UniqueVoteCombinerTests {
                 testMetadata("p", Outcome.PERMIT), List.of());
         case DENY           -> Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 testMetadata("p", Outcome.DENY), List.of());
+        case SUSPEND        -> Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata("p", Outcome.SUSPEND), List.of());
         case NOT_APPLICABLE -> Vote.abstain(testMetadata("p", Outcome.PERMIT));
         case INDETERMINATE  -> Vote.error(Value.error("test error"), testMetadata("p", Outcome.PERMIT));
-        // TODO: implement SUSPEND case in voteFor when SUSPEND test
-        // arguments are added to the pairwise table.
-        case SUSPEND -> throw new UnsupportedOperationException("voteFor SUSPEND case not yet implemented");
         };
     }
 
@@ -92,6 +91,11 @@ class UniqueVoteCombinerTests {
     static Vote denyVote(String name) {
         return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                 testMetadata(name, Outcome.DENY), List.of());
+    }
+
+    static Vote suspendVote(String name) {
+        return Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND), List.of());
     }
 
     static Vote notApplicableVote(String name) {
@@ -145,18 +149,27 @@ class UniqueVoteCombinerTests {
             return Stream.of(arguments(Decision.NOT_APPLICABLE, Decision.NOT_APPLICABLE, Decision.NOT_APPLICABLE),
                     arguments(Decision.NOT_APPLICABLE, Decision.PERMIT, Decision.PERMIT),
                     arguments(Decision.NOT_APPLICABLE, Decision.DENY, Decision.DENY),
+                    arguments(Decision.NOT_APPLICABLE, Decision.SUSPEND, Decision.SUSPEND),
                     arguments(Decision.NOT_APPLICABLE, Decision.INDETERMINATE, Decision.INDETERMINATE),
                     arguments(Decision.PERMIT, Decision.NOT_APPLICABLE, Decision.PERMIT),
                     arguments(Decision.PERMIT, Decision.PERMIT, Decision.INDETERMINATE),
                     arguments(Decision.PERMIT, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.PERMIT, Decision.SUSPEND, Decision.INDETERMINATE),
                     arguments(Decision.PERMIT, Decision.INDETERMINATE, Decision.INDETERMINATE),
                     arguments(Decision.DENY, Decision.NOT_APPLICABLE, Decision.DENY),
                     arguments(Decision.DENY, Decision.PERMIT, Decision.INDETERMINATE),
                     arguments(Decision.DENY, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.DENY, Decision.SUSPEND, Decision.INDETERMINATE),
                     arguments(Decision.DENY, Decision.INDETERMINATE, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.NOT_APPLICABLE, Decision.SUSPEND),
+                    arguments(Decision.SUSPEND, Decision.PERMIT, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.SUSPEND, Decision.INDETERMINATE),
+                    arguments(Decision.SUSPEND, Decision.INDETERMINATE, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.NOT_APPLICABLE, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.PERMIT, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.DENY, Decision.INDETERMINATE),
+                    arguments(Decision.INDETERMINATE, Decision.SUSPEND, Decision.INDETERMINATE),
                     arguments(Decision.INDETERMINATE, Decision.INDETERMINATE, Decision.INDETERMINATE));
         }
 
@@ -243,7 +256,8 @@ class UniqueVoteCombinerTests {
     class CombineMultipleOneApplicableTests {
 
         static Stream<Arguments> singleApplicableVotes() {
-            return Stream.of(arguments(Decision.PERMIT, Outcome.PERMIT), arguments(Decision.DENY, Outcome.DENY));
+            return Stream.of(arguments(Decision.PERMIT, Outcome.PERMIT), arguments(Decision.DENY, Outcome.DENY),
+                    arguments(Decision.SUSPEND, Outcome.SUSPEND));
         }
 
         @ParameterizedTest(name = "single {0} returns {0}")
@@ -286,7 +300,10 @@ class UniqueVoteCombinerTests {
         static Stream<Arguments> collisionScenarios() {
             return Stream.of(arguments("two PERMIT", List.of(voteFor(Decision.PERMIT), voteFor(Decision.PERMIT))),
                     arguments("two DENY", List.of(voteFor(Decision.DENY), voteFor(Decision.DENY))),
-                    arguments("PERMIT and DENY", List.of(voteFor(Decision.PERMIT), voteFor(Decision.DENY))));
+                    arguments("two SUSPEND", List.of(voteFor(Decision.SUSPEND), voteFor(Decision.SUSPEND))),
+                    arguments("PERMIT and DENY", List.of(voteFor(Decision.PERMIT), voteFor(Decision.DENY))),
+                    arguments("PERMIT and SUSPEND", List.of(voteFor(Decision.PERMIT), voteFor(Decision.SUSPEND))),
+                    arguments("DENY and SUSPEND", List.of(voteFor(Decision.DENY), voteFor(Decision.SUSPEND))));
         }
 
         @ParameterizedTest(name = "{0} returns INDETERMINATE")
@@ -525,6 +542,109 @@ class UniqueVoteCombinerTests {
             assertThat(result).satisfies(r -> {
                 assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                 assertThat(r.contributingVotes()).hasSize(3);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("SUSPEND collision outcomes")
+    class SuspendCollisionOutcomes {
+
+        @Test
+        @DisplayName("two SUSPEND collide with SUSPEND outcome (idempotent combine)")
+        void whenTwoSuspendThenOutcomeIsSuspend() {
+            val acc    = UniqueVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = UniqueVoteCombiner.combineVotes(acc, suspendVote("p2"), TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("SUSPEND and PERMIT collide with PERMIT_OR_SUSPEND outcome")
+        void whenSuspendAndPermitThenOutcomeIsPermitOrSuspend() {
+            val acc    = UniqueVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = UniqueVoteCombiner.combineVotes(acc, permitVote("p2"), TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("SUSPEND and DENY collide with DENY_OR_SUSPEND outcome")
+        void whenSuspendAndDenyThenOutcomeIsDenyOrSuspend() {
+            val acc    = UniqueVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = UniqueVoteCombiner.combineVotes(acc, denyVote("p2"), TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.DENY_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("PERMIT then SUSPEND collide with PERMIT_OR_SUSPEND outcome (order-independent)")
+        void whenPermitThenSuspendThenOutcomeIsPermitOrSuspend() {
+            val acc    = UniqueVoteCombiner.accumulatorVoteFrom(permitVote("p1"), TEST_METADATA);
+            val result = UniqueVoteCombiner.combineVotes(acc, suspendVote("p2"), TEST_METADATA);
+
+            assertThat(result.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+        }
+
+        @Test
+        @DisplayName("PERMIT + DENY + SUSPEND short-circuits on first collision (SUSPEND not in outcome)")
+        void whenPermitAndDenyAndSuspendThenShortCircuitsOnFirstCollision() {
+            val votes  = List.of(permitVote("policy-1"), denyVote("policy-2"), suspendVote("policy-3"));
+            val result = UniqueVoteCombiner.combineMultipleVotes(votes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY);
+            });
+        }
+
+        @Test
+        @DisplayName("SUSPEND + PERMIT + DENY short-circuits on first collision (DENY not in outcome)")
+        void whenSuspendAndPermitAndDenyThenShortCircuitsOnFirstCollision() {
+            val votes  = List.of(suspendVote("policy-1"), permitVote("policy-2"), denyVote("policy-3"));
+            val result = UniqueVoteCombiner.combineMultipleVotes(votes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("INDETERMINATE handling preserves SUSPEND-bearing outcomes")
+    class IndeterminateSuspendOutcomePreservation {
+
+        @Test
+        @DisplayName("INDETERMINATE(SUSPEND) accumulator short-circuits, preserves SUSPEND outcome")
+        void whenIndeterminateSuspendFirstThenShortCircuitsPreservingSuspendOutcome() {
+            val votes  = List.of(indeterminateVote("policy-1", Outcome.SUSPEND), permitVote("policy-2"));
+            val result = UniqueVoteCombiner.combineMultipleVotes(votes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("PERMIT then INDETERMINATE(SUSPEND) short-circuits with SUSPEND outcome from new vote")
+        void whenPermitThenIndeterminateSuspendThenShortCircuitsWithSuspendOutcome() {
+            val votes  = List.of(permitVote("policy-1"), indeterminateVote("policy-2", Outcome.SUSPEND));
+            val result = UniqueVoteCombiner.combineMultipleVotes(votes, TEST_METADATA);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.SUSPEND);
             });
         }
     }

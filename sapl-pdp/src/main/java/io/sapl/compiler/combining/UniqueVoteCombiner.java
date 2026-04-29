@@ -19,7 +19,6 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
@@ -30,6 +29,7 @@ import java.util.List;
 import static io.sapl.compiler.combining.CombiningUtils.appendToList;
 import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
 import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
+import static io.sapl.ast.Outcome.combine;
 
 /**
  * Combines multiple policy votes using unique (only-one-applicable) semantics.
@@ -164,7 +164,7 @@ public class UniqueVoteCombiner {
 
         // Both applicable - collision!
         val collisionError = Value.error(ERROR_MULTIPLE_APPLICABLE);
-        val outcome        = (accDec == newDec) ? decisionToOutcome(accDec) : Outcome.PERMIT_OR_DENY;
+        val outcome        = combine(decisionToOutcome(accDec), decisionToOutcome(newDec));
         return indeterminateResult(outcome, List.of(collisionError), contributingVotes, voterMetadata);
     }
 

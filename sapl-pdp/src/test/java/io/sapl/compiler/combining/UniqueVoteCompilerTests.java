@@ -611,4 +611,182 @@ class UniqueVoteCompilerTests {
                     "p2");
         }
     }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        private static final String DEFAULT_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("single SUSPEND policy returns SUSPEND")
+        void whenSinglePolicySuspendsThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "only-one" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with NOT_APPLICABLE policies remains the unique applicable")
+        void whenSuspendAmongNotApplicableThenSuspendIsUnique() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "skip-1" permit false;
+                    policy "suspending" suspend
+                    policy "skip-2" deny false;
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> suspendCollisionCases() {
+            return Stream.of(arguments("suspend + permit", "suspend", "permit"),
+                    arguments("suspend + deny", "suspend", "deny"),
+                    arguments("suspend + suspend", "suspend", "suspend"),
+                    arguments("permit + suspend", "permit", "suspend"), arguments("deny + suspend", "deny", "suspend"));
+        }
+
+        @ParameterizedTest(name = "collision {0} returns INDETERMINATE")
+        @MethodSource("suspendCollisionCases")
+        @DisplayName("two applicable SUSPEND-bearing policies collide to INDETERMINATE")
+        void whenTwoSuspendBearingApplicablesThenReturnsIndeterminate(String description, String p1Effect,
+                String p2Effect) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain errors propagate
+
+                    policy "p1" %s
+                    policy "p2" %s
+                    """.formatted(p1Effect, p2Effect));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with obligation - constraint preserved")
+        void whenSuspendWithObligationThenObligationPreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "suspending"
+                    suspend
+                    obligation
+                        { "type": "logSuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with advice - constraint preserved")
+        void whenSuspendWithAdviceThenAdvicePreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "suspending"
+                    suspend
+                    advice
+                        { "type": "notifySuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().advice()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with transform - resource transformed")
+        void whenSuspendWithTransformThenResourceTransformed() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "suspending"
+                    suspend
+                    transform
+                        { "redacted": true }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().resource()).isNotEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("static SUSPEND policy compiles to constant Vote")
+        void whenStaticSuspendPolicyThenCompilesToVote() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "static-suspend" suspend
+                    """);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(Vote.class);
+            assertThat(((Vote) compiled.applicabilityAndVote()).authorizationDecision().decision())
+                    .isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("streaming SUSPEND policy emits SUSPEND when applicable")
+        void whenStreamingSuspendApplicableThenReturnsSuspend() {
+            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
+            val compiled     = compilePolicySet("""
+                    set "test"
+                    unique or abstain errors propagate
+
+                    policy "stream-suspend"
+                    suspend
+                      <test.attr>;
+                    """, attrBroker);
+            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
+            assertStreamPathEquivalence(compiled, ctx, Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> errorHandlingCases() {
+            return Stream.of(arguments("errors abstain", "unique or abstain"),
+                    arguments("errors propagate", "unique or abstain errors propagate"));
+        }
+
+        @ParameterizedTest(name = "{0} passes SUSPEND through unchanged")
+        @MethodSource("errorHandlingCases")
+        @DisplayName("error handling does not affect a SUSPEND vote")
+        void whenSuspendVoteUnderAnyErrorHandlingThenReturnsSuspend(String description, String algorithm) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    policy "suspending" suspend
+                    """.formatted(algorithm));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+    }
 }
