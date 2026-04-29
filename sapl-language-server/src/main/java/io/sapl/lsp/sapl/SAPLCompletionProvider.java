@@ -72,9 +72,9 @@ public class SAPLCompletionProvider {
     // After imports, before policy element
     private static final Set<String> AFTER_IMPORTS_KEYWORDS = Set.of("set", "policy");
 
-    // Combining algorithms for policy sets
-    private static final Set<String> COMBINING_ALGORITHMS = Set.of("deny-overrides", "permit-overrides",
-            "first-applicable", "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
+    // Combining algorithms for policy sets (SAPL 4.0 natural-language phrases)
+    private static final Set<String> COMBINING_ALGORITHMS = Set.of("first", "priority deny", "priority permit",
+            "priority suspend", "unanimous", "unanimous strict", "unique");
 
     // After combining algorithm in policy set
     private static final Set<String> POLICY_SET_BODY_KEYWORDS = Set.of("for", "var", "policy");
@@ -480,6 +480,11 @@ public class SAPLCompletionProvider {
         // After policy keyword followed by string - need effect
         if (tokenType == SAPLLexer.STRING && previousToken != null && previousToken.getType() == SAPLLexer.POLICY) {
             return CompletionContext.EFFECT;
+        }
+
+        // After set keyword followed by string - need combining algorithm
+        if (tokenType == SAPLLexer.STRING && previousToken != null && previousToken.getType() == SAPLLexer.SET) {
+            return CompletionContext.COMBINING_ALGORITHM;
         }
 
         // After permit, deny, or suspend

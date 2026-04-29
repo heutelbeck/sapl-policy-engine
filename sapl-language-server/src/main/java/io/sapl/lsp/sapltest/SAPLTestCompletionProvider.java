@@ -35,16 +35,16 @@ public class SAPLTestCompletionProvider {
 
     private static final List<String> STRUCTURE_KEYWORDS = List.of("requirement", "scenario", "given", "when", "then",
             "expect");
-    private static final List<String> DECISION_KEYWORDS  = List.of("permit", "deny", "indeterminate", "not-applicable",
-            "decision");
+    private static final List<String> DECISION_KEYWORDS  = List.of("permit", "deny", "suspend", "indeterminate",
+            "not-applicable", "decision");
     private static final List<String> MOCK_KEYWORDS      = List.of("function", "attribute", "maps", "to", "emits",
             "stream", "virtual-time", "error", "once", "times", "is", "called", "timing", "of");
     private static final List<String> IMPORT_KEYWORDS    = List.of("pip", "static-pip", "function-library",
             "static-function-library");
     private static final List<String> PDP_KEYWORDS       = List.of("pdp", "variables", "secrets", "combining-algorithm",
             "configuration", "pdp-configuration", "policy", "set", "policies");
-    private static final List<String> ALGORITHM_KEYWORDS = List.of("deny-overrides", "permit-overrides",
-            "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
+    private static final List<String> ALGORITHM_KEYWORDS = List.of("first", "priority deny", "priority permit",
+            "priority suspend", "unanimous", "unanimous strict", "unique");
     private static final List<String> AUTH_KEYWORDS      = List.of("subject", "action", "resource", "environment",
             "attempts", "on", "in");
     private static final List<String> MATCHER_KEYWORDS   = List.of("matching", "any", "equals", "containing", "key",

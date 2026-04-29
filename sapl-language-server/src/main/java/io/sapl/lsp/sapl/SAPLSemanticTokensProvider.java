@@ -93,9 +93,9 @@ class SAPLSemanticTokensProvider {
             SAPLSemanticTokenTypes.KEYWORD;
 
         // Combining algorithm keywords
-        case SAPLLexer.FIRST, SAPLLexer.PRIORITY, SAPLLexer.UNANIMOUS, SAPLLexer.UNIQUE, SAPLLexer.KW_OR,
-                SAPLLexer.ERRORS, SAPLLexer.ABSTAIN,
-                SAPLLexer.PROPAGATE                                                                                                                                ->
+        case SAPLLexer.FIRST, SAPLLexer.PRIORITY, SAPLLexer.UNANIMOUS, SAPLLexer.UNIQUE, SAPLLexer.STRICT,
+                SAPLLexer.KW_OR, SAPLLexer.ERRORS, SAPLLexer.ABSTAIN,
+                SAPLLexer.PROPAGATE                                                                                                                                                  ->
             SAPLSemanticTokenTypes.MACRO;
 
         // Subscription elements as parameters

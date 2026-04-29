@@ -18,7 +18,6 @@
 package io.sapl.lsp.sapltest;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * Defines the semantic token types and modifiers for SAPLTest syntax
@@ -55,88 +54,5 @@ final class SAPLTestSemanticTokenTypes {
      * List of token modifiers.
      */
     public static final List<String> TOKEN_MODIFIERS = List.of();
-
-    /**
-     * Structure keywords for test organization.
-     */
-    public static final Set<String> STRUCTURE_KEYWORDS = Set.of("requirement", "scenario", "given", "when", "then",
-            "expect");
-
-    /**
-     * Authorization keywords.
-     */
-    public static final Set<String> AUTH_KEYWORDS = Set.of("subject", "action", "resource", "environment", "attempts",
-            "on", "in");
-
-    /**
-     * Decision keywords - get special macro styling.
-     */
-    public static final Set<String> DECISION_KEYWORDS = Set.of("permit", "deny", "indeterminate", "not-applicable",
-            "decision");
-
-    /**
-     * Mock and setup keywords.
-     */
-    public static final Set<String> MOCK_KEYWORDS = Set.of("function", "attribute", "maps", "to", "emits", "stream",
-            "timing", "of", "is", "called", "virtual-time", "error", "once", "times");
-
-    /**
-     * Import keywords.
-     */
-    public static final Set<String> IMPORT_KEYWORDS = Set.of("pip", "static-pip", "function-library",
-            "static-function-library");
-
-    /**
-     * PDP configuration keywords.
-     */
-    public static final Set<String> PDP_KEYWORDS = Set.of("pdp", "variables", "secrets", "combining-algorithm",
-            "configuration", "pdp-configuration", "policy", "set", "policies");
-
-    /**
-     * Combining algorithm keywords.
-     */
-    public static final Set<String> ALGORITHM_KEYWORDS = Set.of("deny-overrides", "permit-overrides",
-            "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
-
-    /**
-     * Matcher keywords.
-     */
-    public static final Set<String> MATCHER_KEYWORDS = Set.of("null", "text", "number", "boolean", "array", "object",
-            "where", "matching", "any", "equals", "containing", "key", "value", "with");
-
-    /**
-     * String matcher keywords.
-     */
-    public static final Set<String> STRING_MATCHER_KEYWORDS = Set.of("blank", "empty", "null-or-empty", "null-or-blank",
-            "equal", "compressed", "whitespace", "case-insensitive", "regex", "starting", "ending", "length", "order");
-
-    /**
-     * Expectation step keywords.
-     */
-    public static final Set<String> EXPECT_KEYWORDS = Set.of("no-event", "for", "wait", "next", "obligation", "advice",
-            "obligations");
-
-    /**
-     * Boolean and special value literals.
-     */
-    public static final Set<String> LITERALS = Set.of("true", "false", "undefined");
-
-    /**
-     * Punctuation operator.
-     */
-    public static final Set<String> OPERATORS = Set.of("{", "}", "[", "]", "(", ")", ",", ":", ";", "-", "<", ">",
-            "and");
-
-    /**
-     * Checks if a token text is any keyword.
-     *
-     * @param text the token text
-     * @return true if it's a keyword
-     */
-    public static boolean isKeyword(String text) {
-        return STRUCTURE_KEYWORDS.contains(text) || AUTH_KEYWORDS.contains(text) || MOCK_KEYWORDS.contains(text)
-                || IMPORT_KEYWORDS.contains(text) || PDP_KEYWORDS.contains(text) || MATCHER_KEYWORDS.contains(text)
-                || STRING_MATCHER_KEYWORDS.contains(text) || EXPECT_KEYWORDS.contains(text);
-    }
 
 }
