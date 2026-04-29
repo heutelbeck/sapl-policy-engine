@@ -250,20 +250,46 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenStreamEnforceCanonicalAnnotation_ThenStreamModeIsResolved() {
+    void whenStreamEnforceDefault_ThenSurvivesDenyIsFalseAndSignalTransitionsIsFalse() {
 
         class TestClass {
-            @StreamEnforce(mode = StreamMode.DROP_WHILE_DENIED, subject = "'s'")
+            @StreamEnforce(subject = "'s'")
             public void doSomething() {
                 // NOOP test dummy
             }
         }
 
-        expectStreamModeInAttribute(TestClass.class, StreamMode.DROP_WHILE_DENIED);
+        expectFlagsInAttribute(TestClass.class, false, false);
     }
 
     @Test
-    void whenEnforceTillDeniedAlias_ThenStreamModeIsTillDenied() {
+    void whenStreamEnforceWithSurvivesDeny_ThenSurvivesDenyIsTrue() {
+
+        class TestClass {
+            @StreamEnforce(survivesDeny = true, subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectFlagsInAttribute(TestClass.class, true, false);
+    }
+
+    @Test
+    void whenStreamEnforceWithBothFlags_ThenBothPropagate() {
+
+        class TestClass {
+            @StreamEnforce(survivesDeny = true, signalTransitions = true, subject = "'s'")
+            public void doSomething() {
+                // NOOP test dummy
+            }
+        }
+
+        expectFlagsInAttribute(TestClass.class, true, true);
+    }
+
+    @Test
+    void whenEnforceTillDeniedAlias_ThenSurvivesDenyIsFalse() {
 
         class TestClass {
             @EnforceTillDenied(subject = "'s'")
@@ -272,11 +298,11 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectStreamModeInAttribute(TestClass.class, StreamMode.TILL_DENIED);
+        expectFlagsInAttribute(TestClass.class, false, false);
     }
 
     @Test
-    void whenEnforceDropWhileDeniedAlias_ThenStreamModeIsDropWhileDenied() {
+    void whenEnforceDropWhileDeniedAlias_ThenSurvivesDenyIsTrueAndSignalTransitionsIsFalse() {
 
         class TestClass {
             @EnforceDropWhileDenied(subject = "'s'")
@@ -285,11 +311,11 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectStreamModeInAttribute(TestClass.class, StreamMode.DROP_WHILE_DENIED);
+        expectFlagsInAttribute(TestClass.class, true, false);
     }
 
     @Test
-    void whenEnforceAccessAwareAlias_ThenStreamModeIsAccessAware() {
+    void whenEnforceAccessAwareAlias_ThenBothFlagsTrue() {
 
         class TestClass {
             @EnforceAccessAware(subject = "'s'")
@@ -298,11 +324,11 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectStreamModeInAttribute(TestClass.class, StreamMode.ACCESS_AWARE);
+        expectFlagsInAttribute(TestClass.class, true, true);
     }
 
     @Test
-    void whenEnforceRecoverableIfDeniedLegacyAlias_ThenStreamModeIsAccessAware() {
+    void whenEnforceRecoverableIfDeniedLegacyAlias_ThenBothFlagsTrue() {
 
         class TestClass {
             @EnforceRecoverableIfDenied(subject = "'s'")
@@ -311,11 +337,11 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectStreamModeInAttribute(TestClass.class, StreamMode.ACCESS_AWARE);
+        expectFlagsInAttribute(TestClass.class, true, true);
     }
 
     @Test
-    void whenPreEnforce_ThenStreamModeIsNull() {
+    void whenPreEnforce_ThenStreamingFlagsAreFalse() {
 
         class TestClass {
             @PreEnforce(subject = "'s'")
@@ -327,7 +353,10 @@ class SaplAttributeRegistryTests {
         final var sut       = new SaplAttributeRegistry();
         final var mi        = MethodInvocationUtils.createFromClass(TestClass.class, "doSomething");
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, PreEnforce.class);
-        assertThat(attribute).hasValueSatisfying(a -> assertThat(a.streamMode()).isNull());
+        assertThat(attribute).hasValueSatisfying(a -> {
+            assertThat(a.survivesDeny()).isFalse();
+            assertThat(a.signalTransitions()).isFalse();
+        });
     }
 
     private void expectSubjectExpressionStringInAttribute(Class<?> clazz, String expectedExpressionString) {
@@ -338,11 +367,15 @@ class SaplAttributeRegistryTests {
                 attr -> assertThat(attr.subjectExpression().getExpressionString()).isEqualTo(expectedExpressionString));
     }
 
-    private void expectStreamModeInAttribute(Class<?> clazz, StreamMode expectedMode) {
+    private void expectFlagsInAttribute(Class<?> clazz, boolean expectedSurvivesDeny,
+            boolean expectedSignalTransitions) {
         final var sut       = new SaplAttributeRegistry();
         final var mi        = MethodInvocationUtils.createFromClass(clazz, "doSomething");
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, StreamEnforce.class);
-        assertThat(attribute).hasValueSatisfying(a -> assertThat(a.streamMode()).isEqualTo(expectedMode));
+        assertThat(attribute).hasValueSatisfying(a -> {
+            assertThat(a.survivesDeny()).isEqualTo(expectedSurvivesDeny);
+            assertThat(a.signalTransitions()).isEqualTo(expectedSignalTransitions);
+        });
     }
 
 }

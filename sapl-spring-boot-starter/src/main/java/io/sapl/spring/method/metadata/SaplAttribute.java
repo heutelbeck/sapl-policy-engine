@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.method.metadata;
 
-import lombok.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.springframework.expression.Expression;
+
+import lombok.NonNull;
 
 /**
  * Holds parsed SpEL expressions from SAPL security annotations.
@@ -33,9 +33,15 @@ import org.springframework.expression.Expression;
  * @param resourceExpression SpEL expression for the resource, or null
  * @param environmentExpression SpEL expression for the environment, or null
  * @param secretsExpression SpEL expression for secrets, or null
- * @param streamMode lifecycle mode for {@link StreamEnforce}-derived
- * attributes; {@code null} for non-streaming annotations
- * ({@link PreEnforce}, {@link PostEnforce}).
+ * @param survivesDeny whether the streaming PEP should preserve the
+ * subscription across deny decisions. {@code false} (default) means
+ * the first deny terminates the subscription. Effective for
+ * {@link StreamEnforce}-derived attributes; ignored for
+ * {@link PreEnforce} / {@link PostEnforce}.
+ * @param signalTransitions whether boundary crossings (denied / granted)
+ * surface to the subscriber as non-terminal exceptions on the error
+ * channel. Effective only when {@code survivesDeny} is {@code true};
+ * ignored otherwise.
  */
 public record SaplAttribute(
         Class<?> annotationType,
@@ -44,12 +50,14 @@ public record SaplAttribute(
         Expression resourceExpression,
         Expression environmentExpression,
         Expression secretsExpression,
-        @Nullable StreamMode streamMode) {
+        boolean survivesDeny,
+        boolean signalTransitions) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
-    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, null);
+    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, false,
+            false);
 
     @Override
     public @NonNull String toString() {
@@ -57,7 +65,8 @@ public record SaplAttribute(
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
                 + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets()
-                + (streamMode() == null ? "" : ", streamMode=" + streamMode()) + ")";
+                + (survivesDeny() ? ", survivesDeny=true" : "")
+                + (signalTransitions() ? ", signalTransitions=true" : "") + ")";
     }
 
     private String maskSecrets() {

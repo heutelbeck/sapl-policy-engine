@@ -27,22 +27,21 @@ import java.lang.annotation.Target;
 import org.springframework.core.annotation.AliasFor;
 
 /**
- * Streaming PEP alias that pins {@link StreamEnforce#mode()} to
- * {@link StreamMode#DROP_WHILE_DENIED}.
+ * Streaming PEP alias equivalent to
+ * {@code @StreamEnforce(survivesDeny = true)}.
  * <p>
- * Equivalent to {@code @StreamEnforce(mode = DROP_WHILE_DENIED)}. The
- * subscription stays alive across denials and silently drops events while
- * denied; emission resumes when a fresh enforceable PERMIT arrives. The
- * client cannot distinguish denial from an idle source. Use when denial
- * itself must be hidden from the client (insider-threat monitoring,
- * legacy clients that cannot renegotiate).
+ * The subscription survives deny decisions silently. While denied, items
+ * from the protected method are dropped from the subscriber's view; on a
+ * later PERMIT decision the flow resumes silently. The subscriber is not
+ * told about the deny. Use when "best effort, hide the denial" is the
+ * right user experience (live dashboards that just show what the client
+ * is currently entitled to see).
  *
  * @see StreamEnforce
- * @see StreamMode#DROP_WHILE_DENIED
  */
 @Inherited
 @Documented
-@StreamEnforce(mode = StreamMode.DROP_WHILE_DENIED)
+@StreamEnforce(survivesDeny = true)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.TYPE })
 public @interface EnforceDropWhileDenied {

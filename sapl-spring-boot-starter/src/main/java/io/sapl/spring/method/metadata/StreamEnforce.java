@@ -30,24 +30,33 @@ import java.lang.annotation.Target;
  * subscription to the PDP open across the lifetime of the returned Flux,
  * re-planning per decision and gating per item.
  * <p>
- * The {@link #mode()} attribute selects the lifecycle policy:
+ * The PEP behaviour is parameterised by two orthogonal flags:
  * <ul>
- * <li>{@link StreamMode#TILL_DENIED} (default) — terminate with
- * {@code AccessDeniedException} on the first deny or unenforceable
- * PERMIT.</li>
- * <li>{@link StreamMode#DROP_WHILE_DENIED} — silently drop events while
- * denied; resume on the next enforceable PERMIT.</li>
- * <li>{@link StreamMode#ACCESS_AWARE} — drop data events while denied,
- * but emit transition events on every PENDING/PERMIT/DENY change so
- * the client can disambiguate denial from an idle source.</li>
+ * <li>{@link #survivesDeny()} (default {@code false}) selects the deny
+ * strategy. When {@code false} (the secure default), the first deny
+ * terminates the subscription with
+ * {@link org.springframework.security.access.AccessDeniedException
+ * AccessDeniedException}. When {@code true}, the subscription is preserved
+ * across denies; data items are dropped while denied; a later PERMIT
+ * resumes the flow.</li>
+ * <li>{@link #signalTransitions()} (default {@code false}) selects whether
+ * boundary crossings are observable to the subscriber. When {@code true},
+ * the deny boundary surfaces as a non-terminal {@code AccessDeniedException}
+ * and the grant boundary surfaces as a non-terminal
+ * {@link io.sapl.spring.pep.streaming.AccessGrantedException}, both via the
+ * error channel for consumption with {@code onErrorContinue} or the SAPL
+ * helper {@link io.sapl.spring.pep.streaming.RecoverableFluxes}. When
+ * {@code false}, the subscription experiences denies silently. Ignored
+ * when {@link #survivesDeny()} is {@code false} (no surviving subscription
+ * to signal on).</li>
  * </ul>
  * <p>
  * The four named aliases ({@link EnforceTillDenied},
  * {@link EnforceDropWhileDenied}, {@link EnforceAccessAware},
  * {@link EnforceRecoverableIfDenied}) are convenience meta-annotations
- * that pin {@link #mode()} to a specific value. Use this annotation
- * directly when the mode is selected by configuration or when a future
- * release allows the policy to override at runtime.
+ * that pin the two flags to specific values. Use this annotation directly
+ * when configuration drives the choice or when a future release allows the
+ * policy to override at runtime.
  *
  * @since 4.1.0
  */
@@ -58,9 +67,34 @@ import java.lang.annotation.Target;
 public @interface StreamEnforce {
 
     /**
-     * @return the lifecycle policy. Defaults to {@link StreamMode#TILL_DENIED}.
+     * Whether the subscription survives a deny decision and may resume on a
+     * later PERMIT. Default {@code false}: the first deny terminates the
+     * subscription with
+     * {@link org.springframework.security.access.AccessDeniedException
+     * AccessDeniedException}, matching one-shot {@code @PreEnforce}
+     * semantics. Setting to {@code true} opts into a streaming-PEP-specific
+     * "deny is temporary" behaviour where data items are dropped while
+     * denied and the subscription resumes on the next enforceable PERMIT.
+     *
+     * @return {@code false} (secure default) for terminal-on-deny behaviour;
+     * {@code true} to opt into surviving the deny.
      */
-    StreamMode mode() default StreamMode.TILL_DENIED;
+    boolean survivesDeny() default false;
+
+    /**
+     * Whether boundary transitions (entering Denying, entering Permitting)
+     * are observable to the subscriber as non-terminal exceptions on the
+     * error channel. Effective only when {@link #survivesDeny()} is
+     * {@code true}; ignored otherwise (no surviving subscription to signal
+     * on). Subscribers consume the signals with {@code onErrorContinue} or
+     * via {@link io.sapl.spring.pep.streaming.RecoverableFluxes}; without
+     * such handling the first signal terminates the subscription, which
+     * defeats the purpose of {@code survivesDeny = true}.
+     *
+     * @return {@code true} to surface boundary transitions to the
+     * subscriber; {@code false} (default) for silent transitions.
+     */
+    boolean signalTransitions() default false;
 
     /**
      * @return SpEL expression for the subject in the authorization
