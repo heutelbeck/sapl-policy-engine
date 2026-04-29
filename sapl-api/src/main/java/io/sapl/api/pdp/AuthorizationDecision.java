@@ -27,8 +27,8 @@ import lombok.NonNull;
  * Contains the authorization decision along with optional obligations, advice,
  * and a potentially transformed resource.
  *
- * @param decision the authorization decision (PERMIT, DENY, INDETERMINATE,
- * NOT_APPLICABLE)
+ * @param decision the authorization decision (PERMIT, DENY, SUSPEND,
+ * INDETERMINATE, NOT_APPLICABLE)
  * @param obligations constraints that must be fulfilled for the decision to be
  * valid
  * @param advice optional recommendations that should be considered
@@ -52,6 +52,13 @@ public record AuthorizationDecision(
      * transformation.
      */
     public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY,
+            Value.EMPTY_ARRAY, Value.UNDEFINED);
+
+    /**
+     * Singleton for a simple SUSPEND decision without obligations, advice, or
+     * resource transformation.
+     */
+    public static final AuthorizationDecision SUSPEND = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY,
             Value.EMPTY_ARRAY, Value.UNDEFINED);
 
     /**
