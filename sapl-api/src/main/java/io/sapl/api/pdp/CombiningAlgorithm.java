@@ -55,6 +55,7 @@ public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultD
         FIRST,
         PRIORITY_DENY,
         PRIORITY_PERMIT,
+        PRIORITY_SUSPEND,
         UNANIMOUS,
         UNANIMOUS_STRICT,
         UNIQUE

@@ -465,6 +465,10 @@ class SAPLParserTests {
                 set "test" priority permit or abstain errors propagate
                 policy "deny policy" deny
                 policy "permit policy" permit
+                """), arguments("priority suspend algorithm", """
+                set "test" priority suspend or abstain errors propagate
+                policy "suspend policy" suspend
+                policy "permit policy" permit
                 """), arguments("priority permit or deny algorithm", """
                 set "test" priority permit or deny
                 policy "not applicable" permit subject == "non-matching";
