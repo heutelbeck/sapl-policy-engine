@@ -46,7 +46,7 @@ import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
  * <p>
  * Supports two modes:
  * <ul>
- * <li><b>Normal mode:</b> Agreement on entitlement (PERMIT/DENY), constraints
+ * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY), constraints
  * merged</li>
  * <li><b>Strict mode:</b> Exact equality required (decision + all
  * constraints)</li>
@@ -55,7 +55,7 @@ import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
 @UtilityClass
 public class UnanimousVoteCombiner {
 
-    private static final String ERROR_ENTITLEMENT_DISAGREEMENT   = "Policies disagree on entitlement during unanimous combining.";
+    private static final String ERROR_EFFECT_DISAGREEMENT        = "Policies disagree on effect during unanimous combining.";
     private static final String ERROR_NOT_IDENTICAL              = "Policies are not identical during strict unanimous combining.";
     private static final String ERROR_TRANSFORMATION_UNCERTAINTY = "Transformation uncertainty: multiple policies define different resource transformations.";
 
@@ -67,7 +67,7 @@ public class UnanimousVoteCombiner {
      * @param votes the votes to combine (may be empty)
      * @param voterMetadata metadata for the combined vote
      * @param strictMode if true, requires exact equality; if false, only
-     * entitlement agreement
+     * effect agreement
      * @return combined vote, or abstain if input is empty
      */
     public static Vote combineMultipleVotes(List<Vote> votes, VoterMetadata voterMetadata, boolean strictMode) {
@@ -96,7 +96,7 @@ public class UnanimousVoteCombiner {
      * @param votes the votes to combine into the accumulator
      * @param voterMetadata metadata for the combined vote
      * @param strictMode if true, requires exact equality; if false, only
-     * entitlement agreement
+     * effect agreement
      * @return combined vote
      */
     public static Vote combineMultipleVotes(Vote accumulator, List<Vote> votes, VoterMetadata voterMetadata,
@@ -190,13 +190,13 @@ public class UnanimousVoteCombiner {
         val accDec   = accAuthz.decision();
         val newDec   = newAuthz.decision();
 
-        // Disagreement on entitlement
+        // Disagreement on effect
         if (accDec != newDec) {
-            val error = Value.error(ERROR_ENTITLEMENT_DISAGREEMENT);
+            val error = Value.error(ERROR_EFFECT_DISAGREEMENT);
             return indeterminateResult(Outcome.PERMIT_OR_DENY, List.of(error), contributingVotes, voterMetadata);
         }
 
-        // Same entitlement - check transformation uncertainty
+        // Same effect - check transformation uncertainty
         val resourceA = accAuthz.resource();
         val resourceB = newAuthz.resource();
         val outcome   = decisionToOutcome(accDec);

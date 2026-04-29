@@ -79,10 +79,10 @@ public class SAPLCompletionProvider {
     // After combining algorithm in policy set
     private static final Set<String> POLICY_SET_BODY_KEYWORDS = Set.of("for", "var", "policy");
 
-    // After "policy name" - entitlement
-    private static final Set<String> ENTITLEMENT_KEYWORDS = Set.of("permit", "deny");
+    // After "policy name" - effect
+    private static final Set<String> EFFECT_KEYWORDS = Set.of("permit", "deny", "suspend");
 
-    // After entitlement - policy structure keywords
+    // After effect - policy structure keywords
     private static final Set<String> POLICY_STRUCTURE_KEYWORDS = Set.of("obligation", "advice", "transform");
 
     // Inside policy body - statement-level
@@ -121,10 +121,10 @@ public class SAPLCompletionProvider {
             addExpressionCompletions(items, document, position, config);
         }
 
-        case ENTITLEMENT -> addKeywordCompletions(items, ENTITLEMENT_KEYWORDS);
+        case EFFECT -> addKeywordCompletions(items, EFFECT_KEYWORDS);
 
-        case POLICY_AFTER_ENTITLEMENT -> {
-            // After permit/deny - can have target expression or structure keywords
+        case POLICY_AFTER_EFFECT -> {
+            // After permit/deny/suspend - can have target expression or structure keywords
             addKeywordCompletions(items, POLICY_STRUCTURE_KEYWORDS);
             addExpressionCompletions(items, document, position, config);
         }
@@ -174,13 +174,13 @@ public class SAPLCompletionProvider {
 
         // Don't filter in structural or attribute contexts
         return switch (context) {
-        case DOCUMENT_START, AFTER_IMPORTS, IMPORT_PATH, COMBINING_ALGORITHM, ENTITLEMENT, ENVIRONMENT_ATTRIBUTE,
-                ATTRIBUTE                                                                                                         ->
+        case DOCUMENT_START, AFTER_IMPORTS, IMPORT_PATH, COMBINING_ALGORITHM, EFFECT, ENVIRONMENT_ATTRIBUTE,
+                ATTRIBUTE                                                                                                    ->
             false;
-        case EXPRESSION, FUNCTION_CALL, POLICY_SET_BODY, POLICY_AFTER_ENTITLEMENT, POLICY_BODY_START,
-                POLICY_BODY_AFTER_STATEMENT                                                                                       ->
+        case EXPRESSION, FUNCTION_CALL, POLICY_SET_BODY, POLICY_AFTER_EFFECT, POLICY_BODY_START,
+                POLICY_BODY_AFTER_STATEMENT                                                                                  ->
             !isKeyword(prefix);
-        case UNKNOWN                                                                                                              ->
+        case UNKNOWN                                                                                                         ->
             false;
         };
     }
@@ -191,7 +191,7 @@ public class SAPLCompletionProvider {
     private boolean isKeyword(String text) {
         return DOCUMENT_START_KEYWORDS.contains(text) || AFTER_IMPORTS_KEYWORDS.contains(text)
                 || COMBINING_ALGORITHMS.contains(text) || POLICY_SET_BODY_KEYWORDS.contains(text)
-                || ENTITLEMENT_KEYWORDS.contains(text) || POLICY_STRUCTURE_KEYWORDS.contains(text)
+                || EFFECT_KEYWORDS.contains(text) || POLICY_STRUCTURE_KEYWORDS.contains(text)
                 || BODY_STATEMENT_KEYWORDS.contains(text) || EXPRESSION_KEYWORDS.contains(text);
     }
 
@@ -477,14 +477,14 @@ public class SAPLCompletionProvider {
             return CompletionContext.COMBINING_ALGORITHM;
         }
 
-        // After policy keyword followed by string - need entitlement
+        // After policy keyword followed by string - need effect
         if (tokenType == SAPLLexer.STRING && previousToken != null && previousToken.getType() == SAPLLexer.POLICY) {
-            return CompletionContext.ENTITLEMENT;
+            return CompletionContext.EFFECT;
         }
 
-        // After permit or deny
-        if (tokenType == SAPLLexer.PERMIT || tokenType == SAPLLexer.DENY) {
-            return CompletionContext.POLICY_AFTER_ENTITLEMENT;
+        // After permit, deny, or suspend
+        if (tokenType == SAPLLexer.PERMIT || tokenType == SAPLLexer.DENY || tokenType == SAPLLexer.SUSPEND) {
+            return CompletionContext.POLICY_AFTER_EFFECT;
         }
 
         // After semicolon or typing after semicolon
@@ -665,17 +665,17 @@ public class SAPLCompletionProvider {
 
         }
 
-        // Check if after entitlement
-        var entitlement = policy.entitlement();
-        if (entitlement != null && entitlement.getStop() != null) {
-            var entitlementEnd = entitlement.getStop();
-            if (line > entitlementEnd.getLine() || (line == entitlementEnd.getLine()
-                    && column > entitlementEnd.getCharPositionInLine() + entitlementEnd.getText().length())) {
-                return CompletionContext.POLICY_AFTER_ENTITLEMENT;
+        // Check if after effect
+        var effect = policy.effect();
+        if (effect != null && effect.getStop() != null) {
+            var effectEnd = effect.getStop();
+            if (line > effectEnd.getLine() || (line == effectEnd.getLine()
+                    && column > effectEnd.getCharPositionInLine() + effectEnd.getText().length())) {
+                return CompletionContext.POLICY_AFTER_EFFECT;
             }
         }
 
-        return CompletionContext.ENTITLEMENT;
+        return CompletionContext.EFFECT;
     }
 
     /**
@@ -976,10 +976,10 @@ public class SAPLCompletionProvider {
         COMBINING_ALGORITHM,
         /** Inside policy set body */
         POLICY_SET_BODY,
-        /** After 'policy "name"' - need permit/deny */
-        ENTITLEMENT,
-        /** After entitlement - target expression or structure keywords */
-        POLICY_AFTER_ENTITLEMENT,
+        /** After 'policy "name"' - need permit/deny/suspend */
+        EFFECT,
+        /** After effect - target expression or structure keywords */
+        POLICY_AFTER_EFFECT,
         /** After 'where' - start of body */
         POLICY_BODY_START,
         /** After semicolon in body - next statement */

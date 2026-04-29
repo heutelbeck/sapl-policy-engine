@@ -257,6 +257,9 @@ class CoverageAccumulatorTests {
         case PERMIT                        -> Outcome.PERMIT;
         case DENY                          -> Outcome.DENY;
         case INDETERMINATE, NOT_APPLICABLE -> Outcome.PERMIT; // Default for test purposes
+        // TODO: implement SUSPEND case when Outcome carries SUSPEND distinctly.
+        case SUSPEND ->
+            throw new UnsupportedOperationException("SUSPEND decision-to-outcome mapping not yet implemented");
         };
     }
 
@@ -266,6 +269,8 @@ class CoverageAccumulatorTests {
         case DENY           -> AuthorizationDecision.DENY;
         case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
+        // TODO: implement SUSPEND case when AuthorizationDecision carries SUSPEND.
+        case SUSPEND -> throw new UnsupportedOperationException("SUSPEND authorization decision not yet implemented");
         };
     }
 

@@ -216,9 +216,10 @@ authorizationDecision
     ;
 
 authorizationDecisionType
-    : PERMIT        # permitDecision
-    | DENY          # denyDecision
-    | INDETERMINATE # indeterminateDecision
+    : PERMIT         # permitDecision
+    | DENY           # denyDecision
+    | SUSPEND        # suspendDecision
+    | INDETERMINATE  # indeterminateDecision
     | NOT_APPLICABLE # notApplicableDecision
     ;
 

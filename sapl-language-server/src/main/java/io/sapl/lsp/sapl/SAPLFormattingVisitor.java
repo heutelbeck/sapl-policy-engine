@@ -526,7 +526,7 @@ class SAPLFormattingVisitor extends SAPLParserBaseVisitor<String> {
         appendComments(sb, ctx.getStart(), "");
 
         sb.append("policy ").append(ctx.saplName.getText()).append('\n');
-        sb.append(ctx.entitlement().getText());
+        sb.append(ctx.effect().getText());
 
         if (ctx.policyBody() != null) {
             sb.append('\n');

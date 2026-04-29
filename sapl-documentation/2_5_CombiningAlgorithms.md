@@ -35,7 +35,7 @@ This reads naturally: "priority to deny, or permit by default." The notation sep
 | `priority deny`    | Any deny wins over any number of permits                                                        |
 | `priority permit`  | Any permit wins over any number of denies                                                       |
 | `first`            | Policies are evaluated in order; the first non-abstain vote wins                                |
-| `unanimous`        | All applicable policies must agree on entitlement; constraints are merged                       |
+| `unanimous`        | All applicable policies must agree on effect; constraints are merged                            |
 | `unanimous strict` | All applicable policies must return equal decisions including obligations, advice, and resource |
 | `unique`           | Exactly one policy must match; multiple matches are a configuration error                       |
 
@@ -77,7 +77,7 @@ When the combining algorithm produces a `PERMIT` or `DENY`, it collects **obliga
 
 Collection works at both levels:
 
-- **Policy set level**: Obligations and advice from all contained policies voting for the winning entitlement are bundled as the policy set's constraints. For the `first` voting style, only evaluated policies contribute.
+- **Policy set level**: Obligations and advice from all contained policies voting for the winning effect are bundled as the policy set's constraints. For the `first` voting style, only evaluated policies contribute.
 - **PDP level**: Obligations and advice from all top-level documents voting for the final decision are collected.
 
 **Resource transformations** cannot be merged. If multiple policies vote `PERMIT` and more than one includes a transformation, the algorithm faces *transformation uncertainty*. Since there is no way to combine two different transformed resources, the algorithm cannot return `PERMIT`. How this is handled depends on the error handling setting:
@@ -133,11 +133,11 @@ If no policy votes permit and at least one votes deny, the result is deny. If no
 
 #### `unanimous`
 
-All applicable policies must agree on entitlement. If every applicable policy votes `PERMIT`, the result is `PERMIT` with merged constraints. If every applicable policy votes `DENY`, the result is `DENY` with merged constraints. If policies disagree, the disagreement is treated according to the error handling setting: as abstain (falling through to the default) or as `INDETERMINATE`.
+All applicable policies must agree on effect. If every applicable policy votes `PERMIT`, the result is `PERMIT` with merged constraints. If every applicable policy votes `DENY`, the result is `DENY` with merged constraints. If policies disagree, the disagreement is treated according to the error handling setting: as abstain (falling through to the default) or as `INDETERMINATE`.
 
 Transformation uncertainty applies: if all policies vote `PERMIT` but more than one includes a transformation, the unanimous permit cannot be returned.
 
-**`unanimous strict`** is a stricter variant. Instead of requiring agreement on entitlement and merging constraints, it requires all applicable policies to return *equal* decisions: same entitlement, same obligations, same advice, same resource transformation. No constraint merging occurs. If decisions differ in any way, it is treated as disagreement.
+**`unanimous strict`** is a stricter variant. Instead of requiring agreement on effect and merging constraints, it requires all applicable policies to return *equal* decisions: same effect, same obligations, same advice, same resource transformation. No constraint merging occurs. If decisions differ in any way, it is treated as disagreement.
 
 #### `unique`
 

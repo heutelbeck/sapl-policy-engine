@@ -63,10 +63,9 @@ final class SAPLSemanticTokenTypes {
             "var", "obligation", "advice", "transform", "in", "each", "true", "false", "null", "undefined");
 
     /**
-     * Entitlements and combining algorithms - get special macro styling.
+     * Effects and combining algorithms - get special macro styling.
      */
-    public static final Set<String> ENTITLEMENTS_AND_ALGORITHMS = Set.of("permit", "deny", "deny-overrides",
-            "permit-overrides", "first-applicable", "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
+    public static final Set<String> EFFECTS_AND_ALGORITHMS = Set.of("permit", "deny", "suspend");
 
     /**
      * Authorization subscription element names.

@@ -148,8 +148,8 @@ public class AggregatedCoverageData {
     /**
      * Returns the count of standalone policies that were activated.
      * <p>
-     * A policy is "activated" when it returned its declared entitlement
-     * (PERMIT/DENY) rather than NOT_APPLICABLE.
+     * A policy is "activated" when it returned its declared effect
+     * (PERMIT/DENY/SUSPEND) rather than NOT_APPLICABLE.
      *
      * @return activated standalone policy count
      */

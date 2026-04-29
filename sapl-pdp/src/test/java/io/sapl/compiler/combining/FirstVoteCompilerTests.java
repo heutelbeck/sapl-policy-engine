@@ -1060,7 +1060,7 @@ class FirstVoteCompilerTests {
         @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {2}")
         @MethodSource("defaultDecisionCases")
         @DisplayName("default decision when all NOT_APPLICABLE")
-        void whenAllNotApplicableThenReturnsDefaultDecision(String algorithm, String entitlement,
+        void whenAllNotApplicableThenReturnsDefaultDecision(String algorithm, String effect,
                 Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
@@ -1069,7 +1069,7 @@ class FirstVoteCompilerTests {
                     policy "never-matches"
                     %s
                       false;
-                    """.formatted(algorithm, entitlement));
+                    """.formatted(algorithm, effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
@@ -1264,7 +1264,7 @@ class FirstVoteCompilerTests {
         @ParameterizedTest(name = "{0}: errors causes abstain (NOT default)")
         @MethodSource("errorsAbstainOverridesDefaultCases")
         @DisplayName("errors abstain overrides default decision")
-        void whenErrorsAbstainThenOverridesDefaultDecision(String algorithm, String entitlement) {
+        void whenErrorsAbstainThenOverridesDefaultDecision(String algorithm, String effect) {
             val compiled = compilePolicySet("""
                     set "test"
                     %s
@@ -1272,7 +1272,7 @@ class FirstVoteCompilerTests {
                     policy "errors-policy"
                     %s
                       subject.missing.field;
-                    """.formatted(algorithm, entitlement));
+                    """.formatted(algorithm, effect));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
@@ -1290,7 +1290,7 @@ class FirstVoteCompilerTests {
         @ParameterizedTest(name = "{0}: errors returns INDETERMINATE")
         @MethodSource("errorsPropagateReturnsIndeterminateCases")
         @DisplayName("errors propagate returns INDETERMINATE")
-        void whenErrorsPropagateThenReturnsIndeterminate(String algorithm, String entitlement) {
+        void whenErrorsPropagateThenReturnsIndeterminate(String algorithm, String effect) {
             val compiled = compilePolicySet("""
                     set "test"
                     %s
@@ -1301,7 +1301,7 @@ class FirstVoteCompilerTests {
 
                     policy "fallback"
                     %s
-                    """.formatted(algorithm, entitlement, "permit".equals(entitlement) ? "deny" : "permit"));
+                    """.formatted(algorithm, effect, "permit".equals(effect) ? "deny" : "permit"));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);

@@ -85,7 +85,7 @@ class CoverageExtractorTests {
         val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, Map.of());
 
         assertThat(coverages).hasSize(1);
-        // Policy returned NOT_APPLICABLE instead of its entitlement (PERMIT)
+        // Policy returned NOT_APPLICABLE instead of its effect (PERMIT)
         // This is tracked via policy outcome
     }
 
@@ -248,6 +248,8 @@ class CoverageExtractorTests {
         case DENY           -> AuthorizationDecision.DENY;
         case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
+        // TODO: implement SUSPEND case when AuthorizationDecision carries SUSPEND.
+        case SUSPEND -> throw new UnsupportedOperationException("SUSPEND authorization decision not yet implemented");
         };
     }
 

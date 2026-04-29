@@ -20,7 +20,7 @@
 namespace io.sapl.api.flatbuffers;
 
 // Decision enum - INDETERMINATE=0 is default for safe failure
-enum Decision : byte { INDETERMINATE = 0, PERMIT = 1, DENY = 2, NOT_APPLICABLE = 3 }
+enum Decision : byte { INDETERMINATE = 0, PERMIT = 1, DENY = 2, NOT_APPLICABLE = 3, SUSPEND = 4 }
 
 // Value kind discriminator for the Value union
 enum ValueKind : byte {

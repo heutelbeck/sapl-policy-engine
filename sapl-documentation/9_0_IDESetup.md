@@ -210,7 +210,7 @@ The language server provides semantic token highlighting for both file types.
 | Token Type  | Highlighted Elements                                                                  |
 |-------------|---------------------------------------------------------------------------------------|
 | `keyword`   | SAPL keywords (`import`, `policy`, `var`, etc.)                                       |
-| `macro`     | Entitlements and combining algorithms (`permit`, `deny`, `first`, `priority`, etc.)   |
+| `macro`     | Effects and combining algorithms (`permit`, `deny`, `suspend`, `first`, `priority`, etc.) |
 | `operator`  | Operators (`\|\|`, `&&`, `==`, etc.)                                                  |
 | `string`    | String literals                                                                       |
 | `number`    | Numeric literals                                                                      |

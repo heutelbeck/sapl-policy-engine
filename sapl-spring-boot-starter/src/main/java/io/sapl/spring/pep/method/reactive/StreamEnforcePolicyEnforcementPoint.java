@@ -48,7 +48,7 @@ import lombok.val;
 @RequiredArgsConstructor
 public final class StreamEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
-    private static final String WARN_SCAFFOLD_NOT_ENFORCING = "@StreamEnforce(mode={}) scaffold on {}: no enforcement applied (streaming PEP implementation pending in 4.1.0).";
+    private static final String WARN_SCAFFOLD_NOT_ENFORCING = "@StreamEnforce scaffold on {}: no enforcement applied (streaming PEP implementation pending in 4.1.0).";
 
     private final ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider;
 
@@ -59,7 +59,7 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
         if (attribute.isEmpty()) {
             return methodInvocation.proceed();
         }
-        log.warn(WARN_SCAFFOLD_NOT_ENFORCING, attribute.get().streamMode(), methodInvocation.getMethod());
+        log.warn(WARN_SCAFFOLD_NOT_ENFORCING, methodInvocation.getMethod());
         return methodInvocation.proceed();
     }
 }

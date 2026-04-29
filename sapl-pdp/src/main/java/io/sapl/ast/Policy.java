@@ -29,7 +29,7 @@ import java.util.List;
  * @param metadata policy identification voterMetadata (name, pdpId,
  * configurationId,
  * documentId)
- * @param entitlement PERMIT or DENY
+ * @param effect PERMIT or DENY
  * @param body policy body with statements and source location
  * @param obligations obligation expressions, empty list if none
  * @param advice advice expressions, empty list if none
@@ -39,7 +39,7 @@ import java.util.List;
 public record Policy(
         @NonNull List<Import> imports,
         @NonNull VoterMetadata metadata,
-        @NonNull Entitlement entitlement,
+        @NonNull Effect effect,
         @NonNull PolicyBody body,
         @NonNull List<Expression> obligations,
         @NonNull List<Expression> advice,

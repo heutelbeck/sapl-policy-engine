@@ -20,16 +20,18 @@ package io.sapl.ast;
 import io.sapl.api.pdp.Decision;
 
 /**
- * Policy entitlement: the vote returned when the policy matches.
+ * Policy effect: the vote returned when the policy matches.
  */
-public enum Entitlement {
+public enum Effect {
+    DENY,
     PERMIT,
-    DENY;
+    SUSPEND;
 
     public Decision decision() {
         return switch (this) {
-        case PERMIT -> Decision.PERMIT;
-        case DENY   -> Decision.DENY;
+        case DENY    -> Decision.DENY;
+        case PERMIT  -> Decision.PERMIT;
+        case SUSPEND -> Decision.SUSPEND;
         };
     }
 }

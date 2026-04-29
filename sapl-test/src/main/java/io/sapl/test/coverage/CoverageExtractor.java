@@ -225,7 +225,7 @@ public class CoverageExtractor {
     /**
      * Records policy outcome for coverage tracking.
      * <p>
-     * Determines whether the policy returned its entitlement (PERMIT/DENY) or
+     * Determines whether the policy returned its effect (PERMIT/DENY/SUSPEND) or
      * NOT_APPLICABLE, and records this for branch coverage.
      */
     private static void recordPolicyOutcome(VoterMetadata voter, Vote vote, BodyCoverage bodyCoverage,
@@ -234,13 +234,13 @@ public class CoverageExtractor {
         val decision      = vote.authorizationDecision().decision();
         val hasConditions = bodyCoverage != null && bodyCoverage.numberOfConditions() > 0;
 
-        // entitlementReturned: true if the actual decision matches the policy's
+        // effectReturned: true if the actual decision matches the policy's
         // declared outcome
-        val entitlementReturned = isEntitlementReturned(outcome, decision);
+        val effectReturned = isEffectReturned(outcome, decision);
 
         // Use line 1 as default location for policy outcome (represents the policy as a
         // whole)
-        coverage.recordPolicyOutcome(1, 1, 0, 0, entitlementReturned, hasConditions);
+        coverage.recordPolicyOutcome(1, 1, 0, 0, effectReturned, hasConditions);
     }
 
     /**
@@ -252,16 +252,16 @@ public class CoverageExtractor {
 
         // Policy sets don't have conditions in the same sense, but we track their
         // outcome
-        val entitlementReturned = isEntitlementReturned(outcome, decision);
+        val effectReturned = isEffectReturned(outcome, decision);
 
         // Use line 1 as default location
-        coverage.recordPolicyOutcome(1, 1, 0, 0, entitlementReturned, false);
+        coverage.recordPolicyOutcome(1, 1, 0, 0, effectReturned, false);
     }
 
     /**
-     * Determines if the actual decision matches the expected outcome (entitlement).
+     * Determines if the actual decision matches the expected outcome (effect).
      */
-    private static boolean isEntitlementReturned(Outcome outcome, Decision decision) {
+    private static boolean isEffectReturned(Outcome outcome, Decision decision) {
         return switch (outcome) {
         case PERMIT         -> decision == Decision.PERMIT;
         case DENY           -> decision == Decision.DENY;

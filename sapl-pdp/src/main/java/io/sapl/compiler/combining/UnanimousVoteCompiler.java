@@ -61,7 +61,7 @@ import static io.sapl.compiler.combining.CombiningUtils.evaluateApplicability;
  * <p>
  * Supports two modes:
  * <ul>
- * <li><b>Normal mode:</b> Agreement on entitlement (PERMIT/DENY), constraints
+ * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY), constraints
  * merged</li>
  * <li><b>Strict mode:</b> Exact equality required (decision + all
  * constraints)</li>

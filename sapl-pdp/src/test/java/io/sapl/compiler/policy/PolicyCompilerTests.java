@@ -647,7 +647,7 @@ class PolicyCompilerTests {
         }
 
         @Test
-        @DisplayName("deny entitlement with matching body conditions yields DENY with advice")
+        @DisplayName("deny effect with matching body conditions yields DENY with advice")
         void whenDenyPolicyBodyMatchesThenDenyWithAttributesAdvice() {
             val policy = """
                     policy "City Watch Commander Patrol Restriction"
