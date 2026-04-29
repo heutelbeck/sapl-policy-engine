@@ -61,14 +61,14 @@ public record BranchHit(
 
     /**
      * StatementId for policy outcome tracking when policy has no conditions.
-     * Single-branch: policy either returns entitlement or is not applicable
+     * Single-branch: policy either returns its effect or is not applicable
      * (target didn't match).
      */
     public static final int POLICY_SINGLE_BRANCH_ID = Integer.MIN_VALUE;
 
     /**
      * StatementId for policy outcome tracking when policy has conditions.
-     * Two-branch: policy can return entitlement (conditions pass) or
+     * Two-branch: policy can return its effect (conditions pass) or
      * NOT_APPLICABLE (conditions fail).
      */
     public static final int POLICY_TWO_BRANCH_ID = Integer.MIN_VALUE + 1;
@@ -129,25 +129,25 @@ public record BranchHit(
      * Creates a BranchHit for policy outcome tracking.
      * <p>
      * For policies without conditions (single-branch), only
-     * {@code entitlementReturned=true} is meaningful since NOT_APPLICABLE only
+     * {@code effectReturned=true} is meaningful since NOT_APPLICABLE only
      * happens when the target doesn't match.
      * <p>
      * For policies with conditions (two-branch), both outcomes are possible:
-     * entitlement returned (conditions pass) or NOT_APPLICABLE (conditions fail).
+     * effect returned (conditions pass) or NOT_APPLICABLE (conditions fail).
      *
      * @param startLine the 1-based start line of the policy declaration
      * @param endLine the 1-based end line of the policy declaration
      * @param startChar character offset within start line (0-based)
      * @param endChar character offset within end line (0-based)
-     * @param entitlementReturned true if policy returned its entitlement, false if
+     * @param effectReturned true if policy returned its effect, false if
      * NOT_APPLICABLE
      * @param hasConditions true if policy has where-clause conditions (two-branch)
      * @return a new BranchHit for policy outcome tracking
      */
     public static BranchHit forPolicyOutcome(int startLine, int endLine, int startChar, int endChar,
-            boolean entitlementReturned, boolean hasConditions) {
+            boolean effectReturned, boolean hasConditions) {
         int id = hasConditions ? POLICY_TWO_BRANCH_ID : POLICY_SINGLE_BRANCH_ID;
-        return entitlementReturned ? new BranchHit(id, startLine, endLine, startChar, endChar, 1, 0)
+        return effectReturned ? new BranchHit(id, startLine, endLine, startChar, endChar, 1, 0)
                 : new BranchHit(id, startLine, endLine, startChar, endChar, 0, 1);
     }
 

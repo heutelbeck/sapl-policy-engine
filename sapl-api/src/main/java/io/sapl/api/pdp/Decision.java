@@ -25,6 +25,10 @@ package io.sapl.api.pdp;
  * <p>
  * DENY denies access to the resource.
  * <p>
+ * SUSPEND temporarily denies access. The subscription is preserved and may
+ * resume on a later PERMIT. PEPs that cannot suspend (one-shot enforcement)
+ * must treat SUSPEND as DENY.
+ * <p>
  * INDETERMINATE means that an error occurred during the decision process.
  * Access must be denied in this case.
  * <p>
@@ -44,6 +48,12 @@ public enum Decision {
      * DENY denies access to the resource.
      */
     DENY,
+    /**
+     * SUSPEND temporarily denies access. The subscription is preserved and may
+     * resume on a later PERMIT. PEPs that cannot suspend (one-shot enforcement)
+     * must treat SUSPEND as DENY.
+     */
+    SUSPEND,
     /**
      * INDETERMINATE means that an error occurred during the decision process.
      * Access must be denied in this case.

@@ -39,15 +39,15 @@ permit
 ```
 
 Each policy starts with the keyword `policy` followed by a unique policy name (string).
-Then comes the **entitlement**, which is either `permit` or `deny`.
-This expresses that "if the policy conditions are met, cast a vote with this entitlement."
-The entitlement is then followed by a number of statements that define the policy conditions, each terminated by a semicolon.
+Then comes the **effect**, which is either `permit` or `deny`.
+This expresses that "if the policy conditions are met, cast a vote with this effect."
+The effect is then followed by a number of statements that define the policy conditions, each terminated by a semicolon.
 Each condition must be an expression that evaluates to `true` or `false`. The policy is considered *applicable*
-if all conditions evaluate to `true`. Then, and only then, the policy casts a vote with its entitlement.
+if all conditions evaluate to `true`. Then, and only then, the policy casts a vote with its effect.
 
 > **Note:** If an error occurs during policy evaluation, the policy will cast an `indeterminate` vote. The combining algorithm of the PDP will decide how to map this to a final decision.
 
-> **Note:** If the policy has no conditions, it is always considered applicable and will always cast a vote with the indicated entitlement.
+> **Note:** If the policy has no conditions, it is always considered applicable and will always cast a vote with the indicated effect.
 
 ## SAPL Documents
 
@@ -64,7 +64,7 @@ Imports and schemas must appear before the policy or policy set. The PDP loads a
 
 Every policy begins with the keyword `policy` followed by a unique name (a string literal). After the name, a policy consists of:
 
-- An **entitlement**: `permit` or `deny`
+- An **effect**: `permit` or `deny`
 - An optional **body**: semicolon-separated conditions and value definitions
 - Optional **obligation** blocks (requirements the PEP **must** fulfill)
 - Optional **advice** blocks (recommendations the PEP **should** consider)
@@ -72,7 +72,7 @@ Every policy begins with the keyword `policy` followed by a unique name (a strin
 
 ```sapl-demo
 policy "permit reading patient records for doctors"
-permit                                       // entitlement
+permit                                       // effect
     resource.type == "patient_record";       // condition 1
     action == "read";                        // condition 2
     var dept = subject.department;           // value definition
@@ -92,9 +92,9 @@ transform
 
 The policy name is a string that uniquely identifies the policy. In systems with many policies and policy sets, a naming schema is recommended, for example `"policy:patientdata:permit-doctors-read"`.
 
-### Entitlement
+### Effect
 
-The entitlement is either `permit` or `deny`. It determines the vote the policy casts when it is applicable, i.e., when all conditions in the body are satisfied.
+The effect is either `permit` or `deny`. It determines the vote the policy casts when it is applicable, i.e., when all conditions in the body are satisfied.
 
 {: .note }
 > Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny` policy or whether there is just no permitting policy for a certain situation.
@@ -161,10 +161,10 @@ Evaluating a policy against an authorization subscription means assigning a deci
 
 | **Body Conditions**        | **Policy Value**                              |
 |:---------------------------|:----------------------------------------------|
-| All evaluate to `true`     | Policy's **Entitlement** (`PERMIT` or `DENY`) |
+| All evaluate to `true`     | Policy's **Effect** (`PERMIT` or `DENY`) |
 | Any evaluates to `false`   | `NOT_APPLICABLE`                              |
 | Any produces an error      | `INDETERMINATE`                               |
-| No body present            | Policy's **Entitlement** (`PERMIT` or `DENY`) |
+| No body present            | Policy's **Effect** (`PERMIT` or `DENY`) |
 
 Conditions are evaluated lazily: if an earlier condition evaluates to `false`, later conditions are not evaluated and cannot produce errors. For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 

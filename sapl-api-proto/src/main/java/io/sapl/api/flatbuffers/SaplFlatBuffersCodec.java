@@ -70,6 +70,7 @@ public class SaplFlatBuffersCodec {
     private static final byte DECISION_PERMIT         = 1;
     private static final byte DECISION_DENY           = 2;
     private static final byte DECISION_NOT_APPLICABLE = 3;
+    private static final byte DECISION_SUSPEND        = 4;
 
     /**
      * Serializes a Value to FlatBuffers bytes.
@@ -319,6 +320,7 @@ public class SaplFlatBuffersCodec {
         case DENY           -> DECISION_DENY;
         case NOT_APPLICABLE -> DECISION_NOT_APPLICABLE;
         case INDETERMINATE  -> DECISION_INDETERMINATE;
+        case SUSPEND        -> DECISION_SUSPEND;
         };
     }
 
@@ -327,6 +329,7 @@ public class SaplFlatBuffersCodec {
         case DECISION_PERMIT         -> Decision.PERMIT;
         case DECISION_DENY           -> Decision.DENY;
         case DECISION_NOT_APPLICABLE -> Decision.NOT_APPLICABLE;
+        case DECISION_SUSPEND        -> Decision.SUSPEND;
         default                      -> Decision.INDETERMINATE;
         };
     }

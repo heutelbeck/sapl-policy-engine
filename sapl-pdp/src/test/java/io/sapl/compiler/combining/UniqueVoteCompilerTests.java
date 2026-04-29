@@ -69,13 +69,13 @@ class UniqueVoteCompilerTests {
         @ParameterizedTest(name = "single {0} policy returns {1}")
         @MethodSource("singlePolicyCases")
         @DisplayName("single policy returns its decision")
-        void whenSinglePolicyThenReturnsItsDecision(String entitlement, Decision expectedDecision) {
+        void whenSinglePolicyThenReturnsItsDecision(String effect, Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "p1" %s
-                    """.formatted(entitlement));
+                    """.formatted(effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);

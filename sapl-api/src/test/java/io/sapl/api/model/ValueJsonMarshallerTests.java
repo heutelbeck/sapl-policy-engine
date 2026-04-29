@@ -726,9 +726,9 @@ class ValueJsonMarshallerTests {
     @Test
     @DisplayName("toPrettyString with traced decision produces readable output")
     void whenToPrettyStringWithTracedDecisionThenProducesReadableOutput() {
-        var traced = Value.ofObject(Map.of("name", Value.of("permit-all"), "entitlement", Value.of("PERMIT"),
-                "decision", Value.of("PERMIT"), "obligations", Value.EMPTY_ARRAY, "advice", Value.EMPTY_ARRAY,
-                "resource", Value.UNDEFINED, "attributes",
+        var traced = Value.ofObject(Map.of("name", Value.of("permit-all"), "effect", Value.of("PERMIT"), "decision",
+                Value.of("PERMIT"), "obligations", Value.EMPTY_ARRAY, "advice", Value.EMPTY_ARRAY, "resource",
+                Value.UNDEFINED, "attributes",
                 Value.ofArray(Value
                         .ofObject(Map.of("name", Value.of("time.now"), "value", Value.of("2025-01-01T00:00:00Z")))),
                 "errors", Value.EMPTY_ARRAY));

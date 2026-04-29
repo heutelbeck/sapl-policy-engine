@@ -176,6 +176,9 @@ class UnanimousVoteCombinerTests {
             case DENY           -> denyVote("p");
             case NOT_APPLICABLE -> notApplicableVote("p");
             case INDETERMINATE  -> indeterminateVote("p", Outcome.PERMIT);
+            // TODO: implement SUSPEND case in voteFor when SUSPEND test
+            // arguments are added to the pairwise table.
+            case SUSPEND -> throw new UnsupportedOperationException("voteFor SUSPEND case not yet implemented");
             };
         }
 

@@ -787,6 +787,10 @@ public class ScenarioInterpreter {
         case DENY           -> isDeny();
         case INDETERMINATE  -> isIndeterminate();
         case NOT_APPLICABLE -> isNotApplicable();
+        // TODO: implement SUSPEND case in createBasicDecisionMatcher
+        // when the test DSL gains an isSuspend matcher.
+        case SUSPEND ->
+            throw new UnsupportedOperationException("createBasicDecisionMatcher SUSPEND case not yet implemented");
         };
     }
 

@@ -37,6 +37,7 @@ ON          : 'on';
 // Decision keywords
 PERMIT        : 'permit';
 DENY          : 'deny';
+SUSPEND       : 'suspend';
 INDETERMINATE : 'indeterminate';
 NOT_APPLICABLE : 'not-applicable';
 DECISION      : 'decision';

@@ -69,16 +69,17 @@ errorHandling
     ;
 
 policy
-    : POLICY saplName=STRING entitlement
+    : POLICY saplName=STRING effect
       policyBody?
       (OBLIGATION obligations+=expression)*
       (ADVICE adviceExpressions+=expression)*
       (TRANSFORM transformation=expression)?
     ;
 
-entitlement
-    : PERMIT  # permitEntitlement
-    | DENY    # denyEntitlement
+effect
+    : PERMIT   # permitEffect
+    | DENY     # denyEffect
+    | SUSPEND  # suspendEffect
     ;
 
 policyBody

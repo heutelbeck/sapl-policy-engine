@@ -24,6 +24,7 @@ SET         : 'set';
 POLICY      : 'policy';
 PERMIT      : 'permit';
 DENY        : 'deny';
+SUSPEND     : 'suspend';
 VAR         : 'var';
 SCHEMA      : 'schema';
 ENFORCED    : 'enforced';

@@ -97,6 +97,7 @@ public class SaplProtobufCodec {
     private static final int DECISION_ENUM_PERMIT         = 1;
     private static final int DECISION_ENUM_DENY           = 2;
     private static final int DECISION_ENUM_NOT_APPLICABLE = 3;
+    private static final int DECISION_ENUM_SUSPEND        = 4;
 
     // IdentifiableAuthorizationSubscription field numbers
     private static final int ID_SUB_ID           = 1;
@@ -462,6 +463,7 @@ public class SaplProtobufCodec {
         case DECISION_ENUM_PERMIT         -> Decision.PERMIT;
         case DECISION_ENUM_DENY           -> Decision.DENY;
         case DECISION_ENUM_NOT_APPLICABLE -> Decision.NOT_APPLICABLE;
+        case DECISION_ENUM_SUSPEND        -> Decision.SUSPEND;
         default                           -> Decision.INDETERMINATE;
         };
     }
@@ -491,6 +493,7 @@ public class SaplProtobufCodec {
         case DENY           -> DECISION_ENUM_DENY;
         case NOT_APPLICABLE -> DECISION_ENUM_NOT_APPLICABLE;
         case INDETERMINATE  -> DECISION_ENUM_INDETERMINATE;
+        case SUSPEND        -> DECISION_ENUM_SUSPEND;
         };
     }
 

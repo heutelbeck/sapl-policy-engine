@@ -130,6 +130,9 @@ public class CheckCommand implements Callable<Integer> {
         case DENY           -> 2;
         case NOT_APPLICABLE -> 3;
         case INDETERMINATE  -> 4;
+        // TODO: implement SUSPEND exit code mapping when SUSPEND CLI semantics are
+        // decided.
+        case SUSPEND -> throw new UnsupportedOperationException("SUSPEND CLI exit code not yet implemented");
         };
     }
 

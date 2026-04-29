@@ -448,17 +448,17 @@ class PriorityVoteCompilerTests {
         @MethodSource("finalizeVoteVoteCases")
         void finalizeVoteVoteHandlesAllCases(String description, String algorithm, String whereClause,
                 Decision expected) {
-            val entitlement = algorithm.contains("priority permit") ? "permit" : "deny";
-            val compiled    = compilePolicySet("""
+            val effect   = algorithm.contains("priority permit") ? "permit" : "deny";
+            val compiled = compilePolicySet("""
                     set "test"
                     %s
 
                     policy "p1" %s %s;
-                    """.formatted(algorithm, entitlement, whereClause));
-            val ctx         = subscriptionContext("""
+                    """.formatted(algorithm, effect, whereClause));
+            val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
-            val result      = evaluatePolicySet(compiled, ctx);
+            val result   = evaluatePolicySet(compiled, ctx);
             assertThat(result.authorizationDecision().decision()).isEqualTo(expected);
         }
     }
@@ -813,15 +813,15 @@ class PriorityVoteCompilerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("priorityOverErrorCases")
-        void priorityDecisionWinsOverError(String description, String algorithm, String winningEntitlement,
-                String errorEntitlement, Decision expected) {
+        void priorityDecisionWinsOverError(String description, String algorithm, String winningEffect,
+                String errorEffect, Decision expected) {
             val compiled = compilePolicySet("""
                     set "test"
                     %s or abstain errors propagate
 
                     policy "winning-policy" %s
                     policy "error-policy" %s subject.missing.field;
-                    """.formatted(algorithm, winningEntitlement, errorEntitlement));
+                    """.formatted(algorithm, winningEffect, errorEffect));
             val ctx      = subscriptionContext("""
                     { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);

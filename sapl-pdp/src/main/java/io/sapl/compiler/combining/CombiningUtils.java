@@ -130,7 +130,7 @@ public class CombiningUtils {
 
     /**
      * Merges constraints from two authorization decisions with the same
-     * entitlement.
+     * effect.
      * <p>
      * Assumes transformation uncertainty has been checked before calling.
      *

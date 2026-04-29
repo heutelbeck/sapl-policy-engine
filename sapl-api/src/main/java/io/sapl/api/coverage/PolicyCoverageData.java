@@ -153,26 +153,26 @@ public class PolicyCoverageData {
     /**
      * Records a policy outcome for coverage tracking.
      * <p>
-     * This tracks whether a policy returned its declared entitlement (PERMIT/DENY)
+     * This tracks whether a policy returned its declared effect
+     * (PERMIT/DENY/SUSPEND)
      * or returned NOT_APPLICABLE due to condition failures.
      * <p>
      * For policies without conditions (single-branch), only
-     * {@code entitlementReturned=true} is meaningful.
+     * {@code effectReturned=true} is meaningful.
      * For policies with conditions (two-branch), both outcomes should be tested.
      *
      * @param startLine the 1-based start line of the policy declaration
      * @param endLine the 1-based end line of the policy declaration
      * @param startChar character offset within start line (0-based)
      * @param endChar character offset within end line (0-based)
-     * @param entitlementReturned true if policy returned its entitlement, false if
+     * @param effectReturned true if policy returned its effect, false if
      * NOT_APPLICABLE
      * @param hasConditions true if policy has where-clause conditions (two-branch)
      */
-    public void recordPolicyOutcome(int startLine, int endLine, int startChar, int endChar, boolean entitlementReturned,
+    public void recordPolicyOutcome(int startLine, int endLine, int startChar, int endChar, boolean effectReturned,
             boolean hasConditions) {
         val key    = positionKey(startLine, startChar);
-        val newHit = BranchHit.forPolicyOutcome(startLine, endLine, startChar, endChar, entitlementReturned,
-                hasConditions);
+        val newHit = BranchHit.forPolicyOutcome(startLine, endLine, startChar, endChar, effectReturned, hasConditions);
         branchHitsByPosition.merge(key, newHit, BranchHit::mergeHitCounts);
     }
 
@@ -258,15 +258,15 @@ public class PolicyCoverageData {
     }
 
     /**
-     * Checks if this policy was activated (returned its declared entitlement).
+     * Checks if this policy was activated (returned its declared effect).
      * <p>
-     * A policy is "activated" when its conditions pass and it returns PERMIT or
-     * DENY (not NOT_APPLICABLE). This is the appropriate "hit" metric for
-     * standalone policies that don't have explicit target expressions.
+     * A policy is "activated" when its conditions pass and it returns PERMIT,
+     * DENY, or SUSPEND (not NOT_APPLICABLE). This is the appropriate "hit" metric
+     * for standalone policies that don't have explicit target expressions.
      * <p>
      * For policy sets, use {@link #wasTargetMatched()} to check the "for" clause.
      *
-     * @return true if policy returned its entitlement at least once
+     * @return true if policy returned its effect at least once
      */
     public boolean wasActivated() {
         return branchHitsByPosition.values().stream().filter(BranchHit::isPolicyOutcome)

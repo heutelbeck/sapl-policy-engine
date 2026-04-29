@@ -330,7 +330,7 @@ class PolicyCoverageDataTests {
     void whenRecordMultiplePolicyOutcomes_thenMerged() {
         val coverage = new PolicyCoverageData("test-policy", "policy \"test\" permit x > 0;", "policy");
 
-        // First evaluation: entitlement returned
+        // First evaluation: effect returned
         coverage.recordPolicyOutcome(1, 1, 0, 30, true, true);
         // Second evaluation: NOT_APPLICABLE
         coverage.recordPolicyOutcome(1, 1, 0, 30, false, true);

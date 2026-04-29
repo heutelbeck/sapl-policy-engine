@@ -135,7 +135,7 @@ public class PolicyCompiler {
      */
     private static Voter compileConstraintsVoter(Policy policy, VoterMetadata voterMetadata, CompilationContext ctx) {
         val constraints = compileConstraints(policy, policy.location(), ctx);
-        val decision    = policy.entitlement().decision();
+        val decision    = policy.effect().decision();
         return switch (constraints.nature()) {
         case CONSTANT -> Vote.tracedVote(decision, (ArrayValue) constraints.obligations(),
                 (ArrayValue) constraints.advice(), (Value) constraints.resource(), voterMetadata, List.of());
@@ -276,7 +276,7 @@ public class PolicyCompiler {
      * Builds a policy vote from merged constraint stream values.
      *
      * @param merged the merged stream values [obligations, advice, resource]
-     * @param decision the entitlement vote
+     * @param decision the effect-derived decision
      * @param baseAttributes the contributing attributes from body evaluation
      * @param voterMetadata the policy voterMetadata
      * @return the assembled policy vote
@@ -324,7 +324,7 @@ public class PolicyCompiler {
      * Decision maker for policies with pure constraints requiring runtime
      * evaluation.
      *
-     * @param decision the entitlement vote
+     * @param decision the effect-derived decision
      * @param obligations the obligations expression
      * @param advice the advice expression
      * @param resource the transformation expression
@@ -367,7 +367,7 @@ public class PolicyCompiler {
     /**
      * Decision maker for policies with streaming constraints.
      *
-     * @param decision the entitlement vote
+     * @param decision the effect-derived decision
      * @param obligations the obligations stream operator
      * @param advice the advice stream operator
      * @param resource the transformation stream operator

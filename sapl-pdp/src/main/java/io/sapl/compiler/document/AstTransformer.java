@@ -35,7 +35,7 @@ import io.sapl.ast.ConditionPath;
 import io.sapl.ast.ConditionStep;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
-import io.sapl.ast.Entitlement;
+import io.sapl.ast.Effect;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
@@ -109,10 +109,10 @@ import io.sapl.grammar.antlr.SAPLParser.ConditionStatementContext;
 import io.sapl.grammar.antlr.SAPLParser.ConditionSubscriptContext;
 import io.sapl.grammar.antlr.SAPLParser.DefaultDecisionContext;
 import io.sapl.grammar.antlr.SAPLParser.DenyDefaultContext;
-import io.sapl.grammar.antlr.SAPLParser.DenyEntitlementContext;
+import io.sapl.grammar.antlr.SAPLParser.DenyEffectContext;
 import io.sapl.grammar.antlr.SAPLParser.EagerAndContext;
 import io.sapl.grammar.antlr.SAPLParser.EagerOrContext;
-import io.sapl.grammar.antlr.SAPLParser.EntitlementContext;
+import io.sapl.grammar.antlr.SAPLParser.EffectContext;
 import io.sapl.grammar.antlr.SAPLParser.EnvAttributeBasicContext;
 import io.sapl.grammar.antlr.SAPLParser.EnvHeadAttributeBasicContext;
 import io.sapl.grammar.antlr.SAPLParser.EnvironmentIdContext;
@@ -152,7 +152,8 @@ import io.sapl.grammar.antlr.SAPLParser.ObjectContext;
 import io.sapl.grammar.antlr.SAPLParser.ObjectValueContext;
 import io.sapl.grammar.antlr.SAPLParser.PairKeyContext;
 import io.sapl.grammar.antlr.SAPLParser.PermitDefaultContext;
-import io.sapl.grammar.antlr.SAPLParser.PermitEntitlementContext;
+import io.sapl.grammar.antlr.SAPLParser.PermitEffectContext;
+import io.sapl.grammar.antlr.SAPLParser.SuspendEffectContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetContext;
@@ -222,7 +223,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
     private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
-    private static final String ERROR_UNKNOWN_ENTITLEMENT          = "Unknown entitlement.";
+    private static final String ERROR_UNKNOWN_EFFECT               = "Unknown effect.";
     private static final String ERROR_UNKNOWN_ERROR_HANDLING       = "Unknown error handling.";
     private static final String ERROR_UNKNOWN_FILTER_TYPE          = "Unknown filter type: %s";
     private static final String ERROR_UNKNOWN_VOTING_MODE          = "Unknown voting mode.";
@@ -440,8 +441,15 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public Policy visitPolicy(PolicyContext ctx) {
         val name           = unquoteString(ctx.saplName.getText());
         val documentId     = toDocumentId(name);
-        val entitlement    = toEntitlement(ctx.entitlement());
-        val outcome        = entitlement == Entitlement.DENY ? Outcome.DENY : Outcome.PERMIT;
+        val effect         = toEffect(ctx.effect());
+        val outcome        = switch (effect) {
+                           case PERMIT -> Outcome.PERMIT;
+                           case DENY   -> Outcome.DENY;
+                           // TODO: implement SUSPEND outcome assignment when
+                           // Outcome carries SUSPEND distinctly.
+                           case SUSPEND -> throw new UnsupportedOperationException(
+                                   "SUSPEND outcome assignment not yet implemented");
+                           };
         val hasConstraints = !ctx.obligations.isEmpty() || !ctx.adviceExpressions.isEmpty()
                 || ctx.transformation != null;
         val metadata       = new PolicyVoterMetadata(name, pdpId, configurationId, documentId, outcome, hasConstraints);
@@ -468,8 +476,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         // Use currentImports (empty if inside PolicySet, actual imports if standalone)
         val policyImports = currentImports != null ? currentImports : List.<Import>of();
 
-        return new Policy(policyImports, metadata, entitlement, body, obligations, advice, transformation,
-                fromContext(ctx));
+        return new Policy(policyImports, metadata, effect, body, obligations, advice, transformation, fromContext(ctx));
     }
 
     @Override
@@ -1000,12 +1007,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         };
     }
 
-    private Entitlement toEntitlement(EntitlementContext ctx) {
+    private Effect toEffect(EffectContext ctx) {
         return switch (ctx) {
-        case PermitEntitlementContext ignored -> Entitlement.PERMIT;
-        case DenyEntitlementContext ignored   -> Entitlement.DENY;
-        default                               ->
-            throw new SaplCompilerException(ERROR_UNKNOWN_ENTITLEMENT, fromContext(ctx));
+        case PermitEffectContext ignored  -> Effect.PERMIT;
+        case DenyEffectContext ignored    -> Effect.DENY;
+        case SuspendEffectContext ignored -> Effect.SUSPEND;
+        default                           -> throw new SaplCompilerException(ERROR_UNKNOWN_EFFECT, fromContext(ctx));
         };
     }
 

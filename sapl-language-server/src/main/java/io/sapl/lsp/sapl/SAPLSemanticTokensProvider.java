@@ -74,8 +74,8 @@ class SAPLSemanticTokensProvider {
             return -1;
         }
 
-        // Check for entitlements and algorithms (special macro styling)
-        if (SAPLSemanticTokenTypes.ENTITLEMENTS_AND_ALGORITHMS.contains(text)) {
+        // Check for effects and algorithms (special macro styling)
+        if (SAPLSemanticTokenTypes.EFFECTS_AND_ALGORITHMS.contains(text)) {
             return SAPLSemanticTokenTypes.MACRO;
         }
 

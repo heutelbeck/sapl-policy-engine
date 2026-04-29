@@ -78,6 +78,9 @@ class UniqueVoteCombinerTests {
                 testMetadata("p", Outcome.DENY), List.of());
         case NOT_APPLICABLE -> Vote.abstain(testMetadata("p", Outcome.PERMIT));
         case INDETERMINATE  -> Vote.error(Value.error("test error"), testMetadata("p", Outcome.PERMIT));
+        // TODO: implement SUSPEND case in voteFor when SUSPEND test
+        // arguments are added to the pairwise table.
+        case SUSPEND -> throw new UnsupportedOperationException("voteFor SUSPEND case not yet implemented");
         };
     }
 

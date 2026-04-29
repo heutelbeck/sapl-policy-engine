@@ -69,13 +69,13 @@ class UnanimousVoteCompilerTests {
         @ParameterizedTest(name = "single {0} policy returns {1}")
         @MethodSource("singlePolicyCases")
         @DisplayName("single policy returns its decision")
-        void whenSinglePolicyThenReturnsItsDecision(String entitlement, Decision expectedDecision) {
+        void whenSinglePolicyThenReturnsItsDecision(String effect, Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     policy "p1" %s
-                    """.formatted(entitlement));
+                    """.formatted(effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
@@ -90,14 +90,14 @@ class UnanimousVoteCompilerTests {
         @ParameterizedTest(name = "all {0} policies return {1} with merged constraints")
         @MethodSource("mergedConstraintsCases")
         @DisplayName("agreeing policies merge constraints")
-        void whenAllAgreeWithConstraintsThenReturnsMergedDecision(String entitlement, Decision expectedDecision) {
+        void whenAllAgreeWithConstraintsThenReturnsMergedDecision(String effect, Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     policy "p1" %s obligation "log1"
                     policy "p2" %s obligation "log2"
-                    """.formatted(entitlement, entitlement));
+                    """.formatted(effect, effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
