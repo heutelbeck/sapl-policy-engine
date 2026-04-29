@@ -1310,4 +1310,361 @@ class FirstVoteCompilerTests {
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
         }
     }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        private static final String DEFAULT_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("single SUSPEND policy returns SUSPEND")
+        void whenSinglePolicySuspendsThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "single"
+                    first or abstain errors propagate
+
+                    policy "only-one"
+                    suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                assertVoteHasAllTheseContributing(r, List.of("only-one"));
+            });
+        }
+
+        @Test
+        @DisplayName("single SUSPEND with matching body returns SUSPEND")
+        void whenSinglePolicySuspendBodyMatchesThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "single"
+                    first or abstain errors propagate
+
+                    policy "matches"
+                    suspend
+                      subject == "alice";
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("single SUSPEND with non-matching body returns default")
+        void whenSinglePolicySuspendBodyDoesNotMatchThenReturnsDefault() {
+            val compiled = compilePolicySet("""
+                    set "single"
+                    first or abstain errors propagate
+
+                    policy "never-matches"
+                    suspend
+                      false;
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+        }
+
+        static Stream<Arguments> firstEffectWinsCases() {
+            return Stream.of(arguments("SUSPEND first beats PERMIT", "suspend", "permit", Decision.SUSPEND),
+                    arguments("SUSPEND first beats DENY", "suspend", "deny", Decision.SUSPEND),
+                    arguments("PERMIT first beats SUSPEND", "permit", "suspend", Decision.PERMIT),
+                    arguments("DENY first beats SUSPEND", "deny", "suspend", Decision.DENY));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("firstEffectWinsCases")
+        @DisplayName("first applicable effect wins regardless of which it is")
+        void whenTwoConcreteEffectsThenFirstWins(String description, String firstEffect, String secondEffect,
+                Decision expected) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "first-policy"
+                    %s
+
+                    policy "second-policy"
+                    %s
+                    """.formatted(firstEffect, secondEffect));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(expected);
+                assertVoteHasAllTheseContributing(r, List.of("first-policy"));
+            });
+        }
+
+        @Test
+        @DisplayName("NOT_APPLICABLE then SUSPEND - SUSPEND wins")
+        void whenNotApplicableThenSuspendThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "skipped"
+                    permit
+                      false;
+
+                    policy "suspending"
+                    suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                assertVoteHasAllTheseContributing(r, List.of("skipped", "suspending"));
+            });
+        }
+
+        @Test
+        @DisplayName("multiple NOT_APPLICABLE then SUSPEND - all skipped, SUSPEND wins")
+        void whenMultipleNotApplicableThenSuspendThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "skip-1"
+                    permit
+                      false;
+
+                    policy "skip-2"
+                    deny
+                      false;
+
+                    policy "suspending"
+                    suspend
+
+                    policy "trailing-permit"
+                    permit
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                assertVoteHasAllTheseContributing(r, List.of("skip-1", "skip-2", "suspending"));
+            });
+        }
+
+        @Test
+        @DisplayName("SUSPEND with obligation - constraint preserved")
+        void whenSuspendWithObligationThenObligationPreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "suspending"
+                    suspend
+                    obligation
+                        { "type": "logSuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with advice - constraint preserved")
+        void whenSuspendWithAdviceThenAdvicePreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "suspending"
+                    suspend
+                    advice
+                        { "type": "notifySuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().advice()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with transform - resource transformed")
+        void whenSuspendWithTransformThenResourceTransformed() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "suspending"
+                    suspend
+                    transform
+                        { "redacted": true }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().resource()).isNotEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE first, SUSPEND second, errors propagate -> INDETERMINATE")
+        void whenIndeterminateFirstSuspendSecondErrorsPropagateThenReturnsIndeterminate() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "errors-policy"
+                    permit
+                      subject.missing.field;
+
+                    policy "suspending"
+                    suspend
+                    """);
+            val ctx      = subscriptionContext("""
+                    { "subject": "simple-string", "action": "read", "resource": "data" }
+                    """);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+            assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE first, SUSPEND second, errors abstain -> NOT_APPLICABLE")
+        void whenIndeterminateFirstSuspendSecondErrorsAbstainThenReturnsNotApplicable() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain
+
+                    policy "errors-policy"
+                    permit
+                      subject.missing.field;
+
+                    policy "suspending"
+                    suspend
+                    """);
+            val ctx      = subscriptionContext("""
+                    { "subject": "simple-string", "action": "read", "resource": "data" }
+                    """);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+            assertVoteHasAllTheseContributing(result, List.of("errors-policy"));
+        }
+
+        @Test
+        @DisplayName("static SUSPEND first beats subsequent streaming policies (compile-time short-circuit)")
+        void whenStaticSuspendFirstWithStreamingFallbackThenSuspendWins() {
+            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "static-suspend"
+                    suspend
+
+                    policy "stream-permit"
+                    permit
+                      <test.attr>;
+                    """, attrBroker);
+
+            val voter = compiled.applicabilityAndVote();
+            assertThat(voter).as("Expected static short-circuit to a Vote").isInstanceOf(Vote.class);
+
+            val vote = (Vote) voter;
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertVoteHasAllTheseContributing(vote, List.of("static-suspend"));
+        }
+
+        @Test
+        @DisplayName("streaming policy emits SUSPEND - returns SUSPEND")
+        void whenStreamingPolicyEmitsSuspendThenReturnsSuspend() {
+            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+
+                    policy "stream-suspend"
+                    suspend
+                      <test.attr>;
+
+                    policy "fallback-permit"
+                    permit
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                        assertVoteHasAllTheseContributing(vote, List.of("stream-suspend"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
+
+        static Stream<Arguments> errorHandlingDoesNotAffectSuspendCases() {
+            return Stream.of(arguments("errors abstain", "first or abstain"),
+                    arguments("errors propagate", "first or abstain errors propagate"));
+        }
+
+        @ParameterizedTest(name = "{0} passes SUSPEND through unchanged")
+        @MethodSource("errorHandlingDoesNotAffectSuspendCases")
+        @DisplayName("error handling does not affect a SUSPEND vote")
+        void whenSuspendVoteUnderAnyErrorHandlingThenReturnsSuspend(String description, String algorithm) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    policy "suspending"
+                    suspend
+                    """.formatted(algorithm));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySet(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("attribute aggregation: NOT_APPLICABLE chain ending in SUSPEND aggregates attributes")
+        void whenChainOfNotApplicableEndingInSuspendThenAttributesAggregated() {
+            val attrBroker = attributeBroker(Map.of("test.attrA", new Value[] { Value.FALSE }, "test.attrB",
+                    new Value[] { Value.FALSE }, "test.attrC", new Value[] { Value.TRUE }));
+            val compiled   = compilePolicySet("""
+                    set "attribute-chain"
+                    first or abstain errors propagate
+
+                    policy "policy-a"
+                    permit
+                      <test.attrA>;
+
+                    policy "policy-b"
+                    permit
+                      <test.attrB>;
+
+                    policy "policy-c"
+                    suspend
+                      <test.attrC>;
+                    """, attrBroker);
+
+            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
+            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
+            val ctx          = evaluationContext(subscription, attrBroker);
+
+            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
+                    .assertNext(vote -> {
+                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                        assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
+                    }).expectComplete().verify(TIMEOUT);
+        }
+    }
 }
