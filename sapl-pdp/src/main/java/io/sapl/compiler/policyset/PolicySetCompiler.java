@@ -56,16 +56,14 @@ public class PolicySetCompiler {
         val defaultDecision  = algorithm.defaultDecision();
         val errorHandling    = algorithm.errorHandling();
         val voterAndCoverage = switch (algorithm.votingMode()) {
-                             case FIRST           -> FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                             case FIRST            -> FirstVoteCompiler.compilePolicySet(policySet, compiledPolicies,
                                      isApplicable, metadata, defaultDecision, errorHandling);
-                             case PRIORITY_DENY   -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                             case PRIORITY_DENY    -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
                                      isApplicable, metadata, Decision.DENY, defaultDecision, errorHandling, ctx);
-                             case PRIORITY_PERMIT -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                             case PRIORITY_PERMIT  -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
                                      isApplicable, metadata, Decision.PERMIT, defaultDecision, errorHandling, ctx);
-                             // TODO: implement PRIORITY_SUSPEND policy-set compilation when SUSPEND
-                             // combiner semantics are ratified.
-                             case PRIORITY_SUSPEND -> throw new UnsupportedOperationException(
-                                     "PRIORITY_SUSPEND policy-set compilation not yet implemented");
+                             case PRIORITY_SUSPEND -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, Decision.SUSPEND, defaultDecision, errorHandling, ctx);
                              case UNANIMOUS        ->
                                  UnanimousVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
                                          metadata, defaultDecision, errorHandling, false, ctx);

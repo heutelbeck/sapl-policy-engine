@@ -102,6 +102,20 @@ class PriorityBasedVoteCombinerTests {
                 testMetadata(name, Outcome.PERMIT), List.of());
     }
 
+    static Vote suspendVote(String name) {
+        return Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND), List.of());
+    }
+
+    static Vote suspendWithObligations(String name, Value... obligations) {
+        val obligationsArray = ArrayValue.builder();
+        for (var o : obligations) {
+            obligationsArray.add(o);
+        }
+        return Vote.tracedVote(Decision.SUSPEND, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND), List.of());
+    }
+
     static Vote permitWithAdvice(String name, Value... advice) {
         val adviceArray = ArrayValue.builder();
         for (var a : advice) {
@@ -737,6 +751,219 @@ class PriorityBasedVoteCombinerTests {
 
             assertThat((List<Value>) result.authorizationDecision().obligations()).containsExactly(obligation1,
                     obligation2);
+        }
+    }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        @Test
+        @DisplayName("priority deny: single SUSPEND vote returns SUSPEND")
+        void whenPriorityDenySingleSuspendThenReturnsSuspend() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(List.of(suspendVote("p1")), Decision.DENY,
+                    TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(acc.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND vote wins as priority")
+        void whenPrioritySuspendAndSuspendVoteThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(permitVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.SUSPEND,
+                    TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND vs DENY - SUSPEND wins as priority")
+        void whenPrioritySuspendAndSuspendVsDenyThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.SUSPEND,
+                    TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority deny: PERMIT vs SUSPEND non-priority disagreement -> SUSPEND wins (chain DENY > SUSPEND > PERMIT)")
+        void whenPriorityDenyAndPermitVsSuspendThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(permitVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.outcome()).isEqualTo(Outcome.SUSPEND);
+            assertThat(result.contributingVotes()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("priority deny: SUSPEND first then PERMIT -> SUSPEND wins (chain order-independent)")
+        void whenPriorityDenyAndSuspendFirstThenPermitThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, permitVote("p2"), Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.outcome()).isEqualTo(Outcome.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority permit: DENY vs SUSPEND non-priority disagreement -> SUSPEND wins (chain PERMIT > SUSPEND > DENY)")
+        void whenPriorityPermitAndDenyVsSuspendThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.outcome()).isEqualTo(Outcome.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority permit: SUSPEND first then DENY -> SUSPEND wins (chain order-independent)")
+        void whenPriorityPermitAndSuspendFirstThenDenyThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, denyVote("p2"), Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.outcome()).isEqualTo(Outcome.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: PERMIT vs DENY non-priority disagreement -> DENY wins (chain SUSPEND > DENY > PERMIT)")
+        void whenPrioritySuspendAndPermitVsDenyThenDenyWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(permitVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, denyVote("p2"), Decision.SUSPEND, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+            assertThat(result.outcome()).isEqualTo(Outcome.DENY);
+        }
+
+        @Test
+        @DisplayName("priority suspend: DENY first then PERMIT -> DENY wins (chain order-independent)")
+        void whenPrioritySuspendAndDenyFirstThenPermitThenDenyWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, permitVote("p2"), Decision.SUSPEND, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+            assertThat(result.outcome()).isEqualTo(Outcome.DENY);
+        }
+
+        @Test
+        @DisplayName("priority deny: priority via accumulator beats SUSPEND non-priority - winner-only")
+        void whenPriorityDenyArrivesViaAccVsSuspendThenAccDenyWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+        }
+
+        @Test
+        @DisplayName("priority suspend: priority via new beats DENY non-priority - winner-only")
+        void whenPrioritySuspendArrivesViaNewVsDenyThenSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.SUSPEND,
+                    TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("priority suspend: SUSPEND agreement merges constraints from all SUSPEND votes")
+        void whenPrioritySuspendAndAllSuspendThenMergesConstraints() {
+            val obligation1 = Value.of("obligation-1");
+            val obligation2 = Value.of("obligation-2");
+            val votes       = List.of(suspendWithObligations("p1", obligation1),
+                    suspendWithObligations("p2", obligation2));
+            val result      = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.SUSPEND, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat((List<Value>) result.authorizationDecision().obligations()).containsExactly(obligation1,
+                    obligation2);
+        }
+
+        @Test
+        @DisplayName("non-priority chain winner contributes both votes (loser still in trace)")
+        void whenChainResolvesThenBothVotesContribute() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(permitVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.DENY, TEST_METADATA);
+
+            assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name()).containsExactly("p1",
+                    "p2");
+        }
+    }
+
+    @Nested
+    @DisplayName("isCritical for SUSPEND-bearing outcomes")
+    class IsCriticalSuspendOutcomes {
+
+        @Test
+        @DisplayName("INDETERMINATE(SUSPEND) is critical under priority suspend")
+        void whenIndetSuspendUnderPrioritySuspendThenCritical() {
+            val acc       = PriorityBasedVoteCombiner.accumulatorVoteFrom(indeterminateVote("err", Outcome.SUSPEND),
+                    TEST_METADATA);
+            val newPermit = permitVote("p2");
+            val result    = PriorityBasedVoteCombiner.combineVotes(acc, newPermit, Decision.SUSPEND, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE(SUSPEND-only) is NOT critical under priority deny")
+        void whenIndetSuspendUnderPriorityDenyThenNotCritical() {
+            val acc     = PriorityBasedVoteCombiner.accumulatorVoteFrom(indeterminateVote("err", Outcome.SUSPEND),
+                    TEST_METADATA);
+            val newDeny = denyVote("p2");
+            val result  = PriorityBasedVoteCombiner.combineVotes(acc, newDeny, Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE(PERMIT_OR_SUSPEND) is critical under priority permit")
+        void whenIndetPermitOrSuspendUnderPriorityPermitThenCritical() {
+            val acc     = PriorityBasedVoteCombiner
+                    .accumulatorVoteFrom(indeterminateVote("err", Outcome.PERMIT_OR_SUSPEND), TEST_METADATA);
+            val newDeny = denyVote("p2");
+            val result  = PriorityBasedVoteCombiner.combineVotes(acc, newDeny, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE(PERMIT_OR_SUSPEND) is critical under priority suspend")
+        void whenIndetPermitOrSuspendUnderPrioritySuspendThenCritical() {
+            val acc     = PriorityBasedVoteCombiner
+                    .accumulatorVoteFrom(indeterminateVote("err", Outcome.PERMIT_OR_SUSPEND), TEST_METADATA);
+            val newDeny = denyVote("p2");
+            val result  = PriorityBasedVoteCombiner.combineVotes(acc, newDeny, Decision.SUSPEND, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE(PERMIT_OR_SUSPEND) is NOT critical under priority deny")
+        void whenIndetPermitOrSuspendUnderPriorityDenyThenNotCritical() {
+            val acc     = PriorityBasedVoteCombiner
+                    .accumulatorVoteFrom(indeterminateVote("err", Outcome.PERMIT_OR_SUSPEND), TEST_METADATA);
+            val newDeny = denyVote("p2");
+            val result  = PriorityBasedVoteCombiner.combineVotes(acc, newDeny, Decision.DENY, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.DENY);
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE(PERMIT_OR_DENY_OR_SUSPEND) is critical under any priority")
+        void whenIndetAllThreeThenCriticalUnderAnyPriority() {
+            val acc = PriorityBasedVoteCombiner
+                    .accumulatorVoteFrom(indeterminateVote("err", Outcome.PERMIT_OR_DENY_OR_SUSPEND), TEST_METADATA);
+
+            for (val priority : List.of(Decision.PERMIT, Decision.DENY, Decision.SUSPEND)) {
+                val result = PriorityBasedVoteCombiner.combineVotes(acc, denyVote("p2"), priority, TEST_METADATA);
+                assertThat(result.authorizationDecision().decision()).as("priority %s", priority)
+                        .isEqualTo(Decision.INDETERMINATE);
+            }
         }
     }
 }

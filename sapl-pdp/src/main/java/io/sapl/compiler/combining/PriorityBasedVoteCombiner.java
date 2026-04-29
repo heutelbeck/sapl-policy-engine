@@ -20,6 +20,7 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Effect;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
@@ -237,9 +238,23 @@ public class PriorityBasedVoteCombiner {
                     accumulatorVote.errors(), contributingVotes, voterMetadata);
         }
 
-        // Both are concrete PERMIT/DENY - must be same decision
-        // (different decisions would mean one is priority, handled above)
-        return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
+        // Same concrete decision - merge constraints
+        if (accDec == newDec) {
+            return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
+        }
+
+        // Different concrete decisions. Priority via accumulator wins
+        // winner-only (symmetric mirror of the priority-via-new branch above).
+        if (accDec == priorityDecision) {
+            return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
+        }
+
+        // Two distinct concrete non-priority decisions - resolve via the
+        // per-priority chain (winner-only authz, both contributing). Only
+        // possible when SUSPEND is in play; the 2-effect world cannot reach
+        // this branch.
+        val winner = (accDec == nonPriorityChainHead(priorityDecision)) ? accumulatorVote : newVote;
+        return concreteResult(winner.authorizationDecision(), winner.outcome(), contributingVotes, voterMetadata);
     }
 
     private static Vote handleSameDecision(AuthorizationDecision accAuthz, AuthorizationDecision newAuthz,
@@ -265,14 +280,44 @@ public class PriorityBasedVoteCombiner {
     private static boolean isCritical(Outcome outcome, Decision priorityDecision) {
         if (outcome == null)
             return true; // Unknown = assume critical (safe default)
-        return switch (outcome) {
-        case PERMIT         -> priorityDecision == Decision.PERMIT;
-        case DENY           -> priorityDecision == Decision.DENY;
-        case PERMIT_OR_DENY -> true; // Always critical
-        // TODO: implement SUSPEND-bearing critical-outcome predicates when
-        // priority-combiner SUSPEND semantics are ratified.
-        case SUSPEND, PERMIT_OR_SUSPEND, DENY_OR_SUSPEND, PERMIT_OR_DENY_OR_SUSPEND ->
-            throw new UnsupportedOperationException("SUSPEND-bearing isCritical not yet implemented");
+        return outcome.contains(priorityEffect(priorityDecision));
+    }
+
+    /**
+     * Maps a priority decision to its corresponding effect for outcome-bit lookup.
+     * Priority decisions are restricted to PERMIT, DENY, or SUSPEND by the
+     * compile-time dispatch in PdpCompiler / PolicySetCompiler.
+     */
+    private static Effect priorityEffect(Decision priorityDecision) {
+        return switch (priorityDecision) {
+        case PERMIT  -> Effect.PERMIT;
+        case DENY    -> Effect.DENY;
+        case SUSPEND -> Effect.SUSPEND;
+        default      -> throw new IllegalArgumentException(
+                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
+        };
+    }
+
+    /**
+     * Returns the decision that wins among non-priority concretes when they
+     * disagree. This encodes the per-priority chain:
+     * <ul>
+     * <li>priority deny chain: DENY &gt; SUSPEND &gt; PERMIT, so SUSPEND wins
+     * the non-priority subchain</li>
+     * <li>priority permit chain: PERMIT &gt; SUSPEND &gt; DENY, so SUSPEND wins
+     * the non-priority subchain</li>
+     * <li>priority suspend chain: SUSPEND &gt; DENY &gt; PERMIT, so DENY wins
+     * the non-priority subchain</li>
+     * </ul>
+     * The valid disagreement pair under each priority is always
+     * {chain-head, chain-tail}, so returning the chain head is sufficient.
+     */
+    private static Decision nonPriorityChainHead(Decision priorityDecision) {
+        return switch (priorityDecision) {
+        case PERMIT, DENY -> Decision.SUSPEND;
+        case SUSPEND      -> Decision.DENY;
+        default           -> throw new IllegalArgumentException(
+                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
         };
     }
 
