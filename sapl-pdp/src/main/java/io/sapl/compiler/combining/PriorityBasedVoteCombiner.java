@@ -269,6 +269,10 @@ public class PriorityBasedVoteCombiner {
         case PERMIT         -> priorityDecision == Decision.PERMIT;
         case DENY           -> priorityDecision == Decision.DENY;
         case PERMIT_OR_DENY -> true; // Always critical
+        // TODO: implement SUSPEND-bearing critical-outcome predicates when
+        // priority-combiner SUSPEND semantics are ratified.
+        case SUSPEND, PERMIT_OR_SUSPEND, DENY_OR_SUSPEND, PERMIT_OR_DENY_OR_SUSPEND ->
+            throw new UnsupportedOperationException("SUSPEND-bearing isCritical not yet implemented");
         };
     }
 

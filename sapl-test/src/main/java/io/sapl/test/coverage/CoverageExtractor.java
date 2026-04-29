@@ -266,6 +266,10 @@ public class CoverageExtractor {
         case PERMIT         -> decision == Decision.PERMIT;
         case DENY           -> decision == Decision.DENY;
         case PERMIT_OR_DENY -> decision == Decision.PERMIT || decision == Decision.DENY;
+        // TODO: implement SUSPEND-bearing coverage outcome matching when
+        // SUSPEND policy-coverage semantics are ratified.
+        case SUSPEND, PERMIT_OR_SUSPEND, DENY_OR_SUSPEND, PERMIT_OR_DENY_OR_SUSPEND ->
+            throw new UnsupportedOperationException("SUSPEND-bearing coverage isEffectReturned not yet implemented");
         };
     }
 }
