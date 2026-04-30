@@ -238,6 +238,15 @@ public class PriorityBasedVoteCombiner {
                     accumulatorVote.errors(), contributingVotes, voterMetadata);
         }
 
+        // New vote is NOT_APPLICABLE - take accumulator (mirror of the
+        // accDec NOT_APPLICABLE branch at the top of this method). Without
+        // this branch, an NA-on-new with a concrete non-priority accumulator
+        // would fall into the chain logic below and incorrectly drop the
+        // accumulator's concrete decision.
+        if (newDec == Decision.NOT_APPLICABLE) {
+            return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
+        }
+
         // Same concrete decision - merge constraints
         if (accDec == newDec) {
             return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
