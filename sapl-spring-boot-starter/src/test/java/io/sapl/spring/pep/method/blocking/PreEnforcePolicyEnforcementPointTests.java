@@ -241,6 +241,17 @@ class PreEnforcePolicyEnforcementPointTests {
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("not PERMIT");
         }
+
+        @Test
+        @DisplayName("SUSPEND with a substitute resource still denies; the Watch cannot pause, so substitution cannot save a suspension")
+        void whenSuspendWithResourceThenStillAccessDenied() {
+            val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.of(CASE_FILE_REDACTED));
+            when(pdp.decideOnceBlocking(any())).thenReturn(suspend);
+
+            assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
+                    .withMessageContaining("not PERMIT");
+        }
     }
 
     @Nested
@@ -272,6 +283,15 @@ class PreEnforcePolicyEnforcementPointTests {
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("NOT_APPLICABLE");
+        }
+
+        @Test
+        @DisplayName("SUSPEND raises AccessDeniedException; one-shot PEPs cannot suspend, so the warrant is refused outright")
+        void whenSuspendThenAccessDenied() {
+            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.SUSPEND);
+
+            assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
+                    .withMessageContaining("SUSPEND");
         }
     }
 

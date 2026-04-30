@@ -278,6 +278,17 @@ class PostEnforcePolicyEnforcementPointTests {
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("not PERMIT");
         }
+
+        @Test
+        @DisplayName("SUSPEND with a substitute resource still denies; one-shot PEPs cannot pause, so substitution cannot save a suspension")
+        void whenSuspendWithResourceThenStillAccessDenied() {
+            val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.of(REDACTED_BY_LIBRARIAN));
+            when(pdp.decideOnceBlocking(any())).thenReturn(suspend);
+
+            assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
+                    .withMessageContaining("not PERMIT");
+        }
     }
 
     @Nested
@@ -309,6 +320,15 @@ class PostEnforcePolicyEnforcementPointTests {
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("NOT_APPLICABLE");
+        }
+
+        @Test
+        @DisplayName("SUSPEND raises AccessDeniedException; one-shot PEPs cannot suspend, so the wards stay shut")
+        void whenSuspendThenAccessDenied() {
+            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.SUSPEND);
+
+            assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
+                    .withMessageContaining("SUSPEND");
         }
     }
 
