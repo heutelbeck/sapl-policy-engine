@@ -59,7 +59,8 @@ class CheckCommandTests {
             return Stream.of(arguments("simple PERMIT", AuthorizationDecision.PERMIT, 0),
                     arguments("DENY", AuthorizationDecision.DENY, 2),
                     arguments("NOT_APPLICABLE", AuthorizationDecision.NOT_APPLICABLE, 3),
-                    arguments("INDETERMINATE", AuthorizationDecision.INDETERMINATE, 4));
+                    arguments("INDETERMINATE", AuthorizationDecision.INDETERMINATE, 4),
+                    arguments("SUSPEND", AuthorizationDecision.SUSPEND, 5));
         }
 
         @ParameterizedTest(name = "PERMIT with {0} -> exit 4")

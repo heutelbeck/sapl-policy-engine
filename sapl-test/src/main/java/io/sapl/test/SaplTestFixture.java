@@ -1284,6 +1284,15 @@ public class SaplTestFixture {
         }
 
         /**
+         * Expects the next decision to be SUSPEND.
+         *
+         * @return this result for chaining
+         */
+        public DecisionResult expectSuspend() {
+            return expectDecisionMatches(Matchers.isSuspend());
+        }
+
+        /**
          * Emits a value to a mocked attribute stream.
          *
          * @param mockId the mock identifier from
