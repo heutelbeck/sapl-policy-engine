@@ -7,7 +7,7 @@ nav_order: 106
 
 ## SAPL Policy Set
 
-While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. For evaluating an authorization subscription, the PDP evaluates existing policy sets. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable, evaluating their policies, and combining multiple votes according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets vote either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
+While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. For evaluating an authorization subscription, the PDP evaluates existing policy sets. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable, evaluating their policies, and combining multiple votes according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets vote `PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`, or `INDETERMINATE`.
 
 Policy sets are used to structure multiple policies and provide an order for the policies they contain. Hence, their policies can be evaluated one after another.
 

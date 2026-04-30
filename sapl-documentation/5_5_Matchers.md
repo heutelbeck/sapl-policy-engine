@@ -94,6 +94,7 @@ Decision matchers are used in `expect decision ...` clauses:
 | `any`                                                           | Matches any decision                                     |
 | `is permit`                                                     | Decision is PERMIT                                       |
 | `is deny`                                                       | Decision is DENY                                         |
+| `is suspend`                                                    | Decision is SUSPEND                                      |
 | `is indeterminate`                                              | Decision is INDETERMINATE                                |
 | `is not-applicable`                                             | Decision is NOT_APPLICABLE                               |
 | `with obligation`                                               | Decision contains at least one obligation                |

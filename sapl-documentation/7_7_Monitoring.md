@@ -135,7 +135,7 @@ SAPL Node exposes four custom Prometheus metrics covering the golden signals for
 
 | Metric | Type | Tags | Description |
 |--------|------|------|-------------|
-| `sapl.decisions` | Counter | `decision` (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE) | Total authorization decisions by outcome. |
+| `sapl.decisions` | Counter | `decision` (PERMIT, DENY, SUSPEND, INDETERMINATE, NOT_APPLICABLE) | Total authorization decisions by outcome. |
 | `sapl.decision.first.latency` | Timer | | Time from subscription to first decision. |
 | `sapl.subscriptions.active` | Gauge | | Currently active SSE streaming subscriptions. |
 | `sapl.subscription.duration` | Timer | | Total lifetime of completed subscriptions. |
@@ -184,7 +184,7 @@ This endpoint requires authentication and is intended for operational dashboards
 
 ### Decision Logging
 
-The PDP emits structured JSON log entries via the reporting interceptor. Each entry contains the authorization subscription (subject, action, resource, environment), the decision (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE), and any obligations or advice attached to the decision.
+The PDP emits structured JSON log entries via the reporting interceptor. Each entry contains the authorization subscription (subject, action, resource, environment), the decision (PERMIT, DENY, SUSPEND, INDETERMINATE, NOT_APPLICABLE), and any obligations or advice attached to the decision.
 
 Enable subscription lifecycle logging with two properties:
 

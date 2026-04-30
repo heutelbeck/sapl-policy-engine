@@ -72,6 +72,7 @@ Simple expectations check only the decision type. For policies that attach oblig
 // Simple decisions
 .expectPermit()
 .expectDeny()
+.expectSuspend()
 .expectIndeterminate()
 .expectNotApplicable()
 

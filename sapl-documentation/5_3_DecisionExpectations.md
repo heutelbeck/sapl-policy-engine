@@ -16,6 +16,7 @@ The simplest form checks only the decision type:
 ```sapltest
 expect permit;
 expect deny;
+expect suspend;
 expect indeterminate;
 expect not-applicable;
 ```

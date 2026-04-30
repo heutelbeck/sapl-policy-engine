@@ -225,7 +225,7 @@ The language server provides semantic token highlighting for both file types.
 | Token Type  | Highlighted Elements                                                                    |
 |-------------|-----------------------------------------------------------------------------------------|
 | `keyword`   | Test structure keywords (`requirement`, `scenario`, `given`, `when`, `then`, `expect`)  |
-| `macro`     | Decision types (`permit`, `deny`, `indeterminate`, `not-applicable`)                    |
+| `macro`     | Decision types (`permit`, `deny`, `suspend`, `indeterminate`, `not-applicable`)         |
 | `operator`  | Test operators and matchers                                                             |
 | `string`    | String literals and identifiers                                                         |
 | `number`    | Numeric literals                                                                        |
