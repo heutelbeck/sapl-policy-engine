@@ -690,15 +690,32 @@ class UnanimousVoteCompilerTests {
                 { "subject": "alice", "action": "read", "resource": "data" }
                 """;
 
-        @Test
-        @DisplayName("single SUSPEND policy returns SUSPEND")
-        void whenSinglePolicySuspendsThenReturnsSuspend() {
-            val compiled = compilePolicySet("""
+        static Stream<Arguments> suspendOutcomeCases() {
+            return Stream.of(arguments("single SUSPEND policy returns SUSPEND", """
                     set "test"
                     unanimous or abstain
 
                     policy "only-one" suspend
-                    """);
+                    """), arguments("SUSPEND with NOT_APPLICABLE policies -> SUSPEND (NOT_APPLICABLE ignored)", """
+                    set "test"
+                    unanimous or abstain
+
+                    policy "skip-1" permit false;
+                    policy "suspending" suspend
+                    policy "skip-2" deny false;
+                    """), arguments("strict mode: identical SUSPEND policies -> SUSPEND", """
+                    set "test"
+                    unanimous strict or abstain
+
+                    policy "p1" suspend
+                    policy "p2" suspend
+                    """));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("suspendOutcomeCases")
+        void whenScenarioYieldsSuspendThenReturnsSuspend(String description, String policySet) {
+            val compiled = compilePolicySet(policySet);
             val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
             val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
 
@@ -723,81 +740,32 @@ class UnanimousVoteCompilerTests {
             assertThat(result.authorizationDecision().obligations().size()).isEqualTo(3);
         }
 
-        @Test
-        @DisplayName("SUSPEND + PERMIT (both applicable) -> INDETERMINATE (disagreement)")
-        void whenSuspendAndPermitThenIndeterminate() {
-            val compiled = compilePolicySet("""
+        static Stream<Arguments> suspendDisagreementCases() {
+            return Stream.of(arguments("SUSPEND + PERMIT (both applicable) -> INDETERMINATE (disagreement)", """
                     set "test"
                     unanimous or abstain errors propagate
 
                     policy "p1" suspend
                     policy "p2" permit
-                    """);
-            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("SUSPEND + DENY (both applicable) -> INDETERMINATE (disagreement)")
-        void whenSuspendAndDenyThenIndeterminate() {
-            val compiled = compilePolicySet("""
+                    """), arguments("SUSPEND + DENY (both applicable) -> INDETERMINATE (disagreement)", """
                     set "test"
                     unanimous or abstain errors propagate
 
                     policy "p1" suspend
                     policy "p2" deny
-                    """);
-            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-        }
-
-        @Test
-        @DisplayName("SUSPEND with NOT_APPLICABLE policies -> SUSPEND (NOT_APPLICABLE ignored)")
-        void whenSuspendAmongNotApplicableThenReturnsSuspend() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous or abstain
-
-                    policy "skip-1" permit false;
-                    policy "suspending" suspend
-                    policy "skip-2" deny false;
-                    """);
-            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
-        }
-
-        @Test
-        @DisplayName("strict mode: identical SUSPEND policies -> SUSPEND")
-        void whenIdenticalSuspendStrictModeThenReturnsSuspend() {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    unanimous strict or abstain
-
-                    policy "p1" suspend
-                    policy "p2" suspend
-                    """);
-            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
-            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
-
-            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
-        }
-
-        @Test
-        @DisplayName("strict mode: SUSPEND with different obligations -> INDETERMINATE")
-        void whenSuspendDifferentObligationsStrictModeThenIndeterminate() {
-            val compiled = compilePolicySet("""
+                    """), arguments("strict mode: SUSPEND with different obligations -> INDETERMINATE", """
                     set "test"
                     unanimous strict or abstain errors propagate
 
                     policy "p1" suspend obligation { "type": "logA" }
                     policy "p2" suspend obligation { "type": "logB" }
-                    """);
+                    """));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("suspendDisagreementCases")
+        void whenScenarioYieldsIndeterminateThenReturnsIndeterminate(String description, String policySet) {
+            val compiled = compilePolicySet(policySet);
             val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
             val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
 

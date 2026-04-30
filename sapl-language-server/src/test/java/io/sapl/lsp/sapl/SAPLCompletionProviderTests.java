@@ -65,7 +65,7 @@ class SAPLCompletionProviderTests {
     void whenAfterPolicySetName_thenSapl3AlgorithmsAbsent() {
         var labels = labelsAtEnd("set \"test\" ");
 
-        assertThat(labels).doesNotContain("deny-overrides", "permit-overrides", "first-applicable",
+        assertThat(labels).isNotEmpty().doesNotContain("deny-overrides", "permit-overrides", "first-applicable",
                 "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
     }
 

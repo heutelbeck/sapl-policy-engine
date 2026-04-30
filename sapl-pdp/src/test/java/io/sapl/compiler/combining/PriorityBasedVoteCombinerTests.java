@@ -860,11 +860,10 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("priority suspend: priority via new beats DENY non-priority - winner-only")
-        void whenPrioritySuspendArrivesViaNewVsDenyThenSuspendWins() {
-            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(denyVote("p1"), TEST_METADATA);
-            val result = PriorityBasedVoteCombiner.combineVotes(acc, suspendVote("p2"), Decision.SUSPEND,
-                    TEST_METADATA);
+        @DisplayName("priority suspend: priority via accumulator beats DENY non-priority - winner-only")
+        void whenPrioritySuspendArrivesViaAccVsDenyThenAccSuspendWins() {
+            val acc    = PriorityBasedVoteCombiner.accumulatorVoteFrom(suspendVote("p1"), TEST_METADATA);
+            val result = PriorityBasedVoteCombiner.combineVotes(acc, denyVote("p2"), Decision.SUSPEND, TEST_METADATA);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
         }

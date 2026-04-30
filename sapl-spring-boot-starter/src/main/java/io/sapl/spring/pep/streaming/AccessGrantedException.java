@@ -17,8 +17,11 @@
  */
 package io.sapl.spring.pep.streaming;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationDecision;
 import lombok.Getter;
+
+import java.io.Serial;
 
 /**
  * Signal emitted by the streaming PEP under
@@ -41,8 +44,11 @@ import lombok.Getter;
  */
 public final class AccessGrantedException extends RuntimeException {
 
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
     @Getter
-    private final transient AuthorizationDecision decision;
+    private final AuthorizationDecision decision;
 
     /**
      * @param decision the PERMIT decision that established access; the
