@@ -36,22 +36,36 @@ import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
 
 /**
  * Combines multiple policy votes into a single authorization decision using
- * priority-based logic with extended indeterminate semantics.
+ * priority-based logic with extended indeterminate semantics (XACML 3.0 style).
  * <p>
- * Extended indeterminate tracking allows smarter error handling. Each
- * INDETERMINATE vote carries an {@link Outcome} indicating what the decision
- * "would have been" without the error:
- * <ul>
- * <li>{@code Outcome.PERMIT} - would have been PERMIT</li>
- * <li>{@code Outcome.DENY} - would have been DENY</li>
- * <li>{@code Outcome.PERMIT_OR_DENY} - could be either</li>
- * </ul>
+ * Each vote carries an {@link Outcome} that encodes which effect set the vote
+ * is or could have been. For an INDETERMINATE vote the outcome is the
+ * "would-have-been" marker (the set of effects the policy could have produced
+ * had it not errored). For a concrete vote the outcome is the single-bit
+ * representation of its decision.
  * <p>
- * <b>Key principle:</b> The priority decision (PERMIT for permit-overrides,
- * DENY for deny-overrides) wins over everything, including errors. An error
- * only matters if it could have produced the priority decision.
+ * The outcome field is consulted only when the read-target vote is
+ * INDETERMINATE: {@link #isCritical(Outcome, Decision)} answers whether the
+ * could-have-been set includes the priority effect, and that drives whether
+ * the error blocks an otherwise-winning concrete decision.
  * <p>
- * Transformation uncertainty: If multiple votes define resource
+ * <b>Outcome shape principle:</b> concrete results carry single-bit outcomes
+ * (the decision itself); INDETERMINATE results carry multi-bit outcomes
+ * (the union of contributing votes' could-have-beens). Combining two
+ * matching concrete outcomes via {@link CombiningUtils#combineOutcomes}
+ * is idempotent and preserves the single-bit shape.
+ * <p>
+ * <b>Priority principle:</b> the priority decision (PERMIT for
+ * permit-overrides,
+ * DENY for deny-overrides, SUSPEND for suspend-overrides) wins over everything,
+ * including errors. An error only matters if it could have produced the
+ * priority decision.
+ * <p>
+ * <b>Non-priority chain:</b> when no priority vote arrives and two non-priority
+ * concretes disagree, a per-priority chain decides the winner. See
+ * {@link #nonPriorityChainHead(Decision)} for the chain semantics.
+ * <p>
+ * Transformation uncertainty: if multiple votes define resource
  * transformations, the result is INDETERMINATE since the correct transformation
  * cannot be determined.
  */
@@ -214,9 +228,9 @@ public class PriorityBasedVoteCombiner {
                     return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
                 }
                 if (accDec != Decision.INDETERMINATE) {
-                    // Accumulated non-priority wins - error would have been same or opposite
-                    return concreteResult(accAuthz, combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
-                            contributingVotes, voterMetadata);
+                    // Accumulated non-priority concrete wins. Winner-only
+                    // outcome: concrete result carries single-bit outcome.
+                    return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
                 }
             }
             // Critical error or accumulated INDETERMINATE - error dominates
@@ -229,20 +243,17 @@ public class PriorityBasedVoteCombiner {
         // Accumulated INDETERMINATE: check if error is critical
         if (accDec == Decision.INDETERMINATE) {
             if (!isCritical(accumulatorVote.outcome(), priorityDecision)) {
-                // Non-critical error loses to concrete non-priority decision
-                return concreteResult(newAuthz, combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
-                        contributingVotes, voterMetadata);
+                // Non-critical error loses to concrete non-priority decision.
+                // Winner-only outcome: concrete result carries single-bit outcome.
+                return concreteResult(newAuthz, newVote.outcome(), contributingVotes, voterMetadata);
             }
             // Critical error blocks - stays INDETERMINATE
             return indeterminateResult(combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
                     accumulatorVote.errors(), contributingVotes, voterMetadata);
         }
 
-        // New vote is NOT_APPLICABLE - take accumulator (mirror of the
-        // accDec NOT_APPLICABLE branch at the top of this method). Without
-        // this branch, an NA-on-new with a concrete non-priority accumulator
-        // would fall into the chain logic below and incorrectly drop the
-        // accumulator's concrete decision.
+        // New vote is NOT_APPLICABLE - accumulator wins. Symmetric counterpart
+        // of the accDec NOT_APPLICABLE branch at the top of this method.
         if (newDec == Decision.NOT_APPLICABLE) {
             return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
         }
@@ -252,20 +263,29 @@ public class PriorityBasedVoteCombiner {
             return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
         }
 
-        // Different concrete decisions. Priority via accumulator wins
-        // winner-only (symmetric mirror of the priority-via-new branch above).
+        // Priority via accumulator wins. Winner-only authz and outcome,
+        // counterpart of the priority-via-new branch above.
         if (accDec == priorityDecision) {
             return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
         }
 
-        // Two distinct concrete non-priority decisions - resolve via the
-        // per-priority chain (winner-only authz, both contributing). Only
-        // possible when SUSPEND is in play; the 2-effect world cannot reach
-        // this branch.
+        // Two distinct concrete non-priority decisions disagree. The
+        // per-priority chain selects the winner (see nonPriorityChainHead).
+        // Winner-only authz and outcome; both votes remain in contributingVotes.
         val winner = (accDec == nonPriorityChainHead(priorityDecision)) ? accumulatorVote : newVote;
         return concreteResult(winner.authorizationDecision(), winner.outcome(), contributingVotes, voterMetadata);
     }
 
+    /**
+     * Merges two votes that share the same concrete decision. Caller invariant:
+     * both votes are concrete and
+     * {@code accAuthz.decision() == newAuthz.decision()}.
+     * Under this invariant {@code combineOutcomes} is idempotent on the
+     * matching single-bit outcomes, so the result outcome remains single-bit
+     * for both the concrete merge result and the transformation-uncertainty
+     * INDETERMINATE result (the would-have-been marker correctly equals the
+     * agreed decision).
+     */
     private static Vote handleSameDecision(AuthorizationDecision accAuthz, AuthorizationDecision newAuthz,
             List<Vote> contributingVotes, Vote accVote, Vote newVote, VoterMetadata voterMetadata) {
         val resourceA = accAuthz.resource();
