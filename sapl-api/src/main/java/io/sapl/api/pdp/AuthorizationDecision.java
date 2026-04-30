@@ -17,9 +17,13 @@
  */
 package io.sapl.api.pdp;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * Represents the result of a policy evaluation by the PDP.
@@ -38,7 +42,10 @@ public record AuthorizationDecision(
         @NonNull Decision decision,
         @NonNull ArrayValue obligations,
         @NonNull ArrayValue advice,
-        @NonNull Value resource) {
+        @NonNull Value resource) implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Singleton for a simple PERMIT decision without obligations, advice, or
