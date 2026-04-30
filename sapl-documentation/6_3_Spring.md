@@ -147,7 +147,7 @@ The annotations are convenient. To use them well, it helps to understand what ha
 
 #### The Deny Invariant
 
-One rule governs all enforcement. Only `PERMIT` grants access. The PDP can return four possible decisions (`PERMIT`, `DENY`, `INDETERMINATE`, `NOT_APPLICABLE`). Only `PERMIT` ever results in access being granted. Everything else means denial.
+One rule governs all enforcement. Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`). Only `PERMIT` ever results in access being granted; everything else means denial. Streaming PEPs that honour `SUSPEND` pause the data flow without terminating the subscription, so a later `PERMIT` resumes it; one-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the per-decision PEP semantics.
 
 A decision from the PDP looks like this.
 

@@ -154,7 +154,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 | Term                            | Definition                                                                                                                                                          |
 |---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Authorization Decision**      | The PDP's verdict: one of `PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`, optionally accompanied by obligations, advice, and a resource replacement value.  |
+| **Authorization Decision**      | The PDP's verdict: one of `PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, or `NOT_APPLICABLE`, optionally accompanied by obligations, advice, and a resource replacement value. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the per-value PEP semantics, including how one-shot PEPs handle `SUSPEND`. |
 | **Authorization Subscription**  | The request sent to the PDP containing `subject`, `action`, `resource`, `environment`, and optionally `secrets`.                                                    |
 | **Constraint**                  | A JSON object attached to a decision as either an obligation or advice. Contains at minimum a `type` field for routing to handlers.                                 |
 | **Obligation**                  | A constraint that MUST be enforced. Failure to enforce ANY obligation MUST result in access denial.                                                                 |
@@ -186,7 +186,7 @@ The decorator layer is not a thin wrapper. It is the component that makes the en
 
 Before diving into code, here are the six invariants every PEP must satisfy. If your implementation violates any of these, it has a security hole.
 
-1. **Only PERMIT grants access.** `DENY`, `INDETERMINATE`, and `NOT_APPLICABLE` all result in denial. There is no "default permit."
+1. **Only PERMIT grants access.** `DENY`, `SUSPEND`, `INDETERMINATE`, and `NOT_APPLICABLE` all result in denial of new data flow. (`SUSPEND` is a denial that preserves the subscription so a later `PERMIT` can resume; one-shot PEPs that cannot suspend treat `SUSPEND` identically to `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/).) There is no "default permit."
 2. **Every obligation must have a handler.** Before granting access on a PERMIT, verify that every obligation in the decision can be enforced. If even one obligation has no registered handler, deny.
 3. **Obligation handler failures deny.** If a handler accepts responsibility for an obligation but throws during execution, deny access. Do not grant access with partially-enforced obligations.
 4. **Use HTTPS for PDP communication.** The authorization subscription may contain secrets, and the decision contains policy internals. Unencrypted transport exposes both to network attackers.
@@ -371,22 +371,23 @@ These are patterns we have seen (or carefully avoided) in real implementations:
 
 ### 5.1 Decision Values
 
-An authorization decision MUST contain a `decision` field with one of exactly four values:
+An authorization decision MUST contain a `decision` field with one of exactly five values:
 
 | Decision         | Semantics                                            | PEP Action                                                  |
 |------------------|------------------------------------------------------|-------------------------------------------------------------|
 | `PERMIT`         | Access is granted, subject to constraint enforcement | Grant access if and only if all obligations can be enforced |
 | `DENY`           | Access is explicitly denied                          | Deny access. Run best-effort constraint handlers.           |
+| `SUSPEND`        | Access is paused; the subscription is preserved      | Streaming PEPs: suspend data forwarding, retain subscription, resume on a later `PERMIT`. One-shot PEPs that cannot suspend MUST treat `SUSPEND` as `DENY`. |
 | `INDETERMINATE`  | Error during evaluation or no definitive answer      | Deny access (fail-closed)                                   |
 | `NOT_APPLICABLE` | No matching policies found                           | Deny access (fail-closed)                                   |
 
-**CRITICAL INVARIANT:** Only `PERMIT` MAY result in access being granted. All other decision values MUST result in access denial.
+**CRITICAL INVARIANT:** Only `PERMIT` MAY result in access being granted. All other decision values MUST result in denial of new data flow.
 
 ### 5.2 Decision Structure
 
 ```
 {
-  "decision": "PERMIT" | "DENY" | "INDETERMINATE" | "NOT_APPLICABLE",
+  "decision": "PERMIT" | "DENY" | "SUSPEND" | "INDETERMINATE" | "NOT_APPLICABLE",
   "obligations": [ <constraint>, ... ],   // optional
   "advice": [ <constraint>, ... ],         // optional
   "resource": <any>                        // optional

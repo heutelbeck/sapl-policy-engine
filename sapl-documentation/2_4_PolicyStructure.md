@@ -11,7 +11,7 @@ nav_order: 104
 A policy expresses a collection of authorization rules that implement an arbitrary access control model required by an
 application.
 
-The basic idea is that a policy states "if these conditions are met, then either vote `permit` or `deny` in regard to the
+The basic idea is that a policy states "if these conditions are met, then vote `permit`, `deny`, or `suspend` in regard to the
 current authorization process." If the conditions are not met, the policy abstains from voting.
 
 This is the core. Everything else is either a refinement of the basic idea or tools for dealing with the coordination
@@ -39,7 +39,7 @@ permit
 ```
 
 Each policy starts with the keyword `policy` followed by a unique policy name (string).
-Then comes the **effect**, which is either `permit` or `deny`.
+Then comes the **effect**, which is `permit`, `deny`, or `suspend`.
 This expresses that "if the policy conditions are met, cast a vote with this effect."
 The effect is then followed by a number of statements that define the policy conditions, each terminated by a semicolon.
 Each condition must be an expression that evaluates to `true` or `false`. The policy is considered *applicable*
@@ -64,7 +64,7 @@ Imports and schemas must appear before the policy or policy set. The PDP loads a
 
 Every policy begins with the keyword `policy` followed by a unique name (a string literal). After the name, a policy consists of:
 
-- An **effect**: `permit` or `deny`
+- An **effect**: `permit`, `deny`, or `suspend`
 - An optional **body**: semicolon-separated conditions and value definitions
 - Optional **obligation** blocks (requirements the PEP **must** fulfill)
 - Optional **advice** blocks (recommendations the PEP **should** consider)
@@ -94,10 +94,14 @@ The policy name is a string that uniquely identifies the policy. In systems with
 
 ### Effect
 
-The effect is either `permit` or `deny`. It determines the vote the policy casts when it is applicable, i.e., when all conditions in the body are satisfied.
+The effect is `permit`, `deny`, or `suspend`. It determines the vote the policy casts when it is applicable, i.e., when all conditions in the body are satisfied.
+
+- `permit` casts a vote to grant access.
+- `deny` casts a vote to terminally deny access.
+- `suspend` casts a vote to pause access without terminating the subscription. Streaming PEPs that support suspension stop forwarding data while keeping the subscription alive, so a later `permit` resumes the flow. One-shot PEPs that cannot suspend treat `suspend` as `deny`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the PEP-side behaviour.
 
 {: .note }
-> Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny` policy or whether there is just no permitting policy for a certain situation.
+> Since multiple policies can be applicable and the combining algorithm can be chosen, it might make a difference whether there is an explicit `deny` policy or whether there is just no permitting policy for a certain situation. The same applies to `suspend`.
 
 ```sapl-demo
 policy "allow doctors to read patient records"
@@ -121,7 +125,17 @@ deny
 {"subject":"doctor","action":"read","resource":{"type":"patient_record"}}
 -->
 
-The `<time.localTimeIsBetween(...)>` syntax accesses a streaming time attribute (covered in [Functions and Attribute Finders](../2_8_FunctionsAndAttributes/)).
+```sapl-demo
+policy "suspend during maintenance window"
+suspend
+    resource.type == "patient_record";
+    <maintenance.isActive>;
+```
+<!-- sapl-subscription
+{"subject":"doctor","action":"read","resource":{"type":"patient_record"}}
+-->
+
+The `<time.localTimeIsBetween(...)>` and `<maintenance.isActive>` syntaxes access streaming attributes (covered in [Functions and Attribute Finders](../2_8_FunctionsAndAttributes/)).
 
 ### Body
 
@@ -161,10 +175,10 @@ Evaluating a policy against an authorization subscription means assigning a deci
 
 | **Body Conditions**        | **Policy Value**                              |
 |:---------------------------|:----------------------------------------------|
-| All evaluate to `true`     | Policy's **Effect** (`PERMIT` or `DENY`) |
+| All evaluate to `true`     | Policy's **Effect** (`PERMIT`, `DENY`, or `SUSPEND`) |
 | Any evaluates to `false`   | `NOT_APPLICABLE`                              |
 | Any produces an error      | `INDETERMINATE`                               |
-| No body present            | Policy's **Effect** (`PERMIT` or `DENY`) |
+| No body present            | Policy's **Effect** (`PERMIT`, `DENY`, or `SUSPEND`) |
 
 Conditions are evaluated lazily: if an earlier condition evaluates to `false`, later conditions are not evaluated and cannot produce errors. For details on how the engine optimizes evaluation order across cost strata, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
@@ -172,7 +186,7 @@ Conditions are evaluated lazily: if an earlier condition evaluates to `false`, l
 
 ### Obligations
 
-An obligation expression consists of the keyword `obligation` followed by an expression. It describes a task the PEP **must** fulfill before granting or denying access. If the PEP cannot fulfill an obligation, it must not grant access even on a `PERMIT` decision.
+An obligation expression consists of the keyword `obligation` followed by an expression. It describes a task the PEP **must** fulfill before acting on the decision. If the PEP cannot fulfill an obligation, it must not grant access even on a `PERMIT` decision; similarly, a streaming PEP must not resume on a `PERMIT` whose obligations cannot be fulfilled, and must apply the obligations associated with a `SUSPEND` (e.g., logging the suspension) before pausing.
 
 A common use case is *break-the-glass* scenarios: in an emergency, a doctor may access records they normally cannot read, but this access must be logged to prevent abuse. Logging is a requirement for granting access and therefore must be expressed as an obligation.
 
@@ -184,13 +198,13 @@ A policy can contain multiple obligation expressions. All obligations must appea
 
 An advice expression is similar to an obligation but fulfilling the described task is not mandatory. The advice expression consists of the keyword `advice` followed by an expression.
 
-If the final decision is `PERMIT` or `DENY`, advice from all applicable policies evaluating to that decision is included in the authorization decision object.
+If the final decision is `PERMIT`, `DENY`, or `SUSPEND`, advice from all applicable policies evaluating to that decision is included in the authorization decision object.
 
 A policy can contain multiple advice expressions. All advice must appear after any obligations.
 
 ### Transformation
 
-A transformation statement starts with the keyword `transform` followed by an expression. If a policy with a transformation evaluates to `PERMIT`, the result of the expression is returned as the `resource` in the authorization decision.
+A transformation statement starts with the keyword `transform` followed by an expression. If a policy with a transformation evaluates to its effect (`PERMIT`, `DENY`, or `SUSPEND`), the result of the expression is returned as the `resource` in the authorization decision.
 
 Transformations enable **field-level access control**: instead of writing a separate policy for each attribute of a resource, a single policy can redact or filter sensitive fields. The original resource is accessible via the identifier `resource`:
 
@@ -200,7 +214,6 @@ transform resource |- { @.someValue : remove, @.anotherValue : filter.blacken }
 
 This removes the attribute `someValue` and blackens the value of `anotherValue`.
 
-It is not possible to combine transformation results from multiple policies. If more than one applicable policy evaluates to `PE                                              
-RMIT` and at least one contains a transformation, the combining algorithm will not return `PERMIT` (*transformation uncertainty*). See [Combining Algorithms](../2_5_CombiningAlgorithms/) for details.
+It is not possible to combine transformation results from multiple policies. If more than one applicable policy evaluates to the same effect (`PERMIT`, `DENY`, or `SUSPEND`) and more than one contains a transformation, the combining algorithm cannot return that decision (*transformation uncertainty*). See [Combining Algorithms](../2_5_CombiningAlgorithms/) for details.
 
 For organizing multiple policies with shared combining algorithms and target expressions, see [Policy Sets](../2_6_PolicySets/).

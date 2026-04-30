@@ -106,8 +106,8 @@ Every endpoint returns authorization decisions as JSON objects:
 }
 ```
 
-- **decision** (always present): One of `PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`.
-- **obligations** (optional): An array of JSON objects. Instructions the PEP **must** enforce before granting access. If a PEP cannot fulfill any obligation, it must deny access regardless of the decision.
+- **decision** (always present): One of `PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, or `NOT_APPLICABLE`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the per-decision PEP semantics, including the `SUSPEND` pause-vs-terminal distinction.
+- **obligations** (optional): An array of JSON objects. Instructions the PEP **must** enforce before acting on the decision. If a PEP cannot fulfill any obligation, it must deny access regardless of the decision.
 - **advice** (optional): An array of JSON objects. Suggestions the PEP **should** follow but may ignore without affecting the authorization outcome.
 - **resource** (optional): A JSON value that replaces the original resource data (e.g., with fields redacted or transformed).
 

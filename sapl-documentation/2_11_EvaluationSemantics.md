@@ -9,7 +9,7 @@ nav_order: 111
 
 This section defines how the SAPL engine evaluates expressions, with particular attention to evaluation order, short-circuit behavior, and how cost strata interact with streaming attribute subscriptions.
 
-For how individual policies and policy sets map evaluation results to decision values (`PERMIT`, `DENY`, `NOT_APPLICABLE`, `INDETERMINATE`), see [Policy Structure](../2_4_PolicyStructure/#policy-evaluation-result) and [Policy Sets](../2_6_PolicySets/#policy-set-evaluation-result).
+For how individual policies and policy sets map evaluation results to decision values (`PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`, `INDETERMINATE`), see [Policy Structure](../2_4_PolicyStructure/#policy-evaluation-result) and [Policy Sets](../2_6_PolicySets/#policy-set-evaluation-result).
 
 ### Cost-Stratified Short-Circuit Evaluation
 
