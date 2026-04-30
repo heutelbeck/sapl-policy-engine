@@ -190,14 +190,17 @@ public class UnanimousVoteCombiner {
         val accDec   = accAuthz.decision();
         val newDec   = newAuthz.decision();
 
-        // Disagreement on effect
+        // Disagreement on effect produces an INDETERMINATE result; the
+        // multi-bit outcome captures both effects as the would-have-been set.
         if (accDec != newDec) {
             val error   = Value.error(ERROR_EFFECT_DISAGREEMENT);
             val outcome = combine(decisionToOutcome(accDec), decisionToOutcome(newDec));
             return indeterminateResult(outcome, List.of(error), contributingVotes, voterMetadata);
         }
 
-        // Same effect - check transformation uncertainty
+        // Same effect - check transformation uncertainty. Single-bit outcome
+        // (the agreed decision) for both the concrete merge result and the
+        // transformation-uncertainty INDETERMINATE result.
         val resourceA = accAuthz.resource();
         val resourceB = newAuthz.resource();
         val outcome   = decisionToOutcome(accDec);
@@ -221,7 +224,9 @@ public class UnanimousVoteCombiner {
                     decisionToOutcome(accAuthz.decision()));
         }
 
-        // Not identical
+        // Not identical produces an INDETERMINATE; the outcome captures the
+        // union of both effects (single-bit when decisions match, multi-bit
+        // when they differ).
         val error   = Value.error(ERROR_NOT_IDENTICAL);
         val outcome = combine(decisionToOutcome(accAuthz.decision()), decisionToOutcome(newAuthz.decision()));
         return indeterminateResult(outcome, List.of(error), contributingVotes, voterMetadata);
