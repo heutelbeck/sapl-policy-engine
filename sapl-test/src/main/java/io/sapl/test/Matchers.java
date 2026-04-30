@@ -691,6 +691,15 @@ public class Matchers {
     }
 
     /**
+     * Creates a matcher for SUSPEND decisions.
+     *
+     * @return a matcher expecting Decision.SUSPEND
+     */
+    public static DecisionMatcher isSuspend() {
+        return new DecisionMatcher(Decision.SUSPEND);
+    }
+
+    /**
      * Creates a matcher for a specific decision type.
      *
      * @param decision the expected decision type

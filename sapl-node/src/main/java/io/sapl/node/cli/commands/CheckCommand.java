@@ -45,6 +45,7 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
  * <li>3 - NOT_APPLICABLE</li>
  * <li>4 - INDETERMINATE, or PERMIT with obligations/resource
  * transformation</li>
+ * <li>5 - SUSPEND</li>
  * </ul>
  */
 // @formatter:off
@@ -68,7 +69,8 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
         " 1:Error during evaluation",
         " 2:DENY",
         " 3:NOT_APPLICABLE (no matching policy)",
-        " 4:INDETERMINATE, or PERMIT with obligations/resource transformation"
+        " 4:INDETERMINATE, or PERMIT with obligations/resource transformation",
+        " 5:SUSPEND"
     },
     footerHeading = "%nExamples:%n",
     footer = { """
@@ -130,9 +132,7 @@ public class CheckCommand implements Callable<Integer> {
         case DENY           -> 2;
         case NOT_APPLICABLE -> 3;
         case INDETERMINATE  -> 4;
-        // TODO: implement SUSPEND exit code mapping when SUSPEND CLI semantics are
-        // decided.
-        case SUSPEND -> throw new UnsupportedOperationException("SUSPEND CLI exit code not yet implemented");
+        case SUSPEND        -> 5;
         };
     }
 
