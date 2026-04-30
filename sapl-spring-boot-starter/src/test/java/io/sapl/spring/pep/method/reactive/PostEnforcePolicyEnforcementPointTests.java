@@ -188,6 +188,18 @@ class PostEnforcePolicyEnforcementPointTests {
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("not PERMIT"))
                     .verify(STEP_TIMEOUT);
         }
+
+        @Test
+        @DisplayName("SUSPEND with a substitute resource still denies; one-shot PEPs cannot pause, so substitution cannot save a suspension")
+        void whenSuspendWithResourceThenStillAccessDenied() {
+            val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.of(REDACTED_BY_LIBRARIAN));
+            when(pdp.decideOnce(any())).thenReturn(Mono.just(suspend));
+
+            StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(
+                    err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("not PERMIT"))
+                    .verify(STEP_TIMEOUT);
+        }
     }
 
     @Nested
@@ -223,6 +235,16 @@ class PostEnforcePolicyEnforcementPointTests {
             StepVerifier
                     .create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(err -> assertThat(err)
                             .isInstanceOf(AccessDeniedException.class).hasMessageContaining("NOT_APPLICABLE"))
+                    .verify(STEP_TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("SUSPEND raises AccessDeniedException; reactive one-shot PEPs cannot suspend, so the wards stay shut")
+        void whenSuspendThenAccessDenied() {
+            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.SUSPEND));
+
+            StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(
+                    err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("SUSPEND"))
                     .verify(STEP_TIMEOUT);
         }
     }

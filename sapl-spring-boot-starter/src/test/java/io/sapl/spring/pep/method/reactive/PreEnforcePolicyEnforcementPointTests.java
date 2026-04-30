@@ -186,6 +186,17 @@ class PreEnforcePolicyEnforcementPointTests {
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("not PERMIT"))
                     .verify(STEP_TIMEOUT);
         }
+
+        @Test
+        @DisplayName("SUSPEND with a substitute resource still denies; one-shot PEPs cannot pause, so substitution cannot save a suspension")
+        void whenSuspendWithResourceThenStillAccessDenied() {
+            decide(new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.of(CASE_FILE_REDACTED)));
+
+            StepVerifier.create(watch.openCaseFile()).expectErrorSatisfies(
+                    err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("not PERMIT"))
+                    .verify(STEP_TIMEOUT);
+        }
     }
 
     @Nested
@@ -214,6 +225,14 @@ class PreEnforcePolicyEnforcementPointTests {
             decide(AuthorizationDecision.NOT_APPLICABLE);
 
             assertAccessDenied(watch.openCaseFile(), "NOT_APPLICABLE");
+        }
+
+        @Test
+        @DisplayName("SUSPEND raises AccessDeniedException; reactive one-shot PEPs cannot suspend, so the warrant is refused outright")
+        void whenSuspendThenAccessDenied() {
+            decide(AuthorizationDecision.SUSPEND);
+
+            assertAccessDenied(watch.openCaseFile(), "SUSPEND");
         }
     }
 
