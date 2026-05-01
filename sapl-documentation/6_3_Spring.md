@@ -272,6 +272,120 @@ public Document getDocument(Long id) { ... }
 
 You cannot mix SAPL annotations with Spring Security annotations like `@PreAuthorize` on the same method. Choose one authorization mechanism per method.
 
+### Streaming Enforcement with `@StreamEnforce`
+
+`@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For methods that return a `Flux<T>`, the decision is rarely a single point in time — the same subscription stays open while the policy evaluates against attribute streams that may change. SAPL exposes a third method-security annotation for this case.
+
+```java
+@StreamEnforce
+public Flux<Reading> sensorReadings(String deviceId) {
+    return readings.streamFor(deviceId);
+}
+```
+
+`@StreamEnforce` consumes a continuous stream of authorization decisions from the PDP. As decisions change, the PEP lets items flow, drops them silently, or terminates the subscription accordingly. The annotation only applies to methods that return a `Flux`. For `Mono` returns use `@PreEnforce`/`@PostEnforce`.
+
+#### How Decisions Affect the Subscription
+
+Every decision the PDP emits during the lifetime of the subscription has one of five verbs, and each maps to a single observable effect.
+
+| PDP decision | Effect on the subscription |
+|---|---|
+| `PERMIT` | Items from the protected method flow through to the subscriber. |
+| `SUSPEND` | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow. |
+| `INDETERMINATE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient PDP errors. |
+| `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient policy gaps. |
+| `DENY` | The subscription terminates with an `AccessDeniedException`. |
+
+The mapping of `INDETERMINATE` and `NOT_APPLICABLE` to silent-drop is deliberate: streaming subscriptions should be resilient to transient policy gaps and broker errors. Operators who want hard fail-closed semantics on these set the combining algorithm's `defaultDecision` to `DENY` (so `NOT_APPLICABLE` collapses to `DENY`) or its `errorHandling` to `PROPAGATE` (so `INDETERMINATE` collapses to `DENY`) at the PDP level. The streaming PEP honours whatever decision the PDP produces.
+
+A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for — see [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
+
+#### Three Flags
+
+`@StreamEnforce` carries three boolean flags, all defaulting to `false`. Each addresses one orthogonal concern.
+
+```java
+@StreamEnforce(
+    signalTransitions                 = boolean,  // default false
+    terminateOnItemEnforcementFailure = boolean,  // default false
+    pauseRapDuringSuspend             = boolean   // default false
+)
+```
+
+**`signalTransitions`** — surface every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused — waiting for access") opt in to `signalTransitions=true`.
+
+**`terminateOnItemEnforcementFailure`** — controls what happens when a per-item obligation handler fails. With the default `false`, an item-level failure silences the subscription as if the PDP had emitted `SUSPEND`; the subscription stays alive and may resume on a later decision. With `true`, an item-level failure terminates the subscription with an `AccessDeniedException`. Choose `true` for protected methods whose per-item side effects are unsafe to leave unenforced (where letting one item slip past would be a security failure). Choose `false` (the default) for streams where transient enforcement hiccups should pause the subscription without tearing it down.
+
+**`pauseRapDuringSuspend`** — controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
+
+#### Three Common Patterns
+
+The flag combinations encode the three behavioural patterns most streaming endpoints want.
+
+**Terminate on deny** — the subscription should end the moment access is revoked, and the subscriber should know.
+
+```java
+@StreamEnforce
+public Flux<Trade> liveTrades() { ... }
+```
+
+Defaults are sufficient. A `DENY` from the PDP terminates the subscription with `AccessDeniedException`. A `SUSPEND` keeps the subscription alive but silently drops items. The subscriber sees data while permitted and a terminal error if denied. This matches subscription-based business models where service delivery should stop when the subscriber's contract ends.
+
+**Drop while suspended, silent transitions** — the subscription should survive deny windows transparently. The subscriber sees data when permitted and silence otherwise, with no boundary events.
+
+```java
+@StreamEnforce
+public Flux<TelemetryEvent> telemetry() { ... }
+```
+
+Same defaults; the difference is in the policy: use the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open. When the policy returns `PERMIT` again, items resume. Useful for legacy clients that cannot renegotiate connections, or when revealing the deny condition itself would leak information.
+
+**Survive deny with explicit transition signals** — the subscription should survive, and the subscriber wants to know about every boundary.
+
+```java
+@StreamEnforce(signalTransitions = true)
+public Flux<MarketData> marketData() { ... }
+```
+
+The PDP returns `SUSPEND` for windows where access should pause; the PEP emits a non-terminal `AccessDeniedException` every time the subscription is silenced and an `AccessGrantedException` every time it resumes. The subscriber observes these on the error channel and can update UI state, log the boundary, or trigger client-side replay logic. The subscription itself stays open across all transitions until either the client cancels or the PDP issues a terminal `DENY`.
+
+For the third pattern, a helper class `RecoverableFluxes` ships with the PEP for translating those non-terminal exceptions into application-level callbacks; see [Streaming Constraint Handlers](#streaming-constraint-handlers) below.
+
+#### Subscription, Action, and Resource
+
+`@StreamEnforce` carries the same SpEL slots as `@PreEnforce` for shaping the authorization subscription.
+
+```java
+@StreamEnforce(
+    subject  = "authentication.principal",
+    action   = "'subscribe'",
+    resource = "#deviceId"
+)
+public Flux<Reading> sensorReadings(String deviceId) { ... }
+```
+
+When omitted, defaults are derived from the method invocation as for the request-response annotations. See [Building the Authorization Subscription](#building-the-authorization-subscription) above.
+
+#### Streaming Constraint Handlers
+
+The same `ConstraintHandlerProvider` mechanism that powers `@PreEnforce` and `@PostEnforce` applies. Per-item handlers attach to the `OutputSignal` and run on every emitted item; decision-scoped handlers attach to the `DecisionSignal` and run once per decision arrival. See [Constraints](#constraints) below.
+
+For the recoverable pattern, the helper:
+
+```java
+@GetMapping(value = "/feed", produces = MediaType.APPLICATION_NDJSON_VALUE)
+public Flux<ServerSentEvent<Quote>> feed() {
+    return RecoverableFluxes.recover(
+            quoteService.liveQuotes(),
+            suspended -> log.info("Stream suspended: {}", suspended.getMessage()),
+            resumed   -> log.info("Stream resumed: {}", resumed.getMessage()))
+        .map(quote -> ServerSentEvent.<Quote>builder().data(quote).build());
+}
+```
+
+translates the non-terminal `AccessDeniedException` / `AccessGrantedException` events emitted under `signalTransitions=true` into ordinary callbacks, then re-emits a clean `Flux<T>` to the downstream consumer.
+
 ### Transaction Integration
 
 When a `@PreEnforce` or `@PostEnforce` method is also `@Transactional`, an obligation handler failure must trigger a transaction rollback. Consider this service method.
