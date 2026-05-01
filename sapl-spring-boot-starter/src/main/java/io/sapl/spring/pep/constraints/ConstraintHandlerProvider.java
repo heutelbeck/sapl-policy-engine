@@ -171,8 +171,8 @@ public interface ConstraintHandlerProvider {
         var expected = generics.length == 0 ? ResolvableType.forClass(outerClass)
                 : ResolvableType.forClassWithGenerics(outerClass, generics);
         for (var s : supportedSignals) {
-            if (s instanceof SignalType.ValueSignalType<?> v && OutputSignal.class.equals(v.type())
-                    && resolvableTypesMatch(v.valueType(), expected)) {
+            if (s instanceof SignalType.ValueSignalType<?>(var type, var valueType) && OutputSignal.class.equals(type)
+                    && resolvableTypesMatch(valueType, expected)) {
                 return Optional.of(s);
             }
         }
