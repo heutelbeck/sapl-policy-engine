@@ -25,7 +25,6 @@ import io.sapl.spring.pep.streaming.Emission.EmitError;
 import io.sapl.spring.pep.streaming.Emission.EmitTransition;
 import io.sapl.spring.pep.streaming.Emission.StayQuiet;
 import io.sapl.spring.pep.streaming.Event.Cancel;
-import io.sapl.spring.pep.streaming.Event.PdpComplete;
 import io.sapl.spring.pep.streaming.Event.PdpDeny;
 import io.sapl.spring.pep.streaming.Event.PdpError;
 import io.sapl.spring.pep.streaming.Event.PdpPermit;
@@ -33,7 +32,6 @@ import io.sapl.spring.pep.streaming.Event.PdpSuspend;
 import io.sapl.spring.pep.streaming.Event.RapComplete;
 import io.sapl.spring.pep.streaming.Event.RapError;
 import io.sapl.spring.pep.streaming.Event.RapItem;
-import io.sapl.spring.pep.streaming.Event.Request;
 import io.sapl.spring.pep.streaming.State.Pending;
 import io.sapl.spring.pep.streaming.State.Permitting;
 import io.sapl.spring.pep.streaming.State.Suspended;
@@ -77,13 +75,11 @@ public class StateMachine {
         }
         return switch (event) {
 
-        // Lifecycle terminations and no-ops.
+        // Lifecycle terminations.
         case Cancel ignored      -> terminate();
         case RapComplete ignored -> terminateNormally();
         case RapError(var t)     -> terminateWithError(t);
         case PdpError(var t)     -> terminateWithError(t);
-        case PdpComplete ignored -> Transition.to(state);
-        case Request ignored     -> Transition.to(state);
 
         // Decision events: dispatch on verb.
         case PdpPermit permit   -> onPermit(state, permit);
