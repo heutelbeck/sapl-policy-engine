@@ -362,9 +362,158 @@ same type.
 
 The reactive backend fires the same five signals as the servlet backend
 (documented below) and the request serializer exposes the same field names
-on both stacks: `resource.requestedURI` is the request path,
-`resource.contextPath` is the application's deployment context (usually
-empty for root deployments). The same policy works against both backends.
+on both stacks. The full schema is documented in
+[The HTTP Request Shape](#the-http-request-shape) below.
+
+### The HTTP Request Shape
+
+The default subscription factory serialises the inbound request and
+places it on both `action` and `resource`. Both stacks (servlet and
+reactive) emit the same field layout, so a single policy works against
+either backend. The shape is intentionally close to a normalised request
+view: top-level URL parts where they are most useful, grouped peer
+information under `client`/`server`, and parsed forwarding-header data
+under `forwarded` so policies do not have to split the headers
+themselves.
+
+A typical request behind a TLS-terminating reverse proxy serialises to:
+
+```json
+{
+  "method": "GET",
+
+  "url":             "https://api.example.com:8443/myapp/users/42?role=admin",
+  "scheme":          "https",
+  "host":            "api.example.com",
+  "port":            8443,
+  "path":            "/myapp/users/42",
+  "query":           "role=admin",
+  "queryParameters": { "role": ["admin"] },
+
+  "contextPath":     "/myapp",
+  "applicationPath": "/users/42",
+
+  "isSecure": true,
+
+  "client": {
+    "address": "203.0.113.7",
+    "host":    "client.example.com",
+    "port":    54402
+  },
+  "server": {
+    "address": "10.0.0.1",
+    "host":    "internal-host",
+    "port":    8443
+  },
+
+  "headers": {
+    "host":            ["api.example.com"],
+    "authorization":   ["Bearer ..."],
+    "x-forwarded-for": ["198.51.100.1, 203.0.113.7"]
+  },
+  "cookies": [
+    { "name": "session", "value": "abc123" }
+  ],
+
+  "forwarded": {
+    "for":   ["198.51.100.1", "203.0.113.7"],
+    "host":  "api.example.com",
+    "proto": "https",
+    "port":  443
+  },
+
+  "contentType":       "application/json",
+  "contentLength":     142,
+  "characterEncoding": "UTF-8"
+}
+```
+
+#### URL parts
+
+| Field | Description |
+|---|---|
+| `method` | HTTP method (`GET`, `POST`, ...). |
+| `url` | The full request URL including the query string. |
+| `scheme` | `http` or `https` as observed at this hop. |
+| `host` | The host the client addressed (from the URI on the reactive stack, from the `Host` header on the servlet stack). |
+| `port` | The matching port. |
+| `path` | The request path only, without scheme, host, or query. Replaces the older `requestedURI`. |
+| `query` | The raw query string with no leading `?`. Absent when the request has no query. |
+| `queryParameters` | The query string parsed into a multi-valued map; values are URL-decoded. Absent when the request has no query. Form-encoded request bodies are not exposed here; they are not authorization input by default. |
+| `contextPath` | The servlet context root, usually `""` for Spring Boot apps. |
+| `applicationPath` | `path` with `contextPath` stripped. Useful when the app is mounted under a context root. |
+| `isSecure` | `true` iff `scheme == "https"` for this hop. Behind TLS-terminating proxies this reflects the proxy-to-app leg, not the user-to-proxy leg. Use `forwarded.proto` for end-to-end. |
+
+#### Connection peer information
+
+| Field | Description |
+|---|---|
+| `client.address` | The direct peer's IP. Behind a reverse proxy this is the proxy IP, not the original client. |
+| `client.host` | Reverse-DNS name of the direct peer (or the IP). |
+| `client.port` | Direct peer port. |
+| `server.address` | The bind interface IP this hop landed on. |
+| `server.host` | The bind interface name. |
+| `server.port` | The bind port. |
+
+#### Headers, cookies
+
+| Field | Description |
+|---|---|
+| `headers` | A map from lowercase header name to a list of values. Lowercased to match HTTP/2 wire format and Spring's case-insensitive `HttpHeaders` contract; policies should always read with lowercase keys. |
+| `cookies` | A list of `{name, value}` objects. |
+
+#### Forwarded chain
+
+When standard reverse-proxy forwarding headers are present, a parsed
+view sits at `forwarded`. RFC 7239 `Forwarded` is preferred; the legacy
+`X-Forwarded-{For,Host,Proto,Port}` family is the fallback. The
+`forwarded` block is omitted entirely when no relevant header is
+present.
+
+| Field | Description |
+|---|---|
+| `forwarded.for` | The forwarding chain left-to-right; element `[0]` is the original client when the policy trusts the chain. |
+| `forwarded.host` | The original `Host` the user typed. |
+| `forwarded.proto` | The original scheme (`http` or `https`), normalised to lowercase. |
+| `forwarded.port` | The explicit forwarded port, when signalled. |
+
+The serializer parses these headers but does not judge whether to
+trust them. Whether to honour the chain is a policy decision; typical
+patterns gate on `client.address` being in a trusted proxy range.
+For SAPL to receive Spring's own rewritten request URI/host/scheme
+(based on these headers), wire `ForwardedHeaderTransformer` (reactive)
+or `ForwardedHeaderFilter` (servlet) per the Spring documentation.
+
+#### Body metadata
+
+| Field | Description |
+|---|---|
+| `contentType` | Request body media type, when set. |
+| `contentLength` | Body length in bytes, when known (`>=0`). |
+| `characterEncoding` | Body charset, when set. |
+
+The body itself is not exposed by the serializer because reading it at
+the authorization point would consume the single-shot input stream.
+Policies that need to inspect bodies require a separate mechanism.
+
+#### Distinguishing localhost from a custom domain
+
+The most common host-based check works directly:
+
+```sapl
+permit
+    resource.host == "api.example.com" |
+    resource.host == "internal.example.com";
+```
+
+Behind a reverse proxy, `host` reflects what this hop saw. To check
+the host the client actually used, also consult `forwarded.host`:
+
+```sapl
+permit
+    resource.host == "api.example.com" |
+    resource.forwarded.host == "api.example.com";
+```
 
 ### Customizing the Authorization Subscription
 
@@ -503,7 +652,7 @@ The matching policy:
 policy "stamp_tenant"
 permit
     action.method == "GET";
-    resource.requestedURI =~ "/api/.*";
+    resource.path =~ "/api/.*";
 obligation
     { "type": "tenant-header", "value": "demo-tenant" }
 ```

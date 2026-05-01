@@ -17,37 +17,29 @@
  */
 package io.sapl.spring.serialization;
 
-import lombok.val;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Locale;
+
+import org.jspecify.annotations.Nullable;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+
+import lombok.val;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
- * Jackson serializer for ServerHttpRequest that safely extracts request
- * metadata for reactive web applications.
+ * Jackson serializer for {@link ServerHttpRequest} that exposes the
+ * unified policy-facing HTTP shape. Same field names and grouping as
+ * {@link HttpServletRequestSerializer}, so a SAPL policy reads the same
+ * fields regardless of whether the deployed PEP is on the reactive stack
+ * or the servlet stack. Header keys are lowercased to match HTTP/2 wire
+ * format and Spring's case-insensitive {@code HttpHeaders} contract.
  */
 public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest> {
-
-    static final String CONTENT_TYPE   = "contentType";
-    static final String CONTEXT_PATH   = "contextPath";
-    static final String COOKIES        = "cookies";
-    static final String HEADERS        = "headers";
-    static final String IS_SECURE      = "isSecure";
-    static final String LOCAL_ADDRESS  = "localAddress";
-    static final String LOCAL_NAME     = "localName";
-    static final String LOCAL_PORT     = "localPort";
-    static final String METHOD         = "method";
-    static final String PARAMETERS     = "parameters";
-    static final String QUERY_STRING   = "queryString";
-    static final String REMOTE_ADDRESS = "remoteAddress";
-    static final String REMOTE_HOST    = "remoteHost";
-    static final String REMOTE_PORT    = "remotePort";
-    static final String REQUEST_URL    = "requestURL";
-    static final String REQUESTED_URI  = "requestedURI";
-    static final String SCHEME         = "scheme";
-    static final String SERVER_NAME    = "serverName";
-    static final String SERVER_PORT    = "serverPort";
 
     public ServerHttpRequestSerializer() {
         super(ServerHttpRequest.class);
@@ -55,63 +47,100 @@ public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest
 
     @Override
     public void serialize(ServerHttpRequest value, JsonGenerator gen, SerializationContext serializers) {
-        val uri = value.getURI();
+        val uri    = value.getURI();
+        val scheme = uri.getScheme();
         gen.writeStartObject();
-        gen.writeStringProperty(SCHEME, uri.getScheme());
-        gen.writeBooleanProperty(IS_SECURE, "https".equalsIgnoreCase(uri.getScheme()));
-        gen.writeStringProperty(SERVER_NAME, uri.getHost());
-        gen.writeNumberProperty(SERVER_PORT, uri.getPort());
-        val remoteAddress = value.getRemoteAddress();
-        if (remoteAddress != null) {
-            gen.writeStringProperty(REMOTE_ADDRESS, remoteAddress.toString());
-            gen.writeStringProperty(REMOTE_HOST, remoteAddress.getHostString());
-            gen.writeNumberProperty(REMOTE_PORT, remoteAddress.getPort());
-        }
-        val localAddress = value.getLocalAddress();
-        if (localAddress != null) {
-            gen.writeStringProperty(LOCAL_NAME, localAddress.getHostString());
-            gen.writeStringProperty(LOCAL_ADDRESS, localAddress.toString());
-            gen.writeNumberProperty(LOCAL_PORT, localAddress.getPort());
-        }
-        gen.writeStringProperty(METHOD, value.getMethod().name());
-        gen.writeStringProperty(CONTEXT_PATH, value.getPath().contextPath().value());
-        gen.writeStringProperty(REQUESTED_URI, value.getPath().value());
-        gen.writeStringProperty(REQUEST_URL, uri.toString());
+        gen.writeStringProperty(HttpServletRequestSerializer.METHOD, value.getMethod().name());
+        gen.writeStringProperty(HttpServletRequestSerializer.URL, uri.toString());
+        gen.writeStringProperty(HttpServletRequestSerializer.SCHEME, scheme);
+        gen.writeStringProperty(HttpServletRequestSerializer.HOST, uri.getHost());
+        gen.writeNumberProperty(HttpServletRequestSerializer.PORT, uri.getPort());
+        gen.writeStringProperty(HttpServletRequestSerializer.PATH, value.getPath().value());
         if (uri.getRawQuery() != null) {
-            gen.writeStringProperty(QUERY_STRING, uri.getRawQuery());
+            gen.writeStringProperty(HttpServletRequestSerializer.QUERY, uri.getRawQuery());
+            writeQueryParameters(value, gen);
         }
-        val contentType = value.getHeaders().getContentType();
-        if (contentType != null) {
-            gen.writeStringProperty(CONTENT_TYPE, contentType.toString());
-        }
+        gen.writeStringProperty(HttpServletRequestSerializer.CONTEXT_PATH, value.getPath().contextPath().value());
+        gen.writeStringProperty(HttpServletRequestSerializer.APPLICATION_PATH,
+                value.getPath().pathWithinApplication().value());
+        gen.writeBooleanProperty(HttpServletRequestSerializer.IS_SECURE, "https".equalsIgnoreCase(scheme));
+        writeClient(value.getRemoteAddress(), gen);
+        writeServer(value.getLocalAddress(), gen);
         writeHeaders(value, gen);
         writeCookies(value, gen);
-        writeParameters(value, gen);
+        writeForwarded(value, gen);
+        writeBodyMetadata(value, gen);
         gen.writeEndObject();
     }
 
-    private void writeHeaders(ServerHttpRequest value, JsonGenerator gen) {
-        val headers = value.getHeaders();
-        if (headers.isEmpty())
+    private static void writeQueryParameters(ServerHttpRequest request, JsonGenerator gen) {
+        val params = request.getQueryParams();
+        if (params.isEmpty()) {
             return;
-        gen.writeName(HEADERS);
+        }
+        gen.writeName(HttpServletRequestSerializer.QUERY_PARAMETERS);
         gen.writeStartObject();
-        for (val entry : headers.headerSet()) {
+        for (val entry : params.entrySet()) {
             gen.writeName(entry.getKey());
             gen.writeStartArray();
-            for (val headerValue : entry.getValue())
-                gen.writeString(headerValue);
+            for (val parameterValue : entry.getValue()) {
+                gen.writeString(parameterValue);
+            }
             gen.writeEndArray();
         }
         gen.writeEndObject();
     }
 
-    private void writeCookies(ServerHttpRequest value, JsonGenerator gen) {
-        val cookies = value.getCookies();
-        if (cookies.isEmpty())
-            return;
+    private static void writeClient(@Nullable InetSocketAddress remoteAddress, JsonGenerator gen) {
+        gen.writeName(HttpServletRequestSerializer.CLIENT);
+        gen.writeStartObject();
+        if (remoteAddress != null) {
+            gen.writeStringProperty(HttpServletRequestSerializer.ADDRESS,
+                    remoteAddress.getAddress() != null ? remoteAddress.getAddress().getHostAddress()
+                            : remoteAddress.getHostString());
+            gen.writeStringProperty(HttpServletRequestSerializer.HOST, remoteAddress.getHostString());
+            gen.writeNumberProperty(HttpServletRequestSerializer.PORT, remoteAddress.getPort());
+        }
+        gen.writeEndObject();
+    }
 
-        gen.writeName(COOKIES);
+    private static void writeServer(@Nullable InetSocketAddress localAddress, JsonGenerator gen) {
+        gen.writeName(HttpServletRequestSerializer.SERVER);
+        gen.writeStartObject();
+        if (localAddress != null) {
+            gen.writeStringProperty(HttpServletRequestSerializer.ADDRESS,
+                    localAddress.getAddress() != null ? localAddress.getAddress().getHostAddress()
+                            : localAddress.getHostString());
+            gen.writeStringProperty(HttpServletRequestSerializer.HOST, localAddress.getHostString());
+            gen.writeNumberProperty(HttpServletRequestSerializer.PORT, localAddress.getPort());
+        }
+        gen.writeEndObject();
+    }
+
+    private static void writeHeaders(ServerHttpRequest request, JsonGenerator gen) {
+        val headers = request.getHeaders();
+        if (headers.isEmpty()) {
+            return;
+        }
+        gen.writeName(HttpServletRequestSerializer.HEADERS);
+        gen.writeStartObject();
+        for (val entry : headers.headerSet()) {
+            gen.writeName(entry.getKey().toLowerCase(Locale.ROOT));
+            gen.writeStartArray();
+            for (val headerValue : entry.getValue()) {
+                gen.writeString(headerValue);
+            }
+            gen.writeEndArray();
+        }
+        gen.writeEndObject();
+    }
+
+    private static void writeCookies(ServerHttpRequest request, JsonGenerator gen) {
+        val cookies = request.getCookies();
+        if (cookies.isEmpty()) {
+            return;
+        }
+        gen.writeName(HttpServletRequestSerializer.COOKIES);
         gen.writeStartArray();
         for (val entry : cookies.entrySet()) {
             for (val cookie : entry.getValue()) {
@@ -124,21 +153,55 @@ public class ServerHttpRequestSerializer extends StdSerializer<ServerHttpRequest
         gen.writeEndArray();
     }
 
-    private void writeParameters(ServerHttpRequest value, JsonGenerator gen) {
-        if (value.getQueryParams().isEmpty())
+    private static void writeForwarded(ServerHttpRequest request, JsonGenerator gen) {
+        val parsed = ForwardedHeaders.parse(name -> request.getHeaders().getOrDefault(name, List.of()));
+        if (parsed.isEmpty()) {
             return;
-
-        gen.writeName(PARAMETERS);
+        }
+        gen.writeName(HttpServletRequestSerializer.FORWARDED);
         gen.writeStartObject();
-        for (val entry : value.getQueryParams().entrySet()) {
-            gen.writeName(entry.getKey());
+        if (!parsed.forChain().isEmpty()) {
+            gen.writeName(HttpServletRequestSerializer.FORWARDED_FOR);
             gen.writeStartArray();
-            for (val paramValue : entry.getValue()) {
-                gen.writeString(paramValue);
+            for (val client : parsed.forChain()) {
+                gen.writeString(client);
             }
             gen.writeEndArray();
         }
+        if (parsed.host() != null) {
+            gen.writeStringProperty(HttpServletRequestSerializer.FORWARDED_HOST, parsed.host());
+        }
+        if (parsed.proto() != null) {
+            gen.writeStringProperty(HttpServletRequestSerializer.FORWARDED_PROTO, parsed.proto());
+        }
+        if (parsed.port() != null) {
+            gen.writeNumberProperty(HttpServletRequestSerializer.FORWARDED_PORT, parsed.port());
+        }
         gen.writeEndObject();
+    }
+
+    private static void writeBodyMetadata(ServerHttpRequest request, JsonGenerator gen) {
+        val headers     = request.getHeaders();
+        val contentType = headers.getContentType();
+        if (contentType != null) {
+            gen.writeStringProperty(HttpServletRequestSerializer.CONTENT_TYPE, contentType.toString());
+            val charset = charsetOf(contentType);
+            if (charset != null) {
+                gen.writeStringProperty(HttpServletRequestSerializer.CHARACTER_ENCODING, charset.name());
+            }
+        }
+        val contentLength = headers.getContentLength();
+        if (contentLength >= 0) {
+            gen.writeNumberProperty(HttpServletRequestSerializer.CONTENT_LENGTH, contentLength);
+        }
+    }
+
+    private static @Nullable Charset charsetOf(MediaType contentType) {
+        try {
+            return contentType.getCharset();
+        } catch (UnsupportedOperationException uoe) {
+            return null;
+        }
     }
 
 }

@@ -1,6 +1,6 @@
 policy "modify string arguments"
 permit
-    action.http.requestedURI == "/string";
+    action.http.path == "/string";
 obligation {
               "suffix" : "HELLO MODIFICATION"
            }

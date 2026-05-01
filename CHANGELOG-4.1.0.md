@@ -107,22 +107,51 @@ The `manager` and `config` packages have been folded into a unified
 | `io.sapl.spring.manager.ReactiveSaplAuthorizationManager`         | `io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager`       |
 | `io.sapl.spring.config.SaplHttpSecurityConfigurer`                | `io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer`              |
 
-### Reactive request serializer field names
+### HTTP request shape
 
-The reactive HTTP request serializer is now aligned with the servlet
-serializer. `requestedURI` is the request path; `contextPath` is the
-deployment context. In 4.0 the reactive serializer wrote the request
-path into `contextPath` and the full URI into `requestedURI`. Reactive
-policies that matched on `resource.contextPath` must change to
-`resource.requestedURI`:
+Both serializers (servlet and reactive) now emit the same unified
+shape under `action.http` and `resource.http`. The same SAPL policy
+text works against either backend. The most common rename is
+`requestedURI` -> `path`; the full schema is documented in
+[`sapl-documentation/6_3_Spring.md` -> "The HTTP Request Shape"](sapl-documentation/6_3_Spring.md).
 
 ```sapl
-// 4.0 (reactive)
+// 4.0 (servlet) and 4.0 (reactive, two different shapes)
+deny resource.requestedURI == "/secret";
 deny resource.contextPath == "/secret";
 
-// 4.1 (reactive and servlet — same text)
-deny resource.requestedURI == "/secret";
+// 4.1 (servlet and reactive, same text)
+deny resource.path == "/secret";
 ```
+
+Field-by-field migration:
+
+| 4.0 | 4.1 | Notes |
+|---|---|---|
+| `requestedURI` | `path` | The old name was a Servlet-API misnomer; the value is the request path, not a URI |
+| `requestURL` | `url` | Now also includes the query string for parity across stacks |
+| `serverName` | `host` | Plain noun; was misleading because the value is host-as-seen-here, not the JVM hostname |
+| `serverPort` | `port` | Same reasoning |
+| `remoteAddress` (string `"/127.0.0.1:54402"`) | `client.address` (`"127.0.0.1"`) | Also `client.host`, `client.port` split out |
+| `remoteHost` | `client.host` | Grouped under the `client` peer |
+| `remotePort` | `client.port` | Grouped under the `client` peer |
+| `localAddress` / `localName` / `localPort` | `server.address` / `server.host` / `server.port` | Grouped under the `server` bind interface |
+| `parameters` | `queryParameters` | Now query-only; servlet-side form-body parameters are no longer mixed in |
+| `protocol`, `requestedSessionId`, `authType`, `locale`, `locales`, `servletPath` | removed | Use `subject.authentication`, the `accept-language` header, or `applicationPath` instead |
+
+Additions:
+
+- `applicationPath` -- the path with `contextPath` stripped, useful when the app is mounted under a context root.
+- `forwarded` -- a parsed view of RFC 7239 `Forwarded` (or legacy `X-Forwarded-{For,Host,Proto,Port}`) so policies can read the original client / host / scheme behind a proxy without splitting headers manually. Block omitted when no relevant header is present.
+- `contentLength` -- request body length in bytes when known.
+
+Header keys are now lowercased on both stacks (matches HTTP/2 and
+Spring's case-insensitive `HttpHeaders` contract). Policies that read
+`headers["User-Agent"]` must read `headers["user-agent"]` instead.
+
+Custom subscription factories that hand-built fields like
+`Map.of("requestedURI", req.getRequestURI())` should rename the key to
+`"path"` so they match the policy and the default factory.
 
 ### `MutableHttpResponse.setStatusCode`
 
