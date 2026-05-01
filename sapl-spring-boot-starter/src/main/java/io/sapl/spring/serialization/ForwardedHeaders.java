@@ -90,43 +90,60 @@ public record ForwardedHeaders(
     }
 
     private static ForwardedHeaders parseRfc7239(List<String> headerValues) {
-        val     forChain = new ArrayList<String>();
-        String  host     = null;
-        String  proto    = null;
-        Integer port     = null;
+        val accumulator = new Rfc7239Accumulator();
         for (val headerValue : headerValues) {
             for (val element : headerValue.split(",")) {
                 for (val pair : element.split(";")) {
-                    val eq = pair.indexOf('=');
-                    if (eq <= 0) {
-                        continue;
-                    }
-                    val name  = pair.substring(0, eq).trim().toLowerCase(Locale.ROOT);
-                    val value = stripQuotes(pair.substring(eq + 1).trim());
-                    switch (name) {
-                    case PARAM_FOR   -> {
-                        if (!value.isEmpty()) {
-                            forChain.add(stripPort(value));
-                        }
-                    }
-                    case PARAM_HOST  -> {
-                        if (host == null && !value.isEmpty()) {
-                            host = value;
-                        }
-                    }
-                    case PARAM_PROTO -> {
-                        if (proto == null && !value.isEmpty()) {
-                            proto = value.toLowerCase(Locale.ROOT);
-                        }
-                    }
-                    default          -> {
-                        // ignore unknown parameter
-                    }
-                    }
+                    processRfc7239Pair(pair, accumulator);
                 }
             }
         }
-        return new ForwardedHeaders(List.copyOf(forChain), host, proto, port);
+        return accumulator.build();
+    }
+
+    private static void processRfc7239Pair(String pair, Rfc7239Accumulator accumulator) {
+        val eq = pair.indexOf('=');
+        if (eq <= 0) {
+            return;
+        }
+        val name  = pair.substring(0, eq).trim().toLowerCase(Locale.ROOT);
+        val value = stripQuotes(pair.substring(eq + 1).trim());
+        if (value.isEmpty()) {
+            return;
+        }
+        switch (name) {
+        case PARAM_FOR   -> accumulator.addForwardedFor(stripPort(value));
+        case PARAM_HOST  -> accumulator.setHostIfAbsent(value);
+        case PARAM_PROTO -> accumulator.setProtoIfAbsent(value.toLowerCase(Locale.ROOT));
+        default          -> { /* ignore unknown parameter */ }
+        }
+    }
+
+    private static final class Rfc7239Accumulator {
+        private final List<String> forChain = new ArrayList<>();
+        private @Nullable String   host;
+        private @Nullable String   proto;
+        private @Nullable Integer  port;
+
+        void addForwardedFor(String forValue) {
+            forChain.add(forValue);
+        }
+
+        void setHostIfAbsent(String hostValue) {
+            if (host == null) {
+                host = hostValue;
+            }
+        }
+
+        void setProtoIfAbsent(String protoValue) {
+            if (proto == null) {
+                proto = protoValue;
+            }
+        }
+
+        ForwardedHeaders build() {
+            return new ForwardedHeaders(List.copyOf(forChain), host, proto, port);
+        }
     }
 
     private static ForwardedHeaders parseLegacy(Function<String, List<String>> source) {
@@ -174,7 +191,7 @@ public record ForwardedHeaders(
             return null;
         }
         try {
-            return Integer.parseInt(value);
+            return Integer.valueOf(value);
         } catch (NumberFormatException nfe) {
             return null;
         }
