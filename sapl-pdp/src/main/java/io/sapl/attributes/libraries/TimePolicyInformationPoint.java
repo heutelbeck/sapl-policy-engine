@@ -26,6 +26,7 @@ import io.sapl.api.model.Value;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -49,6 +50,7 @@ public class TimePolicyInformationPoint {
     public static final String  DESCRIPTION               = """
             Policy Information Point and attributes for retrieving current date and time information and
             basic temporal logic.""";
+    private static final String ERROR_CLOCK_RETURNED_NULL = "Clock returned null. The time PIP is misconfigured: a Clock bean must be supplied that always returns a valid Instant.";
     private static final String ERROR_DAY_NAME_INVALID    = "Invalid day of week name: '%s'. Expected one of MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.";
     private static final String ERROR_DAYS_ARRAY_EMPTY    = "The days array must not be empty.";
     private static final String ERROR_END_DAY_INVALID     = "Invalid end day of week: '%s'. Expected one of MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.";
@@ -593,9 +595,20 @@ public class TimePolicyInformationPoint {
     }
 
     private <T> Flux<T> poll(Duration pollInterval, Supplier<T> supplier) {
-        val first     = Flux.just(supplier.get());
-        val following = Flux.just(0).repeat().delayElements(pollInterval).map(tick -> supplier.get());
+        val checkedSupplier = nonNullClockResult(supplier);
+        val first           = Mono.fromCallable(checkedSupplier::get);
+        val following       = Flux.just(0).repeat().delayElements(pollInterval).map(tick -> checkedSupplier.get());
         return Flux.concat(first, following);
+    }
+
+    private static <T> Supplier<T> nonNullClockResult(Supplier<T> supplier) {
+        return () -> {
+            val value = supplier.get();
+            if (value == null) {
+                throw new IllegalStateException(ERROR_CLOCK_RETURNED_NULL);
+            }
+            return value;
+        };
     }
 
     private Instant textValueToInstant(TextValue value) {

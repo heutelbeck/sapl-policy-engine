@@ -93,6 +93,16 @@ class TimePolicyInformationPointTests {
             StepVerifier.<Value>withVirtualTime(() -> sut.now(Value.of(0L)))
                     .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
         }
+
+        @Test
+        @DisplayName("propagates explicit error when clock returns null")
+        void whenClockReturnsNullThenPropagatesExplicitError() {
+            val clock = mock(Clock.class);
+            when(clock.instant()).thenReturn(null);
+            val sut = new TimePolicyInformationPoint(clock);
+            StepVerifier.create(sut.now()).expectErrorMatches(error -> error instanceof IllegalStateException
+                    && error.getMessage().contains("Clock returned null")).verify();
+        }
     }
 
     @Nested
