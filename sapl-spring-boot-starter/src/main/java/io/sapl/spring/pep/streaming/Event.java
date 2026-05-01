@@ -22,7 +22,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementResult;
 
 /**
- * The input alphabet of the streaming PEP's FSM. Sealed into ten cases
+ * The input alphabet of the streaming PEP's FSM. Sealed into eight cases
  * covering the three input domains: PDP-side decision events, RAP-side
  * stream events, and downstream subscriber-side lifecycle events.
  * <p>
@@ -76,17 +76,6 @@ public sealed interface Event {
     record PdpDeny(AuthorizationDecision decision, EnforcementPlan plan) implements Event {}
 
     /**
-     * The PDP's decision flux completed normally. No further decisions
-     * will arrive. The current state is preserved; the machine continues
-     * to gate items against the last-known plan until the RAP completes
-     * or terminates by another route.
-     */
-    record PdpComplete() implements Event {
-
-        public static final PdpComplete INSTANCE = new PdpComplete();
-    }
-
-    /**
      * The PDP's decision flux raised. Treated as terminal: emit the
      * throwable downstream and transition to {@link State.Terminated}.
      */
@@ -126,11 +115,4 @@ public sealed interface Event {
 
         public static final Cancel INSTANCE = new Cancel();
     }
-
-    /**
-     * The downstream subscriber requested {@code n} items. Forwarded for
-     * lifecycle-handler firing (the plan's {@code SubscriptionSignal}
-     * handlers); no state change.
-     */
-    record Request(long demand) implements Event {}
 }

@@ -33,7 +33,6 @@ import io.sapl.spring.pep.streaming.Emission.EmitError;
 import io.sapl.spring.pep.streaming.Emission.EmitTransition;
 import io.sapl.spring.pep.streaming.Emission.StayQuiet;
 import io.sapl.spring.pep.streaming.Event.Cancel;
-import io.sapl.spring.pep.streaming.Event.PdpComplete;
 import io.sapl.spring.pep.streaming.Event.PdpDeny;
 import io.sapl.spring.pep.streaming.Event.PdpError;
 import io.sapl.spring.pep.streaming.Event.PdpPermit;
@@ -158,8 +157,13 @@ public final class StreamingPipeline {
     }
 
     private void startPdpSubscription() {
+        // The PDP decision flux is contractually infinite for streaming
+        // subscriptions. The 2-arg subscribe variant is correct: any
+        // (out-of-contract) onComplete from the PDP is silently
+        // ignored; the subscription continues to gate items against the
+        // last-known plan until cancelled or the RAP terminates.
         val pdpSub = decisions.switchIfEmpty(Flux.just(io.sapl.api.pdp.AuthorizationDecision.DENY))
-                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
+                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError);
         subscriptions.add(pdpSub);
     }
 
@@ -191,10 +195,6 @@ public final class StreamingPipeline {
 
     private void onPdpError(Throwable throwable) {
         process(new PdpError(throwable));
-    }
-
-    private void onPdpComplete() {
-        process(PdpComplete.INSTANCE);
     }
 
     private void ensureRapSubscribed() {
