@@ -29,7 +29,7 @@ import java.io.Serial;
  * annotation. Fires symmetrically on initial grant (Pending -&gt;
  * Permitting) and resume (Suspended -&gt; Permitting). Carried on the
  * error channel as a non-terminal signal: subscribers consume it via
- * {@code onErrorContinue} (typically through {@link RecoverableFluxes})
+ * {@code onErrorContinue} (typically through {@link TransitionSignals})
  * and the stream continues emitting items.
  * <p>
  * Distinct from

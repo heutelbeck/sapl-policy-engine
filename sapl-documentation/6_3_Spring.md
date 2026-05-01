@@ -350,7 +350,7 @@ public Flux<MarketData> marketData() { ... }
 
 The PDP returns `SUSPEND` for windows where access should pause; the PEP emits a non-terminal `AccessDeniedException` every time the subscription is silenced and an `AccessGrantedException` every time it resumes. The subscriber observes these on the error channel and can update UI state, log the boundary, or trigger client-side replay logic. The subscription itself stays open across all transitions until either the client cancels or the PDP issues a terminal `DENY`.
 
-For the third pattern, a helper class `RecoverableFluxes` ships with the PEP for translating those non-terminal exceptions into application-level callbacks; see [Streaming Constraint Handlers](#streaming-constraint-handlers) below.
+For the third pattern, a helper class `TransitionSignals` ships with the PEP for translating those non-terminal exceptions into application-level callbacks; see [Streaming Constraint Handlers](#streaming-constraint-handlers) below.
 
 #### Subscription, Action, and Resource
 
@@ -376,10 +376,10 @@ For the recoverable pattern, the helper:
 ```java
 @GetMapping(value = "/feed", produces = MediaType.APPLICATION_NDJSON_VALUE)
 public Flux<ServerSentEvent<Quote>> feed() {
-    return RecoverableFluxes.recover(
+    return TransitionSignals.onTransitions(
             quoteService.liveQuotes(),
             suspended -> log.info("Stream suspended: {}", suspended.getMessage()),
-            resumed   -> log.info("Stream resumed: {}", resumed.getMessage()))
+            granted   -> log.info("Stream resumed: {}", granted.getMessage()))
         .map(quote -> ServerSentEvent.<Quote>builder().data(quote).build());
 }
 ```

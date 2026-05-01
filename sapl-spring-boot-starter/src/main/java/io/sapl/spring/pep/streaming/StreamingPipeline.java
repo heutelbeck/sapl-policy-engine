@@ -27,27 +27,27 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
-import io.sapl.spring.pep.streaming.Emission.Emit;
-import io.sapl.spring.pep.streaming.Emission.EmitComplete;
-import io.sapl.spring.pep.streaming.Emission.EmitError;
-import io.sapl.spring.pep.streaming.Emission.EmitTransition;
-import io.sapl.spring.pep.streaming.Emission.StayQuiet;
-import io.sapl.spring.pep.streaming.Event.Cancel;
-import io.sapl.spring.pep.streaming.Event.PdpDeny;
-import io.sapl.spring.pep.streaming.Event.PdpError;
-import io.sapl.spring.pep.streaming.Event.PdpPermit;
-import io.sapl.spring.pep.streaming.Event.PdpSuspend;
-import io.sapl.spring.pep.streaming.Event.RapComplete;
-import io.sapl.spring.pep.streaming.Event.RapError;
-import io.sapl.spring.pep.streaming.Event.RapItem;
-import io.sapl.spring.pep.streaming.State.Permitting;
-import io.sapl.spring.pep.streaming.State.Suspended;
-import io.sapl.spring.pep.streaming.State.Terminated;
-import io.sapl.spring.pep.streaming.TransitionReason.EvaluationError;
-import io.sapl.spring.pep.streaming.TransitionReason.Granted;
-import io.sapl.spring.pep.streaming.TransitionReason.NoPolicyApplicable;
-import io.sapl.spring.pep.streaming.TransitionReason.PermitNotEnforceable;
-import io.sapl.spring.pep.streaming.TransitionReason.PolicySuspended;
+import io.sapl.spring.pep.streaming.MealyMachine.Emission;
+import io.sapl.spring.pep.streaming.MealyMachine.Emission.Emit;
+import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitComplete;
+import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitError;
+import io.sapl.spring.pep.streaming.MealyMachine.Emission.EmitTransition;
+import io.sapl.spring.pep.streaming.MealyMachine.Event;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.Cancel;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpDeny;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpError;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpPermit;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.PdpSuspend;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.RapComplete;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.RapError;
+import io.sapl.spring.pep.streaming.MealyMachine.Event.RapItem;
+import io.sapl.spring.pep.streaming.MealyMachine.State;
+import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
+import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
+import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
+import io.sapl.spring.pep.streaming.MealyMachine.SuspendKind;
+import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
+import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,11 +56,12 @@ import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 /**
  * Reactor adapter for the streaming PEP. Drives the pure
- * {@link StateMachine} from a PDP decision flux and a lazily-subscribed
+ * {@link MealyMachine} from a PDP decision flux and a lazily-subscribed
  * RAP publisher; renders the resulting {@link Emission}s onto a
  * downstream {@link Flux} for the subscriber.
  * <p>
@@ -70,9 +71,10 @@ import reactor.util.context.ContextView;
  * concurrency.
  * <p>
  * Output shape: {@code Flux.create(...)} emits {@link ProtectedPayload}
- * wrappers carrying either a data value or an error; the chain ends with
- * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the value or
- * raises the error from inside the per-item processing of {@code flatMap}.
+ * wrappers (private nested record) carrying either a data value or an
+ * error; the chain ends with {@code .flatMap(ProtectedPayload::unwrap)}
+ * which re-emits the value or raises the error from inside the per-item
+ * processing of {@code flatMap}.
  * That positioning is what lets a downstream {@code onErrorContinue} catch
  * boundary signals ({@link AccessDeniedException} on suspend,
  * {@link AccessGrantedException} on resume, when {@code signalTransitions}
@@ -177,20 +179,24 @@ public final class StreamingPipeline {
     /**
      * Routes each PDP decision into a single FSM event. PERMIT becomes
      * either {@link PdpPermit} (decision-scoped enforcement OK) or
-     * {@link PdpSuspend} with reason {@link PermitNotEnforceable}.
-     * SUSPEND, INDETERMINATE, NOT_APPLICABLE all become
-     * {@link PdpSuspend} with discriminating reasons. DENY becomes
-     * {@link PdpDeny}.
+     * {@link PdpSuspend} with reason
+     * {@link SuspendKind#PERMIT_NOT_ENFORCEABLE}. SUSPEND,
+     * INDETERMINATE, NOT_APPLICABLE all become {@link PdpSuspend} with
+     * discriminating {@link SuspendKind}s. DENY becomes {@link PdpDeny}.
      */
     private Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
         return switch (decision.decision()) {
-        case PERMIT         -> decisionScopedFailed ? new PdpSuspend(decision, plan, new PermitNotEnforceable(decision))
+        case PERMIT         -> decisionScopedFailed ? suspended(decision, plan, SuspendKind.PERMIT_NOT_ENFORCEABLE)
                 : new PdpPermit(decision, plan, terminateOnItemEnforcementFailure);
-        case SUSPEND        -> new PdpSuspend(decision, plan, new PolicySuspended(decision));
-        case INDETERMINATE  -> new PdpSuspend(decision, plan, new EvaluationError(decision));
-        case NOT_APPLICABLE -> new PdpSuspend(decision, plan, new NoPolicyApplicable(decision));
+        case SUSPEND        -> suspended(decision, plan, SuspendKind.POLICY_SUSPENDED);
+        case INDETERMINATE  -> suspended(decision, plan, SuspendKind.EVALUATION_ERROR);
+        case NOT_APPLICABLE -> suspended(decision, plan, SuspendKind.NO_POLICY_APPLICABLE);
         case DENY           -> new PdpDeny(decision, plan);
         };
+    }
+
+    private static PdpSuspend suspended(AuthorizationDecision decision, EnforcementPlan plan, SuspendKind kind) {
+        return new PdpSuspend(decision, plan, new TransitionReason.Suspended(kind, decision));
     }
 
     private void onPdpError(Throwable throwable) {
@@ -259,7 +265,7 @@ public final class StreamingPipeline {
                 return;
             }
             priorState = state;
-            val transition = StateMachine.step(state, event);
+            val transition = MealyMachine.step(state, event);
             state     = transition.newState();
             nextState = state;
             for (val emission : transition.emissions()) {
@@ -299,13 +305,12 @@ public final class StreamingPipeline {
         case EmitError(var throwable)   -> withSink(s -> s.error(throwable));
         case EmitComplete ignored       -> withSink(FluxSink::complete);
         case EmitTransition(var reason) -> renderTransition(reason);
-        case StayQuiet ignored          -> { /* observable no-op */ }
         }
     }
 
     private void renderTransition(TransitionReason reason) {
         // Both directions are gated by the same flag: if the subscriber
-        // hasn't opted into transition signalling, neither suspend nor
+        // hasn't opted into transition signaling, neither suspend nor
         // resume boundaries are surfaced. Terminal denies bypass this
         // path entirely via EmitError.
         if (!signalTransitions) {
@@ -325,4 +330,34 @@ public final class StreamingPipeline {
         }
     }
 
+    /**
+     * Carries either a data value or a non-terminal error through the
+     * single {@code Flux.create} sink. The chain terminates with
+     * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the
+     * value via {@link Mono#just} or raises the error via
+     * {@link Mono#error}. The {@code flatMap}-with-{@code Mono.error}
+     * pattern is what makes the subscriber's {@code onErrorContinue}
+     * actually catch boundary signals and continue the subscription.
+     * Errors raised directly from the upstream sink (e.g.,
+     * {@code FluxSink.error}) are terminal and not recoverable; only
+     * errors raised inside an operator's per-item processing are
+     * eligible for {@code onErrorContinue}.
+     */
+    private record ProtectedPayload<T>(@Nullable T value, @Nullable Throwable error) {
+
+        static <T> ProtectedPayload<T> ofValue(T value) {
+            return new ProtectedPayload<>(value, null);
+        }
+
+        static <T> ProtectedPayload<T> ofError(Throwable error) {
+            return new ProtectedPayload<>(null, error);
+        }
+
+        Mono<T> unwrap() {
+            if (error != null) {
+                return Mono.error(error);
+            }
+            return Mono.justOrEmpty(value);
+        }
+    }
 }
