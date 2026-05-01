@@ -51,7 +51,7 @@ import java.lang.annotation.Target;
  * AccessDeniedException} on entry to suspended,
  * {@link io.sapl.spring.pep.streaming.AccessGrantedException} on resume).
  * Subscribers consume the signals with {@code onErrorContinue} or via
- * {@link io.sapl.spring.pep.streaming.RecoverableFluxes}.</li>
+ * {@link io.sapl.spring.pep.streaming.TransitionSignals}.</li>
  * <li>{@link #terminateOnItemEnforcementFailure()} (default {@code false})
  * — strict per-item failure handling. When {@code false}, an item
  * whose obligation handlers fail transitions the subscription to
@@ -77,7 +77,7 @@ public @interface StreamEnforce {
      * permitting) are observable to the subscriber as non-terminal
      * exceptions on the error channel. Subscribers consume the signals
      * with {@code onErrorContinue} or via
-     * {@link io.sapl.spring.pep.streaming.RecoverableFluxes}; without
+     * {@link io.sapl.spring.pep.streaming.TransitionSignals}; without
      * such handling the first signal terminates the subscription.
      *
      * @return {@code true} to surface boundary transitions to the

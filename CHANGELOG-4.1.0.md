@@ -101,7 +101,7 @@ The four 4.0 streaming annotations are replaced by a single
 | `@EnforceTillDenied` | `@StreamEnforce` (defaults) | Behavioural difference moves into the policy. The policy uses `deny` for windows that should terminate the subscription (matching the old TillDenied semantics) and `suspend` for windows that should drop items but keep the subscription open. |
 | `@EnforceDropWhileDenied` | `@StreamEnforce` (defaults) plus `suspend` verb in policy | The annotation no longer encodes the survives-deny choice. Use the `suspend` verb in the policy text for the deny windows that should leave the subscription alive; use `deny` for the windows that should terminate. |
 | `@EnforceAccessAware` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy | Subscriber receives non-terminal `AccessDeniedException` / `AccessGrantedException` events on every transition. Same `suspend`-vs-`deny` policy distinction as DropWhileDenied. |
-| `@EnforceRecoverableIfDenied` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy plus `RecoverableFluxes.recover(...)` at the call site | The annotation does the transition signalling; `RecoverableFluxes` translates the non-terminal events into application-level callbacks. |
+| `@EnforceRecoverableIfDenied` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy plus `TransitionSignals.onTransitions(...)` at the call site | The annotation does the transition signalling; `TransitionSignals` translates the non-terminal events into application-level callbacks. |
 
 The `survivesDeny` annotation parameter is gone. The choice of whether
 a deny condition terminates the subscription or merely suspends it
