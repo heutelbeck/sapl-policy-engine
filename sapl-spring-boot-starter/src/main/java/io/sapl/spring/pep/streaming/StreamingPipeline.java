@@ -86,7 +86,7 @@ import reactor.util.context.ContextView;
  * @since 4.1.0
  */
 @Slf4j
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class StreamingPipeline {
 
     private static final String ERROR_STREAM_SUSPENDED     = "Stream suspended: %s";
@@ -184,7 +184,7 @@ public final class StreamingPipeline {
      * INDETERMINATE, NOT_APPLICABLE all become {@link PdpSuspend} with
      * discriminating {@link SuspendKind}s. DENY becomes {@link PdpDeny}.
      */
-    private Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
+    Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
         return switch (decision.decision()) {
         case PERMIT         -> decisionScopedFailed ? suspended(decision, plan, SuspendKind.PERMIT_NOT_ENFORCEABLE)
                 : new PdpPermit(decision, plan, terminateOnItemEnforcementFailure);
