@@ -58,7 +58,6 @@ public record ForwardedHeaders(
     private static final String X_FORWARDED_PROTO = "x-forwarded-proto";
     private static final String PARAM_FOR = "for";
     private static final String PARAM_HOST = "host";
-    private static final String PARAM_PORT = "port";
     private static final String PARAM_PROTO = "proto";
 
     /** Empty parsed view used when no relevant headers were present. */
@@ -119,11 +118,18 @@ public record ForwardedHeaders(
         }
     }
 
+    /**
+     * RFC 7239 defines {@code for}, {@code host}, {@code proto}, and {@code by}
+     * as the standard {@code Forwarded} parameters; port is carried inside
+     * {@code for=} and {@code host=} values, not as a top-level parameter.
+     * The accumulator therefore tracks only those three. The forwarded
+     * record's {@code port} component is reserved for the legacy
+     * {@code X-Forwarded-Port} header parsed by {@link #parseLegacy}.
+     */
     private static final class Rfc7239Accumulator {
         private final List<String> forChain = new ArrayList<>();
         private @Nullable String   host;
         private @Nullable String   proto;
-        private @Nullable Integer  port;
 
         void addForwardedFor(String forValue) {
             forChain.add(forValue);
@@ -142,7 +148,7 @@ public record ForwardedHeaders(
         }
 
         ForwardedHeaders build() {
-            return new ForwardedHeaders(List.copyOf(forChain), host, proto, port);
+            return new ForwardedHeaders(List.copyOf(forChain), host, proto, null);
         }
     }
 

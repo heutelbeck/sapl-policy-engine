@@ -4,9 +4,13 @@
 collection of enforcement points, constraint handlers, and query
 rewriting machinery that grew over the 3.x and 4.0 series with a single
 coherent model derived from the upcoming **PEP Patterns** paper. The
-external surface — `@PreEnforce`, `@PostEnforce`, the four streaming
-annotations, the HTTP authorization managers — is preserved. What
-changes is everything underneath.
+external surface for the request-response PEPs (`@PreEnforce`,
+`@PostEnforce`) is preserved. The four legacy streaming annotations
+(`@EnforceTillDenied`, `@EnforceDropWhileDenied`, `@EnforceAccessAware`,
+`@EnforceRecoverableIfDenied`) are replaced by a single
+`@StreamEnforce` annotation with three orthogonal flags, driven by the
+new `SUSPEND` decision verb. The HTTP authorization managers are
+preserved at the configurer level but redesigned underneath.
 
 For the full architecture and worked examples, see
 [`sapl-documentation/6_3_Spring.md`](sapl-documentation/6_3_Spring.md).
@@ -32,6 +36,14 @@ For the full architecture and worked examples, see
   `SaplServerHttpSecurityConfigurer.apply(http, context)`. One call
   installs the manager, the HTTP PEP filter, and the access-denied
   handler.
+- **One streaming PEP.** `@StreamEnforce` replaces the four legacy
+  alias annotations. Behaviour is selected via three orthogonal boolean
+  flags (`signalTransitions`, `terminateOnItemEnforcementFailure`,
+  `pauseRapDuringSuspend`) and the policy author's choice of the
+  `suspend` vs `deny` decision verb, rather than by picking an alias
+  upfront. Routing is driven by the PDP decision verb directly: PERMIT
+  lets items flow, SUSPEND silences them while keeping the subscription
+  open, DENY terminates.
 
 ## Proper obligation handling for HTTP authorization
 
@@ -47,14 +59,67 @@ reactive — the same SAPL policy text works against both backends.
 misnamed `HttpRequestShimSignal` and could not enforce response- or
 denial-level obligations at all.
 
-## Out of scope
+## Streaming PEP redesigned around the SUSPEND verb
 
-The streaming PEPs (`@EnforceTillDenied`, `@EnforceDropWhileDenied`,
-`@EnforceRecoverableIfDenied`) remain pass-through scaffolds. Each logs
-`WARN_SCAFFOLD_NOT_ENFORCING` on application and returns the protected
-`Publisher` unchanged. Picked up in a later release.
+The streaming PEP path has been redesigned ground-up to consume a
+continuous stream of authorization decisions. Each decision the PDP
+emits during the lifetime of the subscription has one of five verbs,
+and each maps to a single observable effect on the subscriber's stream.
+
+| PDP decision | Effect on the subscription |
+|---|---|
+| `PERMIT` | Items from the protected method flow through to the subscriber. |
+| `SUSPEND` | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow. |
+| `INDETERMINATE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient PDP errors. |
+| `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient policy gaps. |
+| `DENY` | The subscription terminates with an `AccessDeniedException`. |
+
+The mapping of `INDETERMINATE` and `NOT_APPLICABLE` to silent-drop is
+deliberate: streaming subscriptions survive transient PDP errors and
+policy gaps. Operators who want hard fail-closed semantics on these
+set the combining algorithm's `defaultDecision` to `DENY` (so
+`NOT_APPLICABLE` collapses to `DENY`) or its `errorHandling` to
+`PROPAGATE` (so `INDETERMINATE` collapses to `DENY`) at the PDP
+level. The streaming PEP honours whatever decision the PDP produces.
+
+The combination of verb-driven routing plus three orthogonal flags
+(`signalTransitions`, `terminateOnItemEnforcementFailure`,
+`pauseRapDuringSuspend`) replaces the four legacy alias annotations
+that hard-coded each combination. See the
+[`@StreamEnforce`](sapl-documentation/6_3_Spring.md#streaming-enforcement-with-streamenforce)
+section in `6_3_Spring.md` for usage and worked patterns.
 
 ## Breaking changes
+
+### Streaming PEP annotations
+
+The four 4.0 streaming annotations are replaced by a single
+`@StreamEnforce`. Migration:
+
+| 4.0 annotation | 4.1 replacement | Notes |
+|---|---|---|
+| `@EnforceTillDenied` | `@StreamEnforce` (defaults) | Behavioural difference moves into the policy. The policy uses `deny` for windows that should terminate the subscription (matching the old TillDenied semantics) and `suspend` for windows that should drop items but keep the subscription open. |
+| `@EnforceDropWhileDenied` | `@StreamEnforce` (defaults) plus `suspend` verb in policy | The annotation no longer encodes the survives-deny choice. Use the `suspend` verb in the policy text for the deny windows that should leave the subscription alive; use `deny` for the windows that should terminate. |
+| `@EnforceAccessAware` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy | Subscriber receives non-terminal `AccessDeniedException` / `AccessGrantedException` events on every transition. Same `suspend`-vs-`deny` policy distinction as DropWhileDenied. |
+| `@EnforceRecoverableIfDenied` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy plus `RecoverableFluxes.recover(...)` at the call site | The annotation does the transition signalling; `RecoverableFluxes` translates the non-terminal events into application-level callbacks. |
+
+The `survivesDeny` annotation parameter is gone. The choice of whether
+a deny condition terminates the subscription or merely suspends it
+moved into the policy: use `deny` for terminate, `suspend` for survive.
+
+The `StreamMode` enum is removed.
+
+Two new flags surface concerns the 4.0 aliases could not express:
+
+- `terminateOnItemEnforcementFailure` — when a per-item obligation
+  handler fails, terminate the subscription (default `false` —
+  suspend instead). Set to `true` for protected methods whose per-item
+  side effects are unsafe to leave unenforced.
+- `pauseRapDuringSuspend` — dispose the upstream subscription whenever
+  the stream is silenced, and re-subscribe when it resumes (default
+  `false` — upstream stays connected, items dropped silently). Set to
+  `true` for upstream sources with expensive side effects that must
+  not run while denied.
 
 ### `ConstraintHandlerProvider`
 
