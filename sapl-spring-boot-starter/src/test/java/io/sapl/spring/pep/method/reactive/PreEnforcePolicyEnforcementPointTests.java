@@ -863,12 +863,9 @@ class PreEnforcePolicyEnforcementPointTests {
 
         private static List<ScopedConstraintHandler> outputAt(Set<SignalType> supportedSignals,
                 ConstraintHandler<?> handler) {
-            for (val s : supportedSignals) {
-                if (s instanceof ValueSignalType<?> v && OutputSignal.class.equals(v.type())) {
-                    return List.of(new ScopedConstraintHandler(handler, s, 30));
-                }
-            }
-            return List.of();
+            return SignalType.findIn(supportedSignals, OutputSignal.class)
+                    .<List<ScopedConstraintHandler>>map(s -> List.of(new ScopedConstraintHandler(handler, s, 30)))
+                    .orElse(List.of());
         }
     }
 }

@@ -146,8 +146,8 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
     }
 
     private static boolean isResponsible(Value constraint) {
-        return ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE_SQL)
-                || ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE_RELATIONAL);
+        return ConstraintHandlerProvider.constraintIsOfType(constraint, CONSTRAINT_TYPE_SQL)
+                || ConstraintHandlerProvider.constraintIsOfType(constraint, CONSTRAINT_TYPE_RELATIONAL);
     }
 
     private static String rewrite(String sql, List<String> conditions, List<String> columns) {

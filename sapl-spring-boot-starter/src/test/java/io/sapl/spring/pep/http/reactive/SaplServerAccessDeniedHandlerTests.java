@@ -40,7 +40,6 @@ import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.pep.http.MutableHttpResponse;
 import lombok.val;
@@ -86,7 +85,7 @@ class SaplServerAccessDeniedHandlerTests {
         void runnerOnlyDoesNotShape() {
             ConstraintHandler.Runner h        = () -> { /* logs only */ };
             val                      plan     = planFor(denyWith("audit"),
-                    provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "audit")
+                    provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "audit")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                      exchange = withPlan(plan);
@@ -101,7 +100,7 @@ class SaplServerAccessDeniedHandlerTests {
                                                                          throw new IllegalStateException("nope");
                                                                      };
             val                                             plan     = planFor(denyWith("boom"),
-                    provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "boom")
+                    provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                                             exchange = withPlan(plan);
@@ -123,7 +122,7 @@ class SaplServerAccessDeniedHandlerTests {
                                                                                  "denied by policy");
                                                                      };
             val                                             plan     = planFor(denyWith("custom"),
-                    provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "custom")
+                    provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "custom")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                                             exchange = withPlan(plan);
@@ -143,7 +142,7 @@ class SaplServerAccessDeniedHandlerTests {
                                                                          resp.setHeader("Location", "/login");
                                                                      };
             val                                             plan     = planFor(denyWith("redir"),
-                    provider(constraint -> ConstraintResponsibility.isResponsible(constraint, "redir")
+                    provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "redir")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))
                             : List.of()));
             val                                             exchange = withPlan(plan);

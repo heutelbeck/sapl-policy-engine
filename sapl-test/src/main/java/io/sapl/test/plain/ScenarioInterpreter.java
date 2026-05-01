@@ -799,6 +799,7 @@ public class ScenarioInterpreter {
         return switch (ctx) {
         case PermitDecisionContext ignored        -> Decision.PERMIT;
         case DenyDecisionContext ignored          -> Decision.DENY;
+        case SuspendDecisionContext ignored       -> Decision.SUSPEND;
         case IndeterminateDecisionContext ignored -> Decision.INDETERMINATE;
         case NotApplicableDecisionContext ignored -> Decision.NOT_APPLICABLE;
         default                                   ->

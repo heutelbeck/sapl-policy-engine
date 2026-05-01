@@ -29,14 +29,16 @@ import io.sapl.spring.pep.streaming.Event.PdpComplete;
 import io.sapl.spring.pep.streaming.Event.PdpDeny;
 import io.sapl.spring.pep.streaming.Event.PdpError;
 import io.sapl.spring.pep.streaming.Event.PdpPermit;
+import io.sapl.spring.pep.streaming.Event.PdpSuspend;
 import io.sapl.spring.pep.streaming.Event.RapComplete;
 import io.sapl.spring.pep.streaming.Event.RapError;
 import io.sapl.spring.pep.streaming.Event.RapItem;
 import io.sapl.spring.pep.streaming.Event.Request;
-import io.sapl.spring.pep.streaming.State.Denying;
 import io.sapl.spring.pep.streaming.State.Pending;
 import io.sapl.spring.pep.streaming.State.Permitting;
+import io.sapl.spring.pep.streaming.State.Suspended;
 import io.sapl.spring.pep.streaming.State.Terminated;
+import io.sapl.spring.pep.streaming.TransitionReason.DecisionDenied;
 import io.sapl.spring.pep.streaming.TransitionReason.Granted;
 import io.sapl.spring.pep.streaming.TransitionReason.ItemEnforcementFailed;
 import io.sapl.spring.util.Maybe;
@@ -46,20 +48,19 @@ import lombok.experimental.UtilityClass;
  * The streaming PEP's transition function. One pure step:
  * {@code (state, event) -> (newState, emissions)}.
  * <p>
- * Behaviour is parameterised by a single boolean carried on each
- * deny-shaped event ({@link PdpDeny#hardDeny()} and the binding
- * {@link Permitting#hardDeny()} on the current state for item-enforcement
- * failures): {@code hardDeny == true} routes the deny to
- * {@link Terminated} with a terminal {@link EmitError};
- * {@code hardDeny == false} routes it to {@link Denying} with a
- * non-terminal {@link EmitTransition}. Lifecycle and item-flow events are
- * mode-invariant.
+ * Routing dispatches on the PDP decision verb (carried by the event) and
+ * the current state. There is no annotation-driven boolean parameter on
+ * the deny path: explicit {@link PdpDeny} always terminates;
+ * {@link PdpSuspend} always transitions to {@link Suspended}. The
+ * {@code terminateOnItemEnforcementFailure} flag is consulted only on
+ * the per-item failure path (it lives on the {@link Permitting} state,
+ * stamped from the triggering {@link PdpPermit}).
  * <p>
- * Boundary signals on the permit side fire symmetrically on every entry
- * into {@link Permitting} from a non-Permitting state (initial grant or
- * recovery from Denying); plan replacement is silent. The pipeline gates
- * visibility of these emissions via the annotation's
- * {@code signalTransitions} flag.
+ * Boundary signals fire symmetrically on every entry into
+ * {@link Permitting} from a non-Permitting state (initial grant or
+ * resume) and on every entry into {@link Suspended} from a non-Suspended
+ * state. Plan replacement (Permitting&nbsp;-&gt;&nbsp;Permitting) and
+ * re-suspension (Suspended&nbsp;-&gt;&nbsp;Suspended) are silent.
  *
  * @since 4.1.0
  */
@@ -76,7 +77,7 @@ public class StateMachine {
         }
         return switch (event) {
 
-        // Lifecycle terminations and no-ops (mode-invariant).
+        // Lifecycle terminations and no-ops.
         case Cancel ignored      -> terminate();
         case RapComplete ignored -> terminateNormally();
         case RapError(var t)     -> terminateWithError(t);
@@ -84,19 +85,20 @@ public class StateMachine {
         case PdpComplete ignored -> Transition.to(state);
         case Request ignored     -> Transition.to(state);
 
-        // Decision events: mode comes from the event.
-        case PdpPermit permit -> onPermit(state, permit);
-        case PdpDeny deny     -> onDeny(state, deny);
+        // Decision events: dispatch on verb.
+        case PdpPermit permit   -> onPermit(state, permit);
+        case PdpSuspend suspend -> onSuspend(state, suspend);
+        case PdpDeny deny       -> onDeny(deny);
 
-        // Item flow: mode is read from the binding state when needed.
+        // Item flow: routes through the binding state.
         case RapItem item -> onItem(state, item);
         };
     }
 
     private static Transition onPermit(State state, PdpPermit permit) {
-        var next = new Permitting(permit.plan(), permit.decision(), permit.hardDeny());
+        var next = new Permitting(permit.plan(), permit.decision(), permit.terminateOnItemEnforcementFailure());
         // Plan replacement (Permitting -> Permitting) is silent. Initial
-        // grant (Pending -> Permitting) and recovery (Denying -> Permitting)
+        // grant (Pending -> Permitting) and resume (Suspended -> Permitting)
         // emit the Granted boundary signal; the pipeline gates visibility.
         if (state instanceof Permitting) {
             return Transition.to(next);
@@ -104,17 +106,20 @@ public class StateMachine {
         return Transition.to(next, new EmitTransition(new Granted(permit.decision())));
     }
 
-    private static Transition onDeny(State state, PdpDeny deny) {
-        if (deny.hardDeny()) {
-            return Transition.to(new Terminated(deny.reason()),
-                    new EmitError(new AccessDeniedException(deny.reason().toString())));
-        }
-        var next = new Denying(deny.plan(), deny.decision(), deny.reason(), deny.hardDeny());
-        // Re-deny: the boundary already happened, only the reason changed.
-        if (state instanceof Denying) {
+    private static Transition onSuspend(State state, PdpSuspend suspend) {
+        var next = new Suspended(suspend.plan(), suspend.decision(), suspend.reason());
+        // Re-suspend within Suspended: the boundary already happened; only
+        // the reason changed. Silent transition; downstream readers can
+        // observe the new reason via state inspection if needed.
+        if (state instanceof Suspended) {
             return Transition.to(next);
         }
-        return Transition.to(next, new EmitTransition(deny.reason()));
+        return Transition.to(next, new EmitTransition(suspend.reason()));
+    }
+
+    private static Transition onDeny(PdpDeny deny) {
+        var reason = new DecisionDenied(deny.decision());
+        return Transition.to(new Terminated(reason), new EmitError(new AccessDeniedException(reason.toString())));
     }
 
     private static Transition onItem(State state, RapItem item) {
@@ -122,10 +127,10 @@ public class StateMachine {
         // No decision yet: drop silently. RAP should not normally emit
         // before a permit, but the FSM tolerates it.
         case Pending p -> Transition.to(p);
-        // Denied: items are dropped silently regardless of mode.
-        case Denying d -> Transition.to(d);
-        // Permitting: enforcement result decides the emission; failure
-        // routes through the deny path with the binding hardDeny.
+        // Suspended: items are dropped silently regardless of reason.
+        case Suspended s -> Transition.to(s);
+        // Permitting: the enforcement result decides; failure routes
+        // through onPermittingItemFailure with the binding flag.
         case Permitting p -> permittingItem(p, item);
         // Exhaustive; unreachable here because Terminated was handled in step().
         case Terminated t -> Transition.to(t);
@@ -135,14 +140,12 @@ public class StateMachine {
     private static Transition permittingItem(Permitting state, RapItem item) {
         var result = item.enforcementResult();
         if (result.failureState()) {
-            // Per-item obligation failure routes through the deny path with
-            // the binding hardDeny from the current Permitting state.
             var reason = new ItemEnforcementFailed(item.payload(), null);
-            if (state.hardDeny()) {
+            if (state.terminateOnItemEnforcementFailure()) {
                 return Transition.to(new Terminated(reason),
                         new EmitError(new AccessDeniedException(reason.toString())));
             }
-            var next = new Denying(state.plan(), state.lastDecision(), reason, state.hardDeny());
+            var next = new Suspended(state.plan(), state.lastDecision(), reason);
             return Transition.to(next, new EmitTransition(reason));
         }
         if (result.value() instanceof Maybe.Present<Object>(var value)) {

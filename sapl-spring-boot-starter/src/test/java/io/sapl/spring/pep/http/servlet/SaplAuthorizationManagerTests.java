@@ -53,7 +53,6 @@ import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.serialization.SaplServletJacksonModule;
 import lombok.val;
@@ -171,7 +170,7 @@ class SaplAuthorizationManagerTests {
 
     private static ConstraintHandlerProvider capturingProvider(AtomicReference<HttpRequest> sink) {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, CAPTURE_REQUEST)) {
                 return List.of();
             }
             if (!supportedSignals.contains(HttpRequestSignal.SIGNAL_TYPE)) {
@@ -184,7 +183,7 @@ class SaplAuthorizationManagerTests {
 
     private static ConstraintHandlerProvider throwingProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, CAPTURE_REQUEST)) {
                 return List.of();
             }
             if (!supportedSignals.contains(HttpRequestSignal.SIGNAL_TYPE)) {
@@ -217,7 +216,7 @@ class SaplAuthorizationManagerTests {
         void advertisesFullSignalSet() {
             val                       captured          = new AtomicReference<Set<SignalType>>();
             ConstraintHandlerProvider capturingProvider = (constraint, supportedSignals) -> {
-                                                            if (ConstraintResponsibility.isResponsible(constraint,
+                                                            if (ConstraintHandlerProvider.constraintIsOfType(constraint,
                                                                     CAPTURE_REQUEST)) {
                                                                 captured.set(supportedSignals);
                                                             }

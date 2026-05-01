@@ -46,7 +46,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
@@ -208,7 +207,7 @@ class MongoShimEndToEndTests {
                                      @Override
                                      public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint,
                                              Set<SignalType> supportedSignals) {
-                                         if (!ConstraintResponsibility.isResponsible(constraint,
+                                         if (!ConstraintHandlerProvider.constraintIsOfType(constraint,
                                                  "test:throwingShimHandler")) {
                                              return List.of();
                                          }

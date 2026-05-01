@@ -54,7 +54,6 @@ import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.serialization.SaplReactiveJacksonModule;
 import lombok.val;
@@ -181,7 +180,7 @@ class ReactiveSaplAuthorizationManagerTests {
 
     private static ConstraintHandlerProvider capturingProvider(AtomicReference<HttpRequest> sink) {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, CAPTURE_REQUEST)) {
                 return List.of();
             }
             if (!supportedSignals.contains(HttpRequestSignal.SIGNAL_TYPE)) {
@@ -194,7 +193,7 @@ class ReactiveSaplAuthorizationManagerTests {
 
     private static ConstraintHandlerProvider throwingProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, CAPTURE_REQUEST)) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, CAPTURE_REQUEST)) {
                 return List.of();
             }
             if (!supportedSignals.contains(HttpRequestSignal.SIGNAL_TYPE)) {
@@ -231,7 +230,7 @@ class ReactiveSaplAuthorizationManagerTests {
         void advertisesFullSignalSet() {
             val                       captured                 = new AtomicReference<Set<SignalType>>();
             ConstraintHandlerProvider capturingSignalsProvider = (constraint, supportedSignals) -> {
-                                                                   if (!ConstraintResponsibility.isResponsible(
+                                                                   if (!ConstraintHandlerProvider.constraintIsOfType(
                                                                            constraint, CAPTURE_REQUEST)) {
                                                                        return List.of();
                                                                    }

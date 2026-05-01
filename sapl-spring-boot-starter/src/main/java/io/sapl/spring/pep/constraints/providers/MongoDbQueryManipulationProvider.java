@@ -35,7 +35,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -107,10 +106,9 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
-        if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
-            return List.of();
-        }
-        if (!supportedSignals.contains(MongoDbQueryShimSignal.SIGNAL_TYPE)) {
+        var signalOpt = ConstraintHandlerProvider.constraintTypeAndSignal(constraint, CONSTRAINT_TYPE, supportedSignals,
+                MongoDbQueryShimSignal.SIGNAL_TYPE);
+        if (signalOpt.isEmpty()) {
             return List.of();
         }
         val criteria   = extractTopLevelCriteria(constraint);
@@ -119,7 +117,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
             return List.of();
         }
         Mapper<Query> mapper = query -> applyToQuery(query, criteria, conditions);
-        return List.of(new ScopedConstraintHandler(mapper, MongoDbQueryShimSignal.SIGNAL_TYPE, DEFAULT_PRIORITY));
+        return List.of(new ScopedConstraintHandler(mapper, signalOpt.get(), DEFAULT_PRIORITY));
     }
 
     private static Query applyToQuery(Query query, List<Criteria> criteria, List<String> conditions) {

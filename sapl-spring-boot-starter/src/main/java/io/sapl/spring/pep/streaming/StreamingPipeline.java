@@ -21,10 +21,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.Decision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.streaming.Emission.Emit;
@@ -37,14 +37,18 @@ import io.sapl.spring.pep.streaming.Event.PdpComplete;
 import io.sapl.spring.pep.streaming.Event.PdpDeny;
 import io.sapl.spring.pep.streaming.Event.PdpError;
 import io.sapl.spring.pep.streaming.Event.PdpPermit;
+import io.sapl.spring.pep.streaming.Event.PdpSuspend;
 import io.sapl.spring.pep.streaming.Event.RapComplete;
 import io.sapl.spring.pep.streaming.Event.RapError;
 import io.sapl.spring.pep.streaming.Event.RapItem;
 import io.sapl.spring.pep.streaming.State.Permitting;
+import io.sapl.spring.pep.streaming.State.Suspended;
 import io.sapl.spring.pep.streaming.State.Terminated;
-import io.sapl.spring.pep.streaming.TransitionReason.DecisionDenied;
+import io.sapl.spring.pep.streaming.TransitionReason.EvaluationError;
 import io.sapl.spring.pep.streaming.TransitionReason.Granted;
+import io.sapl.spring.pep.streaming.TransitionReason.NoPolicyApplicable;
 import io.sapl.spring.pep.streaming.TransitionReason.PermitNotEnforceable;
+import io.sapl.spring.pep.streaming.TransitionReason.PolicySuspended;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,10 +60,10 @@ import reactor.core.publisher.FluxSink;
 import reactor.util.context.ContextView;
 
 /**
- * Reactor adapter for the streaming PEP. Drives the pure {@link StateMachine}
- * from a PDP decision flux and a lazily-subscribed RAP publisher, renders
- * the resulting {@link Emission}s onto a downstream {@link Flux} for the
- * subscriber.
+ * Reactor adapter for the streaming PEP. Drives the pure
+ * {@link StateMachine} from a PDP decision flux and a lazily-subscribed
+ * RAP publisher; renders the resulting {@link Emission}s onto a
+ * downstream {@link Flux} for the subscriber.
  * <p>
  * One pipeline per method invocation. Owns the per-subscription mutable
  * state (current FSM state, RAP subscription, sink) and serializes all
@@ -71,12 +75,12 @@ import reactor.util.context.ContextView;
  * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the value or
  * raises the error from inside the per-item processing of {@code flatMap}.
  * That positioning is what lets a downstream {@code onErrorContinue} catch
- * boundary signals ({@link AccessDeniedException} on entry to denial,
- * {@link AccessGrantedException} on recovery when
- * {@code signalTransitions} is enabled) without terminating the
- * subscription. Errors raised directly from the upstream sink (the FSM's
- * {@link Emission.EmitError}) bypass the wrapper and terminate the stream
- * as a real Reactor error.
+ * boundary signals ({@link AccessDeniedException} on suspend,
+ * {@link AccessGrantedException} on resume, when {@code signalTransitions}
+ * is enabled) without terminating the subscription. Errors raised
+ * directly from the upstream sink (the FSM's
+ * {@link Emission.EmitError}) bypass the wrapper and terminate the
+ * stream as a real Reactor error.
  *
  * @since 4.1.0
  */
@@ -87,7 +91,8 @@ public final class StreamingPipeline {
     private static final String ERROR_ACCESS_DENIED        = "Access denied: %s";
     private static final String WARN_RAP_AFTER_TERMINATION = "RAP item arrived after termination; dropping.";
 
-    private final boolean                                          annotationSurvivesDeny;
+    private final boolean                                          terminateOnItemEnforcementFailure;
+    private final boolean                                          pauseRapDuringSuspend;
     private final Flux<AuthorizationDecision>                      decisions;
     private final Function<AuthorizationDecision, EnforcementPlan> planner;
     private final Supplier<? extends Flux<?>>                      rapSupplier;
@@ -98,7 +103,7 @@ public final class StreamingPipeline {
     private FluxSink<ProtectedPayload<Object>> sink;
     private ContextView                        subscriberContext;
     private State                              state;
-    private boolean                            rapSubscribed;
+    private @Nullable Disposable               rapSubscription;
 
     /**
      * Creates a cold {@link Flux} that, on subscription, drives the
@@ -106,36 +111,38 @@ public final class StreamingPipeline {
      * lazily-subscribed RAP. Each subscription gets a fresh pipeline
      * instance with its own state and lifecycle.
      *
-     * @param annotationSurvivesDeny the deny strategy resolved from the
-     * annotation. {@code false} (secure default): the first deny terminates
-     * the subscription with {@link AccessDeniedException}. {@code true}:
-     * the subscription survives a deny and may resume on a later PERMIT.
-     * The pipeline computes {@code hardDeny = !annotationSurvivesDeny}
-     * and stamps it onto every PDP decision event. A future release may
-     * consult {@code decision.survivesDeny()} as an override.
+     * @param terminateOnItemEnforcementFailure whether per-item
+     * obligation enforcement failure terminates the subscription. When
+     * {@code false} (default), failure transitions to suspended and a
+     * later PERMIT may resume; when {@code true} the subscription
+     * terminates with {@link AccessDeniedException}.
+     * @param pauseRapDuringSuspend whether the RAP subscription is
+     * disposed on entering suspended state and re-subscribed on resume.
+     * When {@code false} (default), the RAP stays connected and items
+     * are dropped silently by the FSM; when {@code true}, RAP-side
+     * side effects pause for the duration of the suspension.
      * @param decisions the PDP decision flux for this subscription; an
-     * empty flux is treated as a single DENY decision
+     * empty flux is treated as a single DENY decision.
      * @param planner a closure that maps each {@link AuthorizationDecision}
      * to its {@link EnforcementPlan}; typically captures the per-method
-     * supported-signal set and output type
+     * supported-signal set and output type.
      * @param rapSupplier the protected method's publisher, supplied lazily
-     * (invoked at most once, on the first {@code PdpPermit})
-     * @param signalTransitions whether to surface boundary transitions
-     * (deny + grant) to the subscriber as non-terminal exceptions on the
-     * error channel. Effective only when {@code annotationSurvivesDeny}
-     * is {@code true}; ignored otherwise (no surviving subscription to
-     * signal on).
+     * (invoked on each fresh PERMIT when {@code pauseRapDuringSuspend}
+     * is true; once on first PERMIT otherwise).
+     * @param signalTransitions whether to surface suspend/resume
+     * boundaries to the subscriber as non-terminal exceptions on the
+     * error channel.
      * @return a flux that emits items as the FSM permits them, surfaces
      * boundary crossings as {@link AccessDeniedException} or
-     * {@link AccessGrantedException} (when {@code signalTransitions} and
-     * the deny is non-terminal) on the error channel, and completes /
-     * errors when the FSM reaches {@link State.Terminated}.
+     * {@link AccessGrantedException} (when {@code signalTransitions} is
+     * enabled) on the error channel, and completes / errors when the
+     * FSM reaches {@link State.Terminated}.
      */
-    public static Flux<Object> create(boolean annotationSurvivesDeny, Flux<AuthorizationDecision> decisions,
-            Function<AuthorizationDecision, EnforcementPlan> planner, Supplier<? extends Flux<?>> rapSupplier,
-            boolean signalTransitions) {
-        val pipeline = new StreamingPipeline(annotationSurvivesDeny, decisions, planner, rapSupplier,
-                signalTransitions);
+    public static Flux<Object> create(boolean terminateOnItemEnforcementFailure, boolean pauseRapDuringSuspend,
+            Flux<AuthorizationDecision> decisions, Function<AuthorizationDecision, EnforcementPlan> planner,
+            Supplier<? extends Flux<?>> rapSupplier, boolean signalTransitions) {
+        val pipeline = new StreamingPipeline(terminateOnItemEnforcementFailure, pauseRapDuringSuspend, decisions,
+                planner, rapSupplier, signalTransitions);
         return Flux.<ProtectedPayload<Object>>create(pipeline::initialize).flatMap(ProtectedPayload::unwrap);
     }
 
@@ -151,35 +158,35 @@ public final class StreamingPipeline {
     }
 
     private void startPdpSubscription() {
-        val pdpSub = decisions.switchIfEmpty(Flux.just(AuthorizationDecision.DENY)).contextWrite(subscriberContext)
-                .subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
+        val pdpSub = decisions.switchIfEmpty(Flux.just(io.sapl.api.pdp.AuthorizationDecision.DENY))
+                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
         subscriptions.add(pdpSub);
     }
 
     private void onPdpDecision(AuthorizationDecision decision) {
-        val plan = planner.apply(decision);
-        // The binding deny strategy for this transition. Today derived from
-        // the annotation; a future release may consult decision.survivesDeny()
-        // as an override. Either way, the value is decided at event-
-        // construction time, never read back from the FSM's current state.
-        val hardDeny = !annotationSurvivesDeny;
-        // Decision-scoped enforcement runs for every decision so deny-side
-        // obligations (audit, custom error handling) discharge alongside
-        // permit-side ones. Only the PERMIT branch escalates a handler
-        // failure into PermitNotEnforceable; for DENY the decision already
-        // denies, so the failure result is observable via logging only.
+        val   plan   = planner.apply(decision);
         val   failed = plan.enforceDecisionConstraints(decision);
-        Event event;
-        if (decision.decision() == Decision.PERMIT) {
-            event = failed ? new PdpDeny(decision, plan, new PermitNotEnforceable(decision), hardDeny)
-                    : new PdpPermit(decision, plan, hardDeny);
-        } else {
-            event = new PdpDeny(decision, plan, new DecisionDenied(decision), hardDeny);
-        }
+        Event event  = classify(decision, plan, failed);
         process(event);
-        if (event instanceof PdpPermit) {
-            ensureRapSubscribed();
-        }
+    }
+
+    /**
+     * Routes each PDP decision into a single FSM event. PERMIT becomes
+     * either {@link PdpPermit} (decision-scoped enforcement OK) or
+     * {@link PdpSuspend} with reason {@link PermitNotEnforceable}.
+     * SUSPEND, INDETERMINATE, NOT_APPLICABLE all become
+     * {@link PdpSuspend} with discriminating reasons. DENY becomes
+     * {@link PdpDeny}.
+     */
+    private Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
+        return switch (decision.decision()) {
+        case PERMIT         -> decisionScopedFailed ? new PdpSuspend(decision, plan, new PermitNotEnforceable(decision))
+                : new PdpPermit(decision, plan, terminateOnItemEnforcementFailure);
+        case SUSPEND        -> new PdpSuspend(decision, plan, new PolicySuspended(decision));
+        case INDETERMINATE  -> new PdpSuspend(decision, plan, new EvaluationError(decision));
+        case NOT_APPLICABLE -> new PdpSuspend(decision, plan, new NoPolicyApplicable(decision));
+        case DENY           -> new PdpDeny(decision, plan);
+        };
     }
 
     private void onPdpError(Throwable throwable) {
@@ -192,14 +199,26 @@ public final class StreamingPipeline {
 
     private void ensureRapSubscribed() {
         synchronized (lock) {
-            if (rapSubscribed || state instanceof Terminated) {
+            if (rapSubscription != null || state instanceof Terminated) {
                 return;
             }
-            rapSubscribed = true;
+            val rapSub = rapSupplier.get().contextWrite(subscriberContext).subscribe(this::onRapItem, this::onRapError,
+                    this::onRapComplete);
+            rapSubscription = rapSub;
+            subscriptions.add(rapSub);
         }
-        val rapSub = rapSupplier.get().contextWrite(subscriberContext).subscribe(this::onRapItem, this::onRapError,
-                this::onRapComplete);
-        subscriptions.add(rapSub);
+    }
+
+    private void disposeRap() {
+        synchronized (lock) {
+            if (rapSubscription == null) {
+                return;
+            }
+            val sub = rapSubscription;
+            rapSubscription = null;
+            sub.dispose();
+            subscriptions.remove(sub);
+        }
     }
 
     private void onRapItem(Object payload) {
@@ -233,18 +252,44 @@ public final class StreamingPipeline {
     }
 
     private void process(Event event) {
+        State priorState;
+        State nextState;
         synchronized (lock) {
             if (state instanceof Terminated) {
                 return;
             }
+            priorState = state;
             val transition = StateMachine.step(state, event);
-            state = transition.newState();
+            state     = transition.newState();
+            nextState = state;
             for (val emission : transition.emissions()) {
                 renderEmission(emission);
             }
             if (transition.isTerminal()) {
                 subscriptions.dispose();
+                rapSubscription = null;
+                return;
             }
+        }
+        manageRapSubscription(priorState, nextState);
+        if (nextState instanceof Permitting) {
+            ensureRapSubscribed();
+        }
+    }
+
+    /**
+     * RAP connection management on state transitions when
+     * {@code pauseRapDuringSuspend} is true. Disposes the RAP
+     * subscription when the FSM enters Suspended from another state,
+     * and ensures it is re-subscribed when the FSM enters Permitting
+     * from Suspended.
+     */
+    private void manageRapSubscription(State priorState, State nextState) {
+        if (!pauseRapDuringSuspend) {
+            return;
+        }
+        if (nextState instanceof Suspended && !(priorState instanceof Suspended)) {
+            disposeRap();
         }
     }
 
@@ -260,9 +305,9 @@ public final class StreamingPipeline {
 
     private void renderTransition(TransitionReason reason) {
         // Both directions are gated by the same flag: if the subscriber
-        // hasn't opted into transition signalling, neither denied nor
-        // granted boundaries are surfaced. Terminal denies (under
-        // hardDeny) bypass this path entirely via EmitError.
+        // hasn't opted into transition signalling, neither suspend nor
+        // resume boundaries are surfaced. Terminal denies bypass this
+        // path entirely via EmitError.
         if (!signalTransitions) {
             return;
         }

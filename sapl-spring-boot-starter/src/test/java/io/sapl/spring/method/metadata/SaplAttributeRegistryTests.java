@@ -196,45 +196,6 @@ class SaplAttributeRegistryTests {
         expectSubjectExpressionStringInAttribute(TestClass.class, "'onMethod'");
     }
 
-    @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceTillDenied() {
-
-        class TestClass {
-            @EnforceTillDenied(subject = "'onMethod'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectSubjectExpressionStringInAttribute(TestClass.class, "'onMethod'");
-    }
-
-    @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceDropWhileDenied() {
-
-        class TestClass {
-            @EnforceDropWhileDenied(subject = "'onMethod'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectSubjectExpressionStringInAttribute(TestClass.class, "'onMethod'");
-    }
-
-    @Test
-    void whenAnnotationOnMethod_ThenReturnsOnMethodForEnforceRecoverableIfDenied() {
-
-        class TestClass {
-            @EnforceRecoverableIfDenied(subject = "'onMethod'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectSubjectExpressionStringInAttribute(TestClass.class, "'onMethod'");
-    }
-
     interface DefaultMethodInterface {
         @PostEnforce(subject = "'onDefaultInterfaceMethod'")
         default void doSomething() {
@@ -250,7 +211,7 @@ class SaplAttributeRegistryTests {
     }
 
     @Test
-    void whenStreamEnforceDefault_ThenSurvivesDenyIsFalseAndSignalTransitionsIsFalse() {
+    void whenStreamEnforceDefault_ThenAllFlagsAreFalse() {
 
         class TestClass {
             @StreamEnforce(subject = "'s'")
@@ -259,85 +220,59 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, false, false);
+        expectFlagsInAttribute(TestClass.class, false, false, false);
     }
 
     @Test
-    void whenStreamEnforceWithSurvivesDeny_ThenSurvivesDenyIsTrue() {
+    void whenStreamEnforceWithSignalTransitions_ThenSignalTransitionsIsTrue() {
 
         class TestClass {
-            @StreamEnforce(survivesDeny = true, subject = "'s'")
+            @StreamEnforce(signalTransitions = true, subject = "'s'")
             public void doSomething() {
                 // NOOP test dummy
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, true, false);
+        expectFlagsInAttribute(TestClass.class, true, false, false);
     }
 
     @Test
-    void whenStreamEnforceWithBothFlags_ThenBothPropagate() {
+    void whenStreamEnforceWithTerminateOnItemEnforcementFailure_ThenFlagPropagates() {
 
         class TestClass {
-            @StreamEnforce(survivesDeny = true, signalTransitions = true, subject = "'s'")
+            @StreamEnforce(terminateOnItemEnforcementFailure = true, subject = "'s'")
             public void doSomething() {
                 // NOOP test dummy
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, true, true);
+        expectFlagsInAttribute(TestClass.class, false, true, false);
     }
 
     @Test
-    void whenEnforceTillDeniedAlias_ThenSurvivesDenyIsFalse() {
+    void whenStreamEnforceWithPauseRapDuringSuspend_ThenFlagPropagates() {
 
         class TestClass {
-            @EnforceTillDenied(subject = "'s'")
+            @StreamEnforce(pauseRapDuringSuspend = true, subject = "'s'")
             public void doSomething() {
                 // NOOP test dummy
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, false, false);
+        expectFlagsInAttribute(TestClass.class, false, false, true);
     }
 
     @Test
-    void whenEnforceDropWhileDeniedAlias_ThenSurvivesDenyIsTrueAndSignalTransitionsIsFalse() {
+    void whenStreamEnforceWithAllFlags_ThenAllPropagate() {
 
         class TestClass {
-            @EnforceDropWhileDenied(subject = "'s'")
+            @StreamEnforce(signalTransitions = true, terminateOnItemEnforcementFailure = true, pauseRapDuringSuspend = true, subject = "'s'")
             public void doSomething() {
                 // NOOP test dummy
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, true, false);
-    }
-
-    @Test
-    void whenEnforceAccessAwareAlias_ThenBothFlagsTrue() {
-
-        class TestClass {
-            @EnforceAccessAware(subject = "'s'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectFlagsInAttribute(TestClass.class, true, true);
-    }
-
-    @Test
-    void whenEnforceRecoverableIfDeniedLegacyAlias_ThenBothFlagsTrue() {
-
-        class TestClass {
-            @EnforceRecoverableIfDenied(subject = "'s'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectFlagsInAttribute(TestClass.class, true, true);
+        expectFlagsInAttribute(TestClass.class, true, true, true);
     }
 
     @Test
@@ -354,8 +289,9 @@ class SaplAttributeRegistryTests {
         final var mi        = MethodInvocationUtils.createFromClass(TestClass.class, "doSomething");
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, PreEnforce.class);
         assertThat(attribute).hasValueSatisfying(a -> {
-            assertThat(a.survivesDeny()).isFalse();
             assertThat(a.signalTransitions()).isFalse();
+            assertThat(a.terminateOnItemEnforcementFailure()).isFalse();
+            assertThat(a.pauseRapDuringSuspend()).isFalse();
         });
     }
 
@@ -367,14 +303,15 @@ class SaplAttributeRegistryTests {
                 attr -> assertThat(attr.subjectExpression().getExpressionString()).isEqualTo(expectedExpressionString));
     }
 
-    private void expectFlagsInAttribute(Class<?> clazz, boolean expectedSurvivesDeny,
-            boolean expectedSignalTransitions) {
+    private void expectFlagsInAttribute(Class<?> clazz, boolean expectedSignalTransitions,
+            boolean expectedTerminateOnItemEnforcementFailure, boolean expectedPauseRapDuringSuspend) {
         final var sut       = new SaplAttributeRegistry();
         final var mi        = MethodInvocationUtils.createFromClass(clazz, "doSomething");
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, StreamEnforce.class);
         assertThat(attribute).hasValueSatisfying(a -> {
-            assertThat(a.survivesDeny()).isEqualTo(expectedSurvivesDeny);
             assertThat(a.signalTransitions()).isEqualTo(expectedSignalTransitions);
+            assertThat(a.terminateOnItemEnforcementFailure()).isEqualTo(expectedTerminateOnItemEnforcementFailure);
+            assertThat(a.pauseRapDuringSuspend()).isEqualTo(expectedPauseRapDuringSuspend);
         });
     }
 

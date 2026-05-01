@@ -42,12 +42,12 @@ public sealed interface Emission {
     record Emit(Object value) implements Emission {}
 
     /**
-     * Terminate the subscriber with an error. Used for {@link
-     * io.sapl.spring.method.metadata.StreamMode#TILL_DENIED} on the first
-     * deny, RAP errors, PDP stream errors, and item-enforcement failure
-     * under TILL_DENIED. The Reactor adapter pushes this onto the
-     * downstream sink's error channel; the machine transitions to
-     * {@link State.Terminated}.
+     * Terminate the subscriber with an error. Used for explicit DENY,
+     * RAP errors, PDP stream errors, and item-enforcement failure
+     * when the PEP is configured with
+     * {@code terminateOnItemEnforcementFailure = true}. The Reactor
+     * adapter pushes this onto the downstream sink's error channel;
+     * the machine transitions to {@link State.Terminated}.
      */
     record EmitError(Throwable throwable) implements Emission {}
 
@@ -62,14 +62,14 @@ public sealed interface Emission {
 
     /**
      * Deliver an out-of-band transition signal carrying a
-     * {@link TransitionReason}. Used by
-     * {@link io.sapl.spring.method.metadata.StreamMode#ACCESS_AWARE} on
-     * every PERMIT/DENY boundary crossing so the client (or a UI) can
-     * disambiguate "no items because denied" from "no items because the
-     * source is idle." The Reactor adapter routes this to whichever
-     * channel the access-aware contract specifies (data channel as a
-     * sealed message type, or a parallel sink — design choice deferred
-     * until the adapter is drafted).
+     * {@link TransitionReason}. Emitted on every suspend/resume boundary
+     * crossing. The pipeline gates visibility on the annotation's
+     * {@code signalTransitions} flag and surfaces the signal as a
+     * non-terminal exception on the error channel
+     * ({@link org.springframework.security.access.AccessDeniedException}
+     * for suspension boundaries, {@link AccessGrantedException} for
+     * resume), consumed via {@code onErrorContinue} or
+     * {@link RecoverableFluxes}.
      */
     record EmitTransition(TransitionReason reason) implements Emission {}
 

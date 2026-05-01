@@ -149,20 +149,21 @@ public final class SaplAttributeRegistry {
         val annotation = findAnnotation(method, targetClass, annotationType);
         return switch (annotation) {
         case PreEnforce a    -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), false, false);
+                a.secrets(), false, false, false);
         case PostEnforce a   -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), false, false);
+                a.secrets(), false, false, false);
         case StreamEnforce a -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
-                a.secrets(), a.survivesDeny(), a.signalTransitions());
+                a.secrets(), a.signalTransitions(), a.terminateOnItemEnforcementFailure(), a.pauseRapDuringSuspend());
         case null, default   -> SaplAttribute.NULL_ATTRIBUTE;
         };
     }
 
     private SaplAttribute buildAttribute(Class<?> annotationType, String subject, String action, String resource,
-            String environment, String secrets, boolean survivesDeny, boolean signalTransitions) {
+            String environment, String secrets, boolean signalTransitions, boolean terminateOnItemEnforcementFailure,
+            boolean pauseRapDuringSuspend) {
         return new SaplAttribute(annotationType, parseExpression(subject), parseExpression(action),
-                parseExpression(resource), parseExpression(environment), parseExpression(secrets), survivesDeny,
-                signalTransitions);
+                parseExpression(resource), parseExpression(environment), parseExpression(secrets), signalTransitions,
+                terminateOnItemEnforcementFailure, pauseRapDuringSuspend);
     }
 
     private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
@@ -176,8 +177,8 @@ public final class SaplAttributeRegistry {
         // The method may be on an interface, but we need attributes from the target
         // class. If the target class is null, the method will be unchanged.
         // findMergedAnnotation walks meta-annotations and resolves @AliasFor so
-        // annotation aliases (e.g. @EnforceTillDenied -> @StreamEnforce) carry
-        // their attributes through to the resolved annotation instance.
+        // future meta-annotation wrappers carry their attributes through to the
+        // resolved annotation instance.
         val specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
         val annotation     = AnnotatedElementUtils.findMergedAnnotation(specificMethod, annotationClass);
         if (annotation != null) {
