@@ -88,7 +88,7 @@ import reactor.util.context.ContextView;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public final class StreamingPipeline {
 
-    private static final String ERROR_ACCESS_DENIED        = "Access denied: %s";
+    private static final String ERROR_STREAM_SUSPENDED     = "Stream suspended: %s";
     private static final String WARN_RAP_AFTER_TERMINATION = "RAP item arrived after termination; dropping.";
 
     private final boolean                                          terminateOnItemEnforcementFailure;
@@ -315,7 +315,7 @@ public final class StreamingPipeline {
             withSink(s -> s.next(ProtectedPayload.ofError(new AccessGrantedException(decision))));
             return;
         }
-        val message = ERROR_ACCESS_DENIED.formatted(reason);
+        val message = ERROR_STREAM_SUSPENDED.formatted(reason);
         withSink(s -> s.next(ProtectedPayload.ofError(new AccessDeniedException(message))));
     }
 
