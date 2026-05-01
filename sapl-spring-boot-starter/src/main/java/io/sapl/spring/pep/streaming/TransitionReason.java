@@ -17,80 +17,106 @@
  */
 package io.sapl.spring.pep.streaming;
 
+import org.jspecify.annotations.Nullable;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 
 /**
- * Payload metadata. <strong>Not part of the FSM's state set, input
- * alphabet, or output alphabet</strong> — used as a payload field of
- * certain states ({@link State.Denying}) and certain outputs
- * ({@link Emission.EmitTransition}) to carry the cause of a transition
- * forward for observability and (in the access-aware variant) for
- * client notification.
+ * Payload metadata describing why the FSM crossed a state boundary.
+ * Carried by {@link State.Suspended} and {@link State.Terminated} as
+ * the cause of the current state, and by
+ * {@link Emission.EmitTransition} so subscribers (when the PEP is
+ * configured with {@code signalTransitions = true}) can react
+ * differently per cause.
  * <p>
- * Used in two places:
+ * Six concrete reasons, grouped by direction of the transition they
+ * describe:
  * <ul>
- * <li>Carried by {@link State.Denying} as metadata describing why the
- * subscription is currently denied.</li>
- * <li>Carried by {@link Emission.EmitTransition} as the payload describing
- * what just changed (used by
- * {@link io.sapl.spring.method.metadata.StreamMode#ACCESS_AWARE}
- * to inform the client).</li>
+ * <li>Toward suspended: {@link PolicySuspended} (explicit
+ * {@code Decision.SUSPEND}), {@link EvaluationError}
+ * ({@code INDETERMINATE}), {@link NoPolicyApplicable}
+ * ({@code NOT_APPLICABLE}), {@link PermitNotEnforceable} (PERMIT but
+ * decision-scoped handlers failed), {@link ItemEnforcementFailed}
+ * (per-item handler failed under PERMIT).</li>
+ * <li>Toward terminated: {@link DecisionDenied} (explicit
+ * {@code Decision.DENY}). Also {@link ItemEnforcementFailed} when the
+ * PEP is configured with
+ * {@code terminateOnItemEnforcementFailure = true}.</li>
+ * <li>Toward permitting: {@link Granted} (initial grant from pending
+ * or resume from suspended).</li>
  * </ul>
- * <p>
- * The state machine treats all deny reasons as equivalent for transition
- * purposes — per-mode tables branch on {@code permitting -> denying}, not
- * on which kind of denial. The reason is preserved so observability,
- * logging, and (future) per-reason behaviour have access to it.
- * <p>
- * The set of reasons mirrors how the existing one-shot PEPs treat
- * decisions. Any non-PERMIT decision yields {@link DecisionDenied}. A
- * PERMIT whose decision-scoped enforcement (DecisionSignal handlers,
- * including planner-inserted failure substitutes for unresolvable
- * obligations) reports {@code failureState=true} yields
- * {@link PermitNotEnforceable}. The PEP cannot distinguish "planner
- * inserted a substitute" from "real handler threw" from outside the plan,
- * both are the same operational condition. We could not honor the permit.
  *
  * @since 4.1.0
  */
 public sealed interface TransitionReason {
 
     /**
-     * The PDP returned a non-PERMIT decision (DENY, INDETERMINATE, or
-     * NOT_APPLICABLE). The plan's decision-scoped obligations have already
-     * been discharged before this reason is constructed; the reason itself
-     * carries only the originating decision for observability.
+     * The PDP returned an explicit {@code Decision.DENY}. Terminal:
+     * the subscription ends with
+     * {@link org.springframework.security.access.AccessDeniedException
+     * AccessDeniedException}.
      */
     record DecisionDenied(AuthorizationDecision decision) implements TransitionReason {}
 
     /**
-     * The PDP returned PERMIT but the decision-scoped enforcement (the
-     * plan's {@code DecisionSignal} handlers) failed — either because the
-     * planner inserted a synthetic failure substitute for an unresolvable
-     * or ambiguous constraint, or because a real handler threw. From the
-     * PEP's perspective these are the same operational condition: the
-     * permit cannot be honored, so the request is treated as denied.
+     * The PDP returned {@code Decision.SUSPEND}: the policy explicitly
+     * paused this access. The subscription is preserved and items are
+     * dropped silently until a later {@code Decision.PERMIT} resumes
+     * the flow.
+     */
+    record PolicySuspended(AuthorizationDecision decision) implements TransitionReason {}
+
+    /**
+     * The PDP returned {@code Decision.INDETERMINATE}: policy
+     * evaluation encountered an error (often transient, e.g. PIP
+     * timeout or network blip). Routed to suspended for resilience;
+     * a later successful evaluation may resume the flow. Operators
+     * who want hard fail-closed semantics on evaluation errors set
+     * the combining algorithm's error handling to {@code propagate}
+     * with a default decision of {@code deny}.
+     */
+    record EvaluationError(AuthorizationDecision decision) implements TransitionReason {}
+
+    /**
+     * The PDP returned {@code Decision.NOT_APPLICABLE}: no policy
+     * matched and the combining algorithm's default decision is
+     * {@code abstain}. Routed to suspended on the same rationale as
+     * {@link EvaluationError}: streaming subscriptions benefit from
+     * surviving transient policy gaps. Operators who want hard
+     * fail-closed semantics set the combining algorithm's default
+     * decision to {@code deny}.
+     */
+    record NoPolicyApplicable(AuthorizationDecision decision) implements TransitionReason {}
+
+    /**
+     * The PDP returned {@code Decision.PERMIT} but the plan's
+     * decision-scoped enforcement (the {@code DecisionSignal}
+     * handlers, including planner-inserted failure substitutes for
+     * unresolvable or ambiguous constraints) reported
+     * {@code failureState=true}. The permit cannot be honored. Routed
+     * to suspended; a future decision may carry obligations the PEP
+     * can fulfil.
      */
     record PermitNotEnforceable(AuthorizationDecision decision) implements TransitionReason {}
 
     /**
-     * A per-item obligation handler failed when enforcing this specific
-     * item. The plan itself is still valid; only this item's enforcement
-     * could not be honored. Variant policy decides whether this is
-     * terminal ({@link io.sapl.spring.method.metadata.StreamMode#TILL_DENIED})
-     * or transitions to denying
-     * ({@link io.sapl.spring.method.metadata.StreamMode#DROP_WHILE_DENIED},
-     * {@link io.sapl.spring.method.metadata.StreamMode#ACCESS_AWARE}).
+     * A per-item obligation handler failed when enforcing a single
+     * item under an otherwise-valid PERMIT. The PEP's
+     * {@code terminateOnItemEnforcementFailure} flag controls the
+     * downstream behaviour: {@code true} terminates the subscription;
+     * {@code false} (default) transitions to suspended and waits for
+     * a fresh decision.
+     *
+     * @param payload the item whose enforcement failed
+     * @param throwable the cause of the failure, if available
      */
-    record ItemEnforcementFailed(Object item, Throwable throwable) implements TransitionReason {}
+    record ItemEnforcementFailed(Object payload, @Nullable Throwable throwable) implements TransitionReason {}
 
     /**
-     * Symmetric inverse of the deny reasons: a permitting decision
-     * established access. Emitted by
-     * {@link io.sapl.spring.method.metadata.StreamMode#ACCESS_AWARE} on
-     * any non-Permitting -> Permitting transition (initial grant from
-     * Pending or recovery from Denying), gated by the annotation's
-     * {@code signalAccessGranted} flag.
+     * The PEP entered or resumed permitting state. Emitted on the
+     * pending-to-permitting transition (initial grant) and the
+     * suspended-to-permitting transition (resume). Plan replacement
+     * (permitting-to-permitting) is silent.
      */
     record Granted(AuthorizationDecision decision) implements TransitionReason {}
 }

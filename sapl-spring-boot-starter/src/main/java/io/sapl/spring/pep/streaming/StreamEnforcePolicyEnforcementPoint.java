@@ -53,14 +53,11 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 /**
- * Reactive PEP for {@link StreamEnforce} (and its four named aliases:
- * {@code @EnforceTillDenied}, {@code @EnforceDropWhileDenied},
- * {@code @EnforceAccessAware}, {@code @EnforceRecoverableIfDenied}).
- * Builds a {@link StreamingPipeline} per invocation and returns its output
+ * Reactive PEP for {@link StreamEnforce}. Builds a
+ * {@link StreamingPipeline} per invocation and returns its output
  * {@link Flux} to the caller.
  * <p>
- * Currently supports {@link Flux} return types only. Mono support and the
- * non-aware modes (TILL_DENIED, DROP_WHILE_DENIED) are pending.
+ * Currently supports {@link Flux} return types only.
  *
  * @since 4.1.0
  */
@@ -105,8 +102,8 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
                 supportedSignals);
         Supplier<Flux<?>>                                rapSupplier = () -> invokeProtected(methodInvocation);
 
-        return StreamingPipeline.create(attribute.survivesDeny(), decisions, planFor, rapSupplier,
-                attribute.signalTransitions());
+        return StreamingPipeline.create(attribute.terminateOnItemEnforcementFailure(),
+                attribute.pauseRapDuringSuspend(), decisions, planFor, rapSupplier, attribute.signalTransitions());
     }
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {

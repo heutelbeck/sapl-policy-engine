@@ -33,15 +33,18 @@ import lombok.NonNull;
  * @param resourceExpression SpEL expression for the resource, or null
  * @param environmentExpression SpEL expression for the environment, or null
  * @param secretsExpression SpEL expression for secrets, or null
- * @param survivesDeny whether the streaming PEP should preserve the
- * subscription across deny decisions. {@code false} (default) means
- * the first deny terminates the subscription. Effective for
- * {@link StreamEnforce}-derived attributes; ignored for
- * {@link PreEnforce} / {@link PostEnforce}.
- * @param signalTransitions whether boundary crossings (denied / granted)
+ * @param signalTransitions whether suspend/resume boundary crossings
  * surface to the subscriber as non-terminal exceptions on the error
- * channel. Effective only when {@code survivesDeny} is {@code true};
- * ignored otherwise.
+ * channel. Effective for {@link StreamEnforce}-derived attributes;
+ * always {@code false} for {@link PreEnforce} / {@link PostEnforce}.
+ * @param terminateOnItemEnforcementFailure whether per-item obligation
+ * enforcement failure terminates the subscription instead of suspending.
+ * Effective for {@link StreamEnforce}-derived attributes; always
+ * {@code false} for one-shot PEPs.
+ * @param pauseRapDuringSuspend whether the RAP subscription is disposed
+ * while the PEP is in suspended state. Effective for
+ * {@link StreamEnforce}-derived attributes; always {@code false} for
+ * one-shot PEPs.
  */
 public record SaplAttribute(
         Class<?> annotationType,
@@ -50,14 +53,15 @@ public record SaplAttribute(
         Expression resourceExpression,
         Expression environmentExpression,
         Expression secretsExpression,
-        boolean survivesDeny,
-        boolean signalTransitions) {
+        boolean signalTransitions,
+        boolean terminateOnItemEnforcementFailure,
+        boolean pauseRapDuringSuspend) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
     public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, false,
-            false);
+            false, false);
 
     @Override
     public @NonNull String toString() {
@@ -65,8 +69,9 @@ public record SaplAttribute(
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
                 + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets()
-                + (survivesDeny() ? ", survivesDeny=true" : "")
-                + (signalTransitions() ? ", signalTransitions=true" : "") + ")";
+                + (signalTransitions() ? ", signalTransitions=true" : "")
+                + (terminateOnItemEnforcementFailure() ? ", terminateOnItemEnforcementFailure=true" : "")
+                + (pauseRapDuringSuspend() ? ", pauseRapDuringSuspend=true" : "") + ")";
     }
 
     private String maskSecrets() {

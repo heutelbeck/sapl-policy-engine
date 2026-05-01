@@ -24,21 +24,21 @@ import lombok.Getter;
 import java.io.Serial;
 
 /**
- * Signal emitted by the streaming PEP under
- * {@link io.sapl.spring.method.metadata.StreamMode#ACCESS_AWARE} when the
- * subscription enters a permitting state and {@code signalAccessGranted}
- * is enabled on the annotation. Fires symmetrically on both initial grant
- * (Pending -> Permitting) and recovery (Denying -> Permitting). Carried
- * on the error channel as a non-terminal signal: subscribers consume it
- * via {@code onErrorContinue} (typically through
- * {@link RecoverableFluxes}) and the stream continues emitting items.
+ * Signal emitted by the streaming PEP when the subscription enters
+ * permitting state and {@code signalTransitions} is enabled on the
+ * annotation. Fires symmetrically on initial grant (Pending -&gt;
+ * Permitting) and resume (Suspended -&gt; Permitting). Carried on the
+ * error channel as a non-terminal signal: subscribers consume it via
+ * {@code onErrorContinue} (typically through {@link RecoverableFluxes})
+ * and the stream continues emitting items.
  * <p>
  * Distinct from
  * {@link org.springframework.security.access.AccessDeniedException}
- * by design. A naive subscriber that does not opt into the access-aware
- * contract would not expect a grant signal; routing it through a separate
- * exception type makes the contract explicit and lets subscribers
- * pattern-match without inspecting payloads.
+ * by design. A naive subscriber that does not opt into the
+ * transition-signalling contract would not expect a grant signal;
+ * routing it through a separate exception type makes the contract
+ * explicit and lets subscribers pattern-match without inspecting
+ * payloads.
  *
  * @since 4.1.0
  */

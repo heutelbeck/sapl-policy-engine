@@ -45,7 +45,6 @@ import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
 import io.sapl.spring.pep.constraints.Signal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.pep.http.MutableHttpRequest;
 import io.sapl.spring.pep.http.MutableHttpResponse;
@@ -211,7 +210,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider runnerProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "audit")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "audit")) {
                 return List.of();
             }
             ConstraintHandler.Runner h = () -> {};
@@ -221,7 +220,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider responseStampProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "stamp")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "stamp")) {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setHeader("X-Trace", "abc");
@@ -231,7 +230,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider noopRequestObserverProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "noop")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "noop")) {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> { /* observe only, no mutation */ };
@@ -241,7 +240,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider injectHeaderProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "inject")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "inject")) {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> req.setHeader("X-Tenant", "krynn");
@@ -251,7 +250,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider failingRequestProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "boom")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")) {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
@@ -263,7 +262,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider failingResponseProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "boom")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "boom")) {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> {
@@ -275,7 +274,7 @@ class SaplHttpPepWebFilterTests {
 
     private static ConstraintHandlerProvider rewriteBodyProvider() {
         return (constraint, supportedSignals) -> {
-            if (!ConstraintResponsibility.isResponsible(constraint, "rewrite")) {
+            if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "rewrite")) {
                 return List.of();
             }
             ConstraintHandler.Consumer<MutableHttpResponse> h = resp -> resp.setBody("REWRITTEN");

@@ -327,7 +327,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             String secrets) {
         return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
                 parameterToExpression(resource), parameterToExpression(environment), parameterToExpression(secrets),
-                false, false);
+                false, false, false);
     }
 
     private Expression parameterToExpression(String parameter) {

@@ -28,13 +28,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 /**
- * Subscriber-side helper for streams produced by the
- * {@link io.sapl.spring.method.metadata.StreamMode#ACCESS_AWARE} streaming
- * PEP. Wraps the {@code onErrorContinue} mechanics so callers can observe
- * boundary signals ({@link AccessDeniedException} on entry to denial,
- * {@link AccessGrantedException} on entry to permitting when
- * {@code signalAccessGranted} is enabled) without their stream terminating
- * on the first deny.
+ * Subscriber-side helper for streams produced by the streaming PEP
+ * with {@code signalTransitions = true}. Wraps the
+ * {@code onErrorContinue} mechanics so callers can observe boundary
+ * signals ({@link AccessDeniedException} on entry to suspended,
+ * {@link AccessGrantedException} on resume to permitting) without
+ * their stream terminating on the first signal.
  * <p>
  * Errors that are <strong>not</strong> access-state signals propagate
  * normally: the stream terminates with the original error.

@@ -24,23 +24,22 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 
 /**
  * The state set of the streaming PEP's FSM. Sealed into four cases that
- * together describe the entire lifecycle of one subscription. Each case
- * carries the runtime context it needs (the active enforcement plan, the
- * deny reason for observability, the binding deny strategy from the
- * triggering decision).
+ * together describe the entire lifecycle of one subscription.
  * <p>
- * The initial state is {@link Pending#INSTANCE}; {@link Terminated} is
- * the absorbing state. Operationally the FSM is realized as a
- * multi-output Mealy machine
- * <code>M = (S, s&#x2080;, &#x3A3;, &#x39B;, &#x3B4;, &#x3BB;)</code>
- * with one combined step function returning
- * {@code (State', List<Emission>)}.
- * <p>
- * Mode (the deny strategy as a boolean {@code hardDeny}) lives only on
- * non-terminal post-decision states ({@link Permitting}, {@link Denying}),
- * established by the triggering decision. {@link Pending} is mode-less
- * (no decision has arrived to bind a strategy). {@link Reachable} is the
- * union of states for which a binding mode exists.
+ * Routing through the FSM is driven by the PDP decision verb, not by an
+ * annotation flag:
+ * <ul>
+ * <li>{@link Pending} — initial state, no decision has arrived.</li>
+ * <li>{@link Permitting} — current decision is PERMIT and decision-scoped
+ * enforcement succeeded; data items flow.</li>
+ * <li>{@link Suspended} — current decision is SUSPEND, INDETERMINATE,
+ * NOT_APPLICABLE, or PERMIT-with-failed-enforcement; subscription is
+ * preserved, items are dropped silently, a later PERMIT resumes the
+ * flow.</li>
+ * <li>{@link Terminated} — absorbing; reached on RAP completion, RAP
+ * error, downstream cancellation, PDP error, or an explicit DENY
+ * decision.</li>
+ * </ul>
  *
  * @since 4.1.0
  */
@@ -48,9 +47,7 @@ public sealed interface State {
 
     /**
      * No PDP decision has arrived yet. The pipeline is subscribed to the
-     * PDP and (depending on lazy-vs-eager configuration) may or may not
-     * have subscribed to the RAP. Carries no mode: the operational mode is
-     * established by the first decision, not asserted by Pending. Singleton.
+     * PDP. Singleton.
      */
     record Pending() implements State {
 
@@ -64,43 +61,42 @@ public sealed interface State {
      *
      * @param plan the active plan for this decision
      * @param lastDecision the decision that put us here
-     * @param hardDeny the binding deny strategy from the triggering
-     * decision: {@code true} means a subsequent deny terminates the
-     * subscription, {@code false} means the subscription survives a deny
-     * and may resume on later PERMIT
+     * @param terminateOnItemEnforcementFailure whether a subsequent
+     * per-item enforcement failure terminates the subscription (true)
+     * or transitions to {@link Suspended} (false). Stamped from the
+     * triggering {@link Event.PdpPermit} so a future mid-stream change
+     * (the PDP may someday supply this hint) takes effect on the next
+     * permit.
      */
-    record Permitting(EnforcementPlan plan, AuthorizationDecision lastDecision, boolean hardDeny) implements State {}
+    record Permitting(
+            EnforcementPlan plan,
+            AuthorizationDecision lastDecision,
+            boolean terminateOnItemEnforcementFailure) implements State {}
 
     /**
-     * The current decision denies access (or per-item enforcement failed
-     * under a permit, or decision-scoped enforcement failed). Reachable
-     * only when the binding {@code hardDeny} is {@code false}; under
-     * {@code hardDeny == true} the FSM transitions directly to
-     * {@link Terminated} on any deny-shaped event.
-     * <p>
-     * {@code plan} is always present. The planner builds a plan for every
-     * PDP decision regardless of its kind (PERMIT / DENY / INDETERMINATE /
-     * NOT_APPLICABLE) for non-PERMIT decisions the plan typically carries
-     * deny-side obligations (audit, custom error response, redirect, ...).
-     * When a decision has no constraints, the plan is empty but still
-     * present.
+     * The PDP returned a non-DENY non-PERMIT decision (SUSPEND,
+     * INDETERMINATE, NOT_APPLICABLE) or PERMIT with failed
+     * decision-scoped enforcement. Subscription is preserved; items
+     * arriving from the RAP are dropped silently. The next PERMIT
+     * decision transitions back to {@link Permitting}; an explicit
+     * DENY transitions to {@link Terminated}.
      *
      * @param plan the active plan for this decision (always present;
-     * possibly empty)
+     * may be empty if the decision carried no constraints)
      * @param lastDecision the decision that put us here
-     * @param reason why we are denied (decision-deny, plan inadmissible,
-     * decision-scoped handler failure, item-enforcement failure)
-     * @param hardDeny the binding deny strategy from the triggering
-     * decision; preserved here so a subsequent item-enforcement failure
-     * uses the same strategy
+     * @param reason why we are suspended (policy SUSPEND, evaluation
+     * error, no policy applicable, permit not enforceable, item
+     * enforcement failed)
      */
-    record Denying(EnforcementPlan plan, AuthorizationDecision lastDecision, TransitionReason reason, boolean hardDeny)
+    record Suspended(EnforcementPlan plan, AuthorizationDecision lastDecision, TransitionReason reason)
             implements State {}
 
     /**
      * Absorbing state. Reached on RAP completion, RAP error, downstream
-     * cancellation, PDP error, or any deny-shaped event when the binding
-     * {@code hardDeny} was {@code true}. No further events are processed.
+     * cancellation, PDP error, or an explicit DENY decision (or per-item
+     * enforcement failure when the PEP is configured with
+     * {@code terminateOnItemEnforcementFailure = true}). No further
+     * events are processed.
      *
      * @param reason why we terminated; {@code null} for normal completion
      * or cancellation, non-null for error/deny terminations.

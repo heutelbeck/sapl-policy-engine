@@ -100,9 +100,10 @@ public record EnforcementPlan(
     public EnforcementResult<Object> execute(Signal signal, boolean priorFailureState) {
         val           signalEntries = entriesFor(signal.type());
         Maybe<Object> currentValue  = switch (signal) {
-                                    case Signal.OutputSignal<?> output     -> (Maybe) output.maybeValue();
-                                    case Signal.ValueSignal<?> valueSignal -> Maybe.<Object>of(valueSignal.value());
-                                    case Signal.VoidSignal ignored         -> Maybe.absent();
+                                    case Signal.OutputSignal<?>(var ignoredType, var maybeValue) -> (Maybe) maybeValue;
+                                    case Signal.ValueSignal<?> valueSignal                       ->
+                                        Maybe.<Object>of(valueSignal.value());
+                                    case Signal.VoidSignal ignored                               -> Maybe.absent();
                                     };
         var           failureState  = priorFailureState;
 

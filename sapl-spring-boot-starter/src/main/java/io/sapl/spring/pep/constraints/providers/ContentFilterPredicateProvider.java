@@ -25,7 +25,6 @@ import org.reactivestreams.Publisher;
 import org.springframework.core.ResolvableType;
 
 import io.sapl.api.model.Value;
-import io.sapl.spring.pep.constraints.providers.ConstraintResponsibility;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -67,7 +66,7 @@ public class ContentFilterPredicateProvider implements ConstraintHandlerProvider
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
-        if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
+        if (!ConstraintHandlerProvider.constraintIsOfType(constraint, CONSTRAINT_TYPE)) {
             return List.of();
         }
         return SignalType.findIn(supportedSignals, Signal.OutputSignal.class)

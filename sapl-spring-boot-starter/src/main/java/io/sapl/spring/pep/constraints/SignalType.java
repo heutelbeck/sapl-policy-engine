@@ -40,9 +40,18 @@ public sealed interface SignalType permits SignalType.VoidSignalType, SignalType
 
     /**
      * Returns the first {@link ValueSignalType} in {@code supported} whose
-     * signal class equals {@code signalClass}, or {@link Optional#empty()} when
-     * the PEP does not fire that signal. Used by providers that need to bind a
-     * handler to a specific value signal contributed by the surrounding PEP.
+     * signal class equals {@code signalClass}, or {@link Optional#empty()}
+     * when the PEP does not fire that signal. Used by providers that need
+     * to bind a handler to a specific value signal contributed by the
+     * surrounding PEP.
+     * <p>
+     * <b>Use this instead of {@code supportedSignals.contains(typeFor(X))}.</b>
+     * The {@link ValueSignalType} record's equality includes the value's
+     * {@link org.springframework.core.ResolvableType}, so a hardcoded
+     * {@code typeFor(Object.class)} will not match the per-method-typed
+     * signals the PEPs actually fire (e.g. {@code OutputSignal} for a
+     * {@code Flux<Integer>} method carries a {@code ResolvableType} for
+     * {@code Integer}, not {@code Object}).
      */
     static Optional<ValueSignalType<?>> findIn(Set<SignalType> supported, Class<? extends Signal> signalClass) {
         for (val signal : supported) {
