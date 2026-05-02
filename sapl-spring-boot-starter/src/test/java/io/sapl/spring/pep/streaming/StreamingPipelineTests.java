@@ -129,7 +129,7 @@ class StreamingPipelineTests {
             // Subscribe and push items before any PERMIT. The supplier
             // should not be invoked because the pipeline subscribes RAP
             // only on first PERMIT.
-            StepVerifier.create(out.take(Duration.ofMillis(200))).then(() -> h.emitSuspend()).verifyComplete();
+            StepVerifier.create(out.take(Duration.ofMillis(200))).then(h::emitSuspend).verifyComplete();
 
             assertThat(h.rapSupplierInvocationCount.get()).isZero();
         }
