@@ -454,7 +454,7 @@ public class ArrayCompiler {
      * the subscription set.
      */
     private static ExpressionResult assembleArrayLazy(List<CompiledExpression> elements, EvaluationContext ctx) {
-        val     subs     = new HashSet<Subscription>();
+        val     subs     = HashSet.<Subscription>newHashSet(elements.size());
         boolean seenNull = false;
         val     builder  = ArrayValue.builder();
         for (val element : elements) {
@@ -486,7 +486,7 @@ public class ArrayCompiler {
      * Precedence at the end: error > null > built array.
      */
     private static ExpressionResult assembleArrayEager(List<CompiledExpression> elements, EvaluationContext ctx) {
-        val     subs       = new HashSet<Subscription>();
+        val     subs       = HashSet.<Subscription>newHashSet(elements.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     builder    = ArrayValue.builder();

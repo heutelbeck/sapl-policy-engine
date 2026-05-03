@@ -81,7 +81,7 @@ public class PolicySetCompiler {
     }
 
     private static void assertPolicyNamesAreUnique(List<? extends CompiledDocument> compiledDocuments) {
-        val usedNames = new HashSet<>(compiledDocuments.size());
+        val usedNames = HashSet.<String>newHashSet(compiledDocuments.size());
         for (val compiledPolicy : compiledDocuments) {
             val name = compiledPolicy.metadata().name();
             if (!usedNames.add(name)) {

@@ -180,7 +180,7 @@ public class RegexCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = new HashSet<Subscription>();
+            val subs = HashSet.<Subscription>newHashSet(1);
             val v    = evalChild(input, ctx, subs);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, subs);

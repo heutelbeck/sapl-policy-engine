@@ -21,10 +21,12 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -40,6 +42,9 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 @UtilityClass
 public class FilterCompiler {
@@ -72,7 +77,8 @@ public class FilterCompiler {
         arguments.add(new RelativeReference(RelativeType.VALUE, sf.base().location()));
         val location = sf.location();
         arguments.addAll(sf.arguments());
-        val function = FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx);
+        val function          = FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx);
+        val errorShortCircuit = ctx.errorShortCircuit();
         return switch (base) {
         case Value vb           -> switch (function) {
                             case Value vf                                                  ->
@@ -81,8 +87,12 @@ public class FilterCompiler {
                                 new SimpleFilterEachValuePure(vb, pof, location, true, false);
                             case PureOperator pof                                          ->
                                 compileEachValuePureFold(vb, pof, ctx);
-                            case StreamOperator sof                                        ->
-                                new SimpleFilterEachValueStream(vb, sof, location);
+                            case StreamOperator sof                                        -> {
+                                if (errorShortCircuit) {
+                                    yield new SimpleFilterEachValueStreamLazy(vb, sof, location);
+                                }
+                                yield new SimpleFilterEachValueStreamEager(vb, sof, location);
+                            }
                             };
         case PureOperator pob   -> switch (function) {
                             case Value vf               -> new SimpleFilterEachPureValue(pob, vf, location,
@@ -90,12 +100,22 @@ public class FilterCompiler {
                             case PureOperator pof       -> new SimpleFilterEachPurePure(pob, pof, location,
                                     pob.isDependingOnSubscription() || pof.isDependingOnSubscription(),
                                     pob.isRelativeExpression());
-                            case StreamOperator sof     -> new SimpleFilterEachPureStream(pob, sof, location);
+                            case StreamOperator sof     -> {
+                                if (errorShortCircuit) {
+                                    yield new SimpleFilterEachPureStreamLazy(pob, sof, location);
+                                }
+                                yield new SimpleFilterEachPureStreamEager(pob, sof, location);
+                            }
                             };
         case StreamOperator sob -> switch (function) {
                             case Value vf               -> new SimpleFilterEachStreamValue(sob, vf);
                             case PureOperator pof       -> new SimpleFilterEachStreamPure(sob, pof);
-                            case StreamOperator sof     -> new SimpleFilterEachStreamStream(sob, sof, location);
+                            case StreamOperator sof     -> {
+                                if (errorShortCircuit) {
+                                    yield new SimpleFilterEachStreamStreamLazy(sob, sof, location);
+                                }
+                                yield new SimpleFilterEachStreamStreamEager(sob, sof, location);
+                            }
                             };
         };
     }
@@ -119,12 +139,45 @@ public class FilterCompiler {
         }
     }
 
-    record SimpleFilterEachValueStream(Value base, StreamOperator filterOperator, SourceLocation location)
+    /**
+     * Constant Value base, stream filter. Lazy variant: snapshot
+     * {@code evaluate(ctx)} short-circuits on the first per-element
+     * {@link ErrorValue}. Selected at compile time when
+     * {@code errorShortCircuit} is enabled.
+     */
+    record SimpleFilterEachValueStreamLazy(Value base, StreamOperator filterOperator, SourceLocation location)
             implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(contextView -> evaluateEachValueStream(base, filterOperator, location,
                     contextView.get(EvaluationContext.class)));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evaluateEachStreamFilterLazy(base, filterOperator, ctx, HashSet.<Subscription>newHashSet(1));
+        }
+    }
+
+    /**
+     * Constant Value base, stream filter. Eager variant: snapshot
+     * {@code evaluate(ctx)} walks every element to accumulate the maximum
+     * subscription set, holds the first per-element {@link ErrorValue} and
+     * returns it after the full walk. Selected at compile time when
+     * {@code errorShortCircuit} is disabled (default). Legacy
+     * {@link #stream()} is identical to the lazy variant.
+     */
+    record SimpleFilterEachValueStreamEager(Value base, StreamOperator filterOperator, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(contextView -> evaluateEachValueStream(base, filterOperator, location,
+                    contextView.get(EvaluationContext.class)));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evaluateEachStreamFilterEager(base, filterOperator, ctx, HashSet.<Subscription>newHashSet(1));
         }
     }
 
@@ -166,8 +219,15 @@ public class FilterCompiler {
         }
     }
 
-    record SimpleFilterEachPureStream(PureOperator baseOperator, StreamOperator filterOperator, SourceLocation location)
-            implements StreamOperator {
+    /**
+     * Pure base, stream filter. Lazy variant: snapshot {@code evaluate(ctx)}
+     * short-circuits on the first per-element {@link ErrorValue}. Selected at
+     * compile time when {@code errorShortCircuit} is enabled.
+     */
+    record SimpleFilterEachPureStreamLazy(
+            PureOperator baseOperator,
+            StreamOperator filterOperator,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(contextView -> {
@@ -176,6 +236,38 @@ public class FilterCompiler {
                 return evaluateEachValueStream(base, filterOperator, location, evalCtx);
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val baseValue = baseOperator.evaluate(ctx);
+            return evaluateEachStreamFilterLazy(baseValue, filterOperator, ctx, HashSet.<Subscription>newHashSet(1));
+        }
+    }
+
+    /**
+     * Pure base, stream filter. Eager variant: snapshot {@code evaluate(ctx)}
+     * walks every element to accumulate the maximum subscription set. Selected
+     * at compile time when {@code errorShortCircuit} is disabled (default).
+     * Legacy {@link #stream()} is identical to the lazy variant.
+     */
+    record SimpleFilterEachPureStreamEager(
+            PureOperator baseOperator,
+            StreamOperator filterOperator,
+            SourceLocation location) implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(contextView -> {
+                val evalCtx = contextView.get(EvaluationContext.class);
+                val base    = baseOperator.evaluate(evalCtx);
+                return evaluateEachValueStream(base, filterOperator, location, evalCtx);
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val baseValue = baseOperator.evaluate(ctx);
+            return evaluateEachStreamFilterEager(baseValue, filterOperator, ctx, HashSet.<Subscription>newHashSet(1));
+        }
     }
 
     record SimpleFilterEachStreamValue(StreamOperator baseStream, Value filterValue) implements StreamOperator {
@@ -183,6 +275,16 @@ public class FilterCompiler {
         public Flux<TracedValue> stream() {
             return baseStream.stream().map(vb -> new TracedValue(evaluateEachValueValue(vb.value(), filterValue),
                     vb.contributingAttributes()));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs      = HashSet.<Subscription>newHashSet(2);
+            val baseValue = evalChild(baseStream, ctx, subs);
+            if (baseValue == null || baseValue instanceof ErrorValue) {
+                return new ExpressionResult(baseValue, subs);
+            }
+            return new ExpressionResult(evaluateEachValueValue(baseValue, filterValue), subs);
         }
     }
 
@@ -197,10 +299,27 @@ public class FilterCompiler {
                                 vb.contributingAttributes()));
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs      = HashSet.<Subscription>newHashSet(2);
+            val baseValue = evalChild(baseStream, ctx, subs);
+            if (baseValue == null || baseValue instanceof ErrorValue) {
+                return new ExpressionResult(baseValue, subs);
+            }
+            return new ExpressionResult(evaluateEachValuePure(baseValue, filterOperator, ctx), subs);
+        }
     }
 
-    record SimpleFilterEachStreamStream(StreamOperator baseStream, StreamOperator filterStream, SourceLocation location)
-            implements StreamOperator {
+    /**
+     * Stream base, stream filter. Lazy variant: snapshot {@code evaluate(ctx)}
+     * short-circuits on the first per-element {@link ErrorValue}. Selected at
+     * compile time when {@code errorShortCircuit} is enabled.
+     */
+    record SimpleFilterEachStreamStreamLazy(
+            StreamOperator baseStream,
+            StreamOperator filterStream,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return baseStream.stream().switchMap(tracedBase -> Flux.deferContextual(contextView -> {
@@ -209,6 +328,220 @@ public class FilterCompiler {
                         .map(t -> t.with(tracedBase.contributingAttributes()));
             }));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs      = HashSet.<Subscription>newHashSet(2);
+            val baseValue = evalChild(baseStream, ctx, subs);
+            if (baseValue == null || baseValue instanceof ErrorValue) {
+                return new ExpressionResult(baseValue, subs);
+            }
+            return evaluateEachStreamFilterLazy(baseValue, filterStream, ctx, subs);
+        }
+    }
+
+    /**
+     * Stream base, stream filter. Eager variant: snapshot {@code evaluate(ctx)}
+     * walks every element to accumulate the maximum subscription set. Selected
+     * at compile time when {@code errorShortCircuit} is disabled (default).
+     * Legacy {@link #stream()} is identical to the lazy variant.
+     */
+    record SimpleFilterEachStreamStreamEager(
+            StreamOperator baseStream,
+            StreamOperator filterStream,
+            SourceLocation location) implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return baseStream.stream().switchMap(tracedBase -> Flux.deferContextual(contextView -> {
+                val evalCtx = contextView.get(EvaluationContext.class);
+                return evaluateEachValueStream(tracedBase.value(), filterStream, location, evalCtx)
+                        .map(t -> t.with(tracedBase.contributingAttributes()));
+            }));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs      = HashSet.<Subscription>newHashSet(2);
+            val baseValue = evalChild(baseStream, ctx, subs);
+            if (baseValue == null || baseValue instanceof ErrorValue) {
+                return new ExpressionResult(baseValue, subs);
+            }
+            return evaluateEachStreamFilterEager(baseValue, filterStream, ctx, subs);
+        }
+    }
+
+    /**
+     * Lazy per-element snapshot evaluation of a stream filter against a base
+     * value. Dispatches on base shape (Array, Object, scalar, ErrorValue),
+     * applies the filter to each element with the element bound as the
+     * relative value, and accumulates per-element subscriptions into the
+     * supplied {@code subs} set. Returns immediately on the first per-element
+     * {@link ErrorValue} - later elements are not evaluated and contribute no
+     * subscriptions. {@code null} from a per-element evaluation defers to the
+     * end (incomplete child). {@link UndefinedValue} elements are dropped per
+     * filter semantics.
+     */
+    private static ExpressionResult evaluateEachStreamFilterLazy(Value base, StreamOperator filterOperator,
+            EvaluationContext ctx, HashSet<Subscription> subs) {
+        if (base instanceof ErrorValue) {
+            return new ExpressionResult(base, subs);
+        }
+        if (base instanceof ArrayValue av) {
+            return evaluateEachStreamFilterArrayLazy(av, filterOperator, ctx, subs);
+        }
+        if (base instanceof ObjectValue ov) {
+            return evaluateEachStreamFilterObjectLazy(ov, filterOperator, ctx, subs);
+        }
+        // Scalar base: bind the base as the relative value, evaluate the filter
+        // once. Filter's subscriptions are merged into the accumulator.
+        val r = filterOperator.evaluate(ctx.withRelativeValue(base));
+        subs.addAll(r.subscriptions());
+        return new ExpressionResult(r.result(), subs);
+    }
+
+    private static ExpressionResult evaluateEachStreamFilterArrayLazy(ArrayValue av, StreamOperator filterOperator,
+            EvaluationContext ctx, HashSet<Subscription> subs) {
+        val     builder  = new ArrayValue.Builder();
+        boolean seenNull = false;
+        for (int i = 0; i < av.size(); i++) {
+            val perElementCtx = ctx.withRelativeValue(av.get(i), Value.of(i));
+            val r             = filterOperator.evaluate(perElementCtx);
+            subs.addAll(r.subscriptions());
+            val v = r.result();
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.add(v);
+            }
+        }
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        return new ExpressionResult(builder.build(), subs);
+    }
+
+    private static ExpressionResult evaluateEachStreamFilterObjectLazy(ObjectValue ov, StreamOperator filterOperator,
+            EvaluationContext ctx, HashSet<Subscription> subs) {
+        val     builder  = new ObjectValue.Builder();
+        boolean seenNull = false;
+        for (val entry : ov.entrySet()) {
+            val perElementCtx = ctx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
+            val r             = filterOperator.evaluate(perElementCtx);
+            subs.addAll(r.subscriptions());
+            val v = r.result();
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), v);
+            }
+        }
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        return new ExpressionResult(builder.build(), subs);
+    }
+
+    /**
+     * Eager per-element snapshot evaluation of a stream filter against a base
+     * value. Dispatches on base shape (Array, Object, scalar, ErrorValue),
+     * walks every element to accumulate the maximum subscription set, holds
+     * the first {@link ErrorValue} from any per-element evaluation, returns it
+     * after the full walk. {@code null} from a per-element evaluation sets the
+     * incomplete flag. {@link UndefinedValue} elements are dropped per filter
+     * semantics. Precedence at the end: error &gt; null &gt; assembled result.
+     */
+    private static ExpressionResult evaluateEachStreamFilterEager(Value base, StreamOperator filterOperator,
+            EvaluationContext ctx, HashSet<Subscription> subs) {
+        if (base instanceof ErrorValue) {
+            return new ExpressionResult(base, subs);
+        }
+        if (base instanceof ArrayValue av) {
+            return evaluateEachStreamFilterArrayEager(av, filterOperator, ctx, subs);
+        }
+        if (base instanceof ObjectValue ov) {
+            return evaluateEachStreamFilterObjectEager(ov, filterOperator, ctx, subs);
+        }
+        // Scalar base: a single per-element evaluation has nothing to "miss",
+        // so eager and lazy produce identical results here.
+        val r = filterOperator.evaluate(ctx.withRelativeValue(base));
+        subs.addAll(r.subscriptions());
+        return new ExpressionResult(r.result(), subs);
+    }
+
+    private static ExpressionResult evaluateEachStreamFilterArrayEager(ArrayValue av, StreamOperator filterOperator,
+            EvaluationContext ctx, HashSet<Subscription> subs) {
+        val     builder    = new ArrayValue.Builder();
+        boolean seenNull   = false;
+        Value   firstError = null;
+        for (int i = 0; i < av.size(); i++) {
+            val perElementCtx = ctx.withRelativeValue(av.get(i), Value.of(i));
+            val r             = filterOperator.evaluate(perElementCtx);
+            subs.addAll(r.subscriptions());
+            val v = r.result();
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                if (firstError == null) {
+                    firstError = v;
+                }
+                continue;
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.add(v);
+            }
+        }
+        if (firstError != null) {
+            return new ExpressionResult(firstError, subs);
+        }
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        return new ExpressionResult(builder.build(), subs);
+    }
+
+    private static ExpressionResult evaluateEachStreamFilterObjectEager(ObjectValue ov, StreamOperator filterOperator,
+            EvaluationContext ctx, HashSet<Subscription> subs) {
+        val     builder    = new ObjectValue.Builder();
+        boolean seenNull   = false;
+        Value   firstError = null;
+        for (val entry : ov.entrySet()) {
+            val perElementCtx = ctx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
+            val r             = filterOperator.evaluate(perElementCtx);
+            subs.addAll(r.subscriptions());
+            val v = r.result();
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                if (firstError == null) {
+                    firstError = v;
+                }
+                continue;
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), v);
+            }
+        }
+        if (firstError != null) {
+            return new ExpressionResult(firstError, subs);
+        }
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        return new ExpressionResult(builder.build(), subs);
     }
 
     private static CompiledExpression compileEachValuePureFold(Value vb, PureOperator pof, CompilationContext ctx) {

@@ -265,7 +265,7 @@ public class NaryOperatorCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = new HashSet<Subscription>();
+            val subs = HashSet.<Subscription>newHashSet(streams.size());
 
             val preCombined = evaluateAndFoldPures(valueResult, pures, op, location, ctx);
             if (preCombined instanceof ErrorValue) {

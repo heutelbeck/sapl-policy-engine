@@ -791,7 +791,9 @@ public class AttributeCompiler {
             SourceLocation location, EvaluationContext ctx) {
         val optionsValue = evaluateOptions(options, ctx);
 
-        val     subs        = new HashSet<Subscription>();
+        // Sized for: per-argument subscriptions + optional entity subscription
+        // + the final attribute subscription added at the end.
+        val     subs        = HashSet.<Subscription>newHashSet(arguments.size() + 2);
         boolean seenNull    = false;
         Value   entityValue = null;
         if (entity != null) {
@@ -842,7 +844,9 @@ public class AttributeCompiler {
             SourceLocation location, EvaluationContext ctx) {
         val optionsValue = evaluateOptions(options, ctx);
 
-        val     subs        = new HashSet<Subscription>();
+        // Sized for: per-argument subscriptions + optional entity subscription
+        // + the final attribute subscription added at the end.
+        val     subs        = HashSet.<Subscription>newHashSet(arguments.size() + 2);
         boolean seenNull    = false;
         Value   firstError  = null;
         Value   entityValue = null;

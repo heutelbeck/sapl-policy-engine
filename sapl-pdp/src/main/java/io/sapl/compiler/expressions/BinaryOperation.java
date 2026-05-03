@@ -64,7 +64,7 @@ public interface BinaryOperation {
      */
     default ExpressionResult evalLazy(CompiledExpression left, CompiledExpression right, SourceLocation location,
             EvaluationContext ctx) {
-        val subs = new HashSet<Subscription>();
+        val subs = HashSet.<Subscription>newHashSet(2);
         val lv   = evalChild(left, ctx, subs);
         if (lv instanceof ErrorValue) {
             return new ExpressionResult(lv, subs);
@@ -94,7 +94,7 @@ public interface BinaryOperation {
      */
     default ExpressionResult evalEager(CompiledExpression left, CompiledExpression right, SourceLocation location,
             EvaluationContext ctx) {
-        val     subs       = new HashSet<Subscription>();
+        val     subs       = HashSet.<Subscription>newHashSet(2);
         Value   firstError = null;
         boolean seenNull   = false;
         val     lv         = evalChild(left, ctx, subs);

@@ -614,7 +614,7 @@ public class ObjectCompiler {
      */
     private static ExpressionResult assembleObjectLazy(String[] keys, List<CompiledExpression> compiledValues,
             EvaluationContext ctx) {
-        val     subs     = new HashSet<Subscription>();
+        val     subs     = HashSet.<Subscription>newHashSet(compiledValues.size());
         boolean seenNull = false;
         val     builder  = ObjectValue.builder();
         for (int i = 0; i < compiledValues.size(); i++) {
@@ -648,7 +648,7 @@ public class ObjectCompiler {
      */
     private static ExpressionResult assembleObjectEager(String[] keys, List<CompiledExpression> compiledValues,
             EvaluationContext ctx) {
-        val     subs       = new HashSet<Subscription>();
+        val     subs       = HashSet.<Subscription>newHashSet(compiledValues.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     builder    = ObjectValue.builder();

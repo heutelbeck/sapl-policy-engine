@@ -169,7 +169,7 @@ public class FunctionCallCompiler {
      */
     private static ExpressionResult functionLookup(String functionName, List<? extends CompiledExpression> arguments,
             boolean errorShortCircuit, EvaluationContext ctx) {
-        val     subs       = new HashSet<Subscription>();
+        val     subs       = HashSet.<Subscription>newHashSet(arguments.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     argValues  = new ArrayList<Value>(arguments.size());
