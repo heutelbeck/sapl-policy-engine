@@ -47,8 +47,6 @@ import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRI
 @UtilityClass
 public class AttributeCompiler {
 
-    private static final String ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS = "Undefined entity in attribute access";
-
     public static StreamOperator compileEnvironmentAttribute(EnvironmentAttribute attr, CompilationContext ctx) {
         return compileAttribute(null, attr.name().full(), attr.arguments(), attr.options(), attr.head(),
                 attr.location(), ctx);
@@ -178,12 +176,7 @@ public class AttributeCompiler {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
-                val evalCtx = ctx.get(EvaluationContext.class);
-
-                if (entityValue instanceof UndefinedValue) {
-                    return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
-                }
-
+                val evalCtx    = ctx.get(EvaluationContext.class);
                 val invocation = createInvocation(attributeName, entityValue, arguments, options, pdpData, evalCtx);
                 return invokeAndTrace(invocation, head, location);
             });
@@ -191,9 +184,6 @@ public class AttributeCompiler {
 
         @Override
         public ExpressionResult evaluateWithSubscriptions(EvaluationContext ctx) {
-            if (entityValue instanceof UndefinedValue) {
-                return new ExpressionResult(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS), Set.of());
-            }
             val invocation     = createInvocation(attributeName, entityValue, arguments, options, pdpData, ctx);
             val maybeAttribute = ctx.fetchAttribute(invocation);
             return new ExpressionResult(maybeAttribute, Set.of(invocation));
@@ -245,9 +235,6 @@ public class AttributeCompiler {
                     if (entity instanceof ErrorValue) {
                         return Flux.just(errorTracedValue(entity));
                     }
-                }
-                if (entity instanceof UndefinedValue) {
-                    return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
                 }
 
                 val optionsValue = evaluateOptions(options, evalCtx);
@@ -304,9 +291,6 @@ public class AttributeCompiler {
                 val entityVal = tracedEntity.value();
                 if (entityVal instanceof ErrorValue) {
                     return Flux.just(tracedEntity);
-                }
-                if (entityVal instanceof UndefinedValue) {
-                    return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
                 }
 
                 return Flux.deferContextual(ctx -> {

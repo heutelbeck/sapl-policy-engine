@@ -32,6 +32,7 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.TracedValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -292,6 +293,8 @@ public class SaplTesting {
         return new AttributeBroker() {
             @Override
             public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
+                if (invocation.entity() instanceof UndefinedValue)
+                    return Flux.just(Value.error("Undefined entity in attribute access"));
                 if (invocation.attributeName().equals(expectedName))
                     return Flux.fromArray(values);
                 return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
