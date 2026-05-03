@@ -18,9 +18,12 @@
 package io.sapl.api.model;
 
 import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
+
+import java.util.Optional;
 
 import static io.sapl.api.model.ReservedIdentifiers.*;
 
@@ -89,4 +92,7 @@ public record EvaluationContext(
                 attributeBroker, relativeValue, Value.UNDEFINED);
     }
 
+    public Value fetchAttribute(AttributeFinderInvocation invocation) {
+        return null;
+    }
 }

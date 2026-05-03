@@ -19,19 +19,7 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
@@ -44,10 +32,7 @@ import reactor.core.publisher.Flux;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
@@ -120,6 +105,20 @@ public class AttributeCompiler {
         int streamCount = cat.streamCount() + (entityIsStream ? 1 : 0);
 
         if (streamCount == 0) {
+            boolean noPureAnywhere = !entityIsPure && cat.pureOperators().length == 0
+                    && !(options instanceof PureOperator);
+            if (noPureAnywhere) {
+                val denseArgs = new ArrayList<Value>(cat.totalCount());
+                for (int i = 0; i < cat.totalCount(); i++) {
+                    denseArgs.add(null);
+                }
+                for (int i = 0; i < cat.valueIndices().length; i++) {
+                    denseArgs.set(cat.valueIndices()[i], cat.values()[i]);
+                }
+                Value optionsValue = options instanceof Value v ? v : Value.EMPTY_OBJECT;
+                return new AllValueAttribute(attributeName, entityValue, ctx.getData(), List.copyOf(denseArgs),
+                        optionsValue, head, location);
+            }
             return new AllPureAttribute(attributeName, entityValue, ctx.getData(),
                     entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
                     cat.pureOperators(), cat.totalCount(), options, head, location);
@@ -155,6 +154,51 @@ public class AttributeCompiler {
         return new MultiStreamAttribute(attributeName, entityValue, ctx.getData(),
                 entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
                 cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location);
+    }
+
+    /**
+     * Specialised AllPureAttribute case where every input is a constant
+     * Value (entity is null or Value, every argument is a Value, options
+     * is null or Value). The {@link AttributeFinderInvocation} this
+     * operator produces depends only on the per-subscription
+     * {@link EvaluationContext} (configurationId, secrets); the
+     * argument list and entity are fixed at compile time. This is the
+     * cleanest case for snapshot-driven evaluation: the subscription
+     * set never changes, the invocation is essentially constant.
+     */
+    public record AllValueAttribute(
+            String attributeName,
+            Value entityValue,
+            PdpData pdpData,
+            List<Value> arguments,
+            Value options,
+            boolean head,
+            SourceLocation location) implements StreamOperator {
+
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(ctx -> {
+                val evalCtx = ctx.get(EvaluationContext.class);
+
+                if (entityValue instanceof UndefinedValue) {
+                    return Flux.just(errorTracedValue(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS)));
+                }
+
+                val invocation = createInvocation(attributeName, entityValue, arguments, options, pdpData, evalCtx);
+                return invokeAndTrace(invocation, head, location);
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluateWithSubscriptions(EvaluationContext ctx) {
+            if (entityValue instanceof UndefinedValue) {
+                return new ExpressionResult(Value.error(ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS), Set.of());
+            }
+            val invocation     = createInvocation(attributeName, entityValue, arguments, options, pdpData, ctx);
+            val maybeAttribute = ctx.fetchAttribute(invocation);
+            return new ExpressionResult(maybeAttribute, Set.of(invocation));
+        }
+
     }
 
     public record AllPureAttribute(
@@ -493,7 +537,7 @@ public class AttributeCompiler {
             args.set(pureIndices[i], value);
         }
 
-        return args.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
+        return List.copyOf(args);
     }
 
     private static Object buildArgumentArrayWithStreamValue(int[] valueIndices, Value[] values, int[] pureIndices,
@@ -517,7 +561,7 @@ public class AttributeCompiler {
 
         args.set(streamIndex, streamValue);
 
-        return args.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
+        return List.copyOf(args);
     }
 
     private static Object buildArgumentArrayWithMultipleStreams(int[] valueIndices, Value[] values, int[] pureIndices,
@@ -547,7 +591,7 @@ public class AttributeCompiler {
             args.set(streamIndices[i], streamValues[i].value());
         }
 
-        return args.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
+        return List.copyOf(args);
     }
 
     private static AttributeFinderInvocation createInvocation(String attributeName, Value entity, List<Value> arguments,
