@@ -138,7 +138,12 @@ public class BinaryOperationCompiler {
                            case Value rv              -> op.apply(lv, rv, loc);
                            case PureOperator rp       -> new BinaryValuePure(operatorType, op, lv, rp, loc,
                                    rp.isDependingOnSubscription(), rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, errorShortCircuit, loc);
+                           case StreamOperator rs     -> {
+                               if (errorShortCircuit) {
+                                   yield new BinaryValueStreamLazy(op, lv, rs, loc);
+                               }
+                               yield new BinaryValueStreamEager(op, lv, rs, loc);
+                           }
                            };
         case PureOperator lp   -> switch (right) {
                            case Value rv              -> new BinaryPureValue(operatorType, op, lp, rv, loc,
@@ -146,12 +151,22 @@ public class BinaryOperationCompiler {
                            case PureOperator rp       -> new BinaryPurePure(operatorType, op, lp, rp, loc,
                                    lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
                                    lp.isRelativeExpression() || rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, errorShortCircuit, loc);
+                           case StreamOperator rs     -> {
+                               if (errorShortCircuit) {
+                                   yield new BinaryPureStreamLazy(op, lp, rs, loc);
+                               }
+                               yield new BinaryPureStreamEager(op, lp, rs, loc);
+                           }
                            };
         case StreamOperator ls -> switch (right) {
-                           case Value rv              -> new BinaryStreamValue(op, ls, rv, errorShortCircuit, loc);
-                           case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, errorShortCircuit, loc);
-                           case StreamOperator rs     -> new BinaryStreamStream(op, ls, rs, errorShortCircuit, loc);
+                           case Value rv              -> new BinaryStreamValue(op, ls, rv, loc);
+                           case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, loc);
+                           case StreamOperator rs     -> {
+                               if (errorShortCircuit) {
+                                   yield new BinaryStreamStreamLazy(op, ls, rs, loc);
+                               }
+                               yield new BinaryStreamStreamEager(op, ls, rs, loc);
+                           }
                            };
         };
     }
@@ -229,12 +244,14 @@ public class BinaryOperationCompiler {
         }
     }
 
-    record BinaryValueStream(
-            BinaryOperation op,
-            Value lv,
-            StreamOperator rs,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    /**
+     * Left-constant Value, right-Stream. Lazy variant: snapshot
+     * {@code evaluate(ctx)} short-circuits on left {@link ErrorValue}
+     * without subscribing the right stream. Selected at compile time when
+     * {@code errorShortCircuit} is enabled.
+     */
+    record BinaryValueStreamLazy(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return rs.stream().map(trv -> {
@@ -248,16 +265,44 @@ public class BinaryOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(op, lv, rs, errorShortCircuit, location, ctx);
+            return op.evalLazy(lv, rs, location, ctx);
         }
     }
 
-    public record BinaryStreamValue(
-            BinaryOperation op,
-            StreamOperator ls,
-            Value rv,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    /**
+     * Left-constant Value, right-Stream. Eager variant: snapshot
+     * {@code evaluate(ctx)} subscribes the right stream even when the
+     * left Value is an {@link ErrorValue}, holds the first error and
+     * returns it after the full walk. Selected at compile time when
+     * {@code errorShortCircuit} is disabled (default).
+     */
+    record BinaryValueStreamEager(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return rs.stream().map(trv -> {
+                val rv = trv.value();
+                if (rv instanceof ErrorValue) {
+                    return trv;
+                }
+                return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return op.evalEager(lv, rs, location, ctx);
+        }
+    }
+
+    /**
+     * Left-Stream, right-constant Value. Lazy and eager produce identical
+     * subscription sets and identical output here (right has no
+     * subscriptions to "miss"), so a single record suffices. Snapshot
+     * {@code evaluate(ctx)} uses the lazy helper as the canonical form.
+     */
+    public record BinaryStreamValue(BinaryOperation op, StreamOperator ls, Value rv, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return ls.stream().map(tlv -> {
@@ -271,16 +316,18 @@ public class BinaryOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(op, ls, rv, errorShortCircuit, location, ctx);
+            return op.evalLazy(ls, rv, location, ctx);
         }
     }
 
-    record BinaryPureStream(
-            BinaryOperation op,
-            PureOperator lp,
-            StreamOperator rs,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    /**
+     * Left-Pure, right-Stream. Lazy variant: snapshot
+     * {@code evaluate(ctx)} short-circuits on left pure
+     * {@link ErrorValue} without subscribing the right stream. Selected
+     * at compile time when {@code errorShortCircuit} is enabled.
+     */
+    record BinaryPureStreamLazy(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -300,16 +347,49 @@ public class BinaryOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(op, lp, rs, errorShortCircuit, location, ctx);
+            return op.evalLazy(lp, rs, location, ctx);
         }
     }
 
-    record BinaryStreamPure(
-            BinaryOperation op,
-            StreamOperator ls,
-            PureOperator rp,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    /**
+     * Left-Pure, right-Stream. Eager variant: snapshot
+     * {@code evaluate(ctx)} subscribes the right stream even when the
+     * left pure produces an {@link ErrorValue}. Selected at compile time
+     * when {@code errorShortCircuit} is disabled (default).
+     */
+    record BinaryPureStreamEager(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.deferContextual(ctx -> {
+                val lv = lp.evaluate(ctx.get(EvaluationContext.class));
+                if (lv instanceof ErrorValue) {
+                    return Flux.just(new TracedValue(lv, List.of()));
+                }
+                return rs.stream().map(trv -> {
+                    val rv = trv.value();
+                    if (rv instanceof ErrorValue) {
+                        return trv;
+                    }
+                    return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
+                });
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return op.evalEager(lp, rs, location, ctx);
+        }
+    }
+
+    /**
+     * Left-Stream, right-Pure. Lazy and eager produce identical
+     * subscription sets and identical output here (right has no
+     * subscriptions to "miss"), so a single record suffices. Snapshot
+     * {@code evaluate(ctx)} uses the lazy helper as the canonical form.
+     */
+    record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -329,16 +409,18 @@ public class BinaryOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(op, ls, rp, errorShortCircuit, location, ctx);
+            return op.evalLazy(ls, rp, location, ctx);
         }
     }
 
-    record BinaryStreamStream(
-            BinaryOperation op,
-            StreamOperator ls,
-            StreamOperator rs,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    /**
+     * Both children are streams. Lazy variant: snapshot
+     * {@code evaluate(ctx)} short-circuits on left {@link ErrorValue}
+     * without subscribing the right stream. Selected at compile time when
+     * {@code errorShortCircuit} is enabled.
+     */
+    record BinaryStreamStreamLazy(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.combineLatest(ls.stream(), rs.stream(), (tlv, trv) -> {
@@ -358,39 +440,59 @@ public class BinaryOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(op, ls, rs, errorShortCircuit, location, ctx);
+            return op.evalLazy(ls, rs, location, ctx);
         }
     }
 
     /**
-     * Snapshot-driven binary evaluation, shared by all 5 binary stream
-     * variants. Per-child dispatch via
-     * {@link StreamOperator#evalChild} (no boxing for non-stream
-     * children). Subscriptions accumulate as stream children are
-     * walked. Null defers to the end (signals "incomplete; subscribe
-     * new entries and retry"); error short-circuit on the left is
-     * gated by {@code errorShortCircuit} - lazy mode skips right-side
-     * subscription, eager mode keeps walking to maximize subscription
-     * set before propagating the error.
+     * Both children are streams. Eager variant: snapshot
+     * {@code evaluate(ctx)} subscribes both streams regardless of which
+     * errors first, holds the first error and returns it after the full
+     * walk. Selected at compile time when {@code errorShortCircuit} is
+     * disabled (default).
+     */
+    record BinaryStreamStreamEager(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
+            implements StreamOperator {
+        @Override
+        public Flux<TracedValue> stream() {
+            return Flux.combineLatest(ls.stream(), rs.stream(), (tlv, trv) -> {
+                val combined = new ArrayList<>(trv.contributingAttributes());
+                combined.addAll(tlv.contributingAttributes());
+                val lv = tlv.value();
+                if (lv instanceof ErrorValue) {
+                    return new TracedValue(lv, combined);
+                }
+                val rv = trv.value();
+                if (rv instanceof ErrorValue) {
+                    return new TracedValue(rv, combined);
+                }
+                return new TracedValue(op.apply(lv, rv, location), combined);
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return op.evalEager(ls, rs, location, ctx);
+        }
+    }
+
+    /**
+     * Transitional adapter delegating to {@link BinaryOperation#evalLazy}
+     * or {@link BinaryOperation#evalEager} depending on the runtime
+     * {@code errorShortCircuit} parameter.
+     * <p>
+     * TODO: remove this helper once {@code RegexCompiler} has been split
+     * into Lazy/Eager record variants matching the
+     * {@code BinaryOperationCompiler} pattern. Once that lands, every
+     * caller knows its variant at compile time and can call the
+     * appropriate {@link BinaryOperation} default method directly.
      */
     static ExpressionResult evalBinary(BinaryOperation op, CompiledExpression left, CompiledExpression right,
             boolean errorShortCircuit, SourceLocation location, EvaluationContext ctx) {
-        val subs = new HashSet<Subscription>();
-        val lv   = evalChild(left, ctx, subs);
-        if (errorShortCircuit && lv instanceof ErrorValue) {
-            return new ExpressionResult(lv, subs);
+        if (errorShortCircuit) {
+            return op.evalLazy(left, right, location, ctx);
         }
-        val rv = evalChild(right, ctx, subs);
-        if (lv == null || rv == null) {
-            return new ExpressionResult(null, subs);
-        }
-        if (lv instanceof ErrorValue) {
-            return new ExpressionResult(lv, subs);
-        }
-        if (rv instanceof ErrorValue) {
-            return new ExpressionResult(rv, subs);
-        }
-        return new ExpressionResult(op.apply(lv, rv, location), subs);
+        return op.evalEager(left, right, location, ctx);
     }
 
 }
