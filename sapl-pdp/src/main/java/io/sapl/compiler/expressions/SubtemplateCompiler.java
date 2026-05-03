@@ -26,7 +26,8 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -37,7 +38,8 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
@@ -321,12 +323,12 @@ public class SubtemplateCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(parent, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(parent, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyConstantTemplate(v, template), subs);
+            return new ExpressionResult(applyConstantTemplate(v, template), deps);
         }
     }
 
@@ -346,12 +348,12 @@ public class SubtemplateCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(parent, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(parent, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyPureTemplate(v, template, ctx), subs);
+            return new ExpressionResult(applyPureTemplate(v, template, ctx), deps);
         }
     }
 

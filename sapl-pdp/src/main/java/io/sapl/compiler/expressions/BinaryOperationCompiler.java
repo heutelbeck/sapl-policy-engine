@@ -24,7 +24,6 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.ArrayExpression;

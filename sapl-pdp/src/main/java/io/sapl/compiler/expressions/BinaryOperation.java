@@ -19,14 +19,16 @@ package io.sapl.compiler.expressions;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.List;
 
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ExpressionResult;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Subscription;
 import io.sapl.api.model.Value;
 import lombok.val;
 
@@ -64,27 +66,27 @@ public interface BinaryOperation {
      */
     default ExpressionResult evalEager(CompiledExpression left, CompiledExpression right, SourceLocation location,
             EvaluationContext ctx) {
-        val     subs       = HashSet.<Subscription>newHashSet(2);
+        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
         Value   firstError = null;
         boolean seenNull   = false;
-        val     lv         = evalChild(left, ctx, subs);
+        val     lv         = evalChild(left, ctx, deps);
         if (lv == null) {
             seenNull = true;
         } else if (lv instanceof ErrorValue) {
             firstError = lv;
         }
-        val rv = evalChild(right, ctx, subs);
+        val rv = evalChild(right, ctx, deps);
         if (rv == null) {
             seenNull = true;
         } else if (rv instanceof ErrorValue && firstError == null) {
             firstError = rv;
         }
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
-        return new ExpressionResult(apply(lv, rv, location), subs);
+        return new ExpressionResult(apply(lv, rv, location), deps);
     }
 }

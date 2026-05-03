@@ -17,7 +17,10 @@
  */
 package io.sapl.api.model;
 
+import java.util.Map;
+
 import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
@@ -34,7 +37,26 @@ public record EvaluationContext(
         @NonNull FunctionBroker functionBroker,
         @NonNull AttributeBroker attributeBroker,
         @NonNull Value relativeValue,
-        @NonNull Value relativeLocation) {
+        @NonNull Value relativeLocation,
+        @NonNull Map<AttributeFinderInvocation, AttributeSnapshot> snapshot) {
+
+    /**
+     * Convenience constructor matching the pre-snapshot field shape.
+     * The snapshot defaults to an empty map so existing callers do not
+     * need to thread snapshot state through. The trigger loop uses the
+     * canonical 9-arg constructor to bind a populated snapshot.
+     */
+    public EvaluationContext(@NonNull String pdpId,
+            @NonNull String configurationId,
+            @NonNull String subscriptionId,
+            @NonNull AuthorizationSubscription authorizationSubscription,
+            @NonNull FunctionBroker functionBroker,
+            @NonNull AttributeBroker attributeBroker,
+            @NonNull Value relativeValue,
+            @NonNull Value relativeLocation) {
+        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, attributeBroker,
+                relativeValue, relativeLocation, Map.of());
+    }
 
     private EvaluationContext(String pdpId,
             String configurationId,
@@ -43,7 +65,7 @@ public record EvaluationContext(
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker) {
         this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, attributeBroker,
-                Value.UNDEFINED, Value.UNDEFINED);
+                Value.UNDEFINED, Value.UNDEFINED, Map.of());
     }
 
     public static EvaluationContext of(String pdpId, String configurationId, String subscriptionId,
@@ -83,15 +105,31 @@ public record EvaluationContext(
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                attributeBroker, relativeValue, relativeLocation);
+                attributeBroker, relativeValue, relativeLocation, snapshot);
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                attributeBroker, relativeValue, Value.UNDEFINED);
+                attributeBroker, relativeValue, Value.UNDEFINED, snapshot);
     }
 
-    public @Nullable Value lookup(Subscription subscription) {
-        return null;
+    /**
+     * Returns a new context with the given snapshot bound. Used by the
+     * trigger loop between rounds: build a fresh map with the current
+     * known attribute values, call this builder, hand the resulting
+     * context to {@code evaluate(ctx)}.
+     *
+     * @param snapshot the new attribute snapshot to bind
+     * @return a new context with the same request data and the
+     * supplied snapshot
+     */
+    public EvaluationContext withSnapshot(Map<AttributeFinderInvocation, AttributeSnapshot> snapshot) {
+        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
+                attributeBroker, relativeValue, relativeLocation, snapshot);
+    }
+
+    public @Nullable Value lookup(AttributeFinderInvocation invocation) {
+        var entry = snapshot.get(invocation);
+        return entry == null ? null : entry.value();
     }
 }

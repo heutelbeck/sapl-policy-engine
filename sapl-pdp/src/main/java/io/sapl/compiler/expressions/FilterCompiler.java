@@ -26,7 +26,8 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -42,9 +43,12 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.api.model.StreamOperator.mergeDependencies;
 
 @UtilityClass
 public class FilterCompiler {
@@ -139,7 +143,8 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evaluateEachStreamFilter(base, filterOperator, ctx, HashSet.<Subscription>newHashSet(1));
+            return evaluateEachStreamFilter(base, filterOperator, ctx,
+                    HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1));
         }
     }
 
@@ -199,7 +204,8 @@ public class FilterCompiler {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val baseValue = baseOperator.evaluate(ctx);
-            return evaluateEachStreamFilter(baseValue, filterOperator, ctx, HashSet.<Subscription>newHashSet(1));
+            return evaluateEachStreamFilter(baseValue, filterOperator, ctx,
+                    HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1));
         }
     }
 
@@ -212,12 +218,12 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs      = HashSet.<Subscription>newHashSet(2);
-            val baseValue = evalChild(baseStream, ctx, subs);
+            val deps      = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val baseValue = evalChild(baseStream, ctx, deps);
             if (baseValue == null || baseValue instanceof ErrorValue) {
-                return new ExpressionResult(baseValue, subs);
+                return new ExpressionResult(baseValue, deps);
             }
-            return new ExpressionResult(evaluateEachValueValue(baseValue, filterValue), subs);
+            return new ExpressionResult(evaluateEachValueValue(baseValue, filterValue), deps);
         }
     }
 
@@ -235,12 +241,12 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs      = HashSet.<Subscription>newHashSet(2);
-            val baseValue = evalChild(baseStream, ctx, subs);
+            val deps      = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val baseValue = evalChild(baseStream, ctx, deps);
             if (baseValue == null || baseValue instanceof ErrorValue) {
-                return new ExpressionResult(baseValue, subs);
+                return new ExpressionResult(baseValue, deps);
             }
-            return new ExpressionResult(evaluateEachValuePure(baseValue, filterOperator, ctx), subs);
+            return new ExpressionResult(evaluateEachValuePure(baseValue, filterOperator, ctx), deps);
         }
     }
 
@@ -261,12 +267,12 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs      = HashSet.<Subscription>newHashSet(2);
-            val baseValue = evalChild(baseStream, ctx, subs);
+            val deps      = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val baseValue = evalChild(baseStream, ctx, deps);
             if (baseValue == null || baseValue instanceof ErrorValue) {
-                return new ExpressionResult(baseValue, subs);
+                return new ExpressionResult(baseValue, deps);
             }
-            return evaluateEachStreamFilter(baseValue, filterStream, ctx, subs);
+            return evaluateEachStreamFilter(baseValue, filterStream, ctx, deps);
         }
     }
 
@@ -281,30 +287,30 @@ public class FilterCompiler {
      * error &gt; null &gt; assembled result.
      */
     private static ExpressionResult evaluateEachStreamFilter(Value base, StreamOperator filterOperator,
-            EvaluationContext ctx, HashSet<Subscription> subs) {
+            EvaluationContext ctx, Map<AttributeFinderInvocation, List<Occurrence>> deps) {
         if (base instanceof ErrorValue) {
-            return new ExpressionResult(base, subs);
+            return new ExpressionResult(base, deps);
         }
         if (base instanceof ArrayValue av) {
-            return evaluateEachStreamFilterArray(av, filterOperator, ctx, subs);
+            return evaluateEachStreamFilterArray(av, filterOperator, ctx, deps);
         }
         if (base instanceof ObjectValue ov) {
-            return evaluateEachStreamFilterObject(ov, filterOperator, ctx, subs);
+            return evaluateEachStreamFilterObject(ov, filterOperator, ctx, deps);
         }
         val r = filterOperator.evaluate(ctx.withRelativeValue(base));
-        subs.addAll(r.subscriptions());
-        return new ExpressionResult(r.result(), subs);
+        mergeDependencies(deps, r.dependencies());
+        return new ExpressionResult(r.result(), deps);
     }
 
     private static ExpressionResult evaluateEachStreamFilterArray(ArrayValue av, StreamOperator filterOperator,
-            EvaluationContext ctx, HashSet<Subscription> subs) {
+            EvaluationContext ctx, Map<AttributeFinderInvocation, List<Occurrence>> deps) {
         val     builder    = new ArrayValue.Builder();
         boolean seenNull   = false;
         Value   firstError = null;
         for (int i = 0; i < av.size(); i++) {
             val perElementCtx = ctx.withRelativeValue(av.get(i), Value.of(i));
             val r             = filterOperator.evaluate(perElementCtx);
-            subs.addAll(r.subscriptions());
+            mergeDependencies(deps, r.dependencies());
             val v = r.result();
             if (v == null) {
                 seenNull = true;
@@ -321,23 +327,23 @@ public class FilterCompiler {
             }
         }
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
-        return new ExpressionResult(builder.build(), subs);
+        return new ExpressionResult(builder.build(), deps);
     }
 
     private static ExpressionResult evaluateEachStreamFilterObject(ObjectValue ov, StreamOperator filterOperator,
-            EvaluationContext ctx, HashSet<Subscription> subs) {
+            EvaluationContext ctx, Map<AttributeFinderInvocation, List<Occurrence>> deps) {
         val     builder    = new ObjectValue.Builder();
         boolean seenNull   = false;
         Value   firstError = null;
         for (val entry : ov.entrySet()) {
             val perElementCtx = ctx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
             val r             = filterOperator.evaluate(perElementCtx);
-            subs.addAll(r.subscriptions());
+            mergeDependencies(deps, r.dependencies());
             val v = r.result();
             if (v == null) {
                 seenNull = true;
@@ -354,12 +360,12 @@ public class FilterCompiler {
             }
         }
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
-        return new ExpressionResult(builder.build(), subs);
+        return new ExpressionResult(builder.build(), deps);
     }
 
     private static CompiledExpression compileEachValuePureFold(Value vb, PureOperator pof, CompilationContext ctx) {

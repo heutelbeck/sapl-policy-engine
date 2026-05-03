@@ -24,7 +24,8 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
@@ -35,7 +36,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -178,12 +179,12 @@ public class RegexCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(input, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(input, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(matchRegex(v, matcher), subs);
+            return new ExpressionResult(matchRegex(v, matcher), deps);
         }
     }
 

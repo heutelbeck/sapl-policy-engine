@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
@@ -25,10 +26,10 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
@@ -53,6 +54,7 @@ import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -182,12 +184,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyKeyStep(v, key), subs);
+            return new ExpressionResult(applyKeyStep(v, key), deps);
         }
     }
 
@@ -252,12 +254,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyIndexStep(v, index, location), subs);
+            return new ExpressionResult(applyIndexStep(v, index, location), deps);
         }
     }
 
@@ -316,12 +318,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyWildcardStep(v, location), subs);
+            return new ExpressionResult(applyWildcardStep(v, location), deps);
         }
     }
 
@@ -404,12 +406,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyIndexUnionStep(v, indices, location), subs);
+            return new ExpressionResult(applyIndexUnionStep(v, indices, location), deps);
         }
     }
 
@@ -479,12 +481,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyAttributeUnionStep(v, attributes, location), subs);
+            return new ExpressionResult(applyAttributeUnionStep(v, attributes, location), deps);
         }
     }
 
@@ -585,12 +587,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applySliceStep(v, from, to, step, location), subs);
+            return new ExpressionResult(applySliceStep(v, from, to, step, location), deps);
         }
     }
 
@@ -721,12 +723,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyExpressionStep(v, expr, location), subs);
+            return new ExpressionResult(applyExpressionStep(v, expr, location), deps);
         }
     }
 
@@ -744,13 +746,13 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
             val exprVal = expr.evaluate(ctx);
-            return new ExpressionResult(applyExpressionStep(v, exprVal, location), subs);
+            return new ExpressionResult(applyExpressionStep(v, exprVal, location), deps);
         }
     }
 
@@ -945,12 +947,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyConditionStep(v, condition, null, ctx, location), subs);
+            return new ExpressionResult(applyConditionStep(v, condition, null, ctx, location), deps);
         }
     }
 
@@ -968,12 +970,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyConditionStep(v, null, condition, ctx, location), subs);
+            return new ExpressionResult(applyConditionStep(v, null, condition, ctx, location), deps);
         }
     }
 
@@ -1062,12 +1064,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyRecursiveKeyStep(v, key, location), subs);
+            return new ExpressionResult(applyRecursiveKeyStep(v, key, location), deps);
         }
     }
 
@@ -1157,12 +1159,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyRecursiveIndexStep(v, index, location), subs);
+            return new ExpressionResult(applyRecursiveIndexStep(v, index, location), deps);
         }
     }
 
@@ -1249,12 +1251,12 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(base, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(applyRecursiveWildcardStep(v, location), subs);
+            return new ExpressionResult(applyRecursiveWildcardStep(v, location), deps);
         }
     }
 

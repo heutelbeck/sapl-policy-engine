@@ -541,10 +541,10 @@ public class AttributeCompiler {
 
     /**
      * Walks entity and every argument via {@link StreamOperator#evalChild},
-     * accumulating subscriptions even past any encountered
+     * accumulating dependencies even past any encountered
      * {@link ErrorValue}. Holds the first error and returns it after the
      * full walk completes. {@code null} from a child sets the incomplete
-     * flag; on a clean walk with no error the attribute subscription is
+     * flag; on a clean walk with no error the attribute invocation is
      * built and looked up. Precedence at the end:
      * error &gt; null &gt; lookup result.
      */
@@ -553,14 +553,14 @@ public class AttributeCompiler {
             SourceLocation location, EvaluationContext ctx) {
         val optionsValue = evaluateOptions(options, ctx);
 
-        // Sized for: per-argument subscriptions + optional entity subscription
-        // + the final attribute subscription added at the end.
-        val     subs        = HashSet.<Subscription>newHashSet(arguments.size() + 2);
+        // Sized for: per-argument dependencies + optional entity dependency
+        // + the final attribute dependency added at the end.
+        val     deps        = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(arguments.size() + 2);
         boolean seenNull    = false;
         Value   firstError  = null;
         Value   entityValue = null;
         if (entity != null) {
-            val v = evalChild(entity, ctx, subs);
+            val v = evalChild(entity, ctx, deps);
             if (v == null) {
                 seenNull = true;
             } else if (v instanceof ErrorValue) {
@@ -572,7 +572,7 @@ public class AttributeCompiler {
 
         val argValues = new ArrayList<Value>(arguments.size());
         for (val arg : arguments) {
-            val argValue = evalChild(arg, ctx, subs);
+            val argValue = evalChild(arg, ctx, deps);
             if (argValue == null) {
                 seenNull = true;
                 continue;
@@ -587,17 +587,16 @@ public class AttributeCompiler {
         }
 
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
 
-        val invocation   = createInvocation(attributeName, entityValue, argValues, optionsValue, pdpData, ctx);
-        val subscription = new Subscription(invocation, location, head);
-        subs.add(subscription);
-        val value = ctx.lookup(subscription);
-        return new ExpressionResult(value, subs);
+        val invocation = createInvocation(attributeName, entityValue, argValues, optionsValue, pdpData, ctx);
+        deps.computeIfAbsent(invocation, k -> new ArrayList<>()).add(new Occurrence(location, head));
+        val value = ctx.lookup(invocation);
+        return new ExpressionResult(value, deps);
     }
 
     private static Object buildArgumentArray(int[] valueIndices, Value[] values, int[] pureIndices,

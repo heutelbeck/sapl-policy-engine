@@ -25,7 +25,8 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperatorType;
@@ -41,7 +42,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
@@ -264,11 +265,11 @@ public class NaryOperatorCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(streams.size());
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(streams.size());
 
             val preCombined = evaluateAndFoldPures(valueResult, pures, op, location, ctx);
             if (preCombined instanceof ErrorValue) {
-                return new ExpressionResult(preCombined, subs);
+                return new ExpressionResult(preCombined, deps);
             }
 
             Value   result     = preCombined;
@@ -276,7 +277,7 @@ public class NaryOperatorCompiler {
             Value   firstError = null;
 
             for (val s : streams) {
-                val sv = evalChild(s, ctx, subs);
+                val sv = evalChild(s, ctx, deps);
                 if (sv == null) {
                     seenNull = true;
                     continue;
@@ -296,15 +297,15 @@ public class NaryOperatorCompiler {
             }
 
             if (firstError != null) {
-                return new ExpressionResult(firstError, subs);
+                return new ExpressionResult(firstError, deps);
             }
             if (seenNull) {
-                return new ExpressionResult(null, subs);
+                return new ExpressionResult(null, deps);
             }
             if (result == null) {
-                return new ExpressionResult(Value.error(ERROR_EMPTY_NARY_EXPRESSION), subs);
+                return new ExpressionResult(Value.error(ERROR_EMPTY_NARY_EXPRESSION), deps);
             }
-            return new ExpressionResult(result, subs);
+            return new ExpressionResult(result, deps);
         }
     }
 }

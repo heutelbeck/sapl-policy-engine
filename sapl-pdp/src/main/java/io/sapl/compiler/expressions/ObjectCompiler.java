@@ -29,7 +29,8 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -40,7 +41,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
@@ -405,12 +406,12 @@ public class ObjectCompiler {
      */
     private static ExpressionResult assembleObject(String[] keys, List<CompiledExpression> compiledValues,
             EvaluationContext ctx) {
-        val     subs       = HashSet.<Subscription>newHashSet(compiledValues.size());
+        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(compiledValues.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     builder    = ObjectValue.builder();
         for (int i = 0; i < compiledValues.size(); i++) {
-            val v = evalChild(compiledValues.get(i), ctx, subs);
+            val v = evalChild(compiledValues.get(i), ctx, deps);
             if (v == null) {
                 seenNull = true;
                 continue;
@@ -426,12 +427,12 @@ public class ObjectCompiler {
             }
         }
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
-        return new ExpressionResult(builder.build(), subs);
+        return new ExpressionResult(builder.build(), deps);
     }
 
 }

@@ -29,7 +29,8 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -40,7 +41,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
@@ -359,12 +360,12 @@ public class ArrayCompiler {
      * Precedence at the end: error &gt; null &gt; built array.
      */
     private static ExpressionResult assembleArray(List<CompiledExpression> elements, EvaluationContext ctx) {
-        val     subs       = HashSet.<Subscription>newHashSet(elements.size());
+        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(elements.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     builder    = ArrayValue.builder();
         for (val element : elements) {
-            val v = evalChild(element, ctx, subs);
+            val v = evalChild(element, ctx, deps);
             if (v == null) {
                 seenNull = true;
                 continue;
@@ -380,12 +381,12 @@ public class ArrayCompiler {
             }
         }
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
-        return new ExpressionResult(builder.build(), subs);
+        return new ExpressionResult(builder.build(), deps);
     }
 
     /**

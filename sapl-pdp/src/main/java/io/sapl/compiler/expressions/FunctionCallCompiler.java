@@ -29,7 +29,8 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
@@ -41,7 +42,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
@@ -170,12 +171,12 @@ public class FunctionCallCompiler {
      */
     private static ExpressionResult functionLookup(String functionName, List<? extends CompiledExpression> arguments,
             EvaluationContext ctx) {
-        val     subs       = HashSet.<Subscription>newHashSet(arguments.size());
+        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(arguments.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     argValues  = new ArrayList<Value>(arguments.size());
         for (val arg : arguments) {
-            val v = evalChild(arg, ctx, subs);
+            val v = evalChild(arg, ctx, deps);
             if (v == null) {
                 seenNull = true;
                 continue;
@@ -190,13 +191,13 @@ public class FunctionCallCompiler {
         }
 
         if (firstError != null) {
-            return new ExpressionResult(firstError, subs);
+            return new ExpressionResult(firstError, deps);
         }
         if (seenNull) {
-            return new ExpressionResult(null, subs);
+            return new ExpressionResult(null, deps);
         }
         val result = ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
-        return new ExpressionResult(result, subs);
+        return new ExpressionResult(result, deps);
     }
 
     /**

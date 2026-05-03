@@ -26,7 +26,8 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
@@ -37,7 +38,8 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
@@ -50,9 +52,9 @@ import static io.sapl.api.model.StreamOperator.evalChild;
  * On the streaming stratum they differ:
  * <ul>
  * <li>Lazy ({@code &&}, {@code ||}): uses switchMap for short-circuit
- * evaluation, avoiding unnecessary subscriptions.</li>
+ * evaluation, avoiding unnecessary depscriptions.</li>
  * <li>Eager ({@code &}, {@code |}): uses combineLatest, keeping both
- * subscriptions active for lower latency.</li>
+ * depscriptions active for lower latency.</li>
  * </ul>
  */
 @UtilityClass
@@ -289,12 +291,12 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
-            val v    = evalChild(s, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(s, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, subs);
+                return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(asBoolean(v, location), subs);
+            return new ExpressionResult(asBoolean(v, location), deps);
         }
     }
 
@@ -317,23 +319,23 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
             val pv   = p.evaluate(ctx);
             if (pv instanceof ErrorValue) {
-                return new ExpressionResult(pv, subs);
+                return new ExpressionResult(pv, deps);
             }
             if (!(pv instanceof BooleanValue(var b))) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (!b) {
-                return new ExpressionResult(Value.FALSE, subs);
+                return new ExpressionResult(Value.FALSE, deps);
             }
-            val sv = evalChild(s, ctx, subs);
+            val sv = evalChild(s, ctx, deps);
             if (sv == null || sv instanceof ErrorValue) {
-                return new ExpressionResult(sv, subs);
+                return new ExpressionResult(sv, deps);
             }
-            return new ExpressionResult(asBoolean(sv, location), subs);
+            return new ExpressionResult(asBoolean(sv, location), deps);
         }
     }
 
@@ -356,23 +358,23 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(1);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
             val pv   = p.evaluate(ctx);
             if (pv instanceof ErrorValue) {
-                return new ExpressionResult(pv, subs);
+                return new ExpressionResult(pv, deps);
             }
             if (!(pv instanceof BooleanValue(var b))) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (b) {
-                return new ExpressionResult(Value.TRUE, subs);
+                return new ExpressionResult(Value.TRUE, deps);
             }
-            val sv = evalChild(s, ctx, subs);
+            val sv = evalChild(s, ctx, deps);
             if (sv == null || sv instanceof ErrorValue) {
-                return new ExpressionResult(sv, subs);
+                return new ExpressionResult(sv, deps);
             }
-            return new ExpressionResult(asBoolean(sv, location), subs);
+            return new ExpressionResult(asBoolean(sv, location), deps);
         }
     }
 
@@ -399,23 +401,23 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(2);
-            val lv   = evalChild(s1, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val lv   = evalChild(s1, ctx, deps);
             if (lv == null || lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, subs);
+                return new ExpressionResult(lv, deps);
             }
             if (!(lv instanceof BooleanValue(var b))) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (!b) {
-                return new ExpressionResult(Value.FALSE, subs);
+                return new ExpressionResult(Value.FALSE, deps);
             }
-            val rv = evalChild(s2, ctx, subs);
+            val rv = evalChild(s2, ctx, deps);
             if (rv == null || rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, subs);
+                return new ExpressionResult(rv, deps);
             }
-            return new ExpressionResult(asBoolean(rv, location), subs);
+            return new ExpressionResult(asBoolean(rv, location), deps);
         }
     }
 
@@ -441,23 +443,23 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(2);
-            val lv   = evalChild(s1, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val lv   = evalChild(s1, ctx, deps);
             if (lv == null || lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, subs);
+                return new ExpressionResult(lv, deps);
             }
             if (!(lv instanceof BooleanValue(var b))) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (b) {
-                return new ExpressionResult(Value.TRUE, subs);
+                return new ExpressionResult(Value.TRUE, deps);
             }
-            val rv = evalChild(s2, ctx, subs);
+            val rv = evalChild(s2, ctx, deps);
             if (rv == null || rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, subs);
+                return new ExpressionResult(rv, deps);
             }
-            return new ExpressionResult(asBoolean(rv, location), subs);
+            return new ExpressionResult(asBoolean(rv, location), deps);
         }
     }
 
@@ -485,29 +487,29 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(2);
-            val lv   = evalChild(s1, ctx, subs);
-            val rv   = evalChild(s2, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val lv   = evalChild(s1, ctx, deps);
+            val rv   = evalChild(s2, ctx, deps);
             if (lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, subs);
+                return new ExpressionResult(lv, deps);
             }
             if (rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, subs);
+                return new ExpressionResult(rv, deps);
             }
             if (lv != null && !(lv instanceof BooleanValue)) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (rv != null && !(rv instanceof BooleanValue)) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, rv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (lv == null || rv == null) {
-                return new ExpressionResult(null, subs);
+                return new ExpressionResult(null, deps);
             }
             val b1 = ((BooleanValue) lv).value();
             val b2 = ((BooleanValue) rv).value();
-            return new ExpressionResult(b1 && b2 ? Value.TRUE : Value.FALSE, subs);
+            return new ExpressionResult(b1 && b2 ? Value.TRUE : Value.FALSE, deps);
         }
     }
 
@@ -535,29 +537,29 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = HashSet.<Subscription>newHashSet(2);
-            val lv   = evalChild(s1, ctx, subs);
-            val rv   = evalChild(s2, ctx, subs);
+            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val lv   = evalChild(s1, ctx, deps);
+            val rv   = evalChild(s2, ctx, deps);
             if (lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, subs);
+                return new ExpressionResult(lv, deps);
             }
             if (rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, subs);
+                return new ExpressionResult(rv, deps);
             }
             if (lv != null && !(lv instanceof BooleanValue)) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (rv != null && !(rv instanceof BooleanValue)) {
                 return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, rv.getClass().getSimpleName()),
-                        subs);
+                        deps);
             }
             if (lv == null || rv == null) {
-                return new ExpressionResult(null, subs);
+                return new ExpressionResult(null, deps);
             }
             val b1 = ((BooleanValue) lv).value();
             val b2 = ((BooleanValue) rv).value();
-            return new ExpressionResult(b1 || b2 ? Value.TRUE : Value.FALSE, subs);
+            return new ExpressionResult(b1 || b2 ? Value.TRUE : Value.FALSE, deps);
         }
     }
 

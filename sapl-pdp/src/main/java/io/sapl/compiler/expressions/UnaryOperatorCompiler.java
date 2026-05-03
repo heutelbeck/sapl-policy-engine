@@ -119,7 +119,7 @@ public class UnaryOperatorCompiler {
             if (v == null || v instanceof ErrorValue) {
                 return r;
             }
-            return new ExpressionResult(op.apply(v, location), r.subscriptions());
+            return new ExpressionResult(op.apply(v, location), r.dependencies());
         }
     }
 
