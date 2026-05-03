@@ -21,13 +21,13 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.json.JsonReadFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
+import io.sapl.compiler.expressions.CompilationContext;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -96,7 +96,6 @@ public class PDPConfigurationLoader {
     private static final String PDP_JSON               = "pdp.json";
     private static final String SAPL_EXTENSION         = ".sapl";
 
-    private static final int  DEFAULT_MAX_FILE_COUNT   = 10_000;
     private static final long MAX_TOTAL_SIZE_BYTES     = 10L * 1024 * 1024;
     private static final long MAX_TOTAL_SIZE_MEGABYTES = MAX_TOTAL_SIZE_BYTES / (1024 * 1024);
 
@@ -150,7 +149,8 @@ public class PDPConfigurationLoader {
     public static PDPConfiguration loadFromDirectory(Path path, String pdpId) {
         val pdpJsonPath  = path.resolve(PDP_JSON);
         val pdpJson      = loadPdpJson(pdpJsonPath);
-        val maxDocuments = getMaxPolicyDocuments(pdpJson.compilerOptions());
+        val maxDocuments = CompilationContext.intOption(pdpJson.compilerOptions(),
+                CompilationContext.OPTION_MAX_POLICY_DOCUMENTS, CompilationContext.DEFAULT_MAX_POLICY_DOCUMENTS);
         val saplContents = loadSaplDocumentsAsMap(path, maxDocuments);
         val documents    = new ArrayList<>(saplContents.values());
 
@@ -343,14 +343,6 @@ public class PDPConfigurationLoader {
             return parseValueSection(node, "compilerFlags");
         }
         return Value.EMPTY_OBJECT;
-    }
-
-    private static int getMaxPolicyDocuments(ObjectValue options) {
-        val value = options.get("maxPolicyDocuments");
-        if (value instanceof NumberValue(var number)) {
-            return number.intValue();
-        }
-        return DEFAULT_MAX_FILE_COUNT;
     }
 
     private static ObjectValue parseValueSection(JsonNode node, String sectionName) throws JacksonException {

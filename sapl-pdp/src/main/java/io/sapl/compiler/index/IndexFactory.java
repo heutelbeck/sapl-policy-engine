@@ -19,9 +19,6 @@ package io.sapl.compiler.index;
 
 import java.util.List;
 
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -61,19 +58,12 @@ public class IndexFactory {
      * @param ctx the compilation context containing the indexing strategy
      * @return a policy index
      */
-    private static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
-    private static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
-    private static final String PARAM_MIN_POLICIES_FOR_INDEXING   = "minPoliciesForIndexing";
-    private static final String PARAM_MAX_INDEX_NODES             = "maxIndexNodes";
-
     public static PolicyIndex createIndex(List<CompiledDocument> documents, CompilationContext ctx) {
-        val options  = ctx.getCompilerOptions();
-        val strategy = parseStrategy(getStringParam(options, "indexing", "AUTO"));
-        val maxNodes = getIntParam(options, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
+        val strategy = parseStrategy(ctx.indexing());
         return switch (strategy) {
         case NAIVE     -> NaivePolicyIndex.create(documents);
         case CANONICAL -> CanonicalPolicyIndex.create(documents);
-        case SMTDD     -> SmtddPolicyIndex.create(documents, maxNodes);
+        case SMTDD     -> SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
         case AUTO      -> autoSelect(documents, ctx);
         };
     }
@@ -87,35 +77,15 @@ public class IndexFactory {
     }
 
     private static PolicyIndex autoSelect(List<CompiledDocument> documents, CompilationContext ctx) {
-        val options     = ctx.getCompilerOptions();
-        val minPolicies = getIntParam(options, PARAM_MIN_POLICIES_FOR_INDEXING, DEFAULT_MIN_POLICIES_FOR_INDEXING);
-        val maxNodes    = getIntParam(options, PARAM_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
-
-        if (documents.size() < minPolicies) {
+        if (documents.size() < ctx.minPoliciesForIndexing()) {
             return NaivePolicyIndex.create(documents);
         }
         try {
-            return SmtddPolicyIndex.create(documents, maxNodes);
+            return SmtddPolicyIndex.create(documents, ctx.maxIndexNodes());
         } catch (IndexSizeLimitExceededException e) {
             log.warn("SMTDD index exceeded node limit ({}), falling back to canonical index", e.getMessage());
         }
         return CanonicalPolicyIndex.create(documents);
-    }
-
-    private static int getIntParam(ObjectValue options, String key, int defaultValue) {
-        val value = options.get(key);
-        if (value instanceof NumberValue(var number)) {
-            return number.intValue();
-        }
-        return defaultValue;
-    }
-
-    private static String getStringParam(ObjectValue options, String key, String defaultValue) {
-        val value = options.get(key);
-        if (value instanceof TextValue(var text)) {
-            return text;
-        }
-        return defaultValue;
     }
 
 }
