@@ -21,6 +21,7 @@ import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
@@ -109,6 +110,16 @@ public class UnaryOperatorCompiler {
                 }
                 return new TracedValue(op.apply(v, location), tv.contributingAttributes());
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val r = operand.evaluate(ctx);
+            val v = r.result();
+            if (v == null || v instanceof ErrorValue) {
+                return r;
+            }
+            return new ExpressionResult(op.apply(v, location), r.subscriptions());
         }
     }
 

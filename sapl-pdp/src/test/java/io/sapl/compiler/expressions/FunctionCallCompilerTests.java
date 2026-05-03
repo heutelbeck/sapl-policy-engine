@@ -213,16 +213,18 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void whenFunctionCallWithUndefinedArgThenFiltersOutUndefined() {
+    void whenFunctionCallWithUndefinedArgThenPassesAllArgsThrough() {
         var captured = new ArrayList<FunctionInvocation>();
         var broker   = capturingFunctionBroker(captured, args -> Value.of(args.size()));
         var ctx      = testContext(broker, Map.of("x", Value.UNDEFINED));
         var result   = evaluateExpression("test.fn(1, x, 3)", ctx);
 
-        // Undefined should be filtered out, leaving 2 arguments
-        assertThat(result).isEqualTo(Value.of(2));
+        // Compiler no longer drops undefined args. Function library is
+        // responsible for handling undefined inputs (matching attribute
+        // PIP behavior).
+        assertThat(result).isEqualTo(Value.of(3));
         assertThat(captured).hasSize(1).first().extracting(FunctionInvocation::arguments)
-                .isEqualTo(List.of(Value.of(1), Value.of(3)));
+                .isEqualTo(List.of(Value.of(1), Value.UNDEFINED, Value.of(3)));
     }
 
     @Test

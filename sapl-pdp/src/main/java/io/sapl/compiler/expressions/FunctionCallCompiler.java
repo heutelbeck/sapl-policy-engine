@@ -25,11 +25,12 @@ import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.ast.FunctionCall;
@@ -39,7 +40,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiler for SAPL function calls.
@@ -117,17 +121,11 @@ public class FunctionCallCompiler {
 
         // Single stream
         if (streamCount == 1) {
-            return new SingleStreamFunction(functionName, ArrayCompiler.toIntArray(valueIndices),
-                    values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
-                    pureOperators.toArray(PureOperator[]::new), streamIndices.getFirst(), streams.getFirst(), totalArgs,
-                    location);
+            return new SingleStreamFunction(functionName, compiledArgs, ctx.errorShortCircuit(), location);
         }
 
         // Multiple streams
-        return new MultiStreamFunction(functionName, ArrayCompiler.toIntArray(valueIndices),
-                values.toArray(Value[]::new), ArrayCompiler.toIntArray(pureIndices),
-                pureOperators.toArray(PureOperator[]::new), ArrayCompiler.toIntArray(streamIndices),
-                streams.toArray(StreamOperator[]::new), totalArgs, location);
+        return new MultiStreamFunction(functionName, compiledArgs, ctx.errorShortCircuit(), location);
     }
 
     @SuppressWarnings("unchecked")
@@ -158,58 +156,48 @@ public class FunctionCallCompiler {
             args.set(pureIndices[i], value);
         }
 
-        return args.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
+        return args;
     }
 
-    private static Object buildArgumentArrayWithStreamValue(int[] valueIndices, Value[] values, int[] pureIndices,
-            PureOperator[] pureOperators, int streamIndex, Value streamValue, int totalArgs, EvaluationContext ctx) {
-        val args = new ArrayList<Value>(totalArgs);
-        for (int i = 0; i < totalArgs; i++) {
-            args.add(null);
-        }
-
-        for (int i = 0; i < valueIndices.length; i++) {
-            args.set(valueIndices[i], values[i]);
-        }
-
-        for (int i = 0; i < pureIndices.length; i++) {
-            val value = pureOperators[i].evaluate(ctx);
-            if (value instanceof ErrorValue) {
-                return value;
+    /**
+     * Snapshot-driven function call. Walks all arguments via
+     * {@link StreamOperator#evalChild} accumulating subscriptions from any
+     * stream children, short-circuits on {@link ErrorValue} per
+     * {@code errorShortCircuit}, defers null (incomplete child) to the end.
+     * Function invocation itself is synchronous and adds no subscriptions.
+     */
+    private static ExpressionResult functionLookup(String functionName, List<? extends CompiledExpression> arguments,
+            boolean errorShortCircuit, EvaluationContext ctx) {
+        val     subs       = new HashSet<Subscription>();
+        boolean seenNull   = false;
+        Value   firstError = null;
+        val     argValues  = new ArrayList<Value>(arguments.size());
+        for (val arg : arguments) {
+            val v = evalChild(arg, ctx, subs);
+            if (v == null) {
+                seenNull = true;
+                continue;
             }
-            args.set(pureIndices[i], value);
-        }
-
-        args.set(streamIndex, streamValue);
-
-        return args.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
-    }
-
-    private static Object buildArgumentArrayWithMultipleStreams(int[] valueIndices, Value[] values, int[] pureIndices,
-            PureOperator[] pureOperators, int[] streamIndices, TracedValue[] streamValues, int totalArgs,
-            EvaluationContext ctx) {
-        val args = new ArrayList<Value>(totalArgs);
-        for (int i = 0; i < totalArgs; i++) {
-            args.add(null);
-        }
-
-        for (int i = 0; i < valueIndices.length; i++) {
-            args.set(valueIndices[i], values[i]);
-        }
-
-        for (int i = 0; i < pureIndices.length; i++) {
-            val value = pureOperators[i].evaluate(ctx);
-            if (value instanceof ErrorValue) {
-                return value;
+            if (v instanceof ErrorValue err) {
+                if (errorShortCircuit) {
+                    return new ExpressionResult(err, subs);
+                }
+                if (firstError == null) {
+                    firstError = err;
+                }
+                continue;
             }
-            args.set(pureIndices[i], value);
+            argValues.add(v);
         }
 
-        for (int i = 0; i < streamIndices.length; i++) {
-            args.set(streamIndices[i], streamValues[i].value());
+        if (firstError != null) {
+            return new ExpressionResult(firstError, subs);
         }
-
-        return args.stream().filter(v -> !(v instanceof UndefinedValue)).toList();
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        val result = ctx.functionBroker().evaluateFunction(new FunctionInvocation(functionName, argValues));
+        return new ExpressionResult(result, subs);
     }
 
     /**
@@ -300,78 +288,83 @@ public class FunctionCallCompiler {
     }
 
     /**
-     * Exactly one argument is a StreamOperator.
+     * Exactly one argument is a StreamOperator. Walks the argument list
+     * to find the single stream, subscribes via {@code switchMap}, and on
+     * each emission rebuilds the dense argument list with the stream
+     * value substituted at its position.
      */
     record SingleStreamFunction(
             String functionName,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int streamIndex,
-            StreamOperator argStream,
-            int totalArgs,
+            List<CompiledExpression> arguments,
+            boolean errorShortCircuit,
             SourceLocation location) implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
-            return argStream.stream().switchMap(tracedArg -> {
+            int            streamPos = -1;
+            StreamOperator argStream = null;
+            for (int i = 0; i < arguments.size(); i++) {
+                if (arguments.get(i) instanceof StreamOperator s) {
+                    streamPos = i;
+                    argStream = s;
+                    break;
+                }
+            }
+            val finalStreamPos = streamPos;
+            val finalArgStream = argStream;
+            return finalArgStream.stream().switchMap(tracedArg -> {
                 val argVal = tracedArg.value();
                 if (argVal instanceof ErrorValue) {
                     return Flux.just(tracedArg);
                 }
-
                 return Flux.deferContextual(ctx -> {
                     val evalCtx = ctx.get(EvaluationContext.class);
-                    val args    = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
-                            streamIndex, argVal, totalArgs, evalCtx);
-                    val result  = invokeFunction(functionName, args, evalCtx);
+                    val args    = new ArrayList<Value>(arguments.size());
+                    for (int i = 0; i < arguments.size(); i++) {
+                        if (i == finalStreamPos) {
+                            args.add(argVal);
+                            continue;
+                        }
+                        val v = evaluatePureOrValue(arguments.get(i), evalCtx);
+                        if (v instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(v, tracedArg.contributingAttributes()));
+                        }
+                        args.add(v);
+                    }
+                    val result = invokeFunction(functionName, args, evalCtx);
                     return Flux.just(new TracedValue(result, tracedArg.contributingAttributes()));
                 });
             });
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(Objects.hashCode(functionName), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
-                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
-                    Objects.hashCode(argStream), totalArgs, Objects.hashCode(location));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof SingleStreamFunction(var oName, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oLoc)
-                            && Objects.equals(functionName, oName) && Arrays.equals(valueIndices, oValIdx)
-                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
-                            && Arrays.equals(pureOperators, oPureOps) && streamIndex == oStreamIdx
-                            && Objects.equals(argStream, oArgStream) && totalArgs == oTotal
-                            && Objects.equals(location, oLoc));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return functionLookup(functionName, arguments, errorShortCircuit, ctx);
         }
     }
 
     /**
-     * Multiple arguments are StreamOperators.
+     * Multiple arguments are StreamOperators. Subscribes to all streams
+     * via {@code combineLatest} in argument order, then rebuilds the dense
+     * argument list with stream values substituted at their positions.
      */
     record MultiStreamFunction(
             String functionName,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int[] streamIndices,
-            StreamOperator[] streams,
-            int totalArgs,
+            List<CompiledExpression> arguments,
+            boolean errorShortCircuit,
             SourceLocation location) implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
-            List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
-            for (val s : streams) {
-                fluxList.add(s.stream());
+            val streamPositions = new ArrayList<Integer>();
+            val streamFluxes    = new ArrayList<Flux<TracedValue>>();
+            for (int i = 0; i < arguments.size(); i++) {
+                if (arguments.get(i) instanceof StreamOperator s) {
+                    streamPositions.add(i);
+                    streamFluxes.add(s.stream());
+                }
             }
-
-            return Flux.combineLatest(fluxList, arr -> {
+            return Flux.combineLatest(streamFluxes, arr -> {
                 val combinedTraces = new ArrayList<AttributeRecord>();
                 val streamValues   = new TracedValue[arr.length];
                 for (int i = 0; i < arr.length; i++) {
@@ -385,33 +378,31 @@ public class FunctionCallCompiler {
                         return Flux.just(new TracedValue(tv.value(), combined.traces));
                     }
                 }
-
                 return Flux.deferContextual(ctx -> {
-                    val evalCtx = ctx.get(EvaluationContext.class);
-                    val args    = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices,
-                            pureOperators, streamIndices, combined.values, totalArgs, evalCtx);
-                    val result  = invokeFunction(functionName, args, evalCtx);
+                    val evalCtx   = ctx.get(EvaluationContext.class);
+                    val args      = new ArrayList<Value>(arguments.size());
+                    int streamIdx = 0;
+                    for (int i = 0; i < arguments.size(); i++) {
+                        if (streamIdx < streamPositions.size() && streamPositions.get(streamIdx) == i) {
+                            args.add(combined.values[streamIdx].value());
+                            streamIdx++;
+                            continue;
+                        }
+                        val v = evaluatePureOrValue(arguments.get(i), evalCtx);
+                        if (v instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(v, combined.traces));
+                        }
+                        args.add(v);
+                    }
+                    val result = invokeFunction(functionName, args, evalCtx);
                     return Flux.just(new TracedValue(result, combined.traces));
                 });
             });
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(Objects.hashCode(functionName), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
-                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices),
-                    Arrays.hashCode(streams), totalArgs, Objects.hashCode(location));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof MultiStreamFunction(var oName, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oLoc)
-                            && Objects.equals(functionName, oName) && Arrays.equals(valueIndices, oValIdx)
-                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
-                            && Arrays.equals(pureOperators, oPureOps) && Arrays.equals(streamIndices, oStreamIdx)
-                            && Arrays.equals(streams, oStreams) && totalArgs == oTotal
-                            && Objects.equals(location, oLoc));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return functionLookup(functionName, arguments, errorShortCircuit, ctx);
         }
 
         private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
@@ -427,6 +418,14 @@ public class FunctionCallCompiler {
                         && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
             }
         }
+    }
+
+    private static Value evaluatePureOrValue(CompiledExpression expr, EvaluationContext ctx) {
+        return switch (expr) {
+        case Value v                -> v;
+        case PureOperator p         -> p.evaluate(ctx);
+        case StreamOperator ignored -> Value.error("Stream argument reached the pure-or-value evaluator path");
+        };
     }
 
 }

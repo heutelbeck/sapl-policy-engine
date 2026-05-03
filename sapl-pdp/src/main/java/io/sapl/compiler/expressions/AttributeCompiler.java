@@ -36,6 +36,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
+import static io.sapl.api.model.StreamOperator.evalChild;
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
 import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
@@ -185,7 +186,7 @@ public class AttributeCompiler {
         }
 
         @Override
-        public ExpressionResult evaluateWithSubscriptions(EvaluationContext ctx) {
+        public ExpressionResult evaluate(EvaluationContext ctx) {
             return attributeLookup(attributeName, entityValue, arguments, options, pdpData, head, location, ctx);
         }
 
@@ -233,7 +234,7 @@ public class AttributeCompiler {
         }
 
         @Override
-        public ExpressionResult evaluateWithSubscriptions(EvaluationContext ctx) {
+        public ExpressionResult evaluate(EvaluationContext ctx) {
             return attributeLookup(attributeName, entity, arguments, options, pdpData, head, location, ctx);
         }
     }
@@ -521,15 +522,7 @@ public class AttributeCompiler {
         boolean seenNull    = false;
         Value   entityValue = null;
         if (entity != null) {
-            entityValue = switch (entity) {
-            case Value v          -> v;
-            case PureOperator p   -> p.evaluate(ctx);
-            case StreamOperator s -> {
-                val r = s.evaluateWithSubscriptions(ctx);
-                subs.addAll(r.subscriptions());
-                yield r.result();
-            }
-            };
+            entityValue = evalChild(entity, ctx, subs);
             if (entityValue instanceof ErrorValue err) {
                 return new ExpressionResult(err, subs);
             }
@@ -540,15 +533,7 @@ public class AttributeCompiler {
 
         val argValues = new ArrayList<Value>(arguments.size());
         for (val arg : arguments) {
-            Value argValue = switch (arg) {
-            case Value v          -> v;
-            case PureOperator p   -> p.evaluate(ctx);
-            case StreamOperator s -> {
-                val r = s.evaluateWithSubscriptions(ctx);
-                subs.addAll(r.subscriptions());
-                yield r.result();
-            }
-            };
+            val argValue = evalChild(arg, ctx, subs);
             if (argValue instanceof ErrorValue err) {
                 return new ExpressionResult(err, subs);
             }

@@ -20,9 +20,11 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.ArrayExpression;
@@ -38,9 +40,11 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import static io.sapl.api.model.StreamOperator.evalChild;
 import static io.sapl.ast.BinaryOperatorType.ADD;
 import static io.sapl.ast.BinaryOperatorType.DIV;
 import static io.sapl.ast.BinaryOperatorType.EQ;
@@ -127,13 +131,14 @@ public class BinaryOperationCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-        val loc = binaryOperation.location();
+        val loc               = binaryOperation.location();
+        val errorShortCircuit = ctx.errorShortCircuit();
         return switch (left) {
         case Value lv          -> switch (right) {
                            case Value rv              -> op.apply(lv, rv, loc);
                            case PureOperator rp       -> new BinaryValuePure(operatorType, op, lv, rp, loc,
                                    rp.isDependingOnSubscription(), rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, loc);
+                           case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, errorShortCircuit, loc);
                            };
         case PureOperator lp   -> switch (right) {
                            case Value rv              -> new BinaryPureValue(operatorType, op, lp, rv, loc,
@@ -141,12 +146,12 @@ public class BinaryOperationCompiler {
                            case PureOperator rp       -> new BinaryPurePure(operatorType, op, lp, rp, loc,
                                    lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
                                    lp.isRelativeExpression() || rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, loc);
+                           case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, errorShortCircuit, loc);
                            };
         case StreamOperator ls -> switch (right) {
-                           case Value rv              -> new BinaryStreamValue(op, ls, rv, loc);
-                           case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, loc);
-                           case StreamOperator rs     -> new BinaryStreamStream(op, ls, rs, loc);
+                           case Value rv              -> new BinaryStreamValue(op, ls, rv, errorShortCircuit, loc);
+                           case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, errorShortCircuit, loc);
+                           case StreamOperator rs     -> new BinaryStreamStream(op, ls, rs, errorShortCircuit, loc);
                            };
         };
     }
@@ -224,8 +229,12 @@ public class BinaryOperationCompiler {
         }
     }
 
-    record BinaryValueStream(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
+    record BinaryValueStream(
+            BinaryOperation op,
+            Value lv,
+            StreamOperator rs,
+            boolean errorShortCircuit,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return rs.stream().map(trv -> {
@@ -236,10 +245,19 @@ public class BinaryOperationCompiler {
                 return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evalBinary(op, lv, rs, errorShortCircuit, location, ctx);
+        }
     }
 
-    public record BinaryStreamValue(BinaryOperation op, StreamOperator ls, Value rv, SourceLocation location)
-            implements StreamOperator {
+    public record BinaryStreamValue(
+            BinaryOperation op,
+            StreamOperator ls,
+            Value rv,
+            boolean errorShortCircuit,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return ls.stream().map(tlv -> {
@@ -250,10 +268,19 @@ public class BinaryOperationCompiler {
                 return new TracedValue(op.apply(lv, rv, location), tlv.contributingAttributes());
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evalBinary(op, ls, rv, errorShortCircuit, location, ctx);
+        }
     }
 
-    record BinaryPureStream(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
+    record BinaryPureStream(
+            BinaryOperation op,
+            PureOperator lp,
+            StreamOperator rs,
+            boolean errorShortCircuit,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -270,10 +297,19 @@ public class BinaryOperationCompiler {
                 });
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evalBinary(op, lp, rs, errorShortCircuit, location, ctx);
+        }
     }
 
-    record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
-            implements StreamOperator {
+    record BinaryStreamPure(
+            BinaryOperation op,
+            StreamOperator ls,
+            PureOperator rp,
+            boolean errorShortCircuit,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -290,10 +326,19 @@ public class BinaryOperationCompiler {
                 });
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evalBinary(op, ls, rp, errorShortCircuit, location, ctx);
+        }
     }
 
-    record BinaryStreamStream(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
+    record BinaryStreamStream(
+            BinaryOperation op,
+            StreamOperator ls,
+            StreamOperator rs,
+            boolean errorShortCircuit,
+            SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.combineLatest(ls.stream(), rs.stream(), (tlv, trv) -> {
@@ -310,6 +355,42 @@ public class BinaryOperationCompiler {
                 return new TracedValue(op.apply(lv, rv, location), combined);
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return evalBinary(op, ls, rs, errorShortCircuit, location, ctx);
+        }
+    }
+
+    /**
+     * Snapshot-driven binary evaluation, shared by all 5 binary stream
+     * variants. Per-child dispatch via
+     * {@link StreamOperator#evalChild} (no boxing for non-stream
+     * children). Subscriptions accumulate as stream children are
+     * walked. Null defers to the end (signals "incomplete; subscribe
+     * new entries and retry"); error short-circuit on the left is
+     * gated by {@code errorShortCircuit} - lazy mode skips right-side
+     * subscription, eager mode keeps walking to maximize subscription
+     * set before propagating the error.
+     */
+    private static ExpressionResult evalBinary(BinaryOperation op, CompiledExpression left, CompiledExpression right,
+            boolean errorShortCircuit, SourceLocation location, EvaluationContext ctx) {
+        val subs = new HashSet<Subscription>();
+        val lv   = evalChild(left, ctx, subs);
+        if (errorShortCircuit && lv instanceof ErrorValue) {
+            return new ExpressionResult(lv, subs);
+        }
+        val rv = evalChild(right, ctx, subs);
+        if (lv == null || rv == null) {
+            return new ExpressionResult(null, subs);
+        }
+        if (lv instanceof ErrorValue) {
+            return new ExpressionResult(lv, subs);
+        }
+        if (rv instanceof ErrorValue) {
+            return new ExpressionResult(rv, subs);
+        }
+        return new ExpressionResult(op.apply(lv, rv, location), subs);
     }
 
 }

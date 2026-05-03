@@ -18,15 +18,17 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.AttributeRecord;
-import io.sapl.ast.BinaryOperatorType;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
+import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.ExclusiveDisjunction;
 import io.sapl.ast.Expression;
 import io.sapl.ast.Product;
@@ -39,7 +41,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles N-ary operators: ExclusiveDisjunction (XOR), Sum, Product.
@@ -111,7 +116,7 @@ public class NaryOperatorCompiler {
         }
 
         // Has streams: return StreamOperator
-        return new NaryStream(op, valueResult, pures, streams, location);
+        return new NaryStream(op, valueResult, pures, streams, ctx.errorShortCircuit(), location);
     }
 
     /**
@@ -235,6 +240,7 @@ public class NaryOperatorCompiler {
             Value valueResult,
             List<PureOperator> pures,
             List<StreamOperator> streams,
+            boolean errorShortCircuit,
             SourceLocation location) implements StreamOperator {
 
         @Override
@@ -255,6 +261,57 @@ public class NaryOperatorCompiler {
                 return Flux.combineLatest(streamFluxes,
                         emittedValues -> foldStreamValues(finalPreCombined, emittedValues, op, location));
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = new HashSet<Subscription>();
+
+            val preCombined = evaluateAndFoldPures(valueResult, pures, op, location, ctx);
+            if (preCombined instanceof ErrorValue) {
+                return new ExpressionResult(preCombined, subs);
+            }
+
+            Value   result     = preCombined;
+            boolean seenNull   = false;
+            Value   firstError = null;
+
+            for (val s : streams) {
+                val sv = evalChild(s, ctx, subs);
+                if (sv == null) {
+                    seenNull = true;
+                    continue;
+                }
+                if (sv instanceof ErrorValue err) {
+                    if (errorShortCircuit) {
+                        return new ExpressionResult(err, subs);
+                    }
+                    if (firstError == null) {
+                        firstError = err;
+                    }
+                    continue;
+                }
+                if (firstError == null && !seenNull) {
+                    result = result == null ? sv : op.apply(result, sv, location);
+                    if (result instanceof ErrorValue) {
+                        if (errorShortCircuit) {
+                            return new ExpressionResult(result, subs);
+                        }
+                        firstError = result;
+                    }
+                }
+            }
+
+            if (firstError != null) {
+                return new ExpressionResult(firstError, subs);
+            }
+            if (seenNull) {
+                return new ExpressionResult(null, subs);
+            }
+            if (result == null) {
+                return new ExpressionResult(Value.error(ERROR_EMPTY_NARY_EXPRESSION), subs);
+            }
+            return new ExpressionResult(result, subs);
         }
     }
 }

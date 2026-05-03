@@ -19,6 +19,8 @@ package io.sapl.api.model;
 
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import reactor.core.publisher.Flux;
 
 public non-sealed interface StreamOperator extends CompiledExpression {
@@ -63,31 +65,44 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      *
      * @since 4.2.0
      */
-    default ExpressionResult evaluateWithSubscriptions(EvaluationContext ctx) {
+    default ExpressionResult evaluate(EvaluationContext ctx) {
         throw new UnsupportedOperationException(
                 "evaluateWithSubscriptions not yet migrated for " + getClass().getSimpleName());
     }
 
     /**
      * Helper for evaluating a child expression that may be any
-     * {@link CompiledExpression} variant. Pure children are evaluated
-     * via the existing {@code evaluate} entry point and contribute no
-     * subscriptions. Stream children are evaluated via
-     * {@link #evaluateWithSubscriptions} and may contribute
-     * subscriptions and / or a {@code null} result requiring a retry.
+     * {@link CompiledExpression} variant, accumulating any
+     * {@link Subscription}s contributed by stream children into the
+     * supplied set. Pure children evaluate inline and add nothing.
+     * Stream children evaluate via {@link #evaluate}; their full
+     * subscription set is merged into {@code subs} and their value
+     * (possibly {@code null} if their evaluation could not complete)
+     * is returned.
+     * <p>
+     * Returns the child's {@link Value} directly without boxing
+     * through {@link ExpressionResult}, keeping the per-child cost
+     * to the actual work for non-stream children.
      *
      * @param child the child expression to evaluate
      * @param ctx evaluation context bound to the same snapshot as the
      * parent's evaluation pass
-     * @return the child's evaluation result wrapped uniformly
+     * @param subs accumulator for subscriptions contributed by stream
+     * children; pure and value children leave it untouched
+     * @return the child's value, or {@code null} if a stream child
+     * could not complete
      *
      * @since 4.2.0
      */
-    static ExpressionResult evalChild(CompiledExpression child, EvaluationContext ctx) {
+    static @Nullable Value evalChild(CompiledExpression child, EvaluationContext ctx, Set<Subscription> subs) {
         return switch (child) {
-        case Value v          -> new ExpressionResult(v, Set.of());
-        case PureOperator p   -> new ExpressionResult(p.evaluate(ctx), Set.of());
-        case StreamOperator s -> s.evaluateWithSubscriptions(ctx);
+        case Value v          -> v;
+        case PureOperator p   -> p.evaluate(ctx);
+        case StreamOperator s -> {
+            var r = s.evaluate(ctx);
+            subs.addAll(r.subscriptions());
+            yield r.result();
+        }
         };
     }
 }
