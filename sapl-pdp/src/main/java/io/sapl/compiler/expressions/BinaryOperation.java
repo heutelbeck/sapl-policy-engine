@@ -37,49 +37,17 @@ import lombok.val;
  * the JVM can use a type-check + jump table instead of indirect dispatch.
  * This achieves near-VIRTUAL_INLINED performance without record explosion.
  * <p>
- * Each implementor is the apply function. The default
- * {@link #evalLazy} and {@link #evalEager} methods drive a binary
- * stream-operator node end-to-end against its children: walk left and
- * right via {@link io.sapl.api.model.StreamOperator#evalChild} accumulating
- * subscriptions from any stream children, propagate {@code null}
- * (incomplete child) and {@link ErrorValue} per the lazy/eager error
- * policy, then call {@link #apply}.
+ * Each implementor is the apply function. The default {@link #evalEager}
+ * method drives a binary stream-operator node end-to-end against its
+ * children: walks left and right via
+ * {@link io.sapl.api.model.StreamOperator#evalChild} accumulating
+ * subscriptions from any stream children, holds the first
+ * {@link ErrorValue}, propagates {@code null} (incomplete child) at the
+ * end, then calls {@link #apply}.
  */
 @FunctionalInterface
 public interface BinaryOperation {
     Value apply(Value left, Value right, SourceLocation location);
-
-    /**
-     * Lazy binary evaluation: walks left, returns immediately on {@code null}
-     * (incomplete) or {@link ErrorValue} from left without walking right
-     * (right's subscriptions are not added). On a complete, non-error left,
-     * walks right and short-circuits the same way.
-     *
-     * @param left the left operand expression
-     * @param right the right operand expression
-     * @param location the source location for error reporting
-     * @param ctx the evaluation context
-     * @return the evaluation result with accumulated subscriptions
-     */
-    default ExpressionResult evalLazy(CompiledExpression left, CompiledExpression right, SourceLocation location,
-            EvaluationContext ctx) {
-        val subs = HashSet.<Subscription>newHashSet(2);
-        val lv   = evalChild(left, ctx, subs);
-        if (lv == null) {
-            return new ExpressionResult(null, subs);
-        }
-        if (lv instanceof ErrorValue) {
-            return new ExpressionResult(lv, subs);
-        }
-        val rv = evalChild(right, ctx, subs);
-        if (rv == null) {
-            return new ExpressionResult(null, subs);
-        }
-        if (rv instanceof ErrorValue) {
-            return new ExpressionResult(rv, subs);
-        }
-        return new ExpressionResult(apply(lv, rv, location), subs);
-    }
 
     /**
      * Eager binary evaluation: walks both children to accumulate the

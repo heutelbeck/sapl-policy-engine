@@ -22,11 +22,13 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
@@ -55,6 +57,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntFunction;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles navigation steps using cost-stratified evaluation.
@@ -175,6 +179,16 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream().map(tv -> new TracedValue(applyKeyStep(tv.value(), key), tv.contributingAttributes()));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyKeyStep(v, key), subs);
+        }
     }
 
     public CompiledExpression compileIndexStep(IndexStep step, CompilationContext ctx) {
@@ -235,6 +249,16 @@ public class StepCompiler {
             return base.stream().map(
                     tv -> new TracedValue(applyIndexStep(tv.value(), index, location), tv.contributingAttributes()));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyIndexStep(v, index, location), subs);
+        }
     }
 
     public CompiledExpression compileWildcardStep(WildcardStep step, CompilationContext ctx) {
@@ -288,6 +312,16 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream()
                     .map(tv -> new TracedValue(applyWildcardStep(tv.value(), location), tv.contributingAttributes()));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyWildcardStep(v, location), subs);
         }
     }
 
@@ -367,6 +401,16 @@ public class StepCompiler {
             return base.stream().map(tv -> new TracedValue(applyIndexUnionStep(tv.value(), indices, location),
                     tv.contributingAttributes()));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyIndexUnionStep(v, indices, location), subs);
+        }
     }
 
     public CompiledExpression compileAttributeUnionStep(AttributeUnionStep step, CompilationContext ctx) {
@@ -431,6 +475,16 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream().map(tv -> new TracedValue(applyAttributeUnionStep(tv.value(), attributes, location),
                     tv.contributingAttributes()));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyAttributeUnionStep(v, attributes, location), subs);
         }
     }
 
@@ -527,6 +581,16 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream().map(tv -> new TracedValue(applySliceStep(tv.value(), from, to, step, location),
                     tv.contributingAttributes()));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applySliceStep(v, from, to, step, location), subs);
         }
     }
 
@@ -654,6 +718,16 @@ public class StepCompiler {
             return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), expr, location),
                     tv.contributingAttributes()));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyExpressionStep(v, expr, location), subs);
+        }
     }
 
     record ExpressionStepStreamPure(StreamOperator base, PureOperator expr, SourceLocation location)
@@ -666,6 +740,17 @@ public class StepCompiler {
                 return base.stream().map(tv -> new TracedValue(applyExpressionStep(tv.value(), exprVal, location),
                         tv.contributingAttributes()));
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            val exprVal = expr.evaluate(ctx);
+            return new ExpressionResult(applyExpressionStep(v, exprVal, location), subs);
         }
     }
 
@@ -857,6 +942,16 @@ public class StepCompiler {
                                 tv.contributingAttributes()));
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyConditionStep(v, condition, null, ctx, location), subs);
+        }
     }
 
     record ConditionStepStreamPure(StreamOperator base, PureOperator condition, SourceLocation location)
@@ -869,6 +964,16 @@ public class StepCompiler {
                         .map(tv -> new TracedValue(applyConditionStep(tv.value(), null, condition, ctx, location),
                                 tv.contributingAttributes()));
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyConditionStep(v, null, condition, ctx, location), subs);
         }
     }
 
@@ -953,6 +1058,16 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream().map(tv -> new TracedValue(applyRecursiveKeyStep(tv.value(), key, location),
                     tv.contributingAttributes()));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyRecursiveKeyStep(v, key, location), subs);
         }
     }
 
@@ -1039,6 +1154,16 @@ public class StepCompiler {
             return base.stream().map(tv -> new TracedValue(applyRecursiveIndexStep(tv.value(), index, location),
                     tv.contributingAttributes()));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyRecursiveIndexStep(v, index, location), subs);
+        }
     }
 
     public CompiledExpression compileRecursiveWildcardStep(RecursiveWildcardStep step, CompilationContext ctx) {
@@ -1120,6 +1245,16 @@ public class StepCompiler {
         public Flux<TracedValue> stream() {
             return base.stream().map(tv -> new TracedValue(applyRecursiveWildcardStep(tv.value(), location),
                     tv.contributingAttributes()));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(base, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(applyRecursiveWildcardStep(v, location), subs);
         }
     }
 

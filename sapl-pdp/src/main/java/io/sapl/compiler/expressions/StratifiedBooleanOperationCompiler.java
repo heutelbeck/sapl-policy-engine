@@ -22,9 +22,11 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
@@ -35,7 +37,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiler for boolean operators AND ({@code &&}, {@code &}) and OR
@@ -281,6 +286,16 @@ public class StratifiedBooleanOperationCompiler {
         public Flux<TracedValue> stream() {
             return s.stream().map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(s, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            return new ExpressionResult(asBoolean(v, location), subs);
+        }
     }
 
     record LazyAndPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
@@ -299,6 +314,27 @@ public class StratifiedBooleanOperationCompiler {
                         Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()), List.of()));
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val pv   = p.evaluate(ctx);
+            if (pv instanceof ErrorValue) {
+                return new ExpressionResult(pv, subs);
+            }
+            if (!(pv instanceof BooleanValue(var b))) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (!b) {
+                return new ExpressionResult(Value.FALSE, subs);
+            }
+            val sv = evalChild(s, ctx, subs);
+            if (sv == null || sv instanceof ErrorValue) {
+                return new ExpressionResult(sv, subs);
+            }
+            return new ExpressionResult(asBoolean(sv, location), subs);
+        }
     }
 
     record LazyOrPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
@@ -316,6 +352,27 @@ public class StratifiedBooleanOperationCompiler {
                 return Flux.just(new TracedValue(
                         Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()), List.of()));
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val pv   = p.evaluate(ctx);
+            if (pv instanceof ErrorValue) {
+                return new ExpressionResult(pv, subs);
+            }
+            if (!(pv instanceof BooleanValue(var b))) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (b) {
+                return new ExpressionResult(Value.TRUE, subs);
+            }
+            val sv = evalChild(s, ctx, subs);
+            if (sv == null || sv instanceof ErrorValue) {
+                return new ExpressionResult(sv, subs);
+            }
+            return new ExpressionResult(asBoolean(sv, location), subs);
         }
     }
 
@@ -339,6 +396,27 @@ public class StratifiedBooleanOperationCompiler {
                         tv1.contributingAttributes()));
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(2);
+            val lv   = evalChild(s1, ctx, subs);
+            if (lv == null || lv instanceof ErrorValue) {
+                return new ExpressionResult(lv, subs);
+            }
+            if (!(lv instanceof BooleanValue(var b))) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (!b) {
+                return new ExpressionResult(Value.FALSE, subs);
+            }
+            val rv = evalChild(s2, ctx, subs);
+            if (rv == null || rv instanceof ErrorValue) {
+                return new ExpressionResult(rv, subs);
+            }
+            return new ExpressionResult(asBoolean(rv, location), subs);
+        }
     }
 
     record LazyOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location) implements StreamOperator {
@@ -359,6 +437,27 @@ public class StratifiedBooleanOperationCompiler {
                         Value.errorAt(location, ERROR_TYPE_MISMATCH, tv1.value().getClass().getSimpleName()),
                         tv1.contributingAttributes()));
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(2);
+            val lv   = evalChild(s1, ctx, subs);
+            if (lv == null || lv instanceof ErrorValue) {
+                return new ExpressionResult(lv, subs);
+            }
+            if (!(lv instanceof BooleanValue(var b))) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (b) {
+                return new ExpressionResult(Value.TRUE, subs);
+            }
+            val rv = evalChild(s2, ctx, subs);
+            if (rv == null || rv instanceof ErrorValue) {
+                return new ExpressionResult(rv, subs);
+            }
+            return new ExpressionResult(asBoolean(rv, location), subs);
         }
     }
 
@@ -383,6 +482,33 @@ public class StratifiedBooleanOperationCompiler {
                         combined);
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(2);
+            val lv   = evalChild(s1, ctx, subs);
+            val rv   = evalChild(s2, ctx, subs);
+            if (lv instanceof ErrorValue) {
+                return new ExpressionResult(lv, subs);
+            }
+            if (rv instanceof ErrorValue) {
+                return new ExpressionResult(rv, subs);
+            }
+            if (lv != null && !(lv instanceof BooleanValue)) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (rv != null && !(rv instanceof BooleanValue)) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, rv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (lv == null || rv == null) {
+                return new ExpressionResult(null, subs);
+            }
+            val b1 = ((BooleanValue) lv).value();
+            val b2 = ((BooleanValue) rv).value();
+            return new ExpressionResult(b1 && b2 ? Value.TRUE : Value.FALSE, subs);
+        }
     }
 
     record EagerOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
@@ -405,6 +531,33 @@ public class StratifiedBooleanOperationCompiler {
                 return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, bad.getClass().getSimpleName()),
                         combined);
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(2);
+            val lv   = evalChild(s1, ctx, subs);
+            val rv   = evalChild(s2, ctx, subs);
+            if (lv instanceof ErrorValue) {
+                return new ExpressionResult(lv, subs);
+            }
+            if (rv instanceof ErrorValue) {
+                return new ExpressionResult(rv, subs);
+            }
+            if (lv != null && !(lv instanceof BooleanValue)) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (rv != null && !(rv instanceof BooleanValue)) {
+                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, rv.getClass().getSimpleName()),
+                        subs);
+            }
+            if (lv == null || rv == null) {
+                return new ExpressionResult(null, subs);
+            }
+            val b1 = ((BooleanValue) lv).value();
+            val b2 = ((BooleanValue) rv).value();
+            return new ExpressionResult(b1 || b2 ? Value.TRUE : Value.FALSE, subs);
         }
     }
 

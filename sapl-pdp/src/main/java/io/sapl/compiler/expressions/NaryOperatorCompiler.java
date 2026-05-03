@@ -116,7 +116,7 @@ public class NaryOperatorCompiler {
         }
 
         // Has streams: return StreamOperator
-        return new NaryStream(op, valueResult, pures, streams, ctx.errorShortCircuit(), location);
+        return new NaryStream(op, valueResult, pures, streams, location);
     }
 
     /**
@@ -240,7 +240,6 @@ public class NaryOperatorCompiler {
             Value valueResult,
             List<PureOperator> pures,
             List<StreamOperator> streams,
-            boolean errorShortCircuit,
             SourceLocation location) implements StreamOperator {
 
         @Override
@@ -283,9 +282,6 @@ public class NaryOperatorCompiler {
                     continue;
                 }
                 if (sv instanceof ErrorValue err) {
-                    if (errorShortCircuit) {
-                        return new ExpressionResult(err, subs);
-                    }
                     if (firstError == null) {
                         firstError = err;
                     }
@@ -294,9 +290,6 @@ public class NaryOperatorCompiler {
                 if (firstError == null && !seenNull) {
                     result = result == null ? sv : op.apply(result, sv, location);
                     if (result instanceof ErrorValue) {
-                        if (errorShortCircuit) {
-                            return new ExpressionResult(result, subs);
-                        }
                         firstError = result;
                     }
                 }

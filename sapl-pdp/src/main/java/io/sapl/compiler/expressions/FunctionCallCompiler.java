@@ -122,11 +122,11 @@ public class FunctionCallCompiler {
 
         // Single stream
         if (streamCount == 1) {
-            return new SingleStreamFunction(functionName, compiledArgs, ctx.errorShortCircuit(), location);
+            return new SingleStreamFunction(functionName, compiledArgs, location);
         }
 
         // Multiple streams
-        return new MultiStreamFunction(functionName, compiledArgs, ctx.errorShortCircuit(), location);
+        return new MultiStreamFunction(functionName, compiledArgs, location);
     }
 
     @SuppressWarnings("unchecked")
@@ -161,14 +161,15 @@ public class FunctionCallCompiler {
     }
 
     /**
-     * Snapshot-driven function call. Walks all arguments via
-     * {@link StreamOperator#evalChild} accumulating subscriptions from any
-     * stream children, short-circuits on {@link ErrorValue} per
-     * {@code errorShortCircuit}, defers null (incomplete child) to the end.
-     * Function invocation itself is synchronous and adds no subscriptions.
+     * Walks all arguments via {@link StreamOperator#evalChild} accumulating
+     * subscriptions from any stream children, holds the first
+     * {@link ErrorValue} and returns it after the full walk, defers
+     * {@code null} (incomplete child) to the end. Function invocation itself
+     * is synchronous and adds no subscriptions. Precedence at the end:
+     * error &gt; null &gt; function result.
      */
     private static ExpressionResult functionLookup(String functionName, List<? extends CompiledExpression> arguments,
-            boolean errorShortCircuit, EvaluationContext ctx) {
+            EvaluationContext ctx) {
         val     subs       = HashSet.<Subscription>newHashSet(arguments.size());
         boolean seenNull   = false;
         Value   firstError = null;
@@ -180,9 +181,6 @@ public class FunctionCallCompiler {
                 continue;
             }
             if (v instanceof ErrorValue err) {
-                if (errorShortCircuit) {
-                    return new ExpressionResult(err, subs);
-                }
                 if (firstError == null) {
                     firstError = err;
                 }
@@ -294,11 +292,8 @@ public class FunctionCallCompiler {
      * each emission rebuilds the dense argument list with the stream
      * value substituted at its position.
      */
-    record SingleStreamFunction(
-            String functionName,
-            List<CompiledExpression> arguments,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    record SingleStreamFunction(String functionName, List<CompiledExpression> arguments, SourceLocation location)
+            implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
@@ -340,7 +335,7 @@ public class FunctionCallCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return functionLookup(functionName, arguments, errorShortCircuit, ctx);
+            return functionLookup(functionName, arguments, ctx);
         }
     }
 
@@ -349,11 +344,8 @@ public class FunctionCallCompiler {
      * via {@code combineLatest} in argument order, then rebuilds the dense
      * argument list with stream values substituted at their positions.
      */
-    record MultiStreamFunction(
-            String functionName,
-            List<CompiledExpression> arguments,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    record MultiStreamFunction(String functionName, List<CompiledExpression> arguments, SourceLocation location)
+            implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
@@ -403,7 +395,7 @@ public class FunctionCallCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return functionLookup(functionName, arguments, errorShortCircuit, ctx);
+            return functionLookup(functionName, arguments, ctx);
         }
 
         private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {

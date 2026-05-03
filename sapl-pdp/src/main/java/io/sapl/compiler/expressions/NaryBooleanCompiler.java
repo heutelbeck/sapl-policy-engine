@@ -17,15 +17,19 @@
  */
 package io.sapl.compiler.expressions;
 
+import org.jspecify.annotations.Nullable;
+
 import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Conjunction;
@@ -36,7 +40,11 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles N-ary boolean operators: Conjunction ({@code &&}, {@code &}) and
@@ -134,11 +142,25 @@ public class NaryBooleanCompiler {
         val streamFlux = isEager ? buildEagerStreamChain(streams, shortCircuitValue, identityValue, location)
                 : buildLazyStreamChain(streams, shortCircuitValue, identityValue, location);
 
-        if (pures.isEmpty()) {
-            return new NaryBooleanStream(streamFlux);
-        }
+        val chain = pures.isEmpty() ? streamFlux
+                : buildPureGatedStreamChain(pures, streamFlux, shortCircuitValue, location);
 
-        return new NaryBooleanStream(Flux.deferContextual(ctxView -> {
+        if (isEager) {
+            return new NaryBooleanStreamEager(chain, pures, streams, shortCircuitValue, identityValue, location);
+        }
+        return new NaryBooleanStreamLazy(chain, pures, streams, shortCircuitValue, identityValue, location);
+    }
+
+    /**
+     * Wraps {@code streamFlux} with a per-subscription pure-operand gate.
+     * Evaluates each pure in order; on type error or short-circuit value,
+     * emits a single terminal {@link TracedValue} without subscribing to
+     * {@code streamFlux}. Otherwise returns {@code streamFlux} for the
+     * downstream subscription to drive.
+     */
+    private static Flux<TracedValue> buildPureGatedStreamChain(List<PureOperator> pures, Flux<TracedValue> streamFlux,
+            Value shortCircuitValue, SourceLocation location) {
+        return Flux.deferContextual(ctxView -> {
             val ctx = ctxView.get(EvaluationContext.class);
             for (var pure : pures) {
                 val v = pure.evaluate(ctx);
@@ -154,7 +176,7 @@ public class NaryBooleanCompiler {
                 }
             }
             return streamFlux;
-        }));
+        });
     }
 
     /**
@@ -301,15 +323,151 @@ public class NaryBooleanCompiler {
     }
 
     /**
-     * N-ary boolean with Stream operands. Flux chain is pre-built at compile
-     * time - no runtime recursion.
+     * N-ary boolean with Stream operands, lazy ({@code &&}, {@code ||})
+     * variant. {@code stream()} returns a pre-built nested
+     * {@code switchMap} chain that subscribes to each subsequent stream only
+     * when the preceding one does not short-circuit. {@code evaluate(ctx)}
+     * applies stratified short-circuit: pures first (free), then streams in
+     * order via {@link StreamOperator#evalChild}; subsequent streams are
+     * skipped (and their subscriptions are not added) once a short-circuit
+     * value is seen.
      */
-    record NaryBooleanStream(Flux<TracedValue> chain) implements StreamOperator {
+    record NaryBooleanStreamLazy(
+            Flux<TracedValue> chain,
+            List<PureOperator> pures,
+            List<StreamOperator> streams,
+            Value shortCircuitValue,
+            Value identityValue,
+            SourceLocation location) implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
             return chain;
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs       = HashSet.<Subscription>newHashSet(streams.size());
+            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, subs);
+            if (pureResult != null) {
+                return pureResult;
+            }
+            for (val s : streams) {
+                val v = evalChild(s, ctx, subs);
+                if (v == null) {
+                    return new ExpressionResult(null, subs);
+                }
+                val classified = classifyStreamValue(v, shortCircuitValue, location, subs);
+                if (classified != null) {
+                    return classified;
+                }
+            }
+            return new ExpressionResult(identityValue, subs);
+        }
+    }
+
+    /**
+     * N-ary boolean with Stream operands, eager ({@code &}, {@code |})
+     * variant. {@code stream()} returns a pre-built {@code combineLatest}
+     * composition that keeps all stream subscriptions active simultaneously.
+     * {@code evaluate(ctx)} applies stratified short-circuit only on the
+     * pure stratum (pures first, free); on the stream stratum every child
+     * is walked via {@link StreamOperator#evalChild} so all subscriptions
+     * are accumulated, then the resolved values are scanned in operand
+     * order and the first non-identity wins (matching the legacy
+     * {@code combineLatest} left-to-right resolution).
+     */
+    record NaryBooleanStreamEager(
+            Flux<TracedValue> chain,
+            List<PureOperator> pures,
+            List<StreamOperator> streams,
+            Value shortCircuitValue,
+            Value identityValue,
+            SourceLocation location) implements StreamOperator {
+
+        @Override
+        public Flux<TracedValue> stream() {
+            return chain;
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs       = HashSet.<Subscription>newHashSet(streams.size());
+            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, subs);
+            if (pureResult != null) {
+                return pureResult;
+            }
+            val     resolved = new Value[streams.size()];
+            boolean seenNull = false;
+            for (int i = 0; i < streams.size(); i++) {
+                resolved[i] = evalChild(streams.get(i), ctx, subs);
+                if (resolved[i] == null) {
+                    seenNull = true;
+                }
+            }
+            for (val v : resolved) {
+                if (v == null) {
+                    continue;
+                }
+                val classified = classifyStreamValue(v, shortCircuitValue, location, subs);
+                if (classified != null) {
+                    return classified;
+                }
+            }
+            if (seenNull) {
+                return new ExpressionResult(null, subs);
+            }
+            return new ExpressionResult(identityValue, subs);
+        }
+    }
+
+    /**
+     * Walks the pure stratum in order. On {@link ErrorValue}, type mismatch,
+     * or short-circuit value, returns the corresponding terminal
+     * {@link ExpressionResult}. Returns {@code null} when every pure passes
+     * (caller proceeds to the stream stratum). The {@code subs} parameter is
+     * threaded through so the terminal result carries the caller's
+     * accumulator (typically empty at this point).
+     */
+    private static @Nullable ExpressionResult evaluatePures(List<PureOperator> pures, Value shortCircuitValue,
+            SourceLocation location, EvaluationContext ctx, Set<Subscription> subs) {
+        for (val p : pures) {
+            val v = p.evaluate(ctx);
+            if (v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            if (!(v instanceof BooleanValue)) {
+                return new ExpressionResult(typeError(v, location), subs);
+            }
+            if (shortCircuitValue.equals(v)) {
+                return new ExpressionResult(shortCircuitValue, subs);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Classifies a single resolved stream value. Returns the corresponding
+     * terminal {@link ExpressionResult} on {@link ErrorValue}, type
+     * mismatch, or short-circuit value; returns {@code null} when the value
+     * is a non-short-circuit {@link BooleanValue} (caller continues).
+     */
+    private static @Nullable ExpressionResult classifyStreamValue(Value v, Value shortCircuitValue,
+            SourceLocation location, Set<Subscription> subs) {
+        if (v instanceof ErrorValue) {
+            return new ExpressionResult(v, subs);
+        }
+        if (!(v instanceof BooleanValue)) {
+            return new ExpressionResult(typeError(v, location), subs);
+        }
+        if (shortCircuitValue.equals(v)) {
+            return new ExpressionResult(shortCircuitValue, subs);
+        }
+        return null;
+    }
+
+    private static Value typeError(Value v, SourceLocation location) {
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
     }
 
 }

@@ -23,11 +23,13 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
@@ -63,6 +65,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 @UtilityClass
 public class ExtendedFilterCompiler {
@@ -265,6 +269,18 @@ public class ExtendedFilterCompiler {
                 });
             });
         }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(baseStream, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            val initialCtx = ctx.withRelativeValue(v);
+            val result     = navigateAndApply(v, current -> filterValue, path, pathAnalysis, initialCtx);
+            return new ExpressionResult(result, subs);
+        }
     }
 
     record ExtendedFilterStreamPure(
@@ -285,6 +301,20 @@ public class ExtendedFilterCompiler {
                     return new TracedValue(result, tracedBase.contributingAttributes());
                 });
             });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val subs = HashSet.<Subscription>newHashSet(1);
+            val v    = evalChild(baseStream, ctx, subs);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            val initialCtx = ctx.withRelativeValue(v);
+            val result     = navigateAndApply(v,
+                    current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)), path, pathAnalysis,
+                    initialCtx);
+            return new ExpressionResult(result, subs);
         }
     }
 

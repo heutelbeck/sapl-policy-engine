@@ -42,7 +42,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
-import static io.sapl.compiler.expressions.BinaryOperationCompiler.evalBinary;
 
 /**
  * Compiler for REGEX binary operations with pre-compilation optimization.
@@ -55,8 +54,9 @@ import static io.sapl.compiler.expressions.BinaryOperationCompiler.evalBinary;
 @UtilityClass
 public class RegexCompiler {
 
-    private static final String ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
-    private static final String ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
+    private static final String          ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
+    private static final String          ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
+    private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);
@@ -69,8 +69,6 @@ public class RegexCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-
-        val errorShortCircuit = ctx.errorShortCircuit();
 
         // Pre-compile regex when pattern is a literal string
         if (right instanceof TextValue(String value)) {
@@ -96,17 +94,17 @@ public class RegexCompiler {
         return switch (left) {
         case Value lv         -> switch (right) {
                           case PureOperator rp       -> new RegexValuePure(lv, rp, loc);
-                          case StreamOperator rs     -> new RegexValueStream(lv, rs, errorShortCircuit, loc);
+                          case StreamOperator rs     -> new RegexValueStream(lv, rs, loc);
                           default                    -> Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, right);
                           };
         case PureOperator lp  -> switch (right) {
                           case PureOperator rp       -> new RegexPurePure(lp, rp, loc);
-                          case StreamOperator rs     -> new RegexPureStream(lp, rs, errorShortCircuit, loc);
+                          case StreamOperator rs     -> new RegexPureStream(lp, rs, loc);
                           default                    -> Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, right);
                           };
         case StreamOperator s -> switch (right) {
-                          case PureOperator rp       -> new RegexStreamPure(s, rp, errorShortCircuit, loc);
-                          case StreamOperator rs     -> new RegexStreamStream(s, rs, errorShortCircuit, loc);
+                          case PureOperator rp       -> new RegexStreamPure(s, rp, loc);
+                          case StreamOperator rs     -> new RegexStreamStream(s, rs, loc);
                           default                    -> Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, right);
                           };
         };
@@ -249,8 +247,7 @@ public class RegexCompiler {
         }
     }
 
-    record RegexValueStream(Value input, StreamOperator pattern, boolean errorShortCircuit, SourceLocation location)
-            implements StreamOperator {
+    record RegexValueStream(Value input, StreamOperator pattern, SourceLocation location) implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return pattern.stream().map(tv -> {
@@ -264,15 +261,12 @@ public class RegexCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(RegexCompiler::matchRegex, input, pattern, errorShortCircuit, location, ctx);
+            return MATCHER.evalEager(input, pattern, location, ctx);
         }
     }
 
-    record RegexPureStream(
-            PureOperator input,
-            StreamOperator pattern,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    record RegexPureStream(PureOperator input, StreamOperator pattern, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -292,15 +286,12 @@ public class RegexCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(RegexCompiler::matchRegex, input, pattern, errorShortCircuit, location, ctx);
+            return MATCHER.evalEager(input, pattern, location, ctx);
         }
     }
 
-    record RegexStreamPure(
-            StreamOperator input,
-            PureOperator pattern,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    record RegexStreamPure(StreamOperator input, PureOperator pattern, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.deferContextual(ctx -> {
@@ -320,15 +311,12 @@ public class RegexCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(RegexCompiler::matchRegex, input, pattern, errorShortCircuit, location, ctx);
+            return MATCHER.evalEager(input, pattern, location, ctx);
         }
     }
 
-    record RegexStreamStream(
-            StreamOperator input,
-            StreamOperator pattern,
-            boolean errorShortCircuit,
-            SourceLocation location) implements StreamOperator {
+    record RegexStreamStream(StreamOperator input, StreamOperator pattern, SourceLocation location)
+            implements StreamOperator {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.combineLatest(input.stream(), pattern.stream(), (ti, tp) -> {
@@ -348,7 +336,7 @@ public class RegexCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return evalBinary(RegexCompiler::matchRegex, input, pattern, errorShortCircuit, location, ctx);
+            return MATCHER.evalEager(input, pattern, location, ctx);
         }
     }
 
