@@ -26,6 +26,7 @@ import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.Expression;
+import io.sapl.compiler.util.PureOrValueEvaluator;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -126,21 +127,29 @@ public class AttributeCompiler {
         }
         if (streamCount == 1 && entityIsStream) {
             return new EntityStreamAttribute(attributeName, ctx.getData(), (StreamOperator) entity, cat.valueIndices(),
-                    cat.values(), cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options, head, location);
+                    cat.values(), cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options, head, location,
+                    entity, arguments);
         }
         if (streamCount == 1) {
-            return new SingleStreamAttribute(attributeName, entityValue, ctx.getData(),
+            if (ctx.errorShortCircuit()) {
+                return new SingleStreamAttributeLazy(attributeName, entityValue, ctx.getData(),
+                        entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(),
+                        cat.pureIndices(), cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0],
+                        cat.totalCount(), options, head, location, entity, arguments);
+            }
+            return new SingleStreamAttributeEager(attributeName, entityValue, ctx.getData(),
                     entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
                     cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), options, head,
-                    location);
+                    location, entity, arguments);
         }
         return buildMultiStreamAttribute(entity, entityIsStream, entityIsPure, entityValue, cat, attributeName, options,
-                head, location, ctx);
+                head, location, ctx, arguments);
     }
 
-    private static MultiStreamAttribute buildMultiStreamAttribute(CompiledExpression entity, boolean entityIsStream,
+    private static StreamOperator buildMultiStreamAttribute(CompiledExpression entity, boolean entityIsStream,
             boolean entityIsPure, Value entityValue, ArrayCompiler.CategorizedExpressions cat, String attributeName,
-            CompiledExpression options, boolean head, SourceLocation location, CompilationContext ctx) {
+            CompiledExpression options, boolean head, SourceLocation location, CompilationContext ctx,
+            List<CompiledExpression> arguments) {
         int   entityOffset     = entityIsStream ? 1 : 0;
         int[] allStreamIndices = new int[cat.streamCount() + entityOffset];
         val   allStreams       = new StreamOperator[cat.streamCount() + entityOffset];
@@ -152,9 +161,16 @@ public class AttributeCompiler {
         System.arraycopy(cat.streamIndices(), 0, allStreamIndices, entityOffset, cat.streamCount());
         System.arraycopy(cat.streams(), 0, allStreams, entityOffset, cat.streamCount());
 
-        return new MultiStreamAttribute(attributeName, entityValue, ctx.getData(),
+        if (ctx.errorShortCircuit()) {
+            return new MultiStreamAttributeLazy(attributeName, entityValue, ctx.getData(),
+                    entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
+                    cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location,
+                    entity, arguments);
+        }
+        return new MultiStreamAttributeEager(attributeName, entityValue, ctx.getData(),
                 entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
-                cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location);
+                cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location, entity,
+                arguments);
     }
 
     /**
@@ -187,7 +203,7 @@ public class AttributeCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, entityValue, arguments, options, pdpData, head, location, ctx);
+            return attributeLookupLazy(attributeName, entityValue, arguments, options, pdpData, head, location, ctx);
         }
 
     }
@@ -235,7 +251,7 @@ public class AttributeCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, entity, arguments, options, pdpData, head, location, ctx);
+            return attributeLookupLazy(attributeName, entity, arguments, options, pdpData, head, location, ctx);
         }
     }
 
@@ -250,24 +266,34 @@ public class AttributeCompiler {
             int totalArgs,
             CompiledExpression options,
             boolean head,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location,
+            @Nullable CompiledExpression compiledEntity,
+            List<CompiledExpression> compiledArguments) implements StreamOperator {
 
         @Override
         public int hashCode() {
             return Objects.hash(attributeName, pdpData, entityStream, Arrays.hashCode(valueIndices),
                     Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalArgs,
-                    options, head, location);
+                    options, head, location, Objects.hashCode(compiledEntity), Objects.hashCode(compiledArguments));
         }
 
         @Override
         public boolean equals(Object o) {
             return this == o
-                    || (o instanceof EntityStreamAttribute(var oName, var oPdp, var oEntityStream, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oTotal, var oOpts, var oHead, var oLoc)
+                    || (o instanceof EntityStreamAttribute(var oName, var oPdp, var oEntityStream, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
                             && Objects.equals(attributeName, oName) && Objects.equals(pdpData, oPdp)
                             && Objects.equals(entityStream, oEntityStream) && Arrays.equals(valueIndices, oValIdx)
                             && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
                             && Arrays.equals(pureOperators, oPureOps) && totalArgs == oTotal
-                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc));
+                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc)
+                            && Objects.equals(compiledEntity, oCompiledEntity)
+                            && Objects.equals(compiledArguments, oCompiledArgs));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return attributeLookupLazy(attributeName, compiledEntity, compiledArguments, options, pdpData, head,
+                    location, ctx);
         }
 
         @Override
@@ -300,7 +326,13 @@ public class AttributeCompiler {
         }
     }
 
-    public record SingleStreamAttribute(
+    /**
+     * Single stream argument, lazy variant: snapshot {@code evaluate(ctx)}
+     * short-circuits on the first {@link ErrorValue} encountered. Selected
+     * at compile time when the {@code errorShortCircuit} compiler option is
+     * enabled.
+     */
+    public record SingleStreamAttributeLazy(
             String attributeName,
             Value entityValue,
             PdpData pdpData,
@@ -314,25 +346,36 @@ public class AttributeCompiler {
             int totalArgs,
             CompiledExpression options,
             boolean head,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location,
+            @Nullable CompiledExpression compiledEntity,
+            List<CompiledExpression> compiledArguments) implements StreamOperator {
 
         @Override
         public int hashCode() {
             return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
                     Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
-                    argStream, totalArgs, options, head, location);
+                    argStream, totalArgs, options, head, location, Objects.hashCode(compiledEntity),
+                    Objects.hashCode(compiledArguments));
         }
 
         @Override
         public boolean equals(Object o) {
             return this == o
-                    || (o instanceof SingleStreamAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oOpts, var oHead, var oLoc)
+                    || (o instanceof SingleStreamAttributeLazy(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
                             && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
                             && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
                             && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
                             && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
                             && streamIndex == oStreamIdx && Objects.equals(argStream, oArgStream) && totalArgs == oTotal
-                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc));
+                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc)
+                            && Objects.equals(compiledEntity, oCompiledEntity)
+                            && Objects.equals(compiledArguments, oCompiledArgs));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return attributeLookupLazy(attributeName, compiledEntity, compiledArguments, options, pdpData, head,
+                    location, ctx);
         }
 
         @Override
@@ -374,7 +417,106 @@ public class AttributeCompiler {
         }
     }
 
-    public record MultiStreamAttribute(
+    /**
+     * Single stream argument, eager variant: snapshot {@code evaluate(ctx)}
+     * walks every child to accumulate the maximum subscription set, holds
+     * the first {@link ErrorValue}, and returns it after the full walk.
+     * Selected at compile time when the {@code errorShortCircuit} compiler
+     * option is disabled (default). Legacy {@link #stream()} is identical
+     * to the lazy variant.
+     */
+    public record SingleStreamAttributeEager(
+            String attributeName,
+            Value entityValue,
+            PdpData pdpData,
+            PureOperator entityPure,
+            int[] valueIndices,
+            Value[] values,
+            int[] pureIndices,
+            PureOperator[] pureOperators,
+            int streamIndex,
+            StreamOperator argStream,
+            int totalArgs,
+            CompiledExpression options,
+            boolean head,
+            SourceLocation location,
+            @Nullable CompiledExpression compiledEntity,
+            List<CompiledExpression> compiledArguments) implements StreamOperator {
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
+                    argStream, totalArgs, options, head, location, Objects.hashCode(compiledEntity),
+                    Objects.hashCode(compiledArguments));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o
+                    || (o instanceof SingleStreamAttributeEager(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
+                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
+                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && streamIndex == oStreamIdx && Objects.equals(argStream, oArgStream) && totalArgs == oTotal
+                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc)
+                            && Objects.equals(compiledEntity, oCompiledEntity)
+                            && Objects.equals(compiledArguments, oCompiledArgs));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return attributeLookupEager(attributeName, compiledEntity, compiledArguments, options, pdpData, head,
+                    location, ctx);
+        }
+
+        @Override
+        public Flux<TracedValue> stream() {
+            return argStream.stream().switchMap(tracedArg -> {
+                val argVal = tracedArg.value();
+                if (argVal instanceof ErrorValue) {
+                    return Flux.just(tracedArg);
+                }
+
+                return Flux.deferContextual(ctx -> {
+                    val evalCtx = ctx.get(EvaluationContext.class);
+
+                    Value entity = entityValue;
+                    if (entityPure != null) {
+                        entity = entityPure.evaluate(evalCtx);
+                        if (entity instanceof ErrorValue) {
+                            return Flux.just(errorTracedValue(entity));
+                        }
+                    }
+
+                    val optionsValue = evaluateOptions(options, evalCtx);
+                    if (optionsValue instanceof ErrorValue) {
+                        return Flux.just(errorTracedValue(optionsValue));
+                    }
+
+                    val args = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
+                            streamIndex, argVal, totalArgs, evalCtx);
+                    if (args instanceof ErrorValue err) {
+                        return Flux.just(errorTracedValue(err));
+                    }
+                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
+                    val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                            evalCtx);
+                    return invokeAndTrace(invocation, head, location)
+                            .map(tv -> mergeTraces(tv, tracedArg.contributingAttributes()));
+                });
+            });
+        }
+    }
+
+    /**
+     * Multiple stream children, lazy variant: snapshot {@code evaluate(ctx)}
+     * short-circuits on the first {@link ErrorValue} encountered. Selected
+     * at compile time when the {@code errorShortCircuit} compiler option is
+     * enabled.
+     */
+    public record MultiStreamAttributeLazy(
             String attributeName,
             Value entityValue,
             PdpData pdpData,
@@ -388,26 +530,157 @@ public class AttributeCompiler {
             int totalArgs,
             CompiledExpression options,
             boolean head,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location,
+            @Nullable CompiledExpression compiledEntity,
+            List<CompiledExpression> compiledArguments) implements StreamOperator {
 
         @Override
         public int hashCode() {
             return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
                     Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators),
-                    Arrays.hashCode(streamIndices), Arrays.hashCode(streams), totalArgs, options, head, location);
+                    Arrays.hashCode(streamIndices), Arrays.hashCode(streams), totalArgs, options, head, location,
+                    Objects.hashCode(compiledEntity), Objects.hashCode(compiledArguments));
         }
 
         @Override
         public boolean equals(Object o) {
             return this == o
-                    || (o instanceof MultiStreamAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oOpts, var oHead, var oLoc)
+                    || (o instanceof MultiStreamAttributeLazy(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
                             && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
                             && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
                             && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
                             && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
                             && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
                             && totalArgs == oTotal && Objects.equals(options, oOpts) && head == oHead
-                            && Objects.equals(location, oLoc));
+                            && Objects.equals(location, oLoc) && Objects.equals(compiledEntity, oCompiledEntity)
+                            && Objects.equals(compiledArguments, oCompiledArgs));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return attributeLookupLazy(attributeName, compiledEntity, compiledArguments, options, pdpData, head,
+                    location, ctx);
+        }
+
+        @Override
+        public Flux<TracedValue> stream() {
+            List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
+            for (val s : streams) {
+                fluxList.add(s.stream());
+            }
+
+            return Flux.combineLatest(fluxList, arr -> {
+                val combinedTraces = new ArrayList<AttributeRecord>();
+                val streamValues   = new TracedValue[arr.length];
+                for (int i = 0; i < arr.length; i++) {
+                    streamValues[i] = (TracedValue) arr[i];
+                    combinedTraces.addAll(streamValues[i].contributingAttributes());
+                }
+                return new CombinedStreams(streamValues, combinedTraces);
+            }).switchMap(combined -> {
+                for (val tv : combined.values) {
+                    if (tv.value() instanceof ErrorValue) {
+                        return Flux.just(new TracedValue(tv.value(), combined.traces));
+                    }
+                }
+
+                return Flux.deferContextual(ctx -> {
+                    val evalCtx = ctx.get(EvaluationContext.class);
+
+                    Value entity = entityValue;
+                    if (streamIndices.length > 0 && streamIndices[0] == -1) {
+                        entity = combined.values[0].value();
+                    } else if (entityPure != null) {
+                        entity = entityPure.evaluate(evalCtx);
+                        if (entity instanceof ErrorValue) {
+                            return Flux.just(errorTracedValue(entity));
+                        }
+                    }
+
+                    val optionsValue = evaluateOptions(options, evalCtx);
+                    if (optionsValue instanceof ErrorValue) {
+                        return Flux.just(errorTracedValue(optionsValue));
+                    }
+
+                    val args = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices, pureOperators,
+                            streamIndices, combined.values, totalArgs, evalCtx);
+                    if (args instanceof ErrorValue err) {
+                        return Flux.just(errorTracedValue(err));
+                    }
+                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
+                    val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
+                            evalCtx);
+                    return invokeAndTrace(invocation, head, location).map(tv -> mergeTraces(tv, combined.traces));
+                });
+            });
+        }
+
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
+            @Override
+            public int hashCode() {
+                return Objects.hash(Arrays.hashCode(values), traces);
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
+                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
+            }
+        }
+    }
+
+    /**
+     * Multiple stream children, eager variant: snapshot {@code evaluate(ctx)}
+     * walks every child to accumulate the maximum subscription set, holds
+     * the first {@link ErrorValue}, and returns it after the full walk.
+     * Selected at compile time when the {@code errorShortCircuit} compiler
+     * option is disabled (default). Legacy {@link #stream()} is identical
+     * to the lazy variant.
+     */
+    public record MultiStreamAttributeEager(
+            String attributeName,
+            Value entityValue,
+            PdpData pdpData,
+            PureOperator entityPure,
+            int[] valueIndices,
+            Value[] values,
+            int[] pureIndices,
+            PureOperator[] pureOperators,
+            int[] streamIndices,
+            StreamOperator[] streams,
+            int totalArgs,
+            CompiledExpression options,
+            boolean head,
+            SourceLocation location,
+            @Nullable CompiledExpression compiledEntity,
+            List<CompiledExpression> compiledArguments) implements StreamOperator {
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
+                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators),
+                    Arrays.hashCode(streamIndices), Arrays.hashCode(streams), totalArgs, options, head, location,
+                    Objects.hashCode(compiledEntity), Objects.hashCode(compiledArguments));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o
+                    || (o instanceof MultiStreamAttributeEager(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
+                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
+                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
+                            && totalArgs == oTotal && Objects.equals(options, oOpts) && head == oHead
+                            && Objects.equals(location, oLoc) && Objects.equals(compiledEntity, oCompiledEntity)
+                            && Objects.equals(compiledArguments, oCompiledArgs));
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return attributeLookupEager(attributeName, compiledEntity, compiledArguments, options, pdpData, head,
+                    location, ctx);
         }
 
         @Override
@@ -513,7 +786,7 @@ public class AttributeCompiler {
      * child was incomplete) plus the complete subscription set this pass
      * touched
      */
-    private static ExpressionResult attributeLookup(String attributeName, @Nullable CompiledExpression entity,
+    private static ExpressionResult attributeLookupLazy(String attributeName, @Nullable CompiledExpression entity,
             List<? extends CompiledExpression> arguments, CompiledExpression options, PdpData pdpData, boolean head,
             SourceLocation location, EvaluationContext ctx) {
         val optionsValue = evaluateOptions(options, ctx);
@@ -544,6 +817,65 @@ public class AttributeCompiler {
             }
         }
 
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+
+        val invocation   = createInvocation(attributeName, entityValue, argValues, optionsValue, pdpData, ctx);
+        val subscription = new Subscription(invocation, location, head);
+        subs.add(subscription);
+        val value = ctx.lookup(subscription);
+        return new ExpressionResult(value, subs);
+    }
+
+    /**
+     * Eager attribute access: walks entity and every argument via
+     * {@link StreamOperator#evalChild}, accumulating subscriptions even past
+     * any encountered {@link ErrorValue}. Holds the first error and returns
+     * it after the full walk completes. {@code null} from a child sets the
+     * incomplete flag; on a clean walk with no error the attribute
+     * subscription is built and looked up. Precedence at the end:
+     * error &gt; null &gt; lookup result.
+     */
+    private static ExpressionResult attributeLookupEager(String attributeName, @Nullable CompiledExpression entity,
+            List<? extends CompiledExpression> arguments, CompiledExpression options, PdpData pdpData, boolean head,
+            SourceLocation location, EvaluationContext ctx) {
+        val optionsValue = evaluateOptions(options, ctx);
+
+        val     subs        = new HashSet<Subscription>();
+        boolean seenNull    = false;
+        Value   firstError  = null;
+        Value   entityValue = null;
+        if (entity != null) {
+            val v = evalChild(entity, ctx, subs);
+            if (v == null) {
+                seenNull = true;
+            } else if (v instanceof ErrorValue) {
+                firstError = v;
+            } else {
+                entityValue = v;
+            }
+        }
+
+        val argValues = new ArrayList<Value>(arguments.size());
+        for (val arg : arguments) {
+            val argValue = evalChild(arg, ctx, subs);
+            if (argValue == null) {
+                seenNull = true;
+                continue;
+            }
+            if (argValue instanceof ErrorValue) {
+                if (firstError == null) {
+                    firstError = argValue;
+                }
+                continue;
+            }
+            argValues.add(argValue);
+        }
+
+        if (firstError != null) {
+            return new ExpressionResult(firstError, subs);
+        }
         if (seenNull) {
             return new ExpressionResult(null, subs);
         }

@@ -124,4 +124,29 @@ class RegexCompilerTests {
         assertThat(((PureOperator) compiled).evaluate(evalCtx)).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    @DisplayName("Pure input + literal pattern selects RegexPrecompiledPure with captured matcher")
+    void whenPureInputWithLiteralPatternThenProducesPrecompiledRecord() {
+        var compiled = compileExpression("subject =~ \"^a.*\"");
+        assertThat(compiled).isInstanceOf(RegexCompiler.RegexPrecompiledPure.class);
+        var precompiled = (RegexCompiler.RegexPrecompiledPure) compiled;
+        // Matcher Predicate is captured at compile time; same reference reused per
+        // evaluate call.
+        assertThat(precompiled.matcher()).isNotNull().isSameAs(precompiled.matcher())
+                .satisfies(m -> assertThat(m.test("apple")).isTrue())
+                .satisfies(m -> assertThat(m.test("banana")).isFalse());
+        assertThat(precompiled.patternSource()).isEqualTo("^a.*");
+    }
+
+    @Test
+    @DisplayName("Stream input + literal pattern selects RegexPrecompiledStream with captured matcher")
+    void whenStreamInputWithLiteralPatternThenProducesPrecompiledRecord() {
+        var compiled = compileExpression("subject.<test.name> =~ \"^a.*\"");
+        assertThat(compiled).isInstanceOf(RegexCompiler.RegexPrecompiledStream.class);
+        var precompiled = (RegexCompiler.RegexPrecompiledStream) compiled;
+        assertThat(precompiled.matcher()).isNotNull().isSameAs(precompiled.matcher())
+                .satisfies(m -> assertThat(m.test("apple")).isTrue())
+                .satisfies(m -> assertThat(m.test("banana")).isFalse());
+    }
+
 }

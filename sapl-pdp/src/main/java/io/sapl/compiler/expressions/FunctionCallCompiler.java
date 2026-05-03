@@ -35,6 +35,7 @@ import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
 import io.sapl.ast.FunctionCall;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.PureOrValueEvaluator;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -325,7 +326,7 @@ public class FunctionCallCompiler {
                             args.add(argVal);
                             continue;
                         }
-                        val v = evaluatePureOrValue(arguments.get(i), evalCtx);
+                        val v = PureOrValueEvaluator.evaluate(arguments.get(i), evalCtx);
                         if (v instanceof ErrorValue) {
                             return Flux.just(new TracedValue(v, tracedArg.contributingAttributes()));
                         }
@@ -388,7 +389,7 @@ public class FunctionCallCompiler {
                             streamIdx++;
                             continue;
                         }
-                        val v = evaluatePureOrValue(arguments.get(i), evalCtx);
+                        val v = PureOrValueEvaluator.evaluate(arguments.get(i), evalCtx);
                         if (v instanceof ErrorValue) {
                             return Flux.just(new TracedValue(v, combined.traces));
                         }
@@ -418,14 +419,6 @@ public class FunctionCallCompiler {
                         && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
             }
         }
-    }
-
-    private static Value evaluatePureOrValue(CompiledExpression expr, EvaluationContext ctx) {
-        return switch (expr) {
-        case Value v                -> v;
-        case PureOperator p         -> p.evaluate(ctx);
-        case StreamOperator ignored -> Value.error("Stream argument reached the pure-or-value evaluator path");
-        };
     }
 
 }

@@ -23,11 +23,9 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Conjunction;
@@ -38,10 +36,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-
-import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles N-ary boolean operators: Conjunction ({@code &&}, {@code &}) and
@@ -78,7 +73,7 @@ public class NaryBooleanCompiler {
      */
     public static CompiledExpression compileConjunction(Conjunction c, CompilationContext ctx) {
         val compiled = c.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
-        return compile(compiled, c.location(), Value.FALSE, Value.TRUE, c.isEager(), ctx.errorShortCircuit());
+        return compile(compiled, c.location(), Value.FALSE, Value.TRUE, c.isEager());
     }
 
     /**
@@ -87,23 +82,21 @@ public class NaryBooleanCompiler {
      */
     public static CompiledExpression compileDisjunction(Disjunction d, CompilationContext ctx) {
         val compiled = d.operands().stream().map(o -> ExpressionCompiler.compile(o, ctx)).toList();
-        return compile(compiled, d.location(), Value.TRUE, Value.FALSE, d.isEager(), ctx.errorShortCircuit());
+        return compile(compiled, d.location(), Value.TRUE, Value.FALSE, d.isEager());
     }
 
     /**
      * Compiles an n-ary boolean with lazy semantics. Used by
      * {@link io.sapl.compiler.policy.policybody.PolicyBodyCompiler} for implicit
-     * AND of policy body conditions. Defaults {@code errorShortCircuit} to
-     * {@code false}; the policy-body caller controls error semantics via the
-     * separate {@code conditionShortCircuit} flag at its own composition layer.
+     * AND of policy body conditions.
      */
     public static CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
             Value shortCircuitValue, Value identityValue) {
-        return compile(operands, location, shortCircuitValue, identityValue, false, false);
+        return compile(operands, location, shortCircuitValue, identityValue, false);
     }
 
     private static CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
-            Value shortCircuitValue, Value identityValue, boolean isEager, boolean errorShortCircuit) {
+            Value shortCircuitValue, Value identityValue, boolean isEager) {
 
         // 1. Fold values at compile time, split remainder into pure and stream buckets
         val pures   = new ArrayList<PureOperator>();
@@ -141,7 +134,11 @@ public class NaryBooleanCompiler {
         val streamFlux = isEager ? buildEagerStreamChain(streams, shortCircuitValue, identityValue, location)
                 : buildLazyStreamChain(streams, shortCircuitValue, identityValue, location);
 
-        val legacyChain = pures.isEmpty() ? streamFlux : Flux.deferContextual(ctxView -> {
+        if (pures.isEmpty()) {
+            return new NaryBooleanStream(streamFlux);
+        }
+
+        return new NaryBooleanStream(Flux.deferContextual(ctxView -> {
             val ctx = ctxView.get(EvaluationContext.class);
             for (var pure : pures) {
                 val v = pure.evaluate(ctx);
@@ -157,10 +154,7 @@ public class NaryBooleanCompiler {
                 }
             }
             return streamFlux;
-        });
-
-        return new NaryBooleanStream(pures, streams, shortCircuitValue, identityValue, isEager, errorShortCircuit,
-                location, legacyChain);
+        }));
     }
 
     /**
@@ -307,96 +301,14 @@ public class NaryBooleanCompiler {
     }
 
     /**
-     * N-ary boolean with Stream operands. The legacy Reactor {@code chain} is
-     * pre-built at compile time and used by {@link #stream()}; the source
-     * operands are also retained so the snapshot path
-     * ({@link #evaluate(EvaluationContext)}) can iterate them directly. The
-     * {@code chain} field retires when the legacy {@code stream()} path goes
-     * away.
+     * N-ary boolean with Stream operands. Flux chain is pre-built at compile
+     * time - no runtime recursion.
      */
-    record NaryBooleanStream(
-            List<PureOperator> pures,
-            List<StreamOperator> streams,
-            Value shortCircuitValue,
-            Value identityValue,
-            boolean isEager,
-            boolean errorShortCircuit,
-            SourceLocation location,
-            Flux<TracedValue> chain) implements StreamOperator {
+    record NaryBooleanStream(Flux<TracedValue> chain) implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
             return chain;
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            val subs = new HashSet<Subscription>();
-
-            for (val pure : pures) {
-                val v = pure.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return new ExpressionResult(v, subs);
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return new ExpressionResult(
-                            Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), subs);
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return new ExpressionResult(shortCircuitValue, subs);
-                }
-            }
-
-            boolean seenNull         = false;
-            boolean seenShortCircuit = false;
-            Value   firstError       = null;
-
-            for (val s : streams) {
-                val v = evalChild(s, ctx, subs);
-                if (v == null) {
-                    if (!isEager) {
-                        return new ExpressionResult(null, subs);
-                    }
-                    seenNull = true;
-                    continue;
-                }
-                if (v instanceof ErrorValue err) {
-                    if (errorShortCircuit) {
-                        return new ExpressionResult(err, subs);
-                    }
-                    if (firstError == null) {
-                        firstError = err;
-                    }
-                    continue;
-                }
-                if (!(v instanceof BooleanValue)) {
-                    val err = Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
-                    if (errorShortCircuit) {
-                        return new ExpressionResult(err, subs);
-                    }
-                    if (firstError == null) {
-                        firstError = err;
-                    }
-                    continue;
-                }
-                if (shortCircuitValue.equals(v)) {
-                    if (!isEager) {
-                        return new ExpressionResult(shortCircuitValue, subs);
-                    }
-                    seenShortCircuit = true;
-                }
-            }
-
-            if (firstError != null) {
-                return new ExpressionResult(firstError, subs);
-            }
-            if (seenShortCircuit) {
-                return new ExpressionResult(shortCircuitValue, subs);
-            }
-            if (seenNull) {
-                return new ExpressionResult(null, subs);
-            }
-            return new ExpressionResult(identityValue, subs);
         }
     }
 

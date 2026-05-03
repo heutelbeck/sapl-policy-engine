@@ -373,7 +373,7 @@ public class BinaryOperationCompiler {
      * subscription, eager mode keeps walking to maximize subscription
      * set before propagating the error.
      */
-    private static ExpressionResult evalBinary(BinaryOperation op, CompiledExpression left, CompiledExpression right,
+    static ExpressionResult evalBinary(BinaryOperation op, CompiledExpression left, CompiledExpression right,
             boolean errorShortCircuit, SourceLocation location, EvaluationContext ctx) {
         val subs = new HashSet<Subscription>();
         val lv   = evalChild(left, ctx, subs);

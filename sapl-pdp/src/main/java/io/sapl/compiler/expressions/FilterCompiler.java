@@ -307,7 +307,11 @@ public class FilterCompiler {
                     sof.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, localCtx)));
             elements.add(element);
         }
-        return toTracedStream(ArrayCompiler.buildFromCompiled(elements, location));
+        // TODO: propagate errorShortCircuit from the enclosing filter operator
+        // instead of hardcoding false. The current value matches legacy
+        // combineLatest semantics consumed by stream(); evaluate(ctx) will
+        // need the program-level compile-time choice.
+        return toTracedStream(ArrayCompiler.buildFromCompiled(elements, location, false));
     }
 
     private static Flux<TracedValue> evaluateEachObjectStream(ObjectValue ov, StreamOperator sof,
@@ -323,7 +327,11 @@ public class FilterCompiler {
             keys.add(key);
             elements.add(element);
         }
-        return toTracedStream(ObjectCompiler.buildFromCompiled(keys, elements, location));
+        // TODO: propagate errorShortCircuit from the enclosing filter operator
+        // instead of hardcoding false. The current value matches legacy
+        // combineLatest semantics consumed by stream(); evaluate(ctx) will
+        // need the program-level compile-time choice.
+        return toTracedStream(ObjectCompiler.buildFromCompiled(keys, elements, location, false));
     }
 
     private static Flux<TracedValue> toTracedStream(CompiledExpression e) {

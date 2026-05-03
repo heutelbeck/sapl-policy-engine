@@ -25,9 +25,11 @@ import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.Subscription;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -38,7 +40,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles array literal expressions using the PRECOMPILED pattern.
@@ -63,7 +68,7 @@ public class ArrayCompiler {
             compiled.add(result);
         }
 
-        return buildFromCompiled(compiled, expr.location());
+        return buildFromCompiled(compiled, expr.location(), ctx.errorShortCircuit());
     }
 
     /**
@@ -72,9 +77,16 @@ public class ArrayCompiler {
      *
      * @param compiled the compiled elements (Value/PureOperator/StreamOperator)
      * @param location source location for error reporting
+     * @param errorShortCircuit compile-time flag selecting the lazy variant
+     * (short-circuit on first error in {@code evaluate(ctx)}) when {@code true},
+     * the eager variant (walk all children, accumulate maximum subscription
+     * set) when {@code false}. The legacy {@code stream()} is identical
+     * across both variants - the flag affects only the new
+     * {@code evaluate(ctx)} path.
      * @return appropriate CompiledExpression based on element types
      */
-    public static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location) {
+    public static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location,
+            boolean errorShortCircuit) {
         val cat = CategorizedExpressions.categorize(compiled);
 
         if (cat.hasOnlyValues()) {
@@ -85,11 +97,19 @@ public class ArrayCompiler {
                     cat.totalCount(), location);
         }
         if (cat.hasSingleStream()) {
-            return new SingleStreamArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                    cat.streamIndices()[0], cat.streams()[0], cat.totalCount());
+            if (errorShortCircuit) {
+                return new SingleStreamArrayLazy(cat.valueIndices(), cat.values(), cat.pureIndices(),
+                        cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), compiled);
+            }
+            return new SingleStreamArrayEager(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                    cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), compiled);
         }
-        return new MultiStreamArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                cat.streamIndices(), cat.streams(), cat.totalCount());
+        if (errorShortCircuit) {
+            return new MultiStreamArrayLazy(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                    cat.streamIndices(), cat.streams(), cat.totalCount(), compiled);
+        }
+        return new MultiStreamArrayEager(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+                cat.streamIndices(), cat.streams(), cat.totalCount(), compiled);
     }
 
     private static Value buildArrayFromValues(List<Value> values) {
@@ -270,16 +290,20 @@ public class ArrayCompiler {
     }
 
     /**
-     * Array with exactly one stream element.
+     * Array with exactly one stream element. Lazy variant: snapshot
+     * {@code evaluate(ctx)} short-circuits on the first {@link ErrorValue}
+     * encountered. Selected at compile time when the
+     * {@code errorShortCircuit} compiler option is enabled.
      */
-    record SingleStreamArray(
+    record SingleStreamArrayLazy(
             int[] valueIndices,
             Value[] values,
             int[] pureIndices,
             PureOperator[] pureOperators,
             int streamIndex,
             StreamOperator streamOp,
-            int totalElements) implements StreamOperator {
+            int totalElements,
+            List<CompiledExpression> compiledElements) implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
@@ -319,33 +343,193 @@ public class ArrayCompiler {
         }
 
         @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return assembleArrayLazy(compiledElements, ctx);
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
-                    Arrays.hashCode(pureOperators), streamIndex, Objects.hashCode(streamOp), totalElements);
+                    Arrays.hashCode(pureOperators), streamIndex, Objects.hashCode(streamOp), totalElements,
+                    Objects.hashCode(compiledElements));
         }
 
         @Override
         public boolean equals(Object o) {
             return this == o
-                    || (o instanceof SingleStreamArray(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreamOp, var oTotal)
+                    || (o instanceof SingleStreamArrayLazy(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreamOp, var oTotal, var oCompiled)
                             && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
                             && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
                             && streamIndex == oStreamIdx && Objects.equals(streamOp, oStreamOp)
-                            && totalElements == oTotal);
+                            && totalElements == oTotal && Objects.equals(compiledElements, oCompiled));
         }
     }
 
     /**
-     * Array with multiple stream elements.
+     * Array with exactly one stream element. Eager variant: snapshot
+     * {@code evaluate(ctx)} walks every child to accumulate the maximum
+     * subscription set, holds the first {@link ErrorValue}, and returns it
+     * after the full walk. Selected at compile time when the
+     * {@code errorShortCircuit} compiler option is disabled (default).
+     * Legacy {@link #stream()} is identical to the lazy variant — Reactor
+     * combineLatest semantics never honoured the option.
      */
-    record MultiStreamArray(
+    record SingleStreamArrayEager(
+            int[] valueIndices,
+            Value[] values,
+            int[] pureIndices,
+            PureOperator[] pureOperators,
+            int streamIndex,
+            StreamOperator streamOp,
+            int totalElements,
+            List<CompiledExpression> compiledElements) implements StreamOperator {
+
+        @Override
+        public Flux<TracedValue> stream() {
+            return streamOp.stream().switchMap(tracedValue -> {
+                val streamVal = tracedValue.value();
+                if (streamVal instanceof ErrorValue) {
+                    return Flux.just(tracedValue);
+                }
+
+                return Flux.deferContextual(ctx -> {
+                    val evalCtx  = ctx.get(EvaluationContext.class);
+                    val elements = new Value[totalElements];
+
+                    for (int i = 0; i < valueIndices.length; i++) {
+                        elements[valueIndices[i]] = values[i];
+                    }
+
+                    for (int i = 0; i < pureIndices.length; i++) {
+                        val value = pureOperators[i].evaluate(evalCtx);
+                        if (value instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
+                        }
+                        elements[pureIndices[i]] = value;
+                    }
+
+                    elements[streamIndex] = streamVal;
+
+                    val builder = ArrayValue.builder();
+                    for (var element : elements) {
+                        if (element != null && !(element instanceof UndefinedValue)) {
+                            builder.add(element);
+                        }
+                    }
+                    return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
+                });
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return assembleArrayEager(compiledElements, ctx);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), streamIndex, Objects.hashCode(streamOp), totalElements,
+                    Objects.hashCode(compiledElements));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o
+                    || (o instanceof SingleStreamArrayEager(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreamOp, var oTotal, var oCompiled)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && streamIndex == oStreamIdx && Objects.equals(streamOp, oStreamOp)
+                            && totalElements == oTotal && Objects.equals(compiledElements, oCompiled));
+        }
+    }
+
+    /**
+     * Lazy assembly: evaluates compiled elements left-to-right via
+     * {@link StreamOperator#evalChild} accumulating subscriptions, and returns
+     * immediately on the first {@link ErrorValue} encountered. Children past
+     * the error are not evaluated and contribute no subscriptions. Drops
+     * {@link UndefinedValue} elements per array literal semantics. {@code null}
+     * from a child sets the incomplete flag but iteration continues to maximize
+     * the subscription set.
+     */
+    private static ExpressionResult assembleArrayLazy(List<CompiledExpression> elements, EvaluationContext ctx) {
+        val     subs     = new HashSet<Subscription>();
+        boolean seenNull = false;
+        val     builder  = ArrayValue.builder();
+        for (val element : elements) {
+            val v = evalChild(element, ctx, subs);
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                return new ExpressionResult(v, subs);
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.add(v);
+            }
+        }
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        return new ExpressionResult(builder.build(), subs);
+    }
+
+    /**
+     * Eager assembly: evaluates every compiled element via
+     * {@link StreamOperator#evalChild}, accumulating subscriptions even past
+     * any encountered {@link ErrorValue}. Holds the first error and returns it
+     * after the full walk completes. Drops {@link UndefinedValue} elements per
+     * array literal semantics. {@code null} from a child sets the incomplete
+     * flag; on a clean walk with no error, returns the assembled array.
+     * Precedence at the end: error > null > built array.
+     */
+    private static ExpressionResult assembleArrayEager(List<CompiledExpression> elements, EvaluationContext ctx) {
+        val     subs       = new HashSet<Subscription>();
+        boolean seenNull   = false;
+        Value   firstError = null;
+        val     builder    = ArrayValue.builder();
+        for (val element : elements) {
+            val v = evalChild(element, ctx, subs);
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                if (firstError == null) {
+                    firstError = v;
+                }
+                continue;
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.add(v);
+            }
+        }
+        if (firstError != null) {
+            return new ExpressionResult(firstError, subs);
+        }
+        if (seenNull) {
+            return new ExpressionResult(null, subs);
+        }
+        return new ExpressionResult(builder.build(), subs);
+    }
+
+    /**
+     * Array with multiple stream elements. Lazy variant: snapshot
+     * {@code evaluate(ctx)} short-circuits on the first {@link ErrorValue}
+     * encountered. Selected at compile time when the
+     * {@code errorShortCircuit} compiler option is enabled.
+     */
+    record MultiStreamArrayLazy(
             int[] valueIndices,
             Value[] values,
             int[] pureIndices,
             PureOperator[] pureOperators,
             int[] streamIndices,
             StreamOperator[] streams,
-            int totalElements) implements StreamOperator {
+            int totalElements,
+            List<CompiledExpression> compiledElements) implements StreamOperator {
 
         @Override
         public Flux<TracedValue> stream() {
@@ -401,20 +585,134 @@ public class ArrayCompiler {
         }
 
         @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return assembleArrayLazy(compiledElements, ctx);
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
                     Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices), Arrays.hashCode(streams),
-                    totalElements);
+                    totalElements, Objects.hashCode(compiledElements));
         }
 
         @Override
         public boolean equals(Object o) {
             return this == o
-                    || (o instanceof MultiStreamArray(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal)
+                    || (o instanceof MultiStreamArrayLazy(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oCompiled)
                             && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
                             && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
                             && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
-                            && totalElements == oTotal);
+                            && totalElements == oTotal && Objects.equals(compiledElements, oCompiled));
+        }
+
+        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(Arrays.hashCode(values), Objects.hashCode(traces));
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
+                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
+            }
+        }
+    }
+
+    /**
+     * Array with multiple stream elements. Eager variant: snapshot
+     * {@code evaluate(ctx)} walks every child to accumulate the maximum
+     * subscription set, holds the first {@link ErrorValue}, and returns it
+     * after the full walk. Selected at compile time when the
+     * {@code errorShortCircuit} compiler option is disabled (default).
+     * Legacy {@link #stream()} is identical to the lazy variant - Reactor
+     * combineLatest semantics never honoured the option.
+     */
+    record MultiStreamArrayEager(
+            int[] valueIndices,
+            Value[] values,
+            int[] pureIndices,
+            PureOperator[] pureOperators,
+            int[] streamIndices,
+            StreamOperator[] streams,
+            int totalElements,
+            List<CompiledExpression> compiledElements) implements StreamOperator {
+
+        @Override
+        public Flux<TracedValue> stream() {
+            List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
+            for (var s : streams) {
+                fluxList.add(s.stream());
+            }
+
+            return Flux.combineLatest(fluxList, arr -> {
+                val combinedTraces = new ArrayList<AttributeRecord>();
+                val streamValues   = new TracedValue[arr.length];
+                for (int i = 0; i < arr.length; i++) {
+                    streamValues[i] = (TracedValue) arr[i];
+                    combinedTraces.addAll(streamValues[i].contributingAttributes());
+                }
+                return new CombinedStreams(streamValues, combinedTraces);
+            }).switchMap(combined -> {
+                for (var tv : combined.values) {
+                    if (tv.value() instanceof ErrorValue) {
+                        return Flux.just(new TracedValue(tv.value(), combined.traces));
+                    }
+                }
+
+                return Flux.deferContextual(ctx -> {
+                    val evalCtx  = ctx.get(EvaluationContext.class);
+                    val elements = new Value[totalElements];
+
+                    for (int i = 0; i < valueIndices.length; i++) {
+                        elements[valueIndices[i]] = values[i];
+                    }
+
+                    for (int i = 0; i < pureIndices.length; i++) {
+                        val value = pureOperators[i].evaluate(evalCtx);
+                        if (value instanceof ErrorValue) {
+                            return Flux.just(new TracedValue(value, combined.traces));
+                        }
+                        elements[pureIndices[i]] = value;
+                    }
+
+                    for (int i = 0; i < streamIndices.length; i++) {
+                        elements[streamIndices[i]] = combined.values[i].value();
+                    }
+
+                    val builder = ArrayValue.builder();
+                    for (var element : elements) {
+                        if (element != null && !(element instanceof UndefinedValue)) {
+                            builder.add(element);
+                        }
+                    }
+                    return Flux.just(new TracedValue(builder.build(), combined.traces));
+                });
+            });
+        }
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return assembleArrayEager(compiledElements, ctx);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
+                    Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices), Arrays.hashCode(streams),
+                    totalElements, Objects.hashCode(compiledElements));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o
+                    || (o instanceof MultiStreamArrayEager(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oCompiled)
+                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
+                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
+                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
+                            && totalElements == oTotal && Objects.equals(compiledElements, oCompiled));
         }
 
         private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
