@@ -21,19 +21,17 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
-
 /**
  * Outcome of one snapshot-driven evaluation pass.
  * <p>
  * Field meanings:
  * <ul>
  * <li>{@code result} — the computed {@link Value} if all needed
- * attribute invocations were resolvable from the snapshot at
- * evaluation time; {@code null} if at least one read could not
- * complete and the trigger loop must subscribe and retry.</li>
+ * attribute reads were resolvable from the snapshot at evaluation
+ * time; {@code null} if at least one read could not complete and
+ * the trigger loop must subscribe and retry.</li>
  * <li>{@code subscriptions} — the <strong>complete</strong> set of
- * attribute invocations this evaluation pass needed or touched.
+ * {@link Subscription}s this evaluation pass needed or touched.
  * Not a delta; the full current picture. The trigger loop diffs
  * this against the previously-held subscription set to decide
  * what to subscribe (additions) and what to release (removals).
@@ -52,9 +50,9 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
  *
  * @param result the computed value, or {@code null} if evaluation
  * could not complete with the current snapshot
- * @param subscriptions the complete set of attribute invocations
- * needed or touched in this evaluation pass
+ * @param subscriptions the complete set of subscriptions needed or
+ * touched in this evaluation pass
  *
  * @since 4.2.0
  */
-public record ExpressionResult(@Nullable Value result, Set<AttributeFinderInvocation> subscriptions) {}
+public record ExpressionResult(@Nullable Value result, Set<Subscription> subscriptions) {}
