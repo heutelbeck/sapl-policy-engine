@@ -50,11 +50,10 @@ public interface BinaryOperation {
     Value apply(Value left, Value right, SourceLocation location);
 
     /**
-     * Lazy binary evaluation: walks left, returns immediately on
-     * {@link ErrorValue} from left without walking right (right's
-     * subscriptions are not added). On a non-error left, walks right.
-     * {@code null} from a child sets the incomplete flag but iteration
-     * continues to maximize the subscription set.
+     * Lazy binary evaluation: walks left, returns immediately on {@code null}
+     * (incomplete) or {@link ErrorValue} from left without walking right
+     * (right's subscriptions are not added). On a complete, non-error left,
+     * walks right and short-circuits the same way.
      *
      * @param left the left operand expression
      * @param right the right operand expression
@@ -66,11 +65,14 @@ public interface BinaryOperation {
             EvaluationContext ctx) {
         val subs = HashSet.<Subscription>newHashSet(2);
         val lv   = evalChild(left, ctx, subs);
+        if (lv == null) {
+            return new ExpressionResult(null, subs);
+        }
         if (lv instanceof ErrorValue) {
             return new ExpressionResult(lv, subs);
         }
         val rv = evalChild(right, ctx, subs);
-        if (lv == null || rv == null) {
+        if (rv == null) {
             return new ExpressionResult(null, subs);
         }
         if (rv instanceof ErrorValue) {

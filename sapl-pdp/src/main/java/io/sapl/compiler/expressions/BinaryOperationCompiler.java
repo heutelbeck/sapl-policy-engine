@@ -131,18 +131,18 @@ public class BinaryOperationCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-        val loc               = binaryOperation.location();
-        val errorShortCircuit = ctx.errorShortCircuit();
+        val loc            = binaryOperation.location();
+        val lowLatencyMode = ctx.lowLatencyMode();
         return switch (left) {
         case Value lv          -> switch (right) {
                            case Value rv              -> op.apply(lv, rv, loc);
                            case PureOperator rp       -> new BinaryValuePure(operatorType, op, lv, rp, loc,
                                    rp.isDependingOnSubscription(), rp.isRelativeExpression());
                            case StreamOperator rs     -> {
-                               if (errorShortCircuit) {
-                                   yield new BinaryValueStreamLazy(op, lv, rs, loc);
+                               if (lowLatencyMode) {
+                                   yield new BinaryValueStreamEager(op, lv, rs, loc);
                                }
-                               yield new BinaryValueStreamEager(op, lv, rs, loc);
+                               yield new BinaryValueStreamLazy(op, lv, rs, loc);
                            }
                            };
         case PureOperator lp   -> switch (right) {
@@ -152,20 +152,20 @@ public class BinaryOperationCompiler {
                                    lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
                                    lp.isRelativeExpression() || rp.isRelativeExpression());
                            case StreamOperator rs     -> {
-                               if (errorShortCircuit) {
-                                   yield new BinaryPureStreamLazy(op, lp, rs, loc);
+                               if (lowLatencyMode) {
+                                   yield new BinaryPureStreamEager(op, lp, rs, loc);
                                }
-                               yield new BinaryPureStreamEager(op, lp, rs, loc);
+                               yield new BinaryPureStreamLazy(op, lp, rs, loc);
                            }
                            };
         case StreamOperator ls -> switch (right) {
                            case Value rv              -> new BinaryStreamValue(op, ls, rv, loc);
                            case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, loc);
                            case StreamOperator rs     -> {
-                               if (errorShortCircuit) {
-                                   yield new BinaryStreamStreamLazy(op, ls, rs, loc);
+                               if (lowLatencyMode) {
+                                   yield new BinaryStreamStreamEager(op, ls, rs, loc);
                                }
-                               yield new BinaryStreamStreamEager(op, ls, rs, loc);
+                               yield new BinaryStreamStreamLazy(op, ls, rs, loc);
                            }
                            };
         };
@@ -245,10 +245,10 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Left-constant Value, right-Stream. Lazy variant: snapshot
-     * {@code evaluate(ctx)} short-circuits on left {@link ErrorValue}
-     * without subscribing the right stream. Selected at compile time when
-     * {@code errorShortCircuit} is enabled.
+     * Left-constant Value, right-Stream. Lazy variant: {@code evaluate(ctx)}
+     * short-circuits on left {@link ErrorValue} without subscribing the
+     * right stream. Selected at compile time when {@code lowLatencyMode}
+     * is disabled.
      */
     record BinaryValueStreamLazy(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
@@ -270,11 +270,11 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Left-constant Value, right-Stream. Eager variant: snapshot
-     * {@code evaluate(ctx)} subscribes the right stream even when the
-     * left Value is an {@link ErrorValue}, holds the first error and
-     * returns it after the full walk. Selected at compile time when
-     * {@code errorShortCircuit} is disabled (default).
+     * Left-constant Value, right-Stream. Eager variant: {@code evaluate(ctx)}
+     * subscribes the right stream even when the left Value is an
+     * {@link ErrorValue}, holds the first error and returns it after the
+     * full walk. Selected at compile time when {@code lowLatencyMode} is
+     * enabled (default).
      */
     record BinaryValueStreamEager(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
@@ -298,7 +298,7 @@ public class BinaryOperationCompiler {
     /**
      * Left-Stream, right-constant Value. Lazy and eager produce identical
      * subscription sets and identical output here (right has no
-     * subscriptions to "miss"), so a single record suffices. Snapshot
+     * subscriptions to "miss"), so a single record suffices.
      * {@code evaluate(ctx)} uses the lazy helper as the canonical form.
      */
     public record BinaryStreamValue(BinaryOperation op, StreamOperator ls, Value rv, SourceLocation location)
@@ -321,10 +321,10 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Left-Pure, right-Stream. Lazy variant: snapshot
-     * {@code evaluate(ctx)} short-circuits on left pure
-     * {@link ErrorValue} without subscribing the right stream. Selected
-     * at compile time when {@code errorShortCircuit} is enabled.
+     * Left-Pure, right-Stream. Lazy variant: {@code evaluate(ctx)}
+     * short-circuits on left pure {@link ErrorValue} without subscribing
+     * the right stream. Selected at compile time when
+     * {@code lowLatencyMode} is disabled.
      */
     record BinaryPureStreamLazy(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
@@ -352,10 +352,10 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Left-Pure, right-Stream. Eager variant: snapshot
-     * {@code evaluate(ctx)} subscribes the right stream even when the
-     * left pure produces an {@link ErrorValue}. Selected at compile time
-     * when {@code errorShortCircuit} is disabled (default).
+     * Left-Pure, right-Stream. Eager variant: {@code evaluate(ctx)}
+     * subscribes the right stream even when the left pure produces an
+     * {@link ErrorValue}. Selected at compile time when
+     * {@code lowLatencyMode} is enabled (default).
      */
     record BinaryPureStreamEager(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
@@ -385,7 +385,7 @@ public class BinaryOperationCompiler {
     /**
      * Left-Stream, right-Pure. Lazy and eager produce identical
      * subscription sets and identical output here (right has no
-     * subscriptions to "miss"), so a single record suffices. Snapshot
+     * subscriptions to "miss"), so a single record suffices.
      * {@code evaluate(ctx)} uses the lazy helper as the canonical form.
      */
     record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
@@ -414,10 +414,10 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Both children are streams. Lazy variant: snapshot
-     * {@code evaluate(ctx)} short-circuits on left {@link ErrorValue}
-     * without subscribing the right stream. Selected at compile time when
-     * {@code errorShortCircuit} is enabled.
+     * Both children are streams. Lazy variant: {@code evaluate(ctx)}
+     * short-circuits on left {@link ErrorValue} without subscribing the
+     * right stream. Selected at compile time when {@code lowLatencyMode}
+     * is disabled.
      */
     record BinaryStreamStreamLazy(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
             implements StreamOperator {
@@ -445,11 +445,10 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Both children are streams. Eager variant: snapshot
-     * {@code evaluate(ctx)} subscribes both streams regardless of which
-     * errors first, holds the first error and returns it after the full
-     * walk. Selected at compile time when {@code errorShortCircuit} is
-     * disabled (default).
+     * Both children are streams. Eager variant: {@code evaluate(ctx)}
+     * subscribes both streams regardless of which errors first, holds the
+     * first error and returns it after the full walk. Selected at compile
+     * time when {@code lowLatencyMode} is enabled (default).
      */
     record BinaryStreamStreamEager(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
             implements StreamOperator {

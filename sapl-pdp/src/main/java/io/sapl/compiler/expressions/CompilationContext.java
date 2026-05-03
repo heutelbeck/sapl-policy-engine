@@ -59,9 +59,8 @@ import java.util.function.Supplier;
 @Setter
 @ToString
 public class CompilationContext {
-    public static final String OPTION_CONDITION_SHORT_CIRCUIT   = "conditionShortCircuit";
-    public static final String OPTION_ERROR_SHORT_CIRCUIT       = "errorShortCircuit";
     public static final String OPTION_INDEXING                  = "indexing";
+    public static final String OPTION_LOW_LATENCY_MODE          = "lowLatencyMode";
     public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
     public static final String OPTION_MIN_POLICIES_FOR_INDEXING = "minPoliciesForIndexing";
@@ -320,30 +319,32 @@ public class CompilationContext {
     }
 
     /**
-     * Whether normally-eager binary and n-ary operators should short-circuit
-     * left-to-right on the first {@link io.sapl.api.model.ErrorValue} child
-     * instead of evaluating all children. Lazy mode skips subscriptions for
-     * children past the error; eager mode subscribes everything and merges.
-     * Observable result is identical (error propagates either way); the
-     * difference is the size of the subscription set in error states.
+     * Whether the compiler should emit eager operator variants that subscribe
+     * all children in parallel for the lowest end-to-end decision latency, at
+     * the cost of subscribing to children whose values may turn out to be
+     * unneeded (after errors or short-circuit values resolve later children).
+     * <p>
+     * When {@code true} (default): operators emit eager variants. Per
+     * evaluation pass they walk every child to accumulate the maximum
+     * subscription set, so the trigger loop can subscribe everything in
+     * parallel and converge in a single round.
+     * <p>
+     * When {@code false}: operators emit lazy variants. Per evaluation pass
+     * they short-circuit on the first {@code null} (incomplete) or
+     * {@link io.sapl.api.model.ErrorValue} child without subscribing later
+     * children. Smaller subscription set per round; convergence may take
+     * multiple rounds for independent missing dependencies but never
+     * subscribes to children whose values turn out to be unneeded.
+     * <p>
+     * Observable result is identical across both modes; the difference is
+     * the per-pass subscription set size and the number of trigger-loop
+     * rounds to reach a stable answer.
      *
-     * @return {@code true} for lazy error short-circuit, {@code false} for eager
+     * @return {@code true} for eager subscription (low end-to-end latency),
+     * {@code false} for lazy subscription (minimal subscription cost)
      */
-    public boolean errorShortCircuit() {
-        return booleanCompilerOption(OPTION_ERROR_SHORT_CIRCUIT, false);
-    }
-
-    /**
-     * Whether the policy body's condition chain should short-circuit
-     * left-to-right on the first definite {@code false} condition instead of
-     * evaluating all conditions. Lazy mode skips subscriptions for conditions
-     * past the first false; eager mode subscribes everything.
-     *
-     * @return {@code true} for lazy condition short-circuit, {@code false} for
-     * eager
-     */
-    public boolean conditionShortCircuit() {
-        return booleanCompilerOption(OPTION_CONDITION_SHORT_CIRCUIT, false);
+    public boolean lowLatencyMode() {
+        return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, true);
     }
 
     /**

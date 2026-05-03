@@ -26,9 +26,9 @@ import lombok.experimental.UtilityClass;
 
 /**
  * Helper for evaluating a {@link CompiledExpression} known to be in the
- * pure/value stratum. Used by legacy Reactor {@code stream()} paths in
- * compilers (function calls, array literals, object literals) where stream
- * children have already been handled by the caller and only Value/PureOperator
+ * pure/value stratum. Used by Reactor {@code stream()} paths in compilers
+ * (function calls, array literals, object literals) where stream children
+ * have already been handled by the caller and only Value/PureOperator
  * children remain to evaluate inline.
  * <p>
  * If a {@link StreamOperator} reaches this helper it indicates a programmer

@@ -87,9 +87,7 @@ public class ObjectCompiler {
      * @param errorShortCircuit compile-time flag selecting the lazy variant
      * (short-circuit on first error in {@code evaluate(ctx)}) when {@code true},
      * the eager variant (walk all children, accumulate maximum subscription
-     * set) when {@code false}. The legacy {@code stream()} is identical
-     * across both variants - the flag affects only the new
-     * {@code evaluate(ctx)} path.
+     * set) when {@code false}.
      * @return appropriate CompiledExpression based on value types
      */
     static CompiledExpression buildFromCompiled(List<String> keys, List<CompiledExpression> compiled,
@@ -306,8 +304,6 @@ public class ObjectCompiler {
      * subscription set, holds the first {@link ErrorValue}, and returns it
      * after the full walk. Selected at compile time when the
      * {@code errorShortCircuit} compiler option is disabled (default).
-     * Legacy {@link #stream()} is identical to the lazy variant - Reactor
-     * combineLatest semantics never honoured the option.
      */
     record SingleStreamObjectEager(
             String[] keys,
@@ -497,8 +493,6 @@ public class ObjectCompiler {
      * subscription set, holds the first {@link ErrorValue}, and returns it
      * after the full walk. Selected at compile time when the
      * {@code errorShortCircuit} compiler option is disabled (default).
-     * Legacy {@link #stream()} is identical to the lazy variant - Reactor
-     * combineLatest semantics never honoured the option.
      */
     record MultiStreamObjectEager(
             String[] keys,

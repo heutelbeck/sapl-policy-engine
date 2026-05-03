@@ -26,7 +26,6 @@ import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.Expression;
-import io.sapl.compiler.util.PureOrValueEvaluator;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -131,13 +130,13 @@ public class AttributeCompiler {
                     entity, arguments);
         }
         if (streamCount == 1) {
-            if (ctx.errorShortCircuit()) {
-                return new SingleStreamAttributeLazy(attributeName, entityValue, ctx.getData(),
+            if (ctx.lowLatencyMode()) {
+                return new SingleStreamAttributeEager(attributeName, entityValue, ctx.getData(),
                         entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(),
                         cat.pureIndices(), cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0],
                         cat.totalCount(), options, head, location, entity, arguments);
             }
-            return new SingleStreamAttributeEager(attributeName, entityValue, ctx.getData(),
+            return new SingleStreamAttributeLazy(attributeName, entityValue, ctx.getData(),
                     entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
                     cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), options, head,
                     location, entity, arguments);
@@ -161,13 +160,13 @@ public class AttributeCompiler {
         System.arraycopy(cat.streamIndices(), 0, allStreamIndices, entityOffset, cat.streamCount());
         System.arraycopy(cat.streams(), 0, allStreams, entityOffset, cat.streamCount());
 
-        if (ctx.errorShortCircuit()) {
-            return new MultiStreamAttributeLazy(attributeName, entityValue, ctx.getData(),
+        if (ctx.lowLatencyMode()) {
+            return new MultiStreamAttributeEager(attributeName, entityValue, ctx.getData(),
                     entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
                     cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location,
                     entity, arguments);
         }
-        return new MultiStreamAttributeEager(attributeName, entityValue, ctx.getData(),
+        return new MultiStreamAttributeLazy(attributeName, entityValue, ctx.getData(),
                 entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
                 cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location, entity,
                 arguments);
@@ -328,9 +327,10 @@ public class AttributeCompiler {
 
     /**
      * Single stream argument, lazy variant: snapshot {@code evaluate(ctx)}
-     * short-circuits on the first {@link ErrorValue} encountered. Selected
-     * at compile time when the {@code errorShortCircuit} compiler option is
-     * enabled.
+     * short-circuits on the first {@code null} (incomplete) or
+     * {@link ErrorValue} child without subscribing later children. Selected
+     * at compile time when the {@code lowLatencyMode} compiler option is
+     * disabled.
      */
     public record SingleStreamAttributeLazy(
             String attributeName,
@@ -421,9 +421,8 @@ public class AttributeCompiler {
      * Single stream argument, eager variant: snapshot {@code evaluate(ctx)}
      * walks every child to accumulate the maximum subscription set, holds
      * the first {@link ErrorValue}, and returns it after the full walk.
-     * Selected at compile time when the {@code errorShortCircuit} compiler
-     * option is disabled (default). Legacy {@link #stream()} is identical
-     * to the lazy variant.
+     * Selected at compile time when the {@code lowLatencyMode} compiler
+     * option is enabled (default).
      */
     public record SingleStreamAttributeEager(
             String attributeName,
@@ -512,9 +511,10 @@ public class AttributeCompiler {
 
     /**
      * Multiple stream children, lazy variant: snapshot {@code evaluate(ctx)}
-     * short-circuits on the first {@link ErrorValue} encountered. Selected
-     * at compile time when the {@code errorShortCircuit} compiler option is
-     * enabled.
+     * short-circuits on the first {@code null} (incomplete) or
+     * {@link ErrorValue} child without subscribing later children. Selected
+     * at compile time when the {@code lowLatencyMode} compiler option is
+     * disabled.
      */
     public record MultiStreamAttributeLazy(
             String attributeName,
@@ -633,9 +633,8 @@ public class AttributeCompiler {
      * Multiple stream children, eager variant: snapshot {@code evaluate(ctx)}
      * walks every child to accumulate the maximum subscription set, holds
      * the first {@link ErrorValue}, and returns it after the full walk.
-     * Selected at compile time when the {@code errorShortCircuit} compiler
-     * option is disabled (default). Legacy {@link #stream()} is identical
-     * to the lazy variant.
+     * Selected at compile time when the {@code lowLatencyMode} compiler
+     * option is enabled (default).
      */
     public record MultiStreamAttributeEager(
             String attributeName,
@@ -769,22 +768,22 @@ public class AttributeCompiler {
     }
 
     /**
-     * Snapshot-driven attribute access: walks entity + arguments, accumulates
-     * subscriptions from any {@link StreamOperator} children, evaluates the
-     * pure children inline (no boxing through {@link ExpressionResult}),
-     * short-circuits on {@link ErrorValue} but keeps subscriptions
-     * accumulated so far so the trigger loop can still reconcile, defers
-     * {@code null} child results to the end (signals "incomplete; subscribe
-     * the new entries and retry").
-     * <p>
+     * Lazy attribute access: walks entity + arguments via
+     * {@link StreamOperator#evalChild} accumulating subscriptions from any
+     * {@link StreamOperator} children, and returns immediately on the first
+     * {@code null} (incomplete) or {@link ErrorValue} child. Children past
+     * the short-circuit are not evaluated and contribute no subscriptions.
      * If all children resolve to non-null non-error values, builds the
      * {@link AttributeFinderInvocation}, builds the {@link Subscription},
      * adds it to the accumulated set, looks up the value via
      * {@link EvaluationContext#lookup(Subscription)}, and returns.
+     * <p>
+     * Multi-round trigger-loop convergence: each round resolves the leading
+     * missing dependency and re-evaluates; later rounds may reveal further
+     * missing dependencies further to the right.
      *
-     * @return ExpressionResult carrying the value (or {@code null} if any
-     * child was incomplete) plus the complete subscription set this pass
-     * touched
+     * @return ExpressionResult carrying the value (or {@code null} if a
+     * child was incomplete) plus the subscription set this pass touched
      */
     private static ExpressionResult attributeLookupLazy(String attributeName, @Nullable CompiledExpression entity,
             List<? extends CompiledExpression> arguments, CompiledExpression options, PdpData pdpData, boolean head,
@@ -793,34 +792,28 @@ public class AttributeCompiler {
 
         // Sized for: per-argument subscriptions + optional entity subscription
         // + the final attribute subscription added at the end.
-        val     subs        = HashSet.<Subscription>newHashSet(arguments.size() + 2);
-        boolean seenNull    = false;
-        Value   entityValue = null;
+        val   subs        = HashSet.<Subscription>newHashSet(arguments.size() + 2);
+        Value entityValue = null;
         if (entity != null) {
             entityValue = evalChild(entity, ctx, subs);
+            if (entityValue == null) {
+                return new ExpressionResult(null, subs);
+            }
             if (entityValue instanceof ErrorValue err) {
                 return new ExpressionResult(err, subs);
-            }
-            if (entityValue == null) {
-                seenNull = true;
             }
         }
 
         val argValues = new ArrayList<Value>(arguments.size());
         for (val arg : arguments) {
             val argValue = evalChild(arg, ctx, subs);
+            if (argValue == null) {
+                return new ExpressionResult(null, subs);
+            }
             if (argValue instanceof ErrorValue err) {
                 return new ExpressionResult(err, subs);
             }
-            if (argValue == null) {
-                seenNull = true;
-            } else {
-                argValues.add(argValue);
-            }
-        }
-
-        if (seenNull) {
-            return new ExpressionResult(null, subs);
+            argValues.add(argValue);
         }
 
         val invocation   = createInvocation(attributeName, entityValue, argValues, optionsValue, pdpData, ctx);

@@ -164,8 +164,7 @@ public class FilterCompiler {
      * {@code evaluate(ctx)} walks every element to accumulate the maximum
      * subscription set, holds the first per-element {@link ErrorValue} and
      * returns it after the full walk. Selected at compile time when
-     * {@code errorShortCircuit} is disabled (default). Legacy
-     * {@link #stream()} is identical to the lazy variant.
+     * {@code errorShortCircuit} is disabled (default).
      */
     record SimpleFilterEachValueStreamEager(Value base, StreamOperator filterOperator, SourceLocation location)
             implements StreamOperator {
@@ -248,7 +247,6 @@ public class FilterCompiler {
      * Pure base, stream filter. Eager variant: snapshot {@code evaluate(ctx)}
      * walks every element to accumulate the maximum subscription set. Selected
      * at compile time when {@code errorShortCircuit} is disabled (default).
-     * Legacy {@link #stream()} is identical to the lazy variant.
      */
     record SimpleFilterEachPureStreamEager(
             PureOperator baseOperator,
@@ -344,7 +342,6 @@ public class FilterCompiler {
      * Stream base, stream filter. Eager variant: snapshot {@code evaluate(ctx)}
      * walks every element to accumulate the maximum subscription set. Selected
      * at compile time when {@code errorShortCircuit} is disabled (default).
-     * Legacy {@link #stream()} is identical to the lazy variant.
      */
     record SimpleFilterEachStreamStreamEager(
             StreamOperator baseStream,
@@ -641,9 +638,7 @@ public class FilterCompiler {
             elements.add(element);
         }
         // TODO: propagate errorShortCircuit from the enclosing filter operator
-        // instead of hardcoding false. The current value matches legacy
-        // combineLatest semantics consumed by stream(); evaluate(ctx) will
-        // need the program-level compile-time choice.
+        // instead of hardcoding false.
         return toTracedStream(ArrayCompiler.buildFromCompiled(elements, location, false));
     }
 
@@ -661,9 +656,7 @@ public class FilterCompiler {
             elements.add(element);
         }
         // TODO: propagate errorShortCircuit from the enclosing filter operator
-        // instead of hardcoding false. The current value matches legacy
-        // combineLatest semantics consumed by stream(); evaluate(ctx) will
-        // need the program-level compile-time choice.
+        // instead of hardcoding false.
         return toTracedStream(ObjectCompiler.buildFromCompiled(keys, elements, location, false));
     }
 

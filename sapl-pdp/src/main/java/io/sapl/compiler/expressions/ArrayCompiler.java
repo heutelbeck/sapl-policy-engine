@@ -68,7 +68,7 @@ public class ArrayCompiler {
             compiled.add(result);
         }
 
-        return buildFromCompiled(compiled, expr.location(), ctx.errorShortCircuit());
+        return buildFromCompiled(compiled, expr.location(), ctx.lowLatencyMode());
     }
 
     /**
@@ -77,16 +77,16 @@ public class ArrayCompiler {
      *
      * @param compiled the compiled elements (Value/PureOperator/StreamOperator)
      * @param location source location for error reporting
-     * @param errorShortCircuit compile-time flag selecting the lazy variant
-     * (short-circuit on first error in {@code evaluate(ctx)}) when {@code true},
-     * the eager variant (walk all children, accumulate maximum subscription
-     * set) when {@code false}. The legacy {@code stream()} is identical
-     * across both variants - the flag affects only the new
-     * {@code evaluate(ctx)} path.
+     * @param lowLatencyMode compile-time flag selecting the eager variant
+     * (walk all children, accumulate maximum subscription set, parallel
+     * subscription via the trigger loop, single-round convergence) when
+     * {@code true}; selects the lazy variant (short-circuit on first
+     * {@code null} or {@link ErrorValue} child, minimal subscription set,
+     * multi-round convergence) when {@code false}.
      * @return appropriate CompiledExpression based on element types
      */
     public static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location,
-            boolean errorShortCircuit) {
+            boolean lowLatencyMode) {
         val cat = CategorizedExpressions.categorize(compiled);
 
         if (cat.hasOnlyValues()) {
@@ -97,18 +97,18 @@ public class ArrayCompiler {
                     cat.totalCount(), location);
         }
         if (cat.hasSingleStream()) {
-            if (errorShortCircuit) {
-                return new SingleStreamArrayLazy(cat.valueIndices(), cat.values(), cat.pureIndices(),
+            if (lowLatencyMode) {
+                return new SingleStreamArrayEager(cat.valueIndices(), cat.values(), cat.pureIndices(),
                         cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), compiled);
             }
-            return new SingleStreamArrayEager(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+            return new SingleStreamArrayLazy(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
                     cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), compiled);
         }
-        if (errorShortCircuit) {
-            return new MultiStreamArrayLazy(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+        if (lowLatencyMode) {
+            return new MultiStreamArrayEager(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
                     cat.streamIndices(), cat.streams(), cat.totalCount(), compiled);
         }
-        return new MultiStreamArrayEager(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
+        return new MultiStreamArrayLazy(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
                 cat.streamIndices(), cat.streams(), cat.totalCount(), compiled);
     }
 
@@ -291,9 +291,10 @@ public class ArrayCompiler {
 
     /**
      * Array with exactly one stream element. Lazy variant: snapshot
-     * {@code evaluate(ctx)} short-circuits on the first {@link ErrorValue}
-     * encountered. Selected at compile time when the
-     * {@code errorShortCircuit} compiler option is enabled.
+     * {@code evaluate(ctx)} short-circuits on the first {@code null} or
+     * {@link ErrorValue} child without subscribing to later children.
+     * Selected at compile time when the {@code lowLatencyMode} compiler
+     * option is disabled.
      */
     record SingleStreamArrayLazy(
             int[] valueIndices,
@@ -370,9 +371,7 @@ public class ArrayCompiler {
      * {@code evaluate(ctx)} walks every child to accumulate the maximum
      * subscription set, holds the first {@link ErrorValue}, and returns it
      * after the full walk. Selected at compile time when the
-     * {@code errorShortCircuit} compiler option is disabled (default).
-     * Legacy {@link #stream()} is identical to the lazy variant — Reactor
-     * combineLatest semantics never honoured the option.
+     * {@code lowLatencyMode} compiler option is enabled (default).
      */
     record SingleStreamArrayEager(
             int[] valueIndices,
@@ -447,21 +446,20 @@ public class ArrayCompiler {
     /**
      * Lazy assembly: evaluates compiled elements left-to-right via
      * {@link StreamOperator#evalChild} accumulating subscriptions, and returns
-     * immediately on the first {@link ErrorValue} encountered. Children past
-     * the error are not evaluated and contribute no subscriptions. Drops
-     * {@link UndefinedValue} elements per array literal semantics. {@code null}
-     * from a child sets the incomplete flag but iteration continues to maximize
-     * the subscription set.
+     * immediately on the first {@code null} (incomplete) or {@link ErrorValue}
+     * child. Children past the short-circuit are not evaluated and contribute
+     * no subscriptions. Drops {@link UndefinedValue} elements per array literal
+     * semantics. Multi-round trigger-loop convergence: each round resolves the
+     * leading missing dependency and re-evaluates; later rounds may reveal
+     * further missing dependencies further to the right.
      */
     private static ExpressionResult assembleArrayLazy(List<CompiledExpression> elements, EvaluationContext ctx) {
-        val     subs     = HashSet.<Subscription>newHashSet(elements.size());
-        boolean seenNull = false;
-        val     builder  = ArrayValue.builder();
+        val subs    = HashSet.<Subscription>newHashSet(elements.size());
+        val builder = ArrayValue.builder();
         for (val element : elements) {
             val v = evalChild(element, ctx, subs);
             if (v == null) {
-                seenNull = true;
-                continue;
+                return new ExpressionResult(null, subs);
             }
             if (v instanceof ErrorValue) {
                 return new ExpressionResult(v, subs);
@@ -469,9 +467,6 @@ public class ArrayCompiler {
             if (!(v instanceof UndefinedValue)) {
                 builder.add(v);
             }
-        }
-        if (seenNull) {
-            return new ExpressionResult(null, subs);
         }
         return new ExpressionResult(builder.build(), subs);
     }
@@ -517,9 +512,10 @@ public class ArrayCompiler {
 
     /**
      * Array with multiple stream elements. Lazy variant: snapshot
-     * {@code evaluate(ctx)} short-circuits on the first {@link ErrorValue}
-     * encountered. Selected at compile time when the
-     * {@code errorShortCircuit} compiler option is enabled.
+     * {@code evaluate(ctx)} short-circuits on the first {@code null} or
+     * {@link ErrorValue} child without subscribing to later children.
+     * Selected at compile time when the {@code lowLatencyMode} compiler
+     * option is disabled.
      */
     record MultiStreamArrayLazy(
             int[] valueIndices,
@@ -626,9 +622,7 @@ public class ArrayCompiler {
      * {@code evaluate(ctx)} walks every child to accumulate the maximum
      * subscription set, holds the first {@link ErrorValue}, and returns it
      * after the full walk. Selected at compile time when the
-     * {@code errorShortCircuit} compiler option is disabled (default).
-     * Legacy {@link #stream()} is identical to the lazy variant - Reactor
-     * combineLatest semantics never honoured the option.
+     * {@code lowLatencyMode} compiler option is enabled (default).
      */
     record MultiStreamArrayEager(
             int[] valueIndices,
