@@ -18,8 +18,10 @@
 package io.sapl.attributes.store;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,14 +35,18 @@ import io.sapl.compiler.eval.AttributeStore;
 import lombok.val;
 
 /**
- * In-memory {@link AttributeStore} for tests. Lets tests drive snapshot
- * evolution by calling {@link #publish(SubscriptionKey, Value)} or the
- * by-name convenience overload, and observe trigger callbacks via the
- * registered {@link Runnable}.
+ * In-memory, thread-safe {@link AttributeStore} for tests. Lets tests
+ * drive snapshot evolution by calling {@link #publish(SubscriptionKey, Value)}
+ * or the by-name convenience overload, and observe trigger callbacks via
+ * the registered {@link Runnable}.
  * <p>
- * Single-threaded by intent: tests fire {@code publish} calls from the
- * test thread, the trigger callback fires inline. This mirrors the
- * production single-slot mailbox semantic without the threading.
+ * State mutations ({@link #update}, {@link #publish}, {@link #close}) and
+ * reads ({@link #snapshot}, {@link #subscribedKeys}) are guarded by an
+ * intrinsic lock on this instance, so concurrent access from a publishing
+ * thread, a trigger-loop thread, and the test thread is safe. The trigger
+ * callback fires outside the lock so callbacks may freely re-enter the
+ * store (e.g. read {@link #snapshot()} before declaring a new
+ * dependency set).
  */
 public final class TestAttributeStore implements AttributeStore {
 
@@ -54,19 +60,19 @@ public final class TestAttributeStore implements AttributeStore {
     }
 
     @Override
-    public void update(Set<SubscriptionKey> currentDependencies) {
+    public synchronized void update(Set<SubscriptionKey> currentDependencies) {
         subscribed.clear();
         subscribed.addAll(currentDependencies);
         mailbox.keySet().retainAll(subscribed);
     }
 
     @Override
-    public Map<SubscriptionKey, AttributeSnapshot> snapshot() {
+    public synchronized Map<SubscriptionKey, AttributeSnapshot> snapshot() {
         return Map.copyOf(mailbox);
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         subscribed.clear();
         mailbox.clear();
         trigger.set(null);
@@ -74,11 +80,16 @@ public final class TestAttributeStore implements AttributeStore {
 
     /**
      * Test hook: simulate a broker emission for {@code key}. Fires the
-     * trigger callback iff {@code key} is currently subscribed.
+     * trigger callback iff {@code key} is currently subscribed. The
+     * callback fires outside the lock to avoid re-entrance deadlocks.
      */
     public void publish(SubscriptionKey key, Value value) {
-        mailbox.put(key, new AttributeSnapshot(value, Instant.now()));
-        if (subscribed.contains(key)) {
+        boolean shouldFire;
+        synchronized (this) {
+            mailbox.put(key, new AttributeSnapshot(value, Instant.now()));
+            shouldFire = subscribed.contains(key);
+        }
+        if (shouldFire) {
             fireTrigger();
         }
     }
@@ -89,15 +100,22 @@ public final class TestAttributeStore implements AttributeStore {
      * Useful when a test does not need to construct the full invocation.
      */
     public void publishByName(String attributeName, Value value) {
-        for (val key : new HashSet<>(subscribed)) {
-            if (key.invocation().attributeName().equals(attributeName)) {
-                publish(key, value);
+        List<SubscriptionKey> targets;
+        synchronized (this) {
+            targets = new ArrayList<>(subscribed.size());
+            for (val key : subscribed) {
+                if (key.invocation().attributeName().equals(attributeName)) {
+                    targets.add(key);
+                }
             }
+        }
+        for (val key : targets) {
+            publish(key, value);
         }
     }
 
-    /** Test introspection: the keys currently subscribed. */
-    public Set<SubscriptionKey> subscribedKeys() {
+    /** Test introspection: a snapshot of the keys currently subscribed. */
+    public synchronized Set<SubscriptionKey> subscribedKeys() {
         return Set.copyOf(subscribed);
     }
 
