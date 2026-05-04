@@ -28,6 +28,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -144,7 +145,7 @@ public class FilterCompiler {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             return evaluateEachStreamFilter(base, filterOperator, ctx,
-                    HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1));
+                    HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1));
         }
     }
 
@@ -205,7 +206,7 @@ public class FilterCompiler {
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val baseValue = baseOperator.evaluate(ctx);
             return evaluateEachStreamFilter(baseValue, filterOperator, ctx,
-                    HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1));
+                    HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1));
         }
     }
 
@@ -218,7 +219,7 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps      = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps      = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val baseValue = evalChild(baseStream, ctx, deps);
             if (baseValue == null || baseValue instanceof ErrorValue) {
                 return new ExpressionResult(baseValue, deps);
@@ -241,7 +242,7 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps      = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps      = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val baseValue = evalChild(baseStream, ctx, deps);
             if (baseValue == null || baseValue instanceof ErrorValue) {
                 return new ExpressionResult(baseValue, deps);
@@ -267,7 +268,7 @@ public class FilterCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps      = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps      = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val baseValue = evalChild(baseStream, ctx, deps);
             if (baseValue == null || baseValue instanceof ErrorValue) {
                 return new ExpressionResult(baseValue, deps);
@@ -287,7 +288,7 @@ public class FilterCompiler {
      * error &gt; null &gt; assembled result.
      */
     private static ExpressionResult evaluateEachStreamFilter(Value base, StreamOperator filterOperator,
-            EvaluationContext ctx, Map<AttributeFinderInvocation, List<Occurrence>> deps) {
+            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
         if (base instanceof ErrorValue) {
             return new ExpressionResult(base, deps);
         }
@@ -303,7 +304,7 @@ public class FilterCompiler {
     }
 
     private static ExpressionResult evaluateEachStreamFilterArray(ArrayValue av, StreamOperator filterOperator,
-            EvaluationContext ctx, Map<AttributeFinderInvocation, List<Occurrence>> deps) {
+            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
         val     builder    = new ArrayValue.Builder();
         boolean seenNull   = false;
         Value   firstError = null;
@@ -336,7 +337,7 @@ public class FilterCompiler {
     }
 
     private static ExpressionResult evaluateEachStreamFilterObject(ObjectValue ov, StreamOperator filterOperator,
-            EvaluationContext ctx, Map<AttributeFinderInvocation, List<Occurrence>> deps) {
+            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
         val     builder    = new ObjectValue.Builder();
         boolean seenNull   = false;
         Value   firstError = null;

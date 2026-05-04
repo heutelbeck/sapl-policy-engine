@@ -30,6 +30,7 @@ import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
@@ -184,7 +185,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -254,7 +255,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -318,7 +319,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -406,7 +407,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -481,7 +482,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -587,7 +588,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -723,7 +724,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -746,7 +747,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -947,7 +948,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -970,7 +971,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -1064,7 +1065,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -1159,7 +1160,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -1251,7 +1252,7 @@ public class StepCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(base, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);

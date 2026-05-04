@@ -17,10 +17,10 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -93,15 +93,15 @@ class EvaluationLoopTests {
         System.out.println("  result       : " + result.result());
         System.out.println("  dependencies : " + result.dependencies().size());
         for (val entry : result.dependencies().entrySet()) {
-            System.out.println("    - invocation: " + entry.getKey().attributeName());
+            System.out.println("    - invocation: " + entry.getKey().invocation().attributeName());
             for (val occurrence : entry.getValue()) {
                 System.out.println("        occurrence: " + occurrence);
             }
         }
 
-        val snapshot = new HashMap<AttributeFinderInvocation, AttributeSnapshot>();
-        for (val invocation : result.dependencies().keySet()) {
-            snapshot.put(invocation, new AttributeSnapshot(Value.of("now"), Instant.now()));
+        val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+        for (val key : result.dependencies().keySet()) {
+            snapshot.put(key, new AttributeSnapshot(Value.of("now"), Instant.now()));
         }
         evalCtx = evalCtx.withSnapshot(snapshot);
 

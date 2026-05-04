@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SubscriptionKey;
 import lombok.val;
 
 /**
@@ -50,9 +50,9 @@ import lombok.val;
  * @since 4.2.0
  */
 public record DependencyDelta(
-        Map<AttributeFinderInvocation, List<Occurrence>> added,
-        Map<AttributeFinderInvocation, List<Occurrence>> removed,
-        Map<AttributeFinderInvocation, List<Occurrence>> kept) {
+        Map<SubscriptionKey, List<Occurrence>> added,
+        Map<SubscriptionKey, List<Occurrence>> removed,
+        Map<SubscriptionKey, List<Occurrence>> kept) {
 
     /**
      * Computes the delta from {@code previous} to {@code current}. One
@@ -66,11 +66,11 @@ public record DependencyDelta(
      * pass
      * @return the categorisation of every invocation across both maps
      */
-    public static DependencyDelta compute(Map<AttributeFinderInvocation, List<Occurrence>> previous,
-            Map<AttributeFinderInvocation, List<Occurrence>> current) {
-        val added   = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(current.size());
-        val kept    = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(current.size());
-        val removed = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(previous.size());
+    public static DependencyDelta compute(Map<SubscriptionKey, List<Occurrence>> previous,
+            Map<SubscriptionKey, List<Occurrence>> current) {
+        val added   = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(current.size());
+        val kept    = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(current.size());
+        val removed = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(previous.size());
 
         for (val entry : current.entrySet()) {
             if (previous.containsKey(entry.getKey())) {

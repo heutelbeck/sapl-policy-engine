@@ -31,6 +31,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.Expression;
@@ -171,7 +172,7 @@ public class FunctionCallCompiler {
      */
     private static ExpressionResult functionLookup(String functionName, List<? extends CompiledExpression> arguments,
             EvaluationContext ctx) {
-        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(arguments.size());
+        val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     argValues  = new ArrayList<Value>(arguments.size());

@@ -23,17 +23,15 @@ import lombok.NonNull;
  * Per-call-site annotation of an attribute read. Lives in the value
  * position of the {@code dependencies} map carried by
  * {@link ExpressionResult}; the map's key is the
- * {@link io.sapl.api.attributes.AttributeFinderInvocation} that
- * identifies the actual subscription. One invocation may have many
- * occurrences when the same attribute is read at multiple call sites
- * in a policy.
+ * {@link SubscriptionKey} that identifies the actual subscription.
+ * One subscription key may have many occurrences when the same
+ * attribute is read at multiple call sites in a policy. The
+ * {@code head} flag has moved to {@link SubscriptionKey} (where it
+ * affects subscription identity); occurrences carry only the source
+ * position for trace and coverage reporting.
  *
- * @param location source position of this read site, for trace and
- * coverage reporting; never enters the attribute store key
- * @param head {@code true} if this site wants only the first emission
- * (legacy {@code take(1)} semantic); {@code false} if it follows
- * subsequent updates. Orthogonal to the invocation's freshness.
+ * @param location source position of this read site
  *
  * @since 4.2.0
  */
-public record Occurrence(@NonNull SourceLocation location, boolean head) {}
+public record Occurrence(@NonNull SourceLocation location) {}

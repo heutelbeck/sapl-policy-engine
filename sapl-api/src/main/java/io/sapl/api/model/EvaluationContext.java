@@ -20,7 +20,6 @@ package io.sapl.api.model;
 import java.util.Map;
 
 import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
@@ -38,7 +37,7 @@ public record EvaluationContext(
         @NonNull AttributeBroker attributeBroker,
         @NonNull Value relativeValue,
         @NonNull Value relativeLocation,
-        @NonNull Map<AttributeFinderInvocation, AttributeSnapshot> snapshot) {
+        @NonNull Map<SubscriptionKey, AttributeSnapshot> snapshot) {
 
     /**
      * Convenience constructor matching the pre-snapshot field shape.
@@ -123,13 +122,13 @@ public record EvaluationContext(
      * @return a new context with the same request data and the
      * supplied snapshot
      */
-    public EvaluationContext withSnapshot(Map<AttributeFinderInvocation, AttributeSnapshot> snapshot) {
+    public EvaluationContext withSnapshot(Map<SubscriptionKey, AttributeSnapshot> snapshot) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
                 attributeBroker, relativeValue, relativeLocation, snapshot);
     }
 
-    public @Nullable Value lookup(AttributeFinderInvocation invocation) {
-        var entry = snapshot.get(invocation);
+    public @Nullable Value lookup(SubscriptionKey key) {
+        var entry = snapshot.get(key);
         return entry == null ? null : entry.value();
     }
 }

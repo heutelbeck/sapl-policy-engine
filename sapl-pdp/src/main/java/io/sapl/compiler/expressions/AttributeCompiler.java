@@ -555,7 +555,7 @@ public class AttributeCompiler {
 
         // Sized for: per-argument dependencies + optional entity dependency
         // + the final attribute dependency added at the end.
-        val     deps        = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(arguments.size() + 2);
+        val     deps        = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size() + 2);
         boolean seenNull    = false;
         Value   firstError  = null;
         Value   entityValue = null;
@@ -594,8 +594,9 @@ public class AttributeCompiler {
         }
 
         val invocation = createInvocation(attributeName, entityValue, argValues, optionsValue, pdpData, ctx);
-        deps.computeIfAbsent(invocation, k -> new ArrayList<>()).add(new Occurrence(location, head));
-        val value = ctx.lookup(invocation);
+        val key        = new SubscriptionKey(invocation, head);
+        deps.computeIfAbsent(key, k -> new ArrayList<>()).add(new Occurrence(location));
+        val value = ctx.lookup(key);
         return new ExpressionResult(value, deps);
     }
 

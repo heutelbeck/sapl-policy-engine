@@ -28,6 +28,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperator;
@@ -291,7 +292,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(s, ctx, deps);
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
@@ -319,7 +320,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val pv   = p.evaluate(ctx);
             if (pv instanceof ErrorValue) {
                 return new ExpressionResult(pv, deps);
@@ -358,7 +359,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(1);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val pv   = p.evaluate(ctx);
             if (pv instanceof ErrorValue) {
                 return new ExpressionResult(pv, deps);
@@ -401,7 +402,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
             if (lv == null || lv instanceof ErrorValue) {
                 return new ExpressionResult(lv, deps);
@@ -443,7 +444,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
             if (lv == null || lv instanceof ErrorValue) {
                 return new ExpressionResult(lv, deps);
@@ -487,7 +488,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
             val rv   = evalChild(s2, ctx, deps);
             if (lv instanceof ErrorValue) {
@@ -537,7 +538,7 @@ public class StratifiedBooleanOperationCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
             val rv   = evalChild(s2, ctx, deps);
             if (lv instanceof ErrorValue) {

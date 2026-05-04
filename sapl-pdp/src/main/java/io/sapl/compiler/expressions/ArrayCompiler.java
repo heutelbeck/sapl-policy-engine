@@ -31,6 +31,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -360,7 +361,7 @@ public class ArrayCompiler {
      * Precedence at the end: error &gt; null &gt; built array.
      */
     private static ExpressionResult assembleArray(List<CompiledExpression> elements, EvaluationContext ctx) {
-        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(elements.size());
+        val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(elements.size());
         boolean seenNull   = false;
         Value   firstError = null;
         val     builder    = ArrayValue.builder();

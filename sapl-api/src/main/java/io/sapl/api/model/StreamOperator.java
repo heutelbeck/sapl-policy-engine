@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import reactor.core.publisher.Flux;
 
 public non-sealed interface StreamOperator extends CompiledExpression {
@@ -95,7 +94,7 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * @since 4.2.0
      */
     static @Nullable Value evalChild(CompiledExpression child, EvaluationContext ctx,
-            Map<AttributeFinderInvocation, List<Occurrence>> deps) {
+            Map<SubscriptionKey, List<Occurrence>> deps) {
         return switch (child) {
         case Value v          -> v;
         case PureOperator p   -> p.evaluate(ctx);
@@ -119,8 +118,8 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      *
      * @since 4.2.0
      */
-    static void mergeDependencies(Map<AttributeFinderInvocation, List<Occurrence>> target,
-            Map<AttributeFinderInvocation, List<Occurrence>> source) {
+    static void mergeDependencies(Map<SubscriptionKey, List<Occurrence>> target,
+            Map<SubscriptionKey, List<Occurrence>> source) {
         for (var entry : source.entrySet()) {
             target.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).addAll(entry.getValue());
         }

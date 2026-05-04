@@ -29,6 +29,7 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import lombok.val;
 
@@ -66,7 +67,7 @@ public interface BinaryOperation {
      */
     default ExpressionResult evalEager(CompiledExpression left, CompiledExpression right, SourceLocation location,
             EvaluationContext ctx) {
-        val     deps       = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(2);
+        val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
         Value   firstError = null;
         boolean seenNull   = false;
         val     lv         = evalChild(left, ctx, deps);

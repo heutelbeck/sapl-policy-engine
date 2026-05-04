@@ -27,6 +27,7 @@ import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperatorType;
@@ -265,7 +266,7 @@ public class NaryOperatorCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<AttributeFinderInvocation, List<Occurrence>>newHashMap(streams.size());
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
 
             val preCombined = evaluateAndFoldPures(valueResult, pures, op, location, ctx);
             if (preCombined instanceof ErrorValue) {

@@ -22,8 +22,6 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
-
 /**
  * Outcome of one snapshot-driven evaluation pass.
  * <p>
@@ -35,16 +33,18 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
  * the trigger loop must subscribe and retry.</li>
  * <li>{@code dependencies} — the <strong>complete</strong> map of
  * attribute subscriptions this evaluation pass needed or touched,
- * keyed by {@link AttributeFinderInvocation} (the natural
- * deduplication key on the attribute store side). The list of
- * {@link Occurrence}s per key captures every call site that depends
- * on this subscription, with its source location and head flag, for
- * trace and coverage purposes. Not a delta; the full current
- * picture. The trigger loop diffs this against the previously-held
- * dependency map to decide what to subscribe (additions) and what
- * to release (removals). The "or less" reconciliation case (a
- * parameter value change making prior subscriptions unreachable) is
- * naturally expressed by the new pass returning a smaller map.</li>
+ * keyed by {@link SubscriptionKey} (the natural deduplication key
+ * on the attribute store side, combining the
+ * {@link io.sapl.api.attributes.AttributeFinderInvocation} with the
+ * head flag). The list of {@link Occurrence}s per key captures every
+ * call site that depends on this subscription, with its source
+ * location, for trace and coverage purposes. Not a delta; the full
+ * current picture. The trigger loop diffs this against the
+ * previously-held dependency map to decide what to subscribe
+ * (additions) and what to release (removals). The "or less"
+ * reconciliation case (a parameter value change making prior
+ * subscriptions unreachable) is naturally expressed by the new pass
+ * returning a smaller map.</li>
  * </ul>
  * <p>
  * Why this shape rather than {@code Value | NeedsMore}: a sum-type
@@ -62,4 +62,4 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
  *
  * @since 4.2.0
  */
-public record ExpressionResult(@Nullable Value result, Map<AttributeFinderInvocation, List<Occurrence>> dependencies) {}
+public record ExpressionResult(@Nullable Value result, Map<SubscriptionKey, List<Occurrence>> dependencies) {}
