@@ -23,7 +23,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationSubscription;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -31,90 +31,57 @@ import reactor.test.StepVerifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.util.SaplTesting.ATTRIBUTE_BROKER;
-import static io.sapl.util.SaplTesting.attributeBroker;
-import static io.sapl.util.SaplTesting.capturingAttributeBroker;
+import static io.sapl.util.SaplTesting.evaluate;
 import static io.sapl.util.SaplTesting.evaluateExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("AttributeCompiler")
 class AttributeCompilerTests {
 
     @Test
-    void whenEnvironmentAttributeWithBrokerThenReturnsStreamWithTrace() {
-        var broker = attributeBroker("test.attr", Value.of("result"));
-        var ctx    = evaluationContext(broker);
-        var result = evaluateExpression("<test.attr>", ctx);
+    void whenEnvironmentAttributeWithBrokerThenReturnsResultValue() {
+        var eval = evaluate("<test.attr>").with("test.attr", Value.of("result"));
 
-        assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.value()).isEqualTo(Value.of("result"));
-            assertThat(tv.contributingAttributes()).hasSize(1);
-            var attributeRecord = tv.contributingAttributes().getFirst();
-            assertThat(attributeRecord.invocation().attributeName()).isEqualTo("test.attr");
-            assertThat(attributeRecord.attributeValue()).isEqualTo(Value.of("result"));
-            assertThat(attributeRecord.retrievedAt()).isNotNull();
-        }).verifyComplete();
+        assertThat(eval.value()).isEqualTo(Value.of("result"));
+        assertThat(eval.onlyInvocation().attributeName()).isEqualTo("test.attr");
     }
 
     @Test
-    void whenEnvironmentAttributeWithErrorBrokerThenReturnsErrorWithTrace() {
-        // When using a broker that returns errors, the errors is returned with a trace
-        var ctx    = evaluationContext(ATTRIBUTE_BROKER);
-        var result = evaluateExpression("<test.attr>", ctx);
+    void whenEnvironmentAttributeWithoutBindingThenResultIsNull() {
+        // No binding means the attribute has no snapshot value; evaluate returns null
+        // (incomplete) and the dependency is recorded in the result.
+        var eval = evaluate("<test.attr>");
 
-        assertThat(result).isInstanceOf(StreamOperator.class);
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
-                    .contains("No attribute finder registered for");
-            // Trace is recorded even for errors
-            assertThat(tv.contributingAttributes()).hasSize(1);
-        }).verifyComplete();
+        assertThat(eval.value()).isNull();
+        assertThat(eval.onlyInvocation().attributeName()).isEqualTo("test.attr");
     }
 
     @Test
     void whenEnvironmentAttributeWithArgumentsThenPassesArguments() {
-        var capturedInvocation = new AttributeFinderInvocation[1];
-        var broker             = capturingAttributeBroker(capturedInvocation, Value.of("ok"));
-        var ctx                = evaluationContext(broker);
-        var result             = evaluateExpression("<test.attr(1, \"arg\")>", ctx);
+        var invocation = evaluate("<test.attr(1, \"arg\")>").with("test.attr", Value.of("ok")).onlyInvocation();
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).expectNextCount(1).verifyComplete();
-
-        assertThat(capturedInvocation[0]).isNotNull().extracting(AttributeFinderInvocation::arguments)
-                .isEqualTo(List.of(Value.of(1), Value.of("arg")));
+        assertThat(invocation.arguments()).containsExactly(Value.of(1), Value.of("arg"));
     }
 
     @Test
-    void whenHeadEnvironmentAttributeThenTakesOnlyFirst() {
-        var broker = attributeBroker("test.attr", Value.of(1), Value.of(2), Value.of(3));
-        var ctx    = evaluationContext(broker);
-        var result = evaluateExpression("|<test.attr>", ctx);
+    void whenHeadEnvironmentAttributeThenSnapshotValueReturned() {
+        // The head marker (|) flips SubscriptionKey.head; the bound value still
+        // resolves because the binding is by attribute name and matches both
+        // head=true and head=false keys.
+        var eval = evaluate("|<test.attr>").with("test.attr", Value.of(1));
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(1))).verifyComplete();
+        assertThat(eval.value()).isEqualTo(Value.of(1));
+        assertThat(eval.onlySubscriptionKey().head()).isTrue();
     }
 
     @Test
     void whenEnvironmentAttributeWithOptionsThenPassesOptions() {
-        var capturedInvocation = new AttributeFinderInvocation[1];
-        var broker             = capturingAttributeBroker(capturedInvocation, Value.of("ok"));
-        var ctx                = evaluationContext(broker);
-        var result             = evaluateExpression("<test.attr[{initialTimeOutMs: 5000, fresh: true}]>", ctx);
+        var invocation = evaluate("<test.attr[{initialTimeOutMs: 5000, fresh: true}]>")
+                .with("test.attr", Value.of("ok")).onlyInvocation();
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).expectNextCount(1).verifyComplete();
-
-        assertThat(capturedInvocation[0]).isNotNull().satisfies(invocation -> {
-            assertThat(invocation.initialTimeOut().toMillis()).isEqualTo(5000);
-            assertThat(invocation.fresh()).isTrue();
-        });
+        assertThat(invocation.initialTimeOut().toMillis()).isEqualTo(5000);
+        assertThat(invocation.fresh()).isTrue();
     }
 
     @Test
@@ -190,31 +157,18 @@ class AttributeCompilerTests {
 
     @Test
     void whenAttributeStepWithEntityThenPassesEntity() {
-        var capturedInvocation = new AttributeFinderInvocation[1];
-        var broker             = capturingAttributeBroker(capturedInvocation, Value.of("role"));
-        var subscription       = AuthorizationSubscription.of(Value.of("alice"), Value.of("action"),
-                Value.of("resource"), Value.of("env"));
-        var ctx                = evaluationContext(subscription, broker);
-        var result             = evaluateExpression("subject.<user.role>", ctx);
+        var invocation = evaluate("subject.<user.role>").withSubject(Value.of("alice"))
+                .with("user.role", Value.of("role")).onlyInvocation();
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).expectNextCount(1).verifyComplete();
-
-        assertThat(capturedInvocation[0]).isNotNull().satisfies(invocation -> {
-            assertThat(invocation.entity()).isEqualTo(Value.of("alice"));
-            assertThat(invocation.attributeName()).isEqualTo("user.role");
-        });
+        assertThat(invocation.entity()).isEqualTo(Value.of("alice"));
+        assertThat(invocation.attributeName()).isEqualTo("user.role");
     }
 
     @Test
     void whenAttributeStepWithUndefinedEntityThenReturnsError() {
-        var broker = attributeBroker("user.role", Value.of("admin"));
-        var ctx    = evaluationContext(broker);
-        var result = evaluateExpression("undefined.<user.role>", ctx);
+        var value = evaluate("undefined.<user.role>").with("user.role", Value.of("admin")).value();
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                .extracting(v -> ((ErrorValue) v).message()).asString().contains("Undefined")).verifyComplete();
+        assertThat(value).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) value).message()).contains("Undefined");
     }
-
 }

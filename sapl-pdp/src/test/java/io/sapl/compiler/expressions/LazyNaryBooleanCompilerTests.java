@@ -42,6 +42,7 @@ import static io.sapl.util.SaplTesting.attributeBroker;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static io.sapl.util.SaplTesting.compileExpression;
 import static io.sapl.util.SaplTesting.errorAttributeBroker;
+import static io.sapl.util.SaplTesting.evaluate;
 import static io.sapl.util.SaplTesting.evaluateExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static io.sapl.util.SaplTesting.sequenceBroker;
@@ -321,44 +322,40 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionStreamEmitsTrueThenResultIsTrue() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr> && true", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("true && <test.attr> && true").with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         @Test
         void conjunctionStreamEmitsFalseThenShortCircuits() {
-            var broker   = attributeBroker("test.attr", Value.FALSE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr> && true", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            var value = evaluate("true && <test.attr> && true").with("test.attr", Value.FALSE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
 
         @Test
-        void conjunctionMultipleStreamsAllTrueThenTrue() {
-            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.TRUE, "b.attr", Value.TRUE));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> && <b.attr>", broker);
+        void conjunctionLeftFalseShortCircuitsRightNotDiscovered() {
+            // a.attr=FALSE makes the lazy AND short-circuit at the left. The right
+            // operand <b.attr> is never inspected, so its subscription is never
+            // requested. Verifies the lazy non-subscription property explicitly,
+            // which was previously hidden inside Reactor switchMap chains.
+            var result = evaluate("<a.attr> && <b.attr>").with("a.attr", Value.FALSE).result();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            assertThat(result.result()).isEqualTo(Value.FALSE);
+            assertThat(result.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
         }
 
         @Test
-        void conjunctionMultipleStreamsFirstFalseShortCircuits() {
-            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.FALSE, "b.attr", Value.TRUE));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> && <b.attr>", broker);
+        void conjunctionLeftTrueRightDiscoveredOnDemand() {
+            // a.attr=TRUE forces the lazy AND to evaluate the right operand. The
+            // right side <b.attr> is discovered as a new subscription this round.
+            // Result is null because b.attr was unknown when this round's snapshot
+            // was bound; the dependency set proves the right subscription request.
+            var result = evaluate("<a.attr> && <b.attr>").with("a.attr", Value.TRUE).result();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            assertThat(result.result()).isNull();
+            assertThat(result.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }
 
         // Disjunction with streams
@@ -372,83 +369,62 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunctionStreamEmitsFalseThenResultIsFalse() {
-            var broker   = attributeBroker("test.attr", Value.FALSE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("false || <test.attr> || false", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            var value = evaluate("false || <test.attr> || false").with("test.attr", Value.FALSE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
 
         @Test
         void disjunctionStreamEmitsTrueThenShortCircuits() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("false || <test.attr> || false", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("false || <test.attr> || false").with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         @Test
-        void disjunctionMultipleStreamsAllFalseThenFalse() {
-            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.FALSE, "b.attr", Value.FALSE));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> || <b.attr>", broker);
+        void disjunctionLeftTrueShortCircuitsRightNotDiscovered() {
+            // a.attr=TRUE makes the lazy OR short-circuit at the left. The right
+            // operand <b.attr> is never inspected, so its subscription is never
+            // requested.
+            var result = evaluate("<a.attr> || <b.attr>").with("a.attr", Value.TRUE).result();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            assertThat(result.result()).isEqualTo(Value.TRUE);
+            assertThat(result.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
         }
 
         @Test
-        void disjunctionMultipleStreamsFirstTrueShortCircuits() {
-            var broker   = singleValueAttributeBroker(Map.of("a.attr", Value.TRUE, "b.attr", Value.FALSE));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> || <b.attr>", broker);
+        void disjunctionLeftFalseRightDiscoveredOnDemand() {
+            // a.attr=FALSE forces the lazy OR to evaluate the right operand. The
+            // right side <b.attr> is discovered as a new subscription this round.
+            // Result is null because b.attr was unknown when this round's snapshot
+            // was bound; the dependency set proves the right subscription request.
+            var result = evaluate("<a.attr> || <b.attr>").with("a.attr", Value.FALSE).result();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            assertThat(result.result()).isNull();
+            assertThat(result.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }
 
         // Error handling in streams
 
         @Test
         void conjunctionStreamEmitsErrorThenPropagatesError() {
-            var broker   = errorAttributeBroker("test.attr", "Stream errors");
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr> && true", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream)
-                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream errors"))
-                    .verifyComplete();
+            var value = evaluate("true && <test.attr> && true").with("test.attr", Value.error("Stream errors")).value();
+            assertThat(value).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                    .contains("Stream errors");
         }
 
         @Test
         void disjunctionStreamEmitsErrorThenPropagatesError() {
-            var broker   = errorAttributeBroker("test.attr", "Stream errors");
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("false || <test.attr> || false", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream)
-                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("Stream errors"))
-                    .verifyComplete();
+            var value = evaluate("false || <test.attr> || false").with("test.attr", Value.error("Stream errors"))
+                    .value();
+            assertThat(value).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                    .contains("Stream errors");
         }
 
         @Test
         void conjunctionStreamTypeMismatchThenReturnsError() {
-            var broker   = attributeBroker("test.attr", of("not a boolean"));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr> && true", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class))
-                    .verifyComplete();
+            var value = evaluate("true && <test.attr> && true").with("test.attr", of("not a boolean")).value();
+            assertThat(value).isInstanceOf(ErrorValue.class);
         }
 
         // Pure short-circuit before stream subscription (using subscription elements
@@ -456,56 +432,38 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionPureShortCircuitsNoStreamSubscription() {
-            var broker       = singleValueAttributeBroker(Map.of("test.attr", Value.TRUE));
-            var subscription = AuthorizationSubscription.of(Value.FALSE, Value.NULL, Value.NULL, Value.NULL);
-            var evalCtx      = evaluationContext(subscription, broker);
-            var compiled     = compileExpression("subject && <test.attr>", compilationContext(broker));
-
-            // Since subject is FALSE, the stream should never be subscribed
-            var stream = ((StreamOperator) compiled).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            // Since subject is FALSE, the stream is never read.
+            var value = evaluate("subject && <test.attr>")
+                    .withSubscription(AuthorizationSubscription.of(Value.FALSE, Value.NULL, Value.NULL, Value.NULL))
+                    .with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
 
         @Test
         void disjunctionPureShortCircuitsNoStreamSubscription() {
-            var broker       = singleValueAttributeBroker(Map.of("test.attr", Value.FALSE));
-            var subscription = AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL);
-            var evalCtx      = evaluationContext(subscription, broker);
-            var compiled     = compileExpression("subject || <test.attr>", compilationContext(broker));
-
-            // Since subject is TRUE, the stream should never be subscribed
-            var stream = ((StreamOperator) compiled).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            // Since subject is TRUE, the stream is never read.
+            var value = evaluate("subject || <test.attr>")
+                    .withSubscription(AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL))
+                    .with("test.attr", Value.FALSE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         // Pures + Streams combined (using subscription elements for runtime resolution)
 
         @Test
         void conjunctionPuresAndStreamsAllPassThenTrue() {
-            var broker       = attributeBroker("test.attr", Value.TRUE);
-            var subscription = AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL);
-            var evalCtx      = evaluationContext(subscription, broker);
-            var compiled     = compileExpression("subject && <test.attr>", compilationContext(broker));
-
-            var stream = ((StreamOperator) compiled).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("subject && <test.attr>")
+                    .withSubscription(AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL))
+                    .with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         @Test
         void disjunctionPuresAndStreamsAllFailThenFalse() {
-            var broker       = attributeBroker("test.attr", Value.FALSE);
-            var subscription = AuthorizationSubscription.of(Value.FALSE, Value.NULL, Value.NULL, Value.NULL);
-            var evalCtx      = evaluationContext(subscription, broker);
-            var compiled     = compileExpression("subject || <test.attr>", compilationContext(broker));
-
-            var stream = ((StreamOperator) compiled).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            var value = evaluate("subject || <test.attr>")
+                    .withSubscription(AuthorizationSubscription.of(Value.FALSE, Value.NULL, Value.NULL, Value.NULL))
+                    .with("test.attr", Value.FALSE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
     }
 

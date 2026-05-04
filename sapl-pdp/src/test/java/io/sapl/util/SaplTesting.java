@@ -24,13 +24,16 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
@@ -77,6 +80,9 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -508,12 +514,12 @@ public class SaplTesting {
 
     public static CompiledExpression evaluateExpression(String source) {
         val compiled = compileExpression(source);
-        return evaluate(compiled, evaluationContext());
+        return evaluateCompiled(compiled, evaluationContext());
     }
 
     public static CompiledExpression evaluateExpression(String source, EvaluationContext ctx) {
         val compiled = compileExpression(source, ctx.functionBroker(), ctx.attributeBroker());
-        return evaluate(compiled, ctx);
+        return evaluateCompiled(compiled, ctx);
     }
 
     public static CompiledExpression evaluateExpression(String source, FunctionBroker fnBroker,
@@ -521,7 +527,7 @@ public class SaplTesting {
         val vars     = toObjectValue(variables);
         val ctx      = compilationContext(vars, fnBroker, ATTRIBUTE_BROKER);
         val compiled = compileExpression(source, ctx);
-        return evaluate(compiled, evaluationContext(fnBroker, ATTRIBUTE_BROKER));
+        return evaluateCompiled(compiled, evaluationContext(fnBroker, ATTRIBUTE_BROKER));
     }
 
     public static CompiledExpression evaluateExpression(String source, FunctionBroker fnBroker,
@@ -529,10 +535,10 @@ public class SaplTesting {
         val vars     = toObjectValue(variables);
         val ctx      = compilationContext(vars, fnBroker, attrBroker);
         val compiled = compileExpression(source, ctx);
-        return evaluate(compiled, evaluationContext(fnBroker, attrBroker));
+        return evaluateCompiled(compiled, evaluationContext(fnBroker, attrBroker));
     }
 
-    private static CompiledExpression evaluate(CompiledExpression compiled, EvaluationContext ctx) {
+    private static CompiledExpression evaluateCompiled(CompiledExpression compiled, EvaluationContext ctx) {
         return switch (compiled) {
         case Value v         -> v;
         case PureOperator op -> op.evaluate(ctx);
@@ -768,7 +774,7 @@ public class SaplTesting {
         val vars     = toObjectValue(variables);
         val ctx      = compilationContext(vars);
         val compiled = compileExpression(source, ctx);
-        val result   = evaluate(compiled, evaluationContext());
+        val result   = evaluateCompiled(compiled, evaluationContext());
         assertThat(result).isEqualTo(expected);
     }
 
@@ -776,7 +782,7 @@ public class SaplTesting {
         val vars     = toObjectValue(variables);
         val ctx      = compilationContext(vars);
         val compiled = compileExpression(source, ctx);
-        val result   = evaluate(compiled, evaluationContext());
+        val result   = evaluateCompiled(compiled, evaluationContext());
         assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
@@ -822,14 +828,14 @@ public class SaplTesting {
         val subscription = AuthorizationSubscription.of(subject, Value.NULL, Value.NULL, Value.NULL);
         val evalCtx      = evaluationContext(subscription);
         val compiled     = compileExpression(source);
-        return evaluate(compiled, evalCtx);
+        return evaluateCompiled(compiled, evalCtx);
     }
 
     public static CompiledExpression evaluateWithResource(String source, Value resource) {
         val subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, resource, Value.NULL);
         val evalCtx      = evaluationContext(subscription);
         val compiled     = compileExpression(source);
-        return evaluate(compiled, evalCtx);
+        return evaluateCompiled(compiled, evalCtx);
     }
 
     public static void assertPureDependsOnSubscription(String source, boolean expected) {
@@ -993,7 +999,7 @@ public class SaplTesting {
 
     public static CompiledExpression evaluateExpression(String source, TestContext ctx) {
         val compiled = compileExpression(source, ctx.compilationContext());
-        return evaluate(compiled, ctx.evaluationContext());
+        return evaluateCompiled(compiled, ctx.evaluationContext());
     }
 
     // ========================================================================
@@ -1035,6 +1041,122 @@ public class SaplTesting {
         @Override
         public Flux<TracedValue> stream() {
             return Flux.fromArray(tracedValues);
+        }
+    }
+
+    // ========================================================================
+    // FLUENT EXPRESSION EVALUATION
+    // ========================================================================
+
+    /**
+     * Entry point for evaluating an expression with attribute values bound.
+     * Compiles the source, discovers attribute dependencies, binds the
+     * declared attribute values into a snapshot, and re-evaluates against
+     * the bound snapshot.
+     */
+    public static Evaluation evaluate(String saplExpression) {
+        return new Evaluation(saplExpression);
+    }
+
+    public static class Evaluation {
+        private final String              source;
+        private final Map<String, Value>  bindings       = new LinkedHashMap<>();
+        private AuthorizationSubscription subscription   = DEFAULT_SUBSCRIPTION;
+        private FunctionBroker            functionBroker = FUNCTION_BROKER;
+        private ObjectValue               variables      = Value.EMPTY_OBJECT;
+
+        private Evaluation(String source) {
+            this.source = source;
+        }
+
+        /** Bind every attribute named {@code name} to {@code value}. */
+        public Evaluation with(String name, Value value) {
+            bindings.put(name, value);
+            return this;
+        }
+
+        /** Bind a batch of attributes by name. */
+        public Evaluation with(Map<String, Value> attributes) {
+            bindings.putAll(attributes);
+            return this;
+        }
+
+        /** Override the authorization subscription. */
+        public Evaluation withSubscription(AuthorizationSubscription sub) {
+            this.subscription = sub;
+            return this;
+        }
+
+        /** Override the subject in the authorization subscription. */
+        public Evaluation withSubject(Value subject) {
+            this.subscription = AuthorizationSubscription.of(subject, subscription.action(), subscription.resource(),
+                    subscription.environment());
+            return this;
+        }
+
+        /** Use a custom function broker for compile and evaluate. */
+        public Evaluation withFunctionBroker(FunctionBroker broker) {
+            this.functionBroker = broker;
+            return this;
+        }
+
+        /** Bind PDP-level variables visible during compilation. */
+        public Evaluation withVariables(Map<String, Value> vars) {
+            this.variables = toObjectValue(vars);
+            return this;
+        }
+
+        /** The computed value. {@code null} if a needed attribute was not bound. */
+        public Value value() {
+            return result().result();
+        }
+
+        /** The full {@link ExpressionResult}: value plus dependency map. */
+        public ExpressionResult result() {
+            val compileCtx = compilationContext(variables, functionBroker, ATTRIBUTE_BROKER);
+            val compiled   = compileExpression(source, compileCtx);
+            val baseCtx    = EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription,
+                    functionBroker, ATTRIBUTE_BROKER);
+            return switch (compiled) {
+            case Value v          -> new ExpressionResult(v, Map.of());
+            case PureOperator p   -> new ExpressionResult(p.evaluate(baseCtx), Map.of());
+            case StreamOperator s -> evaluateStream(s, baseCtx);
+            };
+        }
+
+        private ExpressionResult evaluateStream(StreamOperator stream, EvaluationContext baseCtx) {
+            val firstRound = stream.evaluate(baseCtx);
+            if (bindings.isEmpty()) {
+                return firstRound;
+            }
+            val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+            val now      = Instant.now();
+            for (val key : firstRound.dependencies().keySet()) {
+                val bound = bindings.get(key.invocation().attributeName());
+                if (bound != null) {
+                    snapshot.put(key, new AttributeSnapshot(bound, now));
+                }
+            }
+            return stream.evaluate(baseCtx.withSnapshot(snapshot));
+        }
+
+        /** Asserts there is exactly one dependency and returns its key. */
+        public SubscriptionKey onlySubscriptionKey() {
+            val keys = result().dependencies().keySet();
+            if (keys.size() != 1) {
+                throw new AssertionError("Expected exactly one subscription key, got " + keys.size() + ": " + keys);
+            }
+            return keys.iterator().next();
+        }
+
+        /** Asserts there is exactly one dependency and returns its invocation. */
+        public AttributeFinderInvocation onlyInvocation() {
+            return onlySubscriptionKey().invocation();
+        }
+
+        /** All attribute invocations the evaluation observed (insertion order). */
+        public List<AttributeFinderInvocation> invocations() {
+            return result().dependencies().keySet().stream().map(SubscriptionKey::invocation).toList();
         }
     }
 }

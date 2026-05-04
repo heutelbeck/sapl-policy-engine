@@ -54,31 +54,6 @@ class EvaluationLoopTests {
     }
 
     @Test
-    @DisplayName("legacy stream() prints emissions when both time.now sides emit three values")
-    void whenStreamingThreeTimeNowValuesThenPrintEmissions() {
-        val values     = new Value[] { Value.of("first"), Value.of("second"), Value.of("third") };
-        val attrBroker = attributeBroker(invocation -> {
-                           if ("time.now".equals(invocation.attributeName())) {
-                               return Flux.fromArray(values).delayElements(Duration.ofMillis(1));
-                           }
-                           return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-                       });
-        val expression = compileExpression("<time.now> == <time.now>", attrBroker);
-
-        assertThat(expression).isInstanceOf(StreamOperator.class);
-        val operator = (StreamOperator) expression;
-        val evalCtx  = evaluationContext(attrBroker);
-
-        val emissions = operator.stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx)).toStream()
-                .toList();
-
-        System.out.println("--- legacy stream() emissions for <time.now> == <time.now> ---");
-        for (int i = 0; i < emissions.size(); i++) {
-            System.out.println("  [" + i + "] " + emissions.get(i).value());
-        }
-    }
-
-    @Test
     @DisplayName("snapshot evaluate() prints one result for a single round")
     void whenEvaluatingOnceThenPrintResultAndDependencies() {
         val expression = compileExpression("<time.now> == <time.now>");

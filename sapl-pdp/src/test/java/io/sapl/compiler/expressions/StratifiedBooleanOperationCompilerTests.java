@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static io.sapl.util.SaplTesting.attributeBroker;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static io.sapl.util.SaplTesting.compileExpression;
+import static io.sapl.util.SaplTesting.evaluate;
 import static io.sapl.util.SaplTesting.evaluateExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static io.sapl.util.SaplTesting.sequenceBroker;
@@ -153,30 +154,14 @@ class StratifiedBooleanOperationCompilerTests {
 
         @Test
         void whenAndWithStreamOnRightAndLeftTrueThenReturnsStream() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var ctx      = compilationContext(broker);
-            var compiled = compileExpression("true && <test.attr>", ctx);
-
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
-
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("true && <test.attr>").with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         @Test
         void whenOrWithStreamOnRightAndLeftFalseThenReturnsStream() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var ctx      = compilationContext(broker);
-            var compiled = compileExpression("false || <test.attr>", ctx);
-
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
-
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("false || <test.attr>").with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         @Test
@@ -208,68 +193,35 @@ class StratifiedBooleanOperationCompilerTests {
     class EagerStreamOperators {
 
         @Test
-        @DisplayName("& with two streams uses combineLatest and evaluates both sides")
+        @DisplayName("& with two streams evaluates both sides")
         void whenEagerAndWithTwoStreamsThenBothSubscribed() {
-            var broker   = sequenceBroker(Map.of("test.left", List.of(Value.TRUE), "test.right", List.of(Value.TRUE)));
-            var ctx      = compilationContext(broker);
-            var compiled = compileExpression("<test.left> & <test.right>", ctx);
-
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
-
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
-
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("<test.left> & <test.right>").with("test.left", Value.TRUE)
+                    .with("test.right", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
 
         @Test
-        @DisplayName("| with two streams uses combineLatest and evaluates both sides")
+        @DisplayName("| with two streams evaluates both sides")
         void whenEagerOrWithTwoStreamsThenBothSubscribed() {
-            var broker   = sequenceBroker(
-                    Map.of("test.left", List.of(Value.FALSE), "test.right", List.of(Value.FALSE)));
-            var ctx      = compilationContext(broker);
-            var compiled = compileExpression("<test.left> | <test.right>", ctx);
-
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
-
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
-
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            var value = evaluate("<test.left> | <test.right>").with("test.left", Value.FALSE)
+                    .with("test.right", Value.FALSE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
 
         @Test
         @DisplayName("& does not short-circuit when left is false")
         void whenEagerAndLeftFalseThenRightStillEvaluated() {
-            var broker   = sequenceBroker(Map.of("test.left", List.of(Value.FALSE), "test.right", List.of(Value.TRUE)));
-            var ctx      = compilationContext(broker);
-            var compiled = compileExpression("<test.left> & <test.right>", ctx);
-
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
-
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
-
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            var value = evaluate("<test.left> & <test.right>").with("test.left", Value.FALSE)
+                    .with("test.right", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
 
         @Test
         @DisplayName("| does not short-circuit when left is true")
         void whenEagerOrLeftTrueThenRightStillEvaluated() {
-            var broker   = sequenceBroker(Map.of("test.left", List.of(Value.TRUE), "test.right", List.of(Value.FALSE)));
-            var ctx      = compilationContext(broker);
-            var compiled = compileExpression("<test.left> | <test.right>", ctx);
-
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
-
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
-
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            var value = evaluate("<test.left> | <test.right>").with("test.left", Value.TRUE)
+                    .with("test.right", Value.FALSE).value();
+            assertThat(value).isEqualTo(Value.TRUE);
         }
     }
 

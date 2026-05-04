@@ -43,6 +43,7 @@ import static io.sapl.util.SaplTesting.assertPureEvaluatesToWithSubject;
 import static io.sapl.util.SaplTesting.attributeBroker;
 import static io.sapl.util.SaplTesting.compileExpression;
 import static io.sapl.util.SaplTesting.errorAttributeBroker;
+import static io.sapl.util.SaplTesting.evaluate;
 import static io.sapl.util.SaplTesting.evaluateExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static io.sapl.util.SaplTesting.singleValueAttributeBroker;
@@ -366,92 +367,53 @@ class NaryOperatorCompilerTests {
 
         @Test
         void whenStreamEmitsValueThenCombinesWithValues() {
-            var broker   = attributeBroker("test.attr", of(10));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("1 + <test.attr> + 2", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(of(13))).verifyComplete();
+            var value = evaluate("1 + <test.attr> + 2").with("test.attr", of(10)).value();
+            assertThat(value).isEqualTo(of(13));
         }
 
         @Test
         void whenMultipleStreamsThenCombineLatest() {
-            var broker   = singleValueAttributeBroker(Map.of("a.attr", of(5), "b.attr", of(3)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> + <b.attr>", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(of(8))).verifyComplete();
+            var value = evaluate("<a.attr> + <b.attr>").with("a.attr", of(5)).with("b.attr", of(3)).value();
+            assertThat(value).isEqualTo(of(8));
         }
 
         @Test
         void whenStreamWithProductThenMultipliesCorrectly() {
-            var broker   = attributeBroker("test.attr", of(7));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("2 * <test.attr> * 3", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(of(42))).verifyComplete();
+            var value = evaluate("2 * <test.attr> * 3").with("test.attr", of(7)).value();
+            assertThat(value).isEqualTo(of(42));
         }
 
         @Test
         void whenStreamWithXorThenXorsCorrectly() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true ^ <test.attr> ^ false", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            var value = evaluate("true ^ <test.attr> ^ false").with("test.attr", Value.TRUE).value();
+            assertThat(value).isEqualTo(Value.FALSE);
         }
 
         @Test
         void whenStreamEmitsErrorThenPropagatesError() {
-            var broker   = errorAttributeBroker("test.attr", "Stream errors");
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("1 + <test.attr> + 2", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> {
-                assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) tv.value()).message()).contains("Stream errors");
-            }).verifyComplete();
+            var value = evaluate("1 + <test.attr> + 2").with("test.attr", Value.error("Stream errors")).value();
+            assertThat(value).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) value).message()).contains("Stream errors");
         }
 
         @Test
         void whenStreamWithTypeMismatchThenReturnsError() {
-            var broker   = attributeBroker("test.attr", of("not a number"));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("1 + <test.attr> + 2", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class))
-                    .verifyComplete();
+            var value = evaluate("1 + <test.attr> + 2").with("test.attr", of("not a number")).value();
+            assertThat(value).isInstanceOf(ErrorValue.class);
         }
 
         @Test
         void whenValuesAndPuresAndStreamThenAllCombined() {
-            var broker   = attributeBroker("test.attr", of(100));
-            var ctx      = testContext(broker, Map.of("x", of(10)));
-            var compiled = compileExpression("1 + x + <test.attr>", ctx.compilationContext());
-
-            var evalCtx = ctx.evaluationContext();
-            var stream  = ((StreamOperator) compiled).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(of(111))).verifyComplete();
+            var value = evaluate("1 + x + <test.attr>").withVariables(Map.of("x", of(10))).with("test.attr", of(100))
+                    .value();
+            assertThat(value).isEqualTo(of(111));
         }
 
         @Test
         void whenZeroTimesErrorStreamThenErrorNotZero() {
-            var broker   = errorAttributeBroker("test.attr", "attribute failed");
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("0 * <test.attr>", broker);
-
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> {
-                assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) tv.value()).message()).contains("attribute failed");
-            }).verifyComplete();
+            var value = evaluate("0 * <test.attr>").with("test.attr", Value.error("attribute failed")).value();
+            assertThat(value).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) value).message()).contains("attribute failed");
         }
     }
 

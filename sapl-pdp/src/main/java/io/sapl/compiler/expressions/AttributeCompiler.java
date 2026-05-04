@@ -39,6 +39,7 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.AttributeStep;
@@ -70,6 +71,7 @@ public class AttributeCompiler {
     private static final String ERROR_OPTIONS_MUST_BE_OBJECT                  = "Attribute options must be an object, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION = "Attribute options must not depend on any element of the authorization subscription";
     private static final String ERROR_PDP_DEFAULTS_MUST_BE_OBJECT             = "If defined, PDP wide defaults (%s) for attribute options must be an object, but was: %s.";
+    private static final String ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS    = "Undefined entity in attribute access.";
 
     private static final ObjectValue DEFAULT_SETTINGS = ObjectValue.builder()
             .put(OPTION_INITIAL_TIMEOUT, Value.of(DEFAULT_TIMEOUT_MS))
@@ -201,6 +203,8 @@ public class AttributeCompiler {
                     seenNull = true;
                 } else if (v instanceof ErrorValue) {
                     firstError = v;
+                } else if (v instanceof UndefinedValue) {
+                    firstError = Value.errorAt(location, ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS);
                 } else {
                     entityValue = v;
                 }
