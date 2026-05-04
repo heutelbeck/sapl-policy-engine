@@ -124,41 +124,47 @@ class FunctionCallCompilerTests {
     }
 
     @Test
-    void whenFunctionCallWithStreamArgThenReturnsStreamOperator() {
-        var attrBroker = attributeBroker("stream.attr", Value.of(1), Value.of(2), Value.of(3));
-        var fnBroker   = functionBroker("test.fn", args -> {
-                           var num = ((NumberValue) args.getFirst()).value().intValue();
-                           return Value.of(num * 10);
-                       });
-        var ctx        = testContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(<stream.attr>)", ctx);
+    void whenFunctionCallWithStreamArgThenComputesPerStreamValueAcrossRounds() {
+        // Drives test.fn(<stream.attr>) where the function multiplies its arg by 10.
+        // Each round binds a new value for stream.attr; the function is invoked
+        // synchronously and the new value flows out per round.
+        var fnBroker = functionBroker("test.fn",
+                args -> Value.of(((NumberValue) args.getFirst()).value().intValue() * 10));
+        var driver   = evaluate("test.fn(<stream.attr>)").withFunctionBroker(fnBroker);
 
-        assertThat(result).isInstanceOf(StreamOperator.class);
-        var evalCtx = ctx.evaluationContext();
-        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(10)))
-                .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(20)))
-                .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.of(30))).verifyComplete();
+        // Round 1: discovery only.
+        driver.step();
+
+        driver.with("stream.attr", Value.of(1));
+        assertThat(driver.step().result()).isEqualTo(Value.of(10));
+
+        driver.with("stream.attr", Value.of(2));
+        assertThat(driver.step().result()).isEqualTo(Value.of(20));
+
+        driver.with("stream.attr", Value.of(3));
+        assertThat(driver.step().result()).isEqualTo(Value.of(30));
     }
 
     @Test
-    void whenFunctionCallWithMixedStaticAndStreamArgsThenCombinesCorrectly() {
-        var attrBroker = attributeBroker("num.attr", Value.of(5), Value.of(10));
-        var captured   = new ArrayList<FunctionInvocation>();
-        var fnBroker   = capturingFunctionBroker(captured, args -> Value.of("ok"));
-        var ctx        = testContext(fnBroker, attrBroker, Map.of());
-        var result     = evaluateExpression("test.fn(\"prefix\", <num.attr>, \"suffix\")", ctx);
+    void whenFunctionCallWithMixedStaticAndStreamArgsThenStreamValueFlowsIntoArguments() {
+        // Drives test.fn("prefix", <num.attr>, "suffix"); a captured-args function
+        // broker records each invocation. Verifies that as num.attr's bound value
+        // changes, the function receives the new arg list each round.
+        var captured = new ArrayList<FunctionInvocation>();
+        var fnBroker = capturingFunctionBroker(captured, args -> Value.of("ok"));
+        var driver   = evaluate("test.fn(\"prefix\", <num.attr>, \"suffix\")").withFunctionBroker(fnBroker);
 
-        assertThat(result).isInstanceOf(StreamOperator.class);
-        var evalCtx = ctx.evaluationContext();
-        var stream  = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            assertThat(captured.get(0).arguments()).containsExactly(Value.of("prefix"), Value.of(5),
-                    Value.of("suffix"));
-        }).assertNext(tv -> {
-            assertThat(captured.get(1).arguments()).containsExactly(Value.of("prefix"), Value.of(10),
-                    Value.of("suffix"));
-        }).verifyComplete();
+        // Round 1: discovery only.
+        driver.step();
+
+        driver.with("num.attr", Value.of(5));
+        driver.step();
+        assertThat(captured.getLast().arguments()).containsExactly(Value.of("prefix"), Value.of(5), Value.of("suffix"));
+
+        driver.with("num.attr", Value.of(10));
+        driver.step();
+        assertThat(captured.getLast().arguments()).containsExactly(Value.of("prefix"), Value.of(10),
+                Value.of("suffix"));
     }
 
     @Test

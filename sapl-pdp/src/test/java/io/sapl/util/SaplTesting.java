@@ -76,6 +76,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
@@ -83,8 +84,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -1065,6 +1068,9 @@ public class SaplTesting {
         private FunctionBroker            functionBroker = FUNCTION_BROKER;
         private ObjectValue               variables      = Value.EMPTY_OBJECT;
 
+        private @Nullable CompiledExpression compiled;
+        private final Set<SubscriptionKey>   knownKeys = new LinkedHashSet<>();
+
         private Evaluation(String source) {
             this.source = source;
         }
@@ -1111,33 +1117,56 @@ public class SaplTesting {
             return result().result();
         }
 
-        /** The full {@link ExpressionResult}: value plus dependency map. */
+        /**
+         * Two-step convenience: a discovery round followed by a bind-and-evaluate
+         * round. Equivalent to calling {@link #step()} twice. Returns the second
+         * round's result. For expressions whose lazy operators discover
+         * dependencies incrementally across more than one round, returns
+         * {@code null} and the test should drive {@link #step()} explicitly.
+         */
         public ExpressionResult result() {
-            val compileCtx = compilationContext(variables, functionBroker, ATTRIBUTE_BROKER);
-            val compiled   = compileExpression(source, compileCtx);
-            val baseCtx    = EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription,
+            step();
+            return step();
+        }
+
+        /**
+         * Performs one evaluation round. Builds a snapshot from every key
+         * discovered in any prior round, matched by attribute name against the
+         * current bindings, evaluates once, then folds this round's
+         * dependencies into the accumulator for the next call.
+         * <p>
+         * The accumulator across calls lets tests drive multi-round scenarios
+         * by interleaving {@link #with(String, Value)} and {@code step()}. The
+         * returned result's dependency map reflects exactly what the
+         * expression touched in this round, including lazy short-circuit
+         * shrinkage and lazy re-subscribe growth.
+         */
+        public ExpressionResult step() {
+            if (compiled == null) {
+                val ctx = compilationContext(variables, functionBroker, ATTRIBUTE_BROKER);
+                compiled = compileExpression(source, ctx);
+            }
+            val baseCtx = EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription,
                     functionBroker, ATTRIBUTE_BROKER);
             return switch (compiled) {
             case Value v          -> new ExpressionResult(v, Map.of());
             case PureOperator p   -> new ExpressionResult(p.evaluate(baseCtx), Map.of());
-            case StreamOperator s -> evaluateStream(s, baseCtx);
+            case StreamOperator s -> stepStream(s, baseCtx);
             };
         }
 
-        private ExpressionResult evaluateStream(StreamOperator stream, EvaluationContext baseCtx) {
-            val firstRound = stream.evaluate(baseCtx);
-            if (bindings.isEmpty()) {
-                return firstRound;
-            }
-            val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+        private ExpressionResult stepStream(StreamOperator stream, EvaluationContext baseCtx) {
             val now      = Instant.now();
-            for (val key : firstRound.dependencies().keySet()) {
+            val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+            for (val key : knownKeys) {
                 val bound = bindings.get(key.invocation().attributeName());
                 if (bound != null) {
                     snapshot.put(key, new AttributeSnapshot(bound, now));
                 }
             }
-            return stream.evaluate(baseCtx.withSnapshot(snapshot));
+            val result = stream.evaluate(baseCtx.withSnapshot(snapshot));
+            knownKeys.addAll(result.dependencies().keySet());
+            return result;
         }
 
         /** Asserts there is exactly one dependency and returns its key. */

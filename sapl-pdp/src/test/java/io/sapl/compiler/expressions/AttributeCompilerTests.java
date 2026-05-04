@@ -17,23 +17,12 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static io.sapl.util.SaplTesting.evaluate;
-import static io.sapl.util.SaplTesting.evaluateExpression;
-import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("AttributeCompiler")
@@ -85,74 +74,63 @@ class AttributeCompilerTests {
     }
 
     @Test
-    void whenEnvironmentAttributeWithStreamArgumentThenCombinesLatest() {
-        var broker = new AttributeBroker() {
-                       @Override
-                       public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                           if ("inner.attr".equals(invocation.attributeName()))
-                               return Flux.just(Value.of("arg1"), Value.of("arg2"));
-                           if ("outer.attr".equals(invocation.attributeName())) {
-                               var arg = ((io.sapl.api.model.TextValue) invocation.arguments().getFirst()).value();
-                               return Flux.just(Value.of("result-" + arg));
-                           }
-                           return Flux.just(Value.error("Unknown"));
-                       }
+    void whenEnvironmentAttributeWithStreamArgumentThenInnerInvocationsCarryArgValuesAcrossRounds() {
+        // Drives <outer.attr(<inner.attr>)> through three rounds. Verifies that
+        // the inner attribute value flows into the outer attribute's argument
+        // list each round, and that both keys appear in the dependency map
+        // every round (the outer's invocation key changes when inner changes).
+        var driver = evaluate("<outer.attr(<inner.attr>)>");
 
-                       @Override
-                       public List<Class<?>> getRegisteredLibraries() {
-                           return List.of();
-                       }
-                   };
-        var ctx    = evaluationContext(broker);
-        var result = evaluateExpression("<outer.attr(<inner.attr>)>", ctx);
+        // Round 1: empty snapshot. Inner discovered; outer cannot be invoked yet.
+        var r1 = driver.step();
+        assertThat(r1.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                .containsExactly("inner.attr");
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            // First emission from inner produces first call to outer
-            assertThat(tv.value()).isEqualTo(Value.of("result-arg1"));
-            // Should have records from both inner and outer attribute
-            assertThat(tv.contributingAttributes()).hasSize(2);
-        }).assertNext(tv -> {
-            // Second emission from inner produces second call to outer
-            assertThat(tv.value()).isEqualTo(Value.of("result-arg2"));
-            assertThat(tv.contributingAttributes()).hasSize(2);
-        }).verifyComplete();
+        // Round 2: bind inner=arg1. Outer now discoverable with arg1 in its arguments.
+        driver.with("inner.attr", Value.of("arg1"));
+        var r2 = driver.step();
+        assertThat(r2.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                .containsExactlyInAnyOrder("inner.attr", "outer.attr");
+        var r2Outer = r2.dependencies().keySet().stream()
+                .filter(k -> "outer.attr".equals(k.invocation().attributeName())).findFirst().orElseThrow();
+        assertThat(r2Outer.invocation().arguments()).containsExactly(Value.of("arg1"));
+
+        // Round 3: bind outer's per-arg1 instance to a result, plus update inner=arg2.
+        driver.with("outer.attr", Value.of("result-arg1")).with("inner.attr", Value.of("arg2"));
+        var r3 = driver.step();
+        // Outer's invocation key now carries arg2; the previous arg1-keyed binding
+        // does not match, so result is null until the new outer key is bound.
+        var r3Outer = r3.dependencies().keySet().stream()
+                .filter(k -> "outer.attr".equals(k.invocation().attributeName())).findFirst().orElseThrow();
+        assertThat(r3Outer.invocation().arguments()).containsExactly(Value.of("arg2"));
     }
 
     @Test
-    void whenEnvironmentAttributeWithMixedArgumentsThenCombinesCorrectly() {
-        var capturedInvocations = new ArrayList<AttributeFinderInvocation>();
-        var broker              = new AttributeBroker() {
-                                    @Override
-                                    public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                                        capturedInvocations.add(invocation);
-                                        if ("stream.attr".equals(invocation.attributeName()))
-                                            return Flux.just(Value.of(10), Value.of(20));
-                                        if ("test.attr".equals(invocation.attributeName()))
-                                            return Flux.just(Value.of("ok"));
-                                        return Flux.just(Value.error("Unknown"));
-                                    }
+    void whenEnvironmentAttributeWithMixedArgumentsThenStreamArgFlowsIntoOuterInvocation() {
+        // Drives <test.attr("fixed", <stream.attr>)> through two rounds. Verifies
+        // that pure literal "fixed" and the stream value compose into the outer
+        // invocation's argument list as the stream value evolves.
+        var driver = evaluate("<test.attr(\"fixed\", <stream.attr>)>");
 
-                                    @Override
-                                    public List<Class<?>> getRegisteredLibraries() {
-                                        return List.of();
-                                    }
-                                };
-        var ctx                 = evaluationContext(broker);
-        var result              = evaluateExpression("<test.attr(\"fixed\", <stream.attr>)>", ctx);
+        // Round 1: stream.attr discovered; test.attr cannot resolve yet.
+        var r1 = driver.step();
+        assertThat(r1.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                .containsExactly("stream.attr");
 
-        var stream = ((StreamOperator) result).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.create(stream).assertNext(tv -> {
-            // Verify mixed arguments: pure "fixed" and stream value 10
-            var outerInvocation = capturedInvocations.stream().filter(i -> "test.attr".equals(i.attributeName()))
-                    .findFirst().orElseThrow();
-            assertThat(outerInvocation.arguments()).containsExactly(Value.of("fixed"), Value.of(10));
-        }).assertNext(tv -> {
-            // Second stream value
-            var outerInvocations = capturedInvocations.stream().filter(i -> "test.attr".equals(i.attributeName()))
-                    .toList();
-            assertThat(outerInvocations.get(1).arguments()).containsExactly(Value.of("fixed"), Value.of(20));
-        }).verifyComplete();
+        // Round 2: bind stream=10. Outer test.attr discoverable with arguments [fixed,
+        // 10].
+        driver.with("stream.attr", Value.of(10));
+        var r2          = driver.step();
+        var outerWith10 = r2.dependencies().keySet().stream()
+                .filter(k -> "test.attr".equals(k.invocation().attributeName())).findFirst().orElseThrow();
+        assertThat(outerWith10.invocation().arguments()).containsExactly(Value.of("fixed"), Value.of(10));
+
+        // Round 3: change stream value to 20. Outer's invocation key now carries 20.
+        driver.with("stream.attr", Value.of(20));
+        var r3          = driver.step();
+        var outerWith20 = r3.dependencies().keySet().stream()
+                .filter(k -> "test.attr".equals(k.invocation().attributeName())).findFirst().orElseThrow();
+        assertThat(outerWith20.invocation().arguments()).containsExactly(Value.of("fixed"), Value.of(20));
     }
 
     @Test

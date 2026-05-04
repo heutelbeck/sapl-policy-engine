@@ -472,239 +472,316 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionSingleStreamMultipleEmissionsTracksAllChanges() {
-            // Stream emits: TRUE, TRUE, FALSE, TRUE
-            // Expected outputs: TRUE, TRUE, FALSE, TRUE
-            var broker   = attributeBroker("test.attr", Value.TRUE, Value.TRUE, Value.FALSE, Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<test.attr>", broker);
+            // Each rebinding of test.attr is one round; the value flows through
+            // the bare attribute access immediately.
+            var driver = evaluate("<test.attr>");
+            driver.step(); // discovery
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            for (var v : List.of(Value.TRUE, Value.TRUE, Value.FALSE, Value.TRUE)) {
+                driver.with("test.attr", v);
+                assertThat(driver.step().result()).isEqualTo(v);
+            }
         }
 
         @Test
         void conjunctionStreamTransitionsToFalseOutputReflectsChange() {
-            // true && <stream> where stream: TRUE -> FALSE -> TRUE
-            // Expected: TRUE -> FALSE -> TRUE
-            var broker   = attributeBroker("test.attr", Value.TRUE, Value.FALSE, Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr>", broker);
+            // true && <stream>: pure constant on left is folded; only the stream
+            // attribute is in the dep set. Each round reflects the new value.
+            var driver = evaluate("true && <test.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            for (var v : List.of(Value.TRUE, Value.FALSE, Value.TRUE)) {
+                driver.with("test.attr", v);
+                assertThat(driver.step().result()).isEqualTo(v);
+            }
         }
 
         @Test
         void disjunctionStreamTransitionsToTrueOutputReflectsChange() {
-            // false || <stream> where stream: FALSE -> TRUE -> FALSE
-            // Expected: FALSE -> TRUE -> FALSE
-            var broker   = attributeBroker("test.attr", Value.FALSE, Value.TRUE, Value.FALSE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("false || <test.attr>", broker);
+            // false || <stream>: same shape, OR with constant false on left.
+            var driver = evaluate("false || <test.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            for (var v : List.of(Value.FALSE, Value.TRUE, Value.FALSE)) {
+                driver.with("test.attr", v);
+                assertThat(driver.step().result()).isEqualTo(v);
+            }
         }
 
         @Test
         void conjunctionTwoStreamsFirstChangesReEvaluatesSecond() {
-            // <a> && <b> where a: TRUE -> FALSE -> TRUE, b: TRUE (constant)
-            // When a=TRUE: evaluate b -> TRUE && TRUE = TRUE
-            // When a=FALSE: short-circuit -> FALSE (b not evaluated)
-            // When a=TRUE again: evaluate b -> TRUE && TRUE = TRUE
-            var broker   = sequenceBroker(
-                    Map.of("a.attr", List.of(Value.TRUE, Value.FALSE, Value.TRUE), "b.attr", List.of(Value.TRUE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> && <b.attr>", broker);
+            // Drives <a.attr> && <b.attr> through five rounds, asserting on the
+            // dependency set after each step to verify the lazy AND's behaviour
+            // directly:
+            // * lazy discovery : b only enters the dep set once a resolves to TRUE
+            // * lazy short-circuit : when a flips back to FALSE, b leaves the dep set
+            // * lazy re-subscribe : when a returns to TRUE, b re-enters
+            // Each round's deps reflect exactly the subscriptions the expression
+            // touched that round; pre-snapshot, this property was not directly
+            // observable - it was hidden in switchMap chains.
+            var driver = evaluate("<a.attr> && <b.attr>");
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            // Round 1: empty snapshot. Lazy AND only requests left.
+            var r1 = driver.step();
+            assertThat(r1.result()).isNull();
+            assertThat(r1.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
+
+            // Round 2: bind a=TRUE. Lazy AND now needs the right side; b is discovered.
+            driver.with("a.attr", Value.TRUE);
+            var r2 = driver.step();
+            assertThat(r2.result()).isNull();
+            assertThat(r2.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
+
+            // Round 3: bind b=TRUE. Both resolved; lazy AND walks both sides.
+            driver.with("b.attr", Value.TRUE);
+            var r3 = driver.step();
+            assertThat(r3.result()).isEqualTo(Value.TRUE);
+            assertThat(r3.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
+
+            // Round 4: flip a to FALSE. Lazy short-circuits at left; b drops from deps.
+            driver.with("a.attr", Value.FALSE);
+            var r4 = driver.step();
+            assertThat(r4.result()).isEqualTo(Value.FALSE);
+            assertThat(r4.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
+
+            // Round 5: a returns to TRUE. b re-subscribes; its prior binding still applies.
+            driver.with("a.attr", Value.TRUE);
+            var r5 = driver.step();
+            assertThat(r5.result()).isEqualTo(Value.TRUE);
+            assertThat(r5.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }
 
         @Test
         void disjunctionTwoStreamsFirstChangesReEvaluatesSecond() {
-            // <a> || <b> where a: FALSE -> TRUE -> FALSE, b: FALSE (constant)
-            // When a=FALSE: evaluate b -> FALSE || FALSE = FALSE
-            // When a=TRUE: short-circuit -> TRUE (b not evaluated)
-            // When a=FALSE again: evaluate b -> FALSE || FALSE = FALSE
-            var broker   = sequenceBroker(
-                    Map.of("a.attr", List.of(Value.FALSE, Value.TRUE, Value.FALSE), "b.attr", List.of(Value.FALSE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> || <b.attr>", broker);
+            // Mirror of the conjunction equivalent above, but with || and inverted
+            // truth values. Drives <a> || <b> with a: FALSE -> TRUE -> FALSE,
+            // b held at FALSE. Verifies lazy short-circuit (a=TRUE drops b) and
+            // re-subscribe (a=FALSE again brings b back).
+            var driver = evaluate("<a.attr> || <b.attr>");
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            driver.step(); // discovery: only a
+
+            driver.with("a.attr", Value.FALSE);
+            var r2 = driver.step();
+            assertThat(r2.result()).isNull();
+            assertThat(r2.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
+
+            driver.with("b.attr", Value.FALSE);
+            assertThat(driver.step().result()).isEqualTo(Value.FALSE);
+
+            driver.with("a.attr", Value.TRUE);
+            var r4 = driver.step();
+            assertThat(r4.result()).isEqualTo(Value.TRUE);
+            assertThat(r4.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
+
+            driver.with("a.attr", Value.FALSE);
+            var r5 = driver.step();
+            assertThat(r5.result()).isEqualTo(Value.FALSE);
+            assertThat(r5.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }
 
         @Test
-        void conjunctionThreeStreamsChainedEvaluation() {
-            // <a> && <b> && <c> where all emit TRUE
-            // All three must be TRUE for result to be TRUE
-            var broker   = sequenceBroker(Map.of("a.attr", List.of(Value.TRUE), "b.attr", List.of(Value.TRUE), "c.attr",
-                    List.of(Value.TRUE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> && <b.attr> && <c.attr>", broker);
+        void conjunctionThreeStreamsAllTrueAllInDependencies() {
+            // <a> && <b> && <c> with all TRUE: every step adds the next stream
+            // to the dep set lazily, eventually all three contribute.
+            var driver = evaluate("<a.attr> && <b.attr> && <c.attr>");
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            driver.step(); // discovery: a only
+
+            driver.with("a.attr", Value.TRUE);
+            assertThat(driver.step().dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
+
+            driver.with("b.attr", Value.TRUE);
+            assertThat(driver.step().dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr", "c.attr");
+
+            driver.with("c.attr", Value.TRUE);
+            var r4 = driver.step();
+            assertThat(r4.result()).isEqualTo(Value.TRUE);
+            assertThat(r4.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr", "c.attr");
         }
 
         @Test
-        void conjunctionThreeStreamsMiddleIsFalseShortCircuits() {
-            // <a> && <b> && <c> where a=TRUE, b=FALSE, c=TRUE
-            // Should short-circuit at b, never subscribe to c
-            var broker   = sequenceBroker(Map.of("a.attr", List.of(Value.TRUE), "b.attr", List.of(Value.FALSE),
-                    "c.attr", List.of(Value.TRUE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> && <b.attr> && <c.attr>", broker);
+        void conjunctionThreeStreamsMiddleIsFalseShortCircuitsThirdNeverDiscovered() {
+            // <a> && <b> && <c> with a=TRUE, b=FALSE: short-circuits at b; c
+            // never enters the dep set.
+            var driver = evaluate("<a.attr> && <b.attr> && <c.attr>");
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .verifyComplete();
+            driver.step();
+
+            driver.with("a.attr", Value.TRUE);
+            driver.step();
+
+            driver.with("b.attr", Value.FALSE);
+            var r3 = driver.step();
+            assertThat(r3.result()).isEqualTo(Value.FALSE);
+            assertThat(r3.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }
 
         @Test
-        void disjunctionThreeStreamsMiddleIsTrueShortCircuits() {
-            // <a> || <b> || <c> where a=FALSE, b=TRUE, c=FALSE
-            // Should short-circuit at b, never subscribe to c
-            var broker   = sequenceBroker(Map.of("a.attr", List.of(Value.FALSE), "b.attr", List.of(Value.TRUE),
-                    "c.attr", List.of(Value.FALSE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> || <b.attr> || <c.attr>", broker);
+        void disjunctionThreeStreamsMiddleIsTrueShortCircuitsThirdNeverDiscovered() {
+            // <a> || <b> || <c> with a=FALSE, b=TRUE: short-circuits at b; c
+            // never enters the dep set.
+            var driver = evaluate("<a.attr> || <b.attr> || <c.attr>");
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            driver.step();
+
+            driver.with("a.attr", Value.FALSE);
+            driver.step();
+
+            driver.with("b.attr", Value.TRUE);
+            var r3 = driver.step();
+            assertThat(r3.result()).isEqualTo(Value.TRUE);
+            assertThat(r3.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
         }
 
         @Test
-        void conjunctionErrorMidStreamPropagatesError() {
-            // Stream emits: TRUE, ERROR, TRUE
-            // Expected: TRUE, ERROR, TRUE
-            var error    = Value.error("mid-stream failure");
-            var broker   = attributeBroker("test.attr", Value.TRUE, error, Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<test.attr>", broker);
+        void barAttributeErrorPropagatesPerRound() {
+            // <test.attr> rebound each round; an error binding propagates as the
+            // round's value just like a normal value would.
+            var driver = evaluate("<test.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("mid-stream failure"))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            driver.with("test.attr", Value.TRUE);
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
+
+            driver.with("test.attr", Value.error("mid-stream failure"));
+            var rErr = driver.step();
+            assertThat(rErr.result()).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
+                    .asString().contains("mid-stream failure");
+
+            driver.with("test.attr", Value.TRUE);
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
         }
 
         @Test
-        void conjunctionTypeMismatchMidStreamPropagatesError() {
-            // Stream emits: TRUE, "not boolean", TRUE
-            // Expected: TRUE, ERROR, TRUE
-            var broker   = attributeBroker("test.attr", Value.TRUE, of("not boolean"), Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr>", broker);
+        void conjunctionTypeMismatchMidStreamPropagatesErrorPerRound() {
+            // true && <test.attr>: when <test.attr> is bound to a non-boolean
+            // value, the type-check inside the lazy AND fails for that round
+            // and recovers when a boolean value is rebound.
+            var driver = evaluate("true && <test.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                            .extracting(v -> ((ErrorValue) v).message()).asString().contains("BOOLEAN"))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            driver.with("test.attr", Value.TRUE);
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
+
+            driver.with("test.attr", of("not boolean"));
+            var rErr = driver.step();
+            assertThat(rErr.result()).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message())
+                    .asString().contains("BOOLEAN");
+
+            driver.with("test.attr", Value.TRUE);
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
         }
 
         @Test
         void conjunctionAlternatingTrueFalseProducesAlternatingOutput() {
-            // <stream> && true where stream: T, F, T, F, T
-            var broker   = attributeBroker("test.attr", Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE, Value.TRUE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<test.attr> && true", broker);
+            // <stream> && true: each round echoes the bound stream value.
+            var driver = evaluate("<test.attr> && true");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            for (var v : List.of(Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE, Value.TRUE)) {
+                driver.with("test.attr", v);
+                assertThat(driver.step().result()).isEqualTo(v);
+            }
         }
 
         @Test
         void disjunctionAlternatingFalseTrueProducesAlternatingOutput() {
-            // <stream> || false where stream: F, T, F, T, F
-            var broker   = attributeBroker("test.attr", Value.FALSE, Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<test.attr> || false", broker);
+            // <stream> || false: each round echoes the bound stream value.
+            var driver = evaluate("<test.attr> || false");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            for (var v : List.of(Value.FALSE, Value.TRUE, Value.FALSE, Value.TRUE, Value.FALSE)) {
+                driver.with("test.attr", v);
+                assertThat(driver.step().result()).isEqualTo(v);
+            }
         }
 
         @Test
         void conjunctionPureAndStreamPureEvaluatedOncePerStreamEmission() {
-            // subject && <stream> where subject=TRUE, stream: T, T, F
-            // Pure is re-evaluated for each stream emission
-            var broker       = attributeBroker("test.attr", Value.TRUE, Value.TRUE, Value.FALSE);
-            var subscription = AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL);
-            var evalCtx      = evaluationContext(subscription, broker);
-            var compiled     = compileExpression("subject && <test.attr>", compilationContext(broker));
+            // subject && <test.attr> with subject=TRUE; the pure left is
+            // evaluated each round, the stream right is rebound per round.
+            var driver = evaluate("subject && <test.attr>")
+                    .withSubscription(AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL));
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            for (var v : List.of(Value.TRUE, Value.TRUE, Value.FALSE)) {
+                driver.with("test.attr", v);
+                assertThat(driver.step().result()).isEqualTo(v);
+            }
         }
 
         @Test
-        void conjunctionLongSequenceAllTrueFinallyTrue() {
-            // 10 TRUE values in sequence
-            var values = new Value[10];
-            Arrays.fill(values, Value.TRUE);
-            var broker   = attributeBroker("test.attr", values);
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("true && <test.attr>", broker);
+        void conjunctionLongSequenceAllTrueProducesTrueEachRound() {
+            // Drives true && <test.attr> through 10 rounds with TRUE; each
+            // round emits TRUE.
+            var driver = evaluate("true && <test.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).expectNextCount(10).verifyComplete();
+            for (int i = 0; i < 10; i++) {
+                driver.with("test.attr", Value.TRUE);
+                assertThat(driver.step().result()).isEqualTo(Value.TRUE);
+            }
         }
 
         @Test
         void conjunctionTwoStreamsBothEmitMultipleCombinesCorrectly() {
-            // <a> && <b> where a: T, T, F and b: T (replayed for each a subscription)
-            // Expected: T&&T=T, T&&T=T, F (short-circuit)
-            var broker   = sequenceBroker(
-                    Map.of("a.attr", List.of(Value.TRUE, Value.TRUE, Value.FALSE), "b.attr", List.of(Value.TRUE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> && <b.attr>", broker);
+            // <a> && <b> where a flips TRUE, TRUE, FALSE; b held at TRUE.
+            // First two rounds full-eval to TRUE; third round short-circuits
+            // (b drops from deps).
+            var driver = evaluate("<a.attr> && <b.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)).verifyComplete();
+            driver.with("a.attr", Value.TRUE);
+            driver.step();
+
+            driver.with("b.attr", Value.TRUE);
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
+
+            // a still TRUE; b still TRUE; deps still both
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
+
+            driver.with("a.attr", Value.FALSE);
+            var r5 = driver.step();
+            assertThat(r5.result()).isEqualTo(Value.FALSE);
+            assertThat(r5.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
         }
 
         @Test
-        void disjunctionTwoStreamsFirstFalseThenTrueSecondNeverResubscribed() {
-            // <a> || <b> where a: F, T and b: F
-            // When a=F: subscribe to b, get F, result=F
-            // When a=T: short-circuit, result=T (b cancelled)
-            var broker   = sequenceBroker(
-                    Map.of("a.attr", List.of(Value.FALSE, Value.TRUE), "b.attr", List.of(Value.FALSE)));
-            var ctx      = evaluationContext(broker);
-            var compiled = compileExpression("<a.attr> || <b.attr>", broker);
+        void disjunctionTwoStreamsFirstFalseThenTrueSecondNotInDepsAfterShortCircuit() {
+            // <a> || <b>: a=FALSE, b=FALSE; both in deps and resolve to FALSE.
+            // Then a=TRUE; lazy OR short-circuits and b drops from deps.
+            var driver = evaluate("<a.attr> || <b.attr>");
+            driver.step();
 
-            var stream = ((StreamOperator) compiled).stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-            StepVerifier.create(stream).assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE)).verifyComplete();
+            driver.with("a.attr", Value.FALSE);
+            driver.step();
+
+            driver.with("b.attr", Value.FALSE);
+            var r3 = driver.step();
+            assertThat(r3.result()).isEqualTo(Value.FALSE);
+            assertThat(r3.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("a.attr", "b.attr");
+
+            driver.with("a.attr", Value.TRUE);
+            var r4 = driver.step();
+            assertThat(r4.result()).isEqualTo(Value.TRUE);
+            assertThat(r4.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("a.attr");
         }
     }
 

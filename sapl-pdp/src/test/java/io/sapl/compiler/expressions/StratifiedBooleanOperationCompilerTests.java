@@ -166,25 +166,39 @@ class StratifiedBooleanOperationCompilerTests {
 
         @Test
         void whenStreamAndStreamLeftEmitsFalseThenShortCircuitsRight() {
-            var broker = sequenceBroker(Map.of("test.left", List.of(Value.FALSE, Value.TRUE, Value.FALSE), "test.right",
-                    List.of(Value.TRUE)));
-            var ctx    = compilationContext(broker);
+            // Drives <test.left> && <test.right> through left transitions
+            // FALSE -> TRUE -> FALSE, asserting that the right side is only
+            // present in the dependency map when left is TRUE (lazy short-circuit
+            // and lazy re-subscribe).
+            var driver = evaluate("<test.left> && <test.right>");
 
-            var compiled = compileExpression("<test.left> && <test.right>", ctx);
+            // Round 1: discover left.
+            driver.step();
 
-            assertThat(compiled).isInstanceOf(StreamOperator.class);
+            // Round 2: left=FALSE. Lazy short-circuits; right never inspected.
+            driver.with("test.left", Value.FALSE);
+            var r2 = driver.step();
+            assertThat(r2.result()).isEqualTo(Value.FALSE);
+            assertThat(r2.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("test.left");
 
-            var evalCtx = evaluationContext(broker);
-            var stream  = ((StreamOperator) compiled).stream();
+            // Round 3: left=TRUE. Right discovered; not yet bound.
+            driver.with("test.left", Value.TRUE);
+            var r3 = driver.step();
+            assertThat(r3.result()).isNull();
+            assertThat(r3.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactlyInAnyOrder("test.left", "test.right");
 
-            // left emits: false, true, false
-            // When left=false, short-circuits (doesn't need right)
-            // When left=true, evaluates right (which returns true)
-            StepVerifier.create(stream.contextWrite(c -> c.put(EvaluationContext.class, evalCtx)))
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)) // false short-circuits
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.TRUE))  // true && true
-                    .assertNext(tv -> assertThat(tv.value()).isEqualTo(Value.FALSE)) // false short-circuits
-                    .verifyComplete();
+            // Round 4: bind right=TRUE. Both resolve.
+            driver.with("test.right", Value.TRUE);
+            assertThat(driver.step().result()).isEqualTo(Value.TRUE);
+
+            // Round 5: left flips back to FALSE. Right unsubscribed.
+            driver.with("test.left", Value.FALSE);
+            var r5 = driver.step();
+            assertThat(r5.result()).isEqualTo(Value.FALSE);
+            assertThat(r5.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
+                    .containsExactly("test.left");
         }
     }
 
