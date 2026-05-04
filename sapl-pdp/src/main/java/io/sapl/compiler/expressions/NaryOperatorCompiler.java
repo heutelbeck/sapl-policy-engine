@@ -25,7 +25,6 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TracedValue;
@@ -40,7 +39,6 @@ import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -243,26 +241,6 @@ public class NaryOperatorCompiler {
             List<PureOperator> pures,
             List<StreamOperator> streams,
             SourceLocation location) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val evalCtx = ctx.get(EvaluationContext.class);
-
-                // Evaluate pures first (before subscribing to streams)
-                var preCombined = evaluateAndFoldPures(valueResult, pures, op, location, evalCtx);
-                if (preCombined instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(preCombined, List.of()));
-                }
-
-                // Subscribe to all streams with combineLatest
-                val streamFluxes     = streams.stream().map(StreamOperator::stream).toList();
-                val finalPreCombined = preCombined;
-
-                return Flux.combineLatest(streamFluxes,
-                        emittedValues -> foldStreamValues(finalPreCombined, emittedValues, op, location));
-            });
-        }
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {

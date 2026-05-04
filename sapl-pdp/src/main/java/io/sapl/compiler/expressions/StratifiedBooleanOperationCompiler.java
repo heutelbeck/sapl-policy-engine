@@ -286,11 +286,6 @@ public class StratifiedBooleanOperationCompiler {
 
     record LazyValueStream(StreamOperator s, SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return s.stream().map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
-        }
-
-        @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(s, ctx, deps);
@@ -302,22 +297,6 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     record LazyAndPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val pv = p.evaluate(ctx.get(EvaluationContext.class));
-                if (pv instanceof BooleanValue(var b)) {
-                    if (!b) {
-                        return Flux.just(new TracedValue(Value.FALSE, List.of()));
-                    }
-                    return s.stream()
-                            .map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
-                }
-                return Flux.just(new TracedValue(
-                        Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()), List.of()));
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -341,22 +320,6 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     record LazyOrPureStream(PureOperator p, StreamOperator s, SourceLocation location) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val pv = p.evaluate(ctx.get(EvaluationContext.class));
-                if (pv instanceof BooleanValue(var b)) {
-                    if (b) {
-                        return Flux.just(new TracedValue(Value.TRUE, List.of()));
-                    }
-                    return s.stream()
-                            .map(tv -> new TracedValue(asBoolean(tv.value(), location), tv.contributingAttributes()));
-                }
-                return Flux.just(new TracedValue(
-                        Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()), List.of()));
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -382,25 +345,6 @@ public class StratifiedBooleanOperationCompiler {
     record LazyAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return s1.stream().switchMap(tv1 -> {
-                if (tv1.value() instanceof BooleanValue(var b1)) {
-                    if (!b1) {
-                        return Flux.just(new TracedValue(Value.FALSE, tv1.contributingAttributes()));
-                    }
-                    return s2.stream().map(tv2 -> {
-                        val combined = new ArrayList<>(tv1.contributingAttributes());
-                        combined.addAll(tv2.contributingAttributes());
-                        return new TracedValue(asBoolean(tv2.value(), location), combined);
-                    });
-                }
-                return Flux.just(new TracedValue(
-                        Value.errorAt(location, ERROR_TYPE_MISMATCH, tv1.value().getClass().getSimpleName()),
-                        tv1.contributingAttributes()));
-            });
-        }
-
-        @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
@@ -423,25 +367,6 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     record LazyOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return s1.stream().switchMap(tv1 -> {
-                if (tv1.value() instanceof BooleanValue(var b1)) {
-                    if (b1) {
-                        return Flux.just(new TracedValue(Value.TRUE, tv1.contributingAttributes()));
-                    }
-                    return s2.stream().map(tv2 -> {
-                        val combined = new ArrayList<>(tv1.contributingAttributes());
-                        combined.addAll(tv2.contributingAttributes());
-                        return new TracedValue(asBoolean(tv2.value(), location), combined);
-                    });
-                }
-                return Flux.just(new TracedValue(
-                        Value.errorAt(location, ERROR_TYPE_MISMATCH, tv1.value().getClass().getSimpleName()),
-                        tv1.contributingAttributes()));
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
@@ -466,26 +391,6 @@ public class StratifiedBooleanOperationCompiler {
 
     record EagerAndStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
             implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.combineLatest(s1.stream(), s2.stream(), (tv1, tv2) -> {
-                val combined = new ArrayList<>(tv1.contributingAttributes());
-                combined.addAll(tv2.contributingAttributes());
-                if (tv1.value() instanceof BooleanValue(var b1) && tv2.value() instanceof BooleanValue(var b2)) {
-                    return new TracedValue(b1 && b2 ? Value.TRUE : Value.FALSE, combined);
-                }
-                if (tv1.value() instanceof ErrorValue) {
-                    return new TracedValue(tv1.value(), combined);
-                }
-                if (tv2.value() instanceof ErrorValue) {
-                    return new TracedValue(tv2.value(), combined);
-                }
-                val bad = !(tv1.value() instanceof BooleanValue) ? tv1.value() : tv2.value();
-                return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, bad.getClass().getSimpleName()),
-                        combined);
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
@@ -516,26 +421,6 @@ public class StratifiedBooleanOperationCompiler {
 
     record EagerOrStreamStream(StreamOperator s1, StreamOperator s2, SourceLocation location)
             implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.combineLatest(s1.stream(), s2.stream(), (tv1, tv2) -> {
-                val combined = new ArrayList<>(tv1.contributingAttributes());
-                combined.addAll(tv2.contributingAttributes());
-                if (tv1.value() instanceof BooleanValue(var b1) && tv2.value() instanceof BooleanValue(var b2)) {
-                    return new TracedValue(b1 || b2 ? Value.TRUE : Value.FALSE, combined);
-                }
-                if (tv1.value() instanceof ErrorValue) {
-                    return new TracedValue(tv1.value(), combined);
-                }
-                if (tv2.value() instanceof ErrorValue) {
-                    return new TracedValue(tv2.value(), combined);
-                }
-                val bad = !(tv1.value() instanceof BooleanValue) ? tv1.value() : tv2.value();
-                return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, bad.getClass().getSimpleName()),
-                        combined);
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);

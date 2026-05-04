@@ -17,11 +17,29 @@
  */
 package io.sapl.compiler.expressions;
 
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.ExpressionResult;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
@@ -29,53 +47,57 @@ import io.sapl.ast.Expression;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
-
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
 
 @UtilityClass
 public class AttributeCompiler {
 
-    private static final String ERROR_PURE_PATH_RECEIVED_STREAM_OPERATOR = "AllPureAttribute received StreamOperator argument";
+    public static final long DEFAULT_TIMEOUT_MS       = 3000L;
+    public static final long DEFAULT_POLL_INTERVAL_MS = 30000L;
+    public static final long DEFAULT_BACKOFF_MS       = 1000L;
+    public static final long DEFAULT_RETRIES          = 3L;
 
-    public static StreamOperator compileEnvironmentAttribute(EnvironmentAttribute attr, CompilationContext ctx) {
+    public static final String OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS = "attributeFinderOptions";
+
+    public static final String OPTION_INITIAL_TIMEOUT = "initialTimeOutMs";
+    public static final String OPTION_POLL_INTERVAL   = "pollIntervalMs";
+    public static final String OPTION_BACKOFF         = "backoffMs";
+    public static final String OPTION_RETRIES         = "retries";
+    public static final String OPTION_FRESH           = "fresh";
+
+    private static final String ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED          = "Attribute access not permitted in attribute options.";
+    private static final String ERROR_OPTIONS_MUST_BE_OBJECT                  = "Attribute options must be an object, but was: %s.";
+    private static final String ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION = "Attribute options must not depend on any element of the authorization subscription";
+    private static final String ERROR_PDP_DEFAULTS_MUST_BE_OBJECT             = "If defined, PDP wide defaults (%s) for attribute options must be an object, but was: %s.";
+
+    private static final ObjectValue DEFAULT_SETTINGS = ObjectValue.builder()
+            .put(OPTION_INITIAL_TIMEOUT, Value.of(DEFAULT_TIMEOUT_MS))
+            .put(OPTION_POLL_INTERVAL, Value.of(DEFAULT_POLL_INTERVAL_MS))
+            .put(OPTION_BACKOFF, Value.of(DEFAULT_BACKOFF_MS)).put(OPTION_RETRIES, Value.of(DEFAULT_RETRIES))
+            .put(OPTION_FRESH, Value.FALSE).build();
+
+    public static CompiledExpression compileEnvironmentAttribute(EnvironmentAttribute attr, CompilationContext ctx) {
         return compileAttribute(null, attr.name().full(), attr.arguments(), attr.options(), attr.head(),
                 attr.location(), ctx);
     }
 
-    public static StreamOperator compileAttributeStep(AttributeStep attr, CompilationContext ctx) {
+    public static CompiledExpression compileAttributeStep(AttributeStep attr, CompilationContext ctx) {
         return compileAttribute(attr.base(), attr.name().full(), attr.arguments(), attr.options(), attr.head(),
                 attr.location(), ctx);
     }
 
-    private static StreamOperator compileAttribute(Expression entityExpr, String attributeName,
+    private static CompiledExpression compileAttribute(Expression entityExpr, String attributeName,
             @NonNull List<Expression> arguments, Expression optionsExpr, boolean head, @NonNull SourceLocation location,
             CompilationContext ctx) {
 
-        val compiledOptions = AttributeOptionsCompiler.compileOptions(optionsExpr, ctx);
-        if (compiledOptions instanceof ErrorValue err) {
-            return errorStream(err);
-        }
+        val options = compileOptions(optionsExpr, ctx);
 
         CompiledExpression compiledEntity = null;
         if (entityExpr != null) {
             compiledEntity = ExpressionCompiler.compile(entityExpr, ctx);
             if (compiledEntity instanceof ErrorValue err) {
-                return errorStream(err);
+                return err;
             }
         }
 
@@ -83,663 +105,164 @@ public class AttributeCompiler {
         for (val argExpr : arguments) {
             val compiled = ExpressionCompiler.compile(argExpr, ctx);
             if (compiled instanceof ErrorValue err) {
-                return errorStream(err);
+                return err;
             }
             compiledArgs.add(compiled);
         }
 
-        return buildOptimizedOperator(compiledEntity, compiledArgs, compiledOptions, attributeName, head, location,
-                ctx);
-    }
-
-    private static StreamOperator errorStream(ErrorValue error) {
-        return () -> Flux.just(new TracedValue(error, List.of()));
-    }
-
-    private static StreamOperator buildOptimizedOperator(CompiledExpression entity, List<CompiledExpression> arguments,
-            CompiledExpression options, String attributeName, boolean head, SourceLocation location,
-            CompilationContext ctx) {
-
-        boolean entityIsStream = entity instanceof StreamOperator;
-        boolean entityIsPure   = entity instanceof PureOperator;
-        Value   entityValue    = entity instanceof Value v ? v : null;
-
-        val cat         = ArrayCompiler.CategorizedExpressions.categorize(arguments);
-        int streamCount = cat.streamCount() + (entityIsStream ? 1 : 0);
-
-        if (streamCount == 0) {
-            boolean noPureAnywhere = !entityIsPure && cat.pureOperators().length == 0
-                    && !(options instanceof PureOperator);
-            if (noPureAnywhere) {
-                val denseArgs = new ArrayList<Value>(cat.totalCount());
-                for (int i = 0; i < cat.totalCount(); i++) {
-                    denseArgs.add(null);
-                }
-                for (int i = 0; i < cat.valueIndices().length; i++) {
-                    denseArgs.set(cat.valueIndices()[i], cat.values()[i]);
-                }
-                Value optionsValue = options instanceof Value v ? v : Value.EMPTY_OBJECT;
-                return new AllValueAttribute(attributeName, entityValue, ctx.getData(), denseArgs, optionsValue, head,
-                        location);
-            }
-            return new AllPureAttribute(attributeName, entity, ctx.getData(), arguments, options, head, location);
-        }
-        if (streamCount == 1 && entityIsStream) {
-            return new EntityStreamAttribute(attributeName, ctx.getData(), (StreamOperator) entity, cat.valueIndices(),
-                    cat.values(), cat.pureIndices(), cat.pureOperators(), cat.totalCount(), options, head, location,
-                    entity, arguments);
-        }
-        if (streamCount == 1) {
-            return new SingleStreamAttribute(attributeName, entityValue, ctx.getData(),
-                    entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
-                    cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), options, head,
-                    location, entity, arguments);
-        }
-        return buildMultiStreamAttribute(entity, entityIsStream, entityIsPure, entityValue, cat, attributeName, options,
-                head, location, ctx, arguments);
-    }
-
-    private static StreamOperator buildMultiStreamAttribute(CompiledExpression entity, boolean entityIsStream,
-            boolean entityIsPure, Value entityValue, ArrayCompiler.CategorizedExpressions cat, String attributeName,
-            CompiledExpression options, boolean head, SourceLocation location, CompilationContext ctx,
-            List<CompiledExpression> arguments) {
-        int   entityOffset     = entityIsStream ? 1 : 0;
-        int[] allStreamIndices = new int[cat.streamCount() + entityOffset];
-        val   allStreams       = new StreamOperator[cat.streamCount() + entityOffset];
-
-        if (entityIsStream) {
-            allStreamIndices[0] = -1;
-            allStreams[0]       = (StreamOperator) entity;
-        }
-        System.arraycopy(cat.streamIndices(), 0, allStreamIndices, entityOffset, cat.streamCount());
-        System.arraycopy(cat.streams(), 0, allStreams, entityOffset, cat.streamCount());
-
-        return new MultiStreamAttribute(attributeName, entityValue, ctx.getData(),
-                entityIsPure ? (PureOperator) entity : null, cat.valueIndices(), cat.values(), cat.pureIndices(),
-                cat.pureOperators(), allStreamIndices, allStreams, cat.totalCount(), options, head, location, entity,
-                arguments);
+        return new Attribute(attributeName, compiledEntity, ctx.getData(), compiledArgs, options, head, location);
     }
 
     /**
-     * Specialised AllPureAttribute case where every input is a constant
-     * Value (entity is null or Value, every argument is a Value, options
-     * is null or Value). The {@link AttributeFinderInvocation} this
-     * operator produces depends only on the per-subscription
-     * {@link EvaluationContext} (configurationId, secrets); the
-     * argument list and entity are fixed at compile time. This is the
-     * cleanest case for snapshot-driven evaluation: the subscription
-     * set never changes, the invocation is essentially constant.
+     * Compiles attribute finder options by merging policy-level options with
+     * PDP-level defaults.
+     * <p>
+     * Priority chain: policy options &gt; PDP options &gt; built-in defaults.
+     *
+     * @param optionsExpression the options expression from the policy, or null if
+     * none specified
+     * @param ctx the compilation context containing PDP-level settings
+     * @return an ObjectValue containing the merged options
+     * @throws SaplCompilerException if options are invalid, depend on subscription,
+     * or use attributes
      */
-    public record AllValueAttribute(
-            String attributeName,
-            Value entityValue,
-            PdpData pdpData,
-            List<Value> arguments,
-            Value options,
-            boolean head,
-            SourceLocation location) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val evalCtx    = ctx.get(EvaluationContext.class);
-                val invocation = createInvocation(attributeName, entityValue, arguments, options, pdpData, evalCtx);
-                return invokeAndTrace(invocation, head, location);
-            });
+    public static ObjectValue compileOptions(Expression optionsExpression, CompilationContext ctx) {
+        var settings    = DEFAULT_SETTINGS;
+        var pdpSettings = ctx.data.variables().get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
+        if (pdpSettings != null) {
+            if (!(pdpSettings instanceof ObjectValue pdpSettingsObjectValue)) {
+                throw new SaplCompilerException(
+                        ERROR_PDP_DEFAULTS_MUST_BE_OBJECT.formatted(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpSettings),
+                        optionsExpression == null ? null : optionsExpression.location());
+            }
+            settings = mergeSettings(settings, pdpSettingsObjectValue);
         }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, entityValue, arguments, options, pdpData, head, location, ctx);
+        if (optionsExpression == null) {
+            return settings;
         }
-
+        val policyLocalSettings = ExpressionCompiler.compile(optionsExpression, ctx);
+        if (policyLocalSettings instanceof StreamOperator) {
+            throw new SaplCompilerException(ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED, optionsExpression.location());
+        }
+        if (policyLocalSettings instanceof PureOperator) {
+            throw new SaplCompilerException(ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION,
+                    optionsExpression.location());
+        }
+        if (!(policyLocalSettings instanceof ObjectValue localOverrides)) {
+            throw new SaplCompilerException(ERROR_OPTIONS_MUST_BE_OBJECT.formatted(policyLocalSettings),
+                    optionsExpression.location());
+        }
+        return mergeSettings(settings, localOverrides);
     }
 
-    public record AllPureAttribute(
+    private static ObjectValue mergeSettings(ObjectValue original, ObjectValue override) {
+        val builder = ObjectValue.builder();
+        mergeKey(builder, OPTION_INITIAL_TIMEOUT, original, override);
+        mergeKey(builder, OPTION_POLL_INTERVAL, original, override);
+        mergeKey(builder, OPTION_BACKOFF, original, override);
+        mergeKey(builder, OPTION_RETRIES, original, override);
+        mergeKey(builder, OPTION_FRESH, original, override);
+        return builder.build();
+    }
+
+    private static void mergeKey(ObjectValue.Builder builder, String key, ObjectValue original, ObjectValue override) {
+        builder.put(key, override.containsKey(key) ? override.get(key) : original.get(key));
+    }
+
+    /**
+     * Snapshot-driven attribute access.
+     * <p>
+     * {@link #evaluate(EvaluationContext)} walks entity and every argument via
+     * {@link StreamOperator#evalChild}, accumulating dependencies even past
+     * any encountered {@link ErrorValue}. Holds the first error and returns
+     * it after the full walk completes. {@code null} from a child sets the
+     * incomplete flag; on a clean walk with no error the attribute
+     * invocation is built and looked up against the snapshot. Precedence at
+     * the end: error &gt; null &gt; lookup result.
+     */
+    public record Attribute(
             String attributeName,
             @Nullable CompiledExpression entity,
             PdpData pdpData,
             List<CompiledExpression> arguments,
-            CompiledExpression options,
+            ObjectValue options,
             boolean head,
             SourceLocation location) implements StreamOperator {
 
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val evalCtx = ctx.get(EvaluationContext.class);
-
-                Value entityValue = null;
-                if (entity != null) {
-                    entityValue = evaluatePure(entity, evalCtx);
-                    if (entityValue instanceof ErrorValue) {
-                        return Flux.just(errorTracedValue(entityValue));
-                    }
-                }
-
-                val optionsValue = evaluateOptions(options, evalCtx);
-                if (optionsValue instanceof ErrorValue) {
-                    return Flux.just(errorTracedValue(optionsValue));
-                }
-
-                val args = new ArrayList<Value>(arguments.size());
-                for (val argExpr : arguments) {
-                    val argValue = evaluatePure(argExpr, evalCtx);
-                    if (argValue instanceof ErrorValue) {
-                        return Flux.just(errorTracedValue(argValue));
-                    }
-                    args.add(argValue);
-                }
-
-                val invocation = createInvocation(attributeName, entityValue, args, optionsValue, pdpData, evalCtx);
-                return invokeAndTrace(invocation, head, location);
-            });
-        }
-
-        @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, entity, arguments, options, pdpData, head, location, ctx);
-        }
-    }
-
-    public record EntityStreamAttribute(
-            String attributeName,
-            PdpData pdpData,
-            StreamOperator entityStream,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int totalArgs,
-            CompiledExpression options,
-            boolean head,
-            SourceLocation location,
-            @Nullable CompiledExpression compiledEntity,
-            List<CompiledExpression> compiledArguments) implements StreamOperator {
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(attributeName, pdpData, entityStream, Arrays.hashCode(valueIndices),
-                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalArgs,
-                    options, head, location, Objects.hashCode(compiledEntity), Objects.hashCode(compiledArguments));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof EntityStreamAttribute(var oName, var oPdp, var oEntityStream, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
-                            && Objects.equals(attributeName, oName) && Objects.equals(pdpData, oPdp)
-                            && Objects.equals(entityStream, oEntityStream) && Arrays.equals(valueIndices, oValIdx)
-                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
-                            && Arrays.equals(pureOperators, oPureOps) && totalArgs == oTotal
-                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc)
-                            && Objects.equals(compiledEntity, oCompiledEntity)
-                            && Objects.equals(compiledArguments, oCompiledArgs));
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, compiledEntity, compiledArguments, options, pdpData, head, location,
-                    ctx);
-        }
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return entityStream.stream().switchMap(tracedEntity -> {
-                val entityVal = tracedEntity.value();
-                if (entityVal instanceof ErrorValue) {
-                    return Flux.just(tracedEntity);
+            val     deps        = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size() + 2);
+            boolean seenNull    = false;
+            Value   firstError  = null;
+            Value   entityValue = null;
+            if (entity != null) {
+                val v = evalChild(entity, ctx, deps);
+                if (v == null) {
+                    seenNull = true;
+                } else if (v instanceof ErrorValue) {
+                    firstError = v;
+                } else {
+                    entityValue = v;
                 }
+            }
 
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx = ctx.get(EvaluationContext.class);
-
-                    val optionsValue = evaluateOptions(options, evalCtx);
-                    if (optionsValue instanceof ErrorValue) {
-                        return Flux.just(errorTracedValue(optionsValue));
-                    }
-
-                    val args = buildArgumentArray(valueIndices, values, pureIndices, pureOperators, totalArgs, evalCtx);
-                    if (args instanceof ErrorValue err) {
-                        return Flux.just(errorTracedValue(err));
-                    }
-                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                    val invocation = createInvocation(attributeName, entityVal, (List<Value>) args, optionsValue,
-                            pdpData, evalCtx);
-                    return invokeAndTrace(invocation, head, location)
-                            .map(tv -> mergeTraces(tv, tracedEntity.contributingAttributes()));
-                });
-            });
-        }
-    }
-
-    /**
-     * Single stream argument. {@code evaluate(ctx)} walks every child to
-     * accumulate the maximum subscription set, holds the first
-     * {@link ErrorValue}, and returns it after the full walk.
-     */
-    public record SingleStreamAttribute(
-            String attributeName,
-            Value entityValue,
-            PdpData pdpData,
-            PureOperator entityPure,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int streamIndex,
-            StreamOperator argStream,
-            int totalArgs,
-            CompiledExpression options,
-            boolean head,
-            SourceLocation location,
-            @Nullable CompiledExpression compiledEntity,
-            List<CompiledExpression> compiledArguments) implements StreamOperator {
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
-                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
-                    argStream, totalArgs, options, head, location, Objects.hashCode(compiledEntity),
-                    Objects.hashCode(compiledArguments));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof SingleStreamAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oArgStream, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
-                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
-                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
-                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
-                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
-                            && streamIndex == oStreamIdx && Objects.equals(argStream, oArgStream) && totalArgs == oTotal
-                            && Objects.equals(options, oOpts) && head == oHead && Objects.equals(location, oLoc)
-                            && Objects.equals(compiledEntity, oCompiledEntity)
-                            && Objects.equals(compiledArguments, oCompiledArgs));
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, compiledEntity, compiledArguments, options, pdpData, head, location,
-                    ctx);
-        }
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return argStream.stream().switchMap(tracedArg -> {
-                val argVal = tracedArg.value();
-                if (argVal instanceof ErrorValue) {
-                    return Flux.just(tracedArg);
+            val argValues = new ArrayList<Value>(arguments.size());
+            for (val arg : arguments) {
+                val argValue = evalChild(arg, ctx, deps);
+                if (argValue == null) {
+                    seenNull = true;
+                    continue;
                 }
-
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx = ctx.get(EvaluationContext.class);
-
-                    Value entity = entityValue;
-                    if (entityPure != null) {
-                        entity = entityPure.evaluate(evalCtx);
-                        if (entity instanceof ErrorValue) {
-                            return Flux.just(errorTracedValue(entity));
-                        }
+                if (argValue instanceof ErrorValue) {
+                    if (firstError == null) {
+                        firstError = argValue;
                     }
-
-                    val optionsValue = evaluateOptions(options, evalCtx);
-                    if (optionsValue instanceof ErrorValue) {
-                        return Flux.just(errorTracedValue(optionsValue));
-                    }
-
-                    val args = buildArgumentArrayWithStreamValue(valueIndices, values, pureIndices, pureOperators,
-                            streamIndex, argVal, totalArgs, evalCtx);
-                    if (args instanceof ErrorValue err) {
-                        return Flux.just(errorTracedValue(err));
-                    }
-                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                    val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
-                            evalCtx);
-                    return invokeAndTrace(invocation, head, location)
-                            .map(tv -> mergeTraces(tv, tracedArg.contributingAttributes()));
-                });
-            });
-        }
-    }
-
-    /**
-     * Multiple stream children. {@code evaluate(ctx)} walks every child to
-     * accumulate the maximum subscription set, holds the first
-     * {@link ErrorValue}, and returns it after the full walk.
-     */
-    public record MultiStreamAttribute(
-            String attributeName,
-            Value entityValue,
-            PdpData pdpData,
-            PureOperator entityPure,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int[] streamIndices,
-            StreamOperator[] streams,
-            int totalArgs,
-            CompiledExpression options,
-            boolean head,
-            SourceLocation location,
-            @Nullable CompiledExpression compiledEntity,
-            List<CompiledExpression> compiledArguments) implements StreamOperator {
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(attributeName, entityValue, pdpData, entityPure, Arrays.hashCode(valueIndices),
-                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators),
-                    Arrays.hashCode(streamIndices), Arrays.hashCode(streams), totalArgs, options, head, location,
-                    Objects.hashCode(compiledEntity), Objects.hashCode(compiledArguments));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof MultiStreamAttribute(var oName, var oEntity, var oPdp, var oEntityPure, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oOpts, var oHead, var oLoc, var oCompiledEntity, var oCompiledArgs)
-                            && Objects.equals(attributeName, oName) && Objects.equals(entityValue, oEntity)
-                            && Objects.equals(pdpData, oPdp) && Objects.equals(entityPure, oEntityPure)
-                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
-                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
-                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
-                            && totalArgs == oTotal && Objects.equals(options, oOpts) && head == oHead
-                            && Objects.equals(location, oLoc) && Objects.equals(compiledEntity, oCompiledEntity)
-                            && Objects.equals(compiledArguments, oCompiledArgs));
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return attributeLookup(attributeName, compiledEntity, compiledArguments, options, pdpData, head, location,
-                    ctx);
-        }
-
-        @Override
-        public Flux<TracedValue> stream() {
-            List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
-            for (val s : streams) {
-                fluxList.add(s.stream());
-            }
-
-            return Flux.combineLatest(fluxList, arr -> {
-                val combinedTraces = new ArrayList<AttributeRecord>();
-                val streamValues   = new TracedValue[arr.length];
-                for (int i = 0; i < arr.length; i++) {
-                    streamValues[i] = (TracedValue) arr[i];
-                    combinedTraces.addAll(streamValues[i].contributingAttributes());
+                    continue;
                 }
-                return new CombinedStreams(streamValues, combinedTraces);
-            }).switchMap(combined -> {
-                for (val tv : combined.values) {
-                    if (tv.value() instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(tv.value(), combined.traces));
-                    }
-                }
-
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx = ctx.get(EvaluationContext.class);
-
-                    Value entity = entityValue;
-                    if (streamIndices.length > 0 && streamIndices[0] == -1) {
-                        entity = combined.values[0].value();
-                    } else if (entityPure != null) {
-                        entity = entityPure.evaluate(evalCtx);
-                        if (entity instanceof ErrorValue) {
-                            return Flux.just(errorTracedValue(entity));
-                        }
-                    }
-
-                    val optionsValue = evaluateOptions(options, evalCtx);
-                    if (optionsValue instanceof ErrorValue) {
-                        return Flux.just(errorTracedValue(optionsValue));
-                    }
-
-                    val args = buildArgumentArrayWithMultipleStreams(valueIndices, values, pureIndices, pureOperators,
-                            streamIndices, combined.values, totalArgs, evalCtx);
-                    if (args instanceof ErrorValue err) {
-                        return Flux.just(errorTracedValue(err));
-                    }
-                    @SuppressWarnings("unchecked") // buildArgumentArray only returns ErrorValue or List<Value>
-                    val invocation = createInvocation(attributeName, entity, (List<Value>) args, optionsValue, pdpData,
-                            evalCtx);
-                    return invokeAndTrace(invocation, head, location).map(tv -> mergeTraces(tv, combined.traces));
-                });
-            });
-        }
-
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
-            @Override
-            public int hashCode() {
-                return Objects.hash(Arrays.hashCode(values), traces);
+                argValues.add(argValue);
             }
 
-            @Override
-            public boolean equals(Object o) {
-                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
-                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
             }
-        }
-    }
-
-    private static Value evaluateOptions(CompiledExpression options, EvaluationContext ctx) {
-        if (options instanceof Value v) {
-            return v;
-        }
-        if (options instanceof PureOperator po) {
-            return po.evaluate(ctx);
-        }
-        return ObjectValue.builder().build();
-    }
-
-    private static Value evaluatePure(CompiledExpression expr, EvaluationContext ctx) {
-        return switch (expr) {
-        case Value v                -> v;
-        case PureOperator p         -> p.evaluate(ctx);
-        case StreamOperator ignored -> Value.error(ERROR_PURE_PATH_RECEIVED_STREAM_OPERATOR);
-        };
-    }
-
-    /**
-     * Walks entity and every argument via {@link StreamOperator#evalChild},
-     * accumulating dependencies even past any encountered
-     * {@link ErrorValue}. Holds the first error and returns it after the
-     * full walk completes. {@code null} from a child sets the incomplete
-     * flag; on a clean walk with no error the attribute invocation is
-     * built and looked up. Precedence at the end:
-     * error &gt; null &gt; lookup result.
-     */
-    private static ExpressionResult attributeLookup(String attributeName, @Nullable CompiledExpression entity,
-            List<? extends CompiledExpression> arguments, CompiledExpression options, PdpData pdpData, boolean head,
-            SourceLocation location, EvaluationContext ctx) {
-        val optionsValue = evaluateOptions(options, ctx);
-
-        // Sized for: per-argument dependencies + optional entity dependency
-        // + the final attribute dependency added at the end.
-        val     deps        = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size() + 2);
-        boolean seenNull    = false;
-        Value   firstError  = null;
-        Value   entityValue = null;
-        if (entity != null) {
-            val v = evalChild(entity, ctx, deps);
-            if (v == null) {
-                seenNull = true;
-            } else if (v instanceof ErrorValue) {
-                firstError = v;
-            } else {
-                entityValue = v;
-            }
-        }
-
-        val argValues = new ArrayList<Value>(arguments.size());
-        for (val arg : arguments) {
-            val argValue = evalChild(arg, ctx, deps);
-            if (argValue == null) {
-                seenNull = true;
-                continue;
-            }
-            if (argValue instanceof ErrorValue) {
-                if (firstError == null) {
-                    firstError = argValue;
-                }
-                continue;
-            }
-            argValues.add(argValue);
-        }
-
-        if (firstError != null) {
-            return new ExpressionResult(firstError, deps);
-        }
-        if (seenNull) {
-            return new ExpressionResult(null, deps);
-        }
-
-        val invocation = createInvocation(attributeName, entityValue, argValues, optionsValue, pdpData, ctx);
-        val key        = new SubscriptionKey(invocation, head);
-        deps.computeIfAbsent(key, k -> new ArrayList<>()).add(new Occurrence(location));
-        val value = ctx.lookup(key);
-        return new ExpressionResult(value, deps);
-    }
-
-    private static Object buildArgumentArray(int[] valueIndices, Value[] values, int[] pureIndices,
-            PureOperator[] pureOperators, int totalArgs, EvaluationContext ctx) {
-        val args = new ArrayList<Value>(totalArgs);
-        for (int i = 0; i < totalArgs; i++) {
-            args.add(null);
-        }
-
-        for (int i = 0; i < valueIndices.length; i++) {
-            args.set(valueIndices[i], values[i]);
-        }
-
-        for (int i = 0; i < pureIndices.length; i++) {
-            val value = pureOperators[i].evaluate(ctx);
-            if (value instanceof ErrorValue) {
-                return value;
-            }
-            args.set(pureIndices[i], value);
-        }
-
-        return args;
-    }
-
-    private static Object buildArgumentArrayWithStreamValue(int[] valueIndices, Value[] values, int[] pureIndices,
-            PureOperator[] pureOperators, int streamIndex, Value streamValue, int totalArgs, EvaluationContext ctx) {
-        val args = new ArrayList<Value>(totalArgs);
-        for (int i = 0; i < totalArgs; i++) {
-            args.add(null);
-        }
-
-        for (int i = 0; i < valueIndices.length; i++) {
-            args.set(valueIndices[i], values[i]);
-        }
-
-        for (int i = 0; i < pureIndices.length; i++) {
-            val value = pureOperators[i].evaluate(ctx);
-            if (value instanceof ErrorValue) {
-                return value;
-            }
-            args.set(pureIndices[i], value);
-        }
-
-        args.set(streamIndex, streamValue);
-
-        return args;
-    }
-
-    private static Object buildArgumentArrayWithMultipleStreams(int[] valueIndices, Value[] values, int[] pureIndices,
-            PureOperator[] pureOperators, int[] streamIndices, TracedValue[] streamValues, int totalArgs,
-            EvaluationContext ctx) {
-        val args = new ArrayList<Value>(totalArgs);
-        for (int i = 0; i < totalArgs; i++) {
-            args.add(null);
-        }
-
-        for (int i = 0; i < valueIndices.length; i++) {
-            args.set(valueIndices[i], values[i]);
-        }
-
-        for (int i = 0; i < pureIndices.length; i++) {
-            val value = pureOperators[i].evaluate(ctx);
-            if (value instanceof ErrorValue) {
-                return value;
-            }
-            args.set(pureIndices[i], value);
-        }
-
-        for (int i = 0; i < streamIndices.length; i++) {
-            if (streamIndices[i] == -1) {
-                continue;
-            }
-            args.set(streamIndices[i], streamValues[i].value());
-        }
-
-        return args;
-    }
-
-    private static AttributeFinderInvocation createInvocation(String attributeName, Value entity, List<Value> arguments,
-            Value options, PdpData data, EvaluationContext ctx) {
-        val configurationId = ctx.configurationId();
-        val timeout         = Duration.ofMillis(longOption(options, OPTION_INITIAL_TIMEOUT, DEFAULT_TIMEOUT_MS));
-        val pollInterval    = Duration.ofMillis(longOption(options, OPTION_POLL_INTERVAL, DEFAULT_POLL_INTERVAL_MS));
-        val backoff         = Duration.ofMillis(longOption(options, OPTION_BACKOFF, DEFAULT_BACKOFF_MS));
-        val retries         = longOption(options, OPTION_RETRIES, DEFAULT_RETRIES);
-        val fresh           = freshOption(options);
-        val accessCtx       = new AttributeAccessContext(data.variables(), data.secrets(),
-                ctx.authorizationSubscription().secrets());
-        return new AttributeFinderInvocation(configurationId, attributeName, entity, arguments, timeout, pollInterval,
-                backoff, retries, fresh, accessCtx);
-    }
-
-    private static Flux<TracedValue> invokeAndTrace(AttributeFinderInvocation invocation, boolean head,
-            SourceLocation location) {
-        return Flux.deferContextual(ctx -> {
-            val evalCtx = ctx.get(EvaluationContext.class);
-            var stream  = evalCtx.attributeBroker().attributeStream(invocation).map(value -> {
-                            val attributeRecord = new AttributeRecord(invocation, value, Instant.now(), location);
-                            return new TracedValue(value, List.of(attributeRecord));
-                        });
-
-            if (head) {
-                stream = stream.take(1);
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
             }
 
-            return stream;
-        });
-    }
-
-    private static TracedValue errorTracedValue(Value error) {
-        return new TracedValue(error, List.of());
-    }
-
-    private static TracedValue mergeTraces(TracedValue base, List<AttributeRecord> additional) {
-        if (additional.isEmpty()) {
-            return base;
+            val invocation = createInvocation(entityValue, argValues, ctx);
+            val key        = new SubscriptionKey(invocation, head);
+            deps.computeIfAbsent(key, k -> new ArrayList<>()).add(new Occurrence(location));
+            val value = ctx.lookup(key);
+            return new ExpressionResult(value, deps);
         }
-        val merged = new ArrayList<>(base.contributingAttributes());
-        merged.addAll(additional);
-        return new TracedValue(base.value(), merged);
-    }
 
-    private static long longOption(Value options, String key, long defaultValue) {
-        if (!(options instanceof ObjectValue obj)) {
+        private AttributeFinderInvocation createInvocation(Value entityValue, List<Value> argValues,
+                EvaluationContext ctx) {
+            val timeout      = Duration.ofMillis(longOption(OPTION_INITIAL_TIMEOUT, DEFAULT_TIMEOUT_MS));
+            val pollInterval = Duration.ofMillis(longOption(OPTION_POLL_INTERVAL, DEFAULT_POLL_INTERVAL_MS));
+            val backoff      = Duration.ofMillis(longOption(OPTION_BACKOFF, DEFAULT_BACKOFF_MS));
+            val retries      = longOption(OPTION_RETRIES, DEFAULT_RETRIES);
+            val fresh        = freshOption();
+            val accessCtx    = new AttributeAccessContext(pdpData.variables(), pdpData.secrets(),
+                    ctx.authorizationSubscription().secrets());
+            return new AttributeFinderInvocation(ctx.configurationId(), attributeName, entityValue, argValues, timeout,
+                    pollInterval, backoff, retries, fresh, accessCtx);
+        }
+
+        private long longOption(String key, long defaultValue) {
+            val value = options.get(key);
+            if (value instanceof NumberValue(BigDecimal n)) {
+                return n.longValue();
+            }
             return defaultValue;
         }
-        val value = obj.get(key);
-        if (value instanceof NumberValue(BigDecimal value1)) {
-            return value1.longValue();
-        }
-        return defaultValue;
-    }
 
-    private static boolean freshOption(Value options) {
-        if (!(options instanceof ObjectValue obj)) {
+        private boolean freshOption() {
+            val value = options.get(OPTION_FRESH);
+            if (value instanceof BooleanValue(boolean b)) {
+                return b;
+            }
             return false;
         }
-        val value = obj.get(OPTION_FRESH);
-        if (value instanceof BooleanValue(boolean value1)) {
-            return value1;
-        }
-        return false;
     }
-
 }

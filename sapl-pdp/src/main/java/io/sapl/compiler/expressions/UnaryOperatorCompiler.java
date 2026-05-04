@@ -25,7 +25,6 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
@@ -34,7 +33,6 @@ import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.Map;
 
@@ -101,17 +99,6 @@ public class UnaryOperatorCompiler {
 
     public record UnaryStream(UnaryOperation op, StreamOperator operand, SourceLocation location)
             implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return operand.stream().map(tv -> {
-                val v = tv.value();
-                if (v instanceof ErrorValue) {
-                    return tv;
-                }
-                return new TracedValue(op.apply(v, location), tv.contributingAttributes());
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val r = operand.evaluate(ctx);

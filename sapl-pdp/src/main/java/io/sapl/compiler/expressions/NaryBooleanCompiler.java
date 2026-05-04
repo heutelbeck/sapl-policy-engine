@@ -140,126 +140,10 @@ public class NaryBooleanCompiler {
                     isRelative);
         }
 
-        // 4. Streams present: build deferContextual with pure gate + stream composition
-        val streamFlux = isEager ? buildEagerStreamChain(streams, shortCircuitValue, identityValue, location)
-                : buildLazyStreamChain(streams, shortCircuitValue, identityValue, location);
-
-        val chain = pures.isEmpty() ? streamFlux
-                : buildPureGatedStreamChain(pures, streamFlux, shortCircuitValue, location);
-
         if (isEager) {
-            return new NaryBooleanStreamEager(chain, pures, streams, shortCircuitValue, identityValue, location);
+            return new NaryBooleanStreamEager(pures, streams, shortCircuitValue, identityValue, location);
         }
-        return new NaryBooleanStreamLazy(chain, pures, streams, shortCircuitValue, identityValue, location);
-    }
-
-    /**
-     * Wraps {@code streamFlux} with a per-depscription pure-operand gate.
-     * Evaluates each pure in order; on type error or short-circuit value,
-     * emits a single terminal {@link TracedValue} without depscribing to
-     * {@code streamFlux}. Otherwise returns {@code streamFlux} for the
-     * downstream depscription to drive.
-     */
-    private static Flux<TracedValue> buildPureGatedStreamChain(List<PureOperator> pures, Flux<TracedValue> streamFlux,
-            Value shortCircuitValue, SourceLocation location) {
-        return Flux.deferContextual(ctxView -> {
-            val ctx = ctxView.get(EvaluationContext.class);
-            for (var pure : pures) {
-                val v = pure.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(v, List.of()));
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return Flux.just(new TracedValue(
-                            Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), List.of()));
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return Flux.just(new TracedValue(shortCircuitValue, List.of()));
-                }
-            }
-            return streamFlux;
-        });
-    }
-
-    /**
-     * Builds a lazy (short-circuit) stream chain using switchMap. Iterates
-     * backwards, building nested switchMap structure. Each stream conditionally
-     * depscribes to the next based on its emitted value.
-     */
-    private static Flux<TracedValue> buildLazyStreamChain(List<StreamOperator> streams, Value shortCircuitValue,
-            Value identityValue, SourceLocation location) {
-
-        Flux<TracedValue> chain = Flux.just(new TracedValue(identityValue, List.of()));
-
-        for (int i = streams.size() - 1; i >= 0; i--) {
-            val stream = streams.get(i);
-            val next   = chain;
-
-            chain = stream.stream().switchMap(tv -> {
-                val v     = tv.value();
-                val attrs = tv.contributingAttributes();
-
-                if (v instanceof ErrorValue) {
-                    return Flux.just(tv);
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return Flux.just(new TracedValue(
-                            Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), attrs));
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return Flux.just(tv);
-                }
-                return next.map(nextTv -> mergeAttributes(attrs, nextTv));
-            });
-        }
-
-        return chain;
-    }
-
-    /**
-     * Builds an eager stream chain using combineLatest. All streams are depscribed
-     * simultaneously. On each emission from any stream, the combiner evaluates all
-     * latest values together.
-     */
-    private static Flux<TracedValue> buildEagerStreamChain(List<StreamOperator> streams, Value shortCircuitValue,
-            Value identityValue, SourceLocation location) {
-
-        if (streams.size() == 1) {
-            return streams.getFirst().stream().map(tv -> {
-                val v = tv.value();
-                if (v instanceof ErrorValue) {
-                    return tv;
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()),
-                            tv.contributingAttributes());
-                }
-                return tv;
-            });
-        }
-
-        val fluxes = streams.stream().map(StreamOperator::stream).toList();
-        return Flux.combineLatest(fluxes, values -> {
-            val allAttrs = new ArrayList<AttributeRecord>();
-            for (Object obj : values) {
-                val tv    = (TracedValue) obj;
-                val v     = tv.value();
-                val attrs = tv.contributingAttributes();
-                allAttrs.addAll(attrs);
-
-                if (v instanceof ErrorValue) {
-                    return new TracedValue(v, allAttrs);
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()),
-                            allAttrs);
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return new TracedValue(shortCircuitValue, allAttrs);
-                }
-            }
-            return new TracedValue(identityValue, allAttrs);
-        });
+        return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location);
     }
 
     public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue depsequent) {
@@ -335,17 +219,11 @@ public class NaryBooleanCompiler {
      * value is seen.
      */
     record NaryBooleanStreamLazy(
-            Flux<TracedValue> chain,
             List<PureOperator> pures,
             List<StreamOperator> streams,
             Value shortCircuitValue,
             Value identityValue,
             SourceLocation location) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return chain;
-        }
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
@@ -380,17 +258,11 @@ public class NaryBooleanCompiler {
      * {@code combineLatest} left-to-right resolution).
      */
     record NaryBooleanStreamEager(
-            Flux<TracedValue> chain,
             List<PureOperator> pures,
             List<StreamOperator> streams,
             Value shortCircuitValue,
             Value identityValue,
             SourceLocation location) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return chain;
-        }
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {

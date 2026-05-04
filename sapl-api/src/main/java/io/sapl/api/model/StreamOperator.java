@@ -28,15 +28,22 @@ import reactor.core.publisher.Flux;
 public non-sealed interface StreamOperator extends CompiledExpression {
 
     /**
-     * Reactor-based evaluation entry point. Returns a {@link Flux} of
-     * {@link TracedValue}s. This is the legacy path that suffers from
-     * {@code combineLatest} glitches when multiple attribute streams
-     * compose; see
-     * {@code notes/4.1.0-notes/sapl-glitch-free-streaming-architecture.md}.
+     * Reactor-based evaluation entry point. The Reactor pipeline is
+     * being removed; new code uses {@link #evaluate(EvaluationContext)}
+     * with the snapshot-driven model. The default throws
+     * {@link UnsupportedOperationException} naming the concrete class,
+     * so any code path still reaching for the Reactor pipeline fails
+     * loudly at runtime rather than silently producing degraded results.
+     * Implementations may temporarily override this while their layer
+     * has not yet migrated; once every consumer is on the snapshot
+     * path the method is deleted entirely.
      *
      * @return a flux of traced values for this expression's evaluation
      */
-    Flux<TracedValue> stream();
+    default Flux<TracedValue> stream() {
+        throw new UnsupportedOperationException(
+                "Reactor stream() removed; use evaluate(EvaluationContext) on " + getClass().getSimpleName());
+    }
 
     /**
      * Snapshot-driven evaluation entry point. Returns an
@@ -49,9 +56,6 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * throws {@link UnsupportedOperationException} naming the
      * concrete class so the migration work list is clear at runtime
      * for any code path exercised before its operator is migrated.
-     * Once every StreamOperator implementation overrides this, the
-     * default is removed and {@link #stream} can be deleted (cleanup
-     * commit).
      * <p>
      * Implementation pattern: walk children, accumulate their
      * dependency maps, either compute a result (if all needed reads

@@ -24,7 +24,6 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
@@ -36,14 +35,9 @@ import io.sapl.compiler.operators.ComparisonOperators;
 import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 
-import static io.sapl.api.model.StreamOperator.evalChild;
 import static io.sapl.ast.BinaryOperatorType.ADD;
 import static io.sapl.ast.BinaryOperatorType.DIV;
 import static io.sapl.ast.BinaryOperatorType.EQ;
@@ -131,27 +125,32 @@ public class BinaryOperationCompiler {
             return right;
         }
         val loc = binaryOperation.location();
-        return switch (left) {
-        case Value lv          -> switch (right) {
-                           case Value rv              -> op.apply(lv, rv, loc);
-                           case PureOperator rp       -> new BinaryValuePure(operatorType, op, lv, rp, loc,
-                                   rp.isDependingOnSubscription(), rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, loc);
-                           };
-        case PureOperator lp   -> switch (right) {
-                           case Value rv              -> new BinaryPureValue(operatorType, op, lp, rv, loc,
-                                   lp.isDependingOnSubscription(), lp.isRelativeExpression());
-                           case PureOperator rp       -> new BinaryPurePure(operatorType, op, lp, rp, loc,
-                                   lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
-                                   lp.isRelativeExpression() || rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, loc);
-                           };
-        case StreamOperator ls -> switch (right) {
-                           case Value rv              -> new BinaryStreamValue(op, ls, rv, loc);
-                           case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, loc);
-                           case StreamOperator rs     -> new BinaryStreamStream(op, ls, rs, loc);
-                           };
-        };
+
+        if (left instanceof Value lv && right instanceof Value rv) {
+            return op.apply(lv, rv, loc);
+        }
+        if (left instanceof StreamOperator || right instanceof StreamOperator) {
+            return new BinaryStream(op, left, right, loc);
+        }
+        return buildPureBinary(operatorType, op, left, right, loc);
+    }
+
+    private static PureOperator buildPureBinary(BinaryOperatorType operatorType, BinaryOperation op,
+            CompiledExpression left, CompiledExpression right, SourceLocation loc) {
+        if (left instanceof Value lv) {
+            val rp = (PureOperator) right;
+            return new BinaryValuePure(operatorType, op, lv, rp, loc, rp.isDependingOnSubscription(),
+                    rp.isRelativeExpression());
+        }
+        val lp = (PureOperator) left;
+        if (right instanceof Value rv) {
+            return new BinaryPureValue(operatorType, op, lp, rv, loc, lp.isDependingOnSubscription(),
+                    lp.isRelativeExpression());
+        }
+        val rp = (PureOperator) right;
+        return new BinaryPurePure(operatorType, op, lp, rp, loc,
+                lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
+                lp.isRelativeExpression() || rp.isRelativeExpression());
     }
 
     public record BinaryPurePure(
@@ -228,136 +227,20 @@ public class BinaryOperationCompiler {
     }
 
     /**
-     * Left-constant Value, right-Stream. {@code evaluate(ctx)} subscribes
-     * the right stream even when the left Value is an {@link ErrorValue},
-     * holds the first error and returns it after the full walk.
+     * Stream-stratum binary operation. At least one of {@code left} or
+     * {@code right} is a {@link StreamOperator}; {@link #evaluate}
+     * delegates to {@link BinaryOperation#evalEager} which walks both
+     * children to accumulate the maximum subscription set, holds the
+     * first error from either side, and returns it after the full walk.
      */
-    record BinaryValueStream(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return rs.stream().map(trv -> {
-                val rv = trv.value();
-                if (rv instanceof ErrorValue) {
-                    return trv;
-                }
-                return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
-            });
-        }
-
+    public record BinaryStream(
+            BinaryOperation op,
+            CompiledExpression left,
+            CompiledExpression right,
+            SourceLocation location) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return op.evalEager(lv, rs, location, ctx);
-        }
-    }
-
-    /**
-     * Left-Stream, right-constant Value. Right has no subscriptions to
-     * accumulate.
-     */
-    public record BinaryStreamValue(BinaryOperation op, StreamOperator ls, Value rv, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return ls.stream().map(tlv -> {
-                val lv = tlv.value();
-                if (lv instanceof ErrorValue) {
-                    return tlv;
-                }
-                return new TracedValue(op.apply(lv, rv, location), tlv.contributingAttributes());
-            });
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return op.evalEager(ls, rv, location, ctx);
-        }
-    }
-
-    /**
-     * Left-Pure, right-Stream. {@code evaluate(ctx)} subscribes the right
-     * stream even when the left pure produces an {@link ErrorValue}.
-     */
-    record BinaryPureStream(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val lv = lp.evaluate(ctx.get(EvaluationContext.class));
-                if (lv instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(lv, List.of()));
-                }
-                return rs.stream().map(trv -> {
-                    val rv = trv.value();
-                    if (rv instanceof ErrorValue) {
-                        return trv;
-                    }
-                    return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
-                });
-            });
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return op.evalEager(lp, rs, location, ctx);
-        }
-    }
-
-    /**
-     * Left-Stream, right-Pure. Right has no subscriptions to accumulate.
-     */
-    record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val rv = rp.evaluate(ctx.get(EvaluationContext.class));
-                if (rv instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(rv, List.of()));
-                }
-                return ls.stream().map(tlv -> {
-                    val lv = tlv.value();
-                    if (lv instanceof ErrorValue) {
-                        return tlv;
-                    }
-                    return new TracedValue(op.apply(lv, rv, location), tlv.contributingAttributes());
-                });
-            });
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return op.evalEager(ls, rp, location, ctx);
-        }
-    }
-
-    /**
-     * Both children are streams. {@code evaluate(ctx)} subscribes both
-     * streams regardless of which errors first, holds the first error and
-     * returns it after the full walk.
-     */
-    record BinaryStreamStream(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.combineLatest(ls.stream(), rs.stream(), (tlv, trv) -> {
-                val combined = new ArrayList<>(trv.contributingAttributes());
-                combined.addAll(tlv.contributingAttributes());
-                val lv = tlv.value();
-                if (lv instanceof ErrorValue) {
-                    return new TracedValue(lv, combined);
-                }
-                val rv = trv.value();
-                if (rv instanceof ErrorValue) {
-                    return new TracedValue(rv, combined);
-                }
-                return new TracedValue(op.apply(lv, rv, location), combined);
-            });
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return op.evalEager(ls, rs, location, ctx);
+            return op.evalEager(left, right, location, ctx);
         }
     }
 

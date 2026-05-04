@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -29,17 +28,15 @@ import io.sapl.api.model.ExpressionResult;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.ArrayExpression;
+import io.sapl.ast.Expression;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,54 +51,48 @@ import static io.sapl.api.model.StreamOperator.evalChild;
 @UtilityClass
 public class ArrayCompiler {
 
-    public static CompiledExpression compile(ArrayExpression expr, CompilationContext ctx) {
-        val elements = expr.elements();
+    private static final String ERROR_PURE_ARRAY_RECEIVED_STREAM_OPERATOR = "PureArray cannot contain StreamOperator. Indicates an implementation bug.";
 
+    public static CompiledExpression compile(ArrayExpression expr, CompilationContext ctx) {
+        return compileExpressionsToArray(expr.elements(), expr.location(), ctx);
+    }
+
+    public static CompiledExpression compileExpressionsToArray(List<Expression> elements, SourceLocation location,
+            CompilationContext ctx) {
         if (elements.isEmpty()) {
             return Value.EMPTY_ARRAY;
         }
 
-        val compiled = new ArrayList<CompiledExpression>(elements.size());
-        for (var element : elements) {
+        val     compiled  = new ArrayList<CompiledExpression>(elements.size());
+        boolean allValues = true;
+        boolean hasStream = false;
+        for (val element : elements) {
             val result = ExpressionCompiler.compile(element, ctx);
             if (result instanceof ErrorValue) {
                 return result;
             }
+            if (result instanceof StreamOperator) {
+                hasStream = true;
+                allValues = false;
+            } else if (!(result instanceof Value)) {
+                allValues = false;
+            }
             compiled.add(result);
         }
 
-        return buildFromCompiled(compiled, expr.location());
+        if (allValues) {
+            return foldValues(compiled);
+        }
+        if (hasStream) {
+            return new StreamArray(compiled);
+        }
+        return new PureArray(compiled, location);
     }
 
-    /**
-     * Builds an optimized array operator from pre-compiled elements.
-     * Used by ArrayExpression compilation and "each" filter compilation.
-     *
-     * @param compiled the compiled elements (Value/PureOperator/StreamOperator)
-     * @param location source location for error reporting
-     * @return appropriate CompiledExpression based on element types
-     */
-    public static CompiledExpression buildFromCompiled(List<CompiledExpression> compiled, SourceLocation location) {
-        val cat = CategorizedExpressions.categorize(compiled);
-
-        if (cat.hasOnlyValues()) {
-            return buildArrayFromValues(List.of(cat.values()));
-        }
-        if (cat.streamCount() == 0) {
-            return new AllPureArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                    cat.totalCount(), location);
-        }
-        if (cat.hasSingleStream()) {
-            return new SingleStreamArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                    cat.streamIndices()[0], cat.streams()[0], cat.totalCount(), compiled);
-        }
-        return new MultiStreamArray(cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                cat.streamIndices(), cat.streams(), cat.totalCount(), compiled);
-    }
-
-    private static Value buildArrayFromValues(List<Value> values) {
+    private static Value foldValues(List<CompiledExpression> compiled) {
         val builder = ArrayValue.builder();
-        for (var v : values) {
+        for (val e : compiled) {
+            val v = (Value) e;
             if (v instanceof ErrorValue) {
                 return v;
             }
@@ -168,14 +159,6 @@ public class ArrayCompiler {
             return streams.length;
         }
 
-        boolean hasOnlyValues() {
-            return pureOperators.length == 0 && streams.length == 0;
-        }
-
-        boolean hasSingleStream() {
-            return streams.length == 1;
-        }
-
         @Override
         public int hashCode() {
             return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
@@ -196,36 +179,27 @@ public class ArrayCompiler {
 
     /**
      * Array with all pure elements (values and pure operators, no streams).
+     * Constructed only when the categorizer reports zero stream elements;
+     * the {@link StreamOperator} branch in element dispatch is therefore
+     * unreachable and folds to an {@link ErrorValue} defensively.
      */
-    record AllPureArray(
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int totalElements,
-            SourceLocation location) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(AllPureArray.class);
+    record PureArray(List<CompiledExpression> elements, SourceLocation location) implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(PureArray.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            val elements = new Value[totalElements];
-
-            for (int i = 0; i < valueIndices.length; i++) {
-                elements[valueIndices[i]] = values[i];
-            }
-
-            for (int i = 0; i < pureIndices.length; i++) {
-                val value = pureOperators[i].evaluate(ctx);
+            val builder = ArrayValue.builder();
+            for (val element : elements) {
+                val value = switch (element) {
+                case Value v                -> v;
+                case PureOperator p         -> p.evaluate(ctx);
+                case StreamOperator ignored -> Value.error(ERROR_PURE_ARRAY_RECEIVED_STREAM_OPERATOR);
+                };
                 if (value instanceof ErrorValue) {
                     return value;
                 }
-                elements[pureIndices[i]] = value;
-            }
-
-            val builder = ArrayValue.builder();
-            for (var element : elements) {
-                if (!(element instanceof UndefinedValue)) {
-                    builder.add(element);
+                if (!(value instanceof UndefinedValue)) {
+                    builder.add(value);
                 }
             }
             return builder.build();
@@ -233,8 +207,8 @@ public class ArrayCompiler {
 
         @Override
         public boolean isDependingOnSubscription() {
-            for (var op : pureOperators) {
-                if (op.isDependingOnSubscription()) {
+            for (val element : elements) {
+                if (element instanceof PureOperator p && p.isDependingOnSubscription()) {
                     return true;
                 }
             }
@@ -243,8 +217,8 @@ public class ArrayCompiler {
 
         @Override
         public boolean isRelativeExpression() {
-            for (var op : pureOperators) {
-                if (op.isRelativeExpression()) {
+            for (val element : elements) {
+                if (element instanceof PureOperator p && p.isRelativeExpression()) {
                     return true;
                 }
             }
@@ -253,101 +227,16 @@ public class ArrayCompiler {
 
         @Override
         public long semanticHash() {
-            long hash = SemanticHashing.ordered(KIND, Arrays.hashCode(valueIndices), Arrays.hashCode(values),
-                    Arrays.hashCode(pureIndices), totalElements);
-            for (var po : pureOperators) {
-                hash = SemanticHashing.ordered(hash, po.semanticHash());
+            long hash = KIND;
+            for (val element : elements) {
+                val elementHash = switch (element) {
+                case Value v                -> (long) v.hashCode();
+                case PureOperator p         -> p.semanticHash();
+                case StreamOperator ignored -> (long) element.hashCode();
+                };
+                hash = SemanticHashing.ordered(hash, elementHash);
             }
-            return hash;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
-                    Arrays.hashCode(pureOperators), totalElements, Objects.hashCode(location));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o || (o instanceof AllPureArray r && Arrays.equals(valueIndices, r.valueIndices)
-                    && Arrays.equals(values, r.values) && Arrays.equals(pureIndices, r.pureIndices)
-                    && Arrays.equals(pureOperators, r.pureOperators) && totalElements == r.totalElements
-                    && Objects.equals(location, r.location));
-        }
-    }
-
-    /**
-     * Array with exactly one stream element. {@code evaluate(ctx)} walks
-     * every child to accumulate the maximum subscription set, holds the
-     * first {@link ErrorValue}, and returns it after the full walk.
-     */
-    record SingleStreamArray(
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int streamIndex,
-            StreamOperator streamOp,
-            int totalElements,
-            List<CompiledExpression> compiledElements) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            return streamOp.stream().switchMap(tracedValue -> {
-                val streamVal = tracedValue.value();
-                if (streamVal instanceof ErrorValue) {
-                    return Flux.just(tracedValue);
-                }
-
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx  = ctx.get(EvaluationContext.class);
-                    val elements = new Value[totalElements];
-
-                    for (int i = 0; i < valueIndices.length; i++) {
-                        elements[valueIndices[i]] = values[i];
-                    }
-
-                    for (int i = 0; i < pureIndices.length; i++) {
-                        val value = pureOperators[i].evaluate(evalCtx);
-                        if (value instanceof ErrorValue) {
-                            return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
-                        }
-                        elements[pureIndices[i]] = value;
-                    }
-
-                    elements[streamIndex] = streamVal;
-
-                    val builder = ArrayValue.builder();
-                    for (var element : elements) {
-                        if (element != null && !(element instanceof UndefinedValue)) {
-                            builder.add(element);
-                        }
-                    }
-                    return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
-                });
-            });
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            return assembleArray(compiledElements, ctx);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
-                    Arrays.hashCode(pureOperators), streamIndex, Objects.hashCode(streamOp), totalElements,
-                    Objects.hashCode(compiledElements));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof SingleStreamArray(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreamOp, var oTotal, var oCompiled)
-                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
-                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
-                            && streamIndex == oStreamIdx && Objects.equals(streamOp, oStreamOp)
-                            && totalElements == oTotal && Objects.equals(compiledElements, oCompiled));
+            return SemanticHashing.ordered(hash, Objects.hashCode(location));
         }
     }
 
@@ -360,139 +249,36 @@ public class ArrayCompiler {
      * flag; on a clean walk with no error, returns the assembled array.
      * Precedence at the end: error &gt; null &gt; built array.
      */
-    private static ExpressionResult assembleArray(List<CompiledExpression> elements, EvaluationContext ctx) {
-        val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(elements.size());
-        boolean seenNull   = false;
-        Value   firstError = null;
-        val     builder    = ArrayValue.builder();
-        for (val element : elements) {
-            val v = evalChild(element, ctx, deps);
-            if (v == null) {
-                seenNull = true;
-                continue;
-            }
-            if (v instanceof ErrorValue) {
-                if (firstError == null) {
-                    firstError = v;
-                }
-                continue;
-            }
-            if (!(v instanceof UndefinedValue)) {
-                builder.add(v);
-            }
-        }
-        if (firstError != null) {
-            return new ExpressionResult(firstError, deps);
-        }
-        if (seenNull) {
-            return new ExpressionResult(null, deps);
-        }
-        return new ExpressionResult(builder.build(), deps);
-    }
-
-    /**
-     * Array with multiple stream elements. {@code evaluate(ctx)} walks
-     * every child to accumulate the maximum subscription set, holds the
-     * first {@link ErrorValue}, and returns it after the full walk.
-     */
-    record MultiStreamArray(
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int[] streamIndices,
-            StreamOperator[] streams,
-            int totalElements,
-            List<CompiledExpression> compiledElements) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
-            for (var s : streams) {
-                fluxList.add(s.stream());
-            }
-
-            return Flux.combineLatest(fluxList, arr -> {
-                val combinedTraces = new ArrayList<AttributeRecord>();
-                val streamValues   = new TracedValue[arr.length];
-                for (int i = 0; i < arr.length; i++) {
-                    streamValues[i] = (TracedValue) arr[i];
-                    combinedTraces.addAll(streamValues[i].contributingAttributes());
-                }
-                return new CombinedStreams(streamValues, combinedTraces);
-            }).switchMap(combined -> {
-                for (var tv : combined.values) {
-                    if (tv.value() instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(tv.value(), combined.traces));
-                    }
-                }
-
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx  = ctx.get(EvaluationContext.class);
-                    val elements = new Value[totalElements];
-
-                    for (int i = 0; i < valueIndices.length; i++) {
-                        elements[valueIndices[i]] = values[i];
-                    }
-
-                    for (int i = 0; i < pureIndices.length; i++) {
-                        val value = pureOperators[i].evaluate(evalCtx);
-                        if (value instanceof ErrorValue) {
-                            return Flux.just(new TracedValue(value, combined.traces));
-                        }
-                        elements[pureIndices[i]] = value;
-                    }
-
-                    for (int i = 0; i < streamIndices.length; i++) {
-                        elements[streamIndices[i]] = combined.values[i].value();
-                    }
-
-                    val builder = ArrayValue.builder();
-                    for (var element : elements) {
-                        if (element != null && !(element instanceof UndefinedValue)) {
-                            builder.add(element);
-                        }
-                    }
-                    return Flux.just(new TracedValue(builder.build(), combined.traces));
-                });
-            });
-        }
-
+    record StreamArray(List<CompiledExpression> compiledElements) implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            return assembleArray(compiledElements, ctx);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(Arrays.hashCode(valueIndices), Arrays.hashCode(values), Arrays.hashCode(pureIndices),
-                    Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices), Arrays.hashCode(streams),
-                    totalElements, Objects.hashCode(compiledElements));
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof MultiStreamArray(var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal, var oCompiled)
-                            && Arrays.equals(valueIndices, oValIdx) && Arrays.equals(values, oVals)
-                            && Arrays.equals(pureIndices, oPureIdx) && Arrays.equals(pureOperators, oPureOps)
-                            && Arrays.equals(streamIndices, oStreamIdx) && Arrays.equals(streams, oStreams)
-                            && totalElements == oTotal && Objects.equals(compiledElements, oCompiled));
-        }
-
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(Arrays.hashCode(values), Objects.hashCode(traces));
+            val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(compiledElements.size());
+            boolean seenNull   = false;
+            Value   firstError = null;
+            val     builder    = ArrayValue.builder();
+            for (val element : compiledElements) {
+                val v = evalChild(element, ctx, deps);
+                if (v == null) {
+                    seenNull = true;
+                    continue;
+                }
+                if (v instanceof ErrorValue) {
+                    if (firstError == null) {
+                        firstError = v;
+                    }
+                    continue;
+                }
+                if (!(v instanceof UndefinedValue)) {
+                    builder.add(v);
+                }
             }
-
-            @Override
-            public boolean equals(Object o) {
-                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
-                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
             }
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            return new ExpressionResult(builder.build(), deps);
         }
     }
-
 }

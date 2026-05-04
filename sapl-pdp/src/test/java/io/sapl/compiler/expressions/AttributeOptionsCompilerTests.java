@@ -33,16 +33,16 @@ import org.mockito.MockedStatic;
 
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
+import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_BACKOFF_MS;
+import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_POLL_INTERVAL_MS;
+import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_RETRIES;
+import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_TIMEOUT_MS;
+import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_BACKOFF;
+import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS;
+import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_FRESH;
+import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_INITIAL_TIMEOUT;
+import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_POLL_INTERVAL;
+import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_RETRIES;
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
 import static io.sapl.util.SaplTesting.TestPureOperator;
 import static io.sapl.util.SaplTesting.TestStreamOperator;
@@ -63,7 +63,7 @@ class AttributeOptionsCompilerTests {
         @DisplayName("with no PDP settings returns all defaults")
         void withNoPdpSettingsReturnsDefaultSettings() {
             val ctx    = compilationContext();
-            val result = AttributeOptionsCompiler.compileOptions(null, ctx);
+            val result = AttributeCompiler.compileOptions(null, ctx);
 
             assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
                 val obj = (ObjectValue) r;
@@ -82,7 +82,7 @@ class AttributeOptionsCompilerTests {
                     .put(OPTION_RETRIES, Value.of(10L)).build();
             val variables  = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpOptions).build();
             val ctx        = compilationContext(variables);
-            val result     = AttributeOptionsCompiler.compileOptions(null, ctx);
+            val result     = AttributeCompiler.compileOptions(null, ctx);
 
             assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
                 val obj = (ObjectValue) r;
@@ -101,7 +101,7 @@ class AttributeOptionsCompilerTests {
             val ctx               = compilationContext(variables);
             val expr              = new Literal(Value.NULL, TEST_LOCATION);
 
-            assertThatThrownBy(() -> AttributeOptionsCompiler.compileOptions(expr, ctx))
+            assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("PDP wide defaults");
         }
     }
@@ -178,7 +178,7 @@ class AttributeOptionsCompilerTests {
             try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(compiled);
 
-                assertThatThrownBy(() -> AttributeOptionsCompiler.compileOptions(expr, ctx))
+                assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
                         .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedMessage);
             }
         }
@@ -196,7 +196,7 @@ class AttributeOptionsCompilerTests {
             CompiledExpression returnValue) {
         try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
             mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(returnValue);
-            return AttributeOptionsCompiler.compileOptions(expr, ctx);
+            return AttributeCompiler.compileOptions(expr, ctx);
         }
     }
 }

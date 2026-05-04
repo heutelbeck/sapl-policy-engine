@@ -314,15 +314,6 @@ public class SubtemplateCompiler {
     record SubtemplateStreamValue(StreamOperator parent, Value template, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return parent.stream().map(tv -> {
-                val parentValue = tv.value();
-                val result      = applyConstantTemplate(parentValue, template);
-                return new TracedValue(result, tv.contributingAttributes());
-            });
-        }
-
-        @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val v    = evalChild(parent, ctx, deps);
@@ -335,18 +326,6 @@ public class SubtemplateCompiler {
 
     record SubtemplateStreamPure(StreamOperator parent, PureOperator template, SourceLocation location)
             implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(reactorCtx -> {
-                val ctx = reactorCtx.get(EvaluationContext.class);
-                return parent.stream().map(tv -> {
-                    val parentValue = tv.value();
-                    val result      = applyPureTemplate(parentValue, template, ctx);
-                    return new TracedValue(result, tv.contributingAttributes());
-                });
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);

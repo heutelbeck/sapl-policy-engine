@@ -29,11 +29,9 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.StreamOperator;
-import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.TextValue;
-import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.ast.AttributeUnionPath;
@@ -57,7 +55,6 @@ import io.sapl.compiler.operators.SimpleStreamOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -92,40 +89,25 @@ public class ExtendedFilterCompiler {
         if (compiledFilter instanceof ErrorValue) {
             return compiledFilter;
         }
+        if (compiledFilter instanceof StreamOperator) {
+            return SimpleStreamOperator.of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
+        }
 
         val path         = ef.target().elements();
         val pathAnalysis = analyzePath(path, ef.location(), ctx);
         val canFoldPath  = !pathAnalysis.isDependingOnSubscription();
 
-        return switch (compiledBase) {
-        case Value vb           -> switch (compiledFilter) {
-                            case Value vf when canFoldPath                                                 ->
-                                evaluateValueValue(vb, vf, path, pathAnalysis, ctx);
-                            case Value vf                                                                  ->
-                                new ExtendedFilterValueValue(vb, vf, path, pathAnalysis);
-                            case PureOperator pof when !pof.isDependingOnSubscription() && canFoldPath     ->
-                                evaluateValuePureFold(vb, pof, path, pathAnalysis, ctx);
-                            case PureOperator pof                                                          ->
-                                new ExtendedFilterValuePure(vb, pof, path, pathAnalysis);
-                            case StreamOperator ignored                                                    ->
-                                SimpleStreamOperator
-                                        .of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
-                            };
-        case PureOperator pob   -> switch (compiledFilter) {
-                            case Value vf                   -> new ExtendedFilterPureValue(pob, vf, path, pathAnalysis);
-                            case PureOperator pof           -> new ExtendedFilterPurePure(pob, pof, path, pathAnalysis);
-                            case StreamOperator ignored     -> SimpleStreamOperator
-                                    .of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
-                            };
-        case StreamOperator sob -> switch (compiledFilter) {
-                            case Value vf                   ->
-                                new ExtendedFilterStreamValue(sob, vf, path, pathAnalysis);
-                            case PureOperator pof           ->
-                                new ExtendedFilterStreamPure(sob, pof, path, pathAnalysis);
-                            case StreamOperator ignored     -> SimpleStreamOperator
-                                    .of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
-                            };
-        };
+        if (compiledBase instanceof Value vb && compiledFilter instanceof Value vf && canFoldPath) {
+            return evaluateValueValue(vb, vf, path, pathAnalysis, ctx);
+        }
+        if (compiledBase instanceof Value vb && compiledFilter instanceof PureOperator pof
+                && !pof.isDependingOnSubscription() && canFoldPath) {
+            return evaluateValuePureFold(vb, pof, path, pathAnalysis, ctx);
+        }
+        if (compiledBase instanceof StreamOperator sb) {
+            return new ExtendedFilterStream(sb, compiledFilter, path, pathAnalysis);
+        }
+        return new ExtendedFilterPure(compiledBase, compiledFilter, path, pathAnalysis);
     }
 
     private static Value evaluateValueValue(Value base, Value filter, List<PathElement> path, PathAnalysis pathAnalysis,
@@ -155,123 +137,60 @@ public class ExtendedFilterCompiler {
         }
     }
 
-    record ExtendedFilterValueValue(Value base, Value filterValue, List<PathElement> path, PathAnalysis pathAnalysis)
-            implements ExtendedFilterPureOperator {
-        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterValueValue.class);
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            val initialCtx = ctx.withRelativeValue(base);
-            return navigateAndApply(base, current -> filterValue, path, pathAnalysis, initialCtx);
-        }
-
-        @Override
-        public long semanticHash() {
-            // PathAnalysis contains compiledElements (semantic), isDependingOnSubscription
-            // (derived), and filterLocation (non-semantic). Only compiledElements affects
-            // evaluation outcome, so only it is included in the hash.
-            return SemanticHashing.ordered(KIND, base.hashCode(), filterValue.hashCode(), path.hashCode(),
-                    pathAnalysis.compiledElements().hashCode());
-        }
-    }
-
-    record ExtendedFilterValuePure(
-            Value base,
-            PureOperator filterOperator,
+    /**
+     * Pure-stratum extended filter. Both {@code base} and {@code filter} are
+     * {@link Value} or {@link PureOperator}; the {@link StreamOperator} branch
+     * is unreachable by construction (filter compilation rejects streams) and
+     * folds to an {@link ErrorValue} defensively.
+     */
+    record ExtendedFilterPure(
+            CompiledExpression base,
+            CompiledExpression filter,
             List<PathElement> path,
             PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
-        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterValuePure.class);
+        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterPure.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            val initialCtx = ctx.withRelativeValue(base);
-            return navigateAndApply(base, current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)),
-                    path, pathAnalysis, initialCtx);
+            val baseValue = switch (base) {
+            case Value v                -> v;
+            case PureOperator p         -> p.evaluate(ctx);
+            case StreamOperator ignored -> Value.errorAt(pathAnalysis.filterLocation(),
+                    ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS.message());
+            };
+            if (baseValue instanceof ErrorValue) {
+                return baseValue;
+            }
+            val initialCtx = ctx.withRelativeValue(baseValue);
+            return navigateAndApply(baseValue, terminalFor(filter, initialCtx), path, pathAnalysis, initialCtx);
         }
 
         @Override
         public boolean isRelativeExpression() {
-            return false;
+            return base instanceof PureOperator p && p.isRelativeExpression();
         }
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.hashCode(), filterOperator.semanticHash(), path.hashCode(),
+            val baseHash   = base instanceof Value v ? (long) v.hashCode() : ((PureOperator) base).semanticHash();
+            val filterHash = filter instanceof Value v ? (long) v.hashCode() : ((PureOperator) filter).semanticHash();
+            return SemanticHashing.ordered(KIND, baseHash, filterHash, path.hashCode(),
                     pathAnalysis.compiledElements().hashCode());
         }
     }
 
-    record ExtendedFilterPureValue(
-            PureOperator baseOperator,
-            Value filterValue,
-            List<PathElement> path,
-            PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
-        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterPureValue.class);
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            val base       = baseOperator.evaluate(ctx);
-            val initialCtx = ctx.withRelativeValue(base);
-            return navigateAndApply(base, current -> filterValue, path, pathAnalysis, initialCtx);
-        }
-
-        @Override
-        public boolean isRelativeExpression() {
-            return baseOperator.isRelativeExpression();
-        }
-
-        @Override
-        public long semanticHash() {
-            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterValue.hashCode(), path.hashCode(),
-                    pathAnalysis.compiledElements().hashCode());
-        }
-    }
-
-    record ExtendedFilterPurePure(
-            PureOperator baseOperator,
-            PureOperator filterOperator,
-            List<PathElement> path,
-            PathAnalysis pathAnalysis) implements ExtendedFilterPureOperator {
-        private static final long KIND = SemanticHashing.kindHash(ExtendedFilterPurePure.class);
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            val base       = baseOperator.evaluate(ctx);
-            val initialCtx = ctx.withRelativeValue(base);
-            return navigateAndApply(base, current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)),
-                    path, pathAnalysis, initialCtx);
-        }
-
-        @Override
-        public boolean isRelativeExpression() {
-            return baseOperator.isRelativeExpression();
-        }
-
-        @Override
-        public long semanticHash() {
-            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterOperator.semanticHash(),
-                    path.hashCode(), pathAnalysis.compiledElements().hashCode());
-        }
-    }
-
-    record ExtendedFilterStreamValue(
+    /**
+     * Stream-stratum extended filter. {@code base} is a {@link StreamOperator}.
+     * {@code filter} is {@link Value} or {@link PureOperator}; the
+     * {@link StreamOperator} branch is unreachable by construction (filter
+     * compilation rejects streams) and folds to an {@link ErrorValue}
+     * defensively.
+     */
+    record ExtendedFilterStream(
             StreamOperator baseStream,
-            Value filterValue,
+            CompiledExpression filter,
             List<PathElement> path,
             PathAnalysis pathAnalysis) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(contextView -> {
-                val evalCtx = contextView.get(EvaluationContext.class);
-                return baseStream.stream().map(tracedBase -> {
-                    val base       = tracedBase.value();
-                    val initialCtx = evalCtx.withRelativeValue(base);
-                    val result     = navigateAndApply(base, current -> filterValue, path, pathAnalysis, initialCtx);
-                    return new TracedValue(result, tracedBase.contributingAttributes());
-                });
-            });
-        }
-
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
@@ -280,44 +199,17 @@ public class ExtendedFilterCompiler {
                 return new ExpressionResult(v, deps);
             }
             val initialCtx = ctx.withRelativeValue(v);
-            val result     = navigateAndApply(v, current -> filterValue, path, pathAnalysis, initialCtx);
+            val result     = navigateAndApply(v, terminalFor(filter, initialCtx), path, pathAnalysis, initialCtx);
             return new ExpressionResult(result, deps);
         }
     }
 
-    record ExtendedFilterStreamPure(
-            StreamOperator baseStream,
-            PureOperator filterOperator,
-            List<PathElement> path,
-            PathAnalysis pathAnalysis) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(contextView -> {
-                val evalCtx = contextView.get(EvaluationContext.class);
-                return baseStream.stream().map(tracedBase -> {
-                    val base       = tracedBase.value();
-                    val initialCtx = evalCtx.withRelativeValue(base);
-                    val result     = navigateAndApply(base,
-                            current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)), path,
-                            pathAnalysis, initialCtx);
-                    return new TracedValue(result, tracedBase.contributingAttributes());
-                });
-            });
-        }
-
-        @Override
-        public ExpressionResult evaluate(EvaluationContext ctx) {
-            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
-            val v    = evalChild(baseStream, ctx, deps);
-            if (v == null || v instanceof ErrorValue) {
-                return new ExpressionResult(v, deps);
-            }
-            val initialCtx = ctx.withRelativeValue(v);
-            val result     = navigateAndApply(v,
-                    current -> filterOperator.evaluate(initialCtx.withRelativeValue(current)), path, pathAnalysis,
-                    initialCtx);
-            return new ExpressionResult(result, deps);
-        }
+    private static UnaryOperator<Value> terminalFor(CompiledExpression filter, EvaluationContext initialCtx) {
+        return switch (filter) {
+        case Value vf               -> current -> vf;
+        case PureOperator pf        -> current -> pf.evaluate(initialCtx.withRelativeValue(current));
+        case StreamOperator ignored -> current -> ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS;
+        };
     }
 
     private static Value navigateAndApply(Value current, UnaryOperator<Value> terminal, List<PathElement> path,
