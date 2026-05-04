@@ -17,8 +17,40 @@
  */
 package io.sapl.compiler.document;
 
+import io.sapl.api.model.EvaluationContext;
 import reactor.core.publisher.Flux;
 
 public non-sealed interface StreamVoter extends Voter {
-    Flux<Vote> vote();
+
+    /**
+     * Reactor-based evaluation entry point. The Reactor pipeline is
+     * being removed at the voter layer; new code uses
+     * {@link #evaluate(EvaluationContext)} with the snapshot-driven
+     * model. The default throws {@link UnsupportedOperationException}
+     * naming the concrete class, so any code path still reaching for
+     * the Reactor pipeline fails loudly at runtime rather than silently
+     * producing degraded results.
+     */
+    default Flux<Vote> vote() {
+        throw new UnsupportedOperationException(
+                "Reactor vote() removed; use evaluate(EvaluationContext) on " + getClass().getSimpleName());
+    }
+
+    /**
+     * Snapshot-driven evaluation entry point. Concrete StreamVoter
+     * records override this to walk the body and constraint
+     * expressions via {@link io.sapl.api.model.StreamOperator#evalChild}
+     * and assemble the resulting {@link VoteResult}.
+     * <p>
+     * The default throws {@link UnsupportedOperationException} naming
+     * the concrete class so the migration work list is clear at runtime
+     * for any record exercised before its override is in place.
+     *
+     * @since 4.2.0
+     */
+    @Override
+    default VoteResult evaluate(EvaluationContext ctx) {
+        throw new UnsupportedOperationException(
+                "evaluate not yet migrated for StreamVoter " + getClass().getSimpleName());
+    }
 }
