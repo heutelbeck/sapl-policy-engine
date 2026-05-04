@@ -99,8 +99,8 @@ public record VoteReport(
 
     private static void collectDocumentsRecursively(List<Vote> votes, List<ContributingDocument> accumulator) {
         for (val v : votes) {
-            accumulator.add(new ContributingDocument(v.voter().name(), v.authorizationDecision().decision(),
-                    v.contributingAttributes(), v.errors()));
+            accumulator
+                    .add(new ContributingDocument(v.voter().name(), v.authorizationDecision().decision(), v.errors()));
             collectDocumentsRecursively(v.contributingVotes(), accumulator);
         }
     }

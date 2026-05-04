@@ -18,7 +18,6 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.UndefinedValue;
@@ -41,8 +40,6 @@ public class ReportBuilderUtil {
     private static final String FIELD_ACTION                     = "action";
     private static final String FIELD_ADVICE                     = "advice";
     private static final String FIELD_ALGORITHM                  = "algorithm";
-    private static final String FIELD_ATTRIBUTE_NAME             = "attributeName";
-    private static final String FIELD_ATTRIBUTES                 = "attributes";
     private static final String FIELD_AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
     private static final String FIELD_CONFIGURATION_ID           = "configurationId";
     private static final String FIELD_CONTRIBUTING_DOCUMENTS     = "contributingDocuments";
@@ -55,11 +52,9 @@ public class ReportBuilderUtil {
     private static final String FIELD_OBLIGATIONS                = "obligations";
     private static final String FIELD_PDP_ID                     = "pdpId";
     private static final String FIELD_RESOURCE                   = "resource";
-    private static final String FIELD_RETRIEVED_AT               = "retrievedAt";
     private static final String FIELD_SUBJECT                    = "subject";
     private static final String FIELD_SUBSCRIPTION_ID            = "subscriptionId";
     private static final String FIELD_TIMESTAMP                  = "timestamp";
-    private static final String FIELD_VALUE                      = "value";
     private static final String FIELD_VOTER_NAME                 = "voterName";
 
     public static VoteReport extractReport(Vote vote, String timestamp, String subscriptionId,
@@ -99,7 +94,6 @@ public class ReportBuilderUtil {
     private static ObjectValue documentToValue(ContributingDocument doc) {
         val builder = ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name())).put(FIELD_DECISION,
                 Value.of(doc.decision().name()));
-        putArray(builder, FIELD_ATTRIBUTES, doc.attributes(), ReportBuilderUtil::attributeToValue);
         putArray(builder, FIELD_ERRORS, doc.errors(), ReportBuilderUtil::errorToValue);
         return builder.build();
     }
@@ -110,12 +104,6 @@ public class ReportBuilderUtil {
             builder.put(FIELD_LINE, Value.of(error.location().line()));
         }
         return builder.build();
-    }
-
-    private static ObjectValue attributeToValue(AttributeRecord attr) {
-        return ObjectValue.builder().put(FIELD_ATTRIBUTE_NAME, Value.of(attr.invocation().attributeName()))
-                .put(FIELD_VALUE, attr.attributeValue())
-                .put(FIELD_RETRIEVED_AT, Value.of(attr.retrievedAt().toString())).build();
     }
 
     private static ObjectValue subscriptionToValue(AuthorizationSubscription subscription) {

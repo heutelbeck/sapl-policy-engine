@@ -77,7 +77,7 @@ class ReportBuilderUtilTests {
         val authzDecision = new AuthorizationDecision(Decision.PERMIT, obligations, Value.EMPTY_ARRAY, Value.UNDEFINED);
         val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, true);
-        val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
+        val vote          = new Vote(authzDecision, List.of(), List.of(), voter, Outcome.PERMIT);
 
         val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
@@ -89,8 +89,7 @@ class ReportBuilderUtilTests {
     void whenVoteHasContributingVotesThenContributingDocumentsAreExtracted() {
         val policyVoter = new PolicyVoterMetadata("forbidden-knowledge-access", "cthulhu-pdp", "test-security", "doc-1",
                 Outcome.PERMIT, false);
-        val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                policyVoter, List.of());
+        val policyVote  = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, policyVoter);
 
         val setVoter = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, false);
@@ -108,7 +107,7 @@ class ReportBuilderUtilTests {
     void whenVoteHasNoContributingVotesThenReportHasEmptyContributingDocuments() {
         val voter = new PolicySetVoterMetadata("minimal-set", "minimal-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.DENY, false);
-        val vote  = new Vote(AuthorizationDecision.INDETERMINATE, List.of(), List.of(), List.of(), voter, Outcome.DENY);
+        val vote  = new Vote(AuthorizationDecision.INDETERMINATE, List.of(), List.of(), voter, Outcome.DENY);
 
         val report = ReportBuilderUtil.extractReport(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
 
@@ -154,8 +153,8 @@ class ReportBuilderUtilTests {
     @DisplayName("flattens nested policy sets into contributing documents")
     void whenNestedPolicySetsThenAllAreFlattened() {
         val innerPolicyVoter = new PolicyVoterMetadata("inner-policy", "pdp", "config", null, Outcome.DENY, false);
-        val innerPolicyVote  = Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                innerPolicyVoter, List.of());
+        val innerPolicyVote  = Vote.of(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                innerPolicyVoter);
 
         val innerSetVoter = new PolicySetVoterMetadata("inner-set", "pdp", "config", null, DENY_OVERRIDES, Outcome.DENY,
                 false);
@@ -177,6 +176,6 @@ class ReportBuilderUtilTests {
     private Vote createSimplePermitVote() {
         val voter = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, false);
-        return new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
+        return new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), voter, Outcome.PERMIT);
     }
 }

@@ -170,8 +170,7 @@ public class CombiningUtils {
      */
     public static Vote indeterminateResult(Outcome outcome, List<ErrorValue> errors, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, errors, List.of(), contributingVotes, voterMetadata,
-                outcome);
+        return new Vote(AuthorizationDecision.INDETERMINATE, errors, contributingVotes, voterMetadata, outcome);
     }
 
     /**

@@ -84,8 +84,8 @@ class ReportingDecisionInterceptorTests {
         void whenInterceptWithContributingVotesThenNoException() {
             val interceptor = new ReportingDecisionInterceptor(false, false, false, true, false, false);
             val policyVoter = new PolicyVoterMetadata("test-policy", "pdp", "config", null, Outcome.PERMIT, false);
-            val policyVote  = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                    policyVoter, List.of());
+            val policyVote  = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                    policyVoter);
 
             val setVoter        = new PolicySetVoterMetadata("test-set", "pdp", "config", null, DENY_OVERRIDES,
                     Outcome.PERMIT, false);
@@ -173,7 +173,7 @@ class ReportingDecisionInterceptorTests {
                           };
         val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, false);
-        val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voter, Outcome.PERMIT);
+        val vote          = new Vote(authzDecision, List.of(), List.of(), voter, Outcome.PERMIT);
         return new TimestampedVote(vote, DUMMY_TIMESTAMP);
     }
 }

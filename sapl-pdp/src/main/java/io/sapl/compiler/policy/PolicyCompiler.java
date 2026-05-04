@@ -18,7 +18,6 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
@@ -49,7 +48,6 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -137,8 +135,8 @@ public class PolicyCompiler {
         val constraints = compileConstraints(policy, policy.location(), ctx);
         val decision    = policy.effect().decision();
         return switch (constraints.nature()) {
-        case CONSTANT -> Vote.tracedVote(decision, (ArrayValue) constraints.obligations(),
-                (ArrayValue) constraints.advice(), (Value) constraints.resource(), voterMetadata, List.of());
+        case CONSTANT -> Vote.of(decision, (ArrayValue) constraints.obligations(), (ArrayValue) constraints.advice(),
+                (Value) constraints.resource(), voterMetadata);
         case PURE     -> new SimplePureVoter(decision, constraints.obligations(), constraints.advice(),
                 constraints.resource(), voterMetadata);
         case STREAM   -> new SimpleStreamVoter(decision, OperatorLiftUtil.liftToStream(constraints.obligations()),
@@ -236,16 +234,13 @@ public class PolicyCompiler {
             Voter voter, VoterMetadata voterMetadata) {
         return bodyCoverage.switchMap(bodyResult -> {
             val bodyValue         = bodyResult.value().value();
-            val bodyAttrs         = bodyResult.value().contributingAttributes();
             val bodyConditionHits = bodyResult.bodyCoverage();
             val policyCoverage    = new Coverage.PolicyCoverage(voterMetadata, bodyConditionHits);
             if (bodyValue instanceof ErrorValue error) {
-                return Flux.just(withCoverage(Vote.tracedError(error, voterMetadata, bodyAttrs), voterMetadata,
-                        bodyConditionHits));
+                return Flux.just(new VoteWithCoverage(Vote.error(error, voterMetadata), policyCoverage));
             }
             if (Value.FALSE.equals(bodyValue)) {
-                return Flux.just(
-                        withCoverage(Vote.tracedAbstain(voterMetadata, bodyAttrs), voterMetadata, bodyConditionHits));
+                return Flux.just(new VoteWithCoverage(Vote.abstain(voterMetadata), policyCoverage));
             }
             return switch (voter) {
             case Vote pd         -> Flux.just(new VoteWithCoverage(pd, policyCoverage));
@@ -258,51 +253,27 @@ public class PolicyCompiler {
     }
 
     /**
-     * Wraps a policy vote with coverage information.
-     *
-     * @param vote the policy vote
-     * @param voterMetadata the policy voterMetadata
-     * @param bodyCoverage the body coverage data
-     * @return the vote with coverage
-     */
-    private static VoteWithCoverage withCoverage(Vote vote, VoterMetadata voterMetadata,
-            Coverage.BodyCoverage bodyCoverage) {
-        val policyCoverage = new Coverage.PolicyCoverage(voterMetadata, bodyCoverage);
-        return new VoteWithCoverage(vote, policyCoverage);
-    }
-
-    /**
      * Builds a policy vote from merged constraint stream values.
      *
      * @param merged the merged stream values [obligations, advice, resource]
      * @param decision the effect-derived decision
-     * @param baseAttributes the contributing attributes from body evaluation
      * @param voterMetadata the policy voterMetadata
      * @return the assembled policy vote
      */
-    private static Vote buildFromConstraintStreams(Object[] merged, Decision decision,
-            List<AttributeRecord> baseAttributes, VoterMetadata voterMetadata) {
-        val tracedObligationsValue = (TracedValue) merged[0];
-        val obligationsValue       = tracedObligationsValue.value();
-        val contributingAttributes = new ArrayList<>(baseAttributes);
-        contributingAttributes.addAll(tracedObligationsValue.contributingAttributes());
+    private static Vote buildFromConstraintStreams(Object[] merged, Decision decision, VoterMetadata voterMetadata) {
+        val obligationsValue = ((TracedValue) merged[0]).value();
         if (obligationsValue instanceof ErrorValue error) {
-            return Vote.tracedError(error, voterMetadata, contributingAttributes);
+            return Vote.error(error, voterMetadata);
         }
-        val tracedAdviceValue = (TracedValue) merged[1];
-        val adviceValue       = tracedAdviceValue.value();
-        contributingAttributes.addAll(tracedAdviceValue.contributingAttributes());
+        val adviceValue = ((TracedValue) merged[1]).value();
         if (adviceValue instanceof ErrorValue error) {
-            return Vote.tracedError(error, voterMetadata, contributingAttributes);
+            return Vote.error(error, voterMetadata);
         }
-        val tracedResourceValue = (TracedValue) merged[2];
-        val resourceValue       = tracedResourceValue.value();
-        contributingAttributes.addAll(tracedResourceValue.contributingAttributes());
+        val resourceValue = ((TracedValue) merged[2]).value();
         if (resourceValue instanceof ErrorValue error) {
-            return Vote.tracedError(error, voterMetadata, contributingAttributes);
+            return Vote.error(error, voterMetadata);
         }
-        return Vote.tracedVote(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue, resourceValue,
-                voterMetadata, contributingAttributes);
+        return Vote.of(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue, resourceValue, voterMetadata);
     }
 
     /**
@@ -350,8 +321,7 @@ public class PolicyCompiler {
             if (resourceValue instanceof ErrorValue error) {
                 return Vote.error(error, metadata);
             }
-            return Vote.tracedVote(decision, (ArrayValue) obligationsArray, (ArrayValue) adviceArray, resourceValue,
-                    metadata, List.of());
+            return Vote.of(decision, (ArrayValue) obligationsArray, (ArrayValue) adviceArray, resourceValue, metadata);
         }
 
         private Value evaluate(CompiledExpression expression, EvaluationContext ctx) {
@@ -382,7 +352,7 @@ public class PolicyCompiler {
         @Override
         public Flux<Vote> vote() {
             return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                    merged -> buildFromConstraintStreams(merged, decision, List.of(), voterMetadata));
+                    merged -> buildFromConstraintStreams(merged, decision, voterMetadata));
         }
     }
 
@@ -415,9 +385,6 @@ public class PolicyCompiler {
 
     /**
      * Decision maker for streaming applicability check.
-     * <p>
-     * Captures body attributes from the streaming applicability evaluation and
-     * includes them in all resulting votes (error, abstain, or applicable).
      *
      * @param isApplicable the stream operator for applicability evaluation
      * @param voter the underlying vote maker
@@ -430,30 +397,19 @@ public class PolicyCompiler {
         public Flux<Vote> vote() {
             return isApplicable.stream().switchMap(tracedApplicability -> {
                 val applicabilityValue = tracedApplicability.value();
-                val bodyAttributes     = tracedApplicability.contributingAttributes();
                 if (applicabilityValue instanceof ErrorValue error) {
-                    return Flux.just(Vote.tracedError(error, voterMetadata, bodyAttributes));
+                    return Flux.just(Vote.error(error, voterMetadata));
                 }
                 if (applicabilityValue instanceof BooleanValue(var b) && b) {
                     return switch (voter) {
-                    case Vote pd         -> Flux.just(mergeBodyAttributes(pd, bodyAttributes));
-                    case PureVoter pdm   -> Flux.deferContextual(ctxView -> Flux
-                            .just(mergeBodyAttributes(pdm.vote(ctxView.get(EvaluationContext.class)), bodyAttributes)));
-                    case StreamVoter sdm -> sdm.vote().map(v -> mergeBodyAttributes(v, bodyAttributes));
+                    case Vote pd         -> Flux.just(pd);
+                    case PureVoter pdm   ->
+                        Flux.deferContextual(ctxView -> Flux.just(pdm.vote(ctxView.get(EvaluationContext.class))));
+                    case StreamVoter sdm -> sdm.vote();
                     };
                 }
-                return Flux.just(Vote.tracedAbstain(voterMetadata, bodyAttributes));
+                return Flux.just(Vote.abstain(voterMetadata));
             });
-        }
-
-        private static Vote mergeBodyAttributes(Vote constraintVote, List<AttributeRecord> bodyAttributes) {
-            if (bodyAttributes.isEmpty()) {
-                return constraintVote;
-            }
-            val merged = new ArrayList<>(bodyAttributes);
-            merged.addAll(constraintVote.contributingAttributes());
-            return new Vote(constraintVote.authorizationDecision(), constraintVote.errors(), merged,
-                    constraintVote.contributingVotes(), constraintVote.voter(), constraintVote.outcome());
         }
     }
 

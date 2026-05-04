@@ -146,8 +146,7 @@ public class PriorityBasedVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**
@@ -303,7 +302,7 @@ public class PriorityBasedVoteCombiner {
 
     private static Vote concreteResult(AuthorizationDecision authz, Outcome outcome, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
-        return new Vote(authz, List.of(), List.of(), contributingVotes, voterMetadata, outcome);
+        return new Vote(authz, List.of(), contributingVotes, voterMetadata, outcome);
     }
 
     private static boolean isCritical(Outcome outcome, Decision priorityDecision) {

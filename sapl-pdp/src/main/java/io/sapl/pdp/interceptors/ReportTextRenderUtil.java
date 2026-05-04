@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp.interceptors;
 
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
 import lombok.experimental.UtilityClass;
@@ -109,31 +108,7 @@ public class ReportTextRenderUtil {
 
     private static void appendDocument(StringBuilder sb, ContributingDocument doc) {
         sb.append(INDENT_1).append(doc.name()).append(" -> ").append(doc.decision()).append('\n');
-        appendAttributes(sb, doc.attributes());
         appendErrors(sb, INDENT_2 + "Errors:\n", INDENT_3, doc.errors());
-    }
-
-    private static void appendAttributes(StringBuilder sb, Collection<AttributeRecord> attributes) {
-        if (attributes.isEmpty()) {
-            return;
-        }
-        sb.append(INDENT_2).append("Attributes:\n");
-        for (var attr : attributes) {
-            appendAttribute(sb, attr);
-        }
-    }
-
-    private static void appendAttribute(StringBuilder sb, AttributeRecord attr) {
-        val invocation = attr.invocation();
-        val name       = invocation.attributeName();
-        val entity     = invocation.entity();
-        sb.append(INDENT_3);
-        if (entity != null) {
-            sb.append(entity).append(".<").append(name).append("> = ");
-        } else {
-            sb.append('<').append(name).append("> = ");
-        }
-        sb.append(attr.attributeValue()).append(" @ ").append(attr.retrievedAt()).append('\n');
     }
 
     private static void appendErrors(StringBuilder sb, String header, String indent, Collection<ErrorValue> errors) {

@@ -72,8 +72,8 @@ class UnanimousVoteCombinerTests {
     }
 
     static Vote permitVote(String name) {
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote permitVoteWithObligations(String name, Value... obligations) {
@@ -81,8 +81,8 @@ class UnanimousVoteCombinerTests {
         for (var o : obligations) {
             obligationsArray.add(o);
         }
-        return Vote.tracedVote(Decision.PERMIT, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote permitVoteWithAdvice(String name, Value... advice) {
@@ -90,18 +90,18 @@ class UnanimousVoteCombinerTests {
         for (var a : advice) {
             adviceArray.add(a);
         }
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArray.build(), Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArray.build(), Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote permitVoteWithResource(String name, Value resource) {
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote denyVote(String name) {
-        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.DENY), List.of());
+        return Vote.of(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.DENY));
     }
 
     static Vote denyVoteWithObligations(String name, Value... obligations) {
@@ -109,13 +109,13 @@ class UnanimousVoteCombinerTests {
         for (var o : obligations) {
             obligationsArray.add(o);
         }
-        return Vote.tracedVote(Decision.DENY, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.DENY), List.of());
+        return Vote.of(Decision.DENY, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.DENY));
     }
 
     static Vote suspendVote(String name) {
-        return Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.SUSPEND), List.of());
+        return Vote.of(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND));
     }
 
     static Vote suspendVoteWithObligations(String name, Value... obligations) {
@@ -123,8 +123,8 @@ class UnanimousVoteCombinerTests {
         for (var o : obligations) {
             obligationsArray.add(o);
         }
-        return Vote.tracedVote(Decision.SUSPEND, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.SUSPEND), List.of());
+        return Vote.of(Decision.SUSPEND, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND));
     }
 
     static Vote notApplicableVote(String name) {
@@ -395,10 +395,8 @@ class UnanimousVoteCombinerTests {
             val ob       = ArrayValue.builder().add(Value.of("{\"action\":\"log\"}")).build();
             val adv      = ArrayValue.builder().add(Value.of("{\"info\":\"a\"}")).build();
             val resource = Value.of("{\"data\":true}");
-            val vote1    = Vote.tracedVote(Decision.PERMIT, ob, adv, resource, testMetadata("p1", Outcome.PERMIT),
-                    List.of());
-            val vote2    = Vote.tracedVote(Decision.PERMIT, ob, adv, resource, testMetadata("p2", Outcome.PERMIT),
-                    List.of());
+            val vote1    = Vote.of(Decision.PERMIT, ob, adv, resource, testMetadata("p1", Outcome.PERMIT));
+            val vote2    = Vote.of(Decision.PERMIT, ob, adv, resource, testMetadata("p2", Outcome.PERMIT));
             val acc      = UnanimousVoteCombiner.accumulatorVoteFrom(vote1, TEST_METADATA);
             val result   = UnanimousVoteCombiner.combineVotes(acc, vote2, TEST_METADATA, true);
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);

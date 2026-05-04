@@ -100,7 +100,7 @@ class ReportTextRenderUtilTests {
     @Test
     @DisplayName("renders contributing documents in text report")
     void whenReportHasDocumentsThenDocumentsAreRendered() {
-        val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT, List.of(), List.of());
+        val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT, List.of());
         val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
                 Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
                 List.of(doc), List.of());
@@ -113,8 +113,8 @@ class ReportTextRenderUtilTests {
     @Test
     @DisplayName("renders multiple contributing documents")
     void whenReportHasMultipleDocumentsThenAllAreRendered() {
-        val doc1   = new ContributingDocument("outer-set", Decision.DENY, List.of(), List.of());
-        val doc2   = new ContributingDocument("inner-policy", Decision.DENY, List.of(), List.of());
+        val doc1   = new ContributingDocument("outer-set", Decision.DENY, List.of());
+        val doc2   = new ContributingDocument("inner-policy", Decision.DENY, List.of());
         val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.DENY,
                 Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "top-set", "test-pdp", "test-config", DENY_OVERRIDES,
                 List.of(doc1, doc2), List.of());
@@ -157,7 +157,7 @@ class ReportTextRenderUtilTests {
         val invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Duration.ofSeconds(10),
                 Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val attr       = new AttributeRecord(invocation, Value.of("2024-01-23T10:30:00Z"), timestamp, null);
-        val doc        = new ContributingDocument("time-policy", Decision.PERMIT, List.of(attr), List.of());
+        val doc        = new ContributingDocument("time-policy", Decision.PERMIT, List.of());
         val report     = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
                 Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
                 List.of(doc), List.of());
@@ -176,7 +176,7 @@ class ReportTextRenderUtilTests {
         val invocation = new AttributeFinderInvocation("test-config", "user.role", entity, List.of(),
                 Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val attr       = new AttributeRecord(invocation, Value.of("admin"), timestamp, null);
-        val doc        = new ContributingDocument("role-policy", Decision.PERMIT, List.of(attr), List.of());
+        val doc        = new ContributingDocument("role-policy", Decision.PERMIT, List.of());
         val report     = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
                 Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
                 List.of(doc), List.of());
@@ -192,7 +192,7 @@ class ReportTextRenderUtilTests {
     @DisplayName("renders document-level errors under contributing document")
     void whenDocumentHasErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Failed to evaluate condition", null);
-        val doc    = new ContributingDocument("broken-policy", Decision.INDETERMINATE, List.of(), List.of(error));
+        val doc    = new ContributingDocument("broken-policy", Decision.INDETERMINATE, List.of(error));
         val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.INDETERMINATE,
                 Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
                 List.of(doc), List.of());

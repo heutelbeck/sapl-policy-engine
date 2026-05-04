@@ -112,8 +112,7 @@ public class UniqueVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public static Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**
