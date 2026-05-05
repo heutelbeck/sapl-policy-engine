@@ -22,61 +22,114 @@ import io.sapl.api.model.SubscriptionKey;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
- * Per-subscription, snapshot-driven view over the attribute broker.
+ * Multi-tenant view over the attribute layer for evaluator instances.
+ * Many concurrent consumers (one per authorization subscription) hold
+ * a {@link Subscription} obtained via
+ * {@link #open(String, Set, Function)}; the store deduplicates backing
+ * PIP subscriptions across consumers and routes value updates to the
+ * consumers that depend on the changed key.
  * <p>
- * The store decouples the snapshot evaluator from Reactor: the evaluator
- * reads attributes via {@link #snapshot()} and declares its current
- * dependency set via {@link #update(Set)}. The store is responsible for
- * subscribing to newly added keys, releasing dropped ones, and parking
- * the latest value of each subscribed key in a single-slot mailbox.
+ * The consumer interacts with the store through a single function
+ * callback. On each fire the store invokes the callback with the
+ * fulfilled snapshot for the consumer's currently subscribed keys; the
+ * callback evaluates against the snapshot and returns the dependency
+ * set its next evaluation pass will read. The store diffs the returned
+ * set against the previous one and updates backing PIP subscriptions
+ * accordingly. The {@link Subscription} handle is a pure lifecycle
+ * marker — a single {@link Subscription#close()} method.
  * <p>
- * The store fires the {@link #onUpdate(Runnable)} callback whenever a
- * subscribed mailbox accepts a new value. The trigger loop reacts by
- * scheduling the next evaluation round; back-pressure is implicit in
- * the single-slot semantic (newer values overwrite older ones, snapshot
- * captures the latest value at the moment of read).
+ * The first callback for a given dependency set fires only when every
+ * declared key has a value in its mailbox (the all-deps-fulfilled
+ * gate). The consumer never observes a partial snapshot. After the gate
+ * first opens it stays open for the dep set, firing on each subsequent
+ * value change; a callback whose return value adds a key with an empty
+ * mailbox re-closes the gate until that key fills.
+ * <p>
+ * {@link io.sapl.api.model.ErrorValue} counts as a fulfilled value: a
+ * PIP that fails materialises an {@code ErrorValue} in the mailbox, the
+ * gate opens, and the consumer's evaluator handles the error per its
+ * own semantics.
  *
  * @since 4.2.0
  */
 public interface AttributeStore extends AutoCloseable {
 
     /**
-     * Registers the trigger callback fired whenever a subscribed mailbox
-     * accepts a new value. May be invoked from any thread; implementations
-     * must be safe to call concurrently with {@link #update(Set)} and
-     * {@link #snapshot()}. At most one callback is held; later calls
-     * replace the previous callback.
-     */
-    void onUpdate(Runnable trigger);
-
-    /**
-     * Declares the current dependency set produced by the latest
-     * evaluation round. The store subscribes to keys present in
-     * {@code currentDependencies} but not yet subscribed, releases keys
-     * subscribed but absent from the new set, and leaves shared keys
-     * untouched. Implementations may fire the trigger callback
-     * synchronously when an added key already has a cached value.
+     * Opens a per-consumer subscription. Initial dependencies and the
+     * trigger callback are wired atomically so the first update never
+     * races a not-yet-installed callback. If every key in
+     * {@code initialDependencies} already has a value in its mailbox at
+     * this point, the callback fires synchronously before this method
+     * returns; otherwise the callback fires later, when the last
+     * unfulfilled key receives its first value.
+     * <p>
+     * The {@code subscriptionId} is caller-supplied and must uniquely
+     * identify this consumer for the lifetime of this store. The same
+     * id surfaces in store-side telemetry and metrics so operators can
+     * correlate store activity with the originating authorization
+     * subscription.
+     * <p>
+     * The {@code onUpdate} callback receives the fulfilled snapshot
+     * (the gate guarantees an entry per current dep) and must return a
+     * non-empty {@link Set} of the SubscriptionKeys its next evaluation
+     * pass will read. The store applies the diff against the previous
+     * dep set: backing PIP subscriptions are reference-counted across
+     * consumers; freshly added keys open backing subscriptions, dropped
+     * keys release them. Returning an empty set is illegal — consumers
+     * who want to stop must call {@link Subscription#close()}
+     * externally.
      *
-     * @param currentDependencies the SubscriptionKeys the next evaluation
-     * round will read from {@link #snapshot()}
+     * @param subscriptionId non-blank identifier; must not collide with
+     * any open subscription on this store
+     * @param initialDependencies the SubscriptionKeys the consumer's
+     * first evaluation pass will read; must be non-empty (consumers
+     * with no streaming dependencies do not interact with the store at
+     * all)
+     * @param onUpdate fired when a fulfilled snapshot is available;
+     * receives the snapshot, returns the next dep set;
+     * per-subscription serialised (never invoked concurrently with
+     * itself for the same {@code subscriptionId}); fires outside any
+     * internal store lock; an empty returned set or a {@code null}
+     * returned set causes the store to fail the subscription with an
+     * {@link IllegalStateException} on the firing thread
+     * @return per-consumer lifecycle handle for releasing the
+     * subscription
+     * @throws IllegalArgumentException if {@code subscriptionId} is
+     * blank or already in use, or if {@code initialDependencies} is
+     * empty
      */
-    void update(Set<SubscriptionKey> currentDependencies);
+    Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate);
 
     /**
-     * Returns the latest snapshot map. Each entry pairs a currently
-     * subscribed key with the most recent value its mailbox holds.
-     * Keys whose mailbox has not yet received a value are absent from
-     * the map. The returned map is suitable for binding via
-     * {@link io.sapl.api.model.EvaluationContext#withSnapshot(Map)}.
-     */
-    Map<SubscriptionKey, AttributeSnapshot> snapshot();
-
-    /**
-     * Releases every active subscription and clears all mailboxes.
-     * No further trigger callbacks will fire after this call returns.
+     * Releases every open subscription and the backing PIP state. No
+     * further callbacks fire after this returns.
      */
     @Override
     void close();
+
+    /**
+     * Per-consumer lifecycle handle. The subscription's behaviour
+     * (snapshot reads, dependency updates) lives entirely in the
+     * callback wired at {@link AttributeStore#open(String, Set, Function)}
+     * time; this handle is solely for releasing the subscription when
+     * the consumer is done.
+     *
+     * @since 4.2.0
+     */
+    interface Subscription extends AutoCloseable {
+
+        /**
+         * Releases this consumer's dependencies and unregisters the
+         * trigger callback. Idempotent; safe to call from any thread.
+         * After {@code close()} returns the store will not invoke the
+         * callback again. Backing PIP subscriptions whose refcount
+         * falls to zero are released by the store.
+         */
+        @Override
+        void close();
+    }
 }

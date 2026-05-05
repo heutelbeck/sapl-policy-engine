@@ -247,7 +247,7 @@ class CoverageAccumulatorTests {
         val voter          = new PolicyVoterMetadata(policyName, "default", "config", null, outcome, false);
         val policyCoverage = new PolicyCoverage(voter, bodyCoverage);
 
-        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), List.of(), voter, outcome);
+        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), voter, outcome);
 
         return new VoteWithCoverage(vote, policyCoverage);
     }
