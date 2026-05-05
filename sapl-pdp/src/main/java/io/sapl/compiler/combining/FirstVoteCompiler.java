@@ -46,11 +46,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_IN_TARGET;
-
 import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.ABSTAIN;
 import static io.sapl.api.pdp.Decision.INDETERMINATE;
 import static io.sapl.api.pdp.Decision.NOT_APPLICABLE;
+import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_IN_TARGET;
 import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
 
 /**
@@ -68,7 +67,11 @@ import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
  * <li><b>Pure evaluation:</b> When remaining policies require only subscription
  * data (no streaming attributes), produces a synchronous vote maker.</li>
  * <li><b>Stream evaluation:</b> When any policy requires streaming attributes,
- * builds a reverse-chained flux for lazy reactive evaluation.</li>
+ * produces a snapshot-driven voter that walks the policies sequentially
+ * per round, stopping at the first non-NOT_APPLICABLE result. Tail
+ * policies are not subscribed when an earlier policy resolves
+ * applicability; their deps only enter the dependency set if the
+ * snapshot round actually reaches them.</li>
  * </ul>
  */
 @UtilityClass
@@ -108,7 +111,8 @@ public class FirstVoteCompiler {
      * <ol>
      * <li>Static short-circuit for leading constant policies</li>
      * <li>Pure vote maker when all remaining policies are non-streaming</li>
-     * <li>Stream vote maker with reverse-chained flux otherwise</li>
+     * <li>Stream vote maker that walks policies sequentially per snapshot
+     * round, stopping at the first non-NOT_APPLICABLE child vote</li>
      * </ol>
      */
     private static Voter compileVoter(List<CompiledPolicy> policies, VoterMetadata voterMetadata,

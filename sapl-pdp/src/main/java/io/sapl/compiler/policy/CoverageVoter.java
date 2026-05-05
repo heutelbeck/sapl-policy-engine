@@ -58,6 +58,8 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  */
 public interface CoverageVoter {
 
+    String ERROR_NOT_MIGRATED = "CoverageVoter not yet migrated for combining algorithm %s";
+
     VoteResultWithCoverage evaluate(EvaluationContext ctx);
 
     /**
@@ -156,8 +158,7 @@ public interface CoverageVoter {
     record NotMigrated(String algorithmName) implements CoverageVoter {
         @Override
         public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
-            throw new UnsupportedOperationException(
-                    "CoverageVoter not yet migrated for combining algorithm " + algorithmName);
+            throw new UnsupportedOperationException(ERROR_NOT_MIGRATED.formatted(algorithmName));
         }
     }
 }

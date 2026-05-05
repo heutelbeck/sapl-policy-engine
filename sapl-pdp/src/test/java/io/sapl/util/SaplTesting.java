@@ -38,6 +38,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.CoverageVoter;
 import io.sapl.compiler.policy.PolicyCompiler;
 import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.policyset.PolicySetCompiler;
@@ -522,18 +523,29 @@ public class SaplTesting {
         return PolicySetCompiler.compilePolicySet(policySet, ctx);
     }
 
+    /**
+     * Evaluates a policy set's production-side voter against {@code ctx}
+     * via {@link Voter#evaluate(EvaluationContext)} and returns the
+     * resulting {@link Vote}. The returned vote may be {@code null} when
+     * the voter has unbound dependencies in this snapshot — callers that
+     * need multi-round streaming evaluation should drive the voter via a
+     * {@code TestAttributeStore}-backed {@code VTVoterEvaluator} instead.
+     */
     public static Vote evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
-        val voter = compiled.applicabilityAndVote();
-        return switch (voter) {
-        case Vote vote          -> vote;
-        case PureVoter pure     -> pure.vote(ctx);
-        case StreamVoter stream ->
-            stream.vote().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
-        };
+        return compiled.applicabilityAndVote().evaluate(ctx).vote();
     }
 
+    /**
+     * Evaluates a policy set's coverage voter against {@code ctx} via
+     * {@link CoverageVoter#evaluate(EvaluationContext)} and projects the
+     * snapshot result into the legacy {@link VoteWithCoverage} shape.
+     * The {@code vote()} component may be {@code null} when the snapshot
+     * is incomplete — multi-round streaming tests should use
+     * {@code VTCoverageEvaluator} instead.
+     */
     public static VoteWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled, EvaluationContext ctx) {
-        return compiled.coverage().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, ctx)).blockFirst();
+        val r = compiled.coverageVoter().evaluate(ctx);
+        return new VoteWithCoverage(r.voteResult().vote(), r.coverage());
     }
 
     public static Vote evaluatePolicySetWithPathEquivalenceCheck(CompiledPolicySet compiled, EvaluationContext ctx) {
@@ -547,8 +559,7 @@ public class SaplTesting {
 
     public static void assertStreamPathEquivalence(CompiledPolicySet compiled, EvaluationContext ctx,
             Decision expectedDecision) {
-        val productionVote = ((StreamVoter) compiled.applicabilityAndVote()).vote()
-                .contextWrite(c -> c.put(EvaluationContext.class, ctx)).blockFirst();
+        val productionVote = compiled.applicabilityAndVote().evaluate(ctx).vote();
         val coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
         assertThat(productionVote).isNotNull();
         assertThat(productionVote.authorizationDecision().decision()).as("Production path decision")

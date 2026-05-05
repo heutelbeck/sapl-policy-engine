@@ -21,8 +21,11 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.store.TestAttributeStore;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.eval.VTCoverageEvaluator;
+import io.sapl.compiler.eval.VTVoterEvaluator;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetHit;
@@ -34,14 +37,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.policyset.PolicySetUtil.toStream;
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -53,8 +53,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 @DisplayName("FirstApplicableCompiler")
 class FirstVoteCompilerTests {
-
-    static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     // Target hit expectations - we only check type and value, not location
     static final TargetHit BLANK        = Coverage.BLANK_TARGET_HIT;
@@ -615,9 +613,9 @@ class FirstVoteCompilerTests {
 
         @Test
         @DisplayName("streaming policies with constant permit fallback - first policy matches")
-        void whenStreamingPoliciesWithConstantFallbackAndFirstMatches_thenFirstPolicyPermits() {
-            val attrBroker = attributeBroker(Map.of("test.attr1", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void whenStreamingPoliciesWithConstantFallbackAndFirstMatches_thenFirstPolicyPermits()
+                throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "time-based-access"
                     first or abstain errors propagate
 
@@ -631,29 +629,28 @@ class FirstVoteCompilerTests {
 
                     policy "fallback-permit"
                     permit
-                    """, attrBroker);
-
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "doc" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote, List.of("first-check"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr1", Value.TRUE);
+                store.register("test.attr2", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("first-check"));
+                }
+            }
         }
 
         @Test
         @DisplayName("streaming policies with constant permit fallback - all streaming NOT_APPLICABLE falls through")
-        void whenStreamingPoliciesWithConstantFallbackAndAllNotApplicable_thenFallsThrough() {
-            val attrBroker = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.FALSE }, "test.attr2", new Value[] { Value.FALSE }));
-            val compiled   = compilePolicySet("""
+        void whenStreamingPoliciesWithConstantFallbackAndAllNotApplicable_thenFallsThrough()
+                throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "time-based-access"
                     first or abstain errors propagate
 
@@ -667,33 +664,32 @@ class FirstVoteCompilerTests {
 
                     policy "fallback-permit"
                     permit
-                    """, attrBroker);
-
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "doc" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote,
-                                List.of("first-check", "second-check", "fallback-permit"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr1", Value.FALSE);
+                store.register("test.attr2", Value.FALSE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("first-check", "second-check", "fallback-permit"));
+                }
+            }
         }
 
         @Test
         @DisplayName("classified documents pattern: pure target + streaming policies + constant fallback")
-        void whenPureTargetWithStreamingPoliciesAndConstantFallback_thenAttributeIsEvaluated() {
+        void whenPureTargetWithStreamingPoliciesAndConstantFallback_thenAttributeIsEvaluated()
+                throws InterruptedException {
             // Mirrors classified_documents.sapl structure:
             // - Pure policy set target: action == "read"
             // - Streaming policies with conditions using attributes
             // - Constant permit fallback
-            val attrBroker = attributeBroker(Map.of("test.time", new Value[] { Value.of(10) }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "classified-documents"
                     first or abstain errors propagate
                     for action == "read"
@@ -708,27 +704,26 @@ class FirstVoteCompilerTests {
 
                     policy "fallback"
                     permit
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "doc" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """));
 
-            // When time=10, first policy should match (10 < 20)
-            StepVerifier.create(
-                    toStream(compiled.applicabilityAndVote()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote, List.of("first-window"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.time", Value.of(10));
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("first-window"));
+                }
+            }
         }
 
         @Test
         @DisplayName("classified documents pattern: time beyond first window falls to second")
-        void whenPureTargetWithStreamingPoliciesAndTimeBeyondFirstWindow_thenSecondPolicyMatches() {
-            val attrBroker = attributeBroker(Map.of("test.time", new Value[] { Value.of(25) }));
-            val compiled   = compilePolicySet("""
+        void whenPureTargetWithStreamingPoliciesAndTimeBeyondFirstWindow_thenSecondPolicyMatches()
+                throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "classified-documents"
                     first or abstain errors propagate
                     for action == "read"
@@ -743,28 +738,26 @@ class FirstVoteCompilerTests {
 
                     policy "fallback"
                     permit
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "doc" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """));
 
-            // When time=25, first policy doesn't match (25 < 20 is false), second matches
-            // (25 < 40)
-            StepVerifier.create(
-                    toStream(compiled.applicabilityAndVote()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.time", Value.of(25));
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window"));
+                }
+            }
         }
 
         @Test
         @DisplayName("classified documents pattern: time beyond all windows falls to constant")
-        void whenPureTargetWithStreamingPoliciesAndTimeBeyondAllWindows_thenFallbackMatches() {
-            val attrBroker = attributeBroker(Map.of("test.time", new Value[] { Value.of(45) }));
-            val compiled   = compilePolicySet("""
+        void whenPureTargetWithStreamingPoliciesAndTimeBeyondAllWindows_thenFallbackMatches()
+                throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "classified-documents"
                     first or abstain errors propagate
                     for action == "read"
@@ -779,20 +772,19 @@ class FirstVoteCompilerTests {
 
                     policy "fallback"
                     permit
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "doc" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "doc" }
+                    """));
 
-            // When time=45, both streaming policies don't match, falls through to constant
-            StepVerifier.create(
-                    toStream(compiled.applicabilityAndVote()).contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window", "fallback"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.time", Value.of(45));
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window", "fallback"));
+                }
+            }
         }
 
         record StreamTestCase(
@@ -1013,29 +1005,29 @@ class FirstVoteCompilerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void streamTestCases(StreamTestCase testCase) {
-            val attrBroker   = attributeBroker(testCase.attributes());
-            val compiled     = compilePolicySet(testCase.policySet(), attrBroker);
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription(testCase.subscription());
-            val ctx          = evaluationContext(subscription, attrBroker);
-
+        void streamTestCases(StreamTestCase testCase) throws InterruptedException {
+            val compiled = compilePolicySet(testCase.policySet());
+            val ctx      = evaluationContext(parseSubscription(testCase.subscription()));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(pdpVote -> {
-                        assertThat(pdpVote.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
-                        assertVoteHasAllTheseContributing(pdpVote, testCase.contributingPolicies());
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                for (val entry : testCase.attributes().entrySet()) {
+                    store.register(entry.getKey(), entry.getValue()[0]);
+                }
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store);
+                        val cov = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
+                    assertVoteHasAllTheseContributing(vote, testCase.contributingPolicies());
 
-            StepVerifier.create(compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(resultWithCoverage -> {
-                        assertThat(resultWithCoverage.vote().authorizationDecision().decision())
-                                .isEqualTo(testCase.expectedDecision());
-                        val psCoverage = (PolicySetCoverage) resultWithCoverage.coverage();
-                        assertThat(psCoverage.policyCoverages()).hasSize(testCase.contributingPolicies().size());
-                        assertTargetHitMatches(psCoverage.targetHit(), testCase.expectedTargetHit());
-                    }).expectComplete().verify(TIMEOUT);
+                    val coverageResult = cov.awaitNext();
+                    assertThat(coverageResult.voteResult().vote().authorizationDecision().decision())
+                            .isEqualTo(testCase.expectedDecision());
+                    val psCoverage = (PolicySetCoverage) coverageResult.coverage();
+                    assertThat(psCoverage.policyCoverages()).hasSize(testCase.contributingPolicies().size());
+                    assertTargetHitMatches(psCoverage.targetHit(), testCase.expectedTargetHit());
+                }
+            }
         }
     }
 
@@ -1079,14 +1071,8 @@ class FirstVoteCompilerTests {
 
         @Test
         @DisplayName("aggregates attributes from chain of NOT_APPLICABLE policies with final PERMIT")
-        void aggregatesAttributesFromNotApplicableChainWithFinalPermit() {
-            // Policy A: test.attrA returns false -> NOT_APPLICABLE
-            // Policy B: test.attrB returns false -> NOT_APPLICABLE
-            // Policy C: test.attrC returns true -> PERMIT
-            // All attributes should be aggregated in the final vote
-            val attrBroker = attributeBroker(Map.of("test.attrA", new Value[] { Value.FALSE }, "test.attrB",
-                    new Value[] { Value.FALSE }, "test.attrC", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void aggregatesAttributesFromNotApplicableChainWithFinalPermit() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "attribute-chain"
                     first or abstain errors propagate
 
@@ -1101,28 +1087,27 @@ class FirstVoteCompilerTests {
                     policy "policy-c"
                     permit
                       <test.attrC>;
-                    """, attrBroker);
-
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
-
-                        // Verify all three attributes are aggregated from the tree
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attrA", Value.FALSE);
+                store.register("test.attrB", Value.FALSE);
+                store.register("test.attrC", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
+                }
+            }
         }
 
         @Test
         @DisplayName("aggregates attributes when first policy permits (short-circuit with attributes)")
-        void aggregatesAttributesOnShortCircuit() {
-            val attrBroker = attributeBroker(Map.of("test.attr1", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void aggregatesAttributesOnShortCircuit() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "short-circuit"
                     first or abstain errors propagate
 
@@ -1133,30 +1118,26 @@ class FirstVoteCompilerTests {
                     policy "never-evaluated"
                     deny
                       <test.never>;
-                    """, attrBroker);
-
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                        assertVoteHasAllTheseContributing(vote, List.of("permits-immediately"));
-
-                        // Only the first policy's attribute should be aggregated (short-circuit)
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr1", Value.TRUE);
+                store.register("test.never", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    assertVoteHasAllTheseContributing(vote, List.of("permits-immediately"));
+                }
+            }
         }
 
         @Test
         @DisplayName("aggregates attributes from all NOT_APPLICABLE policies when none match")
-        void aggregatesAttributesWhenAllNotApplicable() {
-            // Both attributes return false -> all policies NOT_APPLICABLE
-            val attrBroker = attributeBroker(
-                    Map.of("test.attrX", new Value[] { Value.FALSE }, "test.attrY", new Value[] { Value.FALSE }));
-            val compiled   = compilePolicySet("""
+        void aggregatesAttributesWhenAllNotApplicable() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "all-not-applicable"
                     first or abstain errors propagate
 
@@ -1167,22 +1148,20 @@ class FirstVoteCompilerTests {
                     policy "policy-y"
                     permit
                       <test.attrY>;
-                    """, attrBroker);
-
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-                        assertVoteHasAllTheseContributing(vote, List.of("policy-x", "policy-y"));
-
-                        // Both attributes should be aggregated even though all policies are
-                        // NOT_APPLICABLE
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attrX", Value.FALSE);
+                store.register("test.attrY", Value.FALSE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
+                    assertVoteHasAllTheseContributing(vote, List.of("policy-x", "policy-y"));
+                }
+            }
         }
     }
 
@@ -1547,8 +1526,7 @@ class FirstVoteCompilerTests {
         @Test
         @DisplayName("static SUSPEND first beats subsequent streaming policies (compile-time short-circuit)")
         void whenStaticSuspendFirstWithStreamingFallbackThenSuspendWins() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     first or abstain errors propagate
 
@@ -1558,7 +1536,7 @@ class FirstVoteCompilerTests {
                     policy "stream-permit"
                     permit
                       <test.attr>;
-                    """, attrBroker);
+                    """);
 
             val voter = compiled.applicabilityAndVote();
             assertThat(voter).as("Expected static short-circuit to a Vote").isInstanceOf(Vote.class);
@@ -1570,9 +1548,8 @@ class FirstVoteCompilerTests {
 
         @Test
         @DisplayName("streaming policy emits SUSPEND - returns SUSPEND")
-        void whenStreamingPolicyEmitsSuspendThenReturnsSuspend() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void whenStreamingPolicyEmitsSuspendThenReturnsSuspend() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     first or abstain errors propagate
 
@@ -1582,19 +1559,18 @@ class FirstVoteCompilerTests {
 
                     policy "fallback-permit"
                     permit
-                    """, attrBroker);
-
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
+                    """);
+            val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
-                        assertVoteHasAllTheseContributing(vote, List.of("stream-suspend"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                    assertVoteHasAllTheseContributing(vote, List.of("stream-suspend"));
+                }
+            }
         }
 
         static Stream<Arguments> errorHandlingDoesNotAffectSuspendCases() {
@@ -1621,10 +1597,8 @@ class FirstVoteCompilerTests {
 
         @Test
         @DisplayName("attribute aggregation: NOT_APPLICABLE chain ending in SUSPEND aggregates attributes")
-        void whenChainOfNotApplicableEndingInSuspendThenAttributesAggregated() {
-            val attrBroker = attributeBroker(Map.of("test.attrA", new Value[] { Value.FALSE }, "test.attrB",
-                    new Value[] { Value.FALSE }, "test.attrC", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void whenChainOfNotApplicableEndingInSuspendThenAttributesAggregated() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "attribute-chain"
                     first or abstain errors propagate
 
@@ -1639,17 +1613,19 @@ class FirstVoteCompilerTests {
                     policy "policy-c"
                     suspend
                       <test.attrC>;
-                    """, attrBroker);
+                    """);
+            val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
 
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> {
-                        assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
-                        assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
-                    }).expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attrA", Value.FALSE);
+                store.register("test.attrB", Value.FALSE);
+                store.register("test.attrC", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    val vote = stream.awaitNext();
+                    assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                    assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
+                }
+            }
         }
     }
 }

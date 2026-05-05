@@ -22,4 +22,12 @@ import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.policy.CoverageVoter;
 import reactor.core.publisher.Flux;
 
+/**
+ * Compiler output bundle for a policy set: the production voter plus
+ * both coverage paths. {@code coverage} is the legacy Reactor stream
+ * (populated with {@code Flux.error} by algorithms whose coverage has
+ * migrated to the snapshot model). {@code coverageVoter} is the
+ * snapshot-driven equivalent. The Flux field will be dropped once all
+ * four combining-algorithm compilers populate {@code coverageVoter}.
+ */
 public record VoterAndCoverage(Voter voter, Flux<VoteWithCoverage> coverage, CoverageVoter coverageVoter) {}

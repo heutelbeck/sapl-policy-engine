@@ -30,6 +30,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -234,18 +235,15 @@ public class PolicySetUtil {
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote() {
-            return Flux.deferContextual(ctxView -> {
-                val ctx                 = ctxView.get(EvaluationContext.class);
-                val applicabilityResult = isApplicable.evaluate(ctx);
-                if (applicabilityResult instanceof ErrorValue error) {
-                    return Flux.just(Vote.error(error, voterMetadata));
-                }
-                if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamVoter.vote();
-                }
-                return Flux.just(Vote.abstain(voterMetadata));
-            });
+        public VoteResult evaluate(EvaluationContext ctx) {
+            val applicabilityResult = isApplicable.evaluate(ctx);
+            if (applicabilityResult instanceof ErrorValue error) {
+                return new VoteResult(Vote.error(error, voterMetadata), Map.of());
+            }
+            if (applicabilityResult instanceof BooleanValue(var b) && b) {
+                return streamVoter.evaluate(ctx);
+            }
+            return new VoteResult(Vote.abstain(voterMetadata), Map.of());
         }
     }
 }

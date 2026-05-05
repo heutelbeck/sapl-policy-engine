@@ -25,6 +25,23 @@ import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.policy.CoverageVoter;
 import reactor.core.publisher.Flux;
 
+/**
+ * Compiled form of a SAPL policy set. Carries two coverage paths during
+ * the snapshot migration:
+ * <ul>
+ * <li>{@code coverage} is the legacy Reactor stream produced by the
+ * combining-algorithm compilers that have not yet migrated to the
+ * snapshot model. Migrated algorithms (e.g. FIRST) populate this field
+ * with a {@code Flux.error} placeholder so any caller still reaching
+ * for the Reactor pipeline fails loudly.</li>
+ * <li>{@code coverageVoter} is the snapshot-driven coverage voter,
+ * consumed via {@code coverageVoter().evaluate(ctx)}. Algorithms not
+ * yet migrated populate it with a {@link CoverageVoter.NotMigrated}
+ * stub that throws on evaluate.</li>
+ * </ul>
+ * The Flux field will be removed once all four combining algorithms
+ * have migrated their coverage path to {@link CoverageVoter}.
+ */
 public record CompiledPolicySet(
         CompiledExpression isApplicable,
         Voter voter,
