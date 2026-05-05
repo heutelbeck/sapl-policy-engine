@@ -17,16 +17,18 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.core.ResolvableType;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpRequest;
+
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.http.MutableHttpRequest;
 import io.sapl.spring.pep.http.MutableHttpResponse;
 import io.sapl.spring.util.Maybe;
 import io.sapl.spring.util.Maybe.Present;
+
 import lombok.val;
-import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.core.ResolvableType;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.http.HttpRequest;
 
 /**
  * An event fired during enforcement at which constraint handlers may attach.

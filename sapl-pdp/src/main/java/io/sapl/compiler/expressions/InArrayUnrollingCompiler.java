@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;

@@ -17,11 +17,6 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
-
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.index.PolicyIndexResult;
@@ -34,11 +29,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static io.sapl.compiler.index.IndexTestFixtures.PREDICATE_RESULTS;
-import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
-import static io.sapl.compiler.index.IndexTestFixtures.stubDocument;
-import static io.sapl.compiler.index.IndexTestFixtures.stubDocumentWithApplicability;
-import static io.sapl.compiler.index.IndexTestFixtures.stubDocumentWithConstantApplicability;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+
+import static io.sapl.compiler.index.IndexTestFixtures.*;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

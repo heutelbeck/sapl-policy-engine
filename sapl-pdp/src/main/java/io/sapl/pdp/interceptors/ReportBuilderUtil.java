@@ -17,11 +17,7 @@
  */
 package io.sapl.pdp.interceptors;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;

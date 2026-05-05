@@ -17,6 +17,8 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import static io.sapl.api.model.ValueJsonMarshaller.toJsonString;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,11 +31,11 @@ import org.springframework.security.access.AccessDeniedException;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Runner;
 import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -150,7 +152,7 @@ public class EnforcementPlanner {
     private Mapper<Object> resourceSubstitutionMapper(Value resource, Class<?> targetType) {
         return ignored -> {
             try {
-                return objectMapper.readValue(ValueJsonMarshaller.toJsonString(resource), targetType);
+                return objectMapper.readValue(toJsonString(resource), targetType);
             } catch (Exception exception) {
                 throw new AccessDeniedException(
                         ERROR_CANNOT_MAP_RESOURCE.formatted(resource, targetType.getSimpleName()), exception);
@@ -167,7 +169,7 @@ public class EnforcementPlanner {
      */
     private Map<SignalType, List<EnforcementPlanEntry<?>>> resolveHandlerForEachConstraint(
             AuthorizationDecision decision, Set<SignalType> supportedSignals) {
-        Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal = new HashMap<>();
+        val entriesBySignal = new HashMap<SignalType, List<EnforcementPlanEntry<?>>>();
         scheduleHandlersFor(decision.obligations(), ConstraintType.OBLIGATION, supportedSignals, entriesBySignal);
         scheduleHandlersFor(decision.advice(), ConstraintType.ADVICE, supportedSignals, entriesBySignal);
         return entriesBySignal;

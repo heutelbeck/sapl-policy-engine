@@ -17,9 +17,6 @@
  */
 package io.sapl.attributes.libraries;
 
-import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
-import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
-
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
@@ -33,6 +30,9 @@ import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Flux;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
+
+import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
+import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation = HttpPolicyInformationPoint.DOCUMENTATION)

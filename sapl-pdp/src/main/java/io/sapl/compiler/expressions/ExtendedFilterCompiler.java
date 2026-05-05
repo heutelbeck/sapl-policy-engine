@@ -17,51 +17,15 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Occurrence;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
-import io.sapl.ast.AttributeUnionPath;
-import io.sapl.ast.ConditionPath;
-import io.sapl.ast.Expression;
-import io.sapl.ast.ExpressionPath;
-import io.sapl.ast.ExtendedFilter;
-import io.sapl.ast.IndexPath;
-import io.sapl.ast.IndexUnionPath;
-import io.sapl.ast.KeyPath;
-import io.sapl.ast.PathElement;
-import io.sapl.ast.RecursiveIndexPath;
-import io.sapl.ast.RecursiveKeyPath;
-import io.sapl.ast.RecursiveWildcardPath;
-import io.sapl.ast.RelativeReference;
-import io.sapl.ast.RelativeType;
-import io.sapl.ast.SimpleFilter;
-import io.sapl.ast.SlicePath;
-import io.sapl.ast.WildcardPath;
-import io.sapl.compiler.operators.SimpleStreamOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
@@ -90,7 +54,7 @@ public class ExtendedFilterCompiler {
             return compiledFilter;
         }
         if (compiledFilter instanceof StreamOperator) {
-            return SimpleStreamOperator.of(ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS);
+            return ERROR_STREAM_OPERATORS_NOT_ALLOWED_IN_FILTER_FUNCTION_ARGUMENTS;
         }
 
         val path         = ef.target().elements();

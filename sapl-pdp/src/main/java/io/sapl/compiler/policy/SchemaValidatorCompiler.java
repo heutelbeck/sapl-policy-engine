@@ -17,21 +17,8 @@
  */
 package io.sapl.compiler.policy;
 
-import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaException;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
+import com.networknt.schema.*;
+import io.sapl.api.model.*;
 import io.sapl.ast.SchemaCondition;
 import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
@@ -145,9 +132,9 @@ public class SchemaValidatorCompiler {
         for (val schema : schemas) {
             if (schema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
                 val id = obj.get(SCHEMA_ID_FIELD);
-                if (id instanceof TextValue text) {
+                if (id instanceof TextValue(String value)) {
                     val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
-                    schemaMap.put(text.value(), schemaNode.toString());
+                    schemaMap.put(value, schemaNode.toString());
                 }
             }
         }

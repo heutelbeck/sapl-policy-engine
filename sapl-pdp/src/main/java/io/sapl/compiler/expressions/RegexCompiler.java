@@ -17,27 +17,17 @@
  */
 package io.sapl.compiler.expressions;
 
+import io.sapl.api.model.*;
+import io.sapl.ast.BinaryOperator;
+import io.sapl.compiler.index.SemanticHashing;
+import lombok.experimental.UtilityClass;
+import lombok.val;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.Occurrence;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.compiler.index.SemanticHashing;
-import lombok.experimental.UtilityClass;
-import lombok.val;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 

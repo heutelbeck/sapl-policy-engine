@@ -17,8 +17,15 @@
  */
 package io.sapl.spring.pep.constraints;
 
+import static reactor.core.Exceptions.throwIfFatal;
+
 import java.util.List;
 import java.util.Map;
+
+import org.aopalliance.intercept.MethodInvocation;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.ResolvableType;
+import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Consumer;
@@ -33,16 +40,12 @@ import io.sapl.spring.pep.constraints.Signal.InputSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.Signal.SubscriptionSignal;
 import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
-import org.aopalliance.intercept.MethodInvocation;
-import org.jspecify.annotations.Nullable;
 import io.sapl.spring.util.Maybe;
 import io.sapl.spring.util.Maybe.Absent;
 import io.sapl.spring.util.Maybe.Present;
+
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.core.ResolvableType;
-import org.springframework.security.access.AccessDeniedException;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
 /**
@@ -111,7 +114,7 @@ public record EnforcementPlan(
             try {
                 currentValue = apply(entry.handler(), currentValue);
             } catch (Throwable throwable) {
-                Exceptions.throwIfFatal(throwable);
+                throwIfFatal(throwable);
                 log.warn(WARN_HANDLER_FAILED, signal.type(), entry.constraintType(), entry.constraint(),
                         throwable.toString());
                 if (entry.constraintType() == ConstraintType.OBLIGATION) {
@@ -142,12 +145,12 @@ public record EnforcementPlan(
      * {@code t}; otherwise {@code t} passes through unchanged.
      */
     public Throwable enforceErrorConstraintsAsThrowable(Throwable t) {
-        Exceptions.throwIfFatal(t);
+        throwIfFatal(t);
         EnforcementResult<Object> errorResult;
         try {
             errorResult = execute(ErrorSignal.of(t), false);
         } catch (Throwable handlerFailure) {
-            Exceptions.throwIfFatal(handlerFailure);
+            throwIfFatal(handlerFailure);
             return handlerFailure;
         }
         if (errorResult.failureState()) {

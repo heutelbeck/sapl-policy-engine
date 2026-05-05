@@ -17,22 +17,16 @@
  */
 package io.sapl.attributes.store;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.jspecify.annotations.Nullable;
-
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.eval.AttributeStore;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * In-memory, thread-safe {@link AttributeStore} for tests. Lets tests

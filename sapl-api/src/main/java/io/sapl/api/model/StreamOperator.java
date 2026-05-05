@@ -23,27 +23,7 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-import reactor.core.publisher.Flux;
-
 public non-sealed interface StreamOperator extends CompiledExpression {
-
-    /**
-     * Reactor-based evaluation entry point. The Reactor pipeline is
-     * being removed; new code uses {@link #evaluate(EvaluationContext)}
-     * with the snapshot-driven model. The default throws
-     * {@link UnsupportedOperationException} naming the concrete class,
-     * so any code path still reaching for the Reactor pipeline fails
-     * loudly at runtime rather than silently producing degraded results.
-     * Implementations may temporarily override this while their layer
-     * has not yet migrated; once every consumer is on the snapshot
-     * path the method is deleted entirely.
-     *
-     * @return a flux of traced values for this expression's evaluation
-     */
-    default Flux<TracedValue> stream() {
-        throw new UnsupportedOperationException(
-                "Reactor stream() removed; use evaluate(EvaluationContext) on " + getClass().getSimpleName());
-    }
 
     /**
      * Snapshot-driven evaluation entry point. Returns an
@@ -70,9 +50,7 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      *
      * @since 4.2.0
      */
-    default ExpressionResult evaluate(EvaluationContext ctx) {
-        throw new UnsupportedOperationException("evaluate not yet migrated for " + getClass().getSimpleName());
-    }
+    ExpressionResult evaluate(EvaluationContext ctx);
 
     /**
      * Helper for evaluating a child expression that may be any

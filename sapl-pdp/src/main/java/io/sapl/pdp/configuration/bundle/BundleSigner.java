@@ -20,12 +20,7 @@ package io.sapl.pdp.configuration.bundle;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.SignatureException;
+import java.security.*;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Set;

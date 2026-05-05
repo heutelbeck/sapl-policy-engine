@@ -34,16 +34,7 @@ import java.security.SignatureException;
 import java.util.Base64;
 import java.util.HexFormat;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EC;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ECDSA_SHA256;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ECDSA_SHA384;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ECDSA_SHA512;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EDDSA;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_SHA256;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_SHA384;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA_SHA512;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Provides digital signature verification functions for verifying message

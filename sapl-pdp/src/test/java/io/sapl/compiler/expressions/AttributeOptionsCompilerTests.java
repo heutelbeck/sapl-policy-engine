@@ -33,20 +33,8 @@ import org.mockito.MockedStatic;
 
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_BACKOFF_MS;
-import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_POLL_INTERVAL_MS;
-import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_RETRIES;
-import static io.sapl.compiler.expressions.AttributeCompiler.DEFAULT_TIMEOUT_MS;
-import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_BACKOFF;
-import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS;
-import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_FRESH;
-import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_INITIAL_TIMEOUT;
-import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_POLL_INTERVAL;
-import static io.sapl.compiler.expressions.AttributeCompiler.OPTION_RETRIES;
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.TestPureOperator;
-import static io.sapl.util.SaplTesting.TestStreamOperator;
-import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.compiler.expressions.AttributeCompiler.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;

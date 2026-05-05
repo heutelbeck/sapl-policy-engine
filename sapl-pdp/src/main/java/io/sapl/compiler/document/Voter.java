@@ -17,9 +17,9 @@
  */
 package io.sapl.compiler.document;
 
-import java.util.Map;
-
 import io.sapl.api.model.EvaluationContext;
+
+import java.util.Map;
 
 /**
  * The sealed root of voter shapes. A {@link Vote} is itself a terminal

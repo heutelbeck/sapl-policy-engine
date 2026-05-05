@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.List;
-
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -28,6 +26,8 @@ import io.sapl.compiler.index.smtdd.SmtddPolicyIndex;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.List;
 
 /**
  * Creates a {@link PolicyIndex} based on the indexing strategy name

@@ -17,26 +17,11 @@
  */
 package io.sapl.util;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeSnapshot;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
@@ -45,14 +30,7 @@ import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
-import io.sapl.compiler.document.AstTransformer;
-import io.sapl.compiler.document.Document;
-import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.compiler.document.PureVoter;
-import io.sapl.compiler.document.StreamVoter;
-import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.document.*;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.index.SemanticHashing;
@@ -78,19 +56,13 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -925,39 +897,6 @@ public class SaplTesting {
     }
 
     // ========================================================================
-    // STREAM VERIFICATION
-    // ========================================================================
-
-    @SafeVarargs
-    public static void verifyStream(StreamOperator op, EvaluationContext ctx, Consumer<TracedValue>... assertions) {
-        val                            stream   = op.stream().contextWrite(c -> c.put(EvaluationContext.class, ctx));
-        StepVerifier.Step<TracedValue> verifier = StepVerifier.create(stream);
-        for (val assertion : assertions) {
-            verifier = verifier.assertNext(assertion);
-        }
-        verifier.verifyComplete();
-    }
-
-    public static void verifyStreamEmits(StreamOperator op, EvaluationContext ctx, Value expected) {
-        verifyStream(op, ctx, tv -> assertThat(tv.value()).isEqualTo(expected));
-    }
-
-    public static void verifyStreamEmits(StreamOperator op, EvaluationContext ctx, Value... expected) {
-        @SuppressWarnings("unchecked")
-        Consumer<TracedValue>[] assertions = new Consumer[expected.length];
-        for (int i = 0; i < expected.length; i++) {
-            val exp = expected[i];
-            assertions[i] = tv -> assertThat(tv.value()).isEqualTo(exp);
-        }
-        verifyStream(op, ctx, assertions);
-    }
-
-    public static void verifyStreamEmitsError(StreamOperator op, EvaluationContext ctx, String messageFragment) {
-        verifyStream(op, ctx, tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class)
-                .extracting(v -> ((ErrorValue) v).message()).asString().contains(messageFragment));
-    }
-
-    // ========================================================================
     // TEST CONTEXT (bridges old variable-at-eval pattern to new compile-time
     // pattern)
     // ========================================================================
@@ -1033,17 +972,10 @@ public class SaplTesting {
         }
     }
 
-    public record TestStreamOperator(Value... values) implements StreamOperator {
+    public record TestStreamOperator(Value value) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.fromArray(values).map(v -> new TracedValue(v, List.of()));
-        }
-    }
-
-    public record TestStreamOperatorWithTraced(TracedValue... tracedValues) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.fromArray(tracedValues);
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return new ExpressionResult(value, Map.of());
         }
     }
 

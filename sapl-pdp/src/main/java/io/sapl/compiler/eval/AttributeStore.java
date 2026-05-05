@@ -17,11 +17,11 @@
  */
 package io.sapl.compiler.eval;
 
-import java.util.Map;
-import java.util.Set;
-
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Per-subscription, snapshot-driven view over the attribute broker.

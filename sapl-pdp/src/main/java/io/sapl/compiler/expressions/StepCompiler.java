@@ -17,48 +17,15 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Occurrence;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.ast.AttributeStep;
-import io.sapl.ast.AttributeUnionStep;
-import io.sapl.ast.ConditionStep;
-import io.sapl.ast.ExpressionStep;
-import io.sapl.ast.IndexStep;
-import io.sapl.ast.IndexUnionStep;
-import io.sapl.ast.KeyStep;
-import io.sapl.ast.RecursiveIndexStep;
-import io.sapl.ast.RecursiveKeyStep;
-import io.sapl.ast.RecursiveWildcardStep;
-import io.sapl.ast.SliceStep;
-import io.sapl.ast.Step;
-import io.sapl.ast.WildcardStep;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.IntFunction;
 
 import static io.sapl.api.model.StreamOperator.evalChild;

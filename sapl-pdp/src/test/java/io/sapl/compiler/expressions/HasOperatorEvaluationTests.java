@@ -17,9 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import java.util.Map;
-import java.util.stream.Stream;
-
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import lombok.val;
@@ -28,6 +25,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.Map;
+import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.evaluateExpression;
 import static io.sapl.util.SaplTesting.testContext;

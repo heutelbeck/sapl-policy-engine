@@ -17,10 +17,10 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.Arrays;
-
 import io.sapl.ast.BinaryOperatorType;
 import lombok.experimental.UtilityClass;
+
+import java.util.Arrays;
 
 /**
  * Utility for computing semantic hashes of compiled expressions. These hashes

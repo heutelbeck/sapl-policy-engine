@@ -15,21 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.policy.policybody;
+package io.sapl.compiler.policy;
 
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 @UtilityClass
 public class BooleanGuardCompiler {
@@ -72,13 +63,13 @@ public class BooleanGuardCompiler {
     public record StreamBooleanTypeCheck(StreamOperator operator, SourceLocation location, String errorMessage)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return operator.stream().map(result -> switch (result.value()) {
-            case BooleanValue b -> result;
-            case ErrorValue e   -> result;
-            default             -> new TracedValue(Value.errorAt(location, errorMessage.formatted(result.value())),
-                    result.contributingAttributes());
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val r = operator.evaluate(ctx);
+            val v = r.result();
+            if (v == null || v instanceof BooleanValue || v instanceof ErrorValue) {
+                return r;
+            }
+            return new ExpressionResult(Value.errorAt(location, errorMessage.formatted(v)), r.dependencies());
         }
     }
 }

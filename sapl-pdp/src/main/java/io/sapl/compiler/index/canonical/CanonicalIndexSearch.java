@@ -17,11 +17,6 @@
  */
 package io.sapl.compiler.index.canonical;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.Predicate;
-
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -30,6 +25,11 @@ import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.index.PolicyIndexResult;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Implements the count-and-eliminate search algorithm (Algorithm 1) from the

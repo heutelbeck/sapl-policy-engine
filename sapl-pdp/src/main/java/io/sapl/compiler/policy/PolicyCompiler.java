@@ -17,38 +17,21 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Expression;
-import io.sapl.ast.Policy;
-import io.sapl.ast.VoterMetadata;
-import io.sapl.compiler.document.PureVoter;
-import io.sapl.compiler.document.StreamVoter;
-import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.compiler.document.Voter;
-import io.sapl.compiler.expressions.ArrayCompiler;
-import io.sapl.compiler.expressions.CompilationContext;
-import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
-import io.sapl.compiler.policy.policybody.TracedValueAndBodyCoverage;
-import io.sapl.compiler.util.Nature;
+import io.sapl.ast.*;
+import io.sapl.compiler.document.*;
+import io.sapl.compiler.expressions.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
+import org.jspecify.annotations.NonNull;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.api.model.StreamOperator.mergeDependencies;
 
 /**
  * Compiles SAPL policies into executable vote makers.
@@ -61,8 +44,9 @@ import java.util.List;
  * (e.g., the PDP after determining applicability).</li>
  * <li>{@code applicabilityAndVote} - Combined applicability and constraint
  * evaluation (e.g., in policy sets walking the contained polices).</li>
- * <li>{@code coverage} - Stream emitting decisions with coverage data for
- * testing.</li>
+ * <li>{@code coverageVoter} - Snapshot-driven coverage-instrumented evaluator.
+ * {@link CoverageVoter.Lazy} or {@link CoverageVoter.Eager} based on
+ * {@link CompilationContext#lowLatencyMode()}.</li>
  * </ul>
  */
 @UtilityClass
@@ -86,15 +70,18 @@ public class PolicyCompiler {
      */
     public CompiledPolicy compilePolicy(Policy policy, CompilationContext ctx) {
         ctx.resetForNextPolicy();
-        val metadata              = policy.metadata();
-        val compiledBody          = PolicyBodyCompiler.compilePolicyBody(policy.body(), ctx);
-        val isApplicable          = compiledBody.isApplicable();
-        val constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
-        val voter                 = wrapWithStreamingBody(constraintsVoter, compiledBody.streamingSectionOfBody(),
-                metadata, policy.location());
-        val coverage              = assembleVoteWithCoverage(compiledBody.coverageStream(), constraintsVoter, metadata);
-        val applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, metadata);
-        return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverage, metadata);
+        val           metadata              = policy.metadata();
+        val           conditions            = compileConditions(policy.body().statements(), ctx);
+        val           isApplicable          = compilePureSectionOfBodyExpression(conditions, policy.body());
+        val           streamingSection      = compileStreamingSectionOfBodyExpression(conditions, policy.body());
+        val           constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
+        val           voter                 = wrapWithStreamingBody(constraintsVoter, streamingSection, metadata,
+                policy.location());
+        val           applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, metadata);
+        CoverageVoter coverageVoter         = ctx.lowLatencyMode()
+                ? new CoverageVoter.Eager(conditions, constraintsVoter, metadata)
+                : new CoverageVoter.Lazy(conditions, constraintsVoter, metadata);
+        return new CompiledPolicy(isApplicable, voter, applicabilityAndVoter, coverageVoter, metadata);
     }
 
     /**
@@ -115,7 +102,7 @@ public class PolicyCompiler {
         case BooleanValue(var b) when b                            -> voter;
         case BooleanValue ignored                                  -> Vote.abstain(voterMetadata);
         case PureOperator po when voter instanceof StreamVoter sdm ->
-            new PureBodyStreamConstraintsVoter(po, sdm, voterMetadata);
+            new ApplicabilityCheckingStreamVoter(po, sdm, voterMetadata);
         case PureOperator po                                       ->
             new ApplicabilityCheckingPureVoter(po, voter, voterMetadata);
         default                                                    ->
@@ -132,17 +119,33 @@ public class PolicyCompiler {
      * @return a constant, pure, or stream vote maker for constraints only
      */
     private static Voter compileConstraintsVoter(Policy policy, VoterMetadata voterMetadata, CompilationContext ctx) {
-        val constraints = compileConstraints(policy, policy.location(), ctx);
-        val decision    = policy.effect().decision();
-        return switch (constraints.nature()) {
-        case CONSTANT -> Vote.of(decision, (ArrayValue) constraints.obligations(), (ArrayValue) constraints.advice(),
-                (Value) constraints.resource(), voterMetadata);
-        case PURE     -> new SimplePureVoter(decision, constraints.obligations(), constraints.advice(),
-                constraints.resource(), voterMetadata);
-        case STREAM   -> new SimpleStreamVoter(decision, OperatorLiftUtil.liftToStream(constraints.obligations()),
-                OperatorLiftUtil.liftToStream(constraints.advice()),
-                OperatorLiftUtil.liftToStream(constraints.resource()), voterMetadata);
-        };
+        val location    = policy.location();
+        val obligations = compileConstraintArray(policy.obligations(), location, "Obligation", ctx);
+        if (obligations instanceof ErrorValue error) {
+            throw new SaplCompilerException(ERROR_OBLIGATIONS_STATIC_ERROR.formatted(error), location);
+        }
+        val advice = compileConstraintArray(policy.advice(), location, "Advice", ctx);
+        if (advice instanceof ErrorValue error) {
+            throw new SaplCompilerException(ERROR_ADVICE_STATIC_ERROR.formatted(error), location);
+        }
+        val resourceCompiled = policy.transformation() == null ? Value.UNDEFINED
+                : ExpressionCompiler.compile(policy.transformation(), ctx);
+        if (resourceCompiled instanceof ErrorValue error) {
+            throw new SaplCompilerException(ERROR_TRANSFORMATION_STATIC_ERROR.formatted(error), location);
+        }
+        if (resourceCompiled instanceof PureOperator po && !po.isDependingOnSubscription()) {
+            throw new SaplCompilerException(ERROR_TRANSFORMATION_RELATIVE_ACCESSOR, location);
+        }
+        val resource = ctx.foldCacheDedupe(resourceCompiled);
+        val decision = policy.effect().decision();
+        if (obligations instanceof StreamOperator || advice instanceof StreamOperator
+                || resource instanceof StreamOperator) {
+            return new SimpleStreamVoter(decision, obligations, advice, resource, voterMetadata);
+        }
+        if (obligations instanceof PureOperator || advice instanceof PureOperator || resource instanceof PureOperator) {
+            return new SimplePureVoter(decision, obligations, advice, resource, voterMetadata);
+        }
+        return Vote.of(decision, (ArrayValue) obligations, (ArrayValue) advice, (Value) resource, voterMetadata);
     }
 
     /**
@@ -167,43 +170,6 @@ public class PolicyCompiler {
     }
 
     /**
-     * Compiles policy constraints (obligations, advice, transformation).
-     *
-     * @param policy the policy AST node
-     * @param location the source location for error reporting
-     * @param ctx the compilation context
-     * @return compiled constraints with their determined nature
-     */
-    private static CompiledConstraints compileConstraints(Policy policy, SourceLocation location,
-            CompilationContext ctx) {
-        val obligations = compileConstraintArray(policy.obligations(), location, "Obligation", ctx);
-        if (obligations instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_OBLIGATIONS_STATIC_ERROR.formatted(error), location);
-        }
-        val advice = compileConstraintArray(policy.advice(), location, "Advice", ctx);
-        if (advice instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_ADVICE_STATIC_ERROR.formatted(error), location);
-        }
-        var resource = policy.transformation() == null ? Value.UNDEFINED
-                : ExpressionCompiler.compile(policy.transformation(), ctx);
-        if (resource instanceof ErrorValue error) {
-            throw new SaplCompilerException(ERROR_TRANSFORMATION_STATIC_ERROR.formatted(error), location);
-        }
-        if (resource instanceof PureOperator po && !po.isDependingOnSubscription()) {
-            throw new SaplCompilerException(ERROR_TRANSFORMATION_RELATIVE_ACCESSOR, location);
-        }
-        var nature = Nature.CONSTANT;
-        if (obligations instanceof StreamOperator || advice instanceof StreamOperator
-                || resource instanceof StreamOperator) {
-            nature = Nature.STREAM;
-        } else if (obligations instanceof PureOperator || advice instanceof PureOperator
-                || resource instanceof PureOperator) {
-            nature = Nature.PURE;
-        }
-        return new CompiledConstraints(nature, obligations, advice, ctx.foldCacheDedupe(resource));
-    }
-
-    /**
      * Compiles a list of constraint expressions into an array expression.
      *
      * @param expressions the constraint expressions
@@ -220,75 +186,6 @@ public class PolicyCompiler {
         }
         return ctx.foldCacheDedupe(result);
     }
-
-    /**
-     * Creates a coverage-tracking vote stream from body coverage and vote
-     * maker.
-     *
-     * @param bodyCoverage the body coverage stream
-     * @param voter the vote maker
-     * @param voterMetadata the policy voterMetadata
-     * @return a flux emitting policy decisions with coverage information
-     */
-    private static Flux<VoteWithCoverage> assembleVoteWithCoverage(Flux<TracedValueAndBodyCoverage> bodyCoverage,
-            Voter voter, VoterMetadata voterMetadata) {
-        return bodyCoverage.switchMap(bodyResult -> {
-            val bodyValue         = bodyResult.value().value();
-            val bodyConditionHits = bodyResult.bodyCoverage();
-            val policyCoverage    = new Coverage.PolicyCoverage(voterMetadata, bodyConditionHits);
-            if (bodyValue instanceof ErrorValue error) {
-                return Flux.just(new VoteWithCoverage(Vote.error(error, voterMetadata), policyCoverage));
-            }
-            if (Value.FALSE.equals(bodyValue)) {
-                return Flux.just(new VoteWithCoverage(Vote.abstain(voterMetadata), policyCoverage));
-            }
-            return switch (voter) {
-            case Vote pd         -> Flux.just(new VoteWithCoverage(pd, policyCoverage));
-            case PureVoter pdm   -> Flux.deferContextual(ctxView -> Flux
-                    .just(new VoteWithCoverage(pdm.vote(ctxView.get(EvaluationContext.class)), policyCoverage)));
-            case StreamVoter sdm ->
-                sdm.vote().map(policyDecision -> new VoteWithCoverage(policyDecision, policyCoverage));
-            };
-        });
-    }
-
-    /**
-     * Builds a policy vote from merged constraint stream values.
-     *
-     * @param merged the merged stream values [obligations, advice, resource]
-     * @param decision the effect-derived decision
-     * @param voterMetadata the policy voterMetadata
-     * @return the assembled policy vote
-     */
-    private static Vote buildFromConstraintStreams(Object[] merged, Decision decision, VoterMetadata voterMetadata) {
-        val obligationsValue = ((TracedValue) merged[0]).value();
-        if (obligationsValue instanceof ErrorValue error) {
-            return Vote.error(error, voterMetadata);
-        }
-        val adviceValue = ((TracedValue) merged[1]).value();
-        if (adviceValue instanceof ErrorValue error) {
-            return Vote.error(error, voterMetadata);
-        }
-        val resourceValue = ((TracedValue) merged[2]).value();
-        if (resourceValue instanceof ErrorValue error) {
-            return Vote.error(error, voterMetadata);
-        }
-        return Vote.of(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue, resourceValue, voterMetadata);
-    }
-
-    /**
-     * Compiled policy constraints with their nature classification.
-     *
-     * @param nature the complexity classification
-     * @param obligations the compiled obligations array
-     * @param advice the compiled advice array
-     * @param resource the compiled transformation expression
-     */
-    record CompiledConstraints(
-            Nature nature,
-            CompiledExpression obligations,
-            CompiledExpression advice,
-            CompiledExpression resource) {}
 
     /**
      * Decision maker for policies with pure constraints requiring runtime
@@ -337,22 +234,44 @@ public class PolicyCompiler {
      * Decision maker for policies with streaming constraints.
      *
      * @param decision the effect-derived decision
-     * @param obligations the obligations stream operator
-     * @param advice the advice stream operator
-     * @param resource the transformation stream operator
+     * @param obligations the obligations expression
+     * @param advice the advice expression
+     * @param resource the transformation expression
      * @param voterMetadata the policy voterMetadata
      */
     record SimpleStreamVoter(
             Decision decision,
-            StreamOperator obligations,
-            StreamOperator advice,
-            StreamOperator resource,
+            CompiledExpression obligations,
+            CompiledExpression advice,
+            CompiledExpression resource,
             VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote() {
-            return Flux.combineLatest(obligations.stream(), advice.stream(), resource.stream(),
-                    merged -> buildFromConstraintStreams(merged, decision, voterMetadata));
+        public VoteResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(3);
+
+            val obligationsValue = evalChild(obligations, ctx, deps);
+            val adviceValue      = evalChild(advice, ctx, deps);
+            val resourceValue    = evalChild(resource, ctx, deps);
+
+            Value firstError = null;
+            if (obligationsValue instanceof ErrorValue) {
+                firstError = obligationsValue;
+            } else if (adviceValue instanceof ErrorValue) {
+                firstError = adviceValue;
+            } else if (resourceValue instanceof ErrorValue) {
+                firstError = resourceValue;
+            }
+            if (firstError != null) {
+                return new VoteResult(Vote.error((ErrorValue) firstError, voterMetadata), deps);
+            }
+
+            if (obligationsValue == null || adviceValue == null || resourceValue == null) {
+                return new VoteResult(null, deps);
+            }
+
+            return new VoteResult(Vote.of(decision, (ArrayValue) obligationsValue, (ArrayValue) adviceValue,
+                    resourceValue, voterMetadata), deps);
         }
     }
 
@@ -384,58 +303,87 @@ public class PolicyCompiler {
     }
 
     /**
-     * Decision maker for streaming applicability check.
+     * Voter for an applicability check (pure or streaming) wrapping any inner
+     * {@link Voter}. The {@link #isApplicable} child resolves via
+     * {@link io.sapl.api.model.StreamOperator#evalChild} so all three child
+     * kinds (Value, PureOperator, StreamOperator) are handled uniformly. On
+     * applicability TRUE the inner voter's {@code evaluate(ctx)} is invoked
+     * and its dependencies merged in.
      *
-     * @param isApplicable the stream operator for applicability evaluation
+     * @param isApplicable the body expression determining applicability
      * @param voter the underlying vote maker
      * @param voterMetadata the policy voterMetadata
      */
-    record ApplicabilityCheckingStreamVoter(StreamOperator isApplicable, Voter voter, VoterMetadata voterMetadata)
+    record ApplicabilityCheckingStreamVoter(CompiledExpression isApplicable, Voter voter, VoterMetadata voterMetadata)
             implements StreamVoter {
 
         @Override
-        public Flux<Vote> vote() {
-            return isApplicable.stream().switchMap(tracedApplicability -> {
-                val applicabilityValue = tracedApplicability.value();
-                if (applicabilityValue instanceof ErrorValue error) {
-                    return Flux.just(Vote.error(error, voterMetadata));
-                }
-                if (applicabilityValue instanceof BooleanValue(var b) && b) {
-                    return switch (voter) {
-                    case Vote pd         -> Flux.just(pd);
-                    case PureVoter pdm   ->
-                        Flux.deferContextual(ctxView -> Flux.just(pdm.vote(ctxView.get(EvaluationContext.class))));
-                    case StreamVoter sdm -> sdm.vote();
-                    };
-                }
-                return Flux.just(Vote.abstain(voterMetadata));
-            });
+        public VoteResult evaluate(EvaluationContext ctx) {
+            val deps               = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
+            val applicabilityValue = evalChild(isApplicable, ctx, deps);
+            if (applicabilityValue == null) {
+                return new VoteResult(null, deps);
+            }
+            if (applicabilityValue instanceof ErrorValue error) {
+                return new VoteResult(Vote.error(error, voterMetadata), deps);
+            }
+            if (applicabilityValue instanceof BooleanValue(var b) && b) {
+                val inner = voter.evaluate(ctx);
+                mergeDependencies(deps, inner.dependencies());
+                return new VoteResult(inner.vote(), deps);
+            }
+            return new VoteResult(Vote.abstain(voterMetadata), deps);
         }
     }
 
-    /**
-     * Voter for pure applicability check with streaming constraints.
-     *
-     * @param isApplicable the pure operator for applicability evaluation
-     * @param streamVoter the streaming vote maker for constraints
-     * @param metadata the policy voterMetadata
-     */
-    record PureBodyStreamConstraintsVoter(PureOperator isApplicable, StreamVoter streamVoter, VoterMetadata metadata)
-            implements StreamVoter {
+    public static final String ERROR_ATTEMPT_TO_REDEFINE_VARIABLE_S = "Policy attempted to redefine variable '%s'.";
+    public static final String ERROR_CONDITION_NON_BOOLEAN          = "Condition in policy body must return a Boolean value, but got: %s.";
 
-        @Override
-        public Flux<Vote> vote() {
-            return Flux.deferContextual(ctxView -> {
-                val ctx                 = ctxView.get(EvaluationContext.class);
-                val applicabilityResult = isApplicable.evaluate(ctx);
-                if (applicabilityResult instanceof ErrorValue error) {
-                    return Flux.just(Vote.error(error, metadata));
-                }
-                if (applicabilityResult instanceof BooleanValue(var b) && b) {
-                    return streamVoter.vote();
-                }
-                return Flux.just(Vote.abstain(metadata));
-            });
+    public record IndexedCompiledCondition(CompiledExpression expression, SourceLocation location, long statementId) {}
+
+    public static @NonNull List<IndexedCompiledCondition> compileConditions(List<Statement> statements,
+            CompilationContext ctx) {
+        val conditions  = new ArrayList<IndexedCompiledCondition>(statements.size());
+        var statementId = 0;
+        if (!statements.isEmpty() && statements.getFirst() instanceof SchemaCondition) {
+            statementId = -1;
         }
+        for (Statement statement : statements) {
+            switch (statement) {
+            case VarDef(var name, var value, var ignored, var location) -> {
+                // Do not add as guard !
+                if (!ctx.addLocalPolicyVariable(name, ExpressionCompiler.compile(value, ctx))) {
+                    throw new SaplCompilerException(ERROR_ATTEMPT_TO_REDEFINE_VARIABLE_S.formatted(name), location);
+                }
+            }
+            case Condition(var expression, var location)                -> {
+                val conditionExpression = BooleanGuardCompiler.applyBooleanGuard(
+                        ExpressionCompiler.compile(expression, ctx), location, ERROR_CONDITION_NON_BOOLEAN);
+                conditions.add(new IndexedCompiledCondition(conditionExpression, statement.location(), statementId));
+                statementId++;
+            }
+            case SchemaCondition(var schemas, var ignored)              -> {
+                val conditionExpression = SchemaValidatorCompiler.compileValidator(schemas, ctx);
+                conditions.add(new IndexedCompiledCondition(conditionExpression, statement.location(), statementId));
+                statementId++;
+            }
+            }
+        }
+        return conditions;
     }
+
+    public static CompiledExpression compilePureSectionOfBodyExpression(List<IndexedCompiledCondition> conditions,
+            PolicyBody body) {
+        val pureConditions = conditions.stream().map(IndexedCompiledCondition::expression)
+                .filter(expression -> expression instanceof Value || expression instanceof PureOperator).toList();
+        return NaryBooleanCompiler.compile(pureConditions, body.location(), Value.FALSE, Value.TRUE);
+    }
+
+    public static CompiledExpression compileStreamingSectionOfBodyExpression(List<IndexedCompiledCondition> conditions,
+            PolicyBody policyBody) {
+        val streamConditions = conditions.stream().map(IndexedCompiledCondition::expression)
+                .filter(StreamOperator.class::isInstance).toList();
+        return NaryBooleanCompiler.compile(streamConditions, policyBody.location(), Value.FALSE, Value.TRUE);
+    }
+
 }

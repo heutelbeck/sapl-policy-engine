@@ -17,15 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.UnaryOperator;
 import io.sapl.ast.UnaryOperatorType;
 import io.sapl.compiler.index.SemanticHashing;
@@ -36,9 +28,7 @@ import lombok.val;
 
 import java.util.Map;
 
-import static io.sapl.ast.UnaryOperatorType.NEGATE;
-import static io.sapl.ast.UnaryOperatorType.NOT;
-import static io.sapl.ast.UnaryOperatorType.PLUS;
+import static io.sapl.ast.UnaryOperatorType.*;
 
 @UtilityClass
 public class UnaryOperatorCompiler {

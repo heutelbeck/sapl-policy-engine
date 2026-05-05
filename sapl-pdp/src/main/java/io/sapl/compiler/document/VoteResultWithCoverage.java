@@ -15,10 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.util;
+package io.sapl.compiler.document;
 
-public enum Nature {
-    CONSTANT,
-    PURE,
-    STREAM
-}
+import io.sapl.compiler.model.Coverage;
+
+/**
+ * Per-round outcome of snapshot-driven evaluation of a
+ * {@link CompiledDocument}, pairing the {@link VoteResult} with the
+ * accumulated {@link Coverage.DocumentCoverage}.
+ * <p>
+ * Direct snapshot mirror of {@link VoteWithCoverage} where the Vote is
+ * replaced by a {@link VoteResult} that may carry a {@code null} vote
+ * when the round is incomplete.
+ *
+ * @since 4.2.0
+ */
+public record VoteResultWithCoverage(VoteResult voteResult, Coverage.DocumentCoverage coverage) {}

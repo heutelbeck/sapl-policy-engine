@@ -17,40 +17,19 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
 import static io.sapl.api.model.Value.of;
-import static io.sapl.util.SaplTesting.assertCompilesTo;
-import static io.sapl.util.SaplTesting.assertCompilesToError;
-import static io.sapl.util.SaplTesting.assertEvaluatesTo;
-import static io.sapl.util.SaplTesting.assertEvaluatesToError;
-import static io.sapl.util.SaplTesting.assertPureEvaluatesToWithSubject;
-import static io.sapl.util.SaplTesting.attributeBroker;
-import static io.sapl.util.SaplTesting.compileExpression;
-import static io.sapl.util.SaplTesting.errorAttributeBroker;
-import static io.sapl.util.SaplTesting.evaluate;
-import static io.sapl.util.SaplTesting.evaluateExpression;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.singleValueAttributeBroker;
-import static io.sapl.util.SaplTesting.testContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.DisplayName;
 
 /**
  * Tests for N-ary operator compilation: XOR (^), Sum (+), Product (*).

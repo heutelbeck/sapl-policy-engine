@@ -17,14 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
@@ -38,26 +31,7 @@ import lombok.val;
 
 import java.util.Map;
 
-import static io.sapl.ast.BinaryOperatorType.ADD;
-import static io.sapl.ast.BinaryOperatorType.DIV;
-import static io.sapl.ast.BinaryOperatorType.EQ;
-import static io.sapl.ast.BinaryOperatorType.GE;
-import static io.sapl.ast.BinaryOperatorType.GT;
-import static io.sapl.ast.BinaryOperatorType.HAS_ALL;
-import static io.sapl.ast.BinaryOperatorType.HAS_ANY;
-import static io.sapl.ast.BinaryOperatorType.HAS_ONE;
-import static io.sapl.ast.BinaryOperatorType.ALL_IN;
-import static io.sapl.ast.BinaryOperatorType.ANY_IN;
-import static io.sapl.ast.BinaryOperatorType.IN;
-import static io.sapl.ast.BinaryOperatorType.LE;
-import static io.sapl.ast.BinaryOperatorType.LT;
-import static io.sapl.ast.BinaryOperatorType.MOD;
-import static io.sapl.ast.BinaryOperatorType.MUL;
-import static io.sapl.ast.BinaryOperatorType.NE;
-import static io.sapl.ast.BinaryOperatorType.REGEX;
-import static io.sapl.ast.BinaryOperatorType.SUB;
-import static io.sapl.ast.BinaryOperatorType.SUBTEMPLATE;
-import static io.sapl.ast.BinaryOperatorType.XOR;
+import static io.sapl.ast.BinaryOperatorType.*;
 
 @UtilityClass
 public class BinaryOperationCompiler {

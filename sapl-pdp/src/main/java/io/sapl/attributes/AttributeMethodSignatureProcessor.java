@@ -17,12 +17,7 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.attributes.Attribute;
-import io.sapl.api.attributes.AttributeAccessContext;
-import io.sapl.api.attributes.AttributeFinder;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.attributes.AttributeFinderSpecification;
-import io.sapl.api.attributes.EnvironmentAttribute;
+import io.sapl.api.attributes.*;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -31,11 +26,7 @@ import reactor.core.publisher.Mono;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Array;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

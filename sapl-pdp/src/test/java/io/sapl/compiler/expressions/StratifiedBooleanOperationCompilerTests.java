@@ -18,30 +18,17 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import reactor.test.StepVerifier;
 
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.sapl.util.SaplTesting.attributeBroker;
-import static io.sapl.util.SaplTesting.compilationContext;
-import static io.sapl.util.SaplTesting.compileExpression;
-import static io.sapl.util.SaplTesting.evaluate;
-import static io.sapl.util.SaplTesting.evaluateExpression;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.sequenceBroker;
-import static io.sapl.util.SaplTesting.trackingBroker;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("StratifiedBooleanOperationCompiler")
 class StratifiedBooleanOperationCompilerTests {

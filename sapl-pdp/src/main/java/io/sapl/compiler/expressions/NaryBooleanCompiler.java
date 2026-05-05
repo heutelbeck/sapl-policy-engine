@@ -17,29 +17,13 @@
  */
 package io.sapl.compiler.expressions;
 
-import org.jspecify.annotations.Nullable;
-
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.Occurrence;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;

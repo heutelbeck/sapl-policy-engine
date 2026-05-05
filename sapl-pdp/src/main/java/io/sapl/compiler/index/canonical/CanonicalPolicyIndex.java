@@ -17,12 +17,6 @@
  */
 package io.sapl.compiler.index.canonical;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -30,11 +24,17 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.index.dnf.DisjunctiveFormula;
-import io.sapl.compiler.index.dnf.DnfNormalizer;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.dnf.DisjunctiveFormula;
+import io.sapl.compiler.index.dnf.DnfNormalizer;
 import lombok.val;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Canonical policy index implementation using the count-and-eliminate algorithm

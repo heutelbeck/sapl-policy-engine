@@ -17,20 +17,16 @@
  */
 package io.sapl.compiler.index.naive;
 
+import io.sapl.api.model.*;
+import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.index.PolicyIndex;
+import io.sapl.compiler.index.PolicyIndexResult;
+import lombok.val;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-
-import io.sapl.compiler.index.PolicyIndex;
-import io.sapl.compiler.index.PolicyIndexResult;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
-import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
-import lombok.val;
 
 /**
  * Baseline policy index that evaluates each document's applicability linearly.

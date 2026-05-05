@@ -17,28 +17,19 @@
  */
 package io.sapl.compiler.index.smtdd;
 
+import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanExpression.*;
+import io.sapl.ast.BinaryOperatorType;
+import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
+import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
+import io.sapl.compiler.policy.BooleanGuardCompiler.PureBooleanTypeCheck;
+import lombok.experimental.UtilityClass;
+import lombok.val;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.IndexPredicate;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
-import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.PureBooleanTypeCheck;
-import lombok.experimental.UtilityClass;
-import lombok.val;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
 

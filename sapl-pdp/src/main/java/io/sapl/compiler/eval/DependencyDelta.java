@@ -17,13 +17,13 @@
  */
 package io.sapl.compiler.eval;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SubscriptionKey;
 import lombok.val;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Difference between two dependency maps produced by successive

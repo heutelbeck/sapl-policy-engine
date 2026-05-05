@@ -17,25 +17,21 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.BooleanExpression.Atom;
+import io.sapl.api.model.*;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.document.Voter;
-import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.IndexPredicate;
 import io.sapl.compiler.index.dnf.Literal;
+import io.sapl.compiler.policy.CompiledPolicy;
+import io.sapl.compiler.policy.CoverageVoter;
 import lombok.experimental.UtilityClass;
-import reactor.core.publisher.Flux;
+import lombok.val;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.sapl.util.SaplTesting.TEST_LOCATION;
 
@@ -68,15 +64,22 @@ public class IndexTestFixtures {
     }
 
     public static CompiledDocument stubDocument(String name) {
-        return new StubDocument(name, Value.TRUE, Vote.abstain(stubMetadata(name)));
+        return stubCompiledPolicy(name, Value.TRUE);
     }
 
     public static CompiledDocument stubDocumentWithApplicability(String name, PureOperator isApplicable) {
-        return new StubDocument(name, isApplicable, Vote.abstain(stubMetadata(name)));
+        return stubCompiledPolicy(name, isApplicable);
     }
 
     public static CompiledDocument stubDocumentWithConstantApplicability(String name, Value isApplicable) {
-        return new StubDocument(name, isApplicable, Vote.abstain(stubMetadata(name)));
+        return stubCompiledPolicy(name, isApplicable);
+    }
+
+    private static CompiledPolicy stubCompiledPolicy(String name, CompiledExpression isApplicable) {
+        val metadata      = stubMetadata(name);
+        val voter         = Vote.abstain(metadata);
+        val coverageVoter = new CoverageVoter.Lazy(List.of(), voter, metadata);
+        return new CompiledPolicy(isApplicable, voter, voter, coverageVoter, metadata);
     }
 
     static VoterMetadata stubMetadata(String name) {
@@ -154,23 +157,6 @@ public class IndexTestFixtures {
                 return hash;
             }
         };
-    }
-
-    private record StubDocument(String name, CompiledExpression isApplicable, Voter voter) implements CompiledDocument {
-        @Override
-        public VoterMetadata metadata() {
-            return stubMetadata(name);
-        }
-
-        @Override
-        public Voter applicabilityAndVote() {
-            return voter;
-        }
-
-        @Override
-        public Flux<VoteWithCoverage> coverage() {
-            return Flux.empty();
-        }
     }
 
 }

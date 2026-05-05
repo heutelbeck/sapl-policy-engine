@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.List;
-
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanExpression.And;
@@ -30,13 +28,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static io.sapl.compiler.index.IndexTestFixtures.configurablePredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.eqPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.extractPredicates;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.hasPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.inPredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.nePredicate;
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
+import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SemanticVariableOrder")

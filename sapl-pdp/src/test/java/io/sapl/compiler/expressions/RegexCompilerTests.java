@@ -22,6 +22,7 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.util.Stratum;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,17 +31,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.assertCompilesTo;
-import static io.sapl.util.SaplTesting.assertCompilesToError;
-import static io.sapl.util.SaplTesting.assertEvaluatesTo;
-import static io.sapl.util.SaplTesting.assertStratumOfCompiledExpression;
-import static io.sapl.util.SaplTesting.compileExpression;
-import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("RegexCompiler")
 class RegexCompilerTests {

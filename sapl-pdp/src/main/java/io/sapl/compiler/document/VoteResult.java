@@ -17,13 +17,12 @@
  */
 package io.sapl.compiler.document;
 
-import java.util.List;
-import java.util.Map;
-
-import org.jspecify.annotations.Nullable;
-
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SubscriptionKey;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Outcome of one snapshot-driven voter evaluation pass.

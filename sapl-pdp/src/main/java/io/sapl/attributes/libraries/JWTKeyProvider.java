@@ -17,7 +17,6 @@
  */
 package io.sapl.attributes.libraries;
 
-import tools.jackson.databind.JsonNode;
 import io.sapl.api.SaplVersion;
 import lombok.Getter;
 import lombok.experimental.StandardException;
@@ -27,6 +26,7 @@ import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.JsonNode;
 
 import java.io.Serial;
 import java.security.Key;

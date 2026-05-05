@@ -18,20 +18,16 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.AttributeSnapshot;
-import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 
-import static io.sapl.util.SaplTesting.attributeBroker;
 import static io.sapl.util.SaplTesting.compileExpression;
 import static io.sapl.util.SaplTesting.evaluationContext;
 import static org.assertj.core.api.Assertions.assertThat;

@@ -17,23 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ExpressionResult;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Occurrence;
-import io.sapl.api.model.SubscriptionKey;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.ExclusiveDisjunction;
-import io.sapl.ast.Expression;
-import io.sapl.ast.Product;
-import io.sapl.ast.Sum;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.operators.ArithmeticOperators;
 import io.sapl.compiler.operators.BooleanOperators;

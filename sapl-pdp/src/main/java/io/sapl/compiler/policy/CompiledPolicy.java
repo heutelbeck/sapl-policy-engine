@@ -20,13 +20,11 @@ package io.sapl.compiler.policy;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
-import reactor.core.publisher.Flux;
 
 public record CompiledPolicy(
         CompiledExpression isApplicable,
         Voter voter,
         Voter applicabilityAndVote,
-        Flux<VoteWithCoverage> coverage,
+        CoverageVoter coverageVoter,
         VoterMetadata metadata) implements CompiledDocument {}

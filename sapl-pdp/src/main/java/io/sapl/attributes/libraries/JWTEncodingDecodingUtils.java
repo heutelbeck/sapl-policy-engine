@@ -17,10 +17,11 @@
  */
 package io.sapl.attributes.libraries;
 
-import tools.jackson.databind.JsonNode;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.databind.JsonNode;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -29,8 +30,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Optional;
-
-import javax.crypto.spec.SecretKeySpec;
 
 @UtilityClass
 public class JWTEncodingDecodingUtils {

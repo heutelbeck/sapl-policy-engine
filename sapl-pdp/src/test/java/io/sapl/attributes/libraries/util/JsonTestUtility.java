@@ -17,9 +17,6 @@
  */
 package io.sapl.attributes.libraries.util;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.attributes.libraries.JWTKeyProvider;
@@ -27,6 +24,9 @@ import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.security.KeyPair;
 import java.util.Base64;

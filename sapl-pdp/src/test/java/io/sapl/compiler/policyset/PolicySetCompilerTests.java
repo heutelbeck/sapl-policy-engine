@@ -24,9 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static io.sapl.util.SaplTesting.compilePolicySet;
-import static io.sapl.util.SaplTesting.evaluatePolicySet;
-import static io.sapl.util.SaplTesting.subscriptionContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

@@ -17,21 +17,18 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
+import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
+import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
-import io.sapl.compiler.policy.policybody.PolicyBodyCompiler;
-import io.sapl.compiler.policy.policybody.TracedValueAndBodyCoverage;
+import io.sapl.compiler.policy.PolicyCompiler.IndexedCompiledCondition;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import lombok.val;
 import org.jspecify.annotations.NonNull;
@@ -40,26 +37,20 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.ATTRIBUTE_BROKER;
-import static io.sapl.util.SaplTesting.FUNCTION_BROKER;
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.attributeBroker;
-import static io.sapl.util.SaplTesting.compilationContext;
-import static io.sapl.util.SaplTesting.errorAttributeBroker;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.sequenceBroker;
-import static io.sapl.util.SaplTesting.toObjectValue;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("PolicyBodyCompiler")
-class PolicyBodyCompilerTests {
+@DisplayName("PolicyCompiler: Body Compilation")
+class PolicyBodyCompilationTests {
 
     private static final AstTransformer TRANSFORMER = new AstTransformer();
 
@@ -173,8 +164,20 @@ class PolicyBodyCompilerTests {
         case Value v          -> v;
         case PureOperator p   -> p.evaluate(evalCtx);
         case StreamOperator s -> {
-            var tv = s.stream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx)).blockFirst();
-            yield tv != null ? tv.value() : Value.error("Stream completed without emitting");
+            val r = s.evaluate(evalCtx);
+            if (r.result() != null) {
+                yield r.result();
+            }
+            val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+            val now      = Instant.now();
+            for (val key : r.dependencies().keySet()) {
+                val v = evalCtx.attributeBroker().attributeStream(key.invocation()).blockFirst();
+                if (v != null) {
+                    snapshot.put(key, new AttributeSnapshot(v, now));
+                }
+            }
+            val resolved = s.evaluate(evalCtx.withSnapshot(snapshot));
+            yield resolved.result() != null ? resolved.result() : Value.error("Stream completed without emitting");
         }
         };
     }
@@ -188,9 +191,9 @@ class PolicyBodyCompilerTests {
         var compCtx = compilationContext(vars, FUNCTION_BROKER, broker);
         var evalCtx = evaluationContext(broker);
 
-        val compiledBody  = PolicyBodyCompiler.compilePolicyBody(body, compCtx);
-        val pureSection   = compiledBody.isApplicable();
-        val streamSection = compiledBody.streamingSectionOfBody();
+        val conditions    = PolicyCompiler.compileConditions(body.statements(), compCtx);
+        val pureSection   = PolicyCompiler.compilePureSectionOfBodyExpression(conditions, body);
+        val streamSection = PolicyCompiler.compileStreamingSectionOfBodyExpression(conditions, body);
 
         // Verify pure section independently
         val pureValue = evaluateExpression(pureSection, evalCtx);
@@ -206,21 +209,15 @@ class PolicyBodyCompilerTests {
         var compCtx2 = compilationContext(vars, FUNCTION_BROKER, broker2);
         var evalCtx2 = evaluationContext(broker2);
 
-        val compiledBody2 = PolicyBodyCompiler.compilePolicyBody(body, compCtx2);
-        val coverageFlux  = compiledBody2.coverageStream().contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
-
-        StepVerifier.create(coverageFlux)
-                .assertNext(r -> assertThat(r).satisfies(
-                        cov -> assertThat(cov.bodyCoverage().numberOfConditions()).as("condition count")
-                                .isEqualTo(tc.expectedConditionCount()),
-                        cov -> assertThat(cov.bodyCoverage().hits()).as("hit count").hasSize(tc.expectedHitCount()),
-                        cov -> {
-                            if (!tc.expectedHitIndices().isEmpty()) {
-                                assertThat(cov.bodyCoverage().hits().stream().map(Coverage.ConditionHit::statementId)
-                                        .toList()).as("hit indices").isEqualTo(tc.expectedHitIndices());
-                            }
-                        }))
-                .verifyComplete();
+        val conditions2  = PolicyCompiler.compileConditions(body.statements(), compCtx2);
+        val result       = runToEmission(conditions2, evalCtx2, tc.attributes());
+        val bodyCoverage = ((Coverage.PolicyCoverage) result.coverage()).bodyCoverage();
+        assertThat(bodyCoverage.numberOfConditions()).as("condition count").isEqualTo(tc.expectedConditionCount());
+        assertThat(bodyCoverage.hits()).as("hit count").hasSize(tc.expectedHitCount());
+        if (!tc.expectedHitIndices().isEmpty()) {
+            assertThat(bodyCoverage.hits().stream().map(Coverage.ConditionHit::statementId).toList()).as("hit indices")
+                    .isEqualTo(tc.expectedHitIndices());
+        }
     }
 
     @Nested
@@ -302,9 +299,9 @@ class PolicyBodyCompilerTests {
             var compCtx = compilationContext(vars, FUNCTION_BROKER, broker);
             var evalCtx = evaluationContext(broker);
 
-            val compiledBody  = PolicyBodyCompiler.compilePolicyBody(body, compCtx);
-            val pureSection   = compiledBody.isApplicable();
-            val streamSection = compiledBody.streamingSectionOfBody();
+            val conditions    = PolicyCompiler.compileConditions(body.statements(), compCtx);
+            val pureSection   = PolicyCompiler.compilePureSectionOfBodyExpression(conditions, body);
+            val streamSection = PolicyCompiler.compileStreamingSectionOfBodyExpression(conditions, body);
 
             // Test the appropriate section based on error originates
             if (tc.errorInPureSection()) {
@@ -323,17 +320,17 @@ class PolicyBodyCompilerTests {
             var compCtx2 = compilationContext(vars, FUNCTION_BROKER, broker2);
             var evalCtx2 = evaluationContext(broker2);
 
-            val compiledBody2 = PolicyBodyCompiler.compilePolicyBody(body, compCtx2);
-            val coverageFlux  = compiledBody2.coverageStream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
-
-            StepVerifier.create(coverageFlux)
-                    .assertNext(r -> assertThat(r).satisfies(
-                            cov -> assertThat(cov.value().value()).isInstanceOf(ErrorValue.class)
-                                    .extracting(v -> ((ErrorValue) v).message()).asString()
-                                    .containsIgnoringCase(tc.expectedErrorFragment()),
-                            cov -> assertThat(cov.bodyCoverage().hits()).hasSize(tc.expectedHitCount())))
-                    .verifyComplete();
+            val conditions2  = PolicyCompiler.compileConditions(body.statements(), compCtx2);
+            val attrsForSnap = tc.attrName() != null
+                    ? Map.of(tc.attrName(), new Value[] { Value.error(tc.attrError()) })
+                    : Map.<String, Value[]>of();
+            val result       = runToEmission(conditions2, evalCtx2, attrsForSnap);
+            val vote         = result.voteResult().vote();
+            assertThat(vote).isNotNull();
+            assertThat(vote.errors()).isNotEmpty().first().extracting(e -> ((ErrorValue) e).message()).asString()
+                    .containsIgnoringCase(tc.expectedErrorFragment());
+            val bodyCoverage = ((Coverage.PolicyCoverage) result.coverage()).bodyCoverage();
+            assertThat(bodyCoverage.hits()).hasSize(tc.expectedHitCount());
         }
 
         static Stream<ErrorTestCase> errorCases() {
@@ -348,9 +345,10 @@ class PolicyBodyCompilerTests {
         @Test
         @DisplayName("VarDef redefinition throws at compile time")
         void whenVarDefRedefinitionThenCompileTimeException() {
-            val body    = parsePolicyBody("var x = 1; var x = 2;");
-            val compCtx = compilationContext(ATTRIBUTE_BROKER);
-            assertThatThrownBy(() -> PolicyBodyCompiler.compilePolicyBody(body, compCtx))
+            val body       = parsePolicyBody("var x = 1; var x = 2;");
+            val compCtx    = compilationContext(ATTRIBUTE_BROKER);
+            val statements = body.statements();
+            assertThatThrownBy(() -> PolicyCompiler.compileConditions(statements, compCtx))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("redefine");
         }
     }
@@ -370,38 +368,50 @@ class PolicyBodyCompilerTests {
             var compCtx = compilationContext(broker);
             var evalCtx = evaluationContext(broker);
 
-            val compiledBody  = PolicyBodyCompiler.compilePolicyBody(body, compCtx);
-            val streamSection = compiledBody.streamingSectionOfBody();
+            val conditions    = PolicyCompiler.compileConditions(body.statements(), compCtx);
+            val streamSection = PolicyCompiler.compileStreamingSectionOfBodyExpression(conditions, body);
 
             // Pure section should be TRUE (no pure conditions in these tests)
-            val pureSection = compiledBody.isApplicable();
+            val pureSection = PolicyCompiler.compilePureSectionOfBodyExpression(conditions, body);
             assertThat(pureSection).isEqualTo(Value.TRUE);
 
             // Streaming section should be a StreamOperator
             assertThat(streamSection).isInstanceOf(StreamOperator.class);
 
-            val                            streamFlux   = ((StreamOperator) streamSection).stream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-            StepVerifier.Step<TracedValue> stepVerifier = StepVerifier.create(streamFlux);
-            for (var expected : tc.expectedSequence()) {
-                stepVerifier = stepVerifier.assertNext(tv -> assertThat(tv.value()).isEqualTo(expected));
+            val streamOp   = (StreamOperator) streamSection;
+            val keysByName = new HashMap<String, SubscriptionKey>();
+            for (val key : streamOp.evaluate(evalCtx).dependencies().keySet()) {
+                keysByName.put(key.invocation().attributeName(), key);
             }
-            stepVerifier.verifyComplete();
+            for (int i = 0; i < tc.expectedSequence().size(); i++) {
+                val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+                val now      = Instant.now();
+                for (val entry : tc.attributeSequences().entrySet()) {
+                    val key = keysByName.get(entry.getKey());
+                    if (key != null) {
+                        val values = entry.getValue();
+                        val v      = values.get(Math.min(i, values.size() - 1));
+                        snapshot.put(key, new AttributeSnapshot(v, now));
+                    }
+                }
+                val r = streamOp.evaluate(evalCtx.withSnapshot(snapshot));
+                assertThat(r.result()).as("stream-section round %d", i).isEqualTo(tc.expectedSequence().get(i));
+            }
 
             // Coverage pathway - separate broker
             var broker2  = sequenceBroker(tc.attributeSequences());
             var compCtx2 = compilationContext(broker2);
             var evalCtx2 = evaluationContext(broker2);
 
-            val                                           compiledBody2 = PolicyBodyCompiler.compilePolicyBody(body,
-                    compCtx2);
-            val                                           coverageFlux  = compiledBody2.coverageStream()
-                    .contextWrite(c -> c.put(EvaluationContext.class, evalCtx2));
-            StepVerifier.Step<TracedValueAndBodyCoverage> covVerifier   = StepVerifier.create(coverageFlux);
-            for (var expected : tc.expectedSequence()) {
-                covVerifier = covVerifier.assertNext(r -> assertThat(r.value().value()).isEqualTo(expected));
+            val conditions2 = PolicyCompiler.compileConditions(body.statements(), compCtx2);
+            val results     = driveSnapshotRounds(conditions2, evalCtx2, tc.attributeSequences(),
+                    tc.expectedSequence().size());
+            for (int i = 0; i < results.size(); i++) {
+                val hits      = ((Coverage.PolicyCoverage) results.get(i).coverage()).bodyCoverage().hits();
+                val lastValue = hits.isEmpty() ? Value.TRUE : hits.get(hits.size() - 1).result();
+                val expected  = tc.expectedSequence().get(i);
+                assertThat(lastValue).as("round %d body value", i).isEqualTo(expected);
             }
-            covVerifier.verifyComplete();
         }
 
         static Stream<StreamTestCase> reEmissionCases() {
@@ -416,4 +426,89 @@ class PolicyBodyCompilerTests {
         }
     }
 
+    private static VoterMetadata stubMetadata() {
+        return new VoterMetadata() {
+            @Override
+            public String name() {
+                return "test";
+            }
+
+            @Override
+            public String pdpId() {
+                return "test";
+            }
+
+            @Override
+            public String configurationId() {
+                return "test";
+            }
+
+            @Override
+            public Outcome outcome() {
+                return Outcome.PERMIT;
+            }
+
+            @Override
+            public boolean hasConstraints() {
+                return false;
+            }
+        };
+    }
+
+    /**
+     * Drives a {@link CoverageVoter.Lazy} through one discovery round and one
+     * bound-snapshot round, fetching attribute values from the supplied map by
+     * attribute name. Bridges the legacy single-value broker fixtures into the
+     * snapshot path. Used by single-emission body-coverage tests.
+     */
+    private static VoteResultWithCoverage runToEmission(List<IndexedCompiledCondition> conditions,
+            EvaluationContext baseCtx, Map<String, Value[]> attributes) {
+        val metadata      = stubMetadata();
+        val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(metadata), metadata);
+        var result        = coverageVoter.evaluate(baseCtx);
+        if (result.voteResult().dependencies().isEmpty()) {
+            return result;
+        }
+        val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+        val now      = Instant.now();
+        for (val key : result.voteResult().dependencies().keySet()) {
+            val name   = key.invocation().attributeName();
+            val values = attributes.get(name);
+            val v      = values != null && values.length > 0 ? values[0] : Value.error("Unknown attribute: " + name);
+            snapshot.put(key, new AttributeSnapshot(v, now));
+        }
+        return coverageVoter.evaluate(baseCtx.withSnapshot(snapshot));
+    }
+
+    /**
+     * Multi-round snapshot driver for stream re-emission tests: discovery round
+     * then one round per expected emission, each round binding the next value
+     * for each named attribute (clamps to the last value when a sequence is
+     * shorter than the round count).
+     */
+    private static List<VoteResultWithCoverage> driveSnapshotRounds(List<IndexedCompiledCondition> conditions,
+            EvaluationContext baseCtx, Map<String, List<Value>> attributeSequences, int rounds) {
+        val metadata      = stubMetadata();
+        val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(metadata), metadata);
+        val discovery     = coverageVoter.evaluate(baseCtx);
+        val keysByName    = new HashMap<String, SubscriptionKey>();
+        for (val key : discovery.voteResult().dependencies().keySet()) {
+            keysByName.put(key.invocation().attributeName(), key);
+        }
+        val results = new ArrayList<VoteResultWithCoverage>(rounds);
+        for (int i = 0; i < rounds; i++) {
+            val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
+            val now      = Instant.now();
+            for (val entry : attributeSequences.entrySet()) {
+                val key = keysByName.get(entry.getKey());
+                if (key != null) {
+                    val values = entry.getValue();
+                    val v      = values.get(Math.min(i, values.size() - 1));
+                    snapshot.put(key, new AttributeSnapshot(v, now));
+                }
+            }
+            results.add(coverageVoter.evaluate(baseCtx.withSnapshot(snapshot)));
+        }
+        return results;
+    }
 }

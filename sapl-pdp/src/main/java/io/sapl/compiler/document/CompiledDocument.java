@@ -30,15 +30,22 @@ public interface CompiledDocument {
         return metadata().outcome();
     }
 
-    default boolean hasConstraints() {
-        return metadata().hasConstraints();
-    }
-
     CompiledExpression isApplicable();
 
     Voter voter();
 
     Voter applicabilityAndVote();
 
-    Flux<VoteWithCoverage> coverage();
+    /**
+     * Reactor-based coverage stream. Records that have not migrated to
+     * the snapshot path still expose a {@link Flux} field that overrides
+     * this default. Records that have migrated drop the field and
+     * inherit the throw, so any caller still reaching for the Reactor
+     * pipeline fails loudly at runtime rather than silently producing
+     * degraded results.
+     */
+    default Flux<VoteWithCoverage> coverage() {
+        throw new UnsupportedOperationException(
+                "Reactor coverage() removed; use coverageVoter().evaluate(ctx) on " + getClass().getSimpleName());
+    }
 }

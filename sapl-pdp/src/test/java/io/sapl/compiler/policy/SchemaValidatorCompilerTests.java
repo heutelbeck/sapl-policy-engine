@@ -17,16 +17,8 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
-import io.sapl.ast.Identifier;
-import io.sapl.ast.Literal;
-import io.sapl.ast.SchemaCondition;
-import io.sapl.ast.SchemaStatement;
-import io.sapl.ast.SubscriptionElement;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
@@ -43,11 +35,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.array;
-import static io.sapl.util.SaplTesting.compilationContext;
-import static io.sapl.util.SaplTesting.obj;
-import static io.sapl.util.SaplTesting.subscriptionContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
