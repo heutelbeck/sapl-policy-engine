@@ -29,6 +29,7 @@ import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import lombok.NonNull;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -51,15 +52,19 @@ import java.util.function.Function;
  * matcher; values are emitted via {@link #emit(String, Value)} keyed by
  * mockId; invocations are recorded for after-the-fact verification.
  * <p>
- * When a {@link AttributeStore.Subscription} opens (or a callback's
- * return value adds new keys), each {@link SubscriptionKey} is matched
- * against registered mocks using most-specific-first dispatch. Matched
- * keys take their initial value (if any) from the matched mock and are
- * recorded as an invocation. Unmatched keys either route to a delegate
- * {@link AttributeStore} (when one is set via
- * {@link #setDelegate(AttributeStore)}) or materialise as
- * {@link Value#error(String)} in the mailbox so the gate opens with a
- * deterministic error rather than hanging.
+ * PIP-aware gate semantic: mock registration acts as a PIP registration
+ * (gate stays closed until a value lands via {@link #emit}, unless an
+ * initial value was supplied at mock registration). Explicit
+ * {@link #register(String)} and {@link #register(String, Value)} cover
+ * non-mock attribute names. Keys with no mock, no delegate, and no
+ * explicit registration auto-materialise as {@link Value#UNDEFINED} so
+ * the gate opens deterministically rather than hanging silently.
+ * <p>
+ * Re-fire on dep growth: when a callback returns expanded dependencies,
+ * any newly added auto-fills (UNDEFINED for unregistered, primed value
+ * for registered-with-initial, mock current value for matched mocks)
+ * cause the callback to fire once more so the consumer observes the
+ * new mailbox state, provided the gate is open after the new bindings.
  * <p>
  * State mutations and reads are guarded by the store's intrinsic lock.
  * Callbacks fire outside the lock so consumer-side close, evaluation,
@@ -72,7 +77,6 @@ public final class MockingAttributeStore implements AttributeStore {
     private static final String ERROR_MOCK_ID_ALREADY_REGISTERED  = "Mock ID '%s' is already registered.";
     private static final String ERROR_MOCK_ID_BLANK               = "Mock ID must not be blank.";
     private static final String ERROR_NO_MOCK_FOR_ID              = "No mock registered with ID '%s'.";
-    private static final String ERROR_NO_MOCK_MATCHED             = "No mock matched attribute '%s'.";
     private static final String ERROR_RETURNED_DEPS_EMPTY         = "Subscription %s returned empty/null dependencies; close externally instead.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK       = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE      = "subscriptionId already open: %s";
@@ -87,12 +91,32 @@ public final class MockingAttributeStore implements AttributeStore {
     private final Map<SubscriptionKey, String>            keyToMockId          = new HashMap<>();
     private final Map<SubscriptionKey, ForwardEntry>      forwards             = new HashMap<>();
     private final Map<String, SubscriptionImpl>           subs                 = new HashMap<>();
+    private final Map<String, @Nullable Value>            registeredPips       = new HashMap<>();
     private final List<AttributeInvocationRecord>         invocations          = new CopyOnWriteArrayList<>();
     private final AtomicLong                              sequenceCounter      = new AtomicLong(0);
     private AttributeStore                                delegate;
 
     public void setDelegate(AttributeStore delegate) {
         this.delegate = delegate;
+    }
+
+    /**
+     * Register a non-mock PIP for {@code attributeName}. Subsequent
+     * subscriptions whose dep set contains keys with this name leave
+     * those keys unbound (gate stays closed for that key) until a
+     * publish-equivalent value arrives.
+     */
+    public synchronized void register(String attributeName) {
+        registeredPips.put(attributeName, null);
+    }
+
+    /**
+     * Register a non-mock PIP for {@code attributeName} with an
+     * initial value. Subscriptions whose dep set contains keys with
+     * this name see the initial value in the mailbox at bind time.
+     */
+    public synchronized void register(String attributeName, Value initialValue) {
+        registeredPips.put(attributeName, initialValue);
     }
 
     public synchronized void mockEnvironmentAttribute(@NonNull String mockId, @NonNull String attributeName,
@@ -188,6 +212,7 @@ public final class MockingAttributeStore implements AttributeStore {
         forwards.clear();
         mailbox.clear();
         keyToMockId.clear();
+        registeredPips.clear();
     }
 
     public synchronized boolean hasMock(String mockId) {
@@ -268,8 +293,9 @@ public final class MockingAttributeStore implements AttributeStore {
         }
     }
 
-    private void bindKeys(Set<SubscriptionKey> keys) {
-        val now = Instant.now();
+    private boolean bindKeys(Set<SubscriptionKey> keys) {
+        val     now         = Instant.now();
+        boolean mailboxGrew = false;
         for (val key : keys) {
             if (keyToMockId.containsKey(key)) {
                 // Mock-bound: shared across consumers, no refcount needed (mocks live for the
@@ -287,16 +313,24 @@ public final class MockingAttributeStore implements AttributeStore {
                 val mockId = match.get().mockId();
                 keyToMockId.put(key, mockId);
                 val current = currentValueByMockId.get(mockId);
-                if (current != null) {
+                if (current != null && !mailbox.containsKey(key)) {
                     mailbox.put(key, new AttributeSnapshot(current, now));
+                    mailboxGrew = true;
+                }
+            } else if (registeredPips.containsKey(key.invocation().attributeName())) {
+                val initial = registeredPips.get(key.invocation().attributeName());
+                if (initial != null && !mailbox.containsKey(key)) {
+                    mailbox.put(key, new AttributeSnapshot(initial, now));
+                    mailboxGrew = true;
                 }
             } else if (delegate != null) {
                 openDelegateForward(key);
-            } else {
-                mailbox.put(key, new AttributeSnapshot(
-                        Value.error(ERROR_NO_MOCK_MATCHED.formatted(key.invocation().attributeName())), now));
+            } else if (!mailbox.containsKey(key)) {
+                mailbox.put(key, new AttributeSnapshot(Value.UNDEFINED, now));
+                mailboxGrew = true;
             }
         }
+        return mailboxGrew;
     }
 
     private void releaseKeys(Set<SubscriptionKey> keys) {
@@ -524,22 +558,28 @@ public final class MockingAttributeStore implements AttributeStore {
             if (newDeps == null || newDeps.isEmpty()) {
                 throw new IllegalStateException(ERROR_RETURNED_DEPS_EMPTY.formatted(id));
             }
+            boolean refire;
             synchronized (MockingAttributeStore.this) {
                 if (closed) {
                     return;
                 }
-                if (!newDeps.equals(deps)) {
+                if (newDeps.equals(deps)) {
+                    refire = false;
+                } else {
                     val added = new HashSet<>(newDeps);
                     added.removeAll(deps);
                     val removed = new HashSet<>(deps);
                     removed.removeAll(newDeps);
-                    bindKeys(added);
+                    val mailboxGrew = bindKeys(added);
                     releaseKeys(removed);
                     deps = new HashSet<>(newDeps);
-                    if (!allDepsFulfilled()) {
-                        gateOpen = false;
-                    }
+                    val nowFulfilled = allDepsFulfilled();
+                    refire   = mailboxGrew && nowFulfilled;
+                    gateOpen = nowFulfilled;
                 }
+            }
+            if (refire) {
+                fireCallback();
             }
         }
     }

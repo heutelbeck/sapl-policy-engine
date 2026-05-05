@@ -334,71 +334,6 @@ public class SaplTesting {
         };
     }
 
-    public static AttributeBroker errorAttributeBroker(String expectedName, String errorMessage) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.attributeName().equals(expectedName))
-                    return Flux.just(Value.error(errorMessage));
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    public static AttributeBroker sequenceBroker(Map<String, List<Value>> attributeSequences) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                val values = attributeSequences.get(invocation.attributeName());
-                if (values != null)
-                    return Flux.fromIterable(values);
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    public static AttributeBroker capturingAttributeBroker(AttributeFinderInvocation[] capture, Value returnValue) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                capture[0] = invocation;
-                return Flux.just(returnValue);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    public static AttributeBroker singleValueAttributeBroker(Map<String, Value> attributeValues) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                val value = attributeValues.get(invocation.attributeName());
-                if (value != null)
-                    return Flux.just(value);
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
     public static FunctionBroker functionBroker(String expectedName, Function<List<Value>, Value> fn) {
         return new FunctionBroker() {
             @Override
@@ -572,17 +507,9 @@ public class SaplTesting {
         return compilePolicyFull(policySource, compilationContext());
     }
 
-    public static CompiledPolicy compilePolicyFull(String policySource, AttributeBroker attrBroker) {
-        return compilePolicyFull(policySource, compilationContext(attrBroker));
-    }
-
     public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
         val policy = parsePolicy(policySource);
         return PolicyCompiler.compilePolicy(policy, ctx);
-    }
-
-    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource) {
-        return evaluatePolicyWithCoverage(subscriptionJson, policySource, ATTRIBUTE_BROKER);
     }
 
     public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
@@ -731,20 +658,6 @@ public class SaplTesting {
         assertThat(((ErrorValue) compiled).message()).contains(errorMessageContains);
     }
 
-    public static void assertPureEvaluatesTo(String source, EvaluationContext ctx, Value expected) {
-        val compiled = compileExpression(source);
-        assertThat(compiled).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) compiled).evaluate(ctx)).isEqualTo(expected);
-    }
-
-    public static void assertPureEvaluatesTo(String source, Map<String, Value> variables, Value expected) {
-        val vars     = toObjectValue(variables);
-        val ctx      = compilationContext(vars);
-        val compiled = compileExpression(source, ctx);
-        assertThat(compiled).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) compiled).evaluate(evaluationContext())).isEqualTo(expected);
-    }
-
     public static void assertEvaluatesTo(String source, Map<String, Value> variables, Value expected) {
         val vars     = toObjectValue(variables);
         val ctx      = compilationContext(vars);
@@ -759,20 +672,6 @@ public class SaplTesting {
         val compiled = compileExpression(source, ctx);
         val result   = evaluateCompiled(compiled, evaluationContext());
         assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
-    public static void assertPureEvaluatesToError(String source, EvaluationContext ctx) {
-        val compiled = compileExpression(source);
-        assertThat(compiled).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) compiled).evaluate(ctx)).isInstanceOf(ErrorValue.class);
-    }
-
-    public static void assertPureEvaluatesToError(String source, Map<String, Value> variables) {
-        val vars     = toObjectValue(variables);
-        val ctx      = compilationContext(vars);
-        val compiled = compileExpression(source, ctx);
-        assertThat(compiled).isInstanceOf(PureOperator.class);
-        assertThat(((PureOperator) compiled).evaluate(evaluationContext())).isInstanceOf(ErrorValue.class);
     }
 
     public static void assertPureEvaluatesToWithSubject(String source, Value subject, Value expected) {
@@ -799,13 +698,6 @@ public class SaplTesting {
         assertThat(((PureOperator) compiled).evaluate(evalCtx)).isInstanceOf(ErrorValue.class);
     }
 
-    public static CompiledExpression evaluateWithSubject(String source, Value subject) {
-        val subscription = AuthorizationSubscription.of(subject, Value.NULL, Value.NULL, Value.NULL);
-        val evalCtx      = evaluationContext(subscription);
-        val compiled     = compileExpression(source);
-        return evaluateCompiled(compiled, evalCtx);
-    }
-
     public static CompiledExpression evaluateWithResource(String source, Value resource) {
         val subscription = AuthorizationSubscription.of(Value.NULL, Value.NULL, resource, Value.NULL);
         val evalCtx      = evaluationContext(subscription);
@@ -819,20 +711,6 @@ public class SaplTesting {
         assertThat(((PureOperator) compiled).isDependingOnSubscription()).isEqualTo(expected);
     }
 
-    public static void assertEvaluatesToError(String source) {
-        assertThat(evaluateExpression(source)).isInstanceOf(ErrorValue.class);
-    }
-
-    public static void assertEvaluatesToError(String source, String messageFragment) {
-        val result = evaluateExpression(source);
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        assertThat(((ErrorValue) result).message()).contains(messageFragment);
-    }
-
-    public static void assertIsError(CompiledExpression result) {
-        assertThat(result).isInstanceOf(ErrorValue.class);
-    }
-
     public static void assertIsErrorContaining(CompiledExpression result, String... fragments) {
         assertThat(result).isInstanceOf(ErrorValue.class);
         val message = ((ErrorValue) result).message().toLowerCase();
@@ -841,24 +719,9 @@ public class SaplTesting {
         }
     }
 
-    public static String errorMessage(CompiledExpression result) {
-        assertThat(result).isInstanceOf(ErrorValue.class);
-        return ((ErrorValue) result).message();
-    }
-
     // ========================================================================
     // STRATUM ASSERTIONS
     // ========================================================================
-
-    public static Stratum getStratum(CompiledExpression compiled) {
-        return switch (compiled) {
-        case ErrorValue ignored    -> null;
-        case PureOperator p        -> p.isDependingOnSubscription() ? Stratum.PURE_SUB : Stratum.PURE_NON_SUB;
-        case StreamOperator ignore -> Stratum.STREAM;
-        case Value ignored         -> Stratum.VALUE;
-        default                    -> null;
-        };
-    }
 
     public static void assertStratumOfCompiledExpression(String expression, Stratum expected) {
         assertStratum(compileExpression(expression), expected);
@@ -881,19 +744,6 @@ public class SaplTesting {
         }
         case STREAM       -> assertThat(compiled).isInstanceOf(StreamOperator.class);
         }
-    }
-
-    public static Stratum expectedStratum(Stratum... inputs) {
-        int maxLevel = 1;
-        for (val s : inputs) {
-            if (s.level > maxLevel) {
-                maxLevel = s.level;
-            }
-        }
-        if (maxLevel <= 2) {
-            return Stratum.VALUE;
-        }
-        return maxLevel == 3 ? Stratum.PURE_SUB : Stratum.STREAM;
     }
 
     // ========================================================================

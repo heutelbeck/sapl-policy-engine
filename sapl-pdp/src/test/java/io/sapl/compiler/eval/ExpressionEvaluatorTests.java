@@ -41,13 +41,23 @@ class ExpressionEvaluatorTests {
     }
 
     @Test
-    @DisplayName("Flux: streaming attribute emits one value per publish; gate stays closed until first publish")
-    void fluxEvaluatorEmitsPerStreamPublish() {
+    @DisplayName("Flux: registered PIP emits one value per publish; no transient on open")
+    void fluxEvaluatorEmitsPerStreamPublishWhenPipRegistered() {
         try (val store = new TestAttributeStore()) {
+            store.register("test.attr");
             val flux = FluxExpressionEvaluator.evaluate("<test.attr>", store);
             StepVerifier.create(flux).then(() -> store.publishByName("test.attr", Value.of("first")))
                     .expectNext(Value.of("first")).then(() -> store.publishByName("test.attr", Value.of("second")))
                     .expectNext(Value.of("second")).thenCancel().verify(Duration.ofSeconds(2));
+        }
+    }
+
+    @Test
+    @DisplayName("Flux: unregistered attribute emits UNDEFINED on open")
+    void fluxEvaluatorEmitsUndefinedWhenPipNotRegistered() {
+        try (val store = new TestAttributeStore()) {
+            val flux = FluxExpressionEvaluator.evaluate("<test.attr>", store);
+            StepVerifier.create(flux).expectNext(Value.UNDEFINED).thenCancel().verify(Duration.ofSeconds(2));
         }
     }
 
@@ -61,17 +71,43 @@ class ExpressionEvaluatorTests {
     }
 
     @Test
-    @DisplayName("VT: streaming attribute delivers one value per publish; tryNext is empty before first publish")
-    void vtEvaluatorDeliversPerStreamPublish() throws InterruptedException {
+    @DisplayName("VT: registered PIP delivers one value per publish; tryNext empty before first publish")
+    void vtEvaluatorDeliversPerStreamPublishWhenPipRegistered() throws InterruptedException {
+        try (val store = new TestAttributeStore()) {
+            store.register("test.attr");
+            try (val stream = VTExpressionEvaluator.evaluate("<test.attr>", store)) {
+                assertThat(stream.tryNext()).isEmpty();
+
+                store.publishByName("test.attr", Value.of("first"));
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("first"));
+                assertThat(stream.tryNext()).isEmpty();
+
+                store.publishByName("test.attr", Value.of("second"));
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("second"));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("VT: registered PIP with primed initial value fires gate immediately on open")
+    void vtEvaluatorDeliversPrimedValueOnOpen() throws InterruptedException {
+        try (val store = new TestAttributeStore()) {
+            store.register("test.attr", Value.of("primed"));
+            try (val stream = VTExpressionEvaluator.evaluate("<test.attr>", store)) {
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("primed"));
+                assertThat(stream.tryNext()).isEmpty();
+
+                store.publishByName("test.attr", Value.of("updated"));
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("updated"));
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("VT: unregistered attribute delivers UNDEFINED on open")
+    void vtEvaluatorDeliversUndefinedWhenPipNotRegistered() throws InterruptedException {
         try (val store = new TestAttributeStore(); val stream = VTExpressionEvaluator.evaluate("<test.attr>", store)) {
-            assertThat(stream.tryNext()).isEmpty();
-
-            store.publishByName("test.attr", Value.of("first"));
-            assertThat(stream.awaitNext()).isEqualTo(Value.of("first"));
-            assertThat(stream.tryNext()).isEmpty();
-
-            store.publishByName("test.attr", Value.of("second"));
-            assertThat(stream.awaitNext()).isEqualTo(Value.of("second"));
+            assertThat(stream.awaitNext()).isEqualTo(Value.UNDEFINED);
         }
     }
 }

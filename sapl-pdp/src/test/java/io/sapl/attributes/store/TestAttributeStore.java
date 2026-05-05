@@ -22,6 +22,7 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.eval.AttributeStore;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -33,25 +34,32 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * In-memory {@link AttributeStore} for tests. Drives snapshot evolution
- * via {@link #publish(SubscriptionKey, Value)} and the by-name overload;
- * fires per-subscription callbacks when a published value flips a
- * subscription's gate from closed to open or arrives for an
- * already-gated subscription.
+ * In-memory {@link AttributeStore} for tests, modelled on the
+ * production PIP-based attribute lifecycle. Attribute names are either
+ * registered (a PIP exists; the store waits patiently for values via
+ * {@link #publish}) or unregistered (no PIP; an unbound key materialises
+ * immediately as {@link Value#UNDEFINED}). This mirrors the eventual
+ * production behaviour where the attribute repository falls back to
+ * UNDEFINED when no PIP is registered.
  * <p>
  * Gate semantic: a subscription's gate stays closed until every
- * declared dependency has a published value in the mailbox. The first
- * publish that completes the dep set opens the gate and fires the
- * callback once. Subsequent publishes to any subscribed key fire the
- * callback again with the latest snapshot.
+ * declared dependency has a value in the mailbox. PIP-registered keys
+ * stay unbound until a publish lands; unregistered keys are
+ * auto-filled with UNDEFINED at the moment they enter a subscription's
+ * dep set. The first state where every dep has a value opens the gate
+ * and fires the callback.
+ * <p>
+ * Re-fire on dep growth: when a callback returns expanded dependencies,
+ * unregistered new keys are auto-filled with UNDEFINED. If the gate
+ * remains open after that step (or transitions to open), the callback
+ * fires once more so the consumer observes the new mailbox state. If
+ * the new deps include PIP-registered keys that have no value yet, the
+ * gate closes and no fire happens until a publish completes the set.
  * <p>
  * State mutations and reads on the store and its subscriptions are
- * guarded by an intrinsic lock on the store. Callbacks fire outside the
- * lock so they may freely close their subscription or invoke other
+ * guarded by an intrinsic lock on the store. Callbacks fire outside
+ * the lock so they may freely close their subscription or invoke other
  * store-touching operations without re-entrance hazard.
- * Per-subscription serialisation is achieved by collecting the set of
- * subscriptions whose gate is open under the store lock then firing
- * each callback sequentially (single thread of fire per publish call).
  */
 public final class TestAttributeStore implements AttributeStore {
 
@@ -60,8 +68,31 @@ public final class TestAttributeStore implements AttributeStore {
     private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
 
-    private final Map<SubscriptionKey, AttributeSnapshot> mailbox = new HashMap<>();
-    private final Map<String, SubscriptionImpl>           subs    = new HashMap<>();
+    private final Map<SubscriptionKey, AttributeSnapshot> mailbox        = new HashMap<>();
+    private final Map<String, SubscriptionImpl>           subs           = new HashMap<>();
+    private final Map<String, @Nullable Value>            registeredPips = new HashMap<>();
+
+    /**
+     * Register a PIP for {@code attributeName} without a primed value.
+     * Subsequent {@code open()} calls whose dependency set contains a
+     * key with this name will leave the key unbound (gate stays closed
+     * for that key) until a publish lands.
+     */
+    public synchronized void register(String attributeName) {
+        registeredPips.put(attributeName, null);
+    }
+
+    /**
+     * Register a PIP for {@code attributeName} with an initial value.
+     * Equivalent to {@link #register(String)} followed by an immediate
+     * publish to every key with this name that enters a subscription's
+     * dep set. Tests that call this before {@link #open(String, Set, Function)}
+     * see the gate open in one step with the primed value already in
+     * the snapshot.
+     */
+    public synchronized void register(String attributeName, Value initialValue) {
+        registeredPips.put(attributeName, initialValue);
+    }
 
     @Override
     public Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
@@ -80,6 +111,7 @@ public final class TestAttributeStore implements AttributeStore {
             }
             sub = new SubscriptionImpl(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
             subs.put(subscriptionId, sub);
+            applyPipPolicyToDeps(initialDependencies);
             fireImmediately = sub.allDepsFulfilled();
             if (fireImmediately) {
                 sub.gateOpen = true;
@@ -91,6 +123,37 @@ public final class TestAttributeStore implements AttributeStore {
         return sub;
     }
 
+    /**
+     * For every key whose name is unregistered, auto-fill the mailbox
+     * with {@link Value#UNDEFINED}. For every key whose name is
+     * registered with a primed initial value, auto-fill the mailbox
+     * with that value. Keys whose name is registered without a primed
+     * value are left untouched (patient: wait for publish).
+     *
+     * @return {@code true} if any new entry was added to the mailbox
+     */
+    private boolean applyPipPolicyToDeps(Set<SubscriptionKey> keys) {
+        val     now         = Instant.now();
+        boolean mailboxGrew = false;
+        for (val key : keys) {
+            if (mailbox.containsKey(key)) {
+                continue;
+            }
+            val name = key.invocation().attributeName();
+            if (registeredPips.containsKey(name)) {
+                val initial = registeredPips.get(name);
+                if (initial != null) {
+                    mailbox.put(key, new AttributeSnapshot(initial, now));
+                    mailboxGrew = true;
+                }
+            } else {
+                mailbox.put(key, new AttributeSnapshot(Value.UNDEFINED, now));
+                mailboxGrew = true;
+            }
+        }
+        return mailboxGrew;
+    }
+
     @Override
     public synchronized void close() {
         for (val sub : subs.values()) {
@@ -98,6 +161,7 @@ public final class TestAttributeStore implements AttributeStore {
         }
         subs.clear();
         mailbox.clear();
+        registeredPips.clear();
     }
 
     /**
@@ -186,6 +250,7 @@ public final class TestAttributeStore implements AttributeStore {
             synchronized (TestAttributeStore.this) {
                 closed = true;
                 subs.remove(id);
+                gcOrphanedMailboxEntries();
             }
         }
 
@@ -223,15 +288,32 @@ public final class TestAttributeStore implements AttributeStore {
             if (newDeps == null || newDeps.isEmpty()) {
                 throw new IllegalStateException(ERROR_RETURNED_DEPS_EMPTY.formatted(id));
             }
+            boolean refire;
             synchronized (TestAttributeStore.this) {
                 if (closed) {
                     return;
                 }
-                if (!newDeps.equals(deps)) {
-                    deps     = new HashSet<>(newDeps);
-                    gateOpen = allDepsFulfilled();
+                if (newDeps.equals(deps)) {
+                    refire = false;
+                } else {
+                    deps = new HashSet<>(newDeps);
+                    val mailboxGrew  = applyPipPolicyToDeps(deps);
+                    val nowFulfilled = allDepsFulfilled();
+                    refire   = mailboxGrew && nowFulfilled;
+                    gateOpen = nowFulfilled;
                 }
             }
+            if (refire) {
+                fireCallback();
+            }
         }
+    }
+
+    private void gcOrphanedMailboxEntries() {
+        val referenced = new HashSet<SubscriptionKey>();
+        for (val s : subs.values()) {
+            referenced.addAll(s.deps);
+        }
+        mailbox.keySet().retainAll(referenced);
     }
 }

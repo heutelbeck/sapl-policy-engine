@@ -215,13 +215,13 @@ class MockingAttributeStoreTests {
         }
 
         @Test
-        @DisplayName("unmatched key materialises ErrorValue and fires callback immediately")
-        void unmatchedKeyAutoErrors() {
+        @DisplayName("unregistered key materialises UNDEFINED and fires callback immediately")
+        void unmatchedKeyAutoUndefined() {
             val deps = Set.of(envKey("never.mocked"));
             val cb   = new RecordingCallback(deps);
             store.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(1);
-            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isInstanceOf(ErrorValue.class));
+            assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.UNDEFINED));
         }
 
         @Test
