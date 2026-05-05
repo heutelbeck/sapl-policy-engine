@@ -21,10 +21,12 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.store.TestAttributeStore;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.eval.VTVoterEvaluator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
@@ -34,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -435,135 +436,148 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("StreamPolicyBodyPolicy emits decisions on attribute state changes")
-        void whenStreamAttributeThenEmitsOnChanges() {
-            val policy     = """
+        void whenStreamAttributeThenEmitsOnChanges() throws InterruptedException {
+            val policy = """
                     policy "Luggage Proximity Alert"
                     permit
                     subject.<luggage.nearby> == true;
                     """;
-            val attrBroker = attributeBroker("luggage.nearby", Value.TRUE, Value.FALSE, Value.TRUE);
-            val ctx        = compilationContext(attrBroker);
-            val voter      = compileToVoter(policy, ctx);
+            val voter  = compileToVoter(policy);
             assertThat(voter).isInstanceOf(StreamVoter.class);
 
-            val subscription = parseSubscription("""
+            val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Rincewind", "action": "flee", "resource": "Luggage"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-            val streamVoter  = (StreamVoter) voter;
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
-                            .isEqualTo(Decision.NOT_APPLICABLE))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("luggage.nearby", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    store.publishByName("luggage.nearby", Value.FALSE);
+                    assertThat(stream.awaitNext().authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE);
+                    store.publishByName("luggage.nearby", Value.TRUE);
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                }
+            }
         }
 
         @Test
         @DisplayName("StreamValuePolicyBodyPolicy includes static constraints in emissions")
-        void whenCarrotPatrolThenStaticConstraintsIncluded() {
-            val policy     = """
+        void whenCarrotPatrolThenStaticConstraintsIncluded() throws InterruptedException {
+            val policy = """
                     policy "Captain Carrot Patrol Protocol"
                     permit
                     subject.<patrol.active> == true;
                     obligation "log_patrol"
                     advice "stay_polite"
                     """;
-            val attrBroker = attributeBroker("patrol.active", Value.TRUE);
-            assertThat(compilePolicy(policy, attrBroker)).isInstanceOf(StreamVoter.class);
+            val voter  = compileToVoter(policy);
+            assertThat(voter).isInstanceOf(StreamVoter.class);
 
-            val decisions = evaluatePolicy("""
+            val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Carrot", "action": "patrol", "resource": "Ankh-Morpork"}
-                    """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(vote -> {
-                val authzDecision = vote.authorizationDecision();
-                assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
-                assertThat(authzDecision.obligations()).isNotNull().isNotEmpty();
-                assertThat(authzDecision.advice()).isNotNull().isNotEmpty();
-            }).verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("patrol.active", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    val authz = stream.awaitNext().authorizationDecision();
+                    assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(authz.obligations()).isNotNull().isNotEmpty();
+                    assertThat(authz.advice()).isNotNull().isNotEmpty();
+                }
+            }
         }
 
         @Test
         @DisplayName("StreamPurePolicyBody evaluates pure constraints per emission")
-        void whenStreamBodyPureConstraintsThenConstraintsEvaluatedPerEmission() {
-            val policy     = """
+        void whenStreamBodyPureConstraintsThenConstraintsEvaluatedPerEmission() throws InterruptedException {
+            val policy = """
                     policy "Commander Vimes Duty Protocol"
                     permit
                     subject.<duty.status> == "on_duty";
                     obligation subject
                     """;
-            val attrBroker = attributeBroker("duty.status", Value.of("on_duty"));
-            assertThat(compilePolicy(policy, attrBroker)).isInstanceOf(StreamVoter.class);
+            val voter  = compileToVoter(policy);
+            assertThat(voter).isInstanceOf(StreamVoter.class);
 
-            val decisions = evaluatePolicy("""
+            val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Vimes", "action": "command", "resource": "City Watch"}
-                    """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(vote -> {
-                val authzDecision = vote.authorizationDecision();
-                assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
-                assertThat(authzDecision.obligations()).isNotNull().isNotEmpty();
-            }).verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("duty.status", Value.of("on_duty"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    val authz = stream.awaitNext().authorizationDecision();
+                    assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(authz.obligations()).isNotNull().isNotEmpty();
+                }
+            }
         }
 
         @Test
         @DisplayName("StreamStreamPolicyBodyPolicy combines body and constraint streams")
-        void whenStreamBodyAndStreamConstraintsThenAllStreamsCombined() {
-            val policy     = """
+        void whenStreamBodyAndStreamConstraintsThenAllStreamsCombined() throws InterruptedException {
+            val policy = """
                     policy "Guild Membership Continuous Verification"
                     permit
                     subject.<guild.active> == true;
                     obligation <audit.guild>
                     """;
-            val attrBroker = attributeBroker(Map.of("guild.active", new Value[] { Value.TRUE }, "audit.guild",
-                    new Value[] { Value.of("logged") }));
-            assertThat(compilePolicy(policy, attrBroker)).isInstanceOf(StreamVoter.class);
+            val voter  = compileToVoter(policy);
+            assertThat(voter).isInstanceOf(StreamVoter.class);
 
-            val decisions = evaluatePolicy("""
+            val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Moist", "action": "join", "resource": "Guild"}
-                    """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(vote -> {
-                val authzDecision = vote.authorizationDecision();
-                assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
-                assertThat(authzDecision.obligations()).isNotNull().isNotEmpty();
-            }).verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("guild.active", Value.TRUE);
+                store.register("audit.guild", Value.of("logged"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    val authz = stream.awaitNext().authorizationDecision();
+                    assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(authz.obligations()).isNotNull().isNotEmpty();
+                }
+            }
         }
 
         @Test
         @DisplayName("StreamPolicyBodyPolicy emits NOT_APPLICABLE when body becomes false")
-        void whenBodyBecomesFalseThenAccessRevoked() {
-            val policy     = """
+        void whenBodyBecomesFalseThenAccessRevoked() throws InterruptedException {
+            val voter = compileToVoter("""
                     policy "Dynamic Guild Access Revocation"
                     permit
                     subject.<access.valid> == true;
-                    """;
-            val attrBroker = attributeBroker("access.valid", Value.TRUE, Value.FALSE);
-
-            val decisions = evaluatePolicy("""
+                    """);
+            val ctx   = evaluationContext(parseSubscription("""
                     {"subject": "Visitor", "action": "access", "resource": "Guild Hall"}
-                    """, policy, attrBroker);
-            StepVerifier.create(decisions)
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
-                            .isEqualTo(Decision.NOT_APPLICABLE))
-                    .verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("access.valid", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                    store.publishByName("access.valid", Value.FALSE);
+                    assertThat(stream.awaitNext().authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE);
+                }
+            }
         }
 
         @Test
         @DisplayName("Attribute errors in body produces INDETERMINATE")
-        void whenAttributeErrorThenIndeterminateDecision() {
-            val policy     = """
+        void whenAttributeErrorThenIndeterminateDecision() throws InterruptedException {
+            val voter = compileToVoter("""
                     policy "Clacks Network Error Handling"
                     permit
                     subject.<clacks.signal> == true;
-                    """;
-            val attrBroker = attributeBroker("clacks.signal", Value.error("GNU Terry Pratchett"));
-
-            val decisions = evaluatePolicy("""
+                    """);
+            val ctx   = evaluationContext(parseSubscription("""
                     {"subject": "operator", "action": "transmit", "resource": "Clacks Tower"}
-                    """, policy, attrBroker);
-            StepVerifier.create(decisions).assertNext(
-                    vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("clacks.signal", Value.error("GNU Terry Pratchett"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                }
+            }
         }
     }
 
@@ -871,105 +885,89 @@ class PolicyCompilerTests {
 
         @Test
         @DisplayName("PureStreamPolicyBody evaluates pure body with stream constraints")
-        void whenHistoryMonksStreamingThenPureBodyEvaluated() {
-            val policy     = """
+        void whenHistoryMonksStreamingThenPureBodyEvaluated() throws InterruptedException {
+            val voter = compileToVoter("""
                     policy "History Monks Time Stream Monitoring"
                     permit
                     subject.name == "Lu-Tze";
                     obligation <temporal.audit>
-                    """;
-            val attrBroker = attributeBroker("temporal.audit", Value.of("time_recorded"));
-            val ctx        = compilationContext(attrBroker);
-            val voter      = compileToVoter(policy, ctx);
+                    """);
             assertThat(voter).isInstanceOf(StreamVoter.class);
 
-            val subscription = parseSubscription("""
+            val ctx = evaluationContext(parseSubscription("""
                     {"subject": {"name": "Lu-Tze"}, "action": "sweep", "resource": "time stream"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-
-            val streamVoter = (StreamVoter) voter;
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("temporal.audit", Value.of("time_recorded"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                }
+            }
         }
 
         @Test
         @DisplayName("PureStreamPolicyBody returns NOT_APPLICABLE when pure body is false")
-        void whenPureBodyFalseThenSusanDenied() {
-            val policy     = """
+        void whenPureBodyFalseThenSusanDenied() throws InterruptedException {
+            val voter = compileToVoter("""
                     policy "Susan Sto Helit Death Duty Check"
                     permit
                     subject.name == "DEATH";
                     obligation <death.audit>
-                    """;
-            val attrBroker = attributeBroker("death.audit", Value.of("logged"));
-            val ctx        = compilationContext(attrBroker);
-            val voter      = compileToVoter(policy, ctx);
-
-            val subscription = parseSubscription("""
-                    {"subject": {"name": "Susan"}, "action": "substitute", "resource": "Death Duty"}
                     """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-
-            val streamVoter = (StreamVoter) voter;
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
-                            .isEqualTo(Decision.NOT_APPLICABLE))
-                    .verifyComplete();
+            val ctx   = evaluationContext(parseSubscription("""
+                    {"subject": {"name": "Susan"}, "action": "substitute", "resource": "Death Duty"}
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("death.audit", Value.of("logged"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision())
+                            .isEqualTo(Decision.NOT_APPLICABLE);
+                }
+            }
         }
 
         @Test
         @DisplayName("PureStreamPolicyBody includes pure advice in stream emissions")
-        void whenPureAdviceWithAttributesStreamObligationThenLiftedViaPathOfPureToStream() {
-            val policy     = """
+        void whenPureAdviceWithAttributesStreamObligationThenLiftedViaPathOfPureToStream() throws InterruptedException {
+            val voter = compileToVoter("""
                     policy "Granny Weatherwax Mixed Constraint Protocol"
                     permit
                     obligation <coven.audit>
                     advice subject.headologyLevel
-                    """;
-            val attrBroker = attributeBroker("coven.audit", Value.of("recorded"));
-            val ctx        = compilationContext(attrBroker);
-            val voter      = compileToVoter(policy, ctx);
+                    """);
             assertThat(voter).isInstanceOf(StreamVoter.class);
 
-            val subscription = parseSubscription("""
+            val ctx = evaluationContext(parseSubscription("""
                     {"subject": {"headologyLevel": 99}, "action": "use", "resource": "headology"}
-                    """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-
-            val streamVoter = (StreamVoter) voter;
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(vote -> {
-                        val authzDecision = vote.authorizationDecision();
-                        assertThat(authzDecision.decision()).isEqualTo(Decision.PERMIT);
-                        assertThat(authzDecision.advice()).contains(Value.of(99));
-                    }).verifyComplete();
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("coven.audit", Value.of("recorded"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    val authz = stream.awaitNext().authorizationDecision();
+                    assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
+                    assertThat(authz.advice()).contains(Value.of(99));
+                }
+            }
         }
 
         @Test
         @DisplayName("PureStreamPolicyBody returns INDETERMINATE on pure body evaluation errors")
-        void whenPureBodyErrorThenIndeterminate() {
-            val policy     = """
+        void whenPureBodyErrorThenIndeterminate() throws InterruptedException {
+            val voter = compileToVoter("""
                     policy "Rincewind Spell Attempt"
                     permit
                     1/subject.magicPower == 1;
                     obligation <spell.audit>
-                    """;
-            val attrBroker = attributeBroker("spell.audit", Value.of("recorded"));
-            val ctx        = compilationContext(attrBroker);
-            val voter      = compileToVoter(policy, ctx);
-
-            val subscription = parseSubscription("""
-                    {"subject": {"magicPower": 0}, "action": "cast", "resource": "spell"}
                     """);
-            val evalContext  = evaluationContext(subscription, attrBroker);
-
-            val streamVoter = (StreamVoter) voter;
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, evalContext)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
-                            .isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+            val ctx   = evaluationContext(parseSubscription("""
+                    {"subject": {"magicPower": 0}, "action": "cast", "resource": "spell"}
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("spell.audit", Value.of("recorded"));
+                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                }
+            }
         }
     }
 }

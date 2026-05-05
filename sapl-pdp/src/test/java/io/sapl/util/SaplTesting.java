@@ -30,7 +30,10 @@ import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
+import io.sapl.attributes.store.TestAttributeStore;
 import io.sapl.compiler.document.*;
+import io.sapl.compiler.eval.VTCoverageEvaluator;
+import io.sapl.compiler.eval.VTVoterEvaluator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.index.SemanticHashing;
@@ -479,30 +482,6 @@ public class SaplTesting {
         return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndVote();
     }
 
-    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource) {
-        return evaluatePolicy(subscriptionJson, policySource, ATTRIBUTE_BROKER);
-    }
-
-    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource, AttributeBroker attrBroker) {
-        return evaluatePolicy(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
-    }
-
-    public static Flux<Vote> evaluatePolicy(String subscriptionJson, String policySource,
-            CompilationContext compilationCtx, AttributeBroker attrBroker) {
-        val subscription  = parseSubscription(subscriptionJson);
-        val compiled      = compilePolicy(policySource, compilationCtx);
-        val evaluationCtx = evaluationContext(subscription, attrBroker);
-        return evaluatePolicyVoter(compiled, evaluationCtx);
-    }
-
-    public static Flux<Vote> evaluatePolicyVoter(Voter compiled, EvaluationContext evalCtx) {
-        return switch (compiled) {
-        case Vote vote          -> Flux.just(vote);
-        case PureVoter pure     -> Flux.just(pure.vote(evalCtx));
-        case StreamVoter stream -> stream.vote().contextWrite(c -> c.put(EvaluationContext.class, evalCtx));
-        };
-    }
-
     public static CompiledPolicy compilePolicyFull(String policySource) {
         return compilePolicyFull(policySource, compilationContext());
     }
@@ -510,19 +489,6 @@ public class SaplTesting {
     public static CompiledPolicy compilePolicyFull(String policySource, CompilationContext ctx) {
         val policy = parsePolicy(policySource);
         return PolicyCompiler.compilePolicy(policy, ctx);
-    }
-
-    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
-            AttributeBroker attrBroker) {
-        return evaluatePolicyWithCoverage(subscriptionJson, policySource, compilationContext(attrBroker), attrBroker);
-    }
-
-    public static Flux<VoteWithCoverage> evaluatePolicyWithCoverage(String subscriptionJson, String policySource,
-            CompilationContext compilationCtx, AttributeBroker attrBroker) {
-        val subscription  = parseSubscription(subscriptionJson);
-        val compiled      = compilePolicyFull(policySource, compilationCtx);
-        val evaluationCtx = evaluationContext(subscription, attrBroker);
-        return compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, evaluationCtx));
     }
 
     // ========================================================================
@@ -593,22 +559,57 @@ public class SaplTesting {
     }
 
     public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource) {
-        assertCoverageMatchesProduction(subscriptionJson, policySource, ATTRIBUTE_BROKER);
+        assertCoverageMatchesProduction(subscriptionJson, policySource, Map.of());
     }
 
     public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,
-            AttributeBroker attrBroker) {
-        val prodList = evaluatePolicy(subscriptionJson, policySource, attrBroker).collectList()
-                .block(Duration.ofSeconds(5));
-        val covList  = evaluatePolicyWithCoverage(subscriptionJson, policySource, attrBroker)
-                .map(VoteWithCoverage::vote).collectList().block(Duration.ofSeconds(5));
+            String attributeName, Value... values) {
+        assertCoverageMatchesProduction(subscriptionJson, policySource, Map.of(attributeName, List.of(values)));
+    }
 
-        assertThat(covList).as("Number of emissions").hasSameSizeAs(prodList);
-        for (int i = 0; i < Objects.requireNonNull(prodList).size(); i++) {
-            val prod = prodList.get(i);
-            val cov  = Objects.requireNonNull(covList).get(i);
-            assertThat(decisionsEquivalent(prod, cov)).as("Emission[%d]: production=%s, coverage=%s", i, prod, cov)
-                    .isTrue();
+    /**
+     * Drives the production voter ({@code applicabilityAndVote}) and the
+     * coverage voter through the same {@link TestAttributeStore}, asserting
+     * that both produce equivalent emissions per round. Round 0 fires when
+     * the gate opens with primed values; subsequent rounds publish the
+     * next value for each attribute (sequences are consumed in order).
+     */
+    public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,
+            Map<String, List<Value>> attributeSequences) {
+        val compiled     = compilePolicyFull(policySource);
+        val subscription = parseSubscription(subscriptionJson);
+        val baseCtx      = evaluationContext(subscription);
+        val rounds       = attributeSequences.values().stream().mapToInt(List::size).max().orElse(1);
+
+        try (val store = new TestAttributeStore()) {
+            for (val entry : attributeSequences.entrySet()) {
+                val seq = entry.getValue();
+                if (seq.isEmpty()) {
+                    store.register(entry.getKey());
+                } else {
+                    store.register(entry.getKey(), seq.get(0));
+                }
+            }
+            try (val production = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), baseCtx, store);
+                    val coverage = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), baseCtx, store)) {
+                for (int i = 0; i < rounds; i++) {
+                    if (i > 0) {
+                        for (val entry : attributeSequences.entrySet()) {
+                            val seq = entry.getValue();
+                            if (i < seq.size()) {
+                                store.publishByName(entry.getKey(), seq.get(i));
+                            }
+                        }
+                    }
+                    val prod = production.awaitNext();
+                    val cov  = coverage.awaitNext().voteResult().vote();
+                    assertThat(decisionsEquivalent(prod, cov))
+                            .as("Emission[%d]: production=%s, coverage=%s", i, prod, cov).isTrue();
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted while awaiting evaluator emissions", e);
         }
     }
 

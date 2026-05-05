@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.eval;
 
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.policy.CoverageVoter;
 import io.sapl.util.SaplTesting;
@@ -43,9 +44,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class VTCoverageEvaluator {
 
     public static CoverageStream evaluate(CoverageVoter voter, AttributeStore store) {
-        val baseCtx = SaplTesting.evaluationContext();
-        val slot    = new LatestSlot();
-        val closed  = new AtomicBoolean(false);
+        return evaluate(voter, SaplTesting.evaluationContext(), store);
+    }
+
+    public static CoverageStream evaluate(CoverageVoter voter, EvaluationContext baseCtx, AttributeStore store) {
+        val slot   = new LatestSlot();
+        val closed = new AtomicBoolean(false);
 
         val initial = voter.evaluate(baseCtx);
         if (initial.voteResult().dependencies().isEmpty()) {

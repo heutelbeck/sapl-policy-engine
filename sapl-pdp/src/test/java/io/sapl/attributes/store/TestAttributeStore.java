@@ -296,10 +296,13 @@ public final class TestAttributeStore implements AttributeStore {
                 if (newDeps.equals(deps)) {
                     refire = false;
                 } else {
+                    val added = new HashSet<>(newDeps);
+                    added.removeAll(deps);
                     deps = new HashSet<>(newDeps);
-                    val mailboxGrew  = applyPipPolicyToDeps(deps);
-                    val nowFulfilled = allDepsFulfilled();
-                    refire   = mailboxGrew && nowFulfilled;
+                    applyPipPolicyToDeps(deps);
+                    val nowFulfilled    = allDepsFulfilled();
+                    val addedHasMailbox = added.stream().anyMatch(mailbox::containsKey);
+                    refire   = addedHasMailbox && nowFulfilled;
                     gateOpen = nowFulfilled;
                 }
             }

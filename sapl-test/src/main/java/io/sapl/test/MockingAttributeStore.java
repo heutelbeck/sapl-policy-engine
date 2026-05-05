@@ -570,11 +570,12 @@ public final class MockingAttributeStore implements AttributeStore {
                     added.removeAll(deps);
                     val removed = new HashSet<>(deps);
                     removed.removeAll(newDeps);
-                    val mailboxGrew = bindKeys(added);
+                    bindKeys(added);
                     releaseKeys(removed);
                     deps = new HashSet<>(newDeps);
-                    val nowFulfilled = allDepsFulfilled();
-                    refire   = mailboxGrew && nowFulfilled;
+                    val nowFulfilled    = allDepsFulfilled();
+                    val addedHasMailbox = added.stream().anyMatch(mailbox::containsKey);
+                    refire   = addedHasMailbox && nowFulfilled;
                     gateOpen = nowFulfilled;
                 }
             }
