@@ -77,7 +77,7 @@ public class PolicySetCompiler {
         val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voterAndCoverage.voter(),
                 metadata);
         return new CompiledPolicySet(isApplicable, voterAndCoverage.voter(), applicabilityAndVoter,
-                voterAndCoverage.coverage(), metadata);
+                voterAndCoverage.coverage(), voterAndCoverage.coverageVoter(), metadata);
     }
 
     private static void assertPolicyNamesAreUnique(List<? extends CompiledDocument> compiledDocuments) {

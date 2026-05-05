@@ -22,6 +22,7 @@ import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.policy.CoverageVoter;
 import reactor.core.publisher.Flux;
 
 public record CompiledPolicySet(
@@ -29,4 +30,5 @@ public record CompiledPolicySet(
         Voter voter,
         Voter applicabilityAndVote,
         Flux<VoteWithCoverage> coverage,
+        CoverageVoter coverageVoter,
         PolicySetVoterMetadata metadata) implements CompiledDocument {}

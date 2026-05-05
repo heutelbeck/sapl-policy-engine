@@ -30,6 +30,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.index.IndexFactory;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.policy.CoverageVoter;
 import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -64,7 +65,7 @@ public class UniqueVoteCompiler {
         val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, ctx);
         val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, defaultDecision,
                 errorHandling);
-        return new VoterAndCoverage(voter, coverage);
+        return new VoterAndCoverage(voter, coverage, new CoverageVoter.NotMigrated("UNIQUE"));
     }
 
     /**

@@ -56,7 +56,7 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  *
  * @since 4.2.0
  */
-public sealed interface CoverageVoter {
+public interface CoverageVoter {
 
     VoteResultWithCoverage evaluate(EvaluationContext ctx);
 
@@ -143,6 +143,21 @@ public sealed interface CoverageVoter {
                 }
             }
             return finishWithVote(bodyValue, deps, hits, totalConditions, constraintsVoter, metadata, ctx);
+        }
+    }
+
+    /**
+     * Placeholder coverage voter for combining algorithms whose coverage
+     * path has not yet been migrated to the snapshot model. Throws on
+     * {@link #evaluate(EvaluationContext)} so callers fail loudly with
+     * a message naming the unmigrated algorithm rather than silently
+     * producing degraded results.
+     */
+    record NotMigrated(String algorithmName) implements CoverageVoter {
+        @Override
+        public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
+            throw new UnsupportedOperationException(
+                    "CoverageVoter not yet migrated for combining algorithm " + algorithmName);
         }
     }
 }

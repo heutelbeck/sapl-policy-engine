@@ -20,6 +20,7 @@ package io.sapl.compiler.document;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
+import io.sapl.compiler.policy.CoverageVoter;
 import reactor.core.publisher.Flux;
 
 public interface CompiledDocument {
@@ -35,6 +36,8 @@ public interface CompiledDocument {
     Voter voter();
 
     Voter applicabilityAndVote();
+
+    CoverageVoter coverageVoter();
 
     /**
      * Reactor-based coverage stream. Records that have not migrated to
