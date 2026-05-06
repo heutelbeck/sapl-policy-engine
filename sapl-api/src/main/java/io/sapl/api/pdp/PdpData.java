@@ -22,7 +22,7 @@ import io.sapl.api.model.ObjectValue;
 public record PdpData(ObjectValue variables, ObjectValue secrets) {
     @Override
     public String toString() {
-        return "AttributeAccessContext[variables=" + variables + ", secrets="
+        return "PdpData[variables=" + variables + ", secrets="
                 + (secrets.isEmpty() ? "NO SECRETS]" : "SECRETS REDACTED]");
     }
 }

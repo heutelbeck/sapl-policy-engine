@@ -18,136 +18,53 @@
 package io.sapl.compiler.eval;
 
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.Stream;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.policy.CoverageVoter;
 import io.sapl.util.SaplTesting;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Evaluates a {@link CoverageVoter} against an {@link AttributeStore}
- * and exposes per-round results as a {@link CoverageStream}. Coverage
- * counterpart of {@link VTExpressionEvaluator}: same subscription
- * lifecycle, single-slot latest-wins mailbox, blocking await on the
- * consumer side.
- * <p>
- * If the initial evaluation returns no dependencies (pure policy body),
- * the stream delivers one {@link VoteResultWithCoverage} and completes.
- * Otherwise it opens a subscription on the store, re-evaluates the
- * voter on every callback, and pushes the result into the slot.
+ * and exposes per-round results as a {@link Stream} of
+ * {@link VoteResultWithCoverage}. If the initial evaluation returns no
+ * dependencies (pure policy body), the stream delivers one result and
+ * completes. Otherwise it opens a subscription on the store,
+ * re-evaluates the voter on every callback, and pushes the result
+ * into the slot.
  */
 @UtilityClass
 public class VTCoverageEvaluator {
 
-    public static CoverageStream evaluate(CoverageVoter voter, AttributeStore store) {
+    public static Stream<VoteResultWithCoverage> evaluate(CoverageVoter voter, AttributeStore store) {
         return evaluate(voter, SaplTesting.evaluationContext(), store);
     }
 
-    public static CoverageStream evaluate(CoverageVoter voter, EvaluationContext baseCtx, AttributeStore store) {
-        val slot   = new LatestSlot();
-        val closed = new AtomicBoolean(false);
+    public static Stream<VoteResultWithCoverage> evaluate(CoverageVoter voter, EvaluationContext baseCtx,
+            AttributeStore store) {
+        val stream = new LatestSlotStream<VoteResultWithCoverage>();
 
         val initial = voter.evaluate(baseCtx);
         if (initial.voteResult().dependencies().isEmpty()) {
-            slot.put(initial);
-            slot.complete();
-            return new BlockingCoverageStream(slot, closed, () -> {});
+            stream.put(initial);
+            stream.complete();
+            return stream;
         }
 
         val sub = store.open("vt-cov-" + UUID.randomUUID(), initial.voteResult().dependencies().keySet(), snap -> {
             val r = voter.evaluate(baseCtx.withSnapshot(snap));
-            // Mirror VTExpressionEvaluator's "skip on incomplete" rule: a null
-            // vote means the body did not resolve (some dep still missing); do
-            // not surface a partial coverage result to the consumer.
+            // Skip on incomplete: a null vote means the body did not resolve
+            // (some dep still missing); do not surface a partial coverage
+            // result to the consumer.
             if (r.voteResult().vote() != null) {
-                slot.put(r);
+                stream.put(r);
             }
             return r.voteResult().dependencies().keySet();
         });
-        return new BlockingCoverageStream(slot, closed, () -> {
-            slot.complete();
-            sub.close();
-        });
-    }
-
-    /**
-     * Single-slot mailbox for {@link VoteResultWithCoverage}. Producer's
-     * {@link #put(VoteResultWithCoverage)} overwrites any unread value;
-     * a lagging consumer reads only the latest.
-     */
-    private static final class LatestSlot {
-        private VoteResultWithCoverage value;
-        private boolean                hasValue;
-        private boolean                completed;
-
-        synchronized void put(VoteResultWithCoverage v) {
-            if (completed) {
-                return;
-            }
-            value    = v;
-            hasValue = true;
-            notifyAll();
-        }
-
-        synchronized void complete() {
-            completed = true;
-            notifyAll();
-        }
-
-        synchronized VoteResultWithCoverage take() throws InterruptedException {
-            while (!hasValue && !completed) {
-                wait();
-            }
-            if (hasValue) {
-                val result = value;
-                value    = null;
-                hasValue = false;
-                return result;
-            }
-            return null;
-        }
-
-        synchronized Optional<VoteResultWithCoverage> tryTake() {
-            if (hasValue) {
-                val result = value;
-                value    = null;
-                hasValue = false;
-                return Optional.of(result);
-            }
-            return Optional.empty();
-        }
-    }
-
-    private static final class BlockingCoverageStream implements CoverageStream {
-        private final LatestSlot    slot;
-        private final AtomicBoolean closed;
-        private final Runnable      closeAction;
-
-        BlockingCoverageStream(LatestSlot slot, AtomicBoolean closed, Runnable closeAction) {
-            this.slot        = slot;
-            this.closed      = closed;
-            this.closeAction = closeAction;
-        }
-
-        @Override
-        public VoteResultWithCoverage awaitNext() throws InterruptedException {
-            return slot.take();
-        }
-
-        @Override
-        public Optional<VoteResultWithCoverage> tryNext() {
-            return slot.tryTake();
-        }
-
-        @Override
-        public void close() {
-            if (closed.compareAndSet(false, true)) {
-                closeAction.run();
-            }
-        }
+        stream.onClose(sub::close);
+        return stream;
     }
 }

@@ -27,10 +27,8 @@ import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteResultWithCoverage;
-import io.sapl.compiler.eval.CoverageStream;
 import io.sapl.compiler.eval.VTCoverageEvaluator;
 import io.sapl.compiler.eval.VTExpressionEvaluator;
-import io.sapl.compiler.eval.ValueStream;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -44,7 +42,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -230,8 +227,8 @@ class PolicyBodyCompilationTests {
             verifySplitBodyCompilation(tc);
         }
 
-        static Stream<TestCase> testCases() {
-            return Stream.of(
+        static List<TestCase> testCases() {
+            return List.of(
                     // Empty/trivial bodies - both sections return TRUE
                     TestCase.pureOnly("empty body returns TRUE", "", Value.TRUE, 0L, 0),
                     TestCase.pureOnly("only VarDefs returns TRUE", "var x = 1; var y = 2;", Value.TRUE, 0L, 0),
@@ -330,9 +327,9 @@ class PolicyBodyCompilationTests {
             }
         }
 
-        static Stream<ErrorTestCase> errorCases() {
+        static List<ErrorTestCase> errorCases() {
             // Note: VarDef redefinition is a compile-time exception, tested separately
-            return Stream.of(ErrorTestCase.pureError("non-boolean condition", "42;", "boolean", 1),
+            return List.of(ErrorTestCase.pureError("non-boolean condition", "42;", "boolean", 1),
                     ErrorTestCase.pureErrorWithVars("pure evaluates to error", "brokenVar;",
                             Map.of("brokenVar", Value.error("intentional")), "intentional", 1),
                     ErrorTestCase.streamError("stream emits error", "<test.attr>;", "test.attr", "stream failure",
@@ -386,8 +383,8 @@ class PolicyBodyCompilationTests {
             }
         }
 
-        static Stream<StreamTestCase> reEmissionCases() {
-            return Stream.of(
+        static List<StreamTestCase> reEmissionCases() {
+            return List.of(
                     new StreamTestCase("single stream re-emits three values", "<test.attr>;",
                             List.of(new Step.Publish("test.attr", Value.TRUE), new Step.ExpectValue(Value.TRUE),
                                     new Step.Publish("test.attr", Value.FALSE), new Step.ExpectValue(Value.FALSE),
@@ -441,8 +438,8 @@ class PolicyBodyCompilationTests {
      * Body value of the coverage result is the last condition hit
      * (or {@link Value#TRUE} when the body has no hits).
      */
-    private static void runScript(StreamTestCase tc, TestAttributeStore store, ValueStream expr,
-            CoverageStream coverage) throws InterruptedException {
+    private static void runScript(StreamTestCase tc, TestAttributeStore store, Stream<Value> expr,
+            Stream<VoteResultWithCoverage> coverage) throws InterruptedException {
         int idx = 0;
         for (val step : tc.script()) {
             val pos = "step " + idx + " (" + step + ")";
