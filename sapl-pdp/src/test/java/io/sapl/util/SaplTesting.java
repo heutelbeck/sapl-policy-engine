@@ -540,7 +540,7 @@ public class SaplTesting {
      * {@link CoverageVoter#evaluate(EvaluationContext)} and projects the
      * snapshot result into the legacy {@link VoteWithCoverage} shape.
      * The {@code vote()} component may be {@code null} when the snapshot
-     * is incomplete — multi-round streaming tests should use
+     * is incomplete. Multi-round streaming tests should use
      * {@code VTCoverageEvaluator} instead.
      */
     public static VoteWithCoverage evaluatePolicySetWithCoverage(CompiledPolicySet compiled, EvaluationContext ctx) {
