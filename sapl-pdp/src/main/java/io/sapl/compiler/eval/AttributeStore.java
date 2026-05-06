@@ -39,7 +39,7 @@ import java.util.function.Function;
  * set its next evaluation pass will read. The store diffs the returned
  * set against the previous one and updates backing PIP subscriptions
  * accordingly. The {@link Subscription} handle is a pure lifecycle
- * marker — a single {@link Subscription#close()} method.
+ * marker, with a single {@link Subscription#close()} method.
  * <p>
  * The first callback for a given dependency set fires only when every
  * declared key has a value in its mailbox (the all-deps-fulfilled
