@@ -30,11 +30,11 @@ import java.util.Map;
  * Direct algebraic mirror of
  * {@link io.sapl.api.model.ExpressionResult} at the voter layer.
  * <ul>
- * <li>{@code vote} — the computed {@link Vote} if all needed
+ * <li>{@code vote}: the computed {@link Vote} if all needed
  * attribute reads were resolvable from the snapshot at evaluation
  * time; {@code null} if at least one read could not complete and
  * the trigger loop must subscribe and retry.</li>
- * <li>{@code dependencies} — the complete map of attribute
+ * <li>{@code dependencies}: the complete map of attribute
  * subscriptions this evaluation pass needed or touched, keyed by
  * {@link SubscriptionKey}. Same semantics as
  * {@link io.sapl.api.model.ExpressionResult#dependencies()}: not a
