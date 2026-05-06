@@ -78,7 +78,7 @@ public interface AttributeStore extends AutoCloseable {
      * pass will read. The store applies the diff against the previous
      * dep set: backing PIP subscriptions are reference-counted across
      * consumers; freshly added keys open backing subscriptions, dropped
-     * keys release them. Returning an empty set is illegal — consumers
+     * keys release them. Returning an empty set is illegal. Consumers
      * who want to stop must call {@link Subscription#close()}
      * externally.
      *
