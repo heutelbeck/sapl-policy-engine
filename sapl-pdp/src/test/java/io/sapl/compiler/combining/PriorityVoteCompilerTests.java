@@ -18,12 +18,14 @@
 package io.sapl.compiler.combining;
 
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.attributes.store.TestAttributeStore;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.eval.VTCoverageEvaluator;
+import io.sapl.compiler.eval.VTVoterEvaluator;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetHit;
@@ -34,9 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -50,8 +50,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  */
 @DisplayName("PriorityVoteCompiler")
 class PriorityVoteCompilerTests {
-
-    static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     static final TargetHit BLANK        = Coverage.BLANK_TARGET_HIT;
     static final TargetHit TARGET_TRUE  = new Coverage.TargetResult(Value.TRUE, null);
@@ -250,169 +248,147 @@ class PriorityVoteCompilerTests {
 
         @Test
         @DisplayName("stream voter with constant TRUE applicability")
-        void streamVoterWithConstantTrueApplicability() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamVoterWithConstantTrueApplicability() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority permit or abstain
 
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                }
+            }
         }
 
         @Test
         @DisplayName("stream voter with runtime applicability evaluated as PureOperator")
-        void streamVoterWithRuntimeApplicability() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamVoterWithRuntimeApplicability() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority permit or abstain
 
                     policy "stream" permit subject == "alice" && <test.attr>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                }
+            }
         }
 
         @Test
         @DisplayName("stream voter with error in applicability check")
-        void streamVoterWithErrorInApplicability() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamVoterWithErrorInApplicability() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority permit or abstain errors propagate
 
                     policy "error" permit subject.missing && <test.attr>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision())
-                            .isEqualTo(Decision.INDETERMINATE))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "simple-string", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                }
+            }
         }
 
         @Test
         @DisplayName("stream voter with FALSE applicability skips stream")
-        void streamVoterWithFalseApplicabilitySkipsStream() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamVoterWithFalseApplicabilitySkipsStream() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority deny or abstain
 
                     policy "skipped" permit subject == "bob" && <test.attr>;
                     policy "active" deny
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.DENY))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.DENY);
+                }
+            }
         }
 
         @Test
         @DisplayName("mixed pure and stream policies combine correctly")
-        void mixedPureAndStreamPolicies() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void mixedPureAndStreamPolicies() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority permit or abstain
 
                     policy "pure" deny subject == "alice";
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                }
+            }
         }
 
         @Test
-        @DisplayName("multiple stream policies combined via combineLatest")
-        void multipleStreamPoliciesCombined() {
-            val attrBroker = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        @DisplayName("multiple stream policies combined via priority")
+        void multipleStreamPoliciesCombined() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority deny or abstain
 
                     policy "stream1" permit <test.attr1>;
                     policy "stream2" deny <test.attr2>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.DENY))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr1", Value.TRUE);
+                store.register("test.attr2", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.DENY);
+                }
+            }
         }
 
         @Test
         @DisplayName("stream voter with foldable accumulator vote")
-        void streamVoterWithFoldableAccumulator() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamVoterWithFoldableAccumulator() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority deny or abstain
 
                     policy "foldable" deny
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier
-                    .create(((StreamVoter) compiled.applicabilityAndVote()).vote()
-                            .contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.DENY))
-                    .expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.DENY);
+                }
+            }
         }
     }
 
@@ -505,28 +481,27 @@ class PriorityVoteCompilerTests {
 
         @Test
         @DisplayName("streaming coverage collects from all stream policies")
-        void streamingCoverageCollectsAll() {
-            val attrBroker = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamingCoverageCollectsAll() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "streaming"
                     priority permit or abstain errors propagate
 
                     policy "stream1" permit <test.attr1>;
                     policy "stream2" deny <test.attr2>;
-                    """, attrBroker);
-
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
-            StepVerifier.create(compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(resultWithCoverage -> {
-                        assertThat(resultWithCoverage.vote().authorizationDecision().decision())
-                                .isEqualTo(Decision.PERMIT);
-                        assertThat(((PolicySetCoverage) resultWithCoverage.coverage()).policyCoverages()).hasSize(2);
-                    }).expectComplete().verify(TIMEOUT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr1", Value.TRUE);
+                store.register("test.attr2", Value.TRUE);
+                try (val cov = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+                    val result = cov.awaitNext();
+                    assertThat(result.voteResult().vote().authorizationDecision().decision())
+                            .isEqualTo(Decision.PERMIT);
+                    assertThat(((PolicySetCoverage) result.coverage()).policyCoverages()).hasSize(2);
+                }
+            }
         }
     }
 
@@ -682,28 +657,28 @@ class PriorityVoteCompilerTests {
 
         @Test
         @DisplayName("streaming: production and coverage paths return same decision")
-        void streamingProductionAndCoverageMatch() {
-            val attrBroker = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+        void streamingProductionAndCoverageMatch() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority permit or abstain errors propagate
 
                     policy "stream1" permit <test.attr1>;
                     policy "stream2" deny <test.attr2>;
-                    """, attrBroker);
-
-            val subscription   = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx            = evaluationContext(subscription, attrBroker);
-            val productionVote = ((StreamVoter) compiled.applicabilityAndVote()).vote()
-                    .contextWrite(c -> c.put(EvaluationContext.class, ctx)).blockFirst();
-            val coverageResult = compiled.coverage().contextWrite(c -> c.put(EvaluationContext.class, ctx))
-                    .blockFirst();
-
-            assertThat(coverageResult.vote().authorizationDecision().decision())
-                    .isEqualTo(productionVote.authorizationDecision().decision());
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr1", Value.TRUE);
+                store.register("test.attr2", Value.TRUE);
+                try (val production = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store);
+                        val coverage = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+                    val productionVote = production.awaitNext();
+                    val coverageVote   = coverage.awaitNext().voteResult().vote();
+                    assertThat(coverageVote.authorizationDecision().decision())
+                            .isEqualTo(productionVote.authorizationDecision().decision());
+                }
+            }
         }
     }
 
@@ -930,25 +905,24 @@ class PriorityVoteCompilerTests {
 
         @Test
         @DisplayName("priority suspend: streaming SUSPEND policy emits SUSPEND")
-        void whenPrioritySuspendAndStreamingSuspendThenSuspend() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+        void whenPrioritySuspendAndStreamingSuspendThenSuspend() throws InterruptedException {
+            val compiled = compilePolicySet("""
                     set "test"
                     priority suspend or abstain errors propagate
 
                     policy "stream-suspend"
                     suspend
                       <test.attr>;
-                    """, attrBroker);
-            val streamVoter  = (StreamVoter) compiled.applicabilityAndVote();
-            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
-            val ctx          = evaluationContext(subscription, attrBroker);
-
+                    """);
+            val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
 
-            StepVerifier.create(streamVoter.vote().contextWrite(c -> c.put(EvaluationContext.class, ctx)))
-                    .assertNext(vote -> assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND))
-                    .expectComplete().verify(TIMEOUT);
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+                }
+            }
         }
 
         @Test

@@ -18,7 +18,6 @@
 package io.sapl.compiler.combining;
 
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.attributes.store.TestAttributeStore;

@@ -70,29 +70,26 @@ import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_I
 @UtilityClass
 public class UniqueVoteCompiler {
 
-    private static final String ERROR_PDP_LEVEL_COVERAGE_REMOVED = "Reactor compileCoverageStream removed for UNIQUE PDP-level; awaiting CoverageVoter migration";
-    private static final String ERROR_REACTOR_COVERAGE_REMOVED   = "Reactor coverage() removed for UNIQUE; use coverageVoter().evaluate(ctx) on CompiledPolicySet";
+    private static final String ERROR_PDP_LEVEL_COVERAGE_NOT_YET_IMPLEMENTED = "PDP-level coverage stream for UNIQUE not yet implemented";
 
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
             CompilationContext ctx) {
-        val voter              = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, ctx);
-        val coverageVoter      = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
+        val voter         = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, ctx);
+        val coverageVoter = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
                 defaultDecision, errorHandling);
-        val deadCoverageStream = Flux
-                .<VoteWithCoverage>error(new UnsupportedOperationException(ERROR_REACTOR_COVERAGE_REMOVED));
-        return new VoterAndCoverage(voter, deadCoverageStream, coverageVoter);
+        return new VoterAndCoverage(voter, coverageVoter);
     }
 
     /**
-     * PDP-level coverage stream entry point. The Reactor pipeline is
-     * removed; PDP-level coverage will migrate to {@link CoverageVoter}
-     * in a follow-on slice. Until then, callers fail loudly.
+     * PDP-level coverage stream entry point. PDP-level coverage via
+     * {@link CoverageVoter} is not yet implemented; callers fail loudly.
      */
+    // TODO: implement PDP-level CoverageVoter wiring for UNIQUE.
     public static Flux<VoteWithCoverage> compileCoverageStream(List<? extends CompiledDocument> compiledPolicies,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        return Flux.error(new UnsupportedOperationException(ERROR_PDP_LEVEL_COVERAGE_REMOVED));
+        return Flux.error(new UnsupportedOperationException(ERROR_PDP_LEVEL_COVERAGE_NOT_YET_IMPLEMENTED));
     }
 
     /**

@@ -21,7 +21,6 @@ import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.policy.CoverageVoter;
-import reactor.core.publisher.Flux;
 
 public interface CompiledDocument {
 
@@ -38,17 +37,4 @@ public interface CompiledDocument {
     Voter applicabilityAndVote();
 
     CoverageVoter coverageVoter();
-
-    /**
-     * Reactor-based coverage stream. Records that have not migrated to
-     * the snapshot path still expose a {@link Flux} field that overrides
-     * this default. Records that have migrated drop the field and
-     * inherit the throw, so any caller still reaching for the Reactor
-     * pipeline fails loudly at runtime rather than silently producing
-     * degraded results.
-     */
-    default Flux<VoteWithCoverage> coverage() {
-        throw new UnsupportedOperationException(
-                "Reactor coverage() removed; use coverageVoter().evaluate(ctx) on " + getClass().getSimpleName());
-    }
 }
