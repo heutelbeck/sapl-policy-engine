@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;

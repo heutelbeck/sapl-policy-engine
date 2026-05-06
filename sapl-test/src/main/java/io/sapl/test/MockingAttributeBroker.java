@@ -17,7 +17,7 @@
  */
 package io.sapl.test;
 
-import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;

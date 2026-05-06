@@ -20,13 +20,17 @@ package io.sapl.pdp;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.pdp.configuration.PdpVoterSource;
+import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -439,11 +443,11 @@ class DynamicPolicyDecisionPointTests {
         val tenantPdp   = (DynamicPolicyDecisionPoint) components.pdp();
         val voterSource = components.pdpVoterSource();
 
-        val tenantConfig = new io.sapl.api.pdp.PDPConfiguration(tenantPdpId,
-                "test-config-" + System.currentTimeMillis(), DENY_UNLESS_PERMIT, List.of("""
+        val tenantConfig = new PDPConfiguration(tenantPdpId, "test-config-" + System.currentTimeMillis(),
+                DENY_UNLESS_PERMIT, List.of("""
                         policy "tenant-a permit"
                         permit
-                        """), new io.sapl.api.pdp.PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+                        """), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         voterSource.loadConfiguration(tenantConfig, false);
 
         val subscription = subscription("user", "read", "data");

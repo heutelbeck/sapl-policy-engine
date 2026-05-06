@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 
 /**
  * Configuration for the protobuf-based RSocket PDP server.

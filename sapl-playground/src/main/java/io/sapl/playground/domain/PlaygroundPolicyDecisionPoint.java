@@ -18,15 +18,15 @@
 package io.sapl.playground.domain;
 
 import com.vaadin.flow.spring.annotation.UIScope;
-import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TimestampedVote;
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;

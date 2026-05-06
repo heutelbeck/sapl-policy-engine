@@ -20,7 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.AttributeStep;
 import io.sapl.ast.EnvironmentAttribute;
 import io.sapl.ast.Expression;

@@ -19,6 +19,10 @@ package io.sapl.attributes;
 
 import io.sapl.api.attributes.*;
 import io.sapl.api.model.Value;
+import io.sapl.legacy.api.attributes.AttributeKey;
+import io.sapl.legacy.api.attributes.AttributeRepository;
+import io.sapl.legacy.api.attributes.AttributeStorage;
+import io.sapl.legacy.api.attributes.PersistedAttribute;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

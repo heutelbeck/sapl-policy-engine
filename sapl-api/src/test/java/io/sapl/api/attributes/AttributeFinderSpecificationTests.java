@@ -21,6 +21,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
+import io.sapl.legacy.api.attributes.AttributeFinder;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

@@ -19,7 +19,7 @@ package io.sapl.pdp.configuration.source;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;

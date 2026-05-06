@@ -17,9 +17,10 @@
  */
 package io.sapl.spring.config;
 
-import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID;
-import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY;
+import static io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID;
+import static io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY;
 
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.server.ServerWebExchange;
@@ -37,8 +38,8 @@ import reactor.util.context.Context;
  * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the PDP
  * ID from the current authentication. The extracted ID is written to the
  * Reactor Context under
- * {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint#REACTOR_CONTEXT_PDP_ID_KEY},
- * where the {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint} default
+ * {@link MultiTenantPolicyDecisionPoint#REACTOR_CONTEXT_PDP_ID_KEY},
+ * where the {@link MultiTenantPolicyDecisionPoint} default
  * methods read it automatically.
  */
 @RequiredArgsConstructor

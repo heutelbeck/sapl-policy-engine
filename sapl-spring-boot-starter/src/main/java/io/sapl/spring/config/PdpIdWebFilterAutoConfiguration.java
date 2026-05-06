@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -30,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
  * application.
  * <p>
  * This enables multi-tenant PDP routing for Spring WebFlux applications
- * using an embedded {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint}.
+ * using an embedded {@link MultiTenantPolicyDecisionPoint}.
  * The filter writes the extracted PDP ID to the Reactor Context on every
  * request.
  */

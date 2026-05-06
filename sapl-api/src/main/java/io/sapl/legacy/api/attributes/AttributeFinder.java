@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.attributes;
+package io.sapl.legacy.api.attributes;
 
+import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import reactor.core.publisher.Flux;
 

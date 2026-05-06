@@ -38,8 +38,8 @@ import org.HdrHistogram.Histogram;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

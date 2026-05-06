@@ -23,7 +23,7 @@ import java.util.Map;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.JsonNode;
 
-import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.EntryDocumentation;
 import io.sapl.api.documentation.EntryType;

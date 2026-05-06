@@ -118,7 +118,7 @@ public record RemoteBundleSourceConfig(
         if (maxBackoff == null || maxBackoff.isNegative() || maxBackoff.isZero()) {
             throw new PDPConfigurationException(ERROR_MAX_BACKOFF_NON_POSITIVE);
         }
-        if ((authHeaderName != null) != (authHeaderValue != null)) {
+        if ((authHeaderName == null) == (authHeaderValue != null)) {
             throw new PDPConfigurationException(ERROR_AUTH_HEADER_INCOMPLETE);
         }
         pdpIds             = List.copyOf(pdpIds);

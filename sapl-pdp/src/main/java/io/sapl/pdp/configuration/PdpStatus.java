@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;

@@ -19,7 +19,7 @@ package io.sapl.compiler.pdp;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.combining.PriorityVoteCompiler;
 import io.sapl.compiler.combining.UnanimousVoteCompiler;

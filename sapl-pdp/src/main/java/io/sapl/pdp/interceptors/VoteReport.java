@@ -21,7 +21,7 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.compiler.document.Vote;

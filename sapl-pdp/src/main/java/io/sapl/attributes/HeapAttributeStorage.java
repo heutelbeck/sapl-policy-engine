@@ -17,9 +17,9 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.attributes.AttributeKey;
-import io.sapl.api.attributes.AttributeStorage;
-import io.sapl.api.attributes.PersistedAttribute;
+import io.sapl.legacy.api.attributes.AttributeKey;
+import io.sapl.legacy.api.attributes.AttributeStorage;
+import io.sapl.legacy.api.attributes.PersistedAttribute;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

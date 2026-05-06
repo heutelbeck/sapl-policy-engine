@@ -18,7 +18,7 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.AttributeAccessContext;
-import io.sapl.api.attributes.AttributeFinder;
+import io.sapl.legacy.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;

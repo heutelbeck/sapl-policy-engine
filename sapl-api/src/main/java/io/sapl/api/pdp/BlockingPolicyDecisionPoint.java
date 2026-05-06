@@ -18,6 +18,7 @@
 package io.sapl.api.pdp;
 
 import io.sapl.api.model.Stream;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 /**
  * Synchronous counterpart to {@link PolicyDecisionPoint} for

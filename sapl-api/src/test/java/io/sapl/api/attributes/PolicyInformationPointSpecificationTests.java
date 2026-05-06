@@ -19,6 +19,7 @@ package io.sapl.api.attributes;
 
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.legacy.api.attributes.AttributeFinder;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

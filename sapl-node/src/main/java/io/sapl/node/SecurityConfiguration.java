@@ -42,7 +42,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.spring.config.PdpIdAuthenticationExtractor;
 import io.sapl.node.auth.SaplAuthenticationToken;
 import io.sapl.node.auth.SaplJwtAuthenticationConverter;

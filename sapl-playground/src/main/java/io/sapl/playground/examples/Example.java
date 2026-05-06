@@ -17,7 +17,7 @@
  */
 package io.sapl.playground.examples;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 
 import java.util.List;
 

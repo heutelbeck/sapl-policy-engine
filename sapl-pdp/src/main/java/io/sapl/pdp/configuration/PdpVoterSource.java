@@ -17,14 +17,15 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.compiler.util.CompilationErrorFormatter;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

@@ -15,17 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp;
+package io.sapl.reactive.pdp;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeBrokerException;
-import io.sapl.api.attributes.AttributeStorage;
+import io.sapl.legacy.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeBrokerException;
+import io.sapl.legacy.api.attributes.AttributeStorage;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.pdp.IdFactory;
+import io.sapl.pdp.LazyFastClock;
+import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.pdp.VoteInterceptor;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;

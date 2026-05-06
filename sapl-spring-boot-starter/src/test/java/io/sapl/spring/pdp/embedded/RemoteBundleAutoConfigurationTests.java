@@ -28,8 +28,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.RemoteBundleProperties;
+import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.RemoteFetchMode;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;

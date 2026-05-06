@@ -17,11 +17,12 @@
  */
 package io.sapl.api.model.jackson;
 
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import tools.jackson.databind.module.SimpleModule;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 
 import java.io.Serial;
 

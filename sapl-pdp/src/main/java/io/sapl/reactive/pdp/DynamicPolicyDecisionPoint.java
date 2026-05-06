@@ -15,12 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.pdp;
+package io.sapl.reactive.pdp;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.pdp.IdFactory;
+import io.sapl.pdp.VoteInterceptor;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;

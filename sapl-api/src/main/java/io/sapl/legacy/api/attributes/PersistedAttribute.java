@@ -15,29 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.attributes;
+package io.sapl.legacy.api.attributes;
 
 import io.sapl.api.model.Value;
-import lombok.NonNull;
 
-import java.util.List;
+import java.time.Duration;
+import java.time.Instant;
 
 /**
- * Unique key identifying an attribute in storage.
+ * Attribute data persisted to storage.
  * <p>
- * Composed of entity (optional), attribute name, and arguments list. Two keys
- * are equal if all components are equal.
+ * Sequence numbers are NOT persisted - they coordinate in-flight subscribers
+ * during runtime only. On restart, sequence
+ * numbers start fresh from zero.
  */
-public record AttributeKey(Value entity, @NonNull String attributeName, @NonNull List<Value> arguments) {
-    /**
-     * Creates an AttributeKey from an AttributeFinderInvocation.
-     *
-     * @param invocation
-     * the invocation to extract key from
-     *
-     * @return the attribute key
-     */
-    public static AttributeKey of(AttributeFinderInvocation invocation) {
-        return new AttributeKey(invocation.entity(), invocation.attributeName(), invocation.arguments());
+public record PersistedAttribute(
+        Value value,
+        Instant timestamp,
+        Duration ttl,
+        AttributeRepository.TimeOutStrategy timeoutStrategy,
+        Instant timeoutDeadline) {
+    public boolean isExpiredAt(Instant now) {
+        if (timeoutDeadline == null) {
+            return false; // Infinite TTL never expires
+        }
+        return now.isAfter(timeoutDeadline);
     }
 }

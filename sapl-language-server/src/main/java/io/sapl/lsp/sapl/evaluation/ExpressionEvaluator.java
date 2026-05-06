@@ -28,7 +28,7 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;

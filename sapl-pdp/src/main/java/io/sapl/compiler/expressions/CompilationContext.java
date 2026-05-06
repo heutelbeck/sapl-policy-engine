@@ -19,7 +19,7 @@ package io.sapl.compiler.expressions;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.Getter;

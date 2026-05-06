@@ -19,7 +19,7 @@ package io.sapl.spring.config;
 
 import org.springframework.security.core.Authentication;
 
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import reactor.core.publisher.Mono;
 
 /**

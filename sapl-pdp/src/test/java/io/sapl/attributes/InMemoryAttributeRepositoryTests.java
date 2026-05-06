@@ -18,8 +18,11 @@
 package io.sapl.attributes;
 
 import io.sapl.api.attributes.*;
-import io.sapl.api.attributes.AttributeRepository.TimeOutStrategy;
+import io.sapl.legacy.api.attributes.AttributeKey;
+import io.sapl.legacy.api.attributes.AttributeRepository.TimeOutStrategy;
 import io.sapl.api.model.Value;
+import io.sapl.legacy.api.attributes.AttributeStorage;
+import io.sapl.legacy.api.attributes.PersistedAttribute;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;

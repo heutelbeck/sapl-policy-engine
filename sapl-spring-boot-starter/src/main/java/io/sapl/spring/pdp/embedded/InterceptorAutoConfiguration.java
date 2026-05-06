@@ -54,7 +54,7 @@ import org.springframework.context.annotation.Role;
 @RequiredArgsConstructor
 @AutoConfiguration(before = PDPAutoConfiguration.class)
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
-@ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
+@ConditionalOnClass(name = "io.sapl.reactive.pdp.PolicyDecisionPointBuilder")
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class InterceptorAutoConfiguration {
 

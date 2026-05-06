@@ -44,7 +44,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import io.sapl.server.pdpcontroller.ProtobufRSocketAcceptor;
 import io.sapl.server.pdpcontroller.RSocketConnectionAuthenticator.AuthenticationResult;

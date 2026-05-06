@@ -18,18 +18,18 @@
 package io.sapl.spring.pdp.embedded;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static io.sapl.pdp.PolicyDecisionPointBuilder.buildAttributeBroker;
-import static io.sapl.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
+import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildAttributeBroker;
+import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeBrokerException;
+import io.sapl.legacy.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeBrokerException;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import io.sapl.pdp.VoteInterceptor;
@@ -43,6 +43,7 @@ import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.source.RemoteBundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.source.ResourcesPDPConfigurationSource;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -103,7 +104,7 @@ import java.util.Set;
  * <li>Decision interceptors (beans implementing
  * {@link VoteInterceptor})</li>
  * <li>Multi-tenant routing via
- * {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint}</li>
+ * {@link MultiTenantPolicyDecisionPoint}</li>
  * </ul>
  * <p>
  * Configuration is controlled via {@link EmbeddedPDPProperties} with prefix
@@ -112,7 +113,7 @@ import java.util.Set;
 @Slf4j
 @AutoConfiguration
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
-@ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
+@ConditionalOnClass(name = "io.sapl.reactive.pdp.PolicyDecisionPointBuilder")
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class PDPAutoConfiguration {
 

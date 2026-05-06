@@ -17,7 +17,7 @@
  */
 package io.sapl.attributes;
 
-import io.sapl.api.attributes.AttributeFinder;
+import io.sapl.legacy.api.attributes.AttributeFinder;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import lombok.Getter;

@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp.configuration.source;
 
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 
 import java.util.List;

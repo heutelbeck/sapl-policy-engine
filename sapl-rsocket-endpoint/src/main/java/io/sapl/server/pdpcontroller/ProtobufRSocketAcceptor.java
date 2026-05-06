@@ -37,7 +37,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

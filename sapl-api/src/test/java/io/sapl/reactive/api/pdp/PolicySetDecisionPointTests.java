@@ -15,10 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.reactive.api.pdp;
 
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.*;
 import lombok.val;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
@@ -120,11 +122,11 @@ class PolicySetDecisionPointTests {
                 .addSubscription("enter-arkham", subscription("traveler", "enter", "arkham"));
 
         StepVerifier.create(pdp.decideAll(multiSubscription).take(1)).assertNext(multiDecision -> {
-            assertThat(multiDecision.size()).isEqualTo(3);
-            assertThat(multiDecision.isPermitted("enter-dunwich")).isTrue();
-            assertThat(multiDecision.isPermitted("enter-innsmouth")).isFalse();
-            assertThat(multiDecision.isPermitted("enter-arkham")).isTrue();
-            assertThat(multiDecision.getDecisionType("enter-innsmouth")).isEqualTo(Decision.DENY);
+            Assertions.assertThat(multiDecision.size()).isEqualTo(3);
+            Assertions.assertThat(multiDecision.isPermitted("enter-dunwich")).isTrue();
+            Assertions.assertThat(multiDecision.isPermitted("enter-innsmouth")).isFalse();
+            Assertions.assertThat(multiDecision.isPermitted("enter-arkham")).isTrue();
+            Assertions.assertThat(multiDecision.getDecisionType("enter-innsmouth")).isEqualTo(Decision.DENY);
         }).verifyComplete();
     }
 

@@ -15,13 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.attributes;
+package io.sapl.legacy.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.List;
 
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.legacy.api.attributes.AttributeKey;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.model.Value;

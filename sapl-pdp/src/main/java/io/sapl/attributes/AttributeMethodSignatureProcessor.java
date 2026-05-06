@@ -19,6 +19,7 @@ package io.sapl.attributes;
 
 import io.sapl.api.attributes.*;
 import io.sapl.api.model.Value;
+import io.sapl.legacy.api.attributes.AttributeFinder;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;

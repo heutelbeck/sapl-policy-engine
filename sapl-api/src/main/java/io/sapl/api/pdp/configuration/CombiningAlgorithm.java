@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.pdp;
+package io.sapl.api.pdp.configuration;
 
 /**
  * Combining algorithm for policy sets, composed of voting mode, default

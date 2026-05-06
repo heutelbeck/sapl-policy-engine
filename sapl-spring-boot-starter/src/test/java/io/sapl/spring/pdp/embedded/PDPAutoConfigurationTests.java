@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;

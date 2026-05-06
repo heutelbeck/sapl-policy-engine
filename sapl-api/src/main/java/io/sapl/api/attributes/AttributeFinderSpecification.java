@@ -19,6 +19,8 @@ package io.sapl.api.attributes;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
+import io.sapl.legacy.api.attributes.AttributeBroker;
+import io.sapl.legacy.api.attributes.AttributeFinder;
 import lombok.NonNull;
 
 import java.util.List;
