@@ -557,16 +557,35 @@ public class SaplTesting {
         return productionVote;
     }
 
-    public static void assertStreamPathEquivalence(CompiledPolicySet compiled, EvaluationContext ctx,
-            Decision expectedDecision) {
-        val productionVote = compiled.applicabilityAndVote().evaluate(ctx).vote();
-        val coverageVote   = evaluatePolicySetWithCoverage(compiled, ctx).vote();
-        assertThat(productionVote).isNotNull();
-        assertThat(productionVote.authorizationDecision().decision()).as("Production path decision")
-                .isEqualTo(expectedDecision);
-        assertThat(productionVote.authorizationDecision().decision())
-                .as("Production and coverage paths must produce same decision")
-                .isEqualTo(coverageVote.authorizationDecision().decision());
+    /**
+     * Drives a streaming policy set through both the production-side
+     * {@link io.sapl.compiler.eval.VTVoterEvaluator} and the coverage-side
+     * {@link io.sapl.compiler.eval.VTCoverageEvaluator} against a
+     * {@link io.sapl.attributes.store.TestAttributeStore} pre-armed with
+     * the supplied attribute initial values, then asserts both produce
+     * the expected decision and agree with each other.
+     */
+    public static void assertStreamPathEquivalence(CompiledPolicySet compiled, Map<String, Value> attributes,
+            EvaluationContext ctx, Decision expectedDecision) {
+        try (val store = new TestAttributeStore()) {
+            for (val entry : attributes.entrySet()) {
+                store.register(entry.getKey(), entry.getValue());
+            }
+            try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store);
+                    val cov = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+                val productionVote = stream.awaitNext();
+                val coverageVote   = cov.awaitNext().voteResult().vote();
+                assertThat(productionVote).isNotNull();
+                assertThat(productionVote.authorizationDecision().decision()).as("Production path decision")
+                        .isEqualTo(expectedDecision);
+                assertThat(productionVote.authorizationDecision().decision())
+                        .as("Production and coverage paths must produce same decision")
+                        .isEqualTo(coverageVote.authorizationDecision().decision());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted while awaiting evaluator emissions", e);
+        }
     }
 
     public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource) {

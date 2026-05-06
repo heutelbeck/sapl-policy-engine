@@ -77,15 +77,17 @@ import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
 @UtilityClass
 public class FirstVoteCompiler {
 
+    private static final String ERROR_REACTOR_COVERAGE_REMOVED = "Reactor coverage() removed for FIRST; use coverageVoter().evaluate(ctx) on CompiledPolicySet";
+
     public static VoterAndCoverage compilePolicySet(PolicySet policySet, List<CompiledPolicy> compiledPolicies,
             CompiledExpression isApplicable, VoterMetadata voterMetadata,
             CombiningAlgorithm.DefaultDecision defaultDecision, CombiningAlgorithm.ErrorHandling errorHandling) {
-        val                    voter              = compileVoter(compiledPolicies, voterMetadata, policySet.location(),
+        val voter              = compileVoter(compiledPolicies, voterMetadata, policySet.location(), defaultDecision,
+                errorHandling);
+        val coverageVoter      = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
                 defaultDecision, errorHandling);
-        val                    coverageVoter      = compileCoverageVoter(policySet, isApplicable, compiledPolicies,
-                voterMetadata, defaultDecision, errorHandling);
-        Flux<VoteWithCoverage> deadCoverageStream = Flux.error(new UnsupportedOperationException(
-                "Reactor coverage() removed for FIRST; use coverageVoter().evaluate(ctx) on CompiledPolicySet"));
+        val deadCoverageStream = Flux
+                .<VoteWithCoverage>error(new UnsupportedOperationException(ERROR_REACTOR_COVERAGE_REMOVED));
         return new VoterAndCoverage(voter, deadCoverageStream, coverageVoter);
     }
 

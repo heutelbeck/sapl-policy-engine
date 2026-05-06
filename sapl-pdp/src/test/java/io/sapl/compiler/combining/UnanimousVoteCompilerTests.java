@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -306,13 +307,12 @@ class UnanimousVoteCompilerTests {
         @Test
         @DisplayName("stream policies return StreamUnanimousVoter")
         void streamPoliciesReturnStreamVoter() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     policy "p1" permit <test.attr>;
-                    """, attrBroker);
+                    """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
 
@@ -355,16 +355,14 @@ class UnanimousVoteCompilerTests {
         @MethodSource("streamVoterPermitCases")
         @DisplayName("stream voter PERMIT cases")
         void streamVoterPermitCases(String description, String policies, String subscription) {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     %s
-                    """.formatted(policies), attrBroker);
-            val parsedSub  = parseSubscription(subscription);
-            val ctx        = evaluationContext(parsedSub, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
+                    """.formatted(policies));
+            val ctx      = evaluationContext(parseSubscription(subscription));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.PERMIT);
         }
 
         // @formatter:off
@@ -407,16 +405,18 @@ class UnanimousVoteCompilerTests {
         @DisplayName("stream voter INDETERMINATE cases")
         void streamVoterIndeterminateCases(String description, String policies, String subscription,
                 Map<String, Value[]> attributes) {
-            val attrBroker = attributeBroker(attributes);
-            val compiled   = compilePolicySet("""
+            val compiled     = compilePolicySet("""
                     set "test"
                     unanimous or abstain errors propagate
 
                     %s
-                    """.formatted(policies), attrBroker);
-            val parsedSub  = parseSubscription(subscription);
-            val ctx        = evaluationContext(parsedSub, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+                    """.formatted(policies));
+            val ctx          = evaluationContext(parseSubscription(subscription));
+            val initialAttrs = new HashMap<String, Value>();
+            for (val entry : attributes.entrySet()) {
+                initialAttrs.put(entry.getKey(), entry.getValue()[0]);
+            }
+            assertStreamPathEquivalence(compiled, initialAttrs, ctx, Decision.INDETERMINATE);
         }
     }
 
@@ -841,20 +841,18 @@ class UnanimousVoteCompilerTests {
         @Test
         @DisplayName("streaming SUSPEND policy emits SUSPEND when applicable")
         void whenStreamingSuspendApplicableThenReturnsSuspend() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain errors propagate
 
                     policy "stream-suspend"
                     suspend
                       <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription(DEFAULT_SUBSCRIPTION);
-            val ctx          = evaluationContext(subscription, attrBroker);
+                    """);
+            val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
 
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
-            assertStreamPathEquivalence(compiled, ctx, Decision.SUSPEND);
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.SUSPEND);
         }
 
         static Stream<Arguments> errorHandlingCases() {

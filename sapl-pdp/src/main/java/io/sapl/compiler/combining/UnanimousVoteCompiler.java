@@ -18,7 +18,13 @@
 package io.sapl.compiler.combining;
 
 import io.sapl.api.model.CompiledExpression;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.StreamOperator;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -30,17 +36,18 @@ import io.sapl.compiler.index.IndexFactory;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CoverageVoter;
-import io.sapl.compiler.policyset.PolicySetUtil;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Map;
 
-import static io.sapl.compiler.combining.CombiningUtils.asTypedList;
 import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvaluationStrategy;
+import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_IN_TARGET;
 
 /**
  * Compiles policy sets using the unanimous combining algorithm.
@@ -59,70 +66,56 @@ import static io.sapl.compiler.combining.CombiningUtils.classifyPoliciesByEvalua
  * <li><b>Strict mode:</b> Exact equality required (decision + all
  * constraints)</li>
  * </ul>
+ * <p>
+ * Stream evaluation walks all matching policies sequentially per
+ * snapshot round, combining each child vote via
+ * {@link UnanimousVoteCombiner}. Short-circuits when
+ * {@code UnanimousVoteCombiner.isTerminal} returns true (a state from
+ * which further combinations cannot change the outcome).
  */
 @UtilityClass
 public class UnanimousVoteCompiler {
+
+    private static final String ERROR_PDP_LEVEL_COVERAGE_REMOVED = "Reactor compileCoverageStream removed for UNANIMOUS PDP-level; awaiting CoverageVoter migration";
+    private static final String ERROR_REACTOR_COVERAGE_REMOVED   = "Reactor coverage() removed for UNANIMOUS; use coverageVoter().evaluate(ctx) on CompiledPolicySet";
 
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
             boolean strictMode, CompilationContext ctx) {
-        val voter    = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling, strictMode, ctx);
-        val coverage = compileCoverageStream(policySet, isApplicable, compiledPolicies, voterMetadata, defaultDecision,
-                errorHandling, strictMode);
-        return new VoterAndCoverage(voter, coverage, new CoverageVoter.NotMigrated("UNANIMOUS"));
+        val voter              = compileVoter(compiledPolicies, voterMetadata, defaultDecision, errorHandling,
+                strictMode, ctx);
+        val coverageVoter      = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
+                defaultDecision, errorHandling, strictMode);
+        val deadCoverageStream = Flux
+                .<VoteWithCoverage>error(new UnsupportedOperationException(ERROR_REACTOR_COVERAGE_REMOVED));
+        return new VoterAndCoverage(voter, deadCoverageStream, coverageVoter);
     }
 
     /**
-     * Compiles coverage stream for PDP-level usage (no target expression).
+     * PDP-level coverage stream entry point. The Reactor pipeline is
+     * removed; PDP-level coverage will migrate to {@link CoverageVoter}
+     * in a follow-on slice. Until then, callers fail loudly.
      */
     public static Flux<VoteWithCoverage> compileCoverageStream(List<? extends CompiledDocument> compiledPolicies,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
             boolean strictMode) {
-        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory = targetHit -> evaluateAllPoliciesForCoverage(
-                compiledPolicies, targetHit, voterMetadata, defaultDecision, errorHandling, strictMode);
-        return PolicySetUtil.compileCoverageStream(voterMetadata, null, Value.TRUE, bodyFactory);
+        return Flux.error(new UnsupportedOperationException(ERROR_PDP_LEVEL_COVERAGE_REMOVED));
     }
 
-    private static Flux<VoteWithCoverage> compileCoverageStream(PolicySet policySet, CompiledExpression isApplicable,
+    /**
+     * Constructs the snapshot-driven coverage voter for a UNANIMOUS
+     * policy set. Walks the policies sequentially per snapshot round,
+     * combines each child vote via {@link UnanimousVoteCombiner}, and
+     * assembles a {@link Coverage.PolicySetCoverage} from the per-policy
+     * results. Short-circuits when {@code isTerminal} returns true.
+     */
+    private static CoverageVoter compileCoverageVoter(PolicySet policySet, CompiledExpression isApplicable,
             List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
             DefaultDecision defaultDecision, ErrorHandling errorHandling, boolean strictMode) {
-        Function<Coverage.TargetHit, Flux<VoteWithCoverage>> bodyFactory    = targetHit -> evaluateAllPoliciesForCoverage(
-                compiledPolicies, targetHit, voterMetadata, defaultDecision, errorHandling, strictMode);
-        val                                                  targetLocation = policySet.target() != null
-                ? policySet.target().location()
-                : null;
-        return PolicySetUtil.compileCoverageStream(voterMetadata, targetLocation, isApplicable, bodyFactory);
-    }
-
-    private static Flux<VoteWithCoverage> evaluateAllPoliciesForCoverage(List<? extends CompiledDocument> policies,
-            Coverage.TargetHit targetHit, VoterMetadata voterMetadata, DefaultDecision defaultDecision,
-            ErrorHandling errorHandling, boolean strictMode) {
-
-        if (policies.isEmpty()) {
-            val fallbackVote = Vote.abstain(voterMetadata).finalizeVote(defaultDecision, errorHandling);
-            val coverage     = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
-            return Flux.just(new VoteWithCoverage(fallbackVote, coverage));
-        }
-
-        List<Flux<VoteWithCoverage>> coverageStreams = policies.stream().map(CompiledDocument::coverage).toList();
-
-        return Flux.combineLatest(coverageStreams, results -> {
-            val votes           = new ArrayList<Vote>(results.length);
-            val policyCoverages = new ArrayList<Coverage.DocumentCoverage>(results.length);
-
-            for (Object result : results) {
-                val vwc = (VoteWithCoverage) result;
-                votes.add(vwc.vote());
-                policyCoverages.add(vwc.coverage());
-            }
-
-            val combinedVote = UnanimousVoteCombiner.combineMultipleVotes(votes, voterMetadata, strictMode);
-            val finalVote    = combinedVote.finalizeVote(defaultDecision, errorHandling);
-            val setCoverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, policyCoverages);
-
-            return new VoteWithCoverage(finalVote, setCoverage);
-        });
+        val targetLocation = policySet.target() != null ? policySet.target().location() : null;
+        return new UnanimousPolicySetCoverageVoter(isApplicable, targetLocation, compiledPolicies, voterMetadata,
+                defaultDecision, errorHandling, strictMode);
     }
 
     public static Voter compileVoter(List<? extends CompiledDocument> compiledPolicies, VoterMetadata voterMetadata,
@@ -182,6 +175,14 @@ public class UnanimousVoteCompiler {
         return holder[0];
     }
 
+    /**
+     * Stream voter for UNANIMOUS evaluation. Walks all matching policies
+     * sequentially per snapshot round, combines via
+     * {@link UnanimousVoteCombiner}, and short-circuits when the current
+     * combined vote is terminal under the given strictness. Returns an
+     * incomplete result when any child voter has unbound dependencies in
+     * this snapshot.
+     */
     record StreamUnanimousVoter(
             Vote accumulatorVote,
             PolicyIndex index,
@@ -189,46 +190,97 @@ public class UnanimousVoteCompiler {
             ErrorHandling errorHandling,
             VoterMetadata voterMetadata,
             boolean strictMode) implements StreamVoter {
+
         @Override
-        public Flux<Vote> vote() {
-            return Flux.deferContextual(ctxView -> {
-                val evalCtx = ctxView.get(EvaluationContext.class);
-                val result  = index.match(evalCtx);
-
-                var pureVote = accumulatorVote;
-                for (val errorVote : result.errorVotes()) {
-                    pureVote = UnanimousVoteCombiner.combineVotes(pureVote, errorVote, voterMetadata, strictMode);
+        public VoteResult evaluate(EvaluationContext ctx) {
+            val deps         = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(8);
+            val result       = index.match(ctx);
+            var combinedVote = accumulatorVote;
+            for (val errorVote : result.errorVotes()) {
+                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, errorVote, voterMetadata, strictMode);
+            }
+            for (val document : result.matchingDocuments()) {
+                val sub = document.voter().evaluate(ctx);
+                StreamOperator.mergeDependencies(deps, sub.dependencies());
+                if (sub.vote() == null) {
+                    return new VoteResult(null, deps);
                 }
-                val streamVoters = new ArrayList<Flux<Vote>>();
-                for (val document : result.matchingDocuments()) {
-                    val voter = document.voter();
-                    if (voter instanceof StreamVoter sv) {
-                        streamVoters.add(sv.vote());
-                    } else {
-                        Vote newVote;
-                        if (voter instanceof Vote constantVote) {
-                            newVote = constantVote;
-                        } else {
-                            newVote = ((PureVoter) voter).vote(evalCtx);
-                        }
-                        pureVote = UnanimousVoteCombiner.combineVotes(pureVote, newVote, voterMetadata, strictMode);
-                        if (UnanimousVoteCombiner.isTerminal(pureVote, strictMode)) {
-                            return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
-                        }
-                    }
+                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, sub.vote(), voterMetadata, strictMode);
+                if (UnanimousVoteCombiner.isTerminal(combinedVote, strictMode)) {
+                    return new VoteResult(combinedVote.finalizeVote(defaultDecision, errorHandling), deps);
                 }
-
-                if (streamVoters.isEmpty()) {
-                    return Flux.just(pureVote.finalizeVote(defaultDecision, errorHandling));
-                }
-                val accumulator = pureVote;
-                return Flux
-                        .combineLatest(streamVoters,
-                                votes -> UnanimousVoteCombiner.combineMultipleVotes(accumulator, asTypedList(votes),
-                                        voterMetadata, strictMode))
-                        .map(vote -> vote.finalizeVote(defaultDecision, errorHandling));
-            });
+            }
+            return new VoteResult(combinedVote.finalizeVote(defaultDecision, errorHandling), deps);
         }
     }
 
+    /**
+     * Snapshot-driven coverage voter for UNANIMOUS evaluation. Mirrors
+     * {@link StreamUnanimousVoter} but emits {@link VoteResultWithCoverage}:
+     * walks policies sequentially per snapshot round, evaluates each via
+     * {@code coverageVoter().evaluate(ctx)}, combines votes via
+     * {@link UnanimousVoteCombiner}, and assembles a
+     * {@link Coverage.PolicySetCoverage} from the per-policy results.
+     * Short-circuits when {@code isTerminal} returns true under the given
+     * strictness.
+     * <p>
+     * The target / {@code isApplicable} gate is evaluated inline. Same
+     * dispatch as the production voter.
+     */
+    record UnanimousPolicySetCoverageVoter(
+            CompiledExpression isApplicable,
+            @Nullable SourceLocation targetLocation,
+            List<? extends CompiledDocument> policies,
+            VoterMetadata voterMetadata,
+            DefaultDecision defaultDecision,
+            ErrorHandling errorHandling,
+            boolean strictMode) implements CoverageVoter {
+
+        @Override
+        public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
+            Value targetMatch;
+            if (isApplicable instanceof Value v) {
+                targetMatch = v;
+            } else if (isApplicable instanceof PureOperator p) {
+                targetMatch = p.evaluate(ctx);
+            } else {
+                val coverage = new Coverage.PolicySetCoverage(voterMetadata, Coverage.NO_TARGET_HIT, List.of());
+                val vote     = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), voterMetadata);
+                return new VoteResultWithCoverage(new VoteResult(vote, Map.of()), coverage);
+            }
+            val targetHit = targetLocation == null ? Coverage.BLANK_TARGET_HIT
+                    : new Coverage.TargetResult(targetMatch, targetLocation);
+            if (targetMatch instanceof ErrorValue err) {
+                val coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
+                return new VoteResultWithCoverage(new VoteResult(Vote.error(err, voterMetadata), Map.of()), coverage);
+            }
+            if (Value.FALSE.equals(targetMatch)) {
+                val coverage = new Coverage.PolicySetCoverage(voterMetadata, targetHit, List.of());
+                return new VoteResultWithCoverage(new VoteResult(Vote.abstain(voterMetadata), Map.of()), coverage);
+            }
+
+            val deps              = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
+            val perPolicyCoverage = new ArrayList<Coverage.DocumentCoverage>(policies.size());
+            var combinedVote      = Vote.abstain(voterMetadata);
+            for (val policy : policies) {
+                val sub = policy.coverageVoter().evaluate(ctx);
+                StreamOperator.mergeDependencies(deps, sub.voteResult().dependencies());
+                if (sub.voteResult().vote() == null) {
+                    val partial = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
+                    return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
+                }
+                perPolicyCoverage.add(sub.coverage());
+                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, sub.voteResult().vote(), voterMetadata,
+                        strictMode);
+                if (UnanimousVoteCombiner.isTerminal(combinedVote, strictMode)) {
+                    val finalVote = combinedVote.finalizeVote(defaultDecision, errorHandling);
+                    val coverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
+                    return new VoteResultWithCoverage(new VoteResult(finalVote, deps), coverage);
+                }
+            }
+            val finalVote = combinedVote.finalizeVote(defaultDecision, errorHandling);
+            val coverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
+            return new VoteResultWithCoverage(new VoteResult(finalVote, deps), coverage);
+        }
+    }
 }
