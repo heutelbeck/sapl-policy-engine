@@ -527,7 +527,7 @@ public class SaplTesting {
      * Evaluates a policy set's production-side voter against {@code ctx}
      * via {@link Voter#evaluate(EvaluationContext)} and returns the
      * resulting {@link Vote}. The returned vote may be {@code null} when
-     * the voter has unbound dependencies in this snapshot — callers that
+     * the voter has unbound dependencies in this snapshot. Callers that
      * need multi-round streaming evaluation should drive the voter via a
      * {@code TestAttributeStore}-backed {@code VTVoterEvaluator} instead.
      */
