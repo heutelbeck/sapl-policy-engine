@@ -18,22 +18,32 @@
 package io.sapl.spring.pdp.embedded;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
+import static io.sapl.pdp.PolicyDecisionPointBuilder.buildAttributeBroker;
+import static io.sapl.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
+import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeBrokerException;
 import io.sapl.api.attributes.PolicyInformationPoint;
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.pdp.IdFactory;
+import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PdpVoterSource;
-import io.sapl.pdp.configuration.source.PdpIdValidator;
-import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
+import io.sapl.pdp.configuration.source.DirectoryPDPConfigurationSource;
+import io.sapl.pdp.configuration.source.MultiDirectoryPDPConfigurationSource;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource;
+import io.sapl.pdp.configuration.source.PdpIdValidator;
+import io.sapl.pdp.configuration.source.RemoteBundlePDPConfigurationSource;
+import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
+import io.sapl.pdp.configuration.source.ResourcesPDPConfigurationSource;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
-import org.springframework.web.reactive.function.client.WebClient;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.beans.factory.ObjectProvider;
@@ -46,6 +56,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
+import org.springframework.web.reactive.function.client.WebClient;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -67,8 +78,23 @@ import java.util.Set;
 /**
  * Auto-configuration for the embedded Policy Decision Point.
  * <p>
- * This configuration creates a {@link PolicyDecisionPoint} using the
- * {@link PolicyDecisionPointBuilder}. It automatically discovers and registers:
+ * Each top-level collaborator of the PDP is exposed as its own Spring
+ * bean so the container manages each lifecycle individually:
+ * {@link FunctionBroker}, {@link AttributeBroker},
+ * {@link PDPConfigurationSource}, {@link PdpVoterSource},
+ * {@link IdFactory}, and the {@link PolicyDecisionPoint} itself. Beans
+ * that hold real resources implement {@link AutoCloseable} (the voter
+ * source and the configuration source); Spring invokes their
+ * {@code close()} method on context shutdown.
+ * <p>
+ * Every bean is declared {@link ConditionalOnMissingBean} so an
+ * application can replace any single piece (for example a custom
+ * {@link FunctionBroker} pre-loaded with proprietary libraries)
+ * without having to opt out of the rest of the auto-configuration. To
+ * disable the embedded PDP entirely, set
+ * {@code io.sapl.pdp.embedded.enabled=false}.
+ * <p>
+ * The auto-configuration discovers and registers:
  * <ul>
  * <li>Custom function libraries (beans annotated with
  * {@link FunctionLibrary})</li>
@@ -85,12 +111,14 @@ import java.util.Set;
  */
 @Slf4j
 @AutoConfiguration
+@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 @ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(EmbeddedPDPProperties.class)
 public class PDPAutoConfiguration {
 
-    private PDPComponents pdpComponents;
+    private static final String ERROR_FAILED_TO_PARSE_KEY_IN_CATALOGUE = "Failed to parse public key '%s' in key catalogue";
+    private static final String ERROR_FAILED_TO_PARSE_PUBLIC_KEY       = "Failed to parse Ed25519 public key";
+    private static final String ERROR_FAILED_TO_READ_PUBLIC_KEY        = "Failed to read public key from: ";
 
     @Bean
     @ConditionalOnMissingBean
@@ -102,84 +130,53 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyDecisionPoint policyDecisionPoint(JsonMapper mapper, Clock clock,
-            ObjectProvider<VoteInterceptor> interceptorProvider,
-            ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
-            ApplicationContext applicationContext, EmbeddedPDPProperties properties) {
-
-        log.info("Deploying embedded Policy Decision Point. Source: {}, Path: {}", properties.getPdpConfigType(),
-                properties.getPoliciesPath());
-
-        val builder = PolicyDecisionPointBuilder.withDefaults(mapper, clock);
-
-        if (properties.getFunctionCacheSize() > 0) {
-            builder.withFunctionCacheSize(properties.getFunctionCacheSize());
-        }
-
-        // Collect static function library classes from providers
-        val functionLibraryClasses = collectFunctionLibraryClasses(functionLibraryClassProviders);
-        if (!functionLibraryClasses.isEmpty()) {
-            log.debug("Registering {} static function library classes", functionLibraryClasses.size());
-            builder.withFunctionLibraries(functionLibraryClasses);
-        }
-
-        // Collect custom function libraries from application context
-        val functionLibraries = collectFunctionLibraries(applicationContext);
-        if (!functionLibraries.isEmpty()) {
-            log.debug("Registering {} custom function library instances", functionLibraries.size());
-            builder.withFunctionLibraryInstances(functionLibraries);
-        }
-
-        // Collect custom PIPs from application context
-        val pips = collectPolicyInformationPoints(applicationContext);
-        if (!pips.isEmpty()) {
-            log.debug("Registering {} custom policy information points", pips.size());
-            builder.withPolicyInformationPoints(pips);
-        }
-
-        // Collect interceptors
-        val interceptors = interceptorProvider.orderedStream().toList();
-        if (!interceptors.isEmpty()) {
-            log.debug("Registering {} decision interceptors: {}.", interceptors.size(),
-                    interceptors.stream().map(i -> i.getClass().getSimpleName()).toList());
-            builder.withInterceptors(interceptors);
-        }
-
-        // Configure policy source based on properties
-        configureSource(builder, properties);
-
-        // Build and store components for cleanup
-        this.pdpComponents = builder.build();
-
-        return pdpComponents.pdp();
+    IdFactory idFactory() {
+        return new ThreadLocalRandomIdFactory();
     }
 
     @Bean
+    @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PdpVoterSource pdpVoterSource() {
-        if (pdpComponents == null) {
-            return null;
-        }
-        return pdpComponents.pdpVoterSource();
+    FunctionBroker functionBroker(EmbeddedPDPProperties properties,
+            ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
+            ApplicationContext applicationContext) {
+        val staticClasses     = collectFunctionLibraryClasses(functionLibraryClassProviders);
+        val instanceLibraries = collectFunctionLibraries(applicationContext);
+        log.debug("Building FunctionBroker: {} static class providers, {} instance libraries.", staticClasses.size(),
+                instanceLibraries.size());
+        return buildFunctionBroker(properties.getFunctionCacheSize(), true, staticClasses, instanceLibraries);
     }
 
-    private void configureSource(PolicyDecisionPointBuilder builder, EmbeddedPDPProperties properties) {
-        val path         = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPoliciesPath());
-        val resolvedPath = path.toAbsolutePath().normalize();
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AttributeBroker attributeBroker(JsonMapper mapper, Clock clock, ApplicationContext applicationContext)
+            throws AttributeBrokerException {
+        val pips = collectPolicyInformationPoints(applicationContext);
+        log.debug("Building AttributeBroker: {} custom PIP instances.", pips.size());
+        return buildAttributeBroker(null, clock, true, mapper, null, pips);
+    }
 
-        switch (properties.getPdpConfigType()) {
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PDPConfigurationSource pdpConfigurationSource(EmbeddedPDPProperties properties) {
+        val rawPath      = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPoliciesPath());
+        val resolvedPath = rawPath.toAbsolutePath().normalize();
+
+        return switch (properties.getPdpConfigType()) {
         case DIRECTORY       -> {
             log.info("Loading policies from directory: {}", resolvedPath);
-            builder.withDirectorySource(path);
+            yield new DirectoryPDPConfigurationSource(rawPath);
         }
         case MULTI_DIRECTORY -> {
             log.info("Loading policies from multi-directory: {}", resolvedPath);
-            builder.withMultiDirectorySource(path);
+            yield new MultiDirectoryPDPConfigurationSource(rawPath);
         }
         case BUNDLES         -> {
             log.info("Loading policies from bundles: {}", resolvedPath);
             val securityPolicy = createBundleSecurityPolicy(properties.getBundleSecurity(), resolvedPath);
-            builder.withBundleDirectorySource(path, securityPolicy);
+            yield new BundlePDPConfigurationSource(rawPath, securityPolicy);
         }
         case REMOTE_BUNDLES  -> {
             val props          = properties.getRemoteBundles();
@@ -190,14 +187,41 @@ public class PDPAutoConfiguration {
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
                     props.isFollowRedirects(), securityPolicy, props.getPdpIdPollIntervals(), props.getFirstBackoff(),
                     props.getMaxBackoff(), WebClient.builder());
-            builder.withRemoteBundleSource(sourceConfig);
+            yield new RemoteBundlePDPConfigurationSource(sourceConfig);
         }
         case RESOURCES       -> {
             val resourcePath = properties.getPoliciesPath();
             log.info("Loading policies from resources: {}", resourcePath);
-            builder.withResourcesSource(resourcePath);
+            yield new ResourcesPDPConfigurationSource(resourcePath);
         }
+        };
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PdpVoterSource pdpVoterSource(FunctionBroker functionBroker, AttributeBroker attributeBroker, Clock clock,
+            ObjectProvider<PDPConfigurationSource> sourceProvider) {
+        val voterSource = new PdpVoterSource(functionBroker, attributeBroker, clock);
+        val source      = sourceProvider.getIfAvailable();
+        if (source != null) {
+            source.subscribe(voterSource::handle);
         }
+        return voterSource;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, IdFactory idFactory,
+            ObjectProvider<VoteInterceptor> interceptorProvider) {
+        val interceptors = interceptorProvider.orderedStream().toList();
+        if (!interceptors.isEmpty()) {
+            log.debug("Registering {} decision interceptors: {}.", interceptors.size(),
+                    interceptors.stream().map(i -> i.getClass().getSimpleName()).toList());
+        }
+        log.info("Deploying embedded Policy Decision Point.");
+        return new DynamicPolicyDecisionPoint(pdpVoterSource, idFactory, interceptors);
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {
@@ -237,7 +261,7 @@ public class PDPAutoConfiguration {
             val keyBytes = PemUtils.decodePemFromFile(Path.of(keyPath));
             return buildEd25519PublicKey(keyBytes);
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new IllegalStateException("Failed to read public key from: " + keyPath, e);
+            throw new IllegalStateException(ERROR_FAILED_TO_READ_PUBLIC_KEY + keyPath, e);
         }
     }
 
@@ -255,7 +279,7 @@ public class PDPAutoConfiguration {
             }
             return buildEd25519PublicKey(keyBytes);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new IllegalStateException("Failed to parse Ed25519 public key", e);
+            throw new IllegalStateException(ERROR_FAILED_TO_PARSE_PUBLIC_KEY, e);
         }
     }
 
@@ -276,7 +300,7 @@ public class PDPAutoConfiguration {
                 catalogue.put(keyId, parsePublicKey(keyBase64));
                 log.debug("Loaded public key '{}' into key catalogue", keyId);
             } catch (IllegalStateException e) {
-                throw new IllegalStateException("Failed to parse public key '%s' in key catalogue".formatted(keyId), e);
+                throw new IllegalStateException(ERROR_FAILED_TO_PARSE_KEY_IN_CATALOGUE.formatted(keyId), e);
             }
         }
         return catalogue;
@@ -324,14 +348,6 @@ public class PDPAutoConfiguration {
             classes.addAll(providerClasses);
         });
         return classes;
-    }
-
-    @PreDestroy
-    void cleanup() {
-        if (pdpComponents != null) {
-            log.debug("Disposing PDP resources");
-            pdpComponents.dispose();
-        }
     }
 
 }

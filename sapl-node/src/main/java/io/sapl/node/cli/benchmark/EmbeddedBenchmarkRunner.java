@@ -95,7 +95,7 @@ public class EmbeddedBenchmarkRunner {
             return List.of();
         } finally {
             if (components != null) {
-                components.dispose();
+                components.close();
             }
         }
     }

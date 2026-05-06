@@ -1376,7 +1376,7 @@ public class SaplTestFixture {
 
         private void dispose() {
             if (components != null) {
-                components.dispose();
+                components.close();
             }
         }
 

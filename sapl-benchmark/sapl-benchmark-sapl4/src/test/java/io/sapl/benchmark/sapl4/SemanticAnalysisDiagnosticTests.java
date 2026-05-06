@@ -65,7 +65,7 @@ class SemanticAnalysisDiagnosticTests {
         for (val source : policies) {
             documents.add(DocumentCompiler.compileDocument(source, ctx));
         }
-        components.dispose();
+        components.close();
 
         val allPredicatesPerFormula = new ArrayList<List<IndexPredicate>>();
         var formulaCount            = 0;

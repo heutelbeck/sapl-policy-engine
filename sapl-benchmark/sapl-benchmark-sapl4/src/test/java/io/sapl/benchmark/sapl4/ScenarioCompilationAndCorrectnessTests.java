@@ -69,7 +69,7 @@ class ScenarioCompilationAndCorrectnessTests {
                 counts.merge(decision, 1, Integer::sum);
             }
 
-            components.dispose();
+            components.close();
 
             assertThat(counts.get(Decision.INDETERMINATE))
                     .as("INDETERMINATE for %s seed=%d (PERMIT=%d DENY=%d NOT_APPLICABLE=%d)", scenarioName, seed,

@@ -80,6 +80,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class PdpVoterSource implements AutoCloseable {
 
+    private static final String WARN_CONFIGURATION_REJECTED = "Configuration rejected:\n{}";
+
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     @Getter
@@ -157,7 +159,7 @@ public class PdpVoterSource implements AutoCloseable {
                 getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null,
                         0, current.lastSuccessfulLoad(), now, formattedError));
             }
-            log.warn("Configuration rejected:\n{}", formattedError);
+            log.warn(WARN_CONFIGURATION_REJECTED, formattedError);
             return;
         }
         val optionalConfig = Optional.of(newConfiguration);
@@ -277,6 +279,24 @@ public class PdpVoterSource implements AutoCloseable {
     public Optional<PdpStatus> getPdpStatus(String pdpId) {
         val ref = statusCache.get(pdpId);
         return ref != null ? Optional.of(ref.get()) : Optional.empty();
+    }
+
+    /**
+     * Releases all resources: completes every update sink and clears the
+     * per-PDP caches. Idempotent. Safe to call from container shutdown
+     * hooks even if {@link AutoCloseable#close()} has already been invoked.
+     */
+    @Override
+    public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+        for (val sink : updateSinks.values()) {
+            sink.tryEmitComplete();
+        }
+        updateSinks.clear();
+        configCache.clear();
+        statusCache.clear();
     }
 
     /**

@@ -75,7 +75,7 @@ public class EmbeddedPdpBenchmark {
     @TearDown(Level.Trial)
     public void tearDown() {
         if (components != null) {
-            components.dispose();
+            components.close();
         }
     }
 

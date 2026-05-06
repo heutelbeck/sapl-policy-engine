@@ -33,6 +33,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PdpVoterSource status tracking")
 class PdpVoterSourceStatusTrackingTests {
@@ -120,30 +121,26 @@ class PdpVoterSourceStatusTrackingTests {
     class WhenLoadFailsWithoutKeepOld {
 
         @Test
-        @DisplayName("then state is ERROR with error info")
-        void thenStateIsErrorWithErrorInfo() {
+        @DisplayName("then loadConfiguration throws PDPConfigurationException")
+        void thenLoadConfigurationThrows() {
             val source = createSource();
-            source.loadConfiguration(brokenConfig("default"), false);
+            val broken = brokenConfig("default");
 
-            val status = source.getPdpStatus("default");
-            assertThat(status).isPresent().hasValueSatisfying(s -> {
-                assertThat(s.state()).isEqualTo(PdpState.ERROR);
-                assertThat(s.configurationId()).isNull();
-                assertThat(s.combiningAlgorithm()).isNull();
-                assertThat(s.documentCount()).isZero();
-                assertThat(s.lastSuccessfulLoad()).isNull();
-                assertThat(s.lastFailedLoad()).isEqualTo(FIXED_TIME);
-                assertThat(s.lastError()).isNotBlank();
-            });
+            assertThatThrownBy(() -> source.loadConfiguration(broken, false))
+                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("SAPL Compilation Error");
         }
 
         @Test
-        @DisplayName("then error voter is stored in config cache")
-        void thenErrorVoterIsStoredInConfigCache() {
+        @DisplayName("then PDP status remains uninitialised")
+        void thenPdpStatusRemainsUninitialised() {
             val source = createSource();
-            source.loadConfiguration(brokenConfig("default"), false);
+            val broken = brokenConfig("default");
 
-            assertThat(source.getCurrentConfiguration("default")).isPresent();
+            assertThatThrownBy(() -> source.loadConfiguration(broken, false))
+                    .isInstanceOf(PDPConfigurationException.class);
+
+            assertThat(source.getPdpStatus("default")).isEmpty();
+            assertThat(source.getCurrentConfiguration("default")).isEmpty();
         }
 
     }

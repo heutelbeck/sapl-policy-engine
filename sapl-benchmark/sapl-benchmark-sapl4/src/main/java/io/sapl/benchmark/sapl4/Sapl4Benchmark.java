@@ -221,7 +221,7 @@ class Sapl4Benchmark implements Callable<Integer> {
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
             var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
-            components.dispose();
+            components.close();
             if (resolvedScenario.expectedDecision() != null
                     && decision.decision() != resolvedScenario.expectedDecision().decision()) {
                 err.println(ERROR_SANITY_CHECK.formatted(scenario, decision, resolvedScenario.expectedDecision()));
@@ -497,7 +497,7 @@ class Sapl4Benchmark implements Callable<Integer> {
             var decision = pdp.decideOnceBlocking(sub).decision();
             counts.merge(decision, 1, Integer::sum);
         }
-        components.dispose();
+        components.close();
         return counts;
     }
 

@@ -30,6 +30,7 @@ import io.sapl.api.pdp.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.DirectoryPDPConfigurationSource;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -73,24 +74,28 @@ class PolicyDecisionPointBuilderTests {
     void whenBuildingWithDefaultsThenPdpIsCreated() throws Exception {
         val components = PolicyDecisionPointBuilder.withDefaults().build();
 
-        assertThat(components.pdp()).isNotNull();
-        assertThat(components.pdpVoterSource()).isNotNull();
-        assertThat(components.functionBroker()).isNotNull();
-        assertThat(components.attributeBroker()).isNotNull();
-        assertThat(components.source()).isNull();
+        assertThat(components).satisfies(c -> {
+            assertThat(c.pdp()).isNotNull();
+            assertThat(c.pdpVoterSource()).isNotNull();
+            assertThat(c.functionBroker()).isNotNull();
+            assertThat(c.attributeBroker()).isNotNull();
+            assertThat(c.source()).isNull();
+        });
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
     void whenBuildingWithoutDefaultsThenMinimalPdpIsCreated() throws Exception {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
 
-        assertThat(components.pdp()).isNotNull();
-        assertThat(components.pdpVoterSource()).isNotNull();
-        assertThat(components.source()).isNull();
+        assertThat(components).satisfies(c -> {
+            assertThat(c.pdp()).isNotNull();
+            assertThat(c.pdpVoterSource()).isNotNull();
+            assertThat(c.source()).isNull();
+        });
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -104,7 +109,7 @@ class PolicyDecisionPointBuilderTests {
         StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -117,7 +122,7 @@ class PolicyDecisionPointBuilderTests {
         StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.DENY)).verifyComplete();
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -139,7 +144,7 @@ class PolicyDecisionPointBuilderTests {
                 .create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete());
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -158,7 +163,7 @@ class PolicyDecisionPointBuilderTests {
                 .create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete());
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -196,7 +201,7 @@ class PolicyDecisionPointBuilderTests {
         // Both configurations should be loaded
         assertThat(components.pdpVoterSource()).isNotNull();
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -246,9 +251,10 @@ class PolicyDecisionPointBuilderTests {
 
     @Test
     void whenRegisteringCustomSourceAfterResourcesSourceThenExceptionIsThrown() {
-        val builder = PolicyDecisionPointBuilder.withoutDefaults().withResourcesSource();
+        val builder         = PolicyDecisionPointBuilder.withoutDefaults().withResourcesSource();
+        val secondarySource = mock(PDPConfigurationSource.class);
 
-        assertThatThrownBy(() -> builder.withConfigurationSource(voterSource -> null))
+        assertThatThrownBy(() -> builder.withConfigurationSource(secondarySource))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("configuration source has already been registered");
     }
@@ -261,7 +267,7 @@ class PolicyDecisionPointBuilderTests {
 
         assertThat(components.functionBroker()).isSameAs(externalBroker);
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -272,7 +278,7 @@ class PolicyDecisionPointBuilderTests {
 
         assertThat(components.attributeBroker()).isSameAs(externalBroker);
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -286,10 +292,12 @@ class PolicyDecisionPointBuilderTests {
                 .withAttributeBroker(externalAttributeBroker).withPolicyInformationPoints(List.of(new Object()))
                 .withFunctionLibraryInstances(List.of(new Object())).build();
 
-        assertThat(components.functionBroker()).isSameAs(externalFunctionBroker);
-        assertThat(components.attributeBroker()).isSameAs(externalAttributeBroker);
+        assertThat(components).satisfies(c -> {
+            assertThat(c.functionBroker()).isSameAs(externalFunctionBroker);
+            assertThat(c.attributeBroker()).isSameAs(externalAttributeBroker);
+        });
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -306,7 +314,7 @@ class PolicyDecisionPointBuilderTests {
         val components = builder.build();
         assertThat(components.pdp()).isNotNull();
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -320,7 +328,7 @@ class PolicyDecisionPointBuilderTests {
         StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
-        disposeSource(components);
+        closeSource(components);
     }
 
     @Test
@@ -330,10 +338,10 @@ class PolicyDecisionPointBuilderTests {
 
         assertThat(components.pdp()).isNotNull();
 
-        disposeSource(components);
+        closeSource(components);
     }
 
-    private void disposeSource(PDPComponents components) throws Exception {
+    private void closeSource(PDPComponents components) throws Exception {
         val source = components.source();
         if (source != null) {
             source.close();

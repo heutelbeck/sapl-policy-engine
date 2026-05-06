@@ -81,8 +81,9 @@ import java.util.Objects;
  *
  * <h2>Lifecycle</h2>
  * <p>
- * Call {@link PDPComponents#dispose()} when shutting down. It releases
- * the timestamp clock thread and closes the configuration source.
+ * The returned {@link PDPComponents} is an {@link AutoCloseable}. Call
+ * {@link PDPComponents#close()} (or use a try-with-resources block) on
+ * shutdown to release every component held by the builder.
  * </p>
  *
  * @see PDPComponents
@@ -758,10 +759,27 @@ public class PolicyDecisionPointBuilder {
     }
 
     private FunctionBroker resolveFunctionBroker() {
-        return Objects.requireNonNullElseGet(externalFunctionBroker, this::buildFunctionBroker);
+        return Objects.requireNonNullElseGet(externalFunctionBroker, () -> buildFunctionBroker(functionCacheSize,
+                includeDefaultFunctionLibraries, staticFunctionLibraries, instantiatedFunctionLibraries));
     }
 
-    private FunctionBroker buildFunctionBroker() {
+    /**
+     * Builds a {@link FunctionBroker} with the given configuration. Shared
+     * by both this builder and external assemblers (for example the Spring
+     * Boot auto-configuration) so the construction logic stays in a single
+     * place.
+     *
+     * @param functionCacheSize maximum function result cache entries; values
+     * less than or equal to zero use the broker's default
+     * @param includeDefaultFunctionLibraries whether to load the SAPL
+     * default static libraries
+     * @param staticFunctionLibraries additional static library classes to load
+     * @param instantiatedFunctionLibraries additional pre-instantiated
+     * libraries to load
+     * @return a fully configured function broker
+     */
+    public static FunctionBroker buildFunctionBroker(int functionCacheSize, boolean includeDefaultFunctionLibraries,
+            List<Class<?>> staticFunctionLibraries, List<Object> instantiatedFunctionLibraries) {
         val functionBroker = functionCacheSize > 0 ? new DefaultFunctionBroker(functionCacheSize)
                 : new DefaultFunctionBroker();
 
@@ -783,10 +801,35 @@ public class PolicyDecisionPointBuilder {
     }
 
     private AttributeBroker resolveAttributeBroker() throws AttributeBrokerException {
-        return Objects.requireNonNullElseGet(externalAttributeBroker, this::buildAttributeBroker);
+        if (externalAttributeBroker != null) {
+            return externalAttributeBroker;
+        }
+        return buildAttributeBroker(attributeStorage, clock, includeDefaultPolicyInformationPoints, mapper,
+                webClientBuilder, policyInformationPoints);
     }
 
-    private AttributeBroker buildAttributeBroker() throws AttributeBrokerException {
+    /**
+     * Builds an {@link AttributeBroker} with the given configuration. Shared
+     * by both this builder and external assemblers (for example the Spring
+     * Boot auto-configuration) so the construction logic stays in a single
+     * place.
+     *
+     * @param attributeStorage attribute storage; if {@code null}, a fresh
+     * {@link HeapAttributeStorage} is used
+     * @param clock clock used by the attribute repository and time-based PIPs
+     * @param includeDefaultPolicyInformationPoints whether to load the SAPL
+     * default PIPs (HTTP, JWT, time, X.509)
+     * @param mapper JSON mapper used by the reactive web client
+     * @param webClientBuilder optional WebClient builder; if {@code null},
+     * {@link WebClient#builder()} is used
+     * @param policyInformationPoints additional PIP instances to load
+     * @return a fully configured attribute broker
+     * @throws AttributeBrokerException if a PIP fails to load
+     */
+    public static AttributeBroker buildAttributeBroker(@Nullable AttributeStorage attributeStorage, Clock clock,
+            boolean includeDefaultPolicyInformationPoints, JsonMapper mapper,
+            WebClient.@Nullable Builder webClientBuilder, List<Object> policyInformationPoints)
+            throws AttributeBrokerException {
         val storage             = attributeStorage != null ? attributeStorage : new HeapAttributeStorage();
         val attributeRepository = new InMemoryAttributeRepository(clock, storage);
         val attributeBroker     = new CachingAttributeBroker(attributeRepository);
@@ -820,9 +863,11 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Components created by the builder. Call {@link #dispose()} on
-     * shutdown to release the timestamp clock thread and close the
-     * configuration source.
+     * Components created by the builder. Implements {@link AutoCloseable}
+     * so the whole bundle can be released in one call (or via a
+     * try-with-resources block) when the embedding application shuts
+     * down. {@link #close()} is idempotent: each held component is
+     * required to tolerate being closed more than once.
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
@@ -831,22 +876,41 @@ public class PolicyDecisionPointBuilder {
             AttributeBroker attributeBroker,
             @Nullable PDPConfigurationSource source,
             LazyFastClock timestampClock,
-            List<VoteInterceptor> sortedInterceptors) {
+            List<VoteInterceptor> sortedInterceptors) implements AutoCloseable {
+
+        private static final String WARN_ERROR_CLOSING_RESOURCE = "Error closing {}: {}";
 
         /**
-         * Releases the timestamp clock and closes the configuration
-         * source. Call once on shutdown.
+         * Closes every held component. Resources that are not
+         * {@link AutoCloseable} are skipped silently. Exceptions thrown
+         * by individual components are logged and otherwise ignored so
+         * a single failure cannot prevent the rest of the cleanup.
          */
-        public void dispose() {
-            if (timestampClock != null) {
-                timestampClock.close();
-            }
-            if (source != null) {
-                try {
-                    source.close();
-                } catch (Exception e) {
-                    log.warn("Error closing configuration source: {}", e.getMessage());
+        @Override
+        public void close() {
+            closeAll(timestampClock, source, pdpVoterSource, attributeBroker, functionBroker, sortedInterceptors);
+        }
+
+        private static void closeAll(Object... resources) {
+            for (val resource : resources) {
+                if (resource instanceof Iterable<?> iterable) {
+                    for (val item : iterable) {
+                        closeQuietly(item);
+                    }
+                } else {
+                    closeQuietly(resource);
                 }
+            }
+        }
+
+        private static void closeQuietly(@Nullable Object resource) {
+            if (!(resource instanceof AutoCloseable closeable)) {
+                return;
+            }
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
             }
         }
     }
