@@ -26,13 +26,10 @@ import io.sapl.compiler.combining.UnanimousVoteCompiler;
 import io.sapl.compiler.combining.UniqueVoteCompiler;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.model.Coverage;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,8 +40,8 @@ import static io.sapl.compiler.document.DocumentCompiler.compileDocument;
 @UtilityClass
 public class PdpCompiler {
 
-    public static final String ERROR_FIRST_NOT_ALLOWED = "FIRST is not allowed as combining algorithm option on PDP level as it implies an ordering that is not present here. Got: %s.";
-    public static final String ERROR_NAME_COLLISION    = "Name collision during compilation of PDP. The policy or policy set with the name \"%s\" is defined at least twice.";
+    private static final String ERROR_FIRST_NOT_ALLOWED = "FIRST is not allowed as combining algorithm option on PDP level as it implies an ordering that is not present here. Got: %s.";
+    private static final String ERROR_NAME_COLLISION    = "Name collision during compilation of PDP. The policy or policy set with the name \"%s\" is defined at least twice.";
 
     /**
      * Creates an error voter that returns INDETERMINATE for all authorization
@@ -58,14 +55,11 @@ public class PdpCompiler {
      */
     public static CompiledPdpVoter createErrorVoter(PDPConfiguration pdpConfiguration, CompilationContext ctx,
             SaplCompilerException exception) {
-        val voterMetadata  = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
+        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
                 pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
-        val error          = Value.error(exception.getMessage());
-        val errorVote      = Vote.error(error, voterMetadata);
-        val coverage       = new Coverage.PolicySetCoverage(voterMetadata, Coverage.BLANK_TARGET_HIT, List.of());
-        val coverageStream = Flux.just(new VoteWithCoverage(errorVote, coverage));
-        return new CompiledPdpVoter(voterMetadata, errorVote, coverageStream, ctx.getAttributeBroker(),
-                ctx.getFunctionBroker(), ctx.getTimestampSupplier());
+        val error         = Value.error(exception.getMessage());
+        val errorVote     = Vote.error(error, voterMetadata);
+        return new CompiledPdpVoter(voterMetadata, errorVote, ctx.getFunctionBroker(), ctx.getTimestampSupplier());
     }
 
     /**
@@ -113,25 +107,7 @@ public class PdpCompiler {
             UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, ctx);
         };
 
-        val coverageStream = switch (algorithm.votingMode()) {
-        case FIRST            ->
-            throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
-        case PRIORITY_DENY    -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
-                Decision.DENY, defaultDecision, errorHandling);
-        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
-                Decision.PERMIT, defaultDecision, errorHandling);
-        case PRIORITY_SUSPEND -> PriorityVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
-                Decision.SUSPEND, defaultDecision, errorHandling);
-        case UNANIMOUS        -> UnanimousVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
-                defaultDecision, errorHandling, false);
-        case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata,
-                defaultDecision, errorHandling, true);
-        case UNIQUE           ->
-            UniqueVoteCompiler.compileCoverageStream(compiledDocuments, voterMetadata, defaultDecision, errorHandling);
-        };
-
-        return new CompiledPdpVoter(voterMetadata, voter, coverageStream, ctx.getAttributeBroker(),
-                ctx.getFunctionBroker(), ctx.getTimestampSupplier());
+        return new CompiledPdpVoter(voterMetadata, voter, ctx.getFunctionBroker(), ctx.getTimestampSupplier());
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

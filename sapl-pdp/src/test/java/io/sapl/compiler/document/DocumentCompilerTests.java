@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.document;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -44,9 +43,8 @@ class DocumentCompilerTests {
 
     @BeforeEach
     void setUp() {
-        val functionBroker  = mock(FunctionBroker.class);
-        val attributeBroker = mock(AttributeBroker.class);
-        ctx = new CompilationContext(functionBroker, attributeBroker);
+        val functionBroker = mock(FunctionBroker.class);
+        ctx = new CompilationContext(functionBroker);
     }
 
     @Nested

@@ -37,7 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
@@ -49,7 +48,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class PolicyCompilerTests {
 
     private static Voter compileToVoter(String policySource) {
-        return compileToVoter(policySource, compilationContext(ATTRIBUTE_BROKER));
+        return compileToVoter(policySource, compilationContext());
     }
 
     private static Voter compileToVoter(String policySource, CompilationContext ctx) {
@@ -195,7 +194,7 @@ class PolicyCompilerTests {
                     permit
                     subject.<weather.current> == "foggy";
                     """;
-            val ctx      = compilationContext(attributeBroker("weather.current", Value.of("foggy")));
+            val ctx      = compilationContext();
             val compiled = compileToVoter(policy, ctx);
             assertThat(compiled).isInstanceOf(StreamVoter.class);
         }
@@ -282,19 +281,8 @@ class PolicyCompilerTests {
         @DisplayName("Stratum combinations produce correct document types")
         void stratumCombinationsProduceCorrectTypes(String scenario, String policyBody,
                 Class<? extends Voter> expectedType, String attrNames) {
-            val                policy = "policy \"" + scenario + "\" " + policyBody;
-            CompilationContext ctx;
-            if (attrNames != null) {
-                val attrs = attrNames.split(",");
-                if (attrs.length == 1) {
-                    ctx = compilationContext(attributeBroker(attrs[0], Value.TRUE));
-                } else {
-                    ctx = compilationContext(attributeBroker(Map.of(attrs[0], new Value[] { Value.TRUE }, attrs[1],
-                            new Value[] { Value.of("logged") })));
-                }
-            } else {
-                ctx = compilationContext(ATTRIBUTE_BROKER);
-            }
+            val policy   = "policy \"" + scenario + "\" " + policyBody;
+            val ctx      = compilationContext();
             val compiled = compileToVoter(policy, ctx);
             assertThat(compiled).isInstanceOf(expectedType);
         }
@@ -696,8 +684,7 @@ class PolicyCompilerTests {
                     obligation <audit.inhumation>
                     transform "CLASSIFIED"
                     """;
-            val ctx      = compilationContext(attributeBroker(Map.of("contract.status",
-                    new Value[] { Value.of("active") }, "audit.inhumation", new Value[] { Value.of("recorded") })));
+            val ctx      = compilationContext();
             val compiled = compileToVoter(policy, ctx);
             assertThat(compiled).isInstanceOf(StreamVoter.class);
         }

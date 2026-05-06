@@ -233,18 +233,6 @@ class AttributeMethodSignatureProcessorTests {
 
     private static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
 
-    private static final AttributeBroker DEFAULT_ATTRIBUTE_BROKER = new AttributeBroker() {
-        @Override
-        public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-            return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
-        }
-
-        @Override
-        public List<Class<?>> getRegisteredLibraries() {
-            return List.of();
-        }
-    };
-
     private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
@@ -256,7 +244,7 @@ class AttributeMethodSignatureProcessorTests {
 
     private EvaluationContext createEvaluationContext() {
         return EvaluationContext.of("id", "test-security", "test-subscription", DUMMY_SUBSCRIPTION,
-                DEFAULT_FUNCTION_BROKER, DEFAULT_ATTRIBUTE_BROKER);
+                DEFAULT_FUNCTION_BROKER);
     }
 
     static class TestPIP {

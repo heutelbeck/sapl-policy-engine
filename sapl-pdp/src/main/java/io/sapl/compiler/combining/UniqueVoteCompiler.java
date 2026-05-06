@@ -70,8 +70,6 @@ import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_I
 @UtilityClass
 public class UniqueVoteCompiler {
 
-    private static final String ERROR_PDP_LEVEL_COVERAGE_NOT_YET_IMPLEMENTED = "PDP-level coverage stream for UNIQUE not yet implemented";
-
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling,
@@ -80,16 +78,6 @@ public class UniqueVoteCompiler {
         val coverageVoter = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
                 defaultDecision, errorHandling);
         return new VoterAndCoverage(voter, coverageVoter);
-    }
-
-    /**
-     * PDP-level coverage stream entry point. PDP-level coverage via
-     * {@link CoverageVoter} is not yet implemented; callers fail loudly.
-     */
-    // TODO: implement PDP-level CoverageVoter wiring for UNIQUE.
-    public static Flux<VoteWithCoverage> compileCoverageStream(List<? extends CompiledDocument> compiledPolicies,
-            VoterMetadata voterMetadata, DefaultDecision defaultDecision, ErrorHandling errorHandling) {
-        return Flux.error(new UnsupportedOperationException(ERROR_PDP_LEVEL_COVERAGE_NOT_YET_IMPLEMENTED));
     }
 
     /**

@@ -18,6 +18,7 @@
 package io.sapl.compiler.pdp;
 
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.CombiningAlgorithm;
 import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
@@ -34,7 +35,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -71,6 +71,9 @@ class PdpCompilerTests {
             """;
 
     private static final String INVALID_POLICY = "this is not valid SAPL syntax!!!";
+
+    private static final AuthorizationSubscription DEFAULT_SUBSCRIPTION = AuthorizationSubscription.of(Value.NULL,
+            Value.NULL, Value.NULL, Value.NULL);
 
     @Nested
     @DisplayName("error handling")
@@ -150,11 +153,10 @@ class PdpCompilerTests {
             val config = new PDPConfiguration("test-pdp", "config-1", algorithm, List.of(POLICY_A, POLICY_B),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val compiledVoter   = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val timestampedVote = compiledVoter.voteOnce(DEFAULT_SUBSCRIPTION, "test-sub");
 
-            StepVerifier.create(compiledVoter.coverageStream())
-                    .assertNext(vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(expected))
-                    .verifyComplete();
+            assertThat(timestampedVote.vote().authorizationDecision().decision()).isEqualTo(expected);
         }
 
         @Test
@@ -164,12 +166,10 @@ class PdpCompilerTests {
                     new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(VALID_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val compiledVoter   = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val timestampedVote = compiledVoter.voteOnce(DEFAULT_SUBSCRIPTION, "test-sub");
 
-            StepVerifier.create(compiledVoter.coverageStream())
-                    .assertNext(
-                            vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+            assertThat(timestampedVote.vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -179,11 +179,10 @@ class PdpCompilerTests {
                     new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(POLICY_A, POLICY_B),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val compiledVoter   = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val timestampedVote = compiledVoter.voteOnce(DEFAULT_SUBSCRIPTION, "test-sub");
 
-            StepVerifier.create(compiledVoter.coverageStream()).assertNext(
-                    vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+            assertThat(timestampedVote.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
         }
     }
 

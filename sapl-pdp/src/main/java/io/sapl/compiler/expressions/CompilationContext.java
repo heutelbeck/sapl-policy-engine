@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.PdpData;
@@ -69,7 +68,6 @@ public class CompilationContext {
     private Document                        document;
     private String                          documentSource;
     final FunctionBroker                    functionBroker;
-    final AttributeBroker                   attributeBroker;
     final PdpData                           data;
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
@@ -78,15 +76,10 @@ public class CompilationContext {
     private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
     private Map<Long, Value>                foldingCache             = new HashMap<>();
 
-    public CompilationContext(String pdpId,
-            String configurationId,
-            PdpData data,
-            FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
+    public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
         this.configurationId = configurationId;
         this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
         this.data            = data;
     }
 
@@ -94,30 +87,25 @@ public class CompilationContext {
             String configurationId,
             PdpData data,
             FunctionBroker functionBroker,
-            AttributeBroker attributeBroker,
             Supplier<String> timestampSupplier) {
         this.pdpId             = pdpId;
         this.configurationId   = configurationId;
         this.functionBroker    = functionBroker;
-        this.attributeBroker   = attributeBroker;
         this.timestampSupplier = timestampSupplier;
         this.data              = data;
     }
 
-    public CompilationContext(PdpData data, FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
-        this.data            = data;
+    public CompilationContext(PdpData data, FunctionBroker functionBroker) {
+        this.functionBroker = functionBroker;
+        this.data           = data;
     }
 
     /**
      * @param functionBroker the function broker for resolving functions
-     * @param attributeBroker the attribute broker for resolving attributes
      */
-    public CompilationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
-        this.data            = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    public CompilationContext(FunctionBroker functionBroker) {
+        this.functionBroker = functionBroker;
+        this.data           = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
     /**

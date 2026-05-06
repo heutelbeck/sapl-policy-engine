@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -115,28 +113,18 @@ class StratifiedBooleanOperationCompilerTests {
 
         @Test
         void whenAndWithStreamOnRightAndLeftFalseThenShortCircuitsAtCompileTime() {
-            var subscribed = new AtomicBoolean(false);
-            var broker     = trackingBroker(subscribed, Value.TRUE);
-            var ctx        = compilationContext(broker);
-
-            var compiled = compileExpression("false && <test.attr>", ctx);
+            var compiled = compileExpression("false && <test.attr>");
 
             // false && stream should short-circuit at compile time
             assertThat(compiled).isEqualTo(Value.FALSE);
-            assertThat(subscribed.get()).isFalse();
         }
 
         @Test
         void whenOrWithStreamOnRightAndLeftTrueThenShortCircuitsAtCompileTime() {
-            var subscribed = new AtomicBoolean(false);
-            var broker     = trackingBroker(subscribed, Value.TRUE);
-            var ctx        = compilationContext(broker);
-
-            var compiled = compileExpression("true || <test.attr>", ctx);
+            var compiled = compileExpression("true || <test.attr>");
 
             // true || stream should short-circuit at compile time
             assertThat(compiled).isEqualTo(Value.TRUE);
-            assertThat(subscribed.get()).isFalse();
         }
 
         @Test

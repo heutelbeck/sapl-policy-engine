@@ -221,25 +221,6 @@ class DeduplicationTests {
                 """;
 
         @Test
-        @DisplayName("separately compiled CompiledPdpVoter instances from same config are not equal")
-        void whenSameConfigCompiledTwiceThenNotEqual() {
-            val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
-            val voterSource = components.pdpVoterSource();
-            val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);
-
-            voterSource.loadConfiguration(config, false);
-            val first = voterSource.getCurrentConfiguration("default");
-
-            voterSource.loadConfiguration(config, false);
-            val second = voterSource.getCurrentConfiguration("default");
-
-            assertThat(first).isPresent();
-            assertThat(second).isPresent();
-            assertThat(first.get()).isNotEqualTo(second.get());
-        }
-
-        @Test
         @DisplayName("config source distinctUntilChanged does not suppress duplicate compilation")
         void whenSameConfigReloadedThenConfigSourceEmitsBothCompilations() {
             val mapper      = JsonMapper.builder().build();

@@ -219,8 +219,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void whenHasStreamThenReturnsStreamOperator() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var compiled = compileExpression("true && <test.attr> && true", broker);
+            var compiled = compileExpression("true && <test.attr> && true");
             assertThat(compiled).isInstanceOf(StreamOperator.class);
         }
 
@@ -298,8 +297,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionValuesAndStreamThenReturnsStreamOperator() {
-            var broker   = attributeBroker("test.attr", Value.TRUE);
-            var compiled = compileExpression("true && <test.attr> && true", broker);
+            var compiled = compileExpression("true && <test.attr> && true");
             assertThat(compiled).isInstanceOf(StreamOperator.class);
         }
 
@@ -345,8 +343,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunctionValuesAndStreamThenReturnsStreamOperator() {
-            var broker   = attributeBroker("test.attr", Value.FALSE);
-            var compiled = compileExpression("false || <test.attr> || false", broker);
+            var compiled = compileExpression("false || <test.attr> || false");
             assertThat(compiled).isInstanceOf(StreamOperator.class);
         }
 

@@ -69,7 +69,7 @@ public class ExpressionEvaluator {
         }
 
         var pdpData            = new PdpData(Value.ofObject(config.variables()), Value.EMPTY_OBJECT);
-        var compilationContext = new CompilationContext(pdpData, config.functionBroker(), config.attributeBroker());
+        var compilationContext = new CompilationContext(pdpData, config.functionBroker());
 
         var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
 
@@ -96,7 +96,7 @@ public class ExpressionEvaluator {
     private static EvaluationContext createEvaluationContext(LSPConfiguration config) {
         return new EvaluationContext(config.configurationId(), config.configurationId(), CONTENT_ASSIST_ID,
                 AuthorizationSubscription.of("subject", "action", "resource", "environment"), config.functionBroker(),
-                config.attributeBroker(), Value.UNDEFINED, Value.UNDEFINED);
+                Value.UNDEFINED, Value.UNDEFINED);
     }
 
 }

@@ -37,7 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.*;
@@ -102,13 +101,12 @@ class PriorityVoteCompilerTests {
         @Test
         @DisplayName("stream policies return StreamPriorityVoter")
         void streamPoliciesReturnStreamVoter() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     priority permit or abstain
 
                     policy "p1" permit <test.attr>;
-                    """, attrBroker);
+                    """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
 

@@ -66,7 +66,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -191,72 +190,45 @@ public class SaplTesting {
     // ========================================================================
 
     public static CompilationContext compilationContext() {
-        return new CompilationContext(FUNCTION_BROKER, ATTRIBUTE_BROKER);
-    }
-
-    public static CompilationContext compilationContext(AttributeBroker attrBroker) {
-        return new CompilationContext(FUNCTION_BROKER, attrBroker);
+        return new CompilationContext(FUNCTION_BROKER);
     }
 
     public static CompilationContext compilationContext(FunctionBroker fnBroker) {
-        return new CompilationContext(fnBroker, ATTRIBUTE_BROKER);
-    }
-
-    public static CompilationContext compilationContext(FunctionBroker fnBroker, AttributeBroker attrBroker) {
-        return new CompilationContext(fnBroker, attrBroker);
+        return new CompilationContext(fnBroker);
     }
 
     public static CompilationContext compilationContext(ObjectValue variables) {
         val data = new PdpData(variables, Value.EMPTY_OBJECT);
-        return new CompilationContext(data, FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        return new CompilationContext(data, FUNCTION_BROKER);
     }
 
-    public static CompilationContext compilationContext(ObjectValue variables, AttributeBroker attrBroker) {
+    public static CompilationContext compilationContext(ObjectValue variables, FunctionBroker fnBroker) {
         val data = new PdpData(variables, Value.EMPTY_OBJECT);
-        return new CompilationContext(data, FUNCTION_BROKER, attrBroker);
-    }
-
-    public static CompilationContext compilationContext(ObjectValue variables, FunctionBroker fnBroker,
-            AttributeBroker attrBroker) {
-        val data = new PdpData(variables, Value.EMPTY_OBJECT);
-        return new CompilationContext(data, fnBroker, attrBroker);
+        return new CompilationContext(data, fnBroker);
     }
 
     public static CompilationContext compilationContextWithSecrets(ObjectValue variables, ObjectValue secrets) {
         val data = new PdpData(variables, secrets);
-        return new CompilationContext(data, FUNCTION_BROKER, ATTRIBUTE_BROKER);
+        return new CompilationContext(data, FUNCTION_BROKER);
     }
 
     public static EvaluationContext evaluationContext() {
         return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
-                FUNCTION_BROKER, ATTRIBUTE_BROKER);
-    }
-
-    public static EvaluationContext evaluationContext(AttributeBroker attributeBroker) {
-        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
-                FUNCTION_BROKER, attributeBroker);
+                FUNCTION_BROKER);
     }
 
     public static EvaluationContext evaluationContext(AuthorizationSubscription subscription) {
-        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER,
-                ATTRIBUTE_BROKER);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER);
     }
 
-    public static EvaluationContext evaluationContext(AuthorizationSubscription subscription,
-            AttributeBroker attributeBroker) {
-        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER,
-                attributeBroker);
-    }
-
-    public static EvaluationContext evaluationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
+    public static EvaluationContext evaluationContext(FunctionBroker functionBroker) {
         return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
-                functionBroker, attributeBroker);
+                functionBroker);
     }
 
     public static EvaluationContext subscriptionContext(String subscriptionJson) {
         val subscription = parseSubscription(subscriptionJson);
-        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER,
-                ATTRIBUTE_BROKER);
+        return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription, FUNCTION_BROKER);
     }
 
     public static EvaluationContext subscriptionContext() {
@@ -273,70 +245,6 @@ public class SaplTesting {
     // ========================================================================
     // BROKER FACTORIES
     // ========================================================================
-
-    public static AttributeBroker attributeBroker(String expectedName, Value... values) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                if (invocation.entity() instanceof UndefinedValue)
-                    return Flux.just(Value.error("Undefined entity in attribute access"));
-                if (invocation.attributeName().equals(expectedName))
-                    return Flux.fromArray(values);
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    public static AttributeBroker attributeBroker(Map<String, Value[]> attributes) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                val values = attributes.get(invocation.attributeName());
-                if (values != null)
-                    return Flux.fromArray(values);
-                return Flux.just(Value.error("Unknown attribute: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    public static AttributeBroker attributeBroker(Function<AttributeFinderInvocation, Flux<Value>> streamFn) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                return streamFn.apply(invocation);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
-
-    public static AttributeBroker trackingBroker(AtomicBoolean subscribed, Value returnValue) {
-        return new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                subscribed.set(true);
-                return Flux.just(returnValue);
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
-    }
 
     public static FunctionBroker functionBroker(String expectedName, Function<List<Value>, Value> fn) {
         return new FunctionBroker() {
@@ -407,11 +315,7 @@ public class SaplTesting {
     // ========================================================================
 
     public static CompiledExpression compileExpression(String expressionSource) {
-        return compileExpression(expressionSource, FUNCTION_BROKER, ATTRIBUTE_BROKER);
-    }
-
-    public static CompiledExpression compileExpression(String expressionSource, AttributeBroker attributeBroker) {
-        return compileExpression(expressionSource, FUNCTION_BROKER, attributeBroker);
+        return compileExpression(expressionSource, FUNCTION_BROKER);
     }
 
     public static CompiledExpression compileExpression(String expressionSource, CompilationContext ctx) {
@@ -419,10 +323,9 @@ public class SaplTesting {
         return ExpressionCompiler.compile(expression, ctx);
     }
 
-    public static CompiledExpression compileExpression(String expressionSource, FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
+    public static CompiledExpression compileExpression(String expressionSource, FunctionBroker functionBroker) {
         val expression = parseExpression(expressionSource);
-        val ctx        = new CompilationContext(functionBroker, attributeBroker);
+        val ctx        = new CompilationContext(functionBroker);
         return ExpressionCompiler.compile(expression, ctx);
     }
 
@@ -432,24 +335,16 @@ public class SaplTesting {
     }
 
     public static CompiledExpression evaluateExpression(String source, EvaluationContext ctx) {
-        val compiled = compileExpression(source, ctx.functionBroker(), ctx.attributeBroker());
+        val compiled = compileExpression(source, ctx.functionBroker());
         return evaluateCompiled(compiled, ctx);
     }
 
     public static CompiledExpression evaluateExpression(String source, FunctionBroker fnBroker,
             Map<String, Value> variables) {
         val vars     = toObjectValue(variables);
-        val ctx      = compilationContext(vars, fnBroker, ATTRIBUTE_BROKER);
+        val ctx      = compilationContext(vars, fnBroker);
         val compiled = compileExpression(source, ctx);
-        return evaluateCompiled(compiled, evaluationContext(fnBroker, ATTRIBUTE_BROKER));
-    }
-
-    public static CompiledExpression evaluateExpression(String source, FunctionBroker fnBroker,
-            AttributeBroker attrBroker, Map<String, Value> variables) {
-        val vars     = toObjectValue(variables);
-        val ctx      = compilationContext(vars, fnBroker, attrBroker);
-        val compiled = compileExpression(source, ctx);
-        return evaluateCompiled(compiled, evaluationContext(fnBroker, attrBroker));
+        return evaluateCompiled(compiled, evaluationContext(fnBroker));
     }
 
     private static CompiledExpression evaluateCompiled(CompiledExpression compiled, EvaluationContext ctx) {
@@ -474,10 +369,6 @@ public class SaplTesting {
         return compilePolicy(policySource, compilationContext());
     }
 
-    public static Voter compilePolicy(String policySource, AttributeBroker attrBroker) {
-        return compilePolicy(policySource, compilationContext(attrBroker));
-    }
-
     public static Voter compilePolicy(String policySource, CompilationContext ctx) {
         val policy = parsePolicy(policySource);
         return PolicyCompiler.compilePolicy(policy, ctx).applicabilityAndVote();
@@ -498,10 +389,6 @@ public class SaplTesting {
 
     public static CompiledPolicySet compilePolicySet(String source) {
         return compilePolicySet(source, compilationContext());
-    }
-
-    public static CompiledPolicySet compilePolicySet(String source, AttributeBroker attrBroker) {
-        return compilePolicySet(source, compilationContext(attrBroker));
     }
 
     public static CompiledPolicySet compilePolicySet(String source, CompilationContext ctx) {
@@ -782,42 +669,29 @@ public class SaplTesting {
     // pattern)
     // ========================================================================
 
-    public record TestContext(FunctionBroker functionBroker, AttributeBroker attributeBroker, ObjectValue variables) {
+    public record TestContext(FunctionBroker functionBroker, ObjectValue variables) {
 
-        public TestContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-            this(functionBroker, attributeBroker, Value.EMPTY_OBJECT);
+        public TestContext(FunctionBroker functionBroker) {
+            this(functionBroker, Value.EMPTY_OBJECT);
         }
 
         public CompilationContext compilationContext() {
             val data = new PdpData(variables, Value.EMPTY_OBJECT);
-            return new CompilationContext(data, functionBroker, attributeBroker);
+            return new CompilationContext(data, functionBroker);
         }
 
         public EvaluationContext evaluationContext() {
             return EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, DEFAULT_SUBSCRIPTION,
-                    functionBroker, attributeBroker);
+                    functionBroker);
         }
     }
 
     public static TestContext testContext(Map<String, Value> variables) {
-        return new TestContext(FUNCTION_BROKER, ATTRIBUTE_BROKER, toObjectValue(variables));
+        return new TestContext(FUNCTION_BROKER, toObjectValue(variables));
     }
 
     public static TestContext testContext(FunctionBroker fnBroker, Map<String, Value> variables) {
-        return new TestContext(fnBroker, ATTRIBUTE_BROKER, toObjectValue(variables));
-    }
-
-    public static TestContext testContext(FunctionBroker fnBroker, AttributeBroker attrBroker,
-            Map<String, Value> variables) {
-        return new TestContext(fnBroker, attrBroker, toObjectValue(variables));
-    }
-
-    public static TestContext testContext(AttributeBroker attrBroker, Map<String, Value> variables) {
-        return new TestContext(FUNCTION_BROKER, attrBroker, toObjectValue(variables));
-    }
-
-    public static TestContext testContext(AttributeBroker attrBroker, Value subject) {
-        return new TestContext(FUNCTION_BROKER, attrBroker, toObjectValue(Map.of("subject", subject)));
+        return new TestContext(fnBroker, toObjectValue(variables));
     }
 
     public static CompiledExpression evaluateExpression(String source, TestContext ctx) {
@@ -956,11 +830,11 @@ public class SaplTesting {
          */
         public ExpressionResult step() {
             if (compiled == null) {
-                val ctx = compilationContext(variables, functionBroker, ATTRIBUTE_BROKER);
+                val ctx = compilationContext(variables, functionBroker);
                 compiled = compileExpression(source, ctx);
             }
             val baseCtx = EvaluationContext.of(DEFAULT_PDP_ID, DEFAULT_CONFIG_ID, DEFAULT_SUB_ID, subscription,
-                    functionBroker, ATTRIBUTE_BROKER);
+                    functionBroker);
             return switch (compiled) {
             case Value v          -> new ExpressionResult(v, Map.of());
             case PureOperator p   -> new ExpressionResult(p.evaluate(baseCtx), Map.of());

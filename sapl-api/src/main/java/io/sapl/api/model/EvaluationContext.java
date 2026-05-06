@@ -19,7 +19,6 @@ package io.sapl.api.model;
 
 import java.util.Map;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.NonNull;
@@ -34,7 +33,6 @@ public record EvaluationContext(
         @NonNull String subscriptionId,
         @NonNull AuthorizationSubscription authorizationSubscription,
         @NonNull FunctionBroker functionBroker,
-        @NonNull AttributeBroker attributeBroker,
         @NonNull Value relativeValue,
         @NonNull Value relativeLocation,
         @NonNull Map<SubscriptionKey, AttributeSnapshot> snapshot) {
@@ -43,35 +41,31 @@ public record EvaluationContext(
      * Convenience constructor matching the pre-snapshot field shape.
      * The snapshot defaults to an empty map so existing callers do not
      * need to thread snapshot state through. The trigger loop uses the
-     * canonical 9-arg constructor to bind a populated snapshot.
+     * canonical 8-arg constructor to bind a populated snapshot.
      */
     public EvaluationContext(@NonNull String pdpId,
             @NonNull String configurationId,
             @NonNull String subscriptionId,
             @NonNull AuthorizationSubscription authorizationSubscription,
             @NonNull FunctionBroker functionBroker,
-            @NonNull AttributeBroker attributeBroker,
             @NonNull Value relativeValue,
             @NonNull Value relativeLocation) {
-        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, attributeBroker,
-                relativeValue, relativeLocation, Map.of());
+        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, relativeValue,
+                relativeLocation, Map.of());
     }
 
     private EvaluationContext(String pdpId,
             String configurationId,
             String subscriptionId,
             AuthorizationSubscription authorizationSubscription,
-            FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
-        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, attributeBroker,
-                Value.UNDEFINED, Value.UNDEFINED, Map.of());
+            FunctionBroker functionBroker) {
+        this(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker, Value.UNDEFINED,
+                Value.UNDEFINED, Map.of());
     }
 
     public static EvaluationContext of(String pdpId, String configurationId, String subscriptionId,
-            AuthorizationSubscription authorizationSubscription, FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
-        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                attributeBroker);
+            AuthorizationSubscription authorizationSubscription, FunctionBroker functionBroker) {
+        return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker);
     }
 
     public Value subject() {
@@ -104,12 +98,12 @@ public record EvaluationContext(
 
     public EvaluationContext withRelativeValue(Value relativeValue, Value relativeLocation) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                attributeBroker, relativeValue, relativeLocation, snapshot);
+                relativeValue, relativeLocation, snapshot);
     }
 
     public EvaluationContext withRelativeValue(Value relativeValue) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                attributeBroker, relativeValue, Value.UNDEFINED, snapshot);
+                relativeValue, Value.UNDEFINED, snapshot);
     }
 
     /**
@@ -124,7 +118,7 @@ public record EvaluationContext(
      */
     public EvaluationContext withSnapshot(Map<SubscriptionKey, AttributeSnapshot> snapshot) {
         return new EvaluationContext(pdpId, configurationId, subscriptionId, authorizationSubscription, functionBroker,
-                attributeBroker, relativeValue, relativeLocation, snapshot);
+                relativeValue, relativeLocation, snapshot);
     }
 
     public @Nullable Value lookup(SubscriptionKey key) {

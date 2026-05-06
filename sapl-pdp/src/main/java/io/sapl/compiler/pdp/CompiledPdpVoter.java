@@ -17,40 +17,35 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.*;
+import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.document.Voter;
 import lombok.val;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.function.Supplier;
 
 public record CompiledPdpVoter(
         PdpVoterMetadata voterMetadata,
         Voter pdpVoter,
-        Flux<VoteWithCoverage> coverageStream,
-        AttributeBroker attributeBroker,
         FunctionBroker functionBroker,
         Supplier<String> timestampSupplier) {
 
+    private static final String ERROR_STREAMING_COVERAGE_NOT_YET_IMPLEMENTED = "PDP-level streaming voteWithCoverage not yet implemented";
+    private static final String ERROR_STREAMING_NOT_YET_IMPLEMENTED = "PDP-level streaming vote not yet implemented";
     private static final String ERROR_VOTER_PRODUCED_NO_DECISION = "Voter produced no decision.";
 
     public TimestampedVote voteOnce(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
-        if (pdpVoter instanceof Vote vote) {
-            return new TimestampedVote(vote, timestampSupplier.get());
+        val vote = pdpVoter.evaluate(evaluationContext(authorizationSubscription, subscriptionId)).vote();
+        if (vote == null) {
+            return indeterminateVote();
         }
-        val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
-        if (pdpVoter instanceof PureVoter pureVoter) {
-            return new TimestampedVote(pureVoter.vote(evaluationContext), timestampSupplier.get());
-        }
-        return ((StreamVoter) pdpVoter).vote()
-                .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext)).next()
-                .map(vote -> new TimestampedVote(vote, timestampSupplier.get()))
-                .switchIfEmpty(Mono.fromSupplier(this::indeterminateVote)).block();
+        return new TimestampedVote(vote, timestampSupplier.get());
     }
 
     private TimestampedVote indeterminateVote() {
@@ -59,27 +54,26 @@ public record CompiledPdpVoter(
         return new TimestampedVote(vote, timestampSupplier.get());
     }
 
+    // TODO: implement PDP-level streaming vote pipeline (snapshot trigger
+    // loop wrapped in Flux at the boundary). Until then, only one-shot
+    // evaluations whose snapshot completes synchronously are supported.
     public Flux<TimestampedVote> vote(AuthorizationSubscription authorizationSubscription, String subscriptionId) {
-        if (pdpVoter instanceof Vote vote) {
-            return Flux.just(new TimestampedVote(vote, timestampSupplier.get()));
+        val vote = pdpVoter.evaluate(evaluationContext(authorizationSubscription, subscriptionId)).vote();
+        if (vote == null) {
+            return Flux.error(new UnsupportedOperationException(ERROR_STREAMING_NOT_YET_IMPLEMENTED));
         }
-        val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
-        if (pdpVoter instanceof PureVoter pureVoter) {
-            return Flux.just(new TimestampedVote(pureVoter.vote(evaluationContext), timestampSupplier.get()));
-        }
-        return ((StreamVoter) pdpVoter).vote().map(vote -> new TimestampedVote(vote, timestampSupplier.get()))
-                .contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
+        return Flux.just(new TimestampedVote(vote, timestampSupplier.get()));
     }
 
+    // TODO: implement PDP-level streaming voteWithCoverage pipeline.
     public Flux<VoteWithCoverage> voteWithCoverage(AuthorizationSubscription authorizationSubscription,
             String subscriptionId) {
-        val evaluationContext = evaluationContext(authorizationSubscription, subscriptionId);
-        return coverageStream().contextWrite(ctxView -> ctxView.put(EvaluationContext.class, evaluationContext));
+        return Flux.error(new UnsupportedOperationException(ERROR_STREAMING_COVERAGE_NOT_YET_IMPLEMENTED));
     }
 
     private EvaluationContext evaluationContext(AuthorizationSubscription authorizationSubscription,
             String subscriptionId) {
         return EvaluationContext.of(voterMetadata().pdpId(), voterMetadata.configurationId(), subscriptionId,
-                authorizationSubscription, functionBroker, attributeBroker);
+                authorizationSubscription, functionBroker);
     }
 }

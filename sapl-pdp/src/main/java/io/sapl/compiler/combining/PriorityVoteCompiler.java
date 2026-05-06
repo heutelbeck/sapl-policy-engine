@@ -68,8 +68,6 @@ import static io.sapl.compiler.policyset.PolicySetUtil.ERROR_UNEXPECTED_STREAM_I
 @UtilityClass
 public class PriorityVoteCompiler {
 
-    private static final String ERROR_PDP_LEVEL_COVERAGE_NOT_YET_IMPLEMENTED = "PDP-level coverage stream for PRIORITY not yet implemented";
-
     public static VoterAndCoverage compilePolicySet(PolicySet policySet,
             List<? extends CompiledDocument> compiledPolicies, CompiledExpression isApplicable,
             VoterMetadata voterMetadata, Decision priorityDecision, DefaultDecision defaultDecision,
@@ -79,17 +77,6 @@ public class PriorityVoteCompiler {
         val coverageVoter = compileCoverageVoter(policySet, isApplicable, compiledPolicies, voterMetadata,
                 priorityDecision, defaultDecision, errorHandling);
         return new VoterAndCoverage(voter, coverageVoter);
-    }
-
-    /**
-     * PDP-level coverage stream entry point. PDP-level coverage via
-     * {@link CoverageVoter} is not yet implemented; callers fail loudly.
-     */
-    // TODO: implement PDP-level CoverageVoter wiring for PRIORITY.
-    public static Flux<VoteWithCoverage> compileCoverageStream(List<? extends CompiledDocument> compiledPolicies,
-            VoterMetadata voterMetadata, Decision priorityDecision, DefaultDecision defaultDecision,
-            ErrorHandling errorHandling) {
-        return Flux.error(new UnsupportedOperationException(ERROR_PDP_LEVEL_COVERAGE_NOT_YET_IMPLEMENTED));
     }
 
     /**

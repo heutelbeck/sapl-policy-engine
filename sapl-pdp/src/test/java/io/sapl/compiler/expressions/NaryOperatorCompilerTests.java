@@ -339,8 +339,7 @@ class NaryOperatorCompilerTests {
 
         @Test
         void whenValuesAndStreamThenReturnsStreamOperator() {
-            var broker   = attributeBroker("test.attr", of(10));
-            var compiled = compileExpression("1 + <test.attr> + 2", broker);
+            var compiled = compileExpression("1 + <test.attr> + 2");
             assertThat(compiled).isInstanceOf(StreamOperator.class);
         }
 
