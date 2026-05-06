@@ -76,7 +76,7 @@ class ResourcesPDPConfigurationSourceTests {
             assertThat(config.saplDocuments()).hasSize(1);
         });
 
-        source.dispose();
+        source.close();
     }
 
     @Test
@@ -98,7 +98,7 @@ class ResourcesPDPConfigurationSourceTests {
         assertThat(developmentConfig.combiningAlgorithm()).isEqualTo(PERMIT_UNLESS_DENY);
         assertThat(developmentConfig.saplDocuments()).hasSize(1);
 
-        source.dispose();
+        source.close();
     }
 
     @Test
@@ -118,7 +118,7 @@ class ResourcesPDPConfigurationSourceTests {
         val tenantConfig = configs.stream().filter(c -> "tenant-a".equals(c.pdpId())).findFirst().orElseThrow();
         assertThat(tenantConfig.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES);
 
-        source.dispose();
+        source.close();
     }
 
     @ParameterizedTest(name = "path \"{0}\" with no configurations fails fast")
@@ -139,7 +139,7 @@ class ResourcesPDPConfigurationSourceTests {
         assertThat(configs.getFirst().configurationId()).startsWith("res:");
         assertThat(configs.getFirst().configurationId()).contains("@sha256:");
 
-        source.dispose();
+        source.close();
     }
 
     @ParameterizedTest(name = "path \"{0}\" should load single-pdp-policies")
@@ -152,7 +152,7 @@ class ResourcesPDPConfigurationSourceTests {
 
         assertThat(configs).isNotEmpty().first().extracting(PDPConfiguration::pdpId).isEqualTo("default");
 
-        source.dispose();
+        source.close();
     }
 
     @Test
@@ -161,11 +161,11 @@ class ResourcesPDPConfigurationSourceTests {
 
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
 
-        source.dispose();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -174,10 +174,10 @@ class ResourcesPDPConfigurationSourceTests {
 
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies", pdpVoterSource);
 
-        source.dispose();
-        source.dispose();
+        source.close();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
 }

@@ -92,7 +92,7 @@ class BundlePDPConfigurationSourceTests {
     @AfterEach
     void tearDown() {
         if (source != null) {
-            source.dispose();
+            source.close();
         }
     }
 
@@ -283,11 +283,11 @@ class BundlePDPConfigurationSourceTests {
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
 
-        source.dispose();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -302,10 +302,10 @@ class BundlePDPConfigurationSourceTests {
 
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
 
-        source.dispose();
-        source.dispose();
+        source.close();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -546,7 +546,7 @@ class BundlePDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
 
-        source.dispose();
+        source.close();
 
         // Modify existing bundle and add new bundle after dispose
         createBundle(bundlePath,

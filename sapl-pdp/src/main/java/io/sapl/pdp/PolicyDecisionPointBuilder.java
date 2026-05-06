@@ -32,15 +32,14 @@ import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
-import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.*;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.Disposable;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
@@ -50,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -81,68 +79,15 @@ import java.util.function.Function;
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withResourcesSource("/policies").build();
  * }</pre>
  *
- * <h2>Spring Integration</h2>
+ * <h2>Lifecycle</h2>
  * <p>
- * When using a configuration source that monitors directories for changes,
- * ensure the source is disposed when the
- * application shuts down. The {@link PDPComponents#source()} method returns the
- * source (if any) which can be disposed
- * directly.
+ * Call {@link PDPComponents#dispose()} when shutting down. It releases
+ * the timestamp clock thread and closes the configuration source.
  * </p>
- * <p>
- * Spring does not automatically call {@code dispose()} on Reactor's
- * {@link reactor.core.Disposable} interface. When
- * exposing a configuration source as a Spring bean, explicitly specify the
- * destroy method:
- * </p>
- *
- * <pre>
- * {
- *     &#64;code
- *     &#64;Configuration
- *     public class PdpConfiguration {
- *
- *         &#64;Bean
- *         public PDPComponents pdpComponents() {
- *             return PolicyDecisionPointBuilder.withDefaults().build();
- *         }
- *
- *         &#64;Bean(destroyMethod = "dispose")
- *         public Disposable policySource(PdpVoterSource voterSource) {
- *             return new DirectoryPDPConfigurationSource(Path.of("/policies"), voterSource);
- *         }
- *     }
- * }
- * </pre>
- * <p>
- * Alternatively, use {@code @PreDestroy} to dispose the source:
- * </p>
- *
- * <pre>
- * {@code
- * &#64;Component
- * public class PdpLifecycle {
- *
- *     private final PDPComponents components;
- *
- *     public PdpLifecycle() {
- *         this.components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies"))
- *                 .build();
- *     }
- *
- *     @PreDestroy
- *     public void cleanup() {
- *         var source = components.source();
- *         if (source != null) {
- *             source.dispose();
- *         }
- *     }
- * }
- * }
- * </pre>
  *
  * @see PDPComponents
  */
+@Slf4j
 public class PolicyDecisionPointBuilder {
 
     private final JsonMapper mapper;
@@ -165,13 +110,12 @@ public class PolicyDecisionPointBuilder {
 
     private final List<VoteInterceptor> interceptors = new ArrayList<>();
 
-    private Function<PdpVoterSource, Disposable> sourceFactory;
-    private final List<PDPConfiguration>         initialConfigurations = new ArrayList<>();
+    private PDPConfigurationSource       configurationSource;
+    private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
 
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private static final String ERROR_INITIAL_CONFIG_FAILED     = "Initial PDP configuration failed for '%s': %s";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper, Clock clock) {
@@ -488,11 +432,11 @@ public class PolicyDecisionPointBuilder {
      * @throws IllegalStateException
      * if a configuration source has already been registered
      */
-    public PolicyDecisionPointBuilder withConfigurationSource(Function<PdpVoterSource, Disposable> sourceFactory) {
-        if (this.sourceFactory != null) {
+    public PolicyDecisionPointBuilder withConfigurationSource(PDPConfigurationSource configurationSource) {
+        if (this.configurationSource != null) {
             throw new IllegalStateException(ERROR_SOURCE_ALREADY_REGISTERED);
         }
-        this.sourceFactory = sourceFactory;
+        this.configurationSource = configurationSource;
         return this;
     }
 
@@ -507,7 +451,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withDirectorySource(Path directoryPath) {
-        return withConfigurationSource(voterSource -> new DirectoryPDPConfigurationSource(directoryPath, voterSource));
+        return withConfigurationSource(new DirectoryPDPConfigurationSource(directoryPath));
     }
 
     /**
@@ -526,8 +470,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withDirectorySource(Path directoryPath, String pdpId) {
-        return withConfigurationSource(
-                voterSource -> new DirectoryPDPConfigurationSource(directoryPath, pdpId, voterSource));
+        return withConfigurationSource(new DirectoryPDPConfigurationSource(directoryPath, pdpId));
     }
 
     /**
@@ -545,8 +488,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath) {
-        return withConfigurationSource(
-                voterSource -> new MultiDirectoryPDPConfigurationSource(directoryPath, voterSource));
+        return withConfigurationSource(new MultiDirectoryPDPConfigurationSource(directoryPath));
     }
 
     /**
@@ -565,8 +507,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath, boolean includeRootFiles) {
-        return withConfigurationSource(
-                voterSource -> new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles, voterSource));
+        return withConfigurationSource(new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles));
     }
 
     /**
@@ -593,8 +534,7 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withBundleDirectorySource(Path bundleDirectoryPath,
             BundleSecurityPolicy securityPolicy) {
-        return withConfigurationSource(
-                voterSource -> new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy, voterSource));
+        return withConfigurationSource(new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy));
     }
 
     /**
@@ -608,7 +548,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withRemoteBundleSource(RemoteBundleSourceConfig config) {
-        return withConfigurationSource(voterSource -> new RemoteBundlePDPConfigurationSource(config, voterSource));
+        return withConfigurationSource(new RemoteBundlePDPConfigurationSource(config));
     }
 
     /**
@@ -628,7 +568,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withResourcesSource(String resourcePath) {
-        return withConfigurationSource(voterSource -> new ResourcesPDPConfigurationSource(resourcePath, voterSource));
+        return withConfigurationSource(new ResourcesPDPConfigurationSource(resourcePath));
     }
 
     /**
@@ -642,7 +582,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withResourcesSource() {
-        return withConfigurationSource(ResourcesPDPConfigurationSource::new);
+        return withConfigurationSource(new ResourcesPDPConfigurationSource());
     }
 
     /**
@@ -801,25 +741,20 @@ public class PolicyDecisionPointBuilder {
             initialConfigurations.add(config);
         }
 
-        // Load initial configurations
+        // Load initial configurations: false signals fail-fast on compile error,
+        // propagating PDPConfigurationException to the build() caller.
         for (val config : initialConfigurations) {
             configurationRegister.loadConfiguration(config, false);
         }
 
-        for (val entry : configurationRegister.getAllPdpStatuses().entrySet()) {
-            if (entry.getValue().state() == PdpState.ERROR) {
-                throw new IllegalStateException(
-                        ERROR_INITIAL_CONFIG_FAILED.formatted(entry.getKey(), entry.getValue().lastError()));
-            }
+        if (configurationSource != null) {
+            // Subscribe propagates source-side compile errors via the same
+            // fail-fast path when the source emits Load with keepOldOnError=false.
+            configurationSource.subscribe(configurationRegister::handle);
         }
 
-        Disposable source = null;
-        if (sourceFactory != null) {
-            source = sourceFactory.apply(configurationRegister);
-        }
-
-        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, source, timestampClock,
-                sortedInterceptors);
+        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, configurationSource,
+                timestampClock, sortedInterceptors);
     }
 
     private FunctionBroker resolveFunctionBroker() {
@@ -885,50 +820,33 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Contains all components created by the PDP builder.
-     * <p>
-     * This is a simple data carrier (tuple) providing access to the built
-     * components. Resources that require cleanup
-     * (configuration source and timestamp clock) should be disposed when the PDP is
-     * no longer needed.
-     * </p>
-     * <h2>Resource Management</h2>
-     * <p>
-     * Use the {@link #dispose()} method to clean up all disposable resources:
-     * </p>
-     *
-     * <pre>{@code
-     * var components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies")).build();
-     *
-     * // ... use the PDP ...
-     *
-     * // Cleanup all resources
-     * components.dispose();
-     * }</pre>
+     * Components created by the builder. Call {@link #dispose()} on
+     * shutdown to release the timestamp clock thread and close the
+     * configuration source.
      */
     public record PDPComponents(
             PolicyDecisionPoint pdp,
             PdpVoterSource pdpVoterSource,
             FunctionBroker functionBroker,
             AttributeBroker attributeBroker,
-            @Nullable Disposable source,
+            @Nullable PDPConfigurationSource source,
             LazyFastClock timestampClock,
             List<VoteInterceptor> sortedInterceptors) {
 
         /**
-         * Disposes all resources held by this PDP instance.
-         * <p>
-         * This method should be called when the PDP is no longer needed to ensure clean
-         * application shutdown. It closes
-         * the timestamp clock's background thread and disposes any configuration source
-         * file watchers.
+         * Releases the timestamp clock and closes the configuration
+         * source. Call once on shutdown.
          */
         public void dispose() {
             if (timestampClock != null) {
                 timestampClock.close();
             }
             if (source != null) {
-                source.dispose();
+                try {
+                    source.close();
+                } catch (Exception e) {
+                    log.warn("Error closing configuration source: {}", e.getMessage());
+                }
             }
         }
     }

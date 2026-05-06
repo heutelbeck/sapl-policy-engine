@@ -70,7 +70,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
     @AfterEach
     void tearDown() {
         if (source != null) {
-            source.dispose();
+            source.close();
         }
     }
 
@@ -304,11 +304,11 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
 
-        source.dispose();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -319,10 +319,10 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        source.dispose();
-        source.dispose();
+        source.close();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -527,7 +527,7 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
 
-        source.dispose();
+        source.close();
 
         // Try to add a subdirectory after dispose
         val newDir = tempDir.resolve("after-dispose");
@@ -552,14 +552,14 @@ class MultiDirectoryPDPConfigurationSourceTests {
 
         source = new MultiDirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        source.dispose();
+        source.close();
 
         // Delete the subdirectory after dispose
         deleteDirectory(removable);
 
         // Wait a bit - no crash should occur
         await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-            assertThat(source.isDisposed()).isTrue();
+            assertThat(source.isClosed()).isTrue();
         });
     }
 

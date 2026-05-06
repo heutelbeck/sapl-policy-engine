@@ -29,6 +29,7 @@ import io.sapl.api.pdp.PDPConfiguration;
 import io.sapl.api.pdp.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.source.DirectoryPDPConfigurationSource;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -173,13 +174,13 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults().withDirectorySource(policyDir, DEFAULT_PDP_ID)
                 .build();
 
-        val source = components.source();
+        val source = (DirectoryPDPConfigurationSource) components.source();
         assertThat(source).isNotNull();
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
 
-        source.dispose();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -332,10 +333,10 @@ class PolicyDecisionPointBuilderTests {
         disposeSource(components);
     }
 
-    private void disposeSource(PDPComponents components) {
+    private void disposeSource(PDPComponents components) throws Exception {
         val source = components.source();
         if (source != null) {
-            source.dispose();
+            source.close();
         }
     }
 }

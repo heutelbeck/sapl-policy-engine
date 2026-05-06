@@ -89,7 +89,7 @@ class RemoteBundlePDPConfigurationSourceTests {
     @AfterEach
     void tearDown() throws IOException {
         if (source != null) {
-            source.dispose();
+            source.close();
         }
         server.shutdown();
     }
@@ -219,7 +219,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             // Source stays alive and retries without crashing
             await().pollDelay(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-                assertThat(source.isDisposed()).isFalse();
+                assertThat(source.isClosed()).isFalse();
                 verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
             });
         }
@@ -450,7 +450,7 @@ class RemoteBundlePDPConfigurationSourceTests {
                     .untilAsserted(() -> assertThat(configs).hasSize(1));
 
             // Source is still alive (not disposed by errors)
-            assertThat(source.isDisposed()).isFalse();
+            assertThat(source.isClosed()).isFalse();
         }
 
         @Test
@@ -530,7 +530,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             source = new RemoteBundlePDPConfigurationSource(config, pdpVoterSource);
 
             await().pollDelay(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-                assertThat(source.isDisposed()).isFalse();
+                assertThat(source.isClosed()).isFalse();
                 verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
             });
         }
@@ -788,7 +788,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
 
-            source.dispose();
+            source.close();
             val requestCountAfterDispose = server.getRequestCount();
 
             // Verify request count stays stable after dispose
@@ -809,9 +809,9 @@ class RemoteBundlePDPConfigurationSourceTests {
                     .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(1));
 
             // Dispose while fetch is in flight
-            source.dispose();
+            source.close();
 
-            assertThat(source.isDisposed()).isTrue();
+            assertThat(source.isClosed()).isTrue();
             verify(pdpVoterSource, never()).loadConfiguration(any(), eq(true));
         }
 
@@ -826,10 +826,10 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
 
-            source.dispose();
-            source.dispose(); // Should not throw
+            source.close();
+            source.close(); // Should not throw
 
-            assertThat(source.isDisposed()).isTrue();
+            assertThat(source.isClosed()).isTrue();
         }
 
         @Test
@@ -844,13 +844,13 @@ class RemoteBundlePDPConfigurationSourceTests {
             await().atMost(Duration.ofSeconds(2))
                     .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2));
 
-            source.dispose();
+            source.close();
             val requestCountAfterDispose = server.getRequestCount();
 
             await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofSeconds(2)).untilAsserted(
                     () -> assertThat(server.getRequestCount()).isLessThanOrEqualTo(requestCountAfterDispose + 1));
 
-            assertThat(source.isDisposed()).isTrue();
+            assertThat(source.isClosed()).isTrue();
         }
     }
 

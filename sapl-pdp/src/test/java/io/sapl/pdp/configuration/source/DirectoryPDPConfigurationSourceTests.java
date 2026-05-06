@@ -71,7 +71,7 @@ class DirectoryPDPConfigurationSourceTests {
     @AfterEach
     void tearDown() {
         if (source != null) {
-            source.dispose();
+            source.close();
         }
     }
 
@@ -178,7 +178,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
     }
 
     @Test
@@ -251,11 +251,11 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
 
-        source.dispose();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -267,17 +267,17 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        source.dispose();
-        source.dispose();
+        source.close();
+        source.close();
 
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
     void whenEmptyDirectoryThenInitialLoadFailsButMonitorContinues() {
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
     }
 
     @Test
@@ -336,7 +336,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
     }
 
     @Test
@@ -348,7 +348,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
     }
 
     @Test
@@ -426,7 +426,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         assertThat(configs).hasSize(1);
 
-        source.dispose();
+        source.close();
 
         // Modify, delete, and add files after dispose
         createFile(policyFile, "policy \"modified\" deny true;");
@@ -447,7 +447,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         source = new DirectoryPDPConfigurationSource(tempDir, pdpVoterSource);
 
-        assertThat(source.isDisposed()).isFalse();
+        assertThat(source.isClosed()).isFalse();
     }
 
     private static Stream<Arguments> whenPdpJsonIsInvalidThenSourceCreatesWithoutConfiguration() {

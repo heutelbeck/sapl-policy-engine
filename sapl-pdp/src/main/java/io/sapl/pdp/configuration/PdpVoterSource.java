@@ -25,6 +25,7 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.compiler.util.CompilationErrorFormatter;
+import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -76,7 +78,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class PdpVoterSource {
+public class PdpVoterSource implements AutoCloseable {
+
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     @Getter
     private final FunctionBroker  functionBroker;
@@ -109,14 +113,22 @@ public class PdpVoterSource {
      * the configuration immediately available to both synchronous and reactive
      * readers.
      * <p>
-     * This method never throws. On compilation failure, the PDP transitions to
-     * either STALE (if {@code keepOldConfigOnError} is true and a valid config
-     * exists) or ERROR (storing an error voter that returns INDETERMINATE).
-     * </p>
+     * On compilation failure:
+     * <ul>
+     * <li>{@code keepOldConfigOnError == true}: the PDP transitions to STALE
+     * (if a valid config exists) or stores an error voter; this method does
+     * not throw.</li>
+     * <li>{@code keepOldConfigOnError == false}: this method throws
+     * {@link PDPConfigurationException} wrapping the compilation error. No
+     * state is changed.</li>
+     * </ul>
      *
      * @param pdpConfiguration the configuration to load
      * @param keepOldConfigOnError if true, retains existing configuration on
-     * compilation errors
+     * compilation errors and does not throw; if false, propagates the
+     * compilation error to the caller
+     * @throws PDPConfigurationException if {@code keepOldConfigOnError} is
+     * false and compilation fails
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
@@ -127,9 +139,12 @@ public class PdpVoterSource {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);
         } catch (SaplCompilerException compilerException) {
             val formattedError = CompilationErrorFormatter.format(compilerException);
-            val now            = clock.instant();
-            val currentState   = getStatusRef(pdpConfiguration.pdpId()).get().state();
-            if (keepOldConfigOnError && (currentState == PdpState.LOADED || currentState == PdpState.STALE)) {
+            if (!keepOldConfigOnError) {
+                throw new PDPConfigurationException(formattedError, compilerException);
+            }
+            val now          = clock.instant();
+            val currentState = getStatusRef(pdpConfiguration.pdpId()).get().state();
+            if (currentState == PdpState.LOADED || currentState == PdpState.STALE) {
                 getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.STALE,
                         current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
                         current.lastSuccessfulLoad(), now, formattedError));
@@ -153,6 +168,29 @@ public class PdpVoterSource {
         val now = clock.instant();
         getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.LOADED, pdpConfiguration.configurationId(),
                 pdpConfiguration.combiningAlgorithm(), pdpConfiguration.saplDocuments().size(), now, null, null));
+    }
+
+    /**
+     * Dispatches a {@link PDPConfigurationSource.ConfigurationEvent} to the
+     * appropriate operation: {@link ConfigurationEvent.Load} maps to
+     * {@link #loadConfiguration(PDPConfiguration, boolean)},
+     * {@link ConfigurationEvent.Remove} maps to
+     * {@link #removeConfigurationForPdp(String)}.
+     * <p>
+     * Used as the subscribe-callback bridge between
+     * {@link PDPConfigurationSource} producers and this voter source.
+     *
+     * @param event the configuration event to dispatch
+     * @throws PDPConfigurationException if the event is a
+     * {@link ConfigurationEvent.Load} with {@code keepOldOnError == false}
+     * and the configuration fails to compile
+     */
+    public void handle(ConfigurationEvent event) {
+        switch (event) {
+        case ConfigurationEvent.Load(var configuration, var keepOldOnError) ->
+            loadConfiguration(configuration, keepOldOnError);
+        case ConfigurationEvent.Remove(var pdpId)                           -> removeConfigurationForPdp(pdpId);
+        }
     }
 
     /**

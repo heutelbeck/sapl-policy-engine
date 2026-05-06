@@ -18,8 +18,8 @@
 package io.sapl.pdp.configuration.source;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -38,8 +38,10 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import static io.sapl.pdp.configuration.source.RemoteBundleSourceConfig.FetchMode.LONG_POLL;
 
@@ -50,8 +52,8 @@ import static io.sapl.pdp.configuration.source.RemoteBundleSourceConfig.FetchMod
  * For each configured PDP ID, an independent fetch loop runs concurrently.
  * Change detection uses HTTP conditional requests (ETag / If-None-Match).
  * Bundle parsing and signature verification are delegated to
- * {@link BundleParser}. Configuration loading is delegated to
- * {@link PdpVoterSource}.
+ * {@link BundleParser}. Fetched bundles are emitted as
+ * {@link ConfigurationEvent.Load} to subscribers.
  * </p>
  * <h2>Fetch Loop</h2>
  * <p>
@@ -67,10 +69,9 @@ import static io.sapl.pdp.configuration.source.RemoteBundleSourceConfig.FetchMod
  *
  * @see RemoteBundleSourceConfig
  * @see BundleParser
- * @see PdpVoterSource
  */
 @Slf4j
-public final class RemoteBundlePDPConfigurationSource implements Disposable {
+public final class RemoteBundlePDPConfigurationSource implements PDPConfigurationSource {
 
     private static final String BUNDLE_EXTENSION          = ".saplbundle";
     private static final String ERROR_EMPTY_RESPONSE_BODY = "Server returned 200 with empty body.";
@@ -83,34 +84,43 @@ public final class RemoteBundlePDPConfigurationSource implements Disposable {
     private static final Duration LONG_POLL_TIMEOUT_BUFFER = Duration.ofSeconds(5);
 
     private final RemoteBundleSourceConfig          config;
-    private final PdpVoterSource                    pdpVoterSource;
     private final WebClient                         webClient;
     private final ConcurrentHashMap<String, String> etags         = new ConcurrentHashMap<>();
     private final Disposable.Composite              subscriptions = Disposables.composite();
-    private final AtomicBoolean                     disposed      = new AtomicBoolean(false);
+    private final Set<Consumer<ConfigurationEvent>> subscribers   = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                     activated     = new AtomicBoolean(false);
+    private final AtomicBoolean                     closed        = new AtomicBoolean(false);
 
     /**
-     * Creates a remote bundle source and starts fetch loops for all configured
-     * PDP IDs.
+     * Creates a remote bundle source.
      *
-     * @param config
-     * the remote bundle configuration
-     * @param pdpVoterSource
-     * the voter source to load configurations into
-     *
-     * @throws NullPointerException
-     * if any parameter is null
-     * @throws io.sapl.pdp.configuration.bundle.BundleSignatureException
-     * if the security policy is invalid
+     * @param config the remote bundle configuration
+     * @throws NullPointerException if {@code config} is null
+     * @throws io.sapl.pdp.configuration.bundle.BundleSignatureException if
+     * the security policy is invalid
      */
-    public RemoteBundlePDPConfigurationSource(RemoteBundleSourceConfig config, PdpVoterSource pdpVoterSource) {
-        this.config         = Objects.requireNonNull(config, "config");
-        this.pdpVoterSource = Objects.requireNonNull(pdpVoterSource, "pdpVoterSource");
+    public RemoteBundlePDPConfigurationSource(@NonNull RemoteBundleSourceConfig config) {
+        this.config = Objects.requireNonNull(config, "config");
 
         config.securityPolicy().validate();
 
         this.webClient = buildWebClient();
-        startFetchLoops();
+    }
+
+    @Override
+    public void subscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        if (closed.get()) {
+            return;
+        }
+        subscribers.add(listener);
+        if (activated.compareAndSet(false, true)) {
+            startFetchLoops();
+        }
+    }
+
+    @Override
+    public void unsubscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        subscribers.remove(listener);
     }
 
     /**
@@ -120,21 +130,26 @@ public final class RemoteBundlePDPConfigurationSource implements Disposable {
      * </p>
      */
     @Override
-    public void dispose() {
-        if (disposed.compareAndSet(false, true)) {
+    public void close() {
+        if (closed.compareAndSet(false, true)) {
             subscriptions.dispose();
-            log.debug("Disposed remote bundle configuration source.");
+            subscribers.clear();
+            log.debug("Closed remote bundle configuration source.");
         }
     }
 
-    /**
-     * Returns whether this source has been disposed.
-     *
-     * @return {@code true} if {@link #dispose()} has been called
-     */
     @Override
-    public boolean isDisposed() {
-        return disposed.get();
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    private void emit(ConfigurationEvent event) {
+        if (closed.get()) {
+            return;
+        }
+        for (val subscriber : subscribers) {
+            subscriber.accept(event);
+        }
     }
 
     private WebClient buildWebClient() {
@@ -204,7 +219,7 @@ public final class RemoteBundlePDPConfigurationSource implements Disposable {
     private void loadBundle(String pdpId, byte[] bundleBytes, @Nullable String etag) {
         val effectivePdpId = stripBundleExtension(pdpId);
         val configuration  = BundleParser.parse(bundleBytes, effectivePdpId, config.securityPolicy());
-        pdpVoterSource.loadConfiguration(configuration, true);
+        emit(new ConfigurationEvent.Load(configuration, true));
         if (etag != null) {
             etags.put(pdpId, etag);
         }
