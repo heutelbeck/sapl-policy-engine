@@ -20,20 +20,24 @@ package io.sapl.reactive.pdp;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.pdp.IdFactory;
-import io.sapl.pdp.VoteInterceptor;
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
+import io.sapl.pdp.IdFactory;
+import io.sapl.pdp.VoteInterceptor;
+import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.pdp.configuration.PdpVoterSource;
+import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoint {
 
@@ -89,7 +93,7 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
      */
     public Flux<TimestampedVote> gatherVotes(AuthorizationSubscription authorizationSubscription, String pdpId) {
         val subscriptionId = idFactory.newRandom();
-        return pdpConfigurationSource.getPDPConfigurations(pdpId)
+        return configFlux(pdpId)
                 .switchMap(optionalConfig -> optionalConfig
                         .map(config -> config.vote(authorizationSubscription, subscriptionId))
                         .orElseGet(() -> Flux.just(noConfigurationVote(pdpId))))
@@ -132,10 +136,32 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
      */
     public Flux<VoteWithCoverage> coverageStream(AuthorizationSubscription authorizationSubscription, String pdpId) {
         val subscriptionId = idFactory.newRandom();
-        return pdpConfigurationSource.getPDPConfigurations(pdpId)
-                .switchMap(optionalConfig -> optionalConfig
-                        .map(config -> config.voteWithCoverage(authorizationSubscription, subscriptionId))
-                        .orElseGet(Flux::empty));
+        return configFlux(pdpId).switchMap(optionalConfig -> optionalConfig
+                .map(config -> config.voteWithCoverage(authorizationSubscription, subscriptionId))
+                .orElseGet(Flux::empty));
+    }
+
+    /**
+     * Bridges the non-reactive {@link PdpVoterSource} update API to a Reactor
+     * {@link Flux}. The flux emits the current configuration immediately
+     * upon subscription, then every subsequent change. The bridge subscribes
+     * the listener before reading the snapshot so an update emitted between
+     * the two operations is not lost (an occasional duplicate can arrive,
+     * which downstream stages treat as a regular update).
+     *
+     * @param pdpId the PDP identifier to observe
+     * @return a flux of configuration snapshots
+     */
+    private Flux<Optional<CompiledPdpVoter>> configFlux(String pdpId) {
+        return Flux.create(sink -> {
+            Consumer<PdpUpdateEvent> listener = event -> sink.next(switch (event) {
+            case PdpUpdateEvent.Voter(var ignoredId, var voter) -> Optional.of(voter);
+            case PdpUpdateEvent.Removed ignored                 -> Optional.empty();
+            });
+            sink.onCancel(() -> pdpConfigurationSource.unsubscribeFromUpdates(pdpId, listener));
+            pdpConfigurationSource.subscribeToUpdates(pdpId, listener);
+            sink.next(pdpConfigurationSource.getCurrentConfiguration(pdpId));
+        });
     }
 
     private static TimestampedVote noConfigurationVote(String pdpId) {

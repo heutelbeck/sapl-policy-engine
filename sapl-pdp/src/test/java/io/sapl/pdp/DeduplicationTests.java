@@ -25,6 +25,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
+import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
@@ -37,6 +38,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
@@ -223,19 +225,21 @@ class DeduplicationTests {
                 """;
 
         @Test
-        @DisplayName("config source distinctUntilChanged does not suppress duplicate compilation")
+        @DisplayName("config source notifies listeners on every reload, including duplicates")
         void whenSameConfigReloadedThenConfigSourceEmitsBothCompilations() {
             val mapper      = JsonMapper.builder().build();
             val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);
 
+            val received = new CopyOnWriteArrayList<PdpUpdateEvent>();
+            voterSource.subscribeToUpdates("default", received::add);
+
+            voterSource.loadConfiguration(config, false);
             voterSource.loadConfiguration(config, false);
 
-            StepVerifier.create(voterSource.getPDPConfigurations("default").take(2))
-                    .assertNext(opt -> assertThat(opt).isPresent())
-                    .then(() -> voterSource.loadConfiguration(config, false))
-                    .assertNext(opt -> assertThat(opt).isPresent()).expectComplete().verify(Duration.ofSeconds(5));
+            assertThat(received).hasSize(2);
+            assertThat(received).allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
         }
 
         @Test

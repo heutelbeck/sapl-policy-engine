@@ -17,7 +17,6 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -25,63 +24,56 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdpVoter;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.compiler.util.CompilationErrorFormatter;
-import io.sapl.pdp.configuration.source.PDPConfigurationSource;
+import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
 import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
- * Optimized configuration register using the HybridMono pattern for
- * high-throughput reactive access. This
- * implementation uses AtomicReference for lock-free reads combined with
- * Mono.fromSupplier() for minimal reactive
- * overhead.
+ * Holds the latest compiled PDP configuration per pdpId and notifies
+ * registered listeners when the configuration changes.
  * <p>
- * <b>Performance characteristics:</b>
- * </p>
+ * Two access patterns are supported:
  * <ul>
- * <li>Single-threaded: ~35M ops/sec</li>
- * <li>Multi-threaded (16 threads): ~30M ops/sec (scales well)</li>
- * <li>Improvement over ReplayLatestConfigurationRegister: ~45x at high
- * concurrency</li>
+ * <li><b>Snapshot read</b> via {@link #getCurrentConfiguration(String)} —
+ * lock-free volatile read of the current compiled voter from a
+ * per-pdpId {@link AtomicReference} cache. This is the fast path for
+ * one-shot evaluations.</li>
+ * <li><b>Change notification</b> via
+ * {@link #subscribeToUpdates(String, Consumer)} — registers a callback
+ * invoked synchronously on the loader thread whenever the configuration
+ * for a pdpId is replaced or removed. Callers that need a reactive
+ * stream compose snapshot + notifications themselves; this class stays
+ * reactor-free.</li>
  * </ul>
  * <p>
- * <b>Design rationale:</b>
- * </p>
+ * Listener invocation is synchronous and best-effort: an exception
+ * thrown by one listener is logged and does not prevent the others from
+ * running. Configuration updates are rare (driven by file changes or
+ * remote bundle polls), so the simple iterate-and-call pattern is
+ * sufficient.
  * <p>
- * The traditional approach of using {@code Sinks.many().replay().latest()}
- * incurs significant subscription overhead
- * when callers use {@code flux.next().block()}. This implementation optimizes
- * for the common case where configuration
- * reads are frequent but configuration changes are rare.
- * </p>
- * <p>
- * The HybridMono pattern provides:
- * </p>
- * <ul>
- * <li>Fast first-element delivery via Mono.fromSupplier() wrapping
- * AtomicReference</li>
- * <li>Reactive updates for streaming subscribers via directBestEffort sink</li>
- * <li>Full reactive semantics - configuration updates propagate correctly</li>
- * </ul>
+ * Thread-safe. The configuration cache uses {@link AtomicReference} for
+ * lock-free reads; the listener registry uses {@link ConcurrentHashMap}
+ * with concurrent key sets.
  */
 @Slf4j
 @RequiredArgsConstructor
 public class PdpVoterSource implements AutoCloseable {
 
     private static final String WARN_CONFIGURATION_REJECTED = "Configuration rejected:\n{}";
+    private static final String WARN_LISTENER_THREW         = "Update listener for pdpId '{}' threw: {}";
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
@@ -92,19 +84,19 @@ public class PdpVoterSource implements AutoCloseable {
     private final Clock           clock;
 
     /**
-     * Per-PDP configuration cache using AtomicReference for lock-free volatile
-     * reads. This provides better performance
-     * than ConcurrentHashMap for single-value access patterns where the key is
-     * known.
+     * Per-PDP configuration cache. Lock-free volatile reads via
+     * {@link AtomicReference} provide better performance than
+     * {@link ConcurrentHashMap} for single-value access patterns where the
+     * key is known.
      */
     private final Map<String, AtomicReference<Optional<CompiledPdpVoter>>> configCache = new ConcurrentHashMap<>();
 
     /**
-     * DirectBestEffort sinks for notifying streaming subscribers of configuration
-     * changes. These are only used for true
-     * streaming use cases, not for one-shot reads.
+     * Per-PDP update listeners. Each set is invoked synchronously on the
+     * loader thread when a configuration is loaded or removed for the
+     * corresponding pdpId.
      */
-    private final Map<String, Sinks.Many<Optional<CompiledPdpVoter>>> updateSinks = new ConcurrentHashMap<>();
+    private final Map<String, Set<Consumer<PdpUpdateEvent>>> updateListeners = new ConcurrentHashMap<>();
 
     /**
      * Per-PDP status tracking for health reporting.
@@ -112,26 +104,26 @@ public class PdpVoterSource implements AutoCloseable {
     private final Map<String, AtomicReference<PdpStatus>> statusCache = new ConcurrentHashMap<>();
 
     /**
-     * Loads a new configuration for a PDP, compiling all SAPL documents and making
-     * the configuration immediately available to both synchronous and reactive
-     * readers.
+     * Loads a new configuration for a PDP, compiling all SAPL documents and
+     * making the configuration immediately available to both synchronous
+     * and notified readers.
      * <p>
      * On compilation failure:
      * <ul>
-     * <li>{@code keepOldConfigOnError == true}: the PDP transitions to STALE
-     * (if a valid config exists) or stores an error voter; this method does
-     * not throw.</li>
+     * <li>{@code keepOldConfigOnError == true}: the PDP transitions to
+     * STALE (if a valid config exists) or stores an error voter; this
+     * method does not throw.</li>
      * <li>{@code keepOldConfigOnError == false}: this method throws
-     * {@link PDPConfigurationException} wrapping the compilation error. No
-     * state is changed.</li>
+     * {@link PDPConfigurationException} wrapping the compilation error.
+     * No state is changed.</li>
      * </ul>
      *
      * @param pdpConfiguration the configuration to load
-     * @param keepOldConfigOnError if true, retains existing configuration on
-     * compilation errors and does not throw; if false, propagates the
+     * @param keepOldConfigOnError if true, retains existing configuration
+     * on compilation errors and does not throw; if false, propagates the
      * compilation error to the caller
-     * @throws PDPConfigurationException if {@code keepOldConfigOnError} is
-     * false and compilation fails
+     * @throws PDPConfigurationException if {@code keepOldConfigOnError}
+     * is false and compilation fails
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
@@ -152,21 +144,19 @@ public class PdpVoterSource implements AutoCloseable {
                         current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
                         current.lastSuccessfulLoad(), now, formattedError));
             } else {
-                val errorVoter     = PdpCompiler.createErrorVoter(pdpConfiguration, compilationContext,
-                        compilerException);
-                val optionalConfig = Optional.of(errorVoter);
-                getConfigRef(pdpConfiguration.pdpId()).set(optionalConfig);
-                getUpdateSink(pdpConfiguration.pdpId()).tryEmitNext(optionalConfig);
+                val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilationContext, compilerException);
+                getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(errorVoter));
+                notifyListeners(pdpConfiguration.pdpId(),
+                        new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), errorVoter));
                 getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null,
                         0, current.lastSuccessfulLoad(), now, formattedError));
             }
             log.warn(WARN_CONFIGURATION_REJECTED, formattedError);
             return;
         }
-        val optionalConfig = Optional.of(newConfiguration);
 
-        getConfigRef(pdpConfiguration.pdpId()).set(optionalConfig);
-        getUpdateSink(pdpConfiguration.pdpId()).tryEmitNext(optionalConfig);
+        getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(newConfiguration));
+        notifyListeners(pdpConfiguration.pdpId(), new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), newConfiguration));
 
         val now = clock.instant();
         getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.LOADED, pdpConfiguration.configurationId(),
@@ -174,14 +164,16 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     /**
-     * Dispatches a {@link PDPConfigurationSource.ConfigurationEvent} to the
-     * appropriate operation: {@link ConfigurationEvent.Load} maps to
-     * {@link #loadConfiguration(PDPConfiguration, boolean)},
+     * Dispatches a
+     * {@link io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent}
+     * to the appropriate operation: {@link ConfigurationEvent.Load} maps
+     * to {@link #loadConfiguration(PDPConfiguration, boolean)},
      * {@link ConfigurationEvent.Remove} maps to
      * {@link #removeConfigurationForPdp(String)}.
      * <p>
      * Used as the subscribe-callback bridge between
-     * {@link PDPConfigurationSource} producers and this voter source.
+     * {@link io.sapl.pdp.configuration.source.PDPConfigurationSource}
+     * producers and this voter source.
      *
      * @param event the configuration event to dispatch
      * @throws PDPConfigurationException if the event is a
@@ -197,64 +189,69 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     /**
-     * Removes the configuration for a PDP, notifying all subscribers and removing
-     * its status entry.
+     * Removes the configuration for a PDP, dispatching a
+     * {@link PdpUpdateEvent.Removed} to all listeners and removing the
+     * status entry.
      *
      * @param pdpId the PDP identifier
      */
     public void removeConfigurationForPdp(String pdpId) {
-        val emptyConfig = Optional.<CompiledPdpVoter>empty();
-        getConfigRef(pdpId).set(emptyConfig);
-        getUpdateSink(pdpId).tryEmitNext(emptyConfig);
+        getConfigRef(pdpId).set(Optional.empty());
+        notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
         statusCache.remove(pdpId);
     }
 
     /**
-     * Returns a reactive stream of configuration updates for the specified PDP.
-     * <p>
-     * This implementation uses the HybridMono pattern: the first element is
-     * delivered immediately via
-     * {@link Mono#fromSupplier} reading from the AtomicReference cache, avoiding
-     * Reactor's subscription overhead.
-     * Subsequent elements come from the directBestEffort sink for streaming
-     * subscribers.
-     * </p>
-     * <p>
-     * For one-shot reads using {@code flux.next().block()}, this approach is ~45x
-     * faster than the traditional
-     * replay().latest() pattern at high concurrency.
-     * </p>
+     * Returns the current configuration synchronously. Lock-free volatile
+     * read from {@link AtomicReference}.
      *
-     * @param pdpId
-     * the PDP identifier
-     *
-     * @return a Flux emitting the current configuration immediately, then any
-     * updates
-     */
-    public Flux<Optional<CompiledPdpVoter>> getPDPConfigurations(String pdpId) {
-        // HybridMono pattern: fast first element from cache, then stream updates
-        // Mono.fromSupplier() has minimal overhead compared to Sinks subscription
-        val initialValue = Mono.fromSupplier(() -> getConfigRef(pdpId).get());
-        val updates      = getUpdateSink(pdpId).asFlux();
-
-        // Concat initial value with updates
-        // Note: here we cannot dedupe, because equals of CompiledPdpVoter is not
-        // meaningfully defined.
-        return Flux.concat(initialValue, updates);
-    }
-
-    /**
-     * Returns the current configuration synchronously. This is the fastest path for
-     * one-shot reads, using a simple
-     * volatile read from AtomicReference.
-     *
-     * @param pdpId
-     * the PDP identifier
-     *
+     * @param pdpId the PDP identifier
      * @return the current configuration, or empty if none is loaded
      */
     public Optional<CompiledPdpVoter> getCurrentConfiguration(String pdpId) {
         return getConfigRef(pdpId).get();
+    }
+
+    /**
+     * Registers a listener that is invoked synchronously whenever the
+     * configuration for the given pdpId changes. The listener receives a
+     * {@link PdpUpdateEvent.Voter} for loads (including error voters when
+     * {@code keepOldConfigOnError} was set) and a
+     * {@link PdpUpdateEvent.Removed} when the configuration is removed.
+     * <p>
+     * The listener is <b>not</b> invoked with the current value at the
+     * time of subscription. Callers that want the current snapshot should
+     * call {@link #getCurrentConfiguration(String)} themselves; combining
+     * the two gives "snapshot plus updates" semantics. Subscribing before
+     * reading the snapshot is the safer order: it cannot lose an update
+     * emitted between the two calls.
+     * <p>
+     * Multiple subscriptions of the same listener instance are
+     * deduplicated. Subscribing to a closed voter source is a no-op.
+     *
+     * @param pdpId the PDP identifier
+     * @param listener the callback to invoke on configuration change
+     */
+    public void subscribeToUpdates(String pdpId, Consumer<PdpUpdateEvent> listener) {
+        if (closed.get()) {
+            return;
+        }
+        updateListeners.computeIfAbsent(pdpId, id -> ConcurrentHashMap.newKeySet()).add(listener);
+    }
+
+    /**
+     * Removes a listener previously registered via
+     * {@link #subscribeToUpdates(String, Consumer)}. Calls for an unknown
+     * pdpId or unknown listener are silently ignored.
+     *
+     * @param pdpId the PDP identifier
+     * @param listener the previously registered callback
+     */
+    public void unsubscribeFromUpdates(String pdpId, Consumer<PdpUpdateEvent> listener) {
+        val set = updateListeners.get(pdpId);
+        if (set != null) {
+            set.remove(listener);
+        }
     }
 
     /**
@@ -274,7 +271,6 @@ public class PdpVoterSource implements AutoCloseable {
      * Returns the current status of a specific PDP.
      *
      * @param pdpId the PDP identifier
-     *
      * @return the current status, or empty if the PDP is unknown
      */
     public Optional<PdpStatus> getPdpStatus(String pdpId) {
@@ -283,42 +279,38 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     /**
-     * Releases all resources: completes every update sink and clears the
-     * per-PDP caches. Idempotent. Safe to call from container shutdown
-     * hooks even if {@link AutoCloseable#close()} has already been invoked.
+     * Releases all resources: clears all listeners and the per-PDP caches.
+     * Idempotent. Safe to call from container shutdown hooks even if
+     * {@link AutoCloseable#close()} has already been invoked.
      */
     @Override
     public void close() {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
-        for (val sink : updateSinks.values()) {
-            sink.tryEmitComplete();
-        }
-        updateSinks.clear();
+        updateListeners.clear();
         configCache.clear();
         statusCache.clear();
     }
 
-    /**
-     * Gets or creates the AtomicReference cache entry for a PDP.
-     */
+    private void notifyListeners(String pdpId, PdpUpdateEvent event) {
+        val set = updateListeners.get(pdpId);
+        if (set == null) {
+            return;
+        }
+        for (val listener : set) {
+            try {
+                listener.accept(event);
+            } catch (Exception e) {
+                log.warn(WARN_LISTENER_THREW, pdpId, e.getMessage());
+            }
+        }
+    }
+
     private AtomicReference<Optional<CompiledPdpVoter>> getConfigRef(String pdpId) {
         return configCache.computeIfAbsent(pdpId, id -> new AtomicReference<>(Optional.empty()));
     }
 
-    /**
-     * Gets or creates the update sink for a PDP. Uses directBestEffort for minimal
-     * overhead - updates are delivered
-     * best-effort without backpressure.
-     */
-    private Sinks.Many<Optional<CompiledPdpVoter>> getUpdateSink(String pdpId) {
-        return updateSinks.computeIfAbsent(pdpId, id -> Sinks.many().multicast().directBestEffort());
-    }
-
-    /**
-     * Gets or creates the status reference for a PDP.
-     */
     private AtomicReference<PdpStatus> getStatusRef(String pdpId) {
         return statusCache.computeIfAbsent(pdpId, id -> new AtomicReference<>(PdpStatus.initial()));
     }
