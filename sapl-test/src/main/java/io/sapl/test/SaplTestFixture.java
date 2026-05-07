@@ -41,7 +41,7 @@ import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
-import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
@@ -893,7 +893,7 @@ public class SaplTestFixture {
             CoverageContext coverageContext) {
         Flux<AuthorizationDecision> decisionFlux;
         Flux<VoteWithCoverage>      voteWithCoverageFlux = null;
-        if (components.pdp() instanceof DynamicPolicyDecisionPoint tracedPdp) {
+        if (components.pdp() instanceof ReactivePolicyDecisionPoint tracedPdp) {
             voteWithCoverageFlux = tracedPdp.coverageStream(subscription, "default");
             decisionFlux         = voteWithCoverageFlux.map(vwc -> vwc.vote().authorizationDecision());
         } else {

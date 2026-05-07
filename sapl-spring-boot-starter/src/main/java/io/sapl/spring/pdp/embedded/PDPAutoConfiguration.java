@@ -29,7 +29,7 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
-import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import io.sapl.pdp.VoteInterceptor;
@@ -221,7 +221,7 @@ public class PDPAutoConfiguration {
                     interceptors.stream().map(i -> i.getClass().getSimpleName()).toList());
         }
         log.info("Deploying embedded Policy Decision Point.");
-        return new DynamicPolicyDecisionPoint(pdpVoterSource, idFactory, interceptors);
+        return new ReactivePolicyDecisionPoint(pdpVoterSource, idFactory, interceptors);
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {

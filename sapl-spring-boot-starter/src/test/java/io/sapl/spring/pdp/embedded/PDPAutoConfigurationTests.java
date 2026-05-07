@@ -18,7 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
-import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -38,7 +38,7 @@ class PDPAutoConfigurationTests {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(DynamicPolicyDecisionPoint.class);
+                    assertThat(context).hasNotFailed().hasSingleBean(ReactivePolicyDecisionPoint.class);
                 });
     }
 
@@ -48,7 +48,7 @@ class PDPAutoConfigurationTests {
                 .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed().hasSingleBean(PolicyDecisionPoint.class)
-                            .doesNotHaveBean(DynamicPolicyDecisionPoint.class);
+                            .doesNotHaveBean(ReactivePolicyDecisionPoint.class);
                 });
     }
 

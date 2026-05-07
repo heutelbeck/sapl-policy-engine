@@ -17,11 +17,11 @@
  */
 package io.sapl.reactive.api.pdp;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import io.sapl.api.pdp.*;
-import lombok.val;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,19 +32,13 @@ import reactor.core.publisher.Mono;
  * Provides parameterized methods that accept an explicit {@code pdpId} for
  * direct tenant routing. Callers that have the tenant identity available (e.g.,
  * RSocket acceptors with per-connection authentication) should use these
- * methods directly.
+ * methods directly. The no-argument forms inherited from
+ * {@link PolicyDecisionPoint} are expected to read the PDP ID from the Reactor
+ * Context using {@link #REACTOR_CONTEXT_PDP_ID_KEY}.
  * <p>
- * The no-argument reactive methods inherited from {@link PolicyDecisionPoint}
- * read the PDP ID from the Reactor Context using
- * {@link #REACTOR_CONTEXT_PDP_ID_KEY}. This allows transparent multi-tenant
- * routing for HTTP endpoints where a WebFilter writes the authenticated
- * tenant's PDP ID into the Reactor Context upstream. If no PDP ID is found in
- * the context, {@link #DEFAULT_PDP_ID} is used.
- * <p>
- * The no-argument blocking method {@code decideOnceBlocking} delegates with
- * {@link #DEFAULT_PDP_ID} since Reactor Context is not available in blocking
- * calls. Callers requiring tenant routing in blocking contexts should use
- * {@link #decideOnceBlocking(AuthorizationSubscription, String)} directly.
+ * The interface carries no default implementations. Implementations provide
+ * every method directly and own the trade-offs (per-subscription wiring,
+ * glitch-free combination, context routing).
  */
 public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
 
@@ -56,8 +50,7 @@ public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
     /**
      * Reactor Context key for the PDP identifier. Callers that route requests
      * through Reactor Context (e.g., HTTP WebFilters) write the authenticated
-     * tenant's PDP ID under this key. The reactive default methods read it
-     * automatically.
+     * tenant's PDP ID under this key.
      */
     String REACTOR_CONTEXT_PDP_ID_KEY = "sapl.pdp.id";
 
@@ -80,24 +73,18 @@ public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
      * @param pdpId the tenant's PDP identifier
      * @return the first authorization decision
      */
-    default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        return decide(authorizationSubscription, pdpId).next().defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
-    }
+    Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Synchronous, blocking authorization decision for a specific tenant. Returns
-     * {@link AuthorizationDecision#INDETERMINATE} for an empty stream (never
-     * {@code null}).
+     * Synchronous, blocking authorization decision for a specific tenant.
+     * Returns {@link AuthorizationDecision#INDETERMINATE} for an empty stream
+     * (never {@code null}).
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant's PDP identifier
      * @return the authorization decision
      */
-    default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription,
-            String pdpId) {
-        val decision = decideOnce(authorizationSubscription, pdpId).block();
-        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
-    }
+    AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
      * Evaluates multiple authorization subscriptions against the tenant's
@@ -107,13 +94,7 @@ public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
      * @param pdpId the tenant's PDP identifier
      * @return a flux of identifiable authorization decisions
      */
-    default Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
-            String pdpId) {
-        if (!multiSubscription.hasSubscriptions()) {
-            return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
-        }
-        return Flux.merge(createIdentifiableDecisionFluxes(multiSubscription, pdpId));
-    }
+    Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription, String pdpId);
 
     /**
      * Evaluates multiple authorization subscriptions against the tenant's
@@ -123,63 +104,5 @@ public interface MultiTenantPolicyDecisionPoint extends PolicyDecisionPoint {
      * @param pdpId the tenant's PDP identifier
      * @return a flux of multi-authorization decisions
      */
-    default Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription, String pdpId) {
-        if (!multiSubscription.hasSubscriptions()) {
-            return Flux.just(MultiAuthorizationDecision.indeterminate());
-        }
-        return Flux.combineLatest(createIdentifiableDecisionFluxes(multiSubscription, pdpId),
-                MultiTenantPolicyDecisionPoint::collectDecisions);
-    }
-
-    @Override
-    default Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return Flux.deferContextual(
-                ctx -> decide(authorizationSubscription, ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, DEFAULT_PDP_ID)));
-    }
-
-    @Override
-    default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
-        return Mono.deferContextual(ctx -> decideOnce(authorizationSubscription,
-                ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, DEFAULT_PDP_ID)));
-    }
-
-    @Override
-    default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
-        return decideOnceBlocking(authorizationSubscription, DEFAULT_PDP_ID);
-    }
-
-    @Override
-    default Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
-        return Flux.deferContextual(
-                ctx -> decide(multiSubscription, ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, DEFAULT_PDP_ID)));
-    }
-
-    @Override
-    default Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription) {
-        return Flux.deferContextual(
-                ctx -> decideAll(multiSubscription, ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, DEFAULT_PDP_ID)));
-    }
-
-    private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableDecisionFluxes(
-            MultiAuthorizationSubscription multiSubscription, String pdpId) {
-        List<Flux<IdentifiableAuthorizationDecision>> fluxes = new ArrayList<>();
-        for (val identifiableSubscription : multiSubscription) {
-            val subscriptionId = identifiableSubscription.subscriptionId();
-            val subscription   = identifiableSubscription.subscription();
-            val decisionFlux   = decide(subscription, pdpId)
-                    .map(decision -> new IdentifiableAuthorizationDecision(subscriptionId, decision));
-            fluxes.add(decisionFlux);
-        }
-        return fluxes;
-    }
-
-    private static MultiAuthorizationDecision collectDecisions(Object[] decisions) {
-        val multiDecision = new MultiAuthorizationDecision();
-        for (Object value : decisions) {
-            val identifiable = (IdentifiableAuthorizationDecision) value;
-            multiDecision.setDecision(identifiable.subscriptionId(), identifiable.decision());
-        }
-        return multiDecision;
-    }
-
+    Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription, String pdpId);
 }

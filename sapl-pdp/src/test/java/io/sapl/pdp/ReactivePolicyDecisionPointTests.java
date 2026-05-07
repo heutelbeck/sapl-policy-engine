@@ -29,7 +29,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.pdp.configuration.PdpVoterSource;
-import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,12 +50,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * End-to-end tests for the DynamicPolicyDecisionPoint. These tests set up a
+ * End-to-end tests for the ReactivePolicyDecisionPoint. These tests set up a
  * complete PDP with all dependencies, load policies, and verify authorization
  * decisions.
  */
-@DisplayName("DynamicPolicyDecisionPoint")
-class DynamicPolicyDecisionPointTests {
+@DisplayName("ReactivePolicyDecisionPoint")
+class ReactivePolicyDecisionPointTests {
 
     // Commonly used combining algorithm configurations
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
@@ -69,14 +69,14 @@ class DynamicPolicyDecisionPointTests {
     private static final CombiningAlgorithm ONLY_ONE_APPLICABLE = new CombiningAlgorithm(VotingMode.UNIQUE,
             DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
-    private PdpVoterSource             pdpVoterSource;
-    private DynamicPolicyDecisionPoint pdp;
+    private PdpVoterSource              pdpVoterSource;
+    private ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void setUp() throws Exception {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
         pdpVoterSource = components.pdpVoterSource();
-        pdp            = (DynamicPolicyDecisionPoint) components.pdp();
+        pdp            = (ReactivePolicyDecisionPoint) components.pdp();
     }
 
     @Test
@@ -418,7 +418,7 @@ class DynamicPolicyDecisionPointTests {
         };
 
         val components     = PolicyDecisionPointBuilder.withoutDefaults().withInterceptor(lifecycleInterceptor).build();
-        val interceptedPdp = (DynamicPolicyDecisionPoint) components.pdp();
+        val interceptedPdp = (ReactivePolicyDecisionPoint) components.pdp();
         val voterSource    = components.pdpVoterSource();
 
         voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, """
@@ -440,7 +440,7 @@ class DynamicPolicyDecisionPointTests {
     void whenExplicitPdpIdThenVoteOnceUsesCorrectTenant() {
         val tenantPdpId = "tenant-a";
         val components  = PolicyDecisionPointBuilder.withoutDefaults().build();
-        val tenantPdp   = (DynamicPolicyDecisionPoint) components.pdp();
+        val tenantPdp   = (ReactivePolicyDecisionPoint) components.pdp();
         val voterSource = components.pdpVoterSource();
 
         val tenantConfig = new PDPConfiguration(tenantPdpId, "test-config-" + System.currentTimeMillis(),

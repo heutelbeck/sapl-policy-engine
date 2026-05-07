@@ -31,7 +31,7 @@ public record Coverage(List<DocumentCoverage> coverage) {
     public static final TargetHit NO_TARGET_HIT = new Coverage.NoTargetHit();
     public static final TargetHit BLANK_TARGET_HIT = new Coverage.BlankTargetHit();
 
-    public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage {
+    public sealed interface DocumentCoverage permits PolicyCoverage, PolicySetCoverage, PdpCoverage {
         VoterMetadata voter();
     }
 
@@ -45,6 +45,21 @@ public record Coverage(List<DocumentCoverage> coverage) {
             val aggregatedPolicyCoverage = new ArrayList<>(policyCoverages);
             aggregatedPolicyCoverage.add(newCoverage);
             return new PolicySetCoverage(voter, targetHit, aggregatedPolicyCoverage);
+        }
+    }
+
+    /**
+     * PDP-level coverage: a top-level voter combining several documents
+     * (policies and policy sets). Has no target gate (the PDP applies to
+     * every authorization subscription), so unlike
+     * {@link PolicySetCoverage} it carries no {@link TargetHit}.
+     */
+    public record PdpCoverage(@NonNull VoterMetadata voter, @NonNull List<DocumentCoverage> documentCoverages)
+            implements DocumentCoverage {
+        public PdpCoverage with(DocumentCoverage newCoverage) {
+            val aggregated = new ArrayList<>(documentCoverages);
+            aggregated.add(newCoverage);
+            return new PdpCoverage(voter, aggregated);
         }
     }
 

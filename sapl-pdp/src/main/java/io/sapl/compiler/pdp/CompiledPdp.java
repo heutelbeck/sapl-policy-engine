@@ -18,21 +18,25 @@
 package io.sapl.compiler.pdp;
 
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.policy.CoverageVoter;
 
 /**
  * Compiled form of a PDP configuration: pure data describing the
  * combined PDP-level voter and its identity. Mirrors the per-document
  * compile shape ({@link io.sapl.compiler.document.CompiledDocument}):
- * metadata plus the production {@link Voter}.
+ * metadata plus the production {@link Voter} and a snapshot-driven
+ * {@link CoverageVoter} peer for coverage-instrumented evaluation.
  * <p>
  * Evaluation collaborators (function broker, timestamp source,
  * subscription IDs) and the snapshot trigger pipeline live in the eval
- * loop, not in this record. A future PDP-level {@code CoverageVoter}
- * peer can be added when PDP-level coverage aggregation is implemented;
- * until then the eval loop drives only the production {@link Voter}.
+ * loop, not in this record. The eval loop drives both the production
+ * {@code voter} and the {@code coverageVoter} uniformly via
+ * {@code evaluate(ctx)}.
  *
- * @param metadata the voter identity (pdpId, configId, combining algorithm,
- * outcome)
+ * @param metadata the voter identity (pdpId, configId, combining
+ * algorithm, outcome)
  * @param voter the compiled root voter for this PDP configuration
+ * @param coverageVoter the snapshot-driven coverage-instrumented voter
+ * peer
  */
-public record CompiledPdp(PdpVoterMetadata metadata, Voter voter) {}
+public record CompiledPdp(PdpVoterMetadata metadata, Voter voter, CoverageVoter coverageVoter) {}

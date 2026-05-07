@@ -27,7 +27,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
-import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Diagnostic tests for verifying that {@code distinctUntilChanged} in
- * {@link DynamicPolicyDecisionPoint#decide} correctly suppresses duplicate
+ * {@link ReactivePolicyDecisionPoint#decide} correctly suppresses duplicate
  * decisions from time-triggered policy re-evaluation.
  * <p>
  * Investigates whether {@code distinctUntilChanged} in the embedded PDP
@@ -115,7 +115,7 @@ class DeduplicationTests {
             val fixedClock  = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
             val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = (DynamicPolicyDecisionPoint) components.pdp();
+            val pdp         = (ReactivePolicyDecisionPoint) components.pdp();
 
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
@@ -181,7 +181,7 @@ class DeduplicationTests {
             val mapper      = JsonMapper.builder().build();
             val components  = PolicyDecisionPointBuilder.withDefaults(mapper, Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = (DynamicPolicyDecisionPoint) components.pdp();
+            val pdp         = (ReactivePolicyDecisionPoint) components.pdp();
 
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 

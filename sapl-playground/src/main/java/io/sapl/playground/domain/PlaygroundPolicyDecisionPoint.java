@@ -26,7 +26,7 @@ import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TimestampedVote;
-import io.sapl.reactive.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
@@ -53,7 +53,7 @@ import java.util.UUID;
 public class PlaygroundPolicyDecisionPoint {
 
     private final PlaygroundConfigurationSource configurationSource;
-    private final DynamicPolicyDecisionPoint    policyDecisionPoint;
+    private final ReactivePolicyDecisionPoint policyDecisionPoint;
 
     /**
      * Creates a new playground policy decision point. Initializes the embedded PDP
@@ -68,7 +68,7 @@ public class PlaygroundPolicyDecisionPoint {
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
         val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
-        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString());
+        this.policyDecisionPoint = new ReactivePolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString());
     }
 
     /**

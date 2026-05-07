@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.pdp;
 
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
@@ -26,14 +27,19 @@ import io.sapl.compiler.combining.UnanimousVoteCompiler;
 import io.sapl.compiler.combining.UniqueVoteCompiler;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.VoteResult;
+import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.model.Coverage;
+import io.sapl.compiler.policy.CoverageVoter;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static io.sapl.compiler.document.DocumentCompiler.compileDocument;
 
@@ -57,7 +63,23 @@ public class PdpCompiler {
                 pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
         val error         = Value.error(exception.getMessage());
         val errorVote     = Vote.error(error, voterMetadata);
-        return new CompiledPdp(voterMetadata, errorVote);
+        val coverageVoter = new ErrorPdpCoverageVoter(voterMetadata, errorVote);
+        return new CompiledPdp(voterMetadata, errorVote, coverageVoter);
+    }
+
+    /**
+     * Coverage voter for an error PDP configuration: yields the same error
+     * vote on every evaluation, with empty PDP coverage (no documents
+     * compiled successfully).
+     */
+    private record ErrorPdpCoverageVoter(PdpVoterMetadata voterMetadata, Vote errorVote) implements CoverageVoter {
+
+        @Override
+        public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
+            val voteResult = new VoteResult(errorVote, Map.of());
+            val coverage   = new Coverage.PdpCoverage(voterMetadata, List.of());
+            return new VoteResultWithCoverage(voteResult, coverage);
+        }
     }
 
     /**
@@ -105,7 +127,24 @@ public class PdpCompiler {
             UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, ctx);
         };
 
-        return new CompiledPdp(voterMetadata, voter);
+        val coverageVoter = switch (algorithm.votingMode()) {
+        case FIRST            ->
+            throw new SaplCompilerException(ERROR_FIRST_NOT_ALLOWED.formatted(algorithm.votingMode()));
+        case PRIORITY_DENY    -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                Decision.DENY, defaultDecision, errorHandling);
+        case PRIORITY_PERMIT  -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                Decision.PERMIT, defaultDecision, errorHandling);
+        case PRIORITY_SUSPEND -> PriorityVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                Decision.SUSPEND, defaultDecision, errorHandling);
+        case UNANIMOUS        -> UnanimousVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling, false);
+        case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling, true);
+        case UNIQUE           -> UniqueVoteCompiler.compilePdpCoverageVoter(compiledDocuments, voterMetadata,
+                defaultDecision, errorHandling);
+        };
+
+        return new CompiledPdp(voterMetadata, voter, coverageVoter);
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

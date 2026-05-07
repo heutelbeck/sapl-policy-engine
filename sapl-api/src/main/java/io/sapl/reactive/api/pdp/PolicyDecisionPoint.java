@@ -17,37 +17,34 @@
  */
 package io.sapl.reactive.api.pdp;
 
-import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import lombok.val;
-
 /**
  * The Policy Decision Point (PDP) is the central component for authorization
- * decisions. It evaluates authorization
- * subscriptions against policies and returns decisions.
+ * decisions. It evaluates authorization subscriptions against policies and
+ * returns decisions.
  * <p>
- * The PDP supports both single subscriptions and multi-subscriptions for batch
- * authorization scenarios. Implementations
- * only need to provide the core {@link #decide(AuthorizationSubscription)}
- * method; multi-subscription support is
- * provided via default methods.
+ * Implementations provide every method directly. The interface carries no
+ * default implementations: composing one method out of another (for example
+ * deriving {@code decideAll} from
+ * {@code decide(MultiAuthorizationSubscription)}
+ * via {@code Flux.combineLatest}) introduces composition glitches the
+ * implementation must own.
  */
 public interface PolicyDecisionPoint {
 
     /**
      * Evaluates an authorization subscription and returns a continuous stream of
-     * decisions. New decisions are emitted
-     * whenever the authorization context changes (e.g., due to attribute updates or
-     * policy changes).
+     * decisions. New decisions are emitted whenever the authorization context
+     * changes (e.g., due to attribute updates or policy changes).
      *
-     * @param authorizationSubscription
-     * the authorization subscription to evaluate
-     *
+     * @param authorizationSubscription the authorization subscription to evaluate
      * @return a flux of authorization decisions
      */
     Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription);
@@ -55,107 +52,41 @@ public interface PolicyDecisionPoint {
     /**
      * Evaluates an authorization subscription and returns only the first decision.
      * Never emits empty: an empty upstream is mapped to
-     * {@link AuthorizationDecision#INDETERMINATE} so callers can rely on receiving
-     * a decision.
+     * {@link AuthorizationDecision#INDETERMINATE} so callers can rely on
+     * receiving a decision.
      *
-     * @param authorizationSubscription
-     * the authorization subscription to evaluate
-     *
+     * @param authorizationSubscription the authorization subscription to evaluate
      * @return the first authorization decision
      */
-    default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
-        return decide(authorizationSubscription).next().defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
-    }
+    Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription);
 
     /**
      * Synchronous, blocking authorization decision for high-throughput scenarios.
-     * <p>
-     * This method is optimized for high-volume one-shot authorization decisions
-     * where configuration changes are rare.
-     * It provides a synchronous API for applications that do not use reactive
-     * streams.
-     * <p>
-     * Implementations may use an optimized pure evaluation path that bypasses
-     * reactive subscription overhead entirely.
-     * The default implementation falls back to blocking on the reactive stream and
-     * returns {@link AuthorizationDecision#INDETERMINATE} for an empty stream
+     * Returns {@link AuthorizationDecision#INDETERMINATE} for an empty stream
      * (never {@code null}).
      *
-     * @param authorizationSubscription
-     * the authorization subscription to evaluate
-     *
+     * @param authorizationSubscription the authorization subscription to evaluate
      * @return the authorization decision
      */
-    default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
-        val decision = decideOnce(authorizationSubscription).block();
-        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
-    }
+    AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription);
 
     /**
-     * Evaluates multiple authorization subscriptions and returns decisions as they
-     * become available. Each decision is
-     * tagged with the subscription ID for correlation.
-     * <p>
-     * This default implementation iterates over all subscriptions, calls
-     * {@link #decide(AuthorizationSubscription)} for
-     * each, and merges the results into a single stream.
+     * Evaluates multiple authorization subscriptions and returns decisions as
+     * they become available. Each decision is tagged with the subscription ID
+     * for correlation.
      *
-     * @param multiSubscription
-     * the multi-subscription containing multiple subscriptions
-     *
+     * @param multiSubscription the multi-subscription
      * @return a flux of identifiable authorization decisions
      */
-    default Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
-        if (!multiSubscription.hasSubscriptions()) {
-            return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
-        }
-        return Flux.merge(createIdentifiableDecisionFluxes(multiSubscription));
-    }
+    Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription);
 
     /**
-     * Evaluates multiple authorization subscriptions and returns bundled decisions.
-     * Waits until all subscriptions have
-     * at least one decision before emitting. Subsequent emissions occur when any
-     * decision changes.
-     * <p>
-     * This default implementation iterates over all subscriptions, calls
-     * {@link #decide(AuthorizationSubscription)} for
-     * each, and combines the latest decisions into a
-     * {@link MultiAuthorizationDecision}.
+     * Evaluates multiple authorization subscriptions and returns bundled
+     * decisions. Waits until all subscriptions have at least one decision before
+     * emitting; subsequent emissions occur when any decision changes.
      *
-     * @param multiSubscription
-     * the multi-subscription containing multiple subscriptions
-     *
-     * @return a flux of multi-authorization decisions containing all subscription
-     * decisions
+     * @param multiSubscription the multi-subscription
+     * @return a flux of multi-authorization decisions
      */
-    default Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription) {
-        if (!multiSubscription.hasSubscriptions()) {
-            return Flux.just(MultiAuthorizationDecision.indeterminate());
-        }
-        return Flux.combineLatest(createIdentifiableDecisionFluxes(multiSubscription),
-                PolicyDecisionPoint::collectDecisions);
-    }
-
-    private List<Flux<IdentifiableAuthorizationDecision>> createIdentifiableDecisionFluxes(
-            MultiAuthorizationSubscription multiSubscription) {
-        List<Flux<IdentifiableAuthorizationDecision>> fluxes = new ArrayList<>();
-        for (val identifiableSubscription : multiSubscription) {
-            val subscriptionId = identifiableSubscription.subscriptionId();
-            val subscription   = identifiableSubscription.subscription();
-            val decisionFlux   = decide(subscription)
-                    .map(decision -> new IdentifiableAuthorizationDecision(subscriptionId, decision));
-            fluxes.add(decisionFlux);
-        }
-        return fluxes;
-    }
-
-    private static MultiAuthorizationDecision collectDecisions(Object[] decisions) {
-        val multiDecision = new MultiAuthorizationDecision();
-        for (Object value : decisions) {
-            val identifiable = (IdentifiableAuthorizationDecision) value;
-            multiDecision.setDecision(identifiable.subscriptionId(), identifiable.decision());
-        }
-        return multiDecision;
-    }
+    Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription);
 }

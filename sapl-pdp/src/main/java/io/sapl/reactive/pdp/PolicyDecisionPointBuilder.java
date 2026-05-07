@@ -34,6 +34,8 @@ import io.sapl.attributes.CachingAttributeBroker;
 import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.*;
+import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.compiler.eval.AttributeStore;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -112,6 +114,7 @@ public class PolicyDecisionPointBuilder {
     private int             functionCacheSize = -1;
     private FunctionBroker  externalFunctionBroker;
     private AttributeBroker externalAttributeBroker;
+    private AttributeStore  externalAttributeStore;
 
     private final List<VoteInterceptor> interceptors = new ArrayList<>();
 
@@ -343,6 +346,20 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withAttributeBroker(AttributeBroker attributeBroker) {
         this.externalAttributeBroker = attributeBroker;
+        return this;
+    }
+
+    /**
+     * Sets a custom {@link AttributeStore}. If not set, a default in-memory
+     * implementation is used.
+     *
+     * @param attributeStore
+     * the pre-configured attribute store
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withAttributeStore(AttributeStore attributeStore) {
+        this.externalAttributeStore = attributeStore;
         return this;
     }
 
@@ -732,11 +749,12 @@ public class PolicyDecisionPointBuilder {
     public PDPComponents build() throws AttributeBrokerException {
         val functionBroker        = resolveFunctionBroker();
         val attributeBroker       = resolveAttributeBroker();
+        val attributeStore        = resolveAttributeStore();
         val configurationRegister = new PdpVoterSource(functionBroker, attributeBroker, clock);
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
-        val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(), clock,
-                sortedInterceptors);
+        val pdp                   = new ReactivePolicyDecisionPoint(configurationRegister, attributeStore,
+                resolveIdFactory(), clock, sortedInterceptors);
 
         // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {
@@ -810,6 +828,10 @@ public class PolicyDecisionPointBuilder {
         }
         return buildAttributeBroker(attributeStorage, clock, includeDefaultPolicyInformationPoints, mapper,
                 webClientBuilder, policyInformationPoints);
+    }
+
+    private AttributeStore resolveAttributeStore() {
+        return Objects.requireNonNullElseGet(externalAttributeStore, InMemoryAttributeStore::new);
     }
 
     /**
