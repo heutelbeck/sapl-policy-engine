@@ -18,10 +18,18 @@
 package io.sapl.pdp;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
+import reactor.core.publisher.SignalType;
 
 /**
- * Interceptor for processing votes during policy evaluation.
+ * Interceptor for processing votes during policy evaluation. Receives
+ * a {@link TracedVote} carrying the vote, its emit timestamp, and the
+ * per-evaluation attribute trace.
+ * <p>
+ * Interceptors are observability concerns: the PDP catches and logs
+ * any exception thrown from interceptor methods rather than
+ * propagating it to authorization callers. Interceptors must not be
+ * used to influence authorization decisions.
  */
 public interface VoteInterceptor extends Comparable<VoteInterceptor> {
 
@@ -33,30 +41,33 @@ public interface VoteInterceptor extends Comparable<VoteInterceptor> {
     /**
      * Processes a vote.
      *
-     * @param vote the vote to intercept
-     * @param subscriptionId the subscription identifier
-     * @param authorizationSubscription the authorization subscription that was
-     * evaluated
+     * @param vote the traced vote (vote + timestamp + attribute trace)
+     * @param subscriptionId the per-evaluation subscription identifier
+     * @param authorizationSubscription the authorization subscription
+     * that was evaluated
      */
-    void intercept(TimestampedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription);
+    void intercept(TracedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription);
 
     /**
      * Called when a new authorization subscription stream begins.
      *
-     * @param subscriptionId the subscription identifier
-     * @param authorizationSubscription the authorization subscription being
-     * evaluated
+     * @param subscriptionId the per-evaluation subscription identifier
+     * @param authorizationSubscription the authorization subscription
+     * being evaluated
+     * @param pdpId the tenant identifier the request was routed to
      */
-    default void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+    default void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription, String pdpId) {
         // no-op by default
     }
 
     /**
      * Called when an authorization subscription stream ends.
      *
-     * @param subscriptionId the subscription identifier
+     * @param subscriptionId the per-evaluation subscription identifier
+     * @param signal the termination signal: {@link SignalType#ON_COMPLETE},
+     * {@link SignalType#ON_ERROR}, or {@link SignalType#CANCEL}
      */
-    default void onUnsubscribe(String subscriptionId) {
+    default void onUnsubscribe(String subscriptionId, SignalType signal) {
         // no-op by default
     }
 

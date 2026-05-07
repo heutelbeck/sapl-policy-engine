@@ -19,14 +19,23 @@ package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.pdp.Decision;
+import io.sapl.compiler.document.AttributeContribution;
 
 import java.util.List;
 
 /**
- * A record capturing a contributing document's name, decision, and errors.
+ * One contributing document's name, decision, errors, and the
+ * attribute reads referenced from this document's source.
  *
  * @param name the document name (policy or policy set)
  * @param decision the authorization decision from this document
- * @param errors the errors encountered during evaluation of this document
+ * @param errors errors encountered evaluating this document
+ * @param attributes attribute reads referenced from this document's
+ * source, each with the value and publish timestamp present at the
+ * time of the read
  */
-public record ContributingDocument(String name, Decision decision, List<ErrorValue> errors) {}
+public record ContributingDocument(
+        String name,
+        Decision decision,
+        List<ErrorValue> errors,
+        List<AttributeContribution> attributes) {}

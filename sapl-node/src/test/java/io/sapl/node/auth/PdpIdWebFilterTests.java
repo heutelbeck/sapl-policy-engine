@@ -35,9 +35,10 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.web.server.WebFilterChain;
 
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.PdpIdAuthenticationExtractor;
 import io.sapl.spring.config.PdpIdWebFilter;
+import io.sapl.spring.tenant.DefaultReactiveTenantResolver;
 import lombok.val;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -62,7 +63,7 @@ class PdpIdWebFilterTests {
             if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
                 return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
             }
-            return Mono.just(MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
+            return Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID);
         };
         filter = new PdpIdWebFilter(extractor);
     }
@@ -146,7 +147,7 @@ class PdpIdWebFilterTests {
 
     private WebFilterChain createCapturingChain(AtomicReference<String> capturedPdpId) {
         return exchange -> Mono.deferContextual(ctx -> {
-            ctx.getOrEmpty(MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY)
+            ctx.getOrEmpty(DefaultReactiveTenantResolver.REACTOR_CONTEXT_PDP_ID_KEY)
                     .ifPresent(pdpId -> capturedPdpId.set((String) pdpId));
             return Mono.empty();
         });

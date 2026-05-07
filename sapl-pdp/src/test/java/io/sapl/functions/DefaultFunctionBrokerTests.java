@@ -56,10 +56,6 @@ class DefaultFunctionBrokerTests {
         broker = new DefaultFunctionBroker();
     }
 
-    // ========================================================================
-    // Null Argument Validation Tests
-    // ========================================================================
-
     @Test
     void whenLoadStaticFunctionLibraryWithNullThenThrowsException() {
         assertThatThrownBy(() -> broker.loadStaticFunctionLibrary(null)).isInstanceOf(IllegalArgumentException.class)
@@ -77,10 +73,6 @@ class DefaultFunctionBrokerTests {
         assertThatThrownBy(() -> broker.evaluateFunction(null)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Function invocation must not be null.");
     }
-
-    // ========================================================================
-    // Library Annotation Tests
-    // ========================================================================
 
     @Test
     void whenLoadLibraryWithoutAnnotationThenThrowsException() {
@@ -105,10 +97,6 @@ class DefaultFunctionBrokerTests {
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
-
-    // ========================================================================
-    // Instance vs Static Method Tests
-    // ========================================================================
 
     @Test
     void whenInstanceMethodsWithInstanceLibraryThenWorksCorrectly() {
@@ -151,10 +139,6 @@ class DefaultFunctionBrokerTests {
                 .isEqualTo("Nyarlathotep approaches");
     }
 
-    // ========================================================================
-    // Multiple Libraries Tests
-    // ========================================================================
-
     @Test
     void whenLoadMultipleLibrariesThenAllSuccessful() {
         broker.loadStaticFunctionLibrary(CthulhuLibrary.class);
@@ -196,10 +180,6 @@ class DefaultFunctionBrokerTests {
                 .isEqualTo("two gate");
     }
 
-    // ========================================================================
-    // Function Evaluation Tests
-    // ========================================================================
-
     @Test
     void whenEvaluateNonExistentFunctionThenReturnsError() {
         val invocation = new FunctionInvocation("nonexistent.function", List.of());
@@ -238,10 +218,6 @@ class DefaultFunctionBrokerTests {
         assertThat(result2).isNotInstanceOf(ErrorValue.class).isInstanceOf(TextValue.class)
                 .extracting(v -> ((TextValue) v).value()).isEqualTo("Rlyeh rises");
     }
-
-    // ========================================================================
-    // Concurrency Tests
-    // ========================================================================
 
     @Test
     void whenConcurrentFunctionEvaluationThenThreadSafe() throws Exception {
@@ -352,10 +328,6 @@ class DefaultFunctionBrokerTests {
         }
     }
 
-    // ========================================================================
-    // Parameterized Tests
-    // ========================================================================
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideInvocationsWithExpectedResults")
     void whenEvaluatingFunctionsThenCorrectResults(String functionName, List<Value> params, String expectedResult) {
@@ -393,10 +365,6 @@ class DefaultFunctionBrokerTests {
                 arguments("cthulhu.summonEntity", List.of(Value.of("unexpected"))),
                 arguments("cthulhu.awakeDreamer", List.of()), arguments("wrong.library", List.of()));
     }
-
-    // ========================================================================
-    // Test Libraries
-    // ========================================================================
 
     @FunctionLibrary(name = "cthulhu", description = "Functions for summoning Great Old Ones from Rlyeh")
     public static class CthulhuLibrary {

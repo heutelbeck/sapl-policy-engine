@@ -19,12 +19,13 @@ package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.pdp.VoteInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.core.publisher.SignalType;
 
 /**
  * Interceptor that logs authorization decisions for debugging and auditing.
@@ -57,14 +58,12 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void intercept(TimestampedVote vote, String subscriptionId,
-            AuthorizationSubscription authorizationSubscription) {
+    public void intercept(TracedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription) {
         if (printTrace) {
             logTrace(vote);
         }
         if (printJsonReport || printTextReport) {
-            val report = ReportBuilderUtil.extractReport(vote.vote(), vote.timestamp(), subscriptionId,
-                    authorizationSubscription);
+            val report = ReportBuilderUtil.extractReport(vote, subscriptionId, authorizationSubscription);
             if (printJsonReport) {
                 logJsonReport(report);
             }
@@ -75,20 +74,20 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription, String pdpId) {
         if (printSubscriptionEvents) {
-            log.info("Subscription [{}]: {}", subscriptionId, authorizationSubscription);
+            log.info("Subscription [{}] (pdp={}): {}", subscriptionId, pdpId, authorizationSubscription);
         }
     }
 
     @Override
-    public void onUnsubscribe(String subscriptionId) {
+    public void onUnsubscribe(String subscriptionId, SignalType signal) {
         if (printUnsubscriptionEvents) {
-            log.info("Unsubscription [{}]", subscriptionId);
+            log.info("Unsubscription [{}] ({})", subscriptionId, signal);
         }
     }
 
-    private void logTrace(TimestampedVote vote) {
+    private void logTrace(TracedVote vote) {
         val trace     = vote.vote().toTrace();
         val output    = prettyPrint ? ValueJsonMarshaller.toPrettyString(trace) : trace.toString();
         val timestamp = ReportTextRenderUtil.formatTimestamp(vote.timestamp());

@@ -27,7 +27,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.SignalType;
 import reactor.test.StepVerifier;
 
 import java.util.ArrayList;
@@ -401,18 +402,19 @@ class ReactivePolicyDecisionPointTests {
             }
 
             @Override
-            public void intercept(TimestampedVote vote, String subscriptionId,
+            public void intercept(TracedVote vote, String subscriptionId,
                     AuthorizationSubscription authorizationSubscription) {
                 // no-op
             }
 
             @Override
-            public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+            public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription,
+                    String pdpId) {
                 subscribedIds.add(subscriptionId);
             }
 
             @Override
-            public void onUnsubscribe(String subscriptionId) {
+            public void onUnsubscribe(String subscriptionId, SignalType signal) {
                 unsubscribedIds.add(subscriptionId);
             }
         };

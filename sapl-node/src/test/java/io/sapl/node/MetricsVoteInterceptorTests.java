@@ -38,11 +38,14 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import lombok.val;
+import reactor.core.publisher.SignalType;
+
+import java.time.Instant;
 
 @DisplayName("MetricsVoteInterceptor")
 class MetricsVoteInterceptorTests {
@@ -89,16 +92,16 @@ class MetricsVoteInterceptorTests {
         @Test
         @DisplayName("tracks active subscription count")
         void whenSubscriptionsStartAndEnd_thenGaugeReflectsCount() {
-            interceptor.onSubscribe("sub-1", SUBSCRIPTION);
-            interceptor.onSubscribe("sub-2", SUBSCRIPTION);
+            interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
+            interceptor.onSubscribe("sub-2", SUBSCRIPTION, "test-pdp");
 
             assertThat(gaugeValue()).isEqualTo(2.0);
 
-            interceptor.onUnsubscribe("sub-1");
+            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
 
             assertThat(gaugeValue()).isEqualTo(1.0);
 
-            interceptor.onUnsubscribe("sub-2");
+            interceptor.onUnsubscribe("sub-2", SignalType.ON_COMPLETE);
 
             assertThat(gaugeValue()).isEqualTo(0.0);
         }
@@ -116,7 +119,7 @@ class MetricsVoteInterceptorTests {
         @Test
         @DisplayName("records first decision latency only once per subscription")
         void whenMultipleDecisions_thenRecordsFirstOnly() {
-            interceptor.onSubscribe("sub-1", SUBSCRIPTION);
+            interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
 
             interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
             interceptor.intercept(voteWithDecision(Decision.DENY), "sub-1", SUBSCRIPTION);
@@ -129,9 +132,9 @@ class MetricsVoteInterceptorTests {
         @Test
         @DisplayName("records subscription duration on unsubscribe")
         void whenUnsubscribed_thenRecordsDuration() {
-            interceptor.onSubscribe("sub-1", SUBSCRIPTION);
+            interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-            interceptor.onUnsubscribe("sub-1");
+            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
 
             val timer = meterRegistry.find(METRIC_SUBSCRIPTION_DURATION).timer();
             assertThat(timer).isNotNull();
@@ -147,13 +150,13 @@ class MetricsVoteInterceptorTests {
         @Test
         @DisplayName("cleans up state on unsubscribe")
         void whenUnsubscribed_thenNewSubscriptionWithSameIdStartsFresh() {
-            interceptor.onSubscribe("sub-1", SUBSCRIPTION);
+            interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-            interceptor.onUnsubscribe("sub-1");
+            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
 
-            interceptor.onSubscribe("sub-1", SUBSCRIPTION);
+            interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.intercept(voteWithDecision(Decision.DENY), "sub-1", SUBSCRIPTION);
-            interceptor.onUnsubscribe("sub-1");
+            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
 
             val firstDecisionTimer = meterRegistry.find(METRIC_FIRST_DECISION_LATENCY).timer();
             assertThat(firstDecisionTimer).isNotNull();
@@ -162,7 +165,7 @@ class MetricsVoteInterceptorTests {
 
     }
 
-    private static TimestampedVote voteWithDecision(Decision decision) {
+    private static TracedVote voteWithDecision(Decision decision) {
         val authzDecision = switch (decision) {
                           case PERMIT         -> AuthorizationDecision.PERMIT;
                           case DENY           -> AuthorizationDecision.DENY;
@@ -171,9 +174,8 @@ class MetricsVoteInterceptorTests {
                           case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
                           };
         val voterMetadata = new PdpVoterMetadata("pdp", "default", "config-1", null, Outcome.PERMIT, false);
-        val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voterMetadata,
-                voterMetadata.outcome());
-        return new TimestampedVote(vote, "2026-02-13T00:00:00Z");
+        val vote          = new Vote(authzDecision, List.of(), List.of(), voterMetadata, voterMetadata.outcome());
+        return TracedVote.of(vote, Instant.parse("2026-02-13T00:00:00Z"));
     }
 
 }

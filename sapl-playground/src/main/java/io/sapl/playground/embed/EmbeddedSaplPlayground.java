@@ -36,7 +36,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.playground.config.PermalinkConfiguration;
 import io.sapl.playground.domain.PermalinkService;
 import io.sapl.playground.domain.PermalinkService.PlaygroundState;
@@ -483,11 +483,11 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         }
     }
 
-    private void handleDecisionOnUiThread(TimestampedVote timestampedVote) {
+    private void handleDecisionOnUiThread(TracedVote timestampedVote) {
         getUI().ifPresent(ui -> ui.access(() -> displayDecision(timestampedVote)));
     }
 
-    private void displayDecision(TimestampedVote timestampedVote) {
+    private void displayDecision(TracedVote timestampedVote) {
         try {
             val json       = mapper.valueToTree(timestampedVote.vote().authorizationDecision());
             val prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);

@@ -40,10 +40,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("MethodSignatureProcessor")
 class MethodSignatureProcessorTests {
 
-    // ========================================================================
-    // Static/Instance Method Handling
-    // ========================================================================
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("staticInstanceMethodCases")
     void whenMethodWithInstanceConfigurationThenHandledCorrectly(String description, Object instance, String methodName,
@@ -92,10 +88,6 @@ class MethodSignatureProcessorTests {
         assertThat(instanceResult).isEqualTo(Value.of("Soul of Victim drained"));
     }
 
-    // ========================================================================
-    // Function Name Resolution
-    // ========================================================================
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("functionNameResolutionCases")
     void whenResolvingFunctionNameThenCorrectNameUsed(String description, String methodName, Class<?>[] paramTypes,
@@ -124,10 +116,6 @@ class MethodSignatureProcessorTests {
 
         assertThat(spec).isNull();
     }
-
-    // ========================================================================
-    // Signature Validation
-    // ========================================================================
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("validSignatureCases")
@@ -176,10 +164,6 @@ class MethodSignatureProcessorTests {
                 arguments("varargs not as last parameter rejected", BrokenLibrary.class, "varArgsNotLast",
                         new Class<?>[] { TextValue[].class, TextValue.class }, IllegalStateException.class, ""));
     }
-
-    // ========================================================================
-    // Method Execution
-    // ========================================================================
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("methodExecutionCases")
@@ -239,10 +223,6 @@ class MethodSignatureProcessorTests {
                         "Elric awakens 3 towers in the Dreaming City"));
     }
 
-    // ========================================================================
-    // Argument Validation Errors
-    // ========================================================================
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("argumentValidationErrorCases")
     void whenInvalidArgumentsThenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
@@ -285,10 +265,6 @@ class MethodSignatureProcessorTests {
                         List.of(Value.of("Elric"), Value.of("Bronze"), Value.of(42)), "varargs argument 1"));
     }
 
-    // ========================================================================
-    // Exception Handling
-    // ========================================================================
-
     @Test
     void whenMethodThrowsExceptionThenCapturedAsError() throws Exception {
         val method = StormbringerLibrary.class.getMethod("throwsException", TextValue.class);
@@ -299,10 +275,6 @@ class MethodSignatureProcessorTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("execution failed").contains("Stormbringer rebels");
     }
-
-    // ========================================================================
-    // Helper Methods and Records
-    // ========================================================================
 
     private static FunctionInvocation invocation(String name, Value... args) {
         return new FunctionInvocation(name, List.of(args));
@@ -322,10 +294,6 @@ class MethodSignatureProcessorTests {
             return clazz.getMethod(methodName, paramTypes);
         }
     }
-
-    // ========================================================================
-    // Test Library Classes (Elric Universe Themes)
-    // ========================================================================
 
     static class StormbringerLibrary {
 

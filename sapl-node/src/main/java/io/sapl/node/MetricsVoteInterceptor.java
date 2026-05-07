@@ -23,9 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.pdp.VoteInterceptor;
 import lombok.val;
+import reactor.core.publisher.SignalType;
 
 /**
  * Records PDP decision metrics for Prometheus via Micrometer.
@@ -74,7 +75,7 @@ class MetricsVoteInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription, String pdpId) {
         if (!enabled) {
             return;
         }
@@ -83,8 +84,7 @@ class MetricsVoteInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void intercept(TimestampedVote vote, String subscriptionId,
-            AuthorizationSubscription authorizationSubscription) {
+    public void intercept(TracedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription) {
         if (!enabled) {
             return;
         }
@@ -100,7 +100,7 @@ class MetricsVoteInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void onUnsubscribe(String subscriptionId) {
+    public void onUnsubscribe(String subscriptionId, SignalType signal) {
         if (!enabled) {
             return;
         }

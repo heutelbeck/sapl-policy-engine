@@ -25,7 +25,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -82,7 +82,7 @@ public class PlaygroundPolicyDecisionPoint {
      *
      * @return flux of timestamped votes with evaluation details
      */
-    public Flux<TimestampedVote> decide(AuthorizationSubscription authorizationSubscription) {
+    public Flux<TracedVote> decide(AuthorizationSubscription authorizationSubscription) {
         return policyDecisionPoint.gatherVotes(authorizationSubscription,
                 MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
     }

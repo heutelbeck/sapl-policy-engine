@@ -116,10 +116,6 @@ public class SaplTesting {
         };
     }
 
-    // ========================================================================
-    // PARSING UTILITIES
-    // ========================================================================
-
     public static Expression parseExpression(String expressionSource) {
         val parser = createParser(expressionSource);
         return TRANSFORMER.expression(parser.expression());
@@ -184,10 +180,6 @@ public class SaplTesting {
         }
     }
 
-    // ========================================================================
-    // CONTEXT FACTORIES
-    // ========================================================================
-
     public static CompilationContext compilationContext() {
         return new CompilationContext(FUNCTION_BROKER);
     }
@@ -240,10 +232,6 @@ public class SaplTesting {
                 }
                 """);
     }
-
-    // ========================================================================
-    // BROKER FACTORIES
-    // ========================================================================
 
     public static FunctionBroker functionBroker(String expectedName, Function<List<Value>, Value> fn) {
         return new FunctionBroker() {
@@ -309,10 +297,6 @@ public class SaplTesting {
         };
     }
 
-    // ========================================================================
-    // EXPRESSION COMPILATION AND EVALUATION
-    // ========================================================================
-
     public static CompiledExpression compileExpression(String expressionSource) {
         return compileExpression(expressionSource, FUNCTION_BROKER);
     }
@@ -360,10 +344,6 @@ public class SaplTesting {
         return builder.build();
     }
 
-    // ========================================================================
-    // POLICY COMPILATION AND EVALUATION
-    // ========================================================================
-
     public static Voter compilePolicy(String policySource) {
         return compilePolicy(policySource, compilationContext());
     }
@@ -381,10 +361,6 @@ public class SaplTesting {
         val policy = parsePolicy(policySource);
         return PolicyCompiler.compilePolicy(policy, ctx);
     }
-
-    // ========================================================================
-    // POLICY SET COMPILATION AND EVALUATION
-    // ========================================================================
 
     public static CompiledPolicySet compilePolicySet(String source) {
         return compilePolicySet(source, compilationContext());
@@ -537,10 +513,6 @@ public class SaplTesting {
                 && Objects.equals(authzA.resource(), authzB.resource());
     }
 
-    // ========================================================================
-    // VALUE BUILDERS
-    // ========================================================================
-
     public static Value obj(Object... keysAndValues) {
         val builder = ObjectValue.builder();
         for (int i = 0; i < keysAndValues.length; i += 2) {
@@ -556,10 +528,6 @@ public class SaplTesting {
         }
         return builder.build();
     }
-
-    // ========================================================================
-    // EXPRESSION ASSERTIONS
-    // ========================================================================
 
     public static void assertCompilesTo(String source, Value expected) {
         assertThat(compileExpression(source)).isInstanceOf(Value.class).isEqualTo(expected);
@@ -636,10 +604,6 @@ public class SaplTesting {
         }
     }
 
-    // ========================================================================
-    // STRATUM ASSERTIONS
-    // ========================================================================
-
     public static void assertStratumOfCompiledExpression(String expression, Stratum expected) {
         assertStratum(compileExpression(expression), expected);
     }
@@ -663,10 +627,8 @@ public class SaplTesting {
         }
     }
 
-    // ========================================================================
     // TEST CONTEXT (bridges old variable-at-eval pattern to new compile-time
     // pattern)
-    // ========================================================================
 
     public record TestContext(FunctionBroker functionBroker, ObjectValue variables) {
 
@@ -698,10 +660,6 @@ public class SaplTesting {
         return evaluateCompiled(compiled, ctx.evaluationContext());
     }
 
-    // ========================================================================
-    // TEST IMPLEMENTATIONS
-    // ========================================================================
-
     public record TestPureOperator(Function<EvaluationContext, Value> evaluator, boolean isDependingOnSubscription)
             implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(TestPureOperator.class);
@@ -732,10 +690,6 @@ public class SaplTesting {
             return new ExpressionResult(value, Map.of());
         }
     }
-
-    // ========================================================================
-    // FLUENT EXPRESSION EVALUATION
-    // ========================================================================
 
     /**
      * Entry point for evaluating an expression with attribute values bound.

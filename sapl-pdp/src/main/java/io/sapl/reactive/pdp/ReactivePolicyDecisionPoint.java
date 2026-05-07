@@ -40,6 +40,7 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -47,6 +48,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -61,26 +64,14 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
     private final IdFactory             idFactory;
     private final Clock                 clock;
     private final List<VoteInterceptor> interceptors;
+    private final boolean               hasInterceptors;
 
-    /**
-     * Creates a PDP with no interceptors and the system UTC clock.
-     *
-     * @param pdpConfigurationSource the source of PDP configurations
-     * @param idFactory factory for generating subscription IDs
-     */
     public ReactivePolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             AttributeStore attributeStore,
             IdFactory idFactory) {
         this(pdpConfigurationSource, attributeStore, idFactory, Clock.systemUTC(), List.of());
     }
 
-    /**
-     * Creates a PDP with vote interceptors and the system UTC clock.
-     *
-     * @param pdpConfigurationSource the source of PDP configurations
-     * @param idFactory factory for generating subscription IDs
-     * @param interceptors interceptors invoked on each vote, sorted by priority
-     */
     public ReactivePolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             AttributeStore attributeStore,
             IdFactory idFactory,
@@ -88,15 +79,6 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         this(pdpConfigurationSource, attributeStore, idFactory, Clock.systemUTC(), interceptors);
     }
 
-    /**
-     * Creates a PDP with vote interceptors and an explicit clock for
-     * timestamping {@link TimestampedVote}s.
-     *
-     * @param pdpConfigurationSource the source of PDP configurations
-     * @param idFactory factory for generating subscription IDs
-     * @param clock clock used to timestamp emitted votes
-     * @param interceptors interceptors invoked on each vote, sorted by priority
-     */
     public ReactivePolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             AttributeStore attributeStore,
             IdFactory idFactory,
@@ -107,233 +89,282 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         this.idFactory              = idFactory;
         this.clock                  = clock;
         this.interceptors           = interceptors.stream().sorted().toList();
+        this.hasInterceptors        = !this.interceptors.isEmpty();
     }
 
     @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        return gatherVotes(authorizationSubscription, pdpId).map(tv -> tv.vote().authorizationDecision())
-                .distinctUntilChanged();
+    public Flux<AuthorizationDecision> decide(AuthorizationSubscription sub, String pdpId) {
+        Flux<AuthorizationDecision> decisions = hasInterceptors
+                ? tracedVoteFlux(sub, pdpId).map(tv -> tv.vote().authorizationDecision())
+                : voteFlux(sub, pdpId).map(Vote::authorizationDecision);
+        return decisions.distinctUntilChanged();
     }
 
-    private Flux<TimestampedVote> fluxEvaluate(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
-        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
-        return switch (pdp.voter()) {
-        case Vote v        -> Flux.just(stamp(v));
-        case PureVoter p   -> Mono.fromSupplier(() -> stamp(p.vote(baseCtx))).flux();
-        case StreamVoter s -> fluxEvaluateStreaming(pdp, baseCtx, subscriptionId, s);
-        };
+    @Override
+    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription sub, String pdpId) {
+        return hasInterceptors ? tracedVoteMono(sub, pdpId).map(tv -> tv.vote().authorizationDecision())
+                : voteMono(sub, pdpId).map(Vote::authorizationDecision);
     }
 
-    private Flux<TimestampedVote> fluxEvaluateStreaming(CompiledPdp pdp, EvaluationContext baseCtx,
-            String subscriptionId, StreamVoter voter) {
+    @Override
+    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription sub, String pdpId) {
+        return hasInterceptors ? tracedVoteSync(sub, pdpId).vote().authorizationDecision()
+                : voteSync(sub, pdpId).authorizationDecision();
+    }
+
+    /**
+     * Public stream of {@link TracedVote} instances for a subscription.
+     * Always uses the traced pipeline regardless of whether interceptors
+     * are registered, so callers that explicitly want emit timestamps
+     * and attribute trace get them. Used by tooling (playground,
+     * tests).
+     */
+    public Flux<TracedVote> gatherVotes(AuthorizationSubscription sub, String pdpId) {
+        return tracedVoteFlux(sub, pdpId);
+    }
+
+    private Flux<Vote> voteFlux(AuthorizationSubscription sub, String pdpId) {
         return Flux.defer(() -> {
-            val initial = voter.evaluate(baseCtx);
-            if (initial.dependencies().isEmpty()) {
-                return Flux.just(initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION)
-                        : stamp(initial.vote()));
-            }
-            val initialEmission = initial.vote() == null ? Flux.<TimestampedVote>empty()
-                    : Flux.just(stamp(initial.vote()));
-            val streamEmissions = streamVotes(attributeStore, subscriptionId, initial.dependencies().keySet(),
-                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot))).map(this::stamp);
-            return Flux.concat(initialEmission, streamEmissions);
+            val subscriptionId   = idFactory.newRandom();
+            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+            return pdpConfiguration.map(pdp -> evaluateAsFlux(pdp, sub, subscriptionId))
+                    .orElseGet(() -> Flux.just(noConfigurationVote(pdpId)));
         });
     }
 
-    @Override
-    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        val subscriptionId = idFactory.newRandom();
-        invokeOnSubscribe(subscriptionId, authorizationSubscription);
-        try {
-            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-            if (pdpConfiguration.isEmpty()) {
-                return noConfigurationVote(pdpId).vote().authorizationDecision();
-            }
-            val timestampedVote = evaluateOnce(pdpConfiguration.get(), authorizationSubscription, subscriptionId);
-            invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
-            return timestampedVote.vote().authorizationDecision();
-        } finally {
-            invokeOnUnsubscribe(subscriptionId);
-        }
-    }
-
-    @Override
-    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
+    private Mono<Vote> voteMono(AuthorizationSubscription sub, String pdpId) {
         return Mono.defer(() -> {
             val subscriptionId   = idFactory.newRandom();
             val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-            val voteMono         = pdpConfiguration
-                    .map(pdp -> monoEvaluateOnce(pdp, authorizationSubscription, subscriptionId))
+            return pdpConfiguration.map(pdp -> evaluateAsMono(pdp, sub, subscriptionId))
                     .orElseGet(() -> Mono.just(noConfigurationVote(pdpId)));
-            return voteMono.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, authorizationSubscription))
-                    .doOnNext(tv -> invokeInterceptors(tv, subscriptionId, authorizationSubscription))
-                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId));
-        }).map(tv -> tv.vote().authorizationDecision());
-    }
-
-    private Mono<TimestampedVote> monoEvaluateOnce(CompiledPdp pdp, AuthorizationSubscription sub,
-            String subscriptionId) {
-        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
-        return switch (pdp.voter()) {
-        case Vote v        -> Mono.just(stamp(v));
-        case PureVoter p   -> Mono.fromSupplier(() -> stamp(p.vote(baseCtx)));
-        case StreamVoter s -> monoEvaluateStreamingOnce(pdp, baseCtx, subscriptionId, s);
-        };
-    }
-
-    private Mono<TimestampedVote> monoEvaluateStreamingOnce(CompiledPdp pdp, EvaluationContext baseCtx,
-            String subscriptionId, StreamVoter voter) {
-        return Mono.fromSupplier(() -> voter.evaluate(baseCtx)).flatMap(initial -> {
-            if (initial.dependencies().isEmpty()) {
-                return Mono.just(initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION)
-                        : stamp(initial.vote()));
-            }
-            if (initial.vote() != null) {
-                return Mono.just(stamp(initial.vote()));
-            }
-            return firstVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
-                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot))).map(this::stamp);
         });
     }
 
-    /**
-     * One-shot evaluation of the compiled PDP. Dispatches by voter shape:
-     * a constant {@link Vote} returns immediately, a {@link PureVoter}
-     * evaluates synchronously against the context, a {@link StreamVoter}
-     * subscribes its declared dependencies on the {@link AttributeStore}
-     * and blocks on the first complete snapshot.
-     *
-     * @param pdp the compiled PDP whose voter is to be evaluated
-     * @param sub the authorization subscription
-     * @param subscriptionId the per-evaluation subscription id used by the
-     * attribute store for telemetry and de-duplication
-     * @return the timestamped vote
-     */
-    private TimestampedVote evaluateOnce(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+    private Vote voteSync(AuthorizationSubscription sub, String pdpId) {
+        val subscriptionId   = idFactory.newRandom();
+        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+        if (pdpConfiguration.isEmpty()) {
+            return noConfigurationVote(pdpId);
+        }
+        return evaluateOnceSync(pdpConfiguration.get(), sub, subscriptionId);
+    }
+
+    private Flux<TracedVote> tracedVoteFlux(AuthorizationSubscription sub, String pdpId) {
+        return Flux.defer(() -> {
+            val subscriptionId   = idFactory.newRandom();
+            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+            val tracedFlux       = pdpConfiguration.map(pdp -> evaluateAsTracedFlux(pdp, sub, subscriptionId))
+                    .orElseGet(() -> Flux.just(tracedNoConfiguration(pdpId)));
+            return tracedFlux.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, sub, pdpId))
+                    .doOnNext(tv -> fireInterceptors(tv, subscriptionId, sub))
+                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId, signal));
+        });
+    }
+
+    private Mono<TracedVote> tracedVoteMono(AuthorizationSubscription sub, String pdpId) {
+        return Mono.defer(() -> {
+            val subscriptionId   = idFactory.newRandom();
+            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+            val tracedMono       = pdpConfiguration.map(pdp -> evaluateAsTracedMono(pdp, sub, subscriptionId))
+                    .orElseGet(() -> Mono.just(tracedNoConfiguration(pdpId)));
+            return tracedMono.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, sub, pdpId))
+                    .doOnNext(tv -> fireInterceptors(tv, subscriptionId, sub))
+                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId, signal));
+        });
+    }
+
+    private TracedVote tracedVoteSync(AuthorizationSubscription sub, String pdpId) {
+        val subscriptionId = idFactory.newRandom();
+        invokeOnSubscribe(subscriptionId, sub, pdpId);
+        try {
+            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+            val tracedVote       = pdpConfiguration.map(pdp -> evaluateOnceTracedSync(pdp, sub, subscriptionId))
+                    .orElseGet(() -> tracedNoConfiguration(pdpId));
+            fireInterceptors(tracedVote, subscriptionId, sub);
+            return tracedVote;
+        } finally {
+            invokeOnUnsubscribe(subscriptionId, SignalType.ON_COMPLETE);
+        }
+    }
+
+    private Vote evaluateOnceSync(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
         val baseCtx = evaluationContext(pdp, sub, subscriptionId);
         return switch (pdp.voter()) {
-        case Vote v        -> stamp(v);
-        case PureVoter p   -> stamp(p.vote(baseCtx));
-        case StreamVoter s -> evaluateStreamingOnce(pdp, baseCtx, subscriptionId, s);
+        case Vote v        -> v;
+        case PureVoter p   -> p.vote(baseCtx);
+        case StreamVoter s -> evaluateStreamingSync(pdp, baseCtx, subscriptionId, s);
         };
     }
 
-    /**
-     * Bridges the callback-driven {@link AttributeStore} to a synchronous
-     * single-vote return. Performs an initial in-memory pass; if that
-     * already produces a vote (no streaming dependencies, or all reads
-     * resolved without subscribing), returns it directly. Otherwise opens
-     * a per-subscription store handle, lets the trigger loop fire as
-     * dependencies fulfil, and returns on the first non-null vote. The
-     * store handle is released in {@code finally} regardless of outcome
-     * so the backing PIP refcount is freed promptly.
-     */
-    private TimestampedVote evaluateStreamingOnce(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
+    private Vote evaluateStreamingSync(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
             StreamVoter voter) {
         val initial = voter.evaluate(baseCtx);
         if (initial.dependencies().isEmpty()) {
-            return initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : stamp(initial.vote());
+            return initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote();
         }
         if (initial.vote() != null) {
-            return stamp(initial.vote());
+            return initial.vote();
         }
         try {
-            return stamp(Voters.awaitFirstVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
-                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot))));
+            return Voters.awaitFirstVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return errorVote(pdp, ERROR_INTERRUPTED);
         }
     }
 
-    private TimestampedVote stamp(Vote vote) {
-        return new TimestampedVote(vote, clock.instant().toString());
+    private Mono<Vote> evaluateAsMono(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
+        return switch (pdp.voter()) {
+        case Vote v        -> Mono.just(v);
+        case PureVoter p   -> Mono.fromSupplier(() -> p.vote(baseCtx));
+        case StreamVoter s -> evaluateStreamingAsMono(pdp, baseCtx, subscriptionId, s);
+        };
     }
 
-    private TimestampedVote errorVote(CompiledPdp pdp, String message) {
-        return stamp(Vote.error(new ErrorValue(message), pdp.metadata()));
+    private Mono<Vote> evaluateStreamingAsMono(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
+            StreamVoter voter) {
+        return Mono.fromSupplier(() -> voter.evaluate(baseCtx)).flatMap(initial -> {
+            if (initial.dependencies().isEmpty()) {
+                return Mono.just(
+                        initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote());
+            }
+            if (initial.vote() != null) {
+                return Mono.just(initial.vote());
+            }
+            return firstVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
+        });
     }
 
-    /**
-     * Gathers authorization votes for a subscription as a reactive stream.
-     * Returns INDETERMINATE if no configuration is loaded.
-     *
-     * @param authorizationSubscription the authorization subscription to evaluate
-     * @param pdpId the PDP identifier for tenant routing
-     * @return a flux of timestamped votes
-     */
-    public Flux<TimestampedVote> gatherVotes(AuthorizationSubscription authorizationSubscription, String pdpId) {
+    private Flux<Vote> evaluateAsFlux(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
+        return switch (pdp.voter()) {
+        case Vote v        -> Flux.just(v);
+        case PureVoter p   -> Mono.fromSupplier(() -> p.vote(baseCtx)).flux();
+        case StreamVoter s -> evaluateStreamingAsFlux(pdp, baseCtx, subscriptionId, s);
+        };
+    }
+
+    private Flux<Vote> evaluateStreamingAsFlux(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
+            StreamVoter voter) {
         return Flux.defer(() -> {
-            val subscriptionId   = idFactory.newRandom();
-            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-            val voteFlux         = pdpConfiguration
-                    .map(pdp -> fluxEvaluate(pdp, authorizationSubscription, subscriptionId))
-                    .orElseGet(() -> Flux.just(noConfigurationVote(pdpId)));
-            return voteFlux.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, authorizationSubscription))
-                    .doOnNext(tv -> invokeInterceptors(tv, subscriptionId, authorizationSubscription))
-                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId));
+            val initial = voter.evaluate(baseCtx);
+            if (initial.dependencies().isEmpty()) {
+                return Flux.just(
+                        initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote());
+            }
+            val initialEmission = initial.vote() == null ? Flux.<Vote>empty() : Flux.just(initial.vote());
+            val streamEmissions = streamVotes(attributeStore, subscriptionId, initial.dependencies().keySet(),
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
+            return Flux.concat(initialEmission, streamEmissions);
         });
     }
 
-    private EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
-        return EvaluationContext.of(pdp.metadata().pdpId(), pdp.metadata().configurationId(), subscriptionId, sub,
-                pdpConfigurationSource.getFunctionBroker());
+    private TracedVote evaluateOnceTracedSync(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
+        return switch (pdp.voter()) {
+        case Vote v        -> TracedVote.of(v, clock.instant());
+        case PureVoter p   -> TracedVote.of(p.vote(baseCtx), clock.instant());
+        case StreamVoter s -> evaluateStreamingTracedSync(pdp, baseCtx, subscriptionId, s);
+        };
     }
 
-    private TimestampedVote noConfigurationVote(String pdpId) {
-        val metadata = new PdpVoterMetadata("no-configuration", pdpId, "none", null, Outcome.PERMIT_OR_DENY, false);
-        val error    = new ErrorValue(ERROR_NO_PDP_CONFIGURATION);
-        val vote     = Vote.error(error, metadata);
-        return new TimestampedVote(vote, clock.instant().toString());
-    }
-
-    private void invokeOnSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
-        for (val interceptor : interceptors) {
-            interceptor.onSubscribe(subscriptionId, authorizationSubscription);
+    private TracedVote evaluateStreamingTracedSync(CompiledPdp pdp, EvaluationContext baseCtx, String subscriptionId,
+            StreamVoter voter) {
+        val initial = voter.evaluate(baseCtx);
+        if (initial.dependencies().isEmpty()) {
+            return TracedVote.of(
+                    initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote(),
+                    clock.instant());
+        }
+        if (initial.vote() != null) {
+            return TracedVote.of(initial.vote(), clock.instant());
+        }
+        try {
+            return awaitFirstTracedVoteSync(subscriptionId, initial.dependencies().keySet(),
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return TracedVote.of(errorVote(pdp, ERROR_INTERRUPTED), clock.instant());
         }
     }
 
-    private void invokeOnUnsubscribe(String subscriptionId) {
-        for (val interceptor : interceptors) {
-            interceptor.onUnsubscribe(subscriptionId);
+    private TracedVote awaitFirstTracedVoteSync(String subscriptionId, Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) throws InterruptedException {
+        val future = new CompletableFuture<TracedVote>();
+        try (val ignored = attributeStore.open(subscriptionId, initialDependencies, snapshot -> {
+            val r = evaluator.apply(snapshot);
+            if (r.vote() != null) {
+                future.complete(buildTracedVote(r, snapshot));
+            }
+            return r.dependencies().keySet();
+        })) {
+            return future.get();
+        } catch (ExecutionException ee) {
+            val cause = ee.getCause();
+            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
         }
     }
 
-    private void invokeInterceptors(TimestampedVote vote, String subscriptionId,
-            AuthorizationSubscription authorizationSubscription) {
-        for (val interceptor : interceptors) {
-            interceptor.intercept(vote, subscriptionId, authorizationSubscription);
-        }
+    private TracedVote buildTracedVote(VoteResult result, Map<SubscriptionKey, AttributeSnapshot> snapshot) {
+        return new TracedVote(result.vote(), clock.instant(), result.dependencies(),
+                Voters.readSnapshot(result, snapshot));
     }
 
-    private static Mono<Vote> firstVote(AttributeStore store, String subscriptionId,
-            Set<SubscriptionKey> initialDependencies,
-            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) {
-        return Mono.create(sink -> {
-            val handle = store.open(subscriptionId, initialDependencies, snapshot -> {
-                val r = evaluator.apply(snapshot);
-                if (r.vote() != null) {
-                    sink.success(r.vote());
-                }
-                return r.dependencies().keySet();
-            });
-            sink.onDispose(handle::close);
+    private Mono<TracedVote> evaluateAsTracedMono(CompiledPdp pdp, AuthorizationSubscription sub,
+            String subscriptionId) {
+        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
+        return switch (pdp.voter()) {
+        case Vote v        -> Mono.just(TracedVote.of(v, clock.instant()));
+        case PureVoter p   -> Mono.fromSupplier(() -> TracedVote.of(p.vote(baseCtx), clock.instant()));
+        case StreamVoter s -> evaluateStreamingAsTracedMono(pdp, baseCtx, subscriptionId, s);
+        };
+    }
+
+    private Mono<TracedVote> evaluateStreamingAsTracedMono(CompiledPdp pdp, EvaluationContext baseCtx,
+            String subscriptionId, StreamVoter voter) {
+        return Mono.fromSupplier(() -> voter.evaluate(baseCtx)).flatMap(initial -> {
+            if (initial.dependencies().isEmpty()) {
+                return Mono.just(TracedVote.of(
+                        initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote(),
+                        clock.instant()));
+            }
+            if (initial.vote() != null) {
+                return Mono.just(TracedVote.of(initial.vote(), clock.instant()));
+            }
+            return firstTracedVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
         });
     }
 
-    private static Flux<Vote> streamVotes(AttributeStore store, String subscriptionId,
-            Set<SubscriptionKey> initialDependencies,
-            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) {
-        return Flux.create(sink -> {
-            val handle = store.open(subscriptionId, initialDependencies, snapshot -> {
-                val r = evaluator.apply(snapshot);
-                if (r.vote() != null) {
-                    sink.next(r.vote());
-                }
-                return r.dependencies().keySet();
-            });
-            sink.onDispose(handle::close);
-        }, FluxSink.OverflowStrategy.LATEST);
+    private Flux<TracedVote> evaluateAsTracedFlux(CompiledPdp pdp, AuthorizationSubscription sub,
+            String subscriptionId) {
+        val baseCtx = evaluationContext(pdp, sub, subscriptionId);
+        return switch (pdp.voter()) {
+        case Vote v        -> Flux.just(TracedVote.of(v, clock.instant()));
+        case PureVoter p   -> Mono.fromSupplier(() -> TracedVote.of(p.vote(baseCtx), clock.instant())).flux();
+        case StreamVoter s -> evaluateStreamingAsTracedFlux(pdp, baseCtx, subscriptionId, s);
+        };
+    }
+
+    private Flux<TracedVote> evaluateStreamingAsTracedFlux(CompiledPdp pdp, EvaluationContext baseCtx,
+            String subscriptionId, StreamVoter voter) {
+        return Flux.defer(() -> {
+            val initial = voter.evaluate(baseCtx);
+            if (initial.dependencies().isEmpty()) {
+                return Flux.just(TracedVote.of(
+                        initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote(),
+                        clock.instant()));
+            }
+            val initialEmission = initial.vote() == null ? Flux.<TracedVote>empty()
+                    : Flux.just(TracedVote.of(initial.vote(), clock.instant()));
+            val streamEmissions = streamTracedVotes(attributeStore, subscriptionId, initial.dependencies().keySet(),
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
+            return Flux.concat(initialEmission, streamEmissions);
+        });
     }
 
     @Override
@@ -369,8 +400,12 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
      * {@link MultiAuthorizationDecision} can never reflect a partial
      * update across subs. Emission is gated on every sub having a
      * non-null vote in the current round; rounds where any sub fails
-     * to produce a vote are silently skipped (the next snapshot
-     * change will retry).
+     * to produce a vote are silently skipped.
+     * <p>
+     * When interceptors are registered, each sub-evaluation fires its
+     * own interceptor invocation inline within the round, with the
+     * per-sub {@link TracedVote} (vote, emit timestamp, attribute
+     * trace).
      */
     private Flux<MultiAuthorizationDecision> multiVoteFlux(MultiAuthorizationSubscription multiSubscription,
             CompiledPdp pdp, String subscriptionId) {
@@ -380,9 +415,9 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         }
         return Flux.create(sink -> {
             val initialDeps = new HashSet<SubscriptionKey>();
-            val emitInitial = evaluateRound(items, pdp, subscriptionId, Map.of(), initialDeps);
-            if (emitInitial != null) {
-                sink.next(emitInitial);
+            val initial     = evaluateRound(items, pdp, subscriptionId, Map.of(), initialDeps);
+            if (initial != null) {
+                sink.next(initial);
             }
             if (initialDeps.isEmpty()) {
                 sink.complete();
@@ -400,13 +435,6 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         }, FluxSink.OverflowStrategy.LATEST);
     }
 
-    /**
-     * Evaluates every sub against the given snapshot. Accumulates each
-     * sub's declared dependencies into {@code depsAccumulator}. Returns
-     * a complete {@link MultiAuthorizationDecision} when every sub
-     * produced a non-null vote; otherwise returns {@code null} so the
-     * caller skips emission for this round.
-     */
     private MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items, CompiledPdp pdp,
             String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
             Set<SubscriptionKey> depsAccumulator) {
@@ -417,6 +445,9 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
             depsAccumulator.addAll(r.dependencies().keySet());
             if (r.vote() == null) {
                 return null;
+            }
+            if (hasInterceptors) {
+                fireInterceptors(buildTracedVote(r, snapshot), item.subscriptionId(), item.subscription());
             }
             multi.setDecision(item.subscriptionId(), r.vote().authorizationDecision());
         }
@@ -431,13 +462,6 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         };
     }
 
-    /**
-     * Diff between consecutive {@link MultiAuthorizationDecision} rounds.
-     * Emits an {@link IdentifiableAuthorizationDecision} for each sub
-     * whose decision differs from the previous round (or is new). Used
-     * by {@link #decide(MultiAuthorizationSubscription, String)} to
-     * surface per-sub changes from the all-complete decideAll stream.
-     */
     private static List<IdentifiableAuthorizationDecision> identifiableChanges(MultiAuthorizationDecision previous,
             MultiAuthorizationDecision current) {
         val changes = new ArrayList<IdentifiableAuthorizationDecision>();
@@ -450,4 +474,113 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         return changes;
     }
 
+    private EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        return EvaluationContext.of(pdp.metadata().pdpId(), pdp.metadata().configurationId(), subscriptionId, sub,
+                pdpConfigurationSource.getFunctionBroker());
+    }
+
+    private Vote noConfigurationVote(String pdpId) {
+        val metadata = new PdpVoterMetadata("no-configuration", pdpId, "none", null, Outcome.PERMIT_OR_DENY, false);
+        return Vote.error(new ErrorValue(ERROR_NO_PDP_CONFIGURATION), metadata);
+    }
+
+    private TracedVote tracedNoConfiguration(String pdpId) {
+        return TracedVote.of(noConfigurationVote(pdpId), clock.instant());
+    }
+
+    private Vote errorVote(CompiledPdp pdp, String message) {
+        return Vote.error(new ErrorValue(message), pdp.metadata());
+    }
+
+    private void invokeOnSubscribe(String subscriptionId, AuthorizationSubscription sub, String pdpId) {
+        for (val interceptor : interceptors) {
+            try {
+                interceptor.onSubscribe(subscriptionId, sub, pdpId);
+            } catch (Throwable swallowed) {
+                // Interceptors are observability concerns, not obligations: a
+                // misbehaving interceptor must not affect authorization. The
+                // interceptor handles its own failure logging.
+            }
+        }
+    }
+
+    private void invokeOnUnsubscribe(String subscriptionId, SignalType signal) {
+        for (val interceptor : interceptors) {
+            try {
+                interceptor.onUnsubscribe(subscriptionId, signal);
+            } catch (Throwable swallowed) {
+                // see invokeOnSubscribe.
+            }
+        }
+    }
+
+    private void fireInterceptors(TracedVote vote, String subscriptionId, AuthorizationSubscription sub) {
+        for (val interceptor : interceptors) {
+            try {
+                interceptor.intercept(vote, subscriptionId, sub);
+            } catch (Throwable swallowed) {
+                // see invokeOnSubscribe.
+            }
+        }
+    }
+
+    private static Mono<Vote> firstVote(AttributeStore store, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) {
+        return Mono.create(sink -> {
+            val handle = store.open(subscriptionId, initialDependencies, snapshot -> {
+                val r = evaluator.apply(snapshot);
+                if (r.vote() != null) {
+                    sink.success(r.vote());
+                }
+                return r.dependencies().keySet();
+            });
+            sink.onDispose(handle::close);
+        });
+    }
+
+    private static Flux<Vote> streamVotes(AttributeStore store, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) {
+        return Flux.create(sink -> {
+            val handle = store.open(subscriptionId, initialDependencies, snapshot -> {
+                val r = evaluator.apply(snapshot);
+                if (r.vote() != null) {
+                    sink.next(r.vote());
+                }
+                return r.dependencies().keySet();
+            });
+            sink.onDispose(handle::close);
+        }, FluxSink.OverflowStrategy.LATEST);
+    }
+
+    private Mono<TracedVote> firstTracedVote(AttributeStore store, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) {
+        return Mono.create(sink -> {
+            val handle = store.open(subscriptionId, initialDependencies, snapshot -> {
+                val r = evaluator.apply(snapshot);
+                if (r.vote() != null) {
+                    sink.success(buildTracedVote(r, snapshot));
+                }
+                return r.dependencies().keySet();
+            });
+            sink.onDispose(handle::close);
+        });
+    }
+
+    private Flux<TracedVote> streamTracedVotes(AttributeStore store, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) {
+        return Flux.create(sink -> {
+            val handle = store.open(subscriptionId, initialDependencies, snapshot -> {
+                val r = evaluator.apply(snapshot);
+                if (r.vote() != null) {
+                    sink.next(buildTracedVote(r, snapshot));
+                }
+                return r.dependencies().keySet();
+            });
+            sink.onDispose(handle::close);
+        }, FluxSink.OverflowStrategy.LATEST);
+    }
 }

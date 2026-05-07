@@ -20,8 +20,10 @@ package io.sapl.pdp.interceptors;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Occurrence;
+import io.sapl.api.model.SourceLocation;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -29,6 +31,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
+import io.sapl.compiler.document.AttributeContribution;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,30 +45,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ReportTextRenderUtil")
 class ReportTextRenderUtilTests {
 
-    private static final String                    DUMMY_TIMESTAMP       = "2026-01-01T00:00:00Z";
+    private static final Instant                   DUMMY_TIMESTAMP       = Instant.parse("2026-01-01T00:00:00Z");
     private static final String                    DUMMY_SUBSCRIPTION_ID = "sub-456";
     private static final AuthorizationSubscription DUMMY_SUBSCRIPTION    = AuthorizationSubscription.of("testUser",
             "read", "testResource");
     private static final CombiningAlgorithm        DENY_OVERRIDES        = new CombiningAlgorithm(
             VotingMode.PRIORITY_DENY, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
-
-    private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
-            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    private static final AttributeAccessContext    EMPTY_CTX             = new AttributeAccessContext(
+            Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
     @Test
     @DisplayName("renders decision in text report")
     void whenTextReportThenContainsDecision() {
-        val report = createSimpleReport(Decision.PERMIT);
+        val report = reportWithDecision(Decision.PERMIT);
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Decision       :").contains("PERMIT");
+        assertThat(text).contains("Decision       : PERMIT");
     }
 
     @Test
     @DisplayName("renders PDP ID in text report")
     void whenTextReportThenContainsPdpId() {
-        val report = createSimpleReport(Decision.PERMIT);
+        val report = reportWithDecision(Decision.PERMIT);
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -75,13 +77,11 @@ class ReportTextRenderUtilTests {
     @Test
     @DisplayName("renders algorithm in text report")
     void whenTextReportThenContainsAlgorithm() {
-        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
-                List.of(), List.of());
+        val report = reportWithDecision(Decision.PERMIT);
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Algorithm      :").contains("PRIORITY_DENY");
+        assertThat(text).contains("Algorithm      : PRIORITY_DENY");
     }
 
     @Test
@@ -89,21 +89,19 @@ class ReportTextRenderUtilTests {
     void whenReportHasPdpErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Ritual interrupted by investigators", null);
         val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.INDETERMINATE,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
+                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
                 List.of(), List.of(error));
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("PDP Errors:").contains("Ritual interrupted by investigators");
+        assertThat(text).contains("PDP Errors:").contains("- Ritual interrupted by investigators");
     }
 
     @Test
     @DisplayName("renders contributing documents in text report")
     void whenReportHasDocumentsThenDocumentsAreRendered() {
-        val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT, List.of());
-        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "test-pdp", "test-config", DENY_OVERRIDES,
-                List.of(doc), List.of());
+        val doc    = new ContributingDocument("forbidden-knowledge-access", Decision.PERMIT, List.of(), List.of());
+        val report = reportWithDocuments(Decision.PERMIT, List.of(doc));
 
         val text = ReportTextRenderUtil.textReport(report);
 
@@ -111,17 +109,16 @@ class ReportTextRenderUtilTests {
     }
 
     @Test
-    @DisplayName("renders multiple contributing documents")
-    void whenReportHasMultipleDocumentsThenAllAreRendered() {
-        val doc1   = new ContributingDocument("outer-set", Decision.DENY, List.of());
-        val doc2   = new ContributingDocument("inner-policy", Decision.DENY, List.of());
-        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.DENY,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "top-set", "test-pdp", "test-config", DENY_OVERRIDES,
-                List.of(doc1, doc2), List.of());
+    @DisplayName("renders multiple contributing documents in evaluation order")
+    void whenReportHasMultipleDocumentsThenAllAreRenderedInOrder() {
+        val doc1   = new ContributingDocument("outer-set", Decision.DENY, List.of(), List.of());
+        val doc2   = new ContributingDocument("inner-policy", Decision.DENY, List.of(), List.of());
+        val report = reportWithDocuments(Decision.DENY, List.of(doc1, doc2));
 
         val text = ReportTextRenderUtil.textReport(report);
 
         assertThat(text).contains("outer-set -> DENY").contains("inner-policy -> DENY");
+        assertThat(text.indexOf("outer-set -> DENY")).isLessThan(text.indexOf("inner-policy -> DENY"));
     }
 
     @Test
@@ -151,60 +148,120 @@ class ReportTextRenderUtilTests {
     }
 
     @Test
-    @DisplayName("renders environment attributes with timestamp under contributing document")
-    void whenDocumentHasEnvironmentAttributesThenAttributesAndTimestampAreRendered() {
-        val timestamp  = Instant.parse("2024-01-23T10:30:05.123Z");
-        val invocation = new AttributeFinderInvocation("test-config", "time.now", List.of(), Duration.ofSeconds(10),
-                Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
-        val attr       = new AttributeRecord(invocation, Value.of("2024-01-23T10:30:00Z"), timestamp, null);
-        val doc        = new ContributingDocument("time-policy", Decision.PERMIT, List.of());
-        val report     = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
-                List.of(doc), List.of());
+    @DisplayName("renders environment attribute as <name> under its document with value and publish timestamp")
+    void whenDocumentHasEnvironmentAttributeThenItIsRenderedUnderThatDocument() {
+        val publishedAt  = Instant.parse("2024-01-23T10:30:05.123Z");
+        val contribution = environmentAttribute("time.now", Value.of("2024-01-23T10:30:00Z"), publishedAt,
+                "time-policy");
+        val doc          = new ContributingDocument("time-policy", Decision.PERMIT, List.of(), List.of(contribution));
+        val report       = reportWithDocuments(Decision.PERMIT, List.of(doc));
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("time-policy -> PERMIT").contains("Attributes:").contains("<time.now> = ")
-                .contains("2024-01-23T10:30:00Z").contains("@ 2024-01-23T10:30:05.123Z");
+        val expectedLine = "<time.now> = \"2024-01-23T10:30:00Z\" @ "
+                + ReportTextRenderUtil.formatTimestamp(publishedAt);
+        assertThat(text).contains("time-policy -> PERMIT").contains("Attributes:").contains(expectedLine);
+        assertThat(text.indexOf("time-policy -> PERMIT")).isLessThan(text.indexOf("Attributes:"));
+        assertThat(text.indexOf("Attributes:")).isLessThan(text.indexOf(expectedLine));
     }
 
     @Test
-    @DisplayName("renders entity attributes with timestamp under contributing document")
-    void whenDocumentHasEntityAttributesThenAttributesAndTimestampAreRendered() {
-        val timestamp  = Instant.parse("2024-01-23T10:30:05.456Z");
-        val entity     = Value.of("test-subject");
-        val invocation = new AttributeFinderInvocation("test-config", "user.role", entity, List.of(),
-                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
-        val attr       = new AttributeRecord(invocation, Value.of("admin"), timestamp, null);
-        val doc        = new ContributingDocument("role-policy", Decision.PERMIT, List.of());
-        val report     = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.PERMIT,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
-                List.of(doc), List.of());
+    @DisplayName("renders entity attribute as <entity>.<name> under its document with value and publish timestamp")
+    void whenDocumentHasEntityAttributeThenItIsRenderedUnderThatDocument() {
+        val publishedAt  = Instant.parse("2024-01-23T10:30:05.456Z");
+        val contribution = entityAttribute(Value.of("test-subject"), "user.role", Value.of("admin"), publishedAt,
+                "role-policy");
+        val doc          = new ContributingDocument("role-policy", Decision.PERMIT, List.of(), List.of(contribution));
+        val report       = reportWithDocuments(Decision.PERMIT, List.of(doc));
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("role-policy -> PERMIT").contains("Attributes:")
-                .contains("\"test-subject\".<user.role> = ").contains("\"admin\"")
-                .contains("@ 2024-01-23T10:30:05.456Z");
+        val expectedLine = "\"test-subject\".<user.role> = \"admin\" @ "
+                + ReportTextRenderUtil.formatTimestamp(publishedAt);
+        assertThat(text).contains("role-policy -> PERMIT").contains("Attributes:").contains(expectedLine);
+        assertThat(text.indexOf("role-policy -> PERMIT")).isLessThan(text.indexOf("Attributes:"));
+        assertThat(text.indexOf("Attributes:")).isLessThan(text.indexOf(expectedLine));
+    }
+
+    @Test
+    @DisplayName("attribute reads of one document do not leak into a sibling document's section")
+    void whenTwoDocumentsHaveDifferentAttributesThenTheyAreSegregated() {
+        val publishedAt = Instant.parse("2024-01-23T10:30:05.123Z");
+        val timeAttr    = environmentAttribute("time.now", Value.of("2024-01-23T10:30:00Z"), publishedAt, "policy-A");
+        val roleAttr    = entityAttribute(Value.of("test-subject"), "user.role", Value.of("admin"), publishedAt,
+                "policy-B");
+        val docA        = new ContributingDocument("policy-A", Decision.PERMIT, List.of(), List.of(timeAttr));
+        val docB        = new ContributingDocument("policy-B", Decision.PERMIT, List.of(), List.of(roleAttr));
+        val report      = reportWithDocuments(Decision.PERMIT, List.of(docA, docB));
+
+        val text = ReportTextRenderUtil.textReport(report);
+
+        val timeNowIndex  = text.indexOf("<time.now>");
+        val userRoleIndex = text.indexOf("<user.role>");
+        val policyAIndex  = text.indexOf("policy-A -> PERMIT");
+        val policyBIndex  = text.indexOf("policy-B -> PERMIT");
+        assertThat(timeNowIndex).isGreaterThan(policyAIndex).isLessThan(policyBIndex);
+        assertThat(userRoleIndex).isGreaterThan(policyBIndex);
+    }
+
+    @Test
+    @DisplayName("renders multiple attributes for one document, each on its own line")
+    void whenDocumentHasMultipleAttributesThenAllAreRendered() {
+        val publishedAt = Instant.parse("2024-01-23T10:30:05.000Z");
+        val timeAttr    = environmentAttribute("time.now", Value.of("2024-01-23T10:30:00Z"), publishedAt, "multi-attr");
+        val roleAttr    = entityAttribute(Value.of("user-1"), "pip.role", Value.of("admin"), publishedAt, "multi-attr");
+        val doc         = new ContributingDocument("multi-attr", Decision.PERMIT, List.of(),
+                List.of(timeAttr, roleAttr));
+        val report      = reportWithDocuments(Decision.PERMIT, List.of(doc));
+
+        val text = ReportTextRenderUtil.textReport(report);
+
+        assertThat(text).contains("<time.now> = \"2024-01-23T10:30:00Z\"")
+                .contains("\"user-1\".<pip.role> = \"admin\"");
     }
 
     @Test
     @DisplayName("renders document-level errors under contributing document")
     void whenDocumentHasErrorsThenErrorsAreRendered() {
         val error  = new ErrorValue("Failed to evaluate condition", null);
-        val doc    = new ContributingDocument("broken-policy", Decision.INDETERMINATE, List.of(error));
-        val report = new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, Decision.INDETERMINATE,
-                Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES,
-                List.of(doc), List.of());
+        val doc    = new ContributingDocument("broken-policy", Decision.INDETERMINATE, List.of(error), List.of());
+        val report = reportWithDocuments(Decision.INDETERMINATE, List.of(doc));
 
         val text = ReportTextRenderUtil.textReport(report);
 
         assertThat(text).contains("broken-policy -> INDETERMINATE").contains("Errors:")
-                .contains("Failed to evaluate condition");
+                .contains("- Failed to evaluate condition");
     }
 
-    private VoteReport createSimpleReport(Decision decision) {
+    private VoteReport reportWithDecision(Decision decision) {
         return new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, decision, Value.EMPTY_ARRAY,
-                Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", null, List.of(), List.of());
+                Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES, List.of(),
+                List.of());
+    }
+
+    private VoteReport reportWithDocuments(Decision decision, List<ContributingDocument> documents) {
+        return new VoteReport(DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, decision, Value.EMPTY_ARRAY,
+                Value.EMPTY_ARRAY, null, "test-set", "cthulhu-pdp", "test-config", DENY_OVERRIDES, documents,
+                List.of());
+    }
+
+    private static AttributeContribution environmentAttribute(String attributeName, Value value, Instant publishedAt,
+            String documentName) {
+        val invocation = new AttributeFinderInvocation("test-config", attributeName, List.of(), Duration.ofSeconds(10),
+                Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
+        val key        = new SubscriptionKey(invocation, false);
+        return new AttributeContribution(key, value, publishedAt, List.of(occurrence(documentName)));
+    }
+
+    private static AttributeContribution entityAttribute(Value entity, String attributeName, Value value,
+            Instant publishedAt, String documentName) {
+        val invocation = new AttributeFinderInvocation("test-config", attributeName, entity, List.of(),
+                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
+        val key        = new SubscriptionKey(invocation, false);
+        return new AttributeContribution(key, value, publishedAt, List.of(occurrence(documentName)));
+    }
+
+    private static Occurrence occurrence(String documentName) {
+        return new Occurrence(new SourceLocation(documentName, null, 0, 0, 1, 1, 1, 1));
     }
 }

@@ -43,10 +43,6 @@ class FilterFunctionLibraryTests {
                 .doesNotThrowAnyException();
     }
 
-    // ============================================================================
-    // BLACKEN FUNCTION TESTS
-    // ============================================================================
-
     @Test
     void blackenNoArgumentsThrowsException() {
         assertThatThrownBy(io.sapl.functions.libraries.FilterFunctionLibrary::blacken)
@@ -248,10 +244,6 @@ class FilterFunctionLibraryTests {
                 .isEqualTo(longIncantation.substring(longIncantation.length() - 10));
     }
 
-    // ============================================================================
-    // BLACKEN_UTIL TESTS
-    // ============================================================================
-
     @ParameterizedTest(name = "blackenUtil: {0} with replacement={1}, left={2}, right={3}, length={4}")
     @CsvSource(delimiter = '|', nullValues = "null", textBlock = """
             Necronomicon | * | 5 | 3 | null | Necro****con
@@ -266,10 +258,6 @@ class FilterFunctionLibraryTests {
                 length);
         assertThat(result).isEqualTo(expected);
     }
-
-    // ============================================================================
-    // REPLACE FUNCTION TESTS
-    // ============================================================================
 
     @Test
     void replaceNormalValueReturnsReplacement() {
@@ -294,10 +282,6 @@ class FilterFunctionLibraryTests {
 
         assertThat(result).isEqualTo(Value.of("replacement"));
     }
-
-    // ============================================================================
-    // REMOVE FUNCTION TESTS
-    // ============================================================================
 
     @Test
     void removeAnyValueReturnsUndefined() {

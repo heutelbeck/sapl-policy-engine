@@ -28,7 +28,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.ast.PolicyVoterMetadata;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.pdp.VoteInterceptor;
 import lombok.val;
@@ -38,7 +38,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.SignalType;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -48,8 +50,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("ReportingDecisionInterceptor")
 class ReportingDecisionInterceptorTests {
 
-    private static final String                    DUMMY_TIMESTAMP       = "2026-01-01T00:00:00Z";
+    private static final Instant                   DUMMY_TIMESTAMP       = Instant.parse("2026-01-01T00:00:00Z");
     private static final String                    DUMMY_SUBSCRIPTION_ID = "sub-123";
+    private static final String                    DUMMY_PDP_ID          = "test-pdp";
     private static final AuthorizationSubscription DUMMY_SUBSCRIPTION    = AuthorizationSubscription.of("testUser",
             "read", "testResource");
     private static final CombiningAlgorithm        DENY_OVERRIDES        = new CombiningAlgorithm(
@@ -65,7 +68,7 @@ class ReportingDecisionInterceptorTests {
         void whenInterceptWithLoggingFlagsThenNoException(String description, boolean prettyPrint, boolean trace,
                 boolean json, boolean text, boolean subscribe, boolean unsubscribe, Decision decision) {
             val interceptor = new ReportingDecisionInterceptor(prettyPrint, trace, json, text, subscribe, unsubscribe);
-            val vote        = createTimestampedVote(decision);
+            val vote        = createTracedVote(decision);
 
             interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
         }
@@ -87,13 +90,13 @@ class ReportingDecisionInterceptorTests {
             val policyVote  = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
                     policyVoter);
 
-            val setVoter        = new PolicySetVoterMetadata("test-set", "pdp", "config", null, DENY_OVERRIDES,
+            val setVoter   = new PolicySetVoterMetadata("test-set", "pdp", "config", null, DENY_OVERRIDES,
                     Outcome.PERMIT, false);
-            val vote            = Vote.combinedVote(AuthorizationDecision.PERMIT, setVoter, List.of(policyVote),
+            val vote       = Vote.combinedVote(AuthorizationDecision.PERMIT, setVoter, List.of(policyVote),
                     Outcome.PERMIT);
-            val timestampedVote = new TimestampedVote(vote, DUMMY_TIMESTAMP);
+            val tracedVote = TracedVote.of(vote, DUMMY_TIMESTAMP);
 
-            interceptor.intercept(timestampedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
+            interceptor.intercept(tracedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
         }
 
     }
@@ -107,7 +110,7 @@ class ReportingDecisionInterceptorTests {
         void whenOnSubscribeWithLoggingEnabledThenNoException() {
             val interceptor = new ReportingDecisionInterceptor(false, false, false, false, true, false);
 
-            interceptor.onSubscribe(DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
+            interceptor.onSubscribe(DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION, DUMMY_PDP_ID);
         }
 
         @Test
@@ -115,7 +118,7 @@ class ReportingDecisionInterceptorTests {
         void whenOnUnsubscribeWithLoggingEnabledThenNoException() {
             val interceptor = new ReportingDecisionInterceptor(false, false, false, false, false, true);
 
-            interceptor.onUnsubscribe(DUMMY_SUBSCRIPTION_ID);
+            interceptor.onUnsubscribe(DUMMY_SUBSCRIPTION_ID, SignalType.ON_COMPLETE);
         }
 
     }
@@ -146,7 +149,7 @@ class ReportingDecisionInterceptorTests {
             val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false, false, false, false);
             val lowerPriorityInterceptor = new VoteInterceptor() {
                                              @Override
-                                             public void intercept(TimestampedVote vote, String subscriptionId,
+                                             public void intercept(TracedVote vote, String subscriptionId,
                                                      AuthorizationSubscription authorizationSubscription) {
                                                  // no-op
                                              }
@@ -163,7 +166,7 @@ class ReportingDecisionInterceptorTests {
 
     }
 
-    private static TimestampedVote createTimestampedVote(Decision decision) {
+    private static TracedVote createTracedVote(Decision decision) {
         val authzDecision = switch (decision) {
                           case PERMIT         -> AuthorizationDecision.PERMIT;
                           case DENY           -> AuthorizationDecision.DENY;
@@ -174,6 +177,6 @@ class ReportingDecisionInterceptorTests {
         val voter         = new PolicySetVoterMetadata("test-set", "cthulhu-pdp", "test-security", null, DENY_OVERRIDES,
                 Outcome.PERMIT, false);
         val vote          = new Vote(authzDecision, List.of(), List.of(), voter, Outcome.PERMIT);
-        return new TimestampedVote(vote, DUMMY_TIMESTAMP);
+        return TracedVote.of(vote, DUMMY_TIMESTAMP);
     }
 }

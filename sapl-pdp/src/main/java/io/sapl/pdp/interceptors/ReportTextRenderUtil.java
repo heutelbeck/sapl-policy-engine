@@ -18,7 +18,9 @@
 package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.UndefinedValue;
+import io.sapl.compiler.document.AttributeContribution;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -65,21 +67,11 @@ public class ReportTextRenderUtil {
     }
 
     /**
-     * Formats a timestamp string. If the timestamp is epoch milliseconds, it is
-     * converted to ISO-8601 with timezone offset. Otherwise, the raw string is
-     * returned as-is.
-     *
-     * @param timestamp the timestamp string to format
-     * @return the formatted timestamp
+     * Formats an {@link Instant} timestamp as ISO-8601 with the system
+     * timezone offset.
      */
-    static String formatTimestamp(String timestamp) {
-        try {
-            val millis = Long.parseLong(timestamp);
-            return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-        } catch (NumberFormatException e) {
-            return timestamp;
-        }
+    static String formatTimestamp(Instant timestamp) {
+        return timestamp.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     private static void appendComponents(StringBuilder sb, VoteReport report) {
@@ -108,7 +100,29 @@ public class ReportTextRenderUtil {
 
     private static void appendDocument(StringBuilder sb, ContributingDocument doc) {
         sb.append(INDENT_1).append(doc.name()).append(" -> ").append(doc.decision()).append('\n');
+        appendAttributes(sb, doc.attributes());
         appendErrors(sb, INDENT_2 + "Errors:\n", INDENT_3, doc.errors());
+    }
+
+    private static void appendAttributes(StringBuilder sb, Collection<AttributeContribution> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return;
+        }
+        sb.append(INDENT_2).append("Attributes:\n");
+        for (val contribution : attributes) {
+            sb.append(INDENT_3).append(formatAttributeKey(contribution.key())).append(" = ")
+                    .append(contribution.value()).append(" @ ").append(formatTimestamp(contribution.valueTimestamp()))
+                    .append('\n');
+        }
+    }
+
+    private static String formatAttributeKey(SubscriptionKey key) {
+        val invocation    = key.invocation();
+        val attributeName = "<" + invocation.attributeName() + ">";
+        if (invocation.isEnvironmentAttributeInvocation()) {
+            return attributeName;
+        }
+        return invocation.entity() + "." + attributeName;
     }
 
     private static void appendErrors(StringBuilder sb, String header, String indent, Collection<ErrorValue> errors) {

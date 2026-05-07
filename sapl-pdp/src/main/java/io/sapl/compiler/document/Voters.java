@@ -23,6 +23,7 @@ import io.sapl.compiler.eval.AttributeStore;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -68,5 +69,21 @@ public class Voters {
             val cause = ee.getCause();
             throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
         }
+    }
+
+    /**
+     * Returns the snapshot entries for the keys in
+     * {@code result.dependencies()}. Bounded by the dependency set.
+     */
+    public static Map<SubscriptionKey, AttributeSnapshot> readSnapshot(VoteResult result,
+            Map<SubscriptionKey, AttributeSnapshot> snapshot) {
+        val filtered = new HashMap<SubscriptionKey, AttributeSnapshot>(result.dependencies().size());
+        for (val key : result.dependencies().keySet()) {
+            val entry = snapshot.get(key);
+            if (entry != null) {
+                filtered.put(key, entry);
+            }
+        }
+        return Map.copyOf(filtered);
     }
 }

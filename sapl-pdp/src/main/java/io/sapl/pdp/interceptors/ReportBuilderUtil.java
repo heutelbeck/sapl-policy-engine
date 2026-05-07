@@ -19,7 +19,8 @@ package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.document.AttributeContribution;
+import io.sapl.compiler.document.TracedVote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -36,31 +37,36 @@ public class ReportBuilderUtil {
     private static final String FIELD_ACTION                     = "action";
     private static final String FIELD_ADVICE                     = "advice";
     private static final String FIELD_ALGORITHM                  = "algorithm";
+    private static final String FIELD_ATTRIBUTES                 = "attributes";
     private static final String FIELD_AUTHORIZATION_SUBSCRIPTION = "authorizationSubscription";
     private static final String FIELD_CONFIGURATION_ID           = "configurationId";
     private static final String FIELD_CONTRIBUTING_DOCUMENTS     = "contributingDocuments";
     private static final String FIELD_DECISION                   = "decision";
     private static final String FIELD_ENVIRONMENT                = "environment";
     private static final String FIELD_ERRORS                     = "errors";
+    private static final String FIELD_KEY                        = "key";
     private static final String FIELD_LINE                       = "line";
     private static final String FIELD_MESSAGE                    = "message";
     private static final String FIELD_NAME                       = "name";
     private static final String FIELD_OBLIGATIONS                = "obligations";
+    private static final String FIELD_OCCURRENCES                = "occurrences";
     private static final String FIELD_PDP_ID                     = "pdpId";
     private static final String FIELD_RESOURCE                   = "resource";
     private static final String FIELD_SUBJECT                    = "subject";
     private static final String FIELD_SUBSCRIPTION_ID            = "subscriptionId";
     private static final String FIELD_TIMESTAMP                  = "timestamp";
+    private static final String FIELD_VALUE                      = "value";
+    private static final String FIELD_VALUE_TIMESTAMP            = "valueTimestamp";
     private static final String FIELD_VOTER_NAME                 = "voterName";
 
-    public static VoteReport extractReport(Vote vote, String timestamp, String subscriptionId,
+    public static VoteReport extractReport(TracedVote tracedVote, String subscriptionId,
             AuthorizationSubscription authorizationSubscription) {
-        return VoteReport.from(vote, timestamp, subscriptionId, authorizationSubscription);
+        return VoteReport.from(tracedVote, subscriptionId, authorizationSubscription);
     }
 
-    public static ObjectValue extractReportAsValue(Vote vote, String timestamp, String subscriptionId,
+    public static ObjectValue extractReportAsValue(TracedVote tracedVote, String subscriptionId,
             AuthorizationSubscription authorizationSubscription) {
-        return toObjectValue(VoteReport.from(vote, timestamp, subscriptionId, authorizationSubscription));
+        return toObjectValue(VoteReport.from(tracedVote, subscriptionId, authorizationSubscription));
     }
 
     public static ObjectValue toObjectValue(VoteReport report) {
@@ -87,9 +93,24 @@ public class ReportBuilderUtil {
         return builder.build();
     }
 
+    private static ObjectValue attributeContributionToValue(AttributeContribution contribution) {
+        val builder = ObjectValue.builder().put(FIELD_KEY, Value.of(contribution.key().toString()))
+                .put(FIELD_VALUE, contribution.value())
+                .put(FIELD_VALUE_TIMESTAMP, Value.of(contribution.valueTimestamp().toString()));
+        if (!contribution.occurrences().isEmpty()) {
+            val arr = ArrayValue.builder();
+            for (val occurrence : contribution.occurrences()) {
+                arr.add(Value.of(occurrence.toString()));
+            }
+            builder.put(FIELD_OCCURRENCES, arr.build());
+        }
+        return builder.build();
+    }
+
     private static ObjectValue documentToValue(ContributingDocument doc) {
         val builder = ObjectValue.builder().put(FIELD_NAME, Value.of(doc.name())).put(FIELD_DECISION,
                 Value.of(doc.decision().name()));
+        putArray(builder, FIELD_ATTRIBUTES, doc.attributes(), ReportBuilderUtil::attributeContributionToValue);
         putArray(builder, FIELD_ERRORS, doc.errors(), ReportBuilderUtil::errorToValue);
         return builder.build();
     }

@@ -35,12 +35,15 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.val;
+import reactor.core.publisher.SignalType;
+
+import java.time.Instant;
 
 @DisplayName("MetricsConfiguration")
 class MetricsConfigurationTests {
@@ -66,9 +69,9 @@ class MetricsConfigurationTests {
                 val interceptor = context.getBean(VoteInterceptor.class);
                 val registry    = context.getBean(MeterRegistry.class);
 
-                interceptor.onSubscribe("sub-1", SUBSCRIPTION);
+                interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
                 interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-                interceptor.onUnsubscribe("sub-1");
+                interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
 
                 assertThat(registry.find(METRIC_DECISIONS).counter()).isNotNull()
                         .satisfies(counter -> assertThat(counter.count()).isEqualTo(1.0));
@@ -89,9 +92,9 @@ class MetricsConfigurationTests {
                 val interceptor = context.getBean(VoteInterceptor.class);
                 val registry    = context.getBean(MeterRegistry.class);
 
-                interceptor.onSubscribe("sub-1", SUBSCRIPTION);
+                interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
                 interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-                interceptor.onUnsubscribe("sub-1");
+                interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
 
                 assertThat(registry.find(METRIC_DECISIONS).counter()).isNull();
                 assertThat(registry.find(METRIC_SUBSCRIPTIONS_ACTIVE).gauge()).isNull();
@@ -106,7 +109,7 @@ class MetricsConfigurationTests {
                 .withPropertyValues("io.sapl.pdp.embedded.metrics-enabled=" + metricsEnabled);
     }
 
-    private static TimestampedVote voteWithDecision(Decision decision) {
+    private static TracedVote voteWithDecision(Decision decision) {
         val authzDecision = switch (decision) {
                           case PERMIT         -> AuthorizationDecision.PERMIT;
                           case DENY           -> AuthorizationDecision.DENY;
@@ -115,9 +118,8 @@ class MetricsConfigurationTests {
                           case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
                           };
         val voterMetadata = new PdpVoterMetadata("pdp", "default", "config-1", null, Outcome.PERMIT, false);
-        val vote          = new Vote(authzDecision, List.of(), List.of(), List.of(), voterMetadata,
-                voterMetadata.outcome());
-        return new TimestampedVote(vote, "2026-02-13T00:00:00Z");
+        val vote          = new Vote(authzDecision, List.of(), List.of(), voterMetadata, voterMetadata.outcome());
+        return TracedVote.of(vote, Instant.parse("2026-02-13T00:00:00Z"));
     }
 
 }
