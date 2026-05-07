@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.pdp;
 
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -28,6 +29,7 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,6 +51,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PdpCompiler")
 class PdpCompilerTests {
+
+    private static Vote evaluate(CompiledPdp compiledPdp, AuthorizationSubscription subscription) {
+        val ctx = EvaluationContext.of(compiledPdp.metadata().pdpId(), compiledPdp.metadata().configurationId(),
+                "test-sub", subscription, SaplTesting.FUNCTION_BROKER);
+        return compiledPdp.voter().evaluate(ctx).vote();
+    }
 
     private static final String VALID_POLICY = """
             policy "test-policy"
@@ -136,7 +144,7 @@ class PdpCompilerTests {
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 
-            assertThat(compiledVoter.pdpVoter()).satisfies(voter -> {
+            assertThat(compiledVoter.voter()).satisfies(voter -> {
                 assertThat(voter).isInstanceOf(Vote.class);
                 assertThat(((Vote) voter).authorizationDecision().decision()).isEqualTo(expected);
             });
@@ -153,10 +161,10 @@ class PdpCompilerTests {
             val config = new PDPConfiguration("test-pdp", "config-1", algorithm, List.of(POLICY_A, POLICY_B),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter   = PdpCompiler.compilePDPConfiguration(config, compilationContext());
-            val timestampedVote = compiledVoter.voteOnce(DEFAULT_SUBSCRIPTION, "test-sub");
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            assertThat(timestampedVote.vote().authorizationDecision().decision()).isEqualTo(expected);
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(expected);
         }
 
         @Test
@@ -166,10 +174,10 @@ class PdpCompilerTests {
                     new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(VALID_POLICY),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter   = PdpCompiler.compilePDPConfiguration(config, compilationContext());
-            val timestampedVote = compiledVoter.voteOnce(DEFAULT_SUBSCRIPTION, "test-sub");
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            assertThat(timestampedVote.vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -179,10 +187,10 @@ class PdpCompilerTests {
                     new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE), List.of(POLICY_A, POLICY_B),
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
-            val compiledVoter   = PdpCompiler.compilePDPConfiguration(config, compilationContext());
-            val timestampedVote = compiledVoter.voteOnce(DEFAULT_SUBSCRIPTION, "test-sub");
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            assertThat(timestampedVote.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
         }
     }
 

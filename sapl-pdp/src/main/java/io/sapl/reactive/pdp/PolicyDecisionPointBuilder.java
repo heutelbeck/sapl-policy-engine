@@ -735,7 +735,7 @@ public class PolicyDecisionPointBuilder {
         val configurationRegister = new PdpVoterSource(functionBroker, attributeBroker, clock);
         val timestampClock        = new LazyFastClock();
         val sortedInterceptors    = List.copyOf(interceptors);
-        val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
+        val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(), clock,
                 sortedInterceptors);
 
         // Create default configuration from collected policies

@@ -142,23 +142,6 @@ public class PolicySetUtil {
     }
 
     /**
-     * Lifts any vote maker type to a flux for uniform stream handling.
-     *
-     * @param voter the vote maker to lift
-     * @return flux emitting policy decisions
-     */
-    public static Flux<Vote> toStream(Voter voter) {
-        return switch (voter) {
-        case Vote d        -> Flux.just(d);
-        case PureVoter p   -> Flux.deferContextual(ctxView -> {
-                           val ctx = ctxView.get(EvaluationContext.class);
-                           return Flux.just(p.vote(ctx));
-                       });
-        case StreamVoter s -> s.vote();
-        };
-    }
-
-    /**
      * Evaluates a policy in pure context, expecting non-streaming vote maker.
      *
      * @param policy the compiled policy to evaluate

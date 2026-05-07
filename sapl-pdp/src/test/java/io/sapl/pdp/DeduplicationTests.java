@@ -216,7 +216,7 @@ class DeduplicationTests {
     }
 
     @Nested
-    @DisplayName("CompiledPdpVoter equality and config source deduplication")
+    @DisplayName("CompiledPdp equality and config source deduplication")
     class ConfigDeduplication {
 
         private static final String SIMPLE_PERMIT = """

@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.compiler.pdp.CompiledPdpVoter;
+import io.sapl.compiler.pdp.CompiledPdp;
 
 /**
  * Notification dispatched by {@link PdpVoterSource} when the configuration
@@ -42,7 +42,7 @@ public sealed interface PdpUpdateEvent {
      * @param voter the newly compiled voter (which may be an error voter
      * created from a failing compilation when keepOldConfigOnError was set)
      */
-    record Voter(String pdpId, CompiledPdpVoter voter) implements PdpUpdateEvent {}
+    record Voter(String pdpId, CompiledPdp voter) implements PdpUpdateEvent {}
 
     /**
      * The PDP's configuration was removed.

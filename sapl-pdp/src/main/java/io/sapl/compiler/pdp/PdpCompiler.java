@@ -49,17 +49,15 @@ public class PdpCompiler {
      * compilation fails and no previous valid configuration exists.
      *
      * @param pdpConfiguration the PDP configuration that failed to compile
-     * @param ctx the compilation context
      * @param exception the compilation exception
      * @return a compiled voter that always returns INDETERMINATE
      */
-    public static CompiledPdpVoter createErrorVoter(PDPConfiguration pdpConfiguration, CompilationContext ctx,
-            SaplCompilerException exception) {
+    public static CompiledPdp createErrorVoter(PDPConfiguration pdpConfiguration, SaplCompilerException exception) {
         val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
                 pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
         val error         = Value.error(exception.getMessage());
         val errorVote     = Vote.error(error, voterMetadata);
-        return new CompiledPdpVoter(voterMetadata, errorVote, ctx.getFunctionBroker(), ctx.getTimestampSupplier());
+        return new CompiledPdp(voterMetadata, errorVote);
     }
 
     /**
@@ -72,7 +70,7 @@ public class PdpCompiler {
      * @throws SaplCompilerException if any document fails to compile, document
      * names collide, or the FIRST combining algorithm is used at PDP level
      */
-    public static CompiledPdpVoter compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
+    public static CompiledPdp compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
         val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
                 pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
 
@@ -107,7 +105,7 @@ public class PdpCompiler {
             UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, ctx);
         };
 
-        return new CompiledPdpVoter(voterMetadata, voter, ctx.getFunctionBroker(), ctx.getTimestampSupplier());
+        return new CompiledPdp(voterMetadata, voter);
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

@@ -18,13 +18,14 @@
 package io.sapl.reactive.pdp;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.TimestampedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.compiler.pdp.CompiledPdpVoter;
+import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.VoteInterceptor;
@@ -34,31 +35,35 @@ import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import lombok.val;
 import reactor.core.publisher.Flux;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoint {
 
-    public static final String ERROR_NO_PDP_CONFIGURATION = "No PDP configuration found.";
+    public static final String  ERROR_NO_PDP_CONFIGURATION                   = "No PDP configuration found.";
+    private static final String ERROR_STREAMING_COVERAGE_NOT_YET_IMPLEMENTED = "PDP-level streaming voteWithCoverage not yet implemented";
+    private static final String ERROR_STREAMING_NOT_YET_IMPLEMENTED          = "PDP-level streaming vote not yet implemented";
+    private static final String ERROR_VOTER_PRODUCED_NO_DECISION             = "Voter produced no decision.";
 
     private final PdpVoterSource        pdpConfigurationSource;
     private final IdFactory             idFactory;
+    private final Clock                 clock;
     private final List<VoteInterceptor> interceptors;
 
     /**
-     * Creates a PDP with no interceptors.
+     * Creates a PDP with no interceptors and the system UTC clock.
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
      */
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource, IdFactory idFactory) {
-        this(pdpConfigurationSource, idFactory, List.of());
+        this(pdpConfigurationSource, idFactory, Clock.systemUTC(), List.of());
     }
 
     /**
-     * Creates a PDP with vote interceptors.
+     * Creates a PDP with vote interceptors and the system UTC clock.
      *
      * @param pdpConfigurationSource the source of PDP configurations
      * @param idFactory factory for generating subscription IDs
@@ -67,8 +72,25 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
     public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             IdFactory idFactory,
             List<VoteInterceptor> interceptors) {
+        this(pdpConfigurationSource, idFactory, Clock.systemUTC(), interceptors);
+    }
+
+    /**
+     * Creates a PDP with vote interceptors and an explicit clock for
+     * timestamping {@link TimestampedVote}s.
+     *
+     * @param pdpConfigurationSource the source of PDP configurations
+     * @param idFactory factory for generating subscription IDs
+     * @param clock clock used to timestamp emitted votes
+     * @param interceptors interceptors invoked on each vote, sorted by priority
+     */
+    public DynamicPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
+            IdFactory idFactory,
+            Clock clock,
+            List<VoteInterceptor> interceptors) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.idFactory              = idFactory;
+        this.clock                  = clock;
         this.interceptors           = interceptors.stream().sorted().toList();
     }
 
@@ -95,7 +117,7 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
         val subscriptionId = idFactory.newRandom();
         return configFlux(pdpId)
                 .switchMap(optionalConfig -> optionalConfig
-                        .map(config -> config.vote(authorizationSubscription, subscriptionId))
+                        .map(config -> evaluateAsFlux(config, authorizationSubscription, subscriptionId, pdpId))
                         .orElseGet(() -> Flux.just(noConfigurationVote(pdpId))))
                 .doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, authorizationSubscription))
                 .doOnNext(tv -> invokeInterceptors(tv, subscriptionId, authorizationSubscription))
@@ -118,7 +140,7 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
             if (pdpConfiguration.isEmpty()) {
                 return noConfigurationVote(pdpId);
             }
-            val timestampedVote = pdpConfiguration.get().voteOnce(authorizationSubscription, subscriptionId);
+            val timestampedVote = evaluateOnce(pdpConfiguration.get(), authorizationSubscription, subscriptionId);
             invokeInterceptors(timestampedVote, subscriptionId, authorizationSubscription);
             return timestampedVote;
         } finally {
@@ -127,18 +149,56 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
     }
 
     /**
-     * Streams votes with coverage information for a subscription.
-     * Returns an empty flux if no configuration is loaded.
+     * Streams votes with coverage information for a subscription. Currently
+     * unimplemented at PDP level; returns a flux that errors out as soon as
+     * a configuration is available. Empty flux if no configuration loaded.
      *
      * @param authorizationSubscription the authorization subscription to evaluate
      * @param pdpId the PDP identifier
      * @return a flux of votes with coverage data
      */
     public Flux<VoteWithCoverage> coverageStream(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        val subscriptionId = idFactory.newRandom();
         return configFlux(pdpId).switchMap(optionalConfig -> optionalConfig
-                .map(config -> config.voteWithCoverage(authorizationSubscription, subscriptionId))
+                .map(config -> Flux.<VoteWithCoverage>error(
+                        new UnsupportedOperationException(ERROR_STREAMING_COVERAGE_NOT_YET_IMPLEMENTED)))
                 .orElseGet(Flux::empty));
+    }
+
+    /**
+     * One-shot evaluation of the compiled PDP. Builds an
+     * {@link EvaluationContext}, evaluates the voter, wraps the result in a
+     * {@link TimestampedVote}. Falls back to an INDETERMINATE vote if the
+     * voter produced no decision (incomplete snapshot).
+     */
+    private TimestampedVote evaluateOnce(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        val ctx  = evaluationContext(pdp, sub, subscriptionId);
+        val vote = pdp.voter().evaluate(ctx).vote();
+        if (vote == null) {
+            val error = new ErrorValue(ERROR_VOTER_PRODUCED_NO_DECISION);
+            return new TimestampedVote(Vote.error(error, pdp.metadata()), clock.instant().toString());
+        }
+        return new TimestampedVote(vote, clock.instant().toString());
+    }
+
+    /**
+     * Streaming evaluation of the compiled PDP. Currently emits a single
+     * snapshot vote if it completes synchronously, otherwise errors with
+     * the unimplemented marker until the trigger-loop snapshot pipeline
+     * lands.
+     */
+    private Flux<TimestampedVote> evaluateAsFlux(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId,
+            String pdpId) {
+        val ctx  = evaluationContext(pdp, sub, subscriptionId);
+        val vote = pdp.voter().evaluate(ctx).vote();
+        if (vote == null) {
+            return Flux.error(new UnsupportedOperationException(ERROR_STREAMING_NOT_YET_IMPLEMENTED));
+        }
+        return Flux.just(new TimestampedVote(vote, clock.instant().toString()));
+    }
+
+    private EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        return EvaluationContext.of(pdp.metadata().pdpId(), pdp.metadata().configurationId(), subscriptionId, sub,
+                pdpConfigurationSource.getFunctionBroker());
     }
 
     /**
@@ -152,7 +212,7 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
      * @param pdpId the PDP identifier to observe
      * @return a flux of configuration snapshots
      */
-    private Flux<Optional<CompiledPdpVoter>> configFlux(String pdpId) {
+    private Flux<Optional<CompiledPdp>> configFlux(String pdpId) {
         return Flux.create(sink -> {
             Consumer<PdpUpdateEvent> listener = event -> sink.next(switch (event) {
             case PdpUpdateEvent.Voter(var ignoredId, var voter) -> Optional.of(voter);
@@ -164,11 +224,11 @@ public class DynamicPolicyDecisionPoint implements MultiTenantPolicyDecisionPoin
         });
     }
 
-    private static TimestampedVote noConfigurationVote(String pdpId) {
+    private TimestampedVote noConfigurationVote(String pdpId) {
         val metadata = new PdpVoterMetadata("no-configuration", pdpId, "none", null, Outcome.PERMIT_OR_DENY, false);
         val error    = new ErrorValue(ERROR_NO_PDP_CONFIGURATION);
         val vote     = Vote.error(error, metadata);
-        return new TimestampedVote(vote, Instant.now().toString());
+        return new TimestampedVote(vote, clock.instant().toString());
     }
 
     private void invokeOnSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {

@@ -21,7 +21,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.pdp.CompiledPdpVoter;
+import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.compiler.util.CompilationErrorFormatter;
 import io.sapl.legacy.api.attributes.AttributeBroker;
@@ -89,7 +89,7 @@ public class PdpVoterSource implements AutoCloseable {
      * {@link ConcurrentHashMap} for single-value access patterns where the
      * key is known.
      */
-    private final Map<String, AtomicReference<Optional<CompiledPdpVoter>>> configCache = new ConcurrentHashMap<>();
+    private final Map<String, AtomicReference<Optional<CompiledPdp>>> configCache = new ConcurrentHashMap<>();
 
     /**
      * Per-PDP update listeners. Each set is invoked synchronously on the
@@ -129,7 +129,7 @@ public class PdpVoterSource implements AutoCloseable {
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
                 pdpConfiguration.data(), functionBroker);
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
-        CompiledPdpVoter newConfiguration;
+        CompiledPdp newConfiguration;
         try {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);
         } catch (SaplCompilerException compilerException) {
@@ -144,7 +144,7 @@ public class PdpVoterSource implements AutoCloseable {
                         current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
                         current.lastSuccessfulLoad(), now, formattedError));
             } else {
-                val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilationContext, compilerException);
+                val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException);
                 getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(errorVoter));
                 notifyListeners(pdpConfiguration.pdpId(),
                         new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), errorVoter));
@@ -208,7 +208,7 @@ public class PdpVoterSource implements AutoCloseable {
      * @param pdpId the PDP identifier
      * @return the current configuration, or empty if none is loaded
      */
-    public Optional<CompiledPdpVoter> getCurrentConfiguration(String pdpId) {
+    public Optional<CompiledPdp> getCurrentConfiguration(String pdpId) {
         return getConfigRef(pdpId).get();
     }
 
@@ -307,7 +307,7 @@ public class PdpVoterSource implements AutoCloseable {
         }
     }
 
-    private AtomicReference<Optional<CompiledPdpVoter>> getConfigRef(String pdpId) {
+    private AtomicReference<Optional<CompiledPdp>> getConfigRef(String pdpId) {
         return configCache.computeIfAbsent(pdpId, id -> new AtomicReference<>(Optional.empty()));
     }
 
