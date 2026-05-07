@@ -42,6 +42,6 @@ import java.util.Map;
  * the previous round to drive subscribe/release decisions.</li>
  * </ul>
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record VoteResult(@Nullable Vote vote, Map<SubscriptionKey, List<Occurrence>> dependencies) {}

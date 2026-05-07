@@ -33,6 +33,7 @@ import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -63,6 +64,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final String ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED  = "Access Denied by @PreEnforce PEP. A pre-invocation obligation handler failed. The protected method was not invoked.";
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<BlockingTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -144,7 +146,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             SaplAttribute attribute) {
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(BlockingAuthentication.current(), methodInvocation, attribute);
-        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription);
+        val pdpId             = tenantResolverProvider.getObject().resolve();
+        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription, pdpId);
     }
 
 }

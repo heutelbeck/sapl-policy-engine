@@ -32,6 +32,6 @@ import lombok.NonNull;
  *
  * @param location source position of this read site
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record Occurrence(@NonNull SourceLocation location) {}

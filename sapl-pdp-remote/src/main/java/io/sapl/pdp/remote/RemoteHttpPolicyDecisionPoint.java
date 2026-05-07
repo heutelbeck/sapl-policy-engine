@@ -135,7 +135,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
+    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription, String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return Flux
                 .defer(() -> streamSse(DECIDE, type, authzSubscription)
@@ -146,7 +150,11 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription, String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         val type = new ParameterizedTypeReference<AuthorizationDecision>() {};
         return client.post().uri(DECIDE_ONCE).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToMono(type).timeout(Duration.ofMillis(timeoutMillis))
@@ -155,7 +163,18 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
+    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authzSubscription, String pdpId) {
+        val decision = decideOnce(authzSubscription, pdpId).block(Duration.ofMillis(timeoutMillis));
+        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
+    }
+
+    @Override
+    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription,
+            String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return Flux
                 .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription)
@@ -167,7 +186,12 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
+    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription,
+            String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return Flux
                 .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription)

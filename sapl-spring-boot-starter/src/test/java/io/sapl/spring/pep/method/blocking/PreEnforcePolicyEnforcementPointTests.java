@@ -20,6 +20,7 @@ package io.sapl.spring.pep.method.blocking;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -125,7 +126,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the suspect named in the original warrant")
         void whenPermitAndScalarThenReturnsArrestedSuspect() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = watch.arrestSuspect(INNOCENT_SUSPECT_INITIALLY_NAMED);
 
@@ -135,7 +136,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the case file verbatim")
         void whenPermitAndZeroArgScalarThenReturnsCaseFile() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = watch.openCaseFile();
 
@@ -145,7 +146,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the full open-cases list")
         void whenPermitAndListThenReturnsOpenCases() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = watch.listOpenCases();
 
@@ -155,7 +156,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the unaltered Watch salary roll")
         void whenPermitAndMapThenReturnsSalaryRoll() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = watch.accountWatchSalaries();
 
@@ -165,7 +166,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns null when the requested scroll has been misplaced by Nobby")
         void whenPermitAndMissingScrollThenReturnsNull() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = watch.confiscateLostScroll();
 
@@ -175,12 +176,12 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit allows escorting Drumknott home; the rite returns nothing")
         void whenPermitAndVoidThenEscortCompletes() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             watch.escortDrumknottHome();
 
             // PreEnforce on void still consults the PDP, satisfied by the mock.
-            verify(pdp).decideOnceBlocking(any());
+            verify(pdp).decideOnceBlocking(any(), anyString());
         }
     }
 
@@ -191,7 +192,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Resource value replaces the scalar arrest report")
         void whenResourcePresentThenReplacesArrestReport() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithResource(Value.of(ARREST_PREFIX + CARCER_DUN_THE_REAL_CULPRIT)));
 
             val result = watch.arrestSuspect(INNOCENT_SUSPECT_INITIALLY_NAMED);
@@ -202,7 +203,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Resource value materialises in place of a misplaced scroll")
         void whenNullRapAndResourcePresentThenMaterialises() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(Value.of(CASE_FILE_REDACTED)));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithResource(Value.of(CASE_FILE_REDACTED)));
 
             val result = watch.confiscateLostScroll();
 
@@ -213,7 +215,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @DisplayName("Resource list replaces the entire open-cases ledger")
         void whenResourceListPresentThenReplacesLedger() {
             val replacement = Value.ofArray(Value.of(CASE_VANISHED_ASSASSIN));
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(replacement));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(decisionWithResource(replacement));
 
             val result = watch.listOpenCases();
 
@@ -223,7 +225,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Incompatible resource type fails as access denied (post-invocation)")
         void whenResourceTypeIsIncompatibleThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(Value.of("not-a-number")));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(decisionWithResource(Value.of("not-a-number")));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::countAvailableConstables)
                     .withMessageContaining(POST_INVOCATION_MESSAGE_FRAGMENT);
@@ -234,7 +236,7 @@ class PreEnforcePolicyEnforcementPointTests {
         void whenDenyWithResourceThenStillAccessDenied() {
             val deny = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(CASE_FILE_REDACTED));
-            when(pdp.decideOnceBlocking(any())).thenReturn(deny);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(deny);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("not PERMIT");
@@ -245,7 +247,7 @@ class PreEnforcePolicyEnforcementPointTests {
         void whenSuspendWithResourceThenStillAccessDenied() {
             val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(CASE_FILE_REDACTED));
-            when(pdp.decideOnceBlocking(any())).thenReturn(suspend);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(suspend);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("not PERMIT");
@@ -259,7 +261,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DENY raises AccessDeniedException")
         void whenDenyThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("DENY");
@@ -268,7 +270,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("INDETERMINATE raises AccessDeniedException")
         void whenIndeterminateThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.INDETERMINATE);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.INDETERMINATE);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("INDETERMINATE");
@@ -277,7 +279,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("NOT_APPLICABLE raises AccessDeniedException")
         void whenNotApplicableThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.NOT_APPLICABLE);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.NOT_APPLICABLE);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("NOT_APPLICABLE");
@@ -286,7 +288,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("SUSPEND raises AccessDeniedException; one-shot PEPs cannot suspend, so the warrant is refused outright")
         void whenSuspendThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.SUSPEND);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.SUSPEND);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
                     .withMessageContaining("SUSPEND");
@@ -300,7 +302,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DecisionSignal Runner: the Patrician countersigns each warrant before it is acted upon")
         void whenDecisionRunnerObligationThenPatricianCountersigns() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.PATRICIAN_COUNTERSIGNS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.PATRICIAN_COUNTERSIGNS));
 
             val result = watch.openCaseFile();
 
@@ -316,7 +319,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("InputSignal Runner: Sgt. Colon notes the request before it is dispatched")
         void whenInputRunnerObligationThenColonNotes() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.COLON_NOTES_REQUEST));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.COLON_NOTES_REQUEST));
 
             val result = watch.openCaseFile();
 
@@ -327,7 +331,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("InputSignal Consumer: Carrot inspects the warrant for irregularities")
         void whenInputConsumerObligationThenCarrotInspects() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.CARROT_INSPECTS_WARRANT));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.CARROT_INSPECTS_WARRANT));
 
             val result = watch.openCaseFile();
 
@@ -338,7 +343,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("InputSignal Mapper: Nobby rewrites the suspect name on the warrant before the arrest")
         void whenInputMapperObligationThenNobbyRewritesArrestTarget() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.NOBBY_REWRITES_WARRANT));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.NOBBY_REWRITES_WARRANT));
 
             val result = watch.arrestSuspect(INNOCENT_SUSPECT_INITIALLY_NAMED);
 
@@ -353,7 +359,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Runner: Angua audits each closed case")
         void whenOutputRunnerObligationThenAnguaAudits() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.ANGUA_AUDITS_OUTPUT));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.ANGUA_AUDITS_OUTPUT));
 
             val result = watch.openCaseFile();
 
@@ -364,7 +371,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Consumer: Detritus eyeballs the report on its way out")
         void whenOutputConsumerObligationThenDetritusObserves() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.DETRITUS_EYEBALLS_OUTPUT));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.DETRITUS_EYEBALLS_OUTPUT));
 
             val result = watch.openCaseFile();
 
@@ -375,7 +383,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Mapper: the Unseen University Librarian redacts the case file before release")
         void whenOutputMapperObligationThenLibrarianRedacts() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS_OUTPUT));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS_OUTPUT));
 
             val result = watch.openCaseFile();
 
@@ -390,7 +399,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DecisionSignal obligation Runner failure: the Bursar collapses before signing")
         void whenDecisionObligationFailsThenAccessDeniedPreInvocation() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.BURSAR_COLLAPSES_DECISION));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
@@ -400,7 +409,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("InputSignal obligation Runner failure: Nobby loses the paperwork before dispatch")
         void whenInputObligationFailsThenAccessDeniedPreInvocation() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.NOBBY_LOSES_PAPERWORK_INPUT));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
@@ -415,7 +424,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Mapper failure: Carrot drops the evidence; access denied (post-invocation)")
         void whenOutputMapperObligationFailsThenAccessDeniedPostInvocation() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.CARROT_DROPS_EVIDENCE_MAPPER));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile)
@@ -425,7 +434,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Consumer failure: Rincewind panics mid-observation; access denied")
         void whenOutputConsumerObligationFailsThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.RINCEWIND_PANICS_CONSUMER));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile);
@@ -439,7 +448,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Failing advice does not deny access")
         void whenAdviceFailsThenAccessStillPermitted() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithAdvice(Obligation.BURSAR_COLLAPSES_DECISION));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithAdvice(Obligation.BURSAR_COLLAPSES_DECISION));
 
             val result = watch.openCaseFile();
 
@@ -454,7 +464,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("ErrorSignal Mapper<Throwable>: Death personally claims the exception")
         void whenErrorSignalMapperOnDenyThenMappedExceptionPropagates() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligationAndDeny(Obligation.DEATH_CLAIMS_EXCEPTION));
 
             assertThatExceptionOfType(IllegalStateException.class).isThrownBy(watch::openCaseFile)
@@ -466,7 +476,7 @@ class PreEnforcePolicyEnforcementPointTests {
         void whenErrorSignalRunnerObligationOnDenyThenClerksLog() {
             val deny = new AuthorizationDecision(Decision.DENY, arrayOf(Obligation.CLERKS_LOG_FAILED_WARRANT),
                     Value.EMPTY_ARRAY, Value.UNDEFINED);
-            when(pdp.decideOnceBlocking(any())).thenReturn(deny);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(deny);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(watch::openCaseFile);
             assertThat(logbook.clerkErrorLogs).hasValue(1);
@@ -480,7 +490,7 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Provoking the Luggage throws; without an ErrorSignal Mapper the original exception escapes")
         void whenRapThrowsAndNoErrorMapperThenOriginalExceptionPropagates() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             assertThatExceptionOfType(IllegalStateException.class).isThrownBy(watch::provokeTheLuggage)
                     .withMessageContaining("Luggage bites");
@@ -489,7 +499,8 @@ class PreEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Provoking the Luggage throws; an ErrorSignal Mapper rewrites the exception on the way out")
         void whenRapThrowsAndErrorMapperPresentThenMappedExceptionPropagates() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.DEATH_CLAIMS_EXCEPTION));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.DEATH_CLAIMS_EXCEPTION));
 
             assertThatExceptionOfType(IllegalStateException.class).isThrownBy(watch::provokeTheLuggage)
                     .withMessageContaining(DEATH_CLAIMS_THE_EXCEPTION);

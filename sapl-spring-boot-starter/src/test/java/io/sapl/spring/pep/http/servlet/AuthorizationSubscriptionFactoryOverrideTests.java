@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -64,7 +65,7 @@ class AuthorizationSubscriptionFactoryOverrideTests {
     @BeforeEach
     void beforeEach() {
         pdp = mock(PolicyDecisionPoint.class);
-        when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+        when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
     }
 
     @Test
@@ -118,13 +119,13 @@ class AuthorizationSubscriptionFactoryOverrideTests {
         subscribeAndCapture(counter);
 
         assertThat(invocations[0]).isEqualTo(1);
-        verify(pdp).decideOnceBlocking(any());
-        verify(pdp, never()).decide(any(AuthorizationSubscription.class));
+        verify(pdp).decideOnceBlocking(any(), anyString());
+        verify(pdp, never()).decide(any(AuthorizationSubscription.class), anyString());
     }
 
     private AuthorizationSubscription subscribeAndCapture(AuthorizationSubscriptionFactory factory) {
         val planner = new EnforcementPlanner(java.util.List.of(), MAPPER);
-        val manager = new SaplAuthorizationManager(pdp, planner, factory);
+        val manager = new SaplAuthorizationManager(pdp, () -> PolicyDecisionPoint.DEFAULT_PDP_ID, planner, factory);
         val request = new MockHttpServletRequest("GET", "/orders/42");
         val auth    = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
@@ -132,7 +133,7 @@ class AuthorizationSubscriptionFactoryOverrideTests {
         manager.authorize(() -> auth, new RequestAuthorizationContext(request));
 
         val captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp).decideOnceBlocking(captor.capture());
+        verify(pdp).decideOnceBlocking(captor.capture(), anyString());
         return captor.getValue();
     }
 }

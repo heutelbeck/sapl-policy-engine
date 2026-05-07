@@ -46,7 +46,7 @@ public sealed interface Voter permits Vote, PureVoter, StreamVoter {
      * {@code null} if the underlying evaluation could not complete)
      * plus the full dependency map this pass needed or touched
      *
-     * @since 4.2.0
+     * @since 4.1.0
      */
     default VoteResult evaluate(EvaluationContext ctx) {
         return switch (this) {

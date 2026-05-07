@@ -20,6 +20,7 @@ package io.sapl.spring.pep.method.transaction;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -111,7 +112,7 @@ class BlockingTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT lets the loan be recorded; the row commits")
         void whenPermitThenRowIsCommitted() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             ledger.recordLoanWithPreEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY);
 
@@ -121,7 +122,7 @@ class BlockingTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY blocks the protected method entirely; no row is ever written")
         void whenDenyThenMethodNeverInvokedAndNoRowWritten() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
             val loanId = NEXT_LOAN_ID.getAndIncrement();
 
             assertThatExceptionOfType(AccessDeniedException.class)
@@ -140,7 +141,7 @@ class BlockingTransactionalEnforcementTests {
         @Test
         @DisplayName("OutputSignal Mapper failure rolls the insert back (post-invocation handler-throws path)")
         void whenOutputMapperObligationFailsAfterInsertThenRollback() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(GATE_REFUSES));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(decisionWithObligation(GATE_REFUSES));
             val loanId = NEXT_LOAN_ID.getAndIncrement();
 
             assertThatExceptionOfType(AccessDeniedException.class)
@@ -166,7 +167,7 @@ class BlockingTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT after the insert lets the row commit")
         void whenPermitThenRowIsCommitted() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY);
 
@@ -177,7 +178,7 @@ class BlockingTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY after the insert rolls the transaction back; the row is expunged")
         void whenDenyAfterInsertThenTransactionRollsBack() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
             val loanId = NEXT_LOAN_ID.getAndIncrement();
 
             assertThatExceptionOfType(AccessDeniedException.class)

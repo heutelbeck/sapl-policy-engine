@@ -47,7 +47,7 @@ import java.util.Map;
  * leaves the AttributeStore alone but may forward updated occurrence
  * lists to observers
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record DependencyDelta(
         Map<SubscriptionKey, List<Occurrence>> added,

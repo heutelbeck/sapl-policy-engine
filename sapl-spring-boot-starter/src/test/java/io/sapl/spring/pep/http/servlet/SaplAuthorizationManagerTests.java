@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -74,7 +75,8 @@ class SaplAuthorizationManagerTests {
 
     private SaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new SaplAuthorizationManager(pdp, planner, new DefaultAuthorizationSubscriptionFactory(MAPPER));
+        return new SaplAuthorizationManager(pdp, () -> PolicyDecisionPoint.DEFAULT_PDP_ID, planner,
+                new DefaultAuthorizationSubscriptionFactory(MAPPER));
     }
 
     private static RequestAuthorizationContext context(MockHttpServletRequest request) {
@@ -100,7 +102,7 @@ class SaplAuthorizationManagerTests {
         @Test
         @DisplayName("PERMIT decision allows access")
         void givenPermitThenAllow() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
             val auth   = userAuthentication();
             val result = managerWith().authorize(() -> auth, context(sampleRequest()));
             assertThat(result.isGranted()).isTrue();
@@ -109,7 +111,7 @@ class SaplAuthorizationManagerTests {
         @Test
         @DisplayName("DENY decision blocks access")
         void givenDenyThenBlock() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
             val auth   = userAuthentication();
             val result = managerWith().authorize(() -> auth, context(sampleRequest()));
             assertThat(result.isGranted()).isFalse();
@@ -123,7 +125,7 @@ class SaplAuthorizationManagerTests {
         @Test
         @DisplayName("Null authentication is replaced with an anonymous token (no NPE)")
         void givenNullAuthenticationThenAnonymousFallback() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
             AuthorizationResult result = managerWith().authorize(() -> null, context(sampleRequest()));
             assertThat(result.isGranted()).isTrue();
         }
@@ -138,7 +140,7 @@ class SaplAuthorizationManagerTests {
         void givenHandlerOnRequestSignalThenReceivesWrappedRequest() {
             val captured = new AtomicReference<HttpRequest>();
             val provider = capturingProvider(captured);
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
 
             val auth   = userAuthentication();
             val result = managerWith(provider).authorize(() -> auth, context(sampleRequest()));
@@ -153,7 +155,7 @@ class SaplAuthorizationManagerTests {
         @DisplayName("Obligation-handler failure during the request signal denies the request")
         void givenHandlerThrowsThenDeny() {
             val provider = throwingProvider();
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
 
             val auth   = userAuthentication();
             val result = managerWith(provider).authorize(() -> auth, context(sampleRequest()));
@@ -202,7 +204,7 @@ class SaplAuthorizationManagerTests {
         @Test
         @DisplayName("Stores the EnforcementPlan on the request attribute keyed by HttpEnforcementContext.PLAN_ATTRIBUTE")
         void storesPlanOnRequestAttribute() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
             val request = sampleRequest();
             managerWith().authorize(SaplAuthorizationManagerTests::userAuthentication, context(request));
 
@@ -221,7 +223,7 @@ class SaplAuthorizationManagerTests {
                                                             }
                                                             return List.of();
                                                         };
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(permitWithObligation(CAPTURE_REQUEST));
 
             managerWith(capturingProvider).authorize(SaplAuthorizationManagerTests::userAuthentication,
                     context(sampleRequest()));

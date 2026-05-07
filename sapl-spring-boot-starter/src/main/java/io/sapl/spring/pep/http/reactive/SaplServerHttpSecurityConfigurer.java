@@ -28,6 +28,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity.Excepti
 
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.val;
 
 /**
@@ -147,7 +148,8 @@ public final class SaplServerHttpSecurityConfigurer {
         }
         if (subscriptionFactory != null) {
             return new ReactiveSaplAuthorizationManager(context.getBean(PolicyDecisionPoint.class),
-                    context.getBean(EnforcementPlanner.class), subscriptionFactory);
+                    context.getBean(ReactiveTenantResolver.class), context.getBean(EnforcementPlanner.class),
+                    subscriptionFactory);
         }
         return context.getBean(ReactiveSaplAuthorizationManager.class);
     }

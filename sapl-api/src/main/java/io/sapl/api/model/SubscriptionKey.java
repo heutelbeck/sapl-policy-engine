@@ -35,6 +35,6 @@ import lombok.NonNull;
  * @param head {@code true} for first-emission-only reads (legacy
  * {@code take(1)} semantic); {@code false} for latest-value reads
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record SubscriptionKey(@NonNull AttributeFinderInvocation invocation, boolean head) {}

@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.config;
 
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -27,13 +27,14 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Auto-configures the {@link PdpIdWebFilter} when a
- * {@link PdpIdAuthenticationExtractor} bean is present in a reactive web
- * application.
+ * {@link PdpIdAuthenticationExtractor} bean is present in a reactive
+ * web application.
  * <p>
- * This enables multi-tenant PDP routing for Spring WebFlux applications
- * using an embedded {@link MultiTenantPolicyDecisionPoint}.
- * The filter writes the extracted PDP ID to the Reactor Context on every
- * request.
+ * This enables multi-tenant PDP routing for Spring WebFlux
+ * applications using an embedded {@link PolicyDecisionPoint}. The
+ * filter writes the extracted PDP id to the Reactor Context on every
+ * request; downstream consumers (the reactive tenant resolver) read
+ * it from there.
  */
 @Slf4j
 @AutoConfiguration

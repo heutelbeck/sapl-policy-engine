@@ -107,7 +107,11 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription) {
+    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authzSubscription, String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         return rSocketMono.flatMapMany(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_DECIDE,
@@ -124,7 +128,11 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription) {
+    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authzSubscription, String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         return rSocketMono.flatMap(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_DECIDE_ONCE,
@@ -139,7 +147,18 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription) {
+    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authzSubscription, String pdpId) {
+        val decision = decideOnce(authzSubscription, pdpId).block();
+        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
+    }
+
+    @Override
+    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription,
+            String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         return rSocketMono.flatMapMany(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE,
@@ -156,7 +175,12 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     @Override
-    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription) {
+    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiAuthzSubscription,
+            String pdpId) {
+        // The pdpId argument is intentionally unused. The remote SAPL server
+        // derives the tenant from the access token (JWT claim, API-key user
+        // record), so multi-tenant routing is determined entirely by the
+        // configured credentials of this client.
         return rSocketMono.flatMapMany(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE_ALL,

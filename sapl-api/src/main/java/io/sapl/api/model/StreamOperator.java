@@ -48,7 +48,7 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * @param ctx evaluation context bound to a snapshot version
      * @return value plus dependency map for this evaluation pass
      *
-     * @since 4.2.0
+     * @since 4.1.0
      */
     ExpressionResult evaluate(EvaluationContext ctx);
 
@@ -73,7 +73,7 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * @return the child's value, or {@code null} if a stream child
      * could not complete
      *
-     * @since 4.2.0
+     * @since 4.1.0
      */
     static @Nullable Value evalChild(CompiledExpression child, EvaluationContext ctx,
             Map<SubscriptionKey, List<Occurrence>> deps) {
@@ -98,7 +98,7 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * @param target the accumulator to merge into
      * @param source the dependencies to merge from
      *
-     * @since 4.2.0
+     * @since 4.1.0
      */
     static void mergeDependencies(Map<SubscriptionKey, List<Occurrence>> target,
             Map<SubscriptionKey, List<Occurrence>> source) {

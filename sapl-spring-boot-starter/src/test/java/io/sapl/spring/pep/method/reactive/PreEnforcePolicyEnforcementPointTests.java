@@ -19,6 +19,7 @@ package io.sapl.spring.pep.method.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -435,7 +436,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
             StepVerifier.create(watch.confiscateLostScroll()).verifyComplete();
 
-            verify(pdp).decideOnce(any());
+            verify(pdp).decideOnce(any(), anyString());
             assertThat(logbook.anguaAudits).hasValue(1);
         }
 
@@ -459,7 +460,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
             StepVerifier.create(watch.escortDrumknottHome()).verifyComplete();
 
-            verify(pdp).decideOnce(any());
+            verify(pdp).decideOnce(any(), anyString());
             assertThat(logbook.escortRiteSideEffects).hasValue(1);
         }
 
@@ -608,7 +609,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     private void decide(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any())).thenReturn(Mono.just(decision));
+        when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decision));
     }
 
     private static void assertAccessDenied(Mono<?> publisher, String messageFragment) {

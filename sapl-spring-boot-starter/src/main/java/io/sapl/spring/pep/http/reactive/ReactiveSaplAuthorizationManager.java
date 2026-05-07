@@ -39,6 +39,7 @@ import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpResponseSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import reactor.core.publisher.Mono;
@@ -67,6 +68,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
             HttpDenialSignal.SIGNAL_TYPE);
 
     private final PolicyDecisionPoint                      pdp;
+    private final ReactiveTenantResolver                   tenantResolver;
     private final EnforcementPlanner                       enforcementPlanner;
     private final ReactiveAuthorizationSubscriptionFactory subscriptionFactory;
 
@@ -79,8 +81,8 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     }
 
     private Mono<Boolean> enforce(AuthorizationSubscription subscription, ServerWebExchange exchange) {
-        return pdp.decide(subscription).next().defaultIfEmpty(AuthorizationDecision.DENY)
-                .map(decision -> enforceDecision(decision, exchange));
+        return tenantResolver.resolve().flatMapMany(pdpId -> pdp.decide(subscription, pdpId)).next()
+                .defaultIfEmpty(AuthorizationDecision.DENY).map(decision -> enforceDecision(decision, exchange));
     }
 
     private boolean enforceDecision(AuthorizationDecision authzDecision, ServerWebExchange exchange) {

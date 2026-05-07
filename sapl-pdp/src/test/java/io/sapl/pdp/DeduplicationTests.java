@@ -26,7 +26,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
@@ -120,7 +120,7 @@ class DeduplicationTests {
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
-            val decisions = pdp.gatherVotes(sub, MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID)
+            val decisions = pdp.gatherVotes(sub, PolicyDecisionPoint.DEFAULT_PDP_ID)
                     .map(tv -> tv.vote().authorizationDecision()).take(3).collectList().block(Duration.ofSeconds(10));
 
             assertThat(decisions).isNotNull().hasSizeGreaterThanOrEqualTo(2);
@@ -186,7 +186,7 @@ class DeduplicationTests {
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
-            val decisions = pdp.gatherVotes(sub, MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID)
+            val decisions = pdp.gatherVotes(sub, PolicyDecisionPoint.DEFAULT_PDP_ID)
                     .map(tv -> tv.vote().authorizationDecision()).take(Duration.ofSeconds(5)).collectList()
                     .block(Duration.ofSeconds(10));
 

@@ -25,6 +25,7 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.val;
 
 /**
@@ -117,7 +118,8 @@ public final class SaplHttpSecurityConfigurer extends AbstractHttpConfigurer<Sap
         }
         if (subscriptionFactory != null) {
             return new SaplAuthorizationManager(context.getBean(PolicyDecisionPoint.class),
-                    context.getBean(EnforcementPlanner.class), subscriptionFactory);
+                    context.getBean(BlockingTenantResolver.class), context.getBean(EnforcementPlanner.class),
+                    subscriptionFactory);
         }
         return context.getBean(SaplAuthorizationManager.class);
     }

@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,7 +67,8 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
     @BeforeEach
     void beforeEach() {
         pdp = mock(PolicyDecisionPoint.class);
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
     }
 
     @Test
@@ -123,7 +125,9 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
 
     private AuthorizationSubscription subscribeAndCapture(ReactiveAuthorizationSubscriptionFactory factory) {
         val planner  = new EnforcementPlanner(java.util.List.of(), MAPPER);
-        val manager  = new ReactiveSaplAuthorizationManager(pdp, planner, factory);
+        val manager  = new ReactiveSaplAuthorizationManager(pdp,
+                () -> reactor.core.publisher.Mono.just(io.sapl.reactive.api.pdp.PolicyDecisionPoint.DEFAULT_PDP_ID),
+                planner, factory);
         val request  = MockServerHttpRequest.get("/orders/42").build();
         val exchange = MockServerWebExchange.from(request);
         val auth     = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",
@@ -133,7 +137,7 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
         assertThat(result).isNotNull();
 
         val captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp).decide(captor.<AuthorizationSubscription>capture());
+        verify(pdp).decide(captor.<AuthorizationSubscription>capture(), anyString());
         return captor.getValue();
     }
 }

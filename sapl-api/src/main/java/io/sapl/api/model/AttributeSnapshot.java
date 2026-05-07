@@ -34,6 +34,6 @@ import lombok.NonNull;
  * may be an {@link ErrorValue} when the broker emitted an error
  * @param timestamp when the broker emitted this value
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record AttributeSnapshot(@NonNull Value value, @NonNull Instant timestamp) {}

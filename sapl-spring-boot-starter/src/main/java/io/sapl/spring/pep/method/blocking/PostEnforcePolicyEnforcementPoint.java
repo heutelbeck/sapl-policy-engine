@@ -27,6 +27,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.ErrorSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
     private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED   = "Access Denied by @PostEnforce PEP. A post-invocation obligation handler failed after the protected method had already executed. Side effects of the invocation may have occurred.";
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<BlockingTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -104,7 +106,8 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscriptionWithReturnObject(BlockingAuthentication.current(), methodInvocation,
                         attribute, returnedObject);
-        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription);
+        val pdpId             = tenantResolverProvider.getObject().resolve();
+        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription, pdpId);
     }
 
 }

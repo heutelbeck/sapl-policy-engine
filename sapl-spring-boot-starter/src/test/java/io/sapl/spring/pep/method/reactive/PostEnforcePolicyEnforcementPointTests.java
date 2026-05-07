@@ -19,6 +19,7 @@ package io.sapl.spring.pep.method.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -121,7 +122,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the forbidden incantation verbatim")
         void whenPermitAndScalarThenReturnsOriginalIncantation() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(NECRONOMICON_PASSAGE).verifyComplete();
         }
@@ -129,7 +130,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the full Pnakotic catalog")
         void whenPermitAndListThenReturnsFullCatalog() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(archive.listAccessionedTomes()).expectNext(ACCESSIONED_TOMES).verifyComplete();
         }
@@ -137,7 +138,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the unaltered sanity census")
         void whenPermitAndMapThenReturnsSanityCensus() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(archive.tabulateSanityScores()).expectNext(SANITY_SCORES).verifyComplete();
         }
@@ -150,7 +151,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Resource value replaces the scalar incantation")
         void whenResourcePresentThenReplacesIncantation() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN))));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN))));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(REDACTED_BY_LIBRARIAN).verifyComplete();
         }
@@ -159,7 +161,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @DisplayName("Resource list replaces the entire catalog with a single sanitised entry")
         void whenResourceListPresentThenReplacesCatalog() {
             val replacement = Value.ofArray(Value.of(CATALOG_SEALED_BY_LIBRARIAN));
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithResource(replacement)));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decisionWithResource(replacement)));
 
             StepVerifier.create(archive.listAccessionedTomes()).expectNext(List.of(CATALOG_SEALED_BY_LIBRARIAN))
                     .verifyComplete();
@@ -168,7 +170,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Incompatible resource type fails as access denied with a post-invocation message")
         void whenResourceTypeIsIncompatibleThenAccessDenied() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithResource(Value.of("not-a-number"))));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithResource(Value.of("not-a-number"))));
 
             StepVerifier.create(archive.countCthulhuCultMembers()).expectErrorSatisfies(err -> assertThat(err)
                     .isInstanceOf(AccessDeniedException.class).hasMessageContaining(POST_INVOCATION_MESSAGE_FRAGMENT))
@@ -180,7 +183,7 @@ class PostEnforcePolicyEnforcementPointTests {
         void whenDenyWithResourceThenStillAccessDenied() {
             val deny = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(deny));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(deny));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("not PERMIT"))
@@ -192,7 +195,7 @@ class PostEnforcePolicyEnforcementPointTests {
         void whenSuspendWithResourceThenStillAccessDenied() {
             val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(suspend));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(suspend));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("not PERMIT"))
@@ -207,7 +210,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DENY raises AccessDeniedException")
         void whenDenyThenAccessDenied() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.DENY));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("DENY"))
@@ -217,7 +220,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("INDETERMINATE raises AccessDeniedException")
         void whenIndeterminateThenAccessDenied() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.INDETERMINATE));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.INDETERMINATE));
 
             StepVerifier
                     .create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(err -> assertThat(err)
@@ -228,7 +231,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("NOT_APPLICABLE raises AccessDeniedException")
         void whenNotApplicableThenAccessDenied() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.NOT_APPLICABLE));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.NOT_APPLICABLE));
 
             StepVerifier
                     .create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(err -> assertThat(err)
@@ -239,7 +242,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("SUSPEND raises AccessDeniedException; reactive one-shot PEPs cannot suspend, so the wards stay shut")
         void whenSuspendThenAccessDenied() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.SUSPEND));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.SUSPEND));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("SUSPEND"))
@@ -254,7 +257,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Runner: Dr. Armitage notes every access in the keeper's journal")
         void whenOutputRunnerObligationThenLoggedAndPassesThrough() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(NECRONOMICON_PASSAGE).verifyComplete();
             assertThat(journal.armitageLogEntries).hasValue(1);
@@ -263,7 +267,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Consumer: Wilmarth examines the passage without altering it")
         void whenOutputConsumerObligationThenObservesValue() {
-            when(pdp.decideOnce(any()))
+            when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(Mono.just(decisionWithObligation(Obligation.WILMARTH_EXAMINES_ENTRY)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(NECRONOMICON_PASSAGE).verifyComplete();
@@ -273,7 +277,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Mapper: the librarian redacts the passage before handing it over")
         void whenOutputMapperObligationThenRedactsEntry() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.LIBRARIAN_REDACTS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.LIBRARIAN_REDACTS)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(REDACTED_BY_LIBRARIAN).verifyComplete();
         }
@@ -281,7 +286,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DecisionSignal Runner: the Dean countersigns each decision before it takes effect")
         void whenDecisionRunnerObligationThenDeanCountersigns() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(NECRONOMICON_PASSAGE).verifyComplete();
             assertThat(journal.deanCountersignatures).hasValue(1);
@@ -295,7 +301,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DecisionSignal obligation Runner: a cultist sabotages the decision")
         void whenDecisionObligationFailsThenAccessDenied() {
-            when(pdp.decideOnce(any()))
+            when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(Mono.just(decisionWithObligation(Obligation.CULTIST_SABOTAGES_DECISION)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage())
@@ -306,7 +312,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Mapper: the gate refuses to open while the redaction is being prepared")
         void whenOutputMapperObligationFailsThenAccessDeniedPostInvocation() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.GATE_REFUSES_TO_OPEN)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.GATE_REFUSES_TO_OPEN)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectErrorSatisfies(err -> assertThat(err)
                     .isInstanceOf(AccessDeniedException.class).hasMessageContaining(POST_INVOCATION_MESSAGE_FRAGMENT))
@@ -316,7 +323,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Consumer: the reader is overtaken by madness mid-examination")
         void whenOutputConsumerObligationFailsThenAccessDenied() {
-            when(pdp.decideOnce(any()))
+            when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(Mono.just(decisionWithObligation(Obligation.MADNESS_OVERTAKES_READER)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage())
@@ -332,7 +339,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Failing advice does not deny access; the cultist's interference is dismissed")
         void whenAdviceFailsThenAccessStillPermitted() {
-            when(pdp.decideOnce(any()))
+            when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(Mono.just(decisionWithAdvice(Obligation.CULTIST_SABOTAGES_DECISION)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage()).expectNext(NECRONOMICON_PASSAGE).verifyComplete();
@@ -346,7 +353,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("ErrorSignal Mapper<Throwable>: Nyarlathotep consumes the original exception and substitutes its own")
         void whenErrorSignalMapperThenMappedExceptionPropagates() {
-            when(pdp.decideOnce(any()))
+            when(pdp.decideOnce(any(), anyString()))
                     .thenReturn(Mono.just(decisionWithObligationAndDeny(Obligation.NYARLATHOTEP_REWRITES_THROWABLE)));
 
             StepVerifier.create(archive.fetchNecronomiconPassage())
@@ -360,7 +367,7 @@ class PostEnforcePolicyEnforcementPointTests {
         void whenErrorSignalRunnerObligationThenKeeperLogs() {
             val deny = new AuthorizationDecision(Decision.DENY, arrayOf(Obligation.KEEPER_LOGS_ERRORS),
                     Value.EMPTY_ARRAY, Value.UNDEFINED);
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(deny));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(deny));
 
             StepVerifier.create(archive.fetchNecronomiconPassage())
                     .expectErrorSatisfies(err -> assertThat(err).isInstanceOf(AccessDeniedException.class))
@@ -399,18 +406,19 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Empty Mono consults the PDP and applies output-side obligations")
         void whenRapReturnsEmptyMonoThenPdpIsConsultedAndObligationsApply() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS)));
 
             StepVerifier.create(archive.fetchPnakoticManuscript()).verifyComplete();
 
-            verify(pdp).decideOnce(any());
+            verify(pdp).decideOnce(any(), anyString());
             assertThat(journal.armitageLogEntries).hasValue(1);
         }
 
         @Test
         @DisplayName("Empty Mono with DENY raises AccessDeniedException")
         void whenRapReturnsEmptyMonoAndPdpDeniesThenAccessDenied() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.DENY));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(archive.fetchPnakoticManuscript()).expectErrorSatisfies(
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("DENY"))
@@ -420,7 +428,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Empty Mono with resource substitution materialises the resource value")
         void whenRapReturnsEmptyMonoAndResourcePresentThenMaterialises() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN))));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN))));
 
             StepVerifier.create(archive.fetchPnakoticManuscript()).expectNext(REDACTED_BY_LIBRARIAN).verifyComplete();
         }
@@ -428,7 +437,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Empty Mono fires DecisionSignal handlers")
         void whenRapReturnsEmptyMonoAndDecisionRunnerObligationThenRuns() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS)));
 
             StepVerifier.create(archive.fetchPnakoticManuscript()).verifyComplete();
 
@@ -443,18 +453,18 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Mono<Void> consults the PDP and the side effect runs on PERMIT")
         void whenMonoVoidPermitThenPdpConsultedAndSideEffectRuns() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(archive.closeTheWardedDoor()).verifyComplete();
 
-            verify(pdp).decideOnce(any());
+            verify(pdp).decideOnce(any(), anyString());
             assertThat(journal.wardingRiteSideEffects).hasValue(1);
         }
 
         @Test
         @DisplayName("Mono<Void> with DENY raises AccessDeniedException; the side effect still runs because the RAP completed before enforcement")
         void whenMonoVoidDenyThenAccessDeniedAfterSideEffect() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(AuthorizationDecision.DENY));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(archive.closeTheWardedDoor()).expectErrorSatisfies(
                     err -> assertThat(err).isInstanceOf(AccessDeniedException.class).hasMessageContaining("DENY"))
@@ -465,7 +475,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Mono<Void> fires DecisionSignal Runner")
         void whenMonoVoidAndDecisionRunnerObligationThenRuns() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS)));
 
             StepVerifier.create(archive.closeTheWardedDoor()).verifyComplete();
 
@@ -475,7 +486,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Mono<Void> skips OutputSignal Mappers (Maybe.absent has no value to transform)")
         void whenMonoVoidAndOutputMapperObligationThenMapperSkips() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.LIBRARIAN_REDACTS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.LIBRARIAN_REDACTS)));
 
             StepVerifier.create(archive.closeTheWardedDoor()).verifyComplete();
             // The Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran;
@@ -485,7 +497,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Mono<Void> fires OutputSignal Runners (no value needed for run-only handlers)")
         void whenMonoVoidAndOutputRunnerObligationThenRunnerFires() {
-            when(pdp.decideOnce(any())).thenReturn(Mono.just(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS)));
+            when(pdp.decideOnce(any(), anyString()))
+                    .thenReturn(Mono.just(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS)));
 
             StepVerifier.create(archive.closeTheWardedDoor()).verifyComplete();
 

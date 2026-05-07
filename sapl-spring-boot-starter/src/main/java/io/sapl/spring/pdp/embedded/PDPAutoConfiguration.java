@@ -27,6 +27,8 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
+import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.compiler.eval.AttributeStore;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
@@ -43,7 +45,6 @@ import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.source.RemoteBundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.source.ResourcesPDPConfigurationSource;
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -102,8 +103,8 @@ import java.util.Set;
  * {@link PolicyInformationPoint})</li>
  * <li>Decision interceptors (beans implementing
  * {@link VoteInterceptor})</li>
- * <li>Multi-tenant routing via
- * {@link MultiTenantPolicyDecisionPoint}</li>
+ * <li>Multi-tenant routing via the {@code pdpId}-form methods on
+ * {@link PolicyDecisionPoint}</li>
  * </ul>
  * <p>
  * Configuration is controlled via {@link EmbeddedPDPProperties} with prefix
@@ -213,15 +214,22 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, IdFactory idFactory,
-            ObjectProvider<VoteInterceptor> interceptorProvider) {
+    PolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, AttributeStore attributeStore,
+            IdFactory idFactory, ObjectProvider<VoteInterceptor> interceptorProvider) {
         val interceptors = interceptorProvider.orderedStream().toList();
         if (!interceptors.isEmpty()) {
             log.debug("Registering {} decision interceptors: {}.", interceptors.size(),
                     interceptors.stream().map(i -> i.getClass().getSimpleName()).toList());
         }
         log.info("Deploying embedded Policy Decision Point.");
-        return new ReactivePolicyDecisionPoint(pdpVoterSource, idFactory, interceptors);
+        return new ReactivePolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, interceptors);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AttributeStore attributeStore() {
+        return new InMemoryAttributeStore();
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {

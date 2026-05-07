@@ -20,6 +20,7 @@ package io.sapl.spring.pep.method.blocking;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,7 +116,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the forbidden incantation verbatim")
         void whenPermitAndScalarThenReturnsOriginalIncantation() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -125,7 +126,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the full Pnakotic catalog")
         void whenPermitAndListThenReturnsFullCatalog() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = archive.listAccessionedTomes();
 
@@ -135,7 +136,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns the unaltered sanity census")
         void whenPermitAndMapThenReturnsSanityCensus() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = archive.tabulateSanityScores();
 
@@ -145,7 +146,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit returns null when the requested manuscript was lost in the Innsmouth raid")
         void whenPermitAndMissingManuscriptThenReturnsNull() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             val result = archive.fetchPnakoticManuscript();
 
@@ -155,7 +156,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Permit allows closing the warded door; the rite runs and returns nothing")
         void whenPermitAndVoidThenRiteCompletes() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             archive.closeTheWardedDoor();
 
@@ -170,18 +171,18 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Void method consults the PDP and the side effect runs on PERMIT")
         void whenVoidPermitThenPdpConsultedAndSideEffectRuns() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             archive.closeTheWardedDoor();
 
-            verify(pdp).decideOnceBlocking(any());
+            verify(pdp).decideOnceBlocking(any(), anyString());
             assertThat(journal.wardingRiteSideEffects).hasValue(1);
         }
 
         @Test
         @DisplayName("Void method with DENY raises AccessDeniedException; side effect already ran (post-invocation gate)")
         void whenVoidDenyThenAccessDeniedAfterSideEffect() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::closeTheWardedDoor)
                     .withMessageContaining("DENY");
@@ -191,7 +192,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Void method fires DecisionSignal Runner")
         void whenVoidAndDecisionRunnerObligationThenRuns() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS));
 
             archive.closeTheWardedDoor();
 
@@ -201,20 +203,22 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Void method skips OutputSignal Mappers (Maybe.absent has no value to transform)")
         void whenVoidAndOutputMapperObligationThenMapperSkips() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS));
 
             archive.closeTheWardedDoor();
 
             // Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran; it skipped
             // because the OutputSignal value is Maybe.absent for void. The PEP still
             // consulted the PDP — verifying that proves the obligation was processed.
-            verify(pdp).decideOnceBlocking(any());
+            verify(pdp).decideOnceBlocking(any(), anyString());
         }
 
         @Test
         @DisplayName("Void method fires OutputSignal Runners (no value needed for run-only handlers)")
         void whenVoidAndOutputRunnerObligationThenRunnerFires() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS));
 
             archive.closeTheWardedDoor();
 
@@ -229,7 +233,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Resource value replaces the scalar incantation")
         void whenResourcePresentThenReplacesIncantation() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN)));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN)));
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -239,7 +244,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Resource value materialises in place of a manuscript believed lost")
         void whenNullRapAndResourcePresentThenMaterialises() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN)));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithResource(Value.of(REDACTED_BY_LIBRARIAN)));
 
             val result = archive.fetchPnakoticManuscript();
 
@@ -250,7 +256,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @DisplayName("Resource list replaces the entire catalog with a single sanitised entry")
         void whenResourceListPresentThenReplacesCatalog() {
             val replacement = Value.ofArray(Value.of(CATALOG_SEALED_BY_LIBRARIAN));
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(replacement));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(decisionWithResource(replacement));
 
             val result = archive.listAccessionedTomes();
 
@@ -260,7 +266,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Incompatible resource type fails as access denied with a post-invocation message")
         void whenResourceTypeIsIncompatibleThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithResource(Value.of("not-a-number")));
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(decisionWithResource(Value.of("not-a-number")));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::countCthulhuCultMembers)
                     .withMessageContaining(POST_INVOCATION_MESSAGE_FRAGMENT);
@@ -271,7 +277,7 @@ class PostEnforcePolicyEnforcementPointTests {
         void whenDenyWithResourceThenStillAccessDenied() {
             val deny = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
-            when(pdp.decideOnceBlocking(any())).thenReturn(deny);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(deny);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("not PERMIT");
@@ -282,7 +288,7 @@ class PostEnforcePolicyEnforcementPointTests {
         void whenSuspendWithResourceThenStillAccessDenied() {
             val suspend = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of(REDACTED_BY_LIBRARIAN));
-            when(pdp.decideOnceBlocking(any())).thenReturn(suspend);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(suspend);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("not PERMIT");
@@ -296,7 +302,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DENY raises AccessDeniedException")
         void whenDenyThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("DENY");
@@ -305,7 +311,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("INDETERMINATE raises AccessDeniedException")
         void whenIndeterminateThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.INDETERMINATE);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.INDETERMINATE);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("INDETERMINATE");
@@ -314,7 +320,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("NOT_APPLICABLE raises AccessDeniedException")
         void whenNotApplicableThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.NOT_APPLICABLE);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.NOT_APPLICABLE);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("NOT_APPLICABLE");
@@ -323,7 +329,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("SUSPEND raises AccessDeniedException; one-shot PEPs cannot suspend, so the wards stay shut")
         void whenSuspendThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.SUSPEND);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.SUSPEND);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining("SUSPEND");
@@ -337,7 +343,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Runner: Dr. Armitage notes every access in the keeper's journal")
         void whenOutputRunnerObligationThenLoggedAndPassesThrough() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.ARMITAGE_LOGS_ACCESS));
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -348,7 +355,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Consumer: Wilmarth examines the passage without altering it")
         void whenOutputConsumerObligationThenObservesValue() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.WILMARTH_EXAMINES_ENTRY));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.WILMARTH_EXAMINES_ENTRY));
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -359,7 +367,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Mapper: the librarian redacts the passage before handing it over")
         void whenOutputMapperObligationThenRedactsEntry() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.LIBRARIAN_REDACTS));
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -369,7 +378,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DecisionSignal Runner: the Dean countersigns each decision before it takes effect")
         void whenDecisionRunnerObligationThenDeanCountersigns() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.DEAN_COUNTERSIGNS));
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -385,7 +395,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("DecisionSignal obligation Runner: a cultist sabotages the decision")
         void whenDecisionObligationFailsThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligation(Obligation.CULTIST_SABOTAGES_DECISION));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage);
@@ -394,7 +404,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Mapper: the gate refuses to open while the redaction is being prepared")
         void whenOutputMapperObligationFailsThenAccessDeniedPostInvocation() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.GATE_REFUSES_TO_OPEN));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.GATE_REFUSES_TO_OPEN));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage)
                     .withMessageContaining(POST_INVOCATION_MESSAGE_FRAGMENT);
@@ -403,7 +414,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("OutputSignal Consumer: the reader is overtaken by madness mid-examination")
         void whenOutputConsumerObligationFailsThenAccessDenied() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithObligation(Obligation.MADNESS_OVERTAKES_READER));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithObligation(Obligation.MADNESS_OVERTAKES_READER));
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage);
         }
@@ -416,7 +428,8 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("Failing advice does not deny access; the cultist's interference is dismissed")
         void whenAdviceFailsThenAccessStillPermitted() {
-            when(pdp.decideOnceBlocking(any())).thenReturn(decisionWithAdvice(Obligation.CULTIST_SABOTAGES_DECISION));
+            when(pdp.decideOnceBlocking(any(), anyString()))
+                    .thenReturn(decisionWithAdvice(Obligation.CULTIST_SABOTAGES_DECISION));
 
             val result = archive.fetchNecronomiconPassage();
 
@@ -431,7 +444,7 @@ class PostEnforcePolicyEnforcementPointTests {
         @Test
         @DisplayName("ErrorSignal Mapper<Throwable>: Nyarlathotep consumes the original exception and substitutes its own")
         void whenErrorSignalMapperThenMappedExceptionPropagates() {
-            when(pdp.decideOnceBlocking(any()))
+            when(pdp.decideOnceBlocking(any(), anyString()))
                     .thenReturn(decisionWithObligationAndDeny(Obligation.NYARLATHOTEP_REWRITES_THROWABLE));
 
             assertThatExceptionOfType(IllegalStateException.class).isThrownBy(archive::fetchNecronomiconPassage)
@@ -443,7 +456,7 @@ class PostEnforcePolicyEnforcementPointTests {
         void whenErrorSignalRunnerObligationThenKeeperLogs() {
             val deny = new AuthorizationDecision(Decision.DENY, arrayOf(Obligation.KEEPER_LOGS_ERRORS),
                     Value.EMPTY_ARRAY, Value.UNDEFINED);
-            when(pdp.decideOnceBlocking(any())).thenReturn(deny);
+            when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(deny);
 
             assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(archive::fetchNecronomiconPassage);
             assertThat(journal.keeperErrorLogs).hasValue(1);

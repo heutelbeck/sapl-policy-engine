@@ -53,7 +53,7 @@ import java.util.function.Function;
  * gate opens, and the consumer's evaluator handles the error per its
  * own semantics.
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public interface AttributeStore extends AutoCloseable {
 
@@ -118,7 +118,7 @@ public interface AttributeStore extends AutoCloseable {
      * time; this handle is solely for releasing the subscription when
      * the consumer is done.
      *
-     * @since 4.2.0
+     * @since 4.1.0
      */
     interface Subscription extends AutoCloseable {
 

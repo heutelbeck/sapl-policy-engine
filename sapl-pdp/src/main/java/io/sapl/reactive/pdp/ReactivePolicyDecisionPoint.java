@@ -24,6 +24,7 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.IdentifiableAuthorizationSubscription;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.ast.Outcome;
@@ -34,21 +35,22 @@ import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PdpVoterSource;
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.util.context.ContextView;
 
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-public class ReactivePolicyDecisionPoint implements MultiTenantPolicyDecisionPoint {
+public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
 
     private static final String ERROR_INTERRUPTED                = "Voter evaluation interrupted.";
     private static final String ERROR_NO_PDP_CONFIGURATION       = "No PDP configuration found.";
@@ -109,16 +111,8 @@ public class ReactivePolicyDecisionPoint implements MultiTenantPolicyDecisionPoi
 
     @Override
     public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        return Flux.defer(() -> {
-            val subscriptionId   = idFactory.newRandom();
-            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-            val voteFlux         = pdpConfiguration
-                    .map(pdp -> fluxEvaluate(pdp, authorizationSubscription, subscriptionId))
-                    .orElseGet(() -> Flux.just(noConfigurationVote(pdpId)));
-            return voteFlux.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, authorizationSubscription))
-                    .doOnNext(tv -> invokeInterceptors(tv, subscriptionId, authorizationSubscription))
-                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId));
-        }).map(tv -> tv.vote().authorizationDecision()).distinctUntilChanged();
+        return gatherVotes(authorizationSubscription, pdpId).map(tv -> tv.vote().authorizationDecision())
+                .distinctUntilChanged();
     }
 
     private Flux<TimestampedVote> fluxEvaluate(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
@@ -343,37 +337,14 @@ public class ReactivePolicyDecisionPoint implements MultiTenantPolicyDecisionPoi
     }
 
     @Override
-    public Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
-        return Flux.deferContextual(ctx -> decide(authorizationSubscription, pdpIdFromContext(ctx)));
-    }
-
-    @Override
-    public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
-        return Mono.deferContextual(ctx -> decideOnce(authorizationSubscription, pdpIdFromContext(ctx)));
-    }
-
-    @Override
-    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
-        return decideOnceBlocking(authorizationSubscription, DEFAULT_PDP_ID);
-    }
-
-    @Override
-    public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
-        return Flux.deferContextual(ctx -> decide(multiSubscription, pdpIdFromContext(ctx)));
-    }
-
-    @Override
-    public Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription) {
-        return Flux.deferContextual(ctx -> decideAll(multiSubscription, pdpIdFromContext(ctx)));
-    }
-
-    @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
             String pdpId) {
         if (!multiSubscription.hasSubscriptions()) {
             return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
         }
-        return Flux.merge(identifiableDecisionFluxes(multiSubscription, pdpId));
+        val previous = new AtomicReference<MultiAuthorizationDecision>();
+        return decideAll(multiSubscription, pdpId)
+                .flatMapIterable(current -> identifiableChanges(previous.getAndSet(current), current));
     }
 
     @Override
@@ -381,39 +352,102 @@ public class ReactivePolicyDecisionPoint implements MultiTenantPolicyDecisionPoi
         if (!multiSubscription.hasSubscriptions()) {
             return Flux.just(MultiAuthorizationDecision.indeterminate());
         }
-        // TODO: implement glitch-free combination. Flux.combineLatest of N
-        // independent decision fluxes can emit transient intermediate
-        // MultiAuthorizationDecision values when several sub-streams update
-        // from the same upstream attribute change. The intended replacement
-        // routes all sub-evaluations through one AttributeStore subscription
-        // so combination happens before emission, not after.
-        return Flux.combineLatest(identifiableDecisionFluxes(multiSubscription, pdpId),
-                ReactivePolicyDecisionPoint::collectDecisions);
+        return Flux.defer(() -> {
+            val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
+            if (pdpConfiguration.isEmpty()) {
+                return Flux.just(MultiAuthorizationDecision.indeterminate());
+            }
+            val subscriptionId = idFactory.newRandom();
+            return multiVoteFlux(multiSubscription, pdpConfiguration.get(), subscriptionId);
+        }).distinctUntilChanged();
     }
 
-    private List<Flux<IdentifiableAuthorizationDecision>> identifiableDecisionFluxes(
-            MultiAuthorizationSubscription multiSubscription, String pdpId) {
-        val fluxes = new ArrayList<Flux<IdentifiableAuthorizationDecision>>();
-        for (val identifiableSubscription : multiSubscription) {
-            val subscriptionId = identifiableSubscription.subscriptionId();
-            val subscription   = identifiableSubscription.subscription();
-            fluxes.add(decide(subscription, pdpId)
-                    .map(decision -> new IdentifiableAuthorizationDecision(subscriptionId, decision)));
+    /**
+     * Shared-subscription multi-vote loop. One {@link AttributeStore}
+     * handle drives every sub-evaluation against the same snapshot, so
+     * combination happens before emission and a
+     * {@link MultiAuthorizationDecision} can never reflect a partial
+     * update across subs. Emission is gated on every sub having a
+     * non-null vote in the current round; rounds where any sub fails
+     * to produce a vote are silently skipped (the next snapshot
+     * change will retry).
+     */
+    private Flux<MultiAuthorizationDecision> multiVoteFlux(MultiAuthorizationSubscription multiSubscription,
+            CompiledPdp pdp, String subscriptionId) {
+        val items = new ArrayList<IdentifiableAuthorizationSubscription>();
+        for (val item : multiSubscription) {
+            items.add(item);
         }
-        return fluxes;
+        return Flux.create(sink -> {
+            val initialDeps = new HashSet<SubscriptionKey>();
+            val emitInitial = evaluateRound(items, pdp, subscriptionId, Map.of(), initialDeps);
+            if (emitInitial != null) {
+                sink.next(emitInitial);
+            }
+            if (initialDeps.isEmpty()) {
+                sink.complete();
+                return;
+            }
+            val handle = attributeStore.open(subscriptionId, initialDeps, snapshot -> {
+                val newDeps = new HashSet<SubscriptionKey>();
+                val multi   = evaluateRound(items, pdp, subscriptionId, snapshot, newDeps);
+                if (multi != null) {
+                    sink.next(multi);
+                }
+                return newDeps.isEmpty() ? initialDeps : newDeps;
+            });
+            sink.onDispose(handle::close);
+        }, FluxSink.OverflowStrategy.LATEST);
     }
 
-    private static MultiAuthorizationDecision collectDecisions(Object[] decisions) {
-        val multiDecision = new MultiAuthorizationDecision();
-        for (val value : decisions) {
-            val identifiable = (IdentifiableAuthorizationDecision) value;
-            multiDecision.setDecision(identifiable.subscriptionId(), identifiable.decision());
+    /**
+     * Evaluates every sub against the given snapshot. Accumulates each
+     * sub's declared dependencies into {@code depsAccumulator}. Returns
+     * a complete {@link MultiAuthorizationDecision} when every sub
+     * produced a non-null vote; otherwise returns {@code null} so the
+     * caller skips emission for this round.
+     */
+    private MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items, CompiledPdp pdp,
+            String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
+            Set<SubscriptionKey> depsAccumulator) {
+        val multi = new MultiAuthorizationDecision();
+        for (val item : items) {
+            val ctx = evaluationContext(pdp, item.subscription(), subscriptionId).withSnapshot(snapshot);
+            val r   = evaluateVoter(pdp.voter(), ctx);
+            depsAccumulator.addAll(r.dependencies().keySet());
+            if (r.vote() == null) {
+                return null;
+            }
+            multi.setDecision(item.subscriptionId(), r.vote().authorizationDecision());
         }
-        return multiDecision;
+        return multi;
     }
 
-    private static String pdpIdFromContext(ContextView ctx) {
-        return ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, DEFAULT_PDP_ID);
+    private static VoteResult evaluateVoter(Voter voter, EvaluationContext ctx) {
+        return switch (voter) {
+        case Vote v        -> new VoteResult(v, Map.of());
+        case PureVoter p   -> new VoteResult(p.vote(ctx), Map.of());
+        case StreamVoter s -> s.evaluate(ctx);
+        };
+    }
+
+    /**
+     * Diff between consecutive {@link MultiAuthorizationDecision} rounds.
+     * Emits an {@link IdentifiableAuthorizationDecision} for each sub
+     * whose decision differs from the previous round (or is new). Used
+     * by {@link #decide(MultiAuthorizationSubscription, String)} to
+     * surface per-sub changes from the all-complete decideAll stream.
+     */
+    private static List<IdentifiableAuthorizationDecision> identifiableChanges(MultiAuthorizationDecision previous,
+            MultiAuthorizationDecision current) {
+        val changes = new ArrayList<IdentifiableAuthorizationDecision>();
+        for (val identifiable : current) {
+            val prevDecision = previous == null ? null : previous.getDecision(identifiable.subscriptionId());
+            if (!java.util.Objects.equals(prevDecision, identifiable.decision())) {
+                changes.add(identifiable);
+            }
+        }
+        return changes;
     }
 
 }

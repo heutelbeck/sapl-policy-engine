@@ -35,6 +35,7 @@ import io.sapl.spring.pep.method.reactive.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.pep.method.reactive.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.pep.streaming.StreamEnforcePolicyEnforcementPoint;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -53,38 +54,43 @@ final class ReactiveSaplMethodSecurityConfiguration {
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     Advisor reactivePreEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<ReactiveTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
             ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider,
             ObjectProvider<List<ShimSignalContributor>> shimSignalContributorsProvider) {
         log.debug("Deploy reactive @PreEnforce Policy Enforcement Point");
-        val pep = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
-                enforcementPlannerProvider, subscriptionBuilderProvider, shimSignalContributorsProvider);
+        val pep = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider, tenantResolverProvider,
+                attributeRegistryProvider, enforcementPlannerProvider, subscriptionBuilderProvider,
+                shimSignalContributorsProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     Advisor reactivePostEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<ReactiveTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
             ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
         log.debug("Deploy reactive @PostEnforce Policy Enforcement Point");
-        val pep = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
-                enforcementPlannerProvider, subscriptionBuilderProvider);
+        val pep = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider, tenantResolverProvider,
+                attributeRegistryProvider, enforcementPlannerProvider, subscriptionBuilderProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     Advisor streamEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<ReactiveTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
             ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider,
             ObjectProvider<List<ShimSignalContributor>> shimSignalContributorsProvider) {
         log.debug("Deploy reactive @StreamEnforce Policy Enforcement Point");
-        val pep = new StreamEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
-                enforcementPlannerProvider, subscriptionBuilderProvider, shimSignalContributorsProvider);
+        val pep = new StreamEnforcePolicyEnforcementPoint(policyDecisionPointProvider, tenantResolverProvider,
+                attributeRegistryProvider, enforcementPlannerProvider, subscriptionBuilderProvider,
+                shimSignalContributorsProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.streamEnforce(pep);
     }
 }

@@ -39,6 +39,7 @@ import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpResponseSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
@@ -79,6 +80,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
             HttpDenialSignal.SIGNAL_TYPE);
 
     private final PolicyDecisionPoint              pdp;
+    private final BlockingTenantResolver           tenantResolver;
     private final EnforcementPlanner               enforcementPlanner;
     private final AuthorizationSubscriptionFactory subscriptionFactory;
 
@@ -89,7 +91,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         val rawAuth        = authenticationSupplier.get();
         val authentication = rawAuth != null ? rawAuth : ANONYMOUS;
         val subscription   = subscriptionFactory.build(authentication, servletRequest);
-        val authzDecision  = pdp.decideOnceBlocking(subscription);
+        val authzDecision  = pdp.decideOnceBlocking(subscription, tenantResolver.resolve());
 
         val plan = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);
         servletRequest.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);

@@ -38,6 +38,7 @@ import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -74,6 +75,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final Object EMPTY_RAP_MARKER = new Object();
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -103,7 +105,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute);
         val pdp               = policyDecisionPointProvider.getObject();
-        return authzSubscription.flatMap(pdp::decideOnce);
+        val tenantResolver    = tenantResolverProvider.getObject();
+        return authzSubscription.flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)));
     }
 
     private Mono<Object> enforceDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {

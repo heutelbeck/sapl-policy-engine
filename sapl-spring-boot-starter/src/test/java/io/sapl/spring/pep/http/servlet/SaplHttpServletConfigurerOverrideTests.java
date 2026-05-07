@@ -20,6 +20,7 @@ package io.sapl.spring.pep.http.servlet;
 import static io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer.saplHttp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -74,12 +75,12 @@ class SaplHttpServletConfigurerOverrideTests {
     @DisplayName("Configurer subscriptionFactory(...) shapes the subscription that reaches the PDP")
     @WithMockUser(username = "alice")
     void configurerOverridePropagatesToPdp() throws Exception {
-        when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+        when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
         mockMvc.perform(get("/hello")).andExpect(status().isOk());
 
         var captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp, atLeastOnce()).decideOnceBlocking(captor.capture());
+        verify(pdp, atLeastOnce()).decideOnceBlocking(captor.capture(), anyString());
 
         assertThat(captor.getAllValues()).allSatisfy(captured -> {
             assertThat(captured.subject()).isEqualTo(Value.of("alice"));

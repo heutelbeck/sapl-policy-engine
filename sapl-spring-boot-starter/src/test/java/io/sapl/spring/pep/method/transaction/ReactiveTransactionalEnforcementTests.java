@@ -111,7 +111,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT lets the loan be recorded; the row commits")
         void whenPermitThenRowIsCommitted() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(ledger.recordLoanWithPreEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -123,7 +124,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY blocks the protected method entirely; no row is ever written")
         void whenDenyThenMethodNeverInvokedAndNoRowWritten() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(ledger.recordLoanWithPreEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -142,7 +144,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("OutputSignal Mapper failure rolls the insert back (post-invocation handler-throws path)")
         void whenOutputMapperObligationFailsAfterInsertThenRollback() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(decisionWithObligation(GATE_REFUSES)));
 
             StepVerifier.create(ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -169,7 +172,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT lets the side-effecting Mono<Void> rite commit")
         void whenPermitThenSideEffectCommits() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier
@@ -182,7 +186,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY blocks the rite entirely; no row is ever written")
         void whenDenyThenMethodNeverInvoked() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier
@@ -200,7 +205,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT after the insert lets the row commit")
         void whenPermitThenRowIsCommitted() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -212,7 +218,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY after the insert rolls the transaction back; the row is expunged")
         void whenDenyAfterInsertThenTransactionRollsBack() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))

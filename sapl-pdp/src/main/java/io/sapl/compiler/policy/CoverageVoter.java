@@ -54,7 +54,7 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  * Observable {@link VoteResultWithCoverage} is identical across both
  * variants; only the per-pass subscription set differs.
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public interface CoverageVoter {
 

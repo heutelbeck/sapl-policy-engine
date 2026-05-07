@@ -28,6 +28,6 @@ import io.sapl.compiler.model.Coverage;
  * replaced by a {@link VoteResult} that may carry a {@code null} vote
  * when the round is incomplete.
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record VoteResultWithCoverage(VoteResult voteResult, Coverage.DocumentCoverage coverage) {}

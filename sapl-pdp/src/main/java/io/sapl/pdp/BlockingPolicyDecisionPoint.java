@@ -20,6 +20,7 @@ package io.sapl.pdp;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.VoteWithCoverage;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 /**
  * Synchronous, Reactor-free policy decision point. Drives the
@@ -36,9 +37,8 @@ public final class BlockingPolicyDecisionPoint {
     private static final String ERROR_NOT_YET_IMPLEMENTED = "BlockingPolicyDecisionPoint not yet implemented.";
 
     /**
-     * One-shot synchronous evaluation. Returns the first complete
-     * authorization decision for the subscription against the tenant's
-     * compiled PDP.
+     * One-shot synchronous evaluation for a specific tenant. Returns
+     * the first complete authorization decision for the subscription.
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant identifier
@@ -52,9 +52,9 @@ public final class BlockingPolicyDecisionPoint {
     }
 
     /**
-     * One-shot synchronous evaluation with coverage information.
-     * Drives the compiled PDP's coverage voter and returns the vote
-     * together with the recorded branch coverage.
+     * One-shot synchronous evaluation with coverage information for a
+     * specific tenant. Drives the compiled PDP's coverage voter and
+     * returns the vote together with the recorded branch coverage.
      *
      * @param authorizationSubscription the authorization subscription
      * @param pdpId the tenant identifier
@@ -66,5 +66,24 @@ public final class BlockingPolicyDecisionPoint {
         // primitive against the AttributeStore, return the
         // VoteResultWithCoverage payload as VoteWithCoverage.
         throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
+    }
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to {@link #decideOnce(AuthorizationSubscription, String)}
+     * with {@link PolicyDecisionPoint#DEFAULT_PDP_ID}.
+     */
+    public AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription) {
+        return decideOnce(authorizationSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
+    }
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to
+     * {@link #voteOnceWithCoverage(AuthorizationSubscription, String)}
+     * with {@link PolicyDecisionPoint#DEFAULT_PDP_ID}.
+     */
+    public VoteWithCoverage voteOnceWithCoverage(AuthorizationSubscription authorizationSubscription) {
+        return voteOnceWithCoverage(authorizationSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 }

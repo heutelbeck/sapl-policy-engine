@@ -36,6 +36,7 @@ import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.ErrorSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -70,6 +71,7 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
     private static final Object EMPTY_RAP_MARKER = new Object();
 
     private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -113,7 +115,8 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute, returnedObject);
         val pdp               = policyDecisionPointProvider.getObject();
-        return authzSubscription.flatMap(pdp::decideOnce)
+        val tenantResolver    = tenantResolverProvider.getObject();
+        return authzSubscription.flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)))
                 .flatMap(decision -> applyDecision(methodInvocation, decision, returnedObject));
     }
 

@@ -23,6 +23,7 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,9 +49,10 @@ import java.time.Duration;
 @RequiredArgsConstructor
 @RequestMapping("/api/pdp")
 public class PDPController {
-    private final PolicyDecisionPoint pdp;
+    private final PolicyDecisionPoint    pdp;
+    private final ReactiveTenantResolver tenantResolver;
     @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}")
-    private long                      keepAliveSeconds = 0;
+    private long                         keepAliveSeconds = 0;
 
     /**
      * Enables keep alive comments to keep tcp connection active. This is usually
@@ -81,11 +83,12 @@ public class PDPController {
     @PostMapping(value = "/decide", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<AuthorizationDecision>> decide(
             @Valid @RequestBody AuthorizationSubscription authzSubscription) {
-        return wrapWithKeepAlive(pdp.decide(authzSubscription).onErrorResume(error -> {
-            log.error("Error during authorization decision for subscription {}: {}", authzSubscription,
-                    error.getMessage(), error);
-            return Flux.just(AuthorizationDecision.INDETERMINATE);
-        }));
+        return wrapWithKeepAlive(tenantResolver.resolve().flatMapMany(pdpId -> pdp.decide(authzSubscription, pdpId))
+                .onErrorResume(error -> {
+                    log.error("Error during authorization decision for subscription {}: {}", authzSubscription,
+                            error.getMessage(), error);
+                    return Flux.just(AuthorizationDecision.INDETERMINATE);
+                }));
     }
 
     /**
@@ -99,7 +102,8 @@ public class PDPController {
      */
     @PostMapping(value = "/decide-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<AuthorizationDecision> decideOnce(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
-        return pdp.decideOnce(authzSubscription).onErrorReturn(AuthorizationDecision.INDETERMINATE);
+        return tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(authzSubscription, pdpId))
+                .onErrorReturn(AuthorizationDecision.INDETERMINATE);
     }
 
     /**
@@ -116,8 +120,9 @@ public class PDPController {
     @PostMapping(value = "/multi-decide", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-        return wrapWithKeepAlive(pdp.decide(multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)));
+        return wrapWithKeepAlive(
+                tenantResolver.resolve().flatMapMany(pdpId -> pdp.decide(multiAuthzSubscription, pdpId))
+                        .onErrorResume(error -> Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE)));
     }
 
     /**
@@ -134,8 +139,9 @@ public class PDPController {
     @PostMapping(value = "/multi-decide-all", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-        return wrapWithKeepAlive(pdp.decideAll(multiAuthzSubscription)
-                .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())));
+        return wrapWithKeepAlive(
+                tenantResolver.resolve().flatMapMany(pdpId -> pdp.decideAll(multiAuthzSubscription, pdpId))
+                        .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())));
     }
 
     /**
@@ -152,7 +158,7 @@ public class PDPController {
     @PostMapping(value = "/multi-decide-all-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<MultiAuthorizationDecision> decideAllOnce(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
-        return pdp.decideAll(multiAuthzSubscription)
+        return tenantResolver.resolve().flatMapMany(pdpId -> pdp.decideAll(multiAuthzSubscription, pdpId))
                 .onErrorResume(error -> Flux.just(MultiAuthorizationDecision.indeterminate())).next()
                 .defaultIfEmpty(MultiAuthorizationDecision.indeterminate());
     }

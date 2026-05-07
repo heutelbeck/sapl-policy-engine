@@ -30,63 +30,118 @@ import reactor.core.publisher.Mono;
  * decisions. It evaluates authorization subscriptions against policies and
  * returns decisions.
  * <p>
- * Implementations provide every method directly. The interface carries no
- * default implementations: composing one method out of another (for example
- * deriving {@code decideAll} from
- * {@code decide(MultiAuthorizationSubscription)}
- * via {@code Flux.combineLatest}) introduces composition glitches the
- * implementation must own.
+ * Every method takes an explicit {@code pdpId} for tenant routing. The
+ * no-argument overloads delegate to the parameterised form with
+ * {@link #DEFAULT_PDP_ID}; tenant resolution (extracting the tenant
+ * identifier from authentication, request headers, or any other transport
+ * context) is the caller's responsibility and lives in application
+ * infrastructure, not here.
  */
 public interface PolicyDecisionPoint {
 
     /**
-     * Evaluates an authorization subscription and returns a continuous stream of
-     * decisions. New decisions are emitted whenever the authorization context
-     * changes (e.g., due to attribute updates or policy changes).
+     * Default PDP identifier for single-tenant deployments and for callers
+     * that do not perform tenant routing.
+     */
+    String DEFAULT_PDP_ID = "default";
+
+    /**
+     * Evaluates an authorization subscription against the tenant's policies
+     * and returns a continuous stream of decisions. New decisions are emitted
+     * whenever the authorization context changes (attribute updates, policy
+     * changes).
      *
-     * @param authorizationSubscription the authorization subscription to evaluate
+     * @param authorizationSubscription the authorization subscription
+     * @param pdpId the tenant's PDP identifier
      * @return a flux of authorization decisions
      */
-    Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription);
+    Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Evaluates an authorization subscription and returns only the first decision.
-     * Never emits empty: an empty upstream is mapped to
-     * {@link AuthorizationDecision#INDETERMINATE} so callers can rely on
-     * receiving a decision.
+     * Evaluates an authorization subscription against the tenant's policies
+     * and returns only the first decision. Never emits empty: an empty
+     * upstream is mapped to {@link AuthorizationDecision#INDETERMINATE}.
      *
-     * @param authorizationSubscription the authorization subscription to evaluate
+     * @param authorizationSubscription the authorization subscription
+     * @param pdpId the tenant's PDP identifier
      * @return the first authorization decision
      */
-    Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription);
+    Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Synchronous, blocking authorization decision for high-throughput scenarios.
-     * Returns {@link AuthorizationDecision#INDETERMINATE} for an empty stream
-     * (never {@code null}).
+     * Synchronous, blocking authorization decision for a specific tenant.
+     * Returns {@link AuthorizationDecision#INDETERMINATE} for an empty
+     * stream (never {@code null}).
      *
-     * @param authorizationSubscription the authorization subscription to evaluate
+     * @param authorizationSubscription the authorization subscription
+     * @param pdpId the tenant's PDP identifier
      * @return the authorization decision
      */
-    AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription);
+    AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Evaluates multiple authorization subscriptions and returns decisions as
-     * they become available. Each decision is tagged with the subscription ID
-     * for correlation.
+     * Evaluates multiple authorization subscriptions against the tenant's
+     * policies and returns decisions as they become available.
      *
      * @param multiSubscription the multi-subscription
+     * @param pdpId the tenant's PDP identifier
      * @return a flux of identifiable authorization decisions
      */
-    Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription);
+    Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription, String pdpId);
 
     /**
-     * Evaluates multiple authorization subscriptions and returns bundled
-     * decisions. Waits until all subscriptions have at least one decision before
-     * emitting; subsequent emissions occur when any decision changes.
+     * Evaluates multiple authorization subscriptions against the tenant's
+     * policies and returns bundled decisions.
      *
      * @param multiSubscription the multi-subscription
+     * @param pdpId the tenant's PDP identifier
      * @return a flux of multi-authorization decisions
      */
-    Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription);
+    Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription, String pdpId);
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to {@link #decide(AuthorizationSubscription, String)} with
+     * {@link #DEFAULT_PDP_ID}.
+     */
+    default Flux<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
+        return decide(authorizationSubscription, DEFAULT_PDP_ID);
+    }
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to {@link #decideOnce(AuthorizationSubscription, String)}
+     * with {@link #DEFAULT_PDP_ID}.
+     */
+    default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
+        return decideOnce(authorizationSubscription, DEFAULT_PDP_ID);
+    }
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to
+     * {@link #decideOnceBlocking(AuthorizationSubscription, String)} with
+     * {@link #DEFAULT_PDP_ID}.
+     */
+    default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
+        return decideOnceBlocking(authorizationSubscription, DEFAULT_PDP_ID);
+    }
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to {@link #decide(MultiAuthorizationSubscription, String)}
+     * with {@link #DEFAULT_PDP_ID}.
+     */
+    default Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
+        return decide(multiSubscription, DEFAULT_PDP_ID);
+    }
+
+    /**
+     * Convenience overload for single-tenant or context-free callers.
+     * Delegates to {@link #decideAll(MultiAuthorizationSubscription, String)}
+     * with {@link #DEFAULT_PDP_ID}.
+     */
+    default Flux<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription) {
+        return decideAll(multiSubscription, DEFAULT_PDP_ID);
+    }
 }

@@ -35,7 +35,7 @@ import java.util.Optional;
  *
  * @param <T> the value type carried by this stream
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public interface Stream<T> extends AutoCloseable {
 

@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -69,7 +70,8 @@ class SaplHttpReactiveConfigurerOverrideTests {
     @DisplayName("Reactive configurer subscriptionFactory(...) shapes the subscription that reaches the PDP")
     @WithMockUser(username = "alice")
     void configurerOverridePropagatesToPdp() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 
         val client = WebTestClient.bindToApplicationContext(context).apply(
                 org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.springSecurity())
@@ -78,7 +80,7 @@ class SaplHttpReactiveConfigurerOverrideTests {
         client.get().uri("/hello").exchange().expectStatus().isOk();
 
         val captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp).decide(captor.<AuthorizationSubscription>capture());
+        verify(pdp).decide(captor.<AuthorizationSubscription>capture(), anyString());
 
         val captured = captor.getValue();
         assertThat(captured.subject()).isEqualTo(Value.of("alice"));

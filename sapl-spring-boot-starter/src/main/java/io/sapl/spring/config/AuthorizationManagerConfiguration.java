@@ -33,6 +33,8 @@ import io.sapl.spring.pep.http.reactive.ReactiveAuthorizationSubscriptionFactory
 import io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager;
 import io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter;
 import io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.sapl.spring.pep.http.servlet.AuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.servlet.DefaultAuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler;
@@ -80,9 +82,10 @@ public final class AuthorizationManagerConfiguration {
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
         SaplAuthorizationManager saplAuthorizationManager(PolicyDecisionPoint pdp,
-                EnforcementPlanner enforcementPlanner, AuthorizationSubscriptionFactory subscriptionFactory) {
+                BlockingTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
+                AuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
-            return new SaplAuthorizationManager(pdp, enforcementPlanner, subscriptionFactory);
+            return new SaplAuthorizationManager(pdp, tenantResolver, enforcementPlanner, subscriptionFactory);
         }
 
         @Bean
@@ -116,9 +119,10 @@ public final class AuthorizationManagerConfiguration {
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
         ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(PolicyDecisionPoint pdp,
-                EnforcementPlanner enforcementPlanner, ReactiveAuthorizationSubscriptionFactory subscriptionFactory) {
+                ReactiveTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
+                ReactiveAuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
-            return new ReactiveSaplAuthorizationManager(pdp, enforcementPlanner, subscriptionFactory);
+            return new ReactiveSaplAuthorizationManager(pdp, tenantResolver, enforcementPlanner, subscriptionFactory);
         }
 
         @Bean

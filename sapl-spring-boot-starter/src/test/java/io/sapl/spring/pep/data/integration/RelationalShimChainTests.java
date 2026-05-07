@@ -19,6 +19,7 @@ package io.sapl.spring.pep.data.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -286,7 +287,7 @@ class RelationalShimChainTests {
     }
 
     private void decide(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any())).thenReturn(Mono.just(decision));
+        when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decision));
     }
 
     private static AuthorizationDecision decisionWithRelationalCriteria(ObjectValue... criteria) {

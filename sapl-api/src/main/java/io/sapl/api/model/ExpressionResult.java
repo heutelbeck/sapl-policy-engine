@@ -60,6 +60,6 @@ import org.jspecify.annotations.Nullable;
  * needed or touched in this evaluation pass, with per-call-site
  * occurrences in the value position
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public record ExpressionResult(@Nullable Value result, Map<SubscriptionKey, List<Occurrence>> dependencies) {}
