@@ -57,7 +57,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
-import org.springframework.web.reactive.function.client.WebClient;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -187,7 +186,7 @@ public class PDPAutoConfiguration {
                     RemoteBundleSourceConfig.FetchMode.valueOf(props.getMode().name()), props.getPollInterval(),
                     props.getLongPollTimeout(), props.getAuthHeaderName(), props.getAuthHeaderValue(),
                     props.isFollowRedirects(), securityPolicy, props.getPdpIdPollIntervals(), props.getFirstBackoff(),
-                    props.getMaxBackoff(), WebClient.builder());
+                    props.getMaxBackoff());
             yield new RemoteBundlePDPConfigurationSource(sourceConfig);
         }
         case RESOURCES       -> {

@@ -17,54 +17,59 @@
  */
 package io.sapl.pdp.configuration.source;
 
-import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.Disposable;
-import reactor.core.Disposables;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import reactor.netty.http.client.HttpClient;
-import reactor.util.retry.Retry;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static io.sapl.pdp.configuration.source.RemoteBundleSourceConfig.FetchMode.LONG_POLL;
 
 /**
- * PDP configuration source that fetches {@code .saplbundle} files from a remote
- * HTTP server.
+ * PDP configuration source that fetches {@code .saplbundle} files from a
+ * remote HTTP server using the JDK's {@link HttpClient} on virtual threads.
  * <p>
- * For each configured PDP ID, an independent fetch loop runs concurrently.
- * Change detection uses HTTP conditional requests (ETag / If-None-Match).
- * Bundle parsing and signature verification are delegated to
- * {@link BundleParser}. Fetched bundles are emitted as
+ * For each configured PDP ID, an independent fetch loop runs on its own
+ * virtual thread. Change detection uses HTTP conditional requests
+ * (ETag / If-None-Match). Bundle parsing and signature verification are
+ * delegated to {@link BundleParser}. Fetched bundles are emitted as
  * {@link ConfigurationEvent.Load} to subscribers.
  * </p>
  * <h2>Fetch Loop</h2>
  * <p>
- * Each loop uses Reactor's {@link Retry#backoff(long, Duration)} for error
- * recovery (exponential backoff with jitter, reset on success via
- * {@code transientErrors}) and {@code repeatWhen} for poll interval control.
+ * Each loop runs straight-line blocking code on a virtual thread, sleeping
+ * between iterations via {@link Thread#sleep(Duration)}. Errors trigger
+ * exponential backoff with 50% jitter capped at
+ * {@link RemoteBundleSourceConfig#maxBackoff()}, with the backoff resetting
+ * to {@link RemoteBundleSourceConfig#firstBackoff()} on the first successful
+ * fetch.
+ * </p>
+ * <h2>Cancellation</h2>
+ * <p>
+ * {@link #close()} interrupts every fetch thread; in-flight blocking
+ * {@link HttpClient#send} calls unblock with an {@link IOException} or
+ * {@link InterruptedException}, the loop exits cleanly.
  * </p>
  * <h2>Thread Safety</h2>
  * <p>
- * This class is thread-safe. ETags are stored in a
- * {@link ConcurrentHashMap}. All fetch loops run on Reactor schedulers.
+ * Thread-safe. ETags are stored in a {@link ConcurrentHashMap}. The
+ * subscriber set uses {@link ConcurrentHashMap#newKeySet()}. The thread list
+ * uses {@link CopyOnWriteArrayList}.
  * </p>
  *
  * @see RemoteBundleSourceConfig
@@ -75,21 +80,23 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
 
     private static final String BUNDLE_EXTENSION          = ".saplbundle";
     private static final String ERROR_EMPTY_RESPONSE_BODY = "Server returned 200 with empty body.";
+    private static final String ERROR_HTTP_STATUS         = "Server returned HTTP %d for pdpId '%s'.";
 
     private static final String WARN_FETCH_FAILED = "Fetch failed for pdpId '{}' (retry #{}): {}";
 
     private static final int MAX_BUNDLE_RESPONSE_BYTES = 16 * 1024 * 1024;
 
+    private static final Duration CONNECT_TIMEOUT          = Duration.ofSeconds(10);
     private static final Duration POLLING_RESPONSE_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration LONG_POLL_TIMEOUT_BUFFER = Duration.ofSeconds(5);
 
     private final RemoteBundleSourceConfig          config;
-    private final WebClient                         webClient;
-    private final ConcurrentHashMap<String, String> etags         = new ConcurrentHashMap<>();
-    private final Disposable.Composite              subscriptions = Disposables.composite();
-    private final Set<Consumer<ConfigurationEvent>> subscribers   = ConcurrentHashMap.newKeySet();
-    private final AtomicBoolean                     activated     = new AtomicBoolean(false);
-    private final AtomicBoolean                     closed        = new AtomicBoolean(false);
+    private final HttpClient                        httpClient;
+    private final ConcurrentHashMap<String, String> etags       = new ConcurrentHashMap<>();
+    private final List<Thread>                      loopThreads = new CopyOnWriteArrayList<>();
+    private final Set<Consumer<ConfigurationEvent>> subscribers = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                     activated   = new AtomicBoolean(false);
+    private final AtomicBoolean                     closed      = new AtomicBoolean(false);
 
     /**
      * Creates a remote bundle source.
@@ -101,10 +108,10 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
      */
     public RemoteBundlePDPConfigurationSource(@NonNull RemoteBundleSourceConfig config) {
         this.config = Objects.requireNonNull(config, "config");
-
         config.securityPolicy().validate();
-
-        this.webClient = buildWebClient();
+        this.httpClient = HttpClient.newBuilder()
+                .followRedirects(config.followRedirects() ? HttpClient.Redirect.NORMAL : HttpClient.Redirect.NEVER)
+                .connectTimeout(CONNECT_TIMEOUT).build();
     }
 
     @Override
@@ -124,15 +131,16 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     }
 
     /**
-     * Cancels all fetch loops and releases HTTP connections.
-     * <p>
-     * Idempotent: subsequent calls after the first have no effect.
-     * </p>
+     * Cancels all fetch loops by interrupting their virtual threads and
+     * clears the subscriber set. Idempotent: subsequent calls have no
+     * effect.
      */
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) {
-            subscriptions.dispose();
+            for (val thread : loopThreads) {
+                thread.interrupt();
+            }
             subscribers.clear();
             log.debug("Closed remote bundle configuration source.");
         }
@@ -152,68 +160,90 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
         }
     }
 
-    private WebClient buildWebClient() {
-        val responseTimeout = config.mode() == LONG_POLL ? config.longPollTimeout().plus(LONG_POLL_TIMEOUT_BUFFER)
-                : POLLING_RESPONSE_TIMEOUT;
-
-        val httpClient = HttpClient.create().responseTimeout(responseTimeout).followRedirect(config.followRedirects());
-
-        return config.webClientBuilder().baseUrl(config.baseUrl())
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(MAX_BUNDLE_RESPONSE_BYTES)).build();
-    }
-
     private void startFetchLoops() {
         for (val pdpId : config.pdpIds()) {
-            val subscription = createFetchLoop(pdpId).subscribe();
-            subscriptions.add(subscription);
+            val thread = Thread.ofVirtual().name("sapl-bundle-fetch-" + pdpId).start(() -> runFetchLoop(pdpId));
+            loopThreads.add(thread);
             log.info("Started remote bundle fetch loop for pdpId '{}'.", pdpId);
         }
     }
 
-    private Mono<Void> createFetchLoop(String pdpId) {
-        val retrySpec = Retry.backoff(Long.MAX_VALUE, config.firstBackoff()).maxBackoff(config.maxBackoff())
-                .transientErrors(true).doBeforeRetry(signal -> log.warn(WARN_FETCH_FAILED, pdpId,
-                        signal.totalRetriesInARow() + 1, signal.failure().getMessage()));
-
-        return Mono.defer(() -> attemptFetch(pdpId)).retryWhen(retrySpec)
-                .repeatWhen(companion -> companion.flatMap(tick -> Mono.delay(getPollDelay(pdpId)))).then();
+    private void runFetchLoop(String pdpId) {
+        Duration backoff    = config.firstBackoff();
+        long     retryCount = 0;
+        while (!closed.get() && !Thread.currentThread().isInterrupted()) {
+            try {
+                attemptFetch(pdpId);
+                backoff    = config.firstBackoff();
+                retryCount = 0;
+                val pollDelay = getPollDelay(pdpId);
+                if (!pollDelay.isZero()) {
+                    Thread.sleep(pollDelay);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                retryCount++;
+                log.warn(WARN_FETCH_FAILED, pdpId, retryCount, e.getMessage());
+                try {
+                    Thread.sleep(jitter(backoff));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                backoff = nextBackoff(backoff);
+            }
+        }
     }
 
-    private Mono<Void> attemptFetch(String pdpId) {
-        return webClient.get().uri("/{pdpId}", pdpId).headers(headers -> configureRequestHeaders(pdpId, headers))
-                .exchangeToMono(response -> handleResponse(pdpId, response));
+    private void attemptFetch(String pdpId) throws IOException, InterruptedException {
+        val request  = buildRequest(pdpId);
+        val response = httpClient.send(request, info -> new BoundedByteArrayBodySubscriber(MAX_BUNDLE_RESPONSE_BYTES));
+        handleResponse(pdpId, response);
     }
 
-    private void configureRequestHeaders(String pdpId, HttpHeaders headers) {
-        val etag = etags.get(pdpId);
+    private HttpRequest buildRequest(String pdpId) {
+        val baseUrl   = config.baseUrl();
+        val separator = baseUrl.endsWith("/") ? "" : "/";
+        val uri       = URI.create(baseUrl + separator + pdpId);
+        val builder   = HttpRequest.newBuilder(uri).GET().header("Accept", "application/octet-stream")
+                .timeout(responseTimeout());
+        val etag      = etags.get(pdpId);
         if (etag != null) {
-            headers.set(HttpHeaders.IF_NONE_MATCH, etag);
+            builder.header("If-None-Match", etag);
         }
         val authName  = config.authHeaderName();
         val authValue = config.authHeaderValue();
         if (authName != null && authValue != null) {
-            headers.set(authName, authValue);
+            builder.header(authName, authValue);
         }
-        headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        return builder.build();
     }
 
-    private Mono<Void> handleResponse(String pdpId, ClientResponse response) {
-        val statusCode = response.statusCode().value();
+    private Duration responseTimeout() {
+        if (config.mode() == LONG_POLL) {
+            return config.longPollTimeout().plus(LONG_POLL_TIMEOUT_BUFFER);
+        }
+        return POLLING_RESPONSE_TIMEOUT;
+    }
 
-        if (statusCode == HttpStatus.NOT_MODIFIED.value()) {
+    private void handleResponse(String pdpId, HttpResponse<byte[]> response) throws IOException {
+        val status = response.statusCode();
+        if (status == 304) {
             log.debug("Bundle unchanged for pdpId '{}' (304 Not Modified).", pdpId);
-            return response.releaseBody();
+            return;
         }
-
-        if (response.statusCode().is2xxSuccessful()) {
-            return response.bodyToMono(byte[].class)
-                    .switchIfEmpty(Mono.error(new PDPConfigurationException(ERROR_EMPTY_RESPONSE_BODY)))
-                    .publishOn(Schedulers.boundedElastic())
-                    .doOnNext(bytes -> loadBundle(pdpId, bytes, response.headers().asHttpHeaders().getETag())).then();
+        if (status >= 200 && status < 300) {
+            val bytes = response.body();
+            if (bytes == null || bytes.length == 0) {
+                throw new IOException(ERROR_EMPTY_RESPONSE_BODY);
+            }
+            val etag = response.headers().firstValue("ETag").orElse(null);
+            loadBundle(pdpId, bytes, etag);
+            return;
         }
-
-        return response.createError().then();
+        throw new IOException(ERROR_HTTP_STATUS.formatted(status, pdpId));
     }
 
     private void loadBundle(String pdpId, byte[] bundleBytes, @Nullable String etag) {
@@ -238,4 +268,18 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
         return config.pdpIdPollIntervals().getOrDefault(pdpId, config.pollInterval());
     }
 
+    private Duration nextBackoff(Duration current) {
+        val doubled = current.multipliedBy(2);
+        return doubled.compareTo(config.maxBackoff()) > 0 ? config.maxBackoff() : doubled;
+    }
+
+    private static Duration jitter(Duration base) {
+        val millis      = base.toMillis();
+        val jitterRange = millis / 2;
+        if (jitterRange == 0) {
+            return base;
+        }
+        val jittered = millis + ThreadLocalRandom.current().nextLong(-jitterRange, jitterRange + 1);
+        return Duration.ofMillis(Math.max(1, jittered));
+    }
 }

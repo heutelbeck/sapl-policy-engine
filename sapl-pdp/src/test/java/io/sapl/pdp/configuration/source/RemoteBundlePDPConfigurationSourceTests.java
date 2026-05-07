@@ -32,8 +32,6 @@ import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.web.reactive.function.client.WebClient;
-
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -85,7 +83,7 @@ class RemoteBundlePDPConfigurationSourceTests {
     private RemoteBundleSourceConfig defaultConfig(BundleSecurityPolicy securityPolicy) {
         return new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                 RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
-                true, securityPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200), WebClient.builder());
+                true, securityPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
     }
 
     private byte[] createUnsignedBundle() {
@@ -200,8 +198,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             // Point to a port where nothing is listening
             val config = new RemoteBundleSourceConfig("http://localhost:1/bundles", List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200),
-                    WebClient.builder());
+                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
 
             source = new RemoteBundlePDPConfigurationSource(config);
 
@@ -253,7 +250,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(),
                     List.of("production", "staging"), RemoteBundleSourceConfig.FetchMode.POLLING,
                     Duration.ofMillis(100), Duration.ofSeconds(5), null, null, true, developmentPolicy, Map.of(),
-                    Duration.ofMillis(50), Duration.ofMillis(200), WebClient.builder());
+                    Duration.ofMillis(50), Duration.ofMillis(200));
 
             // Enqueue bundles for both pdpIds
             enqueueBundle(createUnsignedBundle(), "\"prod-v1\"");
@@ -274,7 +271,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
                     "Authorization", "Bearer test-token", true, developmentPolicy, Map.of(), Duration.ofMillis(50),
-                    Duration.ofMillis(200), WebClient.builder());
+                    Duration.ofMillis(200));
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             enqueueNotModified();
 
@@ -319,8 +316,7 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(200), Duration.ofSeconds(5), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200),
-                    WebClient.builder());
+                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
 
             source = new RemoteBundlePDPConfigurationSource(config);
             // Subscribe so the fetch loop activates and starts polling on the configured
@@ -341,8 +337,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         private RemoteBundleSourceConfig longPollConfig() {
             return new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200),
-                    WebClient.builder());
+                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
         }
 
         @Test
@@ -516,8 +511,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         void whenDnsResolutionFailsThenRetriesWithoutCrashing() {
             val config = new RemoteBundleSourceConfig("http://nonexistent.invalid/bundles", List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200),
-                    WebClient.builder());
+                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
 
             source = new RemoteBundlePDPConfigurationSource(config);
 
@@ -532,8 +526,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         void whenServerNeverRespondsThenTimeoutAndRetry() {
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100), Duration.ofMillis(500), null,
-                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200),
-                    WebClient.builder());
+                    null, true, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
 
             server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
@@ -690,8 +683,7 @@ class RemoteBundlePDPConfigurationSourceTests {
         void whenRedirectWithFollowDisabledThenTreatedAsError() {
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                    null, false, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200),
-                    WebClient.builder());
+                    null, false, developmentPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
 
             server.enqueue(
                     new MockResponse().setResponseCode(301).setHeader("Location", server.url("/other").toString()));
@@ -871,62 +863,54 @@ class RemoteBundlePDPConfigurationSourceTests {
         @Test
         @DisplayName("I1: missing baseUrl fails fast")
         void whenMissingBaseUrlThenFails() {
-            val wcb = WebClient.builder();
             assertThatThrownBy(() -> new RemoteBundleSourceConfig(null, validPdpIds, validMode, validPollInterval,
                     validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals, validFirstBackoff,
-                    validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("baseUrl");
+                    validMaxBackoff)).isInstanceOf(PDPConfigurationException.class).hasMessageContaining("baseUrl");
         }
 
         @Test
         @DisplayName("I1: blank baseUrl fails fast")
         void whenBlankBaseUrlThenFails() {
-            val wcb = WebClient.builder();
             assertThatThrownBy(() -> new RemoteBundleSourceConfig("  ", validPdpIds, validMode, validPollInterval,
                     validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals, validFirstBackoff,
-                    validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
-                    .hasMessageContaining("baseUrl");
+                    validMaxBackoff)).isInstanceOf(PDPConfigurationException.class).hasMessageContaining("baseUrl");
         }
 
         @Test
         @DisplayName("I2: empty pdpIds list fails fast")
         void whenEmptyPdpIdsThenFails() {
             val emptyPdpIds = List.<String>of();
-            val wcb         = WebClient.builder();
             assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", emptyPdpIds, validMode,
                     validPollInterval, validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals,
-                    validFirstBackoff, validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
+                    validFirstBackoff, validMaxBackoff)).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("pdpIds");
         }
 
         @Test
         @DisplayName("I3: zero poll interval fails fast")
         void whenZeroPollIntervalThenFails() {
-            val wcb = WebClient.builder();
             assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", validPdpIds, validMode,
                     Duration.ZERO, validLongPollTimeout, null, null, true, developmentPolicy, emptyIntervals,
-                    validFirstBackoff, validMaxBackoff, wcb)).isInstanceOf(PDPConfigurationException.class)
+                    validFirstBackoff, validMaxBackoff)).isInstanceOf(PDPConfigurationException.class)
                     .hasMessageContaining("pollInterval");
         }
 
         @Test
         @DisplayName("I4: auth header name without value fails fast")
         void whenAuthHeaderNameWithoutValueThenFails() {
-            val wcb = WebClient.builder();
             assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", validPdpIds, validMode,
                     validPollInterval, validLongPollTimeout, "Authorization", null, true, developmentPolicy,
-                    emptyIntervals, validFirstBackoff, validMaxBackoff, wcb))
-                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("authHeaderName");
+                    emptyIntervals, validFirstBackoff, validMaxBackoff)).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("authHeaderName");
         }
 
         @Test
         @DisplayName("I4: auth header value without name fails fast")
         void whenAuthHeaderValueWithoutNameThenFails() {
-            val wcb = WebClient.builder();
             assertThatThrownBy(() -> new RemoteBundleSourceConfig("http://example.com", validPdpIds, validMode,
                     validPollInterval, validLongPollTimeout, null, "Bearer token", true, developmentPolicy,
-                    emptyIntervals, validFirstBackoff, validMaxBackoff, wcb))
-                    .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("authHeaderName");
+                    emptyIntervals, validFirstBackoff, validMaxBackoff)).isInstanceOf(PDPConfigurationException.class)
+                    .hasMessageContaining("authHeaderName");
         }
 
         @Test
@@ -947,7 +931,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                     RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofSeconds(60), Duration.ofSeconds(5), null,
                     null, true, developmentPolicy, Map.of(PDP_ID, Duration.ofMillis(100)), Duration.ofMillis(50),
-                    Duration.ofMillis(200), WebClient.builder());
+                    Duration.ofMillis(200));
 
             enqueueBundle(createUnsignedBundle(), "\"v1\"");
             enqueueNotModified();
