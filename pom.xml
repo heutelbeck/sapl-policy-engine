@@ -103,6 +103,8 @@
 		<flexmark.version>0.64.8</flexmark.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
 		<springboot.version>4.0.5</springboot.version>
+		<springdoc.version>3.0.3</springdoc.version>
+		<scalar.version>0.6.34</scalar.version>
 		<commons-io.version>2.21.0</commons-io.version>
 		<classgraph.version>4.8.184</classgraph.version>
 		<bouncycastle.version>1.84</bouncycastle.version>
@@ -314,6 +316,18 @@
 				<groupId>org.jspecify</groupId>
 				<artifactId>jspecify</artifactId>
 				<version>${jspecify.version}</version>
+			</dependency>
+			<!-- springdoc-openapi (3.x line for Spring Boot 4) -->
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
+			<!-- Scalar API Reference renderer -->
+			<dependency>
+				<groupId>com.scalar.maven</groupId>
+				<artifactId>scalar-webflux</artifactId>
+				<version>${scalar.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

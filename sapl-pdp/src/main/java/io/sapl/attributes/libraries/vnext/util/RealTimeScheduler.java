@@ -37,6 +37,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
 
+    private static final String ERROR_TASK_RAISED_UNHANDLED_EXCEPTION = "Scheduled task raised an unhandled exception";
+
     private final Clock                    clock;
     private final ScheduledExecutorService executor;
 
@@ -68,7 +70,7 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
                                           // exceptions (Streams helpers do, via stream error
                                           // emission). Reaching here means a bug in a task's own
                                           // exception handling. Log loudly with stack trace.
-                                          log.error("Scheduled task raised an unhandled exception", e);
+                                          log.error(ERROR_TASK_RAISED_UNHANDLED_EXCEPTION, e);
                                       }
                                   }, delay, TimeUnit.NANOSECONDS);
         return () -> future.cancel(false);

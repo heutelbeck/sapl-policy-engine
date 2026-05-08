@@ -223,14 +223,14 @@ class X509PolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("broker loading")
-    class BrokerLoading {
+    @DisplayName("store registration")
+    class StoreRegistration {
 
         @Test
         @Disabled("TODO: enable when AttributeMethodSignatureProcessor accepts Stream<Value>")
-        @DisplayName("when loaded into broker then registers under x509 namespace")
-        void whenLoadedIntoBrokerThenRegistersUnderX509Namespace() {
-            // Mirror of the original broker-load test. Cannot run until the
+        @DisplayName("loads under the x509 namespace without errors")
+        void whenLoadedIntoStoreThenRegistersUnderX509Namespace() {
+            // Mirror of the original library-load test. Cannot run until the
             // signature processor accepts Stream<Value> return types.
         }
     }

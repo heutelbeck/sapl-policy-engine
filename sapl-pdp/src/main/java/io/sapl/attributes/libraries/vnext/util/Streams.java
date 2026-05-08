@@ -132,8 +132,7 @@ public class Streams {
                                 pumpInto(source, out, stopped);
                             }
                         } catch (RuntimeException loopFailure) {
-                            out.put(Value.error(loopFailure.getMessage() == null ? loopFailure.toString()
-                                    : loopFailure.getMessage()));
+                            out.put(Value.error(messageOf(loopFailure)));
                         } finally {
                             out.complete();
                         }
@@ -210,7 +209,7 @@ public class Streams {
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
                         } catch (Exception e) {
-                            s.put(Value.error(e.getMessage() == null ? e.toString() : e.getMessage()));
+                            s.put(Value.error(messageOf(e)));
                         } finally {
                             s.complete();
                         }
@@ -272,7 +271,7 @@ public class Streams {
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
                         } catch (RuntimeException e) {
-                            out.put(Value.error(e.getMessage() == null ? e.toString() : e.getMessage()));
+                            out.put(Value.error(messageOf(e)));
                         } finally {
                             out.complete();
                             source.close();
@@ -284,6 +283,15 @@ public class Streams {
             source.close();
         });
         return out;
+    }
+
+    /**
+     * Renders a Throwable as the string we put into an error
+     * {@link Value}. Falls back to {@link Throwable#toString()} when
+     * the throwable carries no message.
+     */
+    private static String messageOf(Throwable t) {
+        return t.getMessage() == null ? t.toString() : t.getMessage();
     }
 
     private static void pumpInto(Stream<Value> source, LatestSlotStream<Value> out, AtomicBoolean stopped) {
@@ -306,7 +314,7 @@ public class Streams {
         try {
             s.put(source.get());
         } catch (RuntimeException e) {
-            s.put(Value.error(e.getMessage() == null ? e.toString() : e.getMessage()));
+            s.put(Value.error(messageOf(e)));
         }
     }
 
@@ -329,8 +337,7 @@ public class Streams {
                                 pumpInto(src, out, stopped);
                             }
                         } catch (RuntimeException loopFailure) {
-                            out.put(Value.error(loopFailure.getMessage() == null ? loopFailure.toString()
-                                    : loopFailure.getMessage()));
+                            out.put(Value.error(messageOf(loopFailure)));
                         } finally {
                             out.complete();
                         }
@@ -371,8 +378,7 @@ public class Streams {
                          } catch (InterruptedException ie) {
                              Thread.currentThread().interrupt();
                          } catch (RuntimeException loopFailure) {
-                             out.put(Value.error(loopFailure.getMessage() == null ? loopFailure.toString()
-                                     : loopFailure.getMessage()));
+                             out.put(Value.error(messageOf(loopFailure)));
                          } finally {
                              out.complete();
                              source.close();
@@ -412,8 +418,7 @@ public class Streams {
             try {
                 s.put(source.get());
             } catch (RuntimeException supplierFailure) {
-                s.put(Value.error(supplierFailure.getMessage() == null ? supplierFailure.toString()
-                        : supplierFailure.getMessage()));
+                s.put(Value.error(messageOf(supplierFailure)));
                 supplierEmittedError = true;
             }
             if (stopped.get()) {
@@ -427,8 +432,7 @@ public class Streams {
                 // overwriting it in the latest-wins slot. If only rescheduling failed,
                 // that error reaches the consumer.
                 if (!supplierEmittedError) {
-                    s.put(Value.error(reschedulingFailure.getMessage() == null ? reschedulingFailure.toString()
-                            : reschedulingFailure.getMessage()));
+                    s.put(Value.error(messageOf(reschedulingFailure)));
                 }
                 stopped.set(true);
                 s.complete();

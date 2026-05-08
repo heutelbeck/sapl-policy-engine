@@ -24,6 +24,8 @@ import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
@@ -39,6 +41,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @Import(PolicyDecisionPoint.class)
@@ -51,12 +54,20 @@ class PDPControllerTests {
     @MockitoBean
     private PolicyDecisionPoint pdp;
 
+    @MockitoBean
+    private ReactiveTenantResolver tenantResolver;
+
     @Autowired
     private WebTestClient webClient;
 
+    @BeforeEach
+    void setUp() {
+        when(tenantResolver.resolve()).thenReturn(Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID));
+    }
+
     @Test
     void decideWithValidBody() {
-        when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class))).thenReturn(Flux
+        when(pdp.decide(any(AuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID))).thenReturn(Flux
                 .just(AuthorizationDecision.DENY, AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE));
 
         final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
@@ -69,12 +80,13 @@ class PDPControllerTests {
         StepVerifier.create(result.getResponseBody()).expectNext(AuthorizationDecision.DENY,
                 AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE).verifyComplete();
 
-        verify(pdp, times(1)).decide(subscription);
+        verify(pdp, times(1)).decide(subscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void decideOnceValidBody() {
-        when(pdp.decideOnce(any(AuthorizationSubscription.class))).thenReturn(Mono.just(AuthorizationDecision.DENY));
+        when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
+                .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
         final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
@@ -85,12 +97,12 @@ class PDPControllerTests {
 
         StepVerifier.create(result.getResponseBody()).expectNext(AuthorizationDecision.DENY).verifyComplete();
 
-        verify(pdp, times(1)).decideOnce(subscription);
+        verify(pdp, times(1)).decideOnce(subscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void decideWithValidProcessingError() {
-        when(pdp.decide((AuthorizationSubscription) any(AuthorizationSubscription.class)))
+        when(pdp.decide(any(AuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
@@ -102,12 +114,13 @@ class PDPControllerTests {
 
         StepVerifier.create(result.getResponseBody()).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
-        verify(pdp, times(1)).decide(subscription);
+        verify(pdp, times(1)).decide(subscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void decideOnceWithValidProcessingError() {
-        when(pdp.decideOnce(any(AuthorizationSubscription.class))).thenReturn(Mono.error(new RuntimeException()));
+        when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
+                .thenReturn(Mono.error(new RuntimeException()));
 
         final var subscription = AuthorizationSubscription.of("subject", "action", "resource");
 
@@ -118,7 +131,7 @@ class PDPControllerTests {
 
         StepVerifier.create(result.getResponseBody()).expectNext(AuthorizationDecision.INDETERMINATE).verifyComplete();
 
-        verify(pdp, times(1)).decideOnce(subscription);
+        verify(pdp, times(1)).decideOnce(subscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
@@ -130,8 +143,9 @@ class PDPControllerTests {
 
     @Test
     void subscribeToMultiDecisions() {
-        when(pdp.decide((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class))).thenReturn(Flux
-                .just(IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE,
+        when(pdp.decide(any(MultiAuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
+                .thenReturn(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE,
+                        IdentifiableAuthorizationDecision.INDETERMINATE,
                         IdentifiableAuthorizationDecision.INDETERMINATE));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
@@ -148,12 +162,12 @@ class PDPControllerTests {
                 IdentifiableAuthorizationDecision.INDETERMINATE, IdentifiableAuthorizationDecision.INDETERMINATE)
                 .verifyComplete();
 
-        verify(pdp, times(1)).decide(multiAuthzSubscription);
+        verify(pdp, times(1)).decide(multiAuthzSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void subscribeToMultiDecisionsProcessingError() {
-        when(pdp.decide((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
+        when(pdp.decide(any(MultiAuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
@@ -169,7 +183,7 @@ class PDPControllerTests {
         StepVerifier.create(result.getResponseBody()).expectNext(IdentifiableAuthorizationDecision.INDETERMINATE)
                 .verifyComplete();
 
-        verify(pdp, times(1)).decide(multiAuthzSubscription);
+        verify(pdp, times(1)).decide(multiAuthzSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
@@ -183,7 +197,7 @@ class PDPControllerTests {
 
     @Test
     void subscribeToMultiAllDecisions() {
-        when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
+        when(pdp.decideAll(any(MultiAuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
@@ -202,12 +216,12 @@ class PDPControllerTests {
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate())
                 .verifyComplete();
 
-        verify(pdp, times(1)).decideAll(multiAuthzSubscription);
+        verify(pdp, times(1)).decideAll(multiAuthzSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void oneMultiAllDecisions() {
-        when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
+        when(pdp.decideAll(any(MultiAuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Flux.just(MultiAuthorizationDecision.indeterminate(),
                         MultiAuthorizationDecision.indeterminate(), MultiAuthorizationDecision.indeterminate()));
 
@@ -224,12 +238,12 @@ class PDPControllerTests {
         StepVerifier.create(result.getResponseBody()).expectNext(MultiAuthorizationDecision.indeterminate())
                 .verifyComplete();
 
-        verify(pdp, times(1)).decideAll(multiAuthzSubscription);
+        verify(pdp, times(1)).decideAll(multiAuthzSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void subscribeToMultiAllDecisionsProcessingError() {
-        when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
+        when(pdp.decideAll(any(MultiAuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
@@ -245,12 +259,12 @@ class PDPControllerTests {
         StepVerifier.create(result.getResponseBody()).expectNext(MultiAuthorizationDecision.indeterminate())
                 .verifyComplete();
 
-        verify(pdp, times(1)).decideAll(multiAuthzSubscription);
+        verify(pdp, times(1)).decideAll(multiAuthzSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test
     void oneMultiAllDecisionsProcessingError() {
-        when(pdp.decideAll((MultiAuthorizationSubscription) any(MultiAuthorizationSubscription.class)))
+        when(pdp.decideAll(any(MultiAuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Flux.error(new RuntimeException()));
 
         final var multiAuthzSubscription = new MultiAuthorizationSubscription().addAuthorizationSubscription("id1",
@@ -266,7 +280,7 @@ class PDPControllerTests {
         StepVerifier.create(result.getResponseBody()).expectNext(MultiAuthorizationDecision.indeterminate())
                 .verifyComplete();
 
-        verify(pdp, times(1)).decideAll(multiAuthzSubscription);
+        verify(pdp, times(1)).decideAll(multiAuthzSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Test

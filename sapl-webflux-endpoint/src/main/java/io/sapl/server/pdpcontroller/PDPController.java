@@ -24,6 +24,8 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,7 @@ import java.time.Duration;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/pdp")
+@Tag(name = "SAPL native", description = "Full SAPL PDP HTTP surface: one-shot decisions, server-sent-event streams, multi-decision boxcars, with the five-valued decision verb and obligations / advice / resource transformation.")
 public class PDPController {
     private final PolicyDecisionPoint    pdp;
     private final ReactiveTenantResolver tenantResolver;
@@ -80,6 +83,7 @@ public class PDPController {
      * @return a flux emitting the current authorization decisions.
      * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
      */
+    @Operation(summary = "Subscribe to a stream of authorization decisions", description = "Returns a server-sent-event stream of AuthorizationDecision values. Each event represents an updated decision, re-emitted whenever the underlying authorization context changes (attribute updates, policy changes). The connection stays open until the client disconnects.")
     @PostMapping(value = "/decide", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<AuthorizationDecision>> decide(
             @Valid @RequestBody AuthorizationSubscription authzSubscription) {
@@ -100,6 +104,7 @@ public class PDPController {
      * @return a Mono for the initial decision.
      * @see PolicyDecisionPoint#decideOnce(AuthorizationSubscription)
      */
+    @Operation(summary = "Get a single authorization decision", description = "Returns the first authorization decision for the subscription. Empty upstream is mapped to INDETERMINATE.")
     @PostMapping(value = "/decide-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<AuthorizationDecision> decideOnce(@Valid @RequestBody AuthorizationSubscription authzSubscription) {
         return tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(authzSubscription, pdpId))
@@ -117,6 +122,7 @@ public class PDPController {
      * as they are available.
      * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
      */
+    @Operation(summary = "Subscribe to a stream of identifiable decisions for many subscriptions", description = "Server-sent-event stream of IdentifiableAuthorizationDecision values: one event per (subscription id, decision) pair, emitted as decisions become available or change.")
     @PostMapping(value = "/multi-decide", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<IdentifiableAuthorizationDecision>> decide(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
@@ -136,6 +142,7 @@ public class PDPController {
      * {@code multiAuthzSubscription}.
      * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
+    @Operation(summary = "Subscribe to a stream of bundled multi-decisions", description = "Server-sent-event stream of MultiAuthorizationDecision values: each event carries the current decision for every subscription in the request.")
     @PostMapping(value = "/multi-decide-all", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Flux<ServerSentEvent<MultiAuthorizationDecision>> decideAll(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {
@@ -155,6 +162,7 @@ public class PDPController {
      * given {@code multiAuthzSubscription}.
      * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
+    @Operation(summary = "Get a single bundled multi-decision", description = "Returns the first MultiAuthorizationDecision for the multi-subscription, with one decision per included subscription id.")
     @PostMapping(value = "/multi-decide-all-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public Mono<MultiAuthorizationDecision> decideAllOnce(
             @Valid @RequestBody MultiAuthorizationSubscription multiAuthzSubscription) {

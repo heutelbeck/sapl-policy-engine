@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Single producer, single consumer. Producers signal end-of-stream
  * via {@link #complete()} or via {@link #close()}; subsequent
  * {@link #awaitNext()} calls return {@code null} and {@link #tryNext()}
- * calls return {@link Optional#empty()}.
+ * calls return {@link Poll.Done}.
  *
  * @param <T> the value type carried by this stream
  */
@@ -72,7 +72,7 @@ public final class QueueStream<T> implements Stream<T> {
     /**
      * Marks the stream completed. Queued values remain readable; once
      * drained, {@link #awaitNext()} returns {@code null} and
-     * {@link #tryNext()} returns {@link Optional#empty()}. Idempotent.
+     * {@link #tryNext()} returns {@link Poll.Done}. Idempotent.
      */
     public void complete() {
         if (completed) {
