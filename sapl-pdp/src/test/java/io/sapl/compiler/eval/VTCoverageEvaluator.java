@@ -29,12 +29,13 @@ import java.util.UUID;
 
 /**
  * Evaluates a {@link CoverageVoter} against an {@link AttributeStore}
- * and exposes per-round results as a {@link Stream} of
- * {@link VoteResultWithCoverage}. If the initial evaluation returns no
- * dependencies (pure policy body), the stream delivers one result and
- * completes. Otherwise it opens a subscription on the store,
- * re-evaluates the voter on every callback, and pushes the result
- * into the slot.
+ * and exposes per-round results as an ordered, full-fidelity
+ * {@link Stream} of {@link VoteResultWithCoverage}. Every round whose
+ * vote resolves is delivered to the consumer; intermediate rounds
+ * are not dropped. If the initial evaluation returns no dependencies
+ * (pure policy body), the stream delivers one result and completes.
+ * Otherwise it opens a subscription on the store and re-evaluates
+ * the voter on every callback.
  */
 @UtilityClass
 public class VTCoverageEvaluator {
@@ -45,7 +46,7 @@ public class VTCoverageEvaluator {
 
     public static Stream<VoteResultWithCoverage> evaluate(CoverageVoter voter, EvaluationContext baseCtx,
             AttributeStore store) {
-        val stream = new LatestSlotStream<VoteResultWithCoverage>();
+        val stream = new QueueStream<VoteResultWithCoverage>();
 
         val initial = voter.evaluate(baseCtx);
         if (initial.voteResult().dependencies().isEmpty()) {
