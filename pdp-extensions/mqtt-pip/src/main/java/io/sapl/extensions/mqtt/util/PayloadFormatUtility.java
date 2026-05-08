@@ -53,7 +53,6 @@ public class PayloadFormatUtility {
         val payloadFormatIndicatorOptional = publishMessage.getPayloadFormatIndicator();
         var payloadFormatIndicator         = 0;
         if (payloadFormatIndicatorOptional.isPresent()) {
-            // specified whether the payload is utf-8 encoded
             payloadFormatIndicator = payloadFormatIndicatorOptional.get().getCode();
         }
         return payloadFormatIndicator;
@@ -67,8 +66,7 @@ public class PayloadFormatUtility {
      * specified
      */
     public static String getContentType(Mqtt5Publish publishMessage) {
-        Optional<MqttUtf8String> contentTypeOptional = publishMessage.getContentType(); // specifies kind of utf-8
-                                                                                        // encoded payload
+        Optional<MqttUtf8String> contentTypeOptional = publishMessage.getContentType();
         return contentTypeOptional.map(Object::toString).orElse(null);
     }
 

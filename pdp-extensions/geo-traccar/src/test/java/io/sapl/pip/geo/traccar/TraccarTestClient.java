@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
-public class TraccarTestClient {
+class TraccarTestClient {
 
     private static final String BASE_URL_TEMPLATE = "http://%s:%d";
     private static final String CONTENT_TYPE      = "Content-Type";
@@ -45,7 +45,7 @@ public class TraccarTestClient {
     private final String     positioningBaseUrl;
     private final String     basicAuth;
 
-    public TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
+    TraccarTestClient(String host, int apiPort, int positioningPort, String email, String password) {
         this.basicAuth          = "Basic "
                 + Base64.getEncoder().encodeToString((email + ":" + password).getBytes(StandardCharsets.UTF_8));
         this.apiBaseUrl         = String.format(BASE_URL_TEMPLATE, host, apiPort);
@@ -54,7 +54,7 @@ public class TraccarTestClient {
     }
 
     @SneakyThrows
-    public String registerUser(String email, String password) {
+    String registerUser(String email, String password) {
         val body = String.format("""
                 {\
                     "name": "testuser",\
@@ -65,7 +65,7 @@ public class TraccarTestClient {
     }
 
     @SneakyThrows
-    public String createDevice(String uniqueId) {
+    String createDevice(String uniqueId) {
         val body     = String.format("""
                 {\
                     "name": "Test Device",\
@@ -80,7 +80,7 @@ public class TraccarTestClient {
     }
 
     @SneakyThrows
-    public String createGeofence(String geoFenceData) {
+    String createGeofence(String geoFenceData) {
         val response = postJson("/api/geofences", geoFenceData);
         val node     = MAPPER.readTree(response);
         if (node == null || !node.has("id")) {
@@ -90,7 +90,7 @@ public class TraccarTestClient {
     }
 
     @SneakyThrows
-    public String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {
+    String addTraccarPosition(String deviceId, Double lat, Double lon, Double altitude) {
         val queryParams = Map.of("id", deviceId, "lat", lat.toString(), "lon", lon.toString(), "altitude",
                 altitude.toString(), "speed", "0", "accuracy", "14.0", "timestamp", "2023-07-09 13:34:19");
         val sb          = new StringBuilder(positioningBaseUrl).append('?');

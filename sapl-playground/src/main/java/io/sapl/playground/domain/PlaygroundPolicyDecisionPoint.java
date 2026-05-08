@@ -83,8 +83,7 @@ public class PlaygroundPolicyDecisionPoint {
      * @return flux of timestamped votes with evaluation details
      */
     public Flux<TracedVote> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.gatherVotes(authorizationSubscription,
-                PolicyDecisionPoint.DEFAULT_PDP_ID);
+        return policyDecisionPoint.gatherVotes(authorizationSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**

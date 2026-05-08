@@ -21,8 +21,13 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.datatypes.MqttClientIdentifier;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
-import io.sapl.api.model.*;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -56,8 +61,6 @@ public class ConfigUtility {
     private static final String DEFAULT_PASSWORD                       = "";
 
     private static final String ERROR_NO_VALID_MQTT_PIP_CONFIG = "No valid configuration for mqtt pip client connection provided.";
-
-    // Methods to get configurations from json
 
     /**
      * Tries to look up the value specified under the key in the clientConfig
@@ -190,8 +193,6 @@ public class ConfigUtility {
         return value;
     }
 
-    // Methods to handle broker configurations
-
     /**
      * Evaluates the provided configuration for the mqtt broker configuration.
      *
@@ -270,11 +271,8 @@ public class ConfigUtility {
 
     private static ObjectNode getDefaultBroker(ObjectNode mqttPipBrokerConfig, JsonNode pipMqttClientConfig,
             JsonNode brokerConfig) {
-        // get default broker security name
         String brokerConfigName = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_BROKER_CONFIG_NAME,
                 DEFAULT_BROKER_CONFIG_NAME);
-
-        // get default broker security
         mqttPipBrokerConfig = getBrokerConfig(mqttPipBrokerConfig, brokerConfig, brokerConfigName);
         return mqttPipBrokerConfig;
     }
@@ -294,16 +292,14 @@ public class ConfigUtility {
         return mqttPipClientConfig;
     }
 
-    // More configuration helper functions
-
     /**
      * Looks up the mqtt client id.
      *
-     * @param mqttClientReactor the reactive mqtt client
+     * @param mqttClient the async mqtt client
      * @return returns the mqtt client id or null
      */
-    public static String getClientId(Mqtt5ReactorClient mqttClientReactor) {
-        Optional<MqttClientIdentifier> mqttClientConfigOptional = mqttClientReactor.getConfig().getClientIdentifier();
+    public static String getClientId(Mqtt5AsyncClient mqttClient) {
+        Optional<MqttClientIdentifier> mqttClientConfigOptional = mqttClient.getConfig().getClientIdentifier();
         return mqttClientConfigOptional.map(Object::toString).orElse(null);
     }
 

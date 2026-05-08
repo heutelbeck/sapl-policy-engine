@@ -17,101 +17,362 @@
  */
 package io.sapl.extensions.mqtt;
 
-import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
-import com.hivemq.embedded.EmbeddedHiveMQ;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
+import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.stream.RealTimeScheduler;
+import io.sapl.api.test.stream.StreamAssertions;
 import lombok.val;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import reactor.test.StepVerifier;
+import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.GenericContainer;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.sapl.extensions.mqtt.MqttTestUtility.*;
+import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.extensions.mqtt.MqttTestUtility.buildMqttPublishMessage;
+import static io.sapl.extensions.mqtt.MqttTestUtility.newMosquittoContainer;
+import static io.sapl.extensions.mqtt.MqttTestUtility.startPublisher;
+import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Integration tests for the MQTT PIP against a Mosquitto broker
+ * running in a Testcontainer.
+ */
+@DisplayName("MQTT Policy Information Point")
 class MqttPolicyInformationPointIT {
 
-    private static final String          MESSAGE        = "message";
-    private static final JsonNodeFactory JSON           = JsonNodeFactory.instance;
-    private static final String          SUBJECT        = "subjectName";
-    private static final String          TOPIC          = "single_topic";
-    private static final ObjectNode      RESOURCE       = buildJsonResource();
-    private static final Mqtt5Publish    publishMessage = buildMqttPublishMessage();
+    @SuppressWarnings("resource")
+    static GenericContainer<?>        broker = newMosquittoContainer();
+    static String                     brokerHost;
+    static int                        brokerPort;
+    static Mqtt5BlockingClient        publisher;
+    static MqttPolicyInformationPoint pip;
+    static SaplMqttClient             saplMqttClient;
 
-    @TempDir
-    Path configDir;
+    private static final AtomicInteger CLIENT_SEQ = new AtomicInteger();
 
-    @TempDir
-    Path dataDir;
-
-    @TempDir
-    Path extensionsDir;
-
-    private EmbeddedHiveMQ      mqttBroker;
-    private Mqtt5BlockingClient mqttClient;
-    private PolicyDecisionPoint pdp;
-    private SaplMqttClient      saplMqttClient;
-
-    @BeforeEach
-    void beforeEach() {
-        this.mqttBroker     = buildAndStartBroker(configDir, dataDir, extensionsDir);
-        this.mqttClient     = startClient();
-        this.saplMqttClient = new SaplMqttClient();
-        this.pdp            = buildPdp(saplMqttClient);
+    @BeforeAll
+    static void setUp() {
+        broker.start();
+        brokerHost     = broker.getHost();
+        brokerPort     = broker.getMappedPort(1883);
+        publisher      = startPublisher(brokerHost, brokerPort);
+        saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        pip            = new MqttPolicyInformationPoint(saplMqttClient);
     }
 
-    @AfterEach
-    void tearDown() {
-        mqttClient.disconnect();
-        saplMqttClient.close();
-        stopBroker(mqttBroker);
+    @AfterAll
+    static void tearDown() {
+        if (publisher != null) {
+            publisher.disconnect();
+        }
+        if (saplMqttClient != null) {
+            saplMqttClient.close();
+        }
+        if (broker != null) {
+            broker.stop();
+        }
     }
 
-    @Timeout(15)
-    @ParameterizedTest
-    @ValueSource(strings = { "actionWithoutParams", "actionWithQos", "actionNameWithQosAndConfig" })
-    void when_messagesIsCalled_then_getPublishedMessages(String action) {
-        // GIVEN
-        AuthorizationSubscription authzSubscription = AuthorizationSubscription.of(SUBJECT, action, RESOURCE);
-
-        // WHEN
-        val pdpDecisionFlux = pdp.decide(authzSubscription);
-
-        // THEN
-        StepVerifier.create(pdpDecisionFlux).thenAwait(Duration.ofMillis(1000))
-                .then(() -> mqttClient.publish(publishMessage))
-                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
+    private static AttributeAccessContext ctx(String clientId) {
+        val pipConfig = json("""
+                {
+                  "defaultBrokerConfigName": "production",
+                  "emitAtRetry": "false",
+                  "brokerConfig": [
+                    { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                  ]
+                }
+                """.formatted(brokerHost, brokerPort, clientId));
+        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
-    private static PolicyDecisionPoint buildPdp(SaplMqttClient mqttClient) {
-        return PolicyDecisionPointBuilder.withoutDefaults()
-                .withPolicyInformationPoint(new MqttPolicyInformationPoint(mqttClient))
-                .withResourcesSource("/pipPolicies").build().pdp();
+    private static AttributeAccessContext freshCtx() {
+        return ctx("sapl-pip-" + CLIENT_SEQ.incrementAndGet());
     }
 
-    private static Mqtt5Publish buildMqttPublishMessage() {
-        return Mqtt5Publish.builder().topic(TOPIC).qos(MqttQos.AT_MOST_ONCE)
-                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
-                .payload(MESSAGE.getBytes(StandardCharsets.UTF_8)).build();
+    private static void publishLater(Mqtt5Publish message, long delayMs) {
+        Thread.startVirtualThread(() -> {
+            try {
+                Thread.sleep(delayMs);
+                publisher.publish(message);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+        });
     }
 
-    private static ObjectNode buildJsonResource() {
-        ObjectNode resource = JSON.objectNode();
-        resource.put("topic", TOPIC);
-        return resource;
+    private static Mqtt5Publish jsonPublish(String topic, String json) {
+        return Mqtt5Publish.builder().topic(topic).qos(MqttQos.AT_MOST_ONCE)
+                .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8).contentType("application/json")
+                .payload(json.getBytes(StandardCharsets.UTF_8)).build();
+    }
+
+    @Nested
+    @DisplayName("Happy path")
+    class HappyPath {
+
+        @Test
+        @DisplayName("subscribe + publish: a published message arrives as a TextValue")
+        void whenMessagePublishedThenStreamEmitsIt() {
+            val topic   = "test/happy/text";
+            val message = buildMqttPublishMessage(topic, "hello", false);
+
+            try (val stream = pip.messages(Value.of(topic), freshCtx())) {
+                publishLater(message, 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("hello")));
+            }
+        }
+
+        @Test
+        @DisplayName("subscribe to multiple topics: messages from any topic surface")
+        void whenSubscribedToArrayOfTopicsThenAnyEmits() {
+            val topicA = "test/array/a";
+            val topicB = "test/array/b";
+
+            try (val stream = pip.messages(Value.ofArray(Value.of(topicA), Value.of(topicB)), freshCtx())) {
+                publishLater(buildMqttPublishMessage(topicB, "from-b", false), 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.of("from-b")));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Payload decoding")
+    class PayloadDecoding {
+
+        @Test
+        @DisplayName("JSON content-type: payload becomes parsed Value")
+        void whenJsonContentTypeThenPayloadParsed() {
+            val topic   = "test/payload/json";
+            val message = jsonPublish(topic, "{\"temperature\":22.5,\"unit\":\"C\"}");
+
+            try (val stream = pip.messages(Value.of(topic), freshCtx())) {
+                publishLater(message, 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10)).awaitsNext(v -> {
+                    val obj = (ObjectValue) v;
+                    assertThat(((NumberValue) obj.get("temperature")).value().doubleValue()).isEqualTo(22.5);
+                    assertThat(((TextValue) obj.get("unit")).value()).isEqualTo("C");
+                });
+            }
+        }
+
+        @Test
+        @DisplayName("invalid JSON with JSON content-type yields ErrorValue")
+        void whenInvalidJsonThenErrorValue() {
+            val topic   = "test/payload/bad-json";
+            val message = jsonPublish(topic, "{not valid json}");
+
+            try (val stream = pip.messages(Value.of(topic), freshCtx())) {
+                publishLater(message, 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+            }
+        }
+
+        @Test
+        @DisplayName("UTF-8 payload without format indicator becomes TextValue")
+        void whenUtf8PayloadAndNoFormatIndicatorThenTextValue() {
+            val topic   = "test/payload/utf8-noindicator";
+            val message = Mqtt5Publish.builder().topic(topic).qos(MqttQos.AT_MOST_ONCE)
+                    .payload("plain text".getBytes(StandardCharsets.UTF_8)).build();
+
+            try (val stream = pip.messages(Value.of(topic), freshCtx())) {
+                publishLater(message, 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.of("plain text")));
+            }
+        }
+
+        @Test
+        @DisplayName("non-UTF-8 binary payload becomes ArrayValue of bytes")
+        void whenBinaryPayloadThenArrayOfBytes() {
+            val topic       = "test/payload/binary";
+            val invalidUtf8 = new byte[] { (byte) 0xFF, (byte) 0xFE, (byte) 0xFD };
+            val message     = Mqtt5Publish.builder().topic(topic).qos(MqttQos.AT_MOST_ONCE).payload(invalidUtf8)
+                    .build();
+
+            try (val stream = pip.messages(Value.of(topic), freshCtx())) {
+                publishLater(message, 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isInstanceOf(ArrayValue.class));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Default-response timer")
+    class DefaultResponseTimer {
+
+        private static AttributeAccessContext ctxWithDefaultResponse(String type, long timeoutMs) {
+            val pipConfig = json("""
+                    {
+                      "defaultBrokerConfigName": "production",
+                      "emitAtRetry": "false",
+                      "defaultResponse": "%s",
+                      "timeoutDuration": %d,
+                      "brokerConfig": [
+                        { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                      ]
+                    }
+                    """.formatted(type, timeoutMs, brokerHost, brokerPort,
+                    "sapl-pip-default-" + CLIENT_SEQ.incrementAndGet()));
+            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+        }
+
+        @Test
+        @DisplayName("no message before timeout emits UNDEFINED")
+        void whenNoMessageBeforeTimeoutThenUndefined() {
+            try (val stream = pip.messages(Value.of("test/default/silent-undefined"),
+                    ctxWithDefaultResponse("undefined", 300L))) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.UNDEFINED));
+            }
+        }
+
+        @Test
+        @DisplayName("no message before timeout with error type emits ErrorValue")
+        void whenNoMessageBeforeTimeoutAndErrorTypeThenErrorValue() {
+            try (val stream = pip.messages(Value.of("test/default/silent-error"),
+                    ctxWithDefaultResponse("error", 300L))) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                        .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+            }
+        }
+
+        @Test
+        @DisplayName("message arriving before timeout suppresses the default emission")
+        void whenMessageBeforeTimeoutThenNoDefaultEmission() {
+            val topic = "test/default/preempted";
+            try (val stream = pip.messages(Value.of(topic), ctxWithDefaultResponse("undefined", 3000L))) {
+                publishLater(buildMqttPublishMessage(topic, "preempt", false), 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.of("preempt")));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("MQTT wildcards")
+    class Wildcards {
+
+        @Test
+        @DisplayName("single-level wildcard '+' matches one segment")
+        void whenSingleLevelWildcardThenMatchesOneSegment() {
+            val publishTopic   = "building/floor1/temperature";
+            val subscribeTopic = "building/+/temperature";
+
+            try (val stream = pip.messages(Value.of(subscribeTopic), freshCtx())) {
+                publishLater(buildMqttPublishMessage(publishTopic, "21.5", false), 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.of("21.5")));
+            }
+        }
+
+        @Test
+        @DisplayName("multi-level wildcard '#' matches deep paths")
+        void whenMultiLevelWildcardThenMatchesDeepPaths() {
+            val publishTopic   = "sensors/floor1/room2/temperature";
+            val subscribeTopic = "sensors/#";
+
+            try (val stream = pip.messages(Value.of(subscribeTopic), freshCtx())) {
+                publishLater(buildMqttPublishMessage(publishTopic, "deep", false), 500L);
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.of("deep")));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Error paths")
+    class ErrorPaths {
+
+        @Test
+        @DisplayName("missing mqttPipConfig yields an error stream")
+        void whenNoMqttPipConfigThenErrorValue() {
+            val emptyCtx = new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
+            try (val stream = pip.messages(Value.of("any/topic"), emptyCtx)) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                        .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+            }
+        }
+
+        @Test
+        @DisplayName("connection failure to unreachable broker emits a non-message Value (default or error)")
+        void whenBrokerUnreachableThenNonMessageValue() {
+            // Set a long default-response timeout so we surface the actual connect error
+            // rather than the timer-driven UNDEFINED.
+            val pipConfig = json("""
+                    {
+                      "defaultBrokerConfigName": "ghost",
+                      "emitAtRetry": "false",
+                      "timeoutDuration": 30000,
+                      "brokerConfig": [
+                        { "name": "ghost", "brokerAddress": "127.0.0.1", "brokerPort": 1, "clientId": "ghost-client" }
+                      ]
+                    }
+                    """);
+            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            val ctx       = new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+
+            try (val stream = pip.messages(Value.of("any/topic"), ctx)) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
+                        .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Connection sharing")
+    class ConnectionSharing {
+
+        @Test
+        @DisplayName("two streams subscribing to the same broker share one client cache entry")
+        void whenTwoStreamsOnSameBrokerThenCacheEntryShared() {
+            val ctx = freshCtx();
+            try (val s1 = pip.messages(Value.of("test/share/a"), ctx)) {
+                StreamAssertions.assertThat(s1).withinTimeout(Duration.ofMillis(500)).drain();
+                int sizeWithOne = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+                try (val s2 = pip.messages(Value.of("test/share/b"), ctx)) {
+                    StreamAssertions.assertThat(s2).withinTimeout(Duration.ofMillis(500)).drain();
+                    val sizeWithTwo = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+                    assertThat(sizeWithTwo).isEqualTo(sizeWithOne);
+                }
+            }
+        }
+
+        @Test
+        @DisplayName("when last subscriber closes the broker entry is evicted from the cache")
+        void whenLastSubscriberClosesThenCacheEntryEvicted() {
+            val ctx    = freshCtx();
+            val before = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+            try (val s = pip.messages(Value.of("test/eviction/topic"), ctx)) {
+                StreamAssertions.assertThat(s).withinTimeout(Duration.ofSeconds(3)).drain();
+                assertThat(SaplMqttClient.MQTT_CLIENT_CACHE.size()).isGreaterThanOrEqualTo(before);
+            }
+            Awaitility.await().atMost(Duration.ofSeconds(5))
+                    .untilAsserted(() -> assertThat(SaplMqttClient.MQTT_CLIENT_CACHE.size()).isEqualTo(before));
+        }
     }
 }

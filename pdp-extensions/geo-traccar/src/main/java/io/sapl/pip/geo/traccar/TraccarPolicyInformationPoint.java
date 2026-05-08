@@ -23,7 +23,14 @@ import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.stream.BlockingWebClient;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
@@ -36,6 +43,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * Policy Information Point for integrating with Traccar GPS tracking servers.
@@ -262,11 +270,7 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> server(AttributeAccessContext ctx) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
-        }
-        return server(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return withCtx(ctx, this::server);
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.SERVER_SCHEMA, docs = """
@@ -357,11 +361,7 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> devices(AttributeAccessContext ctx) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
-        }
-        return devices(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return withCtx(ctx, this::devices);
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.DEVICES_SCHEMA, docs = """
@@ -451,11 +451,7 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> device(TextValue deviceEntityId, AttributeAccessContext ctx) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
-        }
-        return device(deviceEntityId, getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return withCtx(ctx, (config, secrets) -> device(deviceEntityId, config, secrets));
     }
 
     @Attribute(schema = TraccarSchemata.DEVICE_SCHEMA, docs = """
@@ -534,11 +530,7 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> geofences(AttributeAccessContext ctx) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
-        }
-        return geofences(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return withCtx(ctx, this::geofences);
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.GEOFENCES_SCHEMA, docs = """
@@ -608,11 +600,7 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> traccarGeofence(TextValue geofenceEntityId, AttributeAccessContext ctx) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
-        }
-        return traccarGeofence(geofenceEntityId, getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return withCtx(ctx, (config, secrets) -> traccarGeofence(geofenceEntityId, config, secrets));
     }
 
     @Attribute(schema = TraccarSchemata.GEOFENCE_SCHEMA, docs = """
@@ -771,11 +759,7 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> traccarPosition(TextValue deviceEntityId, AttributeAccessContext ctx) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
-        }
-        return traccarPosition(deviceEntityId, getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return withCtx(ctx, (config, secrets) -> traccarPosition(deviceEntityId, config, secrets));
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -973,7 +957,7 @@ public class TraccarPolicyInformationPoint {
      * @return the Base64-encoded Basic Auth header as TextValue, or ErrorValue if
      * required fields are missing
      */
-    public static Value createBasicAuthHeader(ObjectValue traccarSecrets) {
+    static Value createBasicAuthHeader(ObjectValue traccarSecrets) {
         val userName = getRequiredProperty(SECRETS_USERNAME, traccarSecrets);
         if (userName instanceof ErrorValue) {
             return userName;
@@ -1016,6 +1000,15 @@ public class TraccarPolicyInformationPoint {
 
     private static ObjectValue getTraccarConfig(ObjectValue variables) {
         return (ObjectValue) variables.get(TRACCAR_CONFIG);
+    }
+
+    private static Stream<Value> withCtx(AttributeAccessContext ctx,
+            BiFunction<ObjectValue, ObjectValue, Stream<Value>> withResolvedConfig) {
+        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
+        if (error != null) {
+            return error;
+        }
+        return withResolvedConfig.apply(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
     }
 
 }
