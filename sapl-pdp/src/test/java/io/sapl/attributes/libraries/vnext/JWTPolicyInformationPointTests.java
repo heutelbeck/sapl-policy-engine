@@ -894,8 +894,6 @@ class JWTPolicyInformationPointTests {
         @Disabled("TODO: enable when AttributeMethodSignatureProcessor accepts Stream<Value>")
         @DisplayName("loads under the jwt namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderJwtNamespace() {
-            // Mirror of the original library-load test. Cannot run until the
-            // signature processor accepts Stream<Value> return types.
         }
     }
 

@@ -72,6 +72,12 @@ public class TimePolicyInformationPoint {
     private final Clock         clock;
     private final TimeScheduler scheduler;
 
+    /**
+     * Stream of the current ISO-8601 UTC timestamp, emitted once per
+     * second.
+     *
+     * @return a stream of {@link TextValue} timestamps
+     */
     @EnvironmentAttribute(docs = """
             ```<time.now>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.now>```emits the current date and time as an ISO 8601 String at UTC.
@@ -89,6 +95,15 @@ public class TimePolicyInformationPoint {
         return now(DEFAULT_UPDATE_INTERVAL_IN_MS);
     }
 
+    /**
+     * Stream of the current ISO-8601 UTC timestamp, emitted once per
+     * {@code updateIntervalInMillis}.
+     *
+     * @param updateIntervalInMillis polling interval in milliseconds; must be
+     * positive and non-zero
+     * @return a stream of {@link TextValue} timestamps, or an error value if the
+     * interval is invalid
+     */
     @EnvironmentAttribute(docs = """
             ```<time.now(INTEGER>0 updateIntervalInMillis>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.now(updateIntervalInMillis>``` emits the current date and time as an ISO 8601 String at UTC.
@@ -103,14 +118,18 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> now(NumberValue updateIntervalInMillis) {
-        try {
+        return guarded(() -> {
             val interval = numberValueMsToNonZeroPositiveDuration(updateIntervalInMillis);
             return Streams.scheduledPoll(interval, instantSupplier(), clock, scheduler);
-        } catch (IllegalArgumentException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream of the JVM default time zone identifier, re-emitted only
+     * when it changes (checked every five minutes).
+     *
+     * @return a stream of {@link TextValue} zone identifiers
+     */
     @EnvironmentAttribute(docs = """
             ```<time.systemTimeZone>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.systemTimeZone>``` emits the PDP's system time zone code.
@@ -125,6 +144,15 @@ public class TimePolicyInformationPoint {
                 () -> Value.of(ZoneId.systemDefault().toString()), clock, scheduler));
     }
 
+    /**
+     * Stream that emits {@code false} until the {@code checkpoint}
+     * instant is reached, then emits {@code true}. Boundary-driven; no
+     * polling.
+     *
+     * @param checkpoint an ISO-8601 UTC instant to compare against
+     * @return a stream of {@link BooleanValue}, or an error value if the checkpoint
+     * is malformed
+     */
     @EnvironmentAttribute(docs = """
             ```<time.nowIsAfter(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.nowIsAfter(checkpoint)>``` ```true```, if the current date time is after the ```checkpoint```
@@ -146,13 +174,18 @@ public class TimePolicyInformationPoint {
             ```<time.nowIsAfter("2021-11-08T14:30:00Z")>``` will immediately return ```false``` and after
             90 minutes it will emit ```true```.""")
     public Stream<Value> nowIsAfter(TextValue checkpoint) {
-        try {
-            return nowIsAfterStream(textValueToInstant(checkpoint));
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> nowIsAfterStream(textValueToInstant(checkpoint)));
     }
 
+    /**
+     * Stream that compares the current local time of day in the clock's
+     * configured zone against {@code checkpoint}, toggling at the
+     * checkpoint and at midnight.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @return a stream of {@link BooleanValue}, or an error value if the checkpoint
+     * is malformed
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsAfter(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.localTimeIsAfter(checkpoint)>``` ```true```, if the current time of the day without date is after the
@@ -169,13 +202,17 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> localTimeIsAfter(TextValue checkpoint) {
-        try {
-            return localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), defaultZone());
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), defaultZone()));
     }
 
+    /**
+     * Like {@link #localTimeIsAfter(TextValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @param timezone an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsAfter(TEXT checkpoint, TEXT timezone)>``` is an environment attribute stream and takes no
             left-hand arguments.
@@ -191,14 +228,18 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> localTimeIsAfter(TextValue checkpoint, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone = resolveZone(timezone);
             return localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), zone);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Logical inverse of {@link #localTimeIsAfter(TextValue)}.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBefore(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.localTimeIsBefore(checkpoint)>``` ```false```, if the current time of the day without date is after the
@@ -215,14 +256,18 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> localTimeIsBefore(TextValue checkpoint) {
-        try {
-            return Streams.map(localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), defaultZone()),
-                    TimePolicyInformationPoint::negateBoolean);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> Streams.map(localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), defaultZone()),
+                TimePolicyInformationPoint::negateBoolean));
     }
 
+    /**
+     * Like {@link #localTimeIsBefore(TextValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @param timezone an IANA zone identifier, e.g. {@code "America/New_York"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBefore(TEXT checkpoint, TEXT timezone)>``` is an environment attribute stream and takes no
             left-hand arguments.
@@ -238,15 +283,24 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> localTimeIsBefore(TextValue checkpoint, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone = resolveZone(timezone);
             return Streams.map(localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), zone),
                     TimePolicyInformationPoint::negateBoolean);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} while the current local time of
+     * day is within {@code [startTime, endTime]} in the clock's
+     * configured zone, transitioning at each boundary. When
+     * {@code startTime > endTime} the interval is treated as wrapping
+     * past midnight.
+     *
+     * @param startTime a local time of day, e.g. {@code "09:00"}
+     * @param endTime a local time of day, e.g. {@code "17:00"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBetween(TEXT startTime, TEXT endTime)>``` is an environment attribute stream and takes no left-hand
             arguments.
@@ -263,15 +317,22 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> localTimeIsBetween(TextValue startTime, TextValue endTime) {
-        try {
+        return guarded(() -> {
             val localStart = LocalTime.parse(startTime.value());
             val localEnd   = LocalTime.parse(endTime.value());
             return localTimeIsBetweenStream(localStart, localEnd, defaultZone());
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Like {@link #localTimeIsBetween(TextValue, TextValue)} but
+     * evaluated in {@code timezone}.
+     *
+     * @param startTime a local time of day, e.g. {@code "09:00"}
+     * @param endTime a local time of day, e.g. {@code "17:00"}
+     * @param timezone an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBetween(TEXT startTime, TEXT endTime, TEXT timezone)>``` is an environment attribute stream
             and takes no left-hand arguments.
@@ -288,16 +349,22 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> localTimeIsBetween(TextValue startTime, TextValue endTime, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone       = resolveZone(timezone);
             val localStart = LocalTime.parse(startTime.value());
             val localEnd   = LocalTime.parse(endTime.value());
             return localTimeIsBetweenStream(localStart, localEnd, zone);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Logical inverse of {@link #nowIsAfter(TextValue)}: emits
+     * {@code true} until {@code time} is reached, then {@code false}.
+     *
+     * @param time an ISO-8601 UTC instant
+     * @return a stream of {@link BooleanValue}, or an error value if {@code time}
+     * is malformed
+     */
     @EnvironmentAttribute(docs = """
             ```<time.nowIsBefore(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.nowIsBefore(checkpoint)>``` ```true```, if the current date time is before the ```checkpoint```
@@ -319,13 +386,19 @@ public class TimePolicyInformationPoint {
             ```<time.nowIsBefore("2021-11-08T14:30:00Z")>``` will immediately return ```true``` and after
             90 minutes it will emit ```false```.""")
     public Stream<Value> nowIsBefore(TextValue time) {
-        try {
-            return Streams.map(nowIsAfterStream(textValueToInstant(time)), TimePolicyInformationPoint::negateBoolean);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> Streams.map(nowIsAfterStream(textValueToInstant(time)),
+                TimePolicyInformationPoint::negateBoolean));
     }
 
+    /**
+     * Stream that emits {@code true} while the current instant lies
+     * inside {@code [startTime, endTime]}, transitioning at each
+     * boundary.
+     *
+     * @param startTime an ISO-8601 UTC instant
+     * @param endTime an ISO-8601 UTC instant
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.nowIsBetween(TEXT startTime, TEXT endTime)>``` is an environment attribute stream and takes no left-hand
             arguments.
@@ -344,15 +417,21 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> nowIsBetween(TextValue startTime, TextValue endTime) {
-        try {
+        return guarded(() -> {
             val start = textValueToInstant(startTime);
             val end   = textValueToInstant(endTime);
             return nowIsBetweenStream(start, end);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when today's weekday is contained
+     * in {@code days} (in the clock's configured zone), transitioning
+     * at each midnight crossing.
+     *
+     * @param days an array of day-of-week names (e.g., {@code "MONDAY"})
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.weekdayIn(ARRAY days)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.weekdayIn(days)>``` emits ```true``` if the current day of the week (in the clock's configured timezone)
@@ -367,14 +446,17 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> weekdayIn(ArrayValue days) {
-        try {
-            val daySet = parseDaySet(days);
-            return dayBasedStream(daySet, defaultZone());
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> dayBasedStream(parseDaySet(days), defaultZone()));
     }
 
+    /**
+     * Like {@link #weekdayIn(ArrayValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param days an array of day-of-week names
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.weekdayIn(ARRAY days, TEXT timezone)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.weekdayIn(days, timezone)>``` emits ```true``` if the current day of the week in the given
@@ -388,15 +470,22 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> weekdayIn(ArrayValue days, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone   = resolveZone(timezone);
             val daySet = parseDaySet(days);
             return dayBasedStream(daySet, zone);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when today's weekday lies within
+     * {@code [startDay, endDay]} (in the clock's configured zone),
+     * wrapping past Sunday when {@code startDay > endDay}.
+     *
+     * @param startDay a day-of-week name
+     * @param endDay a day-of-week name
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.dayOfWeekBetween(TEXT startDay, TEXT endDay)>``` is an environment attribute stream and takes no left-hand
             arguments.
@@ -412,14 +501,18 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> dayOfWeekBetween(TextValue startDay, TextValue endDay) {
-        try {
-            val daySet = buildDayRange(startDay, endDay);
-            return dayBasedStream(daySet, defaultZone());
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> dayBasedStream(buildDayRange(startDay, endDay), defaultZone()));
     }
 
+    /**
+     * Like {@link #dayOfWeekBetween(TextValue, TextValue)} but
+     * evaluated in {@code timezone}.
+     *
+     * @param startDay a day-of-week name
+     * @param endDay a day-of-week name
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.dayOfWeekBetween(TEXT startDay, TEXT endDay, TEXT timezone)>``` is an environment attribute stream and
             takes no left-hand arguments.
@@ -435,15 +528,21 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> dayOfWeekBetween(TextValue startDay, TextValue endDay, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone   = resolveZone(timezone);
             val daySet = buildDayRange(startDay, endDay);
             return dayBasedStream(daySet, zone);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when the current month is in
+     * {@code months} (in the clock's configured zone), transitioning
+     * at month boundaries.
+     *
+     * @param months an array of month names or 1-based numbers
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthIn(ARRAY months)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.monthIn(months)>``` emits ```true``` if the current month (in the clock's configured timezone) is
@@ -459,14 +558,17 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> monthIn(ArrayValue months) {
-        try {
-            val monthSet = parseMonthSet(months);
-            return monthBasedStream(monthSet, defaultZone());
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> monthBasedStream(parseMonthSet(months), defaultZone()));
     }
 
+    /**
+     * Like {@link #monthIn(ArrayValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param months an array of month names or 1-based numbers
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthIn(ARRAY months, TEXT timezone)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.monthIn(months, timezone)>``` emits ```true``` if the current month in the given ```timezone```
@@ -480,15 +582,22 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> monthIn(ArrayValue months, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone     = resolveZone(timezone);
             val monthSet = parseMonthSet(months);
             return monthBasedStream(monthSet, zone);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when the current month lies
+     * within {@code [startMonth, endMonth]} (1=January, 12=December),
+     * wrapping past December when {@code startMonth > endMonth}.
+     *
+     * @param startMonth 1-based month number
+     * @param endMonth 1-based month number
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthBetween(INTEGER startMonth, INTEGER endMonth)>``` is an environment attribute stream and takes no
             left-hand arguments.
@@ -504,14 +613,18 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> monthBetween(NumberValue startMonth, NumberValue endMonth) {
-        try {
-            val monthSet = buildMonthRange(startMonth, endMonth);
-            return monthBasedStream(monthSet, defaultZone());
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        return guarded(() -> monthBasedStream(buildMonthRange(startMonth, endMonth), defaultZone()));
     }
 
+    /**
+     * Like {@link #monthBetween(NumberValue, NumberValue)} but
+     * evaluated in {@code timezone}.
+     *
+     * @param startMonth 1-based month number
+     * @param endMonth 1-based month number
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthBetween(INTEGER startMonth, INTEGER endMonth, TEXT timezone)>``` is an environment attribute stream
             and takes no left-hand arguments.
@@ -527,15 +640,23 @@ public class TimePolicyInformationPoint {
             ```
             """)
     public Stream<Value> monthBetween(NumberValue startMonth, NumberValue endMonth, TextValue timezone) {
-        try {
+        return guarded(() -> {
             val zone     = resolveZone(timezone);
             val monthSet = buildMonthRange(startMonth, endMonth);
             return monthBasedStream(monthSet, zone);
-        } catch (RuntimeException e) {
-            return Streams.error(e.getMessage());
-        }
+        });
     }
 
+    /**
+     * Stream that toggles between {@code true} for
+     * {@code trueDurationMs} milliseconds and {@code false} for
+     * {@code falseDurationMs} milliseconds, repeating indefinitely.
+     *
+     * @param trueDurationMs duration of the {@code true} phase, in milliseconds
+     * @param falseDurationMs duration of the {@code false} phase, in milliseconds
+     * @return a stream of {@link BooleanValue}, or an error value if a duration is
+     * invalid
+     */
     @EnvironmentAttribute(docs = """
             ```<time.toggle(INTEGER>0 trueDurationMs, INTEGER>0 falseDurationMs)>``` is an environment attribute
             stream and takes no left-hand arguments.
@@ -558,10 +679,16 @@ public class TimePolicyInformationPoint {
             will be the result for two seconds.
             """)
     public Stream<Value> toggle(NumberValue trueDurationMs, NumberValue falseDurationMs) {
-        try {
+        return guarded(() -> {
             val trueDuration  = numberValueMsToNonZeroPositiveDuration(trueDurationMs);
             val falseDuration = numberValueMsToNonZeroPositiveDuration(falseDurationMs);
             return toggleStream(trueDuration, falseDuration);
+        });
+    }
+
+    private static Stream<Value> guarded(Supplier<Stream<Value>> body) {
+        try {
+            return body.get();
         } catch (RuntimeException e) {
             return Streams.error(e.getMessage());
         }

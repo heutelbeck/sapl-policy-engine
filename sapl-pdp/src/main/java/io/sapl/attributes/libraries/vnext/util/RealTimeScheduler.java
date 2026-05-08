@@ -25,7 +25,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -61,18 +60,17 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
 
     @Override
     public Cancellable scheduleAt(Instant when, Runnable task) {
-        val                delay  = Math.max(0L, Duration.between(clock.instant(), when).toNanos());
-        ScheduledFuture<?> future = executor.schedule(() -> {
-                                      try {
-                                          task.run();
-                                      } catch (RuntimeException e) {
-                                          // Tasks scheduled here are expected to handle their own
-                                          // exceptions (Streams helpers do, via stream error
-                                          // emission). Reaching here means a bug in a task's own
-                                          // exception handling. Log loudly with stack trace.
-                                          log.error(ERROR_TASK_RAISED_UNHANDLED_EXCEPTION, e);
-                                      }
-                                  }, delay, TimeUnit.NANOSECONDS);
+        val delay  = Math.max(0L, Duration.between(clock.instant(), when).toNanos());
+        val future = executor.schedule(() -> {
+                       try {
+                           task.run();
+                       } catch (RuntimeException e) {
+                           // Tasks scheduled here are expected to handle their own exceptions
+                           // (Streams helpers do, via stream error emission). Reaching here means
+                           // a bug in a task's own exception handling. Log loudly with stack trace.
+                           log.error(ERROR_TASK_RAISED_UNHANDLED_EXCEPTION, e);
+                       }
+                   }, delay, TimeUnit.NANOSECONDS);
         return () -> future.cancel(false);
     }
 

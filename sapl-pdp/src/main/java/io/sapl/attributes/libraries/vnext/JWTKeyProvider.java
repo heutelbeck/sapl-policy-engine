@@ -18,7 +18,6 @@
 package io.sapl.attributes.libraries.vnext;
 
 import io.sapl.api.SaplVersion;
-import lombok.Getter;
 import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -166,11 +165,15 @@ public class JWTKeyProvider {
             return Optional.of(keyCache.get(kid));
         }
 
-        val resolvedUri = publicKeyUri.replace("{id}", kid);
-        val builder     = HttpRequest.newBuilder().uri(URI.create(resolvedUri)).timeout(HTTP_REQUEST_TIMEOUT);
-        val request     = "post".equalsIgnoreCase(publicKeyRequestMethod)
-                ? builder.POST(HttpRequest.BodyPublishers.noBody()).build()
-                : builder.GET().build();
+        val               resolvedUri = publicKeyUri.replace("{id}", kid);
+        val               builder     = HttpRequest.newBuilder().uri(URI.create(resolvedUri))
+                .timeout(HTTP_REQUEST_TIMEOUT);
+        final HttpRequest request;
+        if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
+            request = builder.POST(HttpRequest.BodyPublishers.noBody()).build();
+        } else {
+            request = builder.GET().build();
+        }
 
         try {
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -195,24 +198,13 @@ public class JWTKeyProvider {
         val pruneTime   = clock.instant().minusMillis(lastTtl);
         var oldestEntry = cachingTimes.peek();
         while (null != oldestEntry && oldestEntry.wasCachedBefore(pruneTime)) {
-            keyCache.remove(oldestEntry.getKeyId());
+            keyCache.remove(oldestEntry.keyId());
             cachingTimes.poll();
             oldestEntry = cachingTimes.peek();
         }
     }
 
-    private static final class CacheEntry {
-
-        @Getter
-        private final String keyId;
-
-        private final Instant cachingTime;
-
-        CacheEntry(String keyId, Instant cachingTime) {
-            this.keyId       = keyId;
-            this.cachingTime = cachingTime;
-        }
-
+    private record CacheEntry(String keyId, Instant cachingTime) {
         boolean wasCachedBefore(Instant instant) {
             return cachingTime.isBefore(instant);
         }

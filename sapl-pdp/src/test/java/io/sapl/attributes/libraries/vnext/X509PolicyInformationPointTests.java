@@ -230,8 +230,6 @@ class X509PolicyInformationPointTests {
         @Disabled("TODO: enable when AttributeMethodSignatureProcessor accepts Stream<Value>")
         @DisplayName("loads under the x509 namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderX509Namespace() {
-            // Mirror of the original library-load test. Cannot run until the
-            // signature processor accepts Stream<Value> return types.
         }
     }
 

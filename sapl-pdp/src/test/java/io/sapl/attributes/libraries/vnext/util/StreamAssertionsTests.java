@@ -19,7 +19,6 @@ package io.sapl.attributes.libraries.vnext.util;
 
 import io.sapl.api.model.Value;
 import lombok.val;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -64,8 +63,7 @@ class StreamAssertionsTests {
     void whenConsumerRequirementsHoldThenPasses() {
         val stream = Streams.just(Value.of("hello"));
 
-        StreamAssertions.assertThat(stream)
-                .awaitsNext(v -> AssertionsForClassTypes.assertThat(v).isEqualTo(Value.of("hello")));
+        StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isEqualTo(Value.of("hello")));
     }
 
     @Test

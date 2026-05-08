@@ -408,7 +408,7 @@ public class Streams {
             TimeScheduler scheduler) {
         val s            = new LatestSlotStream<Value>();
         val stopped      = new AtomicBoolean(false);
-        val cancelHolder = new AtomicReference<Cancellable>(Cancellable.NOOP);
+        val cancelHolder = new AtomicReference<>(Cancellable.NOOP);
         val tick         = new AtomicReference<Runnable>();
         tick.set(() -> {
             if (stopped.get()) {

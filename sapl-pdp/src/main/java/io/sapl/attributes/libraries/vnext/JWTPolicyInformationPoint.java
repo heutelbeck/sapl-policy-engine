@@ -231,6 +231,16 @@ public class JWTPolicyInformationPoint {
         this.scheduler   = scheduler;
     }
 
+    /**
+     * Reads a JWT from subscription secrets using the configured
+     * default secrets key and emits an {@link ObjectValue} carrying the
+     * decoded header, payload, a boolean {@code valid} flag, and the
+     * current {@link ValidityState}. The stream re-emits as the token
+     * transitions through IMMATURE, VALID, and EXPIRED.
+     *
+     * @param ctx the attribute access context (variables, subscription secrets)
+     * @return a stream of token-state {@link ObjectValue}s
+     */
     @EnvironmentAttribute(docs = """
             ```<jwt.token>``` reads a JWT from subscription secrets using the configured default secrets key
             and returns an object containing the decoded token data and its current validity state.
@@ -268,6 +278,15 @@ public class JWTPolicyInformationPoint {
         return tokenFromSecrets(resolveSecretsKey(ctx), ctx);
     }
 
+    /**
+     * Reads a JWT from subscription secrets using {@code secretsKeyName}
+     * as the key, otherwise behaves like {@link #token(AttributeAccessContext)}.
+     *
+     * @param ctx the attribute access context (variables, subscription secrets)
+     * @param secretsKeyName the name of the secrets entry holding the token;
+     * falls back to the default {@code "jwt"} key when {@code null}
+     * @return a stream of token-state {@link ObjectValue}s
+     */
     @EnvironmentAttribute(docs = """
             ```<jwt.token(TEXT secretsKeyName)>``` reads a JWT from subscription secrets using the specified
             key name and returns an object containing the decoded token data and its current validity state.
@@ -338,7 +357,7 @@ public class JWTPolicyInformationPoint {
     }
 
     private static ValidityState asState(Value v) {
-        return ValidityState.valueOf(((TextValue) v).value());
+        return v instanceof TextValue(var name) ? ValidityState.valueOf(name) : ValidityState.MALFORMED;
     }
 
     private Value buildTokenValue(ParsedToken parsedToken, ValidityState state) {
@@ -426,9 +445,9 @@ public class JWTPolicyInformationPoint {
 
         val keyId = signedJwt.getHeader().getKeyID();
 
-        Optional<Key> publicKey       = Optional.empty();
-        var           isFromWhitelist = false;
-        val           whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
+        var publicKey       = Optional.<Key>empty();
+        var isFromWhitelist = false;
+        val whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
         if (whitelist instanceof ObjectValue whitelistObj && whitelistObj.containsKey(keyId)) {
             val keyValue = whitelistObj.get(keyId);
             val key      = JWTEncodingDecodingUtils.jsonNodeToKey(ValueJsonMarshaller.toJsonNode(keyValue));

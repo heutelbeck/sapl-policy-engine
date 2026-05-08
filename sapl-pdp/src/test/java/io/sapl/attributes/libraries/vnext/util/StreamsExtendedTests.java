@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @DisplayName("Streams (extended helpers)")
 class StreamsExtendedTests {
@@ -48,7 +49,7 @@ class StreamsExtendedTests {
                              });
 
             try (stream) {
-                org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 3);
+                await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 3);
             }
 
             assertThat(factoryCalls.get()).isGreaterThanOrEqualTo(3);
@@ -63,7 +64,7 @@ class StreamsExtendedTests {
                                  return Streams.just(Value.of("v"));
                              });
 
-            org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 2);
+            await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 2);
             stream.close();
             val countAtClose = factoryCalls.get();
             Thread.sleep(80L);

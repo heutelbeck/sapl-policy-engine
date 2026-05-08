@@ -759,10 +759,6 @@ class TimePolicyInformationPointTests {
         @Disabled("TODO: enable when AttributeMethodSignatureProcessor accepts Stream<Value>")
         @DisplayName("loads under the time namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderTimeNamespace() {
-            // Mirror of the original "library loads" test. Cannot run until the
-            // signature processor accepts Stream<Value> return types.
-            // Store-behavior tests (rejects unannotated classes, rejects
-            // duplicates) belong in store tests, not here.
         }
     }
 
