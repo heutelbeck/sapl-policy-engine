@@ -20,7 +20,6 @@ package io.sapl.attributes.store;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.eval.AttributeStore;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 

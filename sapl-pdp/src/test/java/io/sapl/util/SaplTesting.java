@@ -32,8 +32,8 @@ import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
 import io.sapl.attributes.store.TestAttributeStore;
 import io.sapl.compiler.document.*;
-import io.sapl.compiler.eval.VTCoverageEvaluator;
-import io.sapl.compiler.eval.VTVoterEvaluator;
+import io.sapl.attributes.store.VTCoverageEvaluator;
+import io.sapl.attributes.store.VTVoterEvaluator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.index.SemanticHashing;
@@ -421,8 +421,8 @@ public class SaplTesting {
 
     /**
      * Drives a streaming policy set through both the production-side
-     * {@link io.sapl.compiler.eval.VTVoterEvaluator} and the coverage-side
-     * {@link io.sapl.compiler.eval.VTCoverageEvaluator} against a
+     * {@link VTVoterEvaluator} and the coverage-side
+     * {@link VTCoverageEvaluator} against a
      * {@link io.sapl.attributes.store.TestAttributeStore} pre-armed with
      * the supplied attribute initial values, then asserts both produce
      * the expected decision and agree with each other.

@@ -35,7 +35,7 @@ import io.sapl.attributes.HeapAttributeStorage;
 import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.*;
 import io.sapl.attributes.store.InMemoryAttributeStore;
-import io.sapl.compiler.eval.AttributeStore;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.PdpVoterSource;

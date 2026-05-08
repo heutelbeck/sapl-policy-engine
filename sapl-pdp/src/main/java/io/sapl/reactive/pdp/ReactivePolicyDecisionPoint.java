@@ -29,7 +29,7 @@ import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.*;
-import io.sapl.compiler.eval.AttributeStore;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.IdFactory;

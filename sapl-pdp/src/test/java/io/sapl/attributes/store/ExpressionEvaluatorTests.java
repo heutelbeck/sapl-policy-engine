@@ -15,52 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.eval;
+package io.sapl.attributes.store;
 
 import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.store.TestAttributeStore;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import reactor.test.StepVerifier;
-
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("ExpressionEvaluator end-to-end against AttributeStore")
 class ExpressionEvaluatorTests {
-
-    @Test
-    @DisplayName("Flux: pure expression emits one value and completes")
-    void fluxEvaluatorEmitsPureExpressionOnce() {
-        try (val store = new TestAttributeStore()) {
-            StepVerifier.create(FluxExpressionEvaluator.evaluate("1 + 2", store)).expectNext(Value.of(3))
-                    .verifyComplete();
-        }
-    }
-
-    @Test
-    @DisplayName("Flux: registered PIP emits one value per publish; no transient on open")
-    void fluxEvaluatorEmitsPerStreamPublishWhenPipRegistered() {
-        try (val store = new TestAttributeStore()) {
-            store.register("test.attr");
-            val flux = FluxExpressionEvaluator.evaluate("<test.attr>", store);
-            StepVerifier.create(flux).then(() -> store.publishByName("test.attr", Value.of("first")))
-                    .expectNext(Value.of("first")).then(() -> store.publishByName("test.attr", Value.of("second")))
-                    .expectNext(Value.of("second")).thenCancel().verify(Duration.ofSeconds(2));
-        }
-    }
-
-    @Test
-    @DisplayName("Flux: unregistered attribute emits UNDEFINED on open")
-    void fluxEvaluatorEmitsUndefinedWhenPipNotRegistered() {
-        try (val store = new TestAttributeStore()) {
-            val flux = FluxExpressionEvaluator.evaluate("<test.attr>", store);
-            StepVerifier.create(flux).expectNext(Value.UNDEFINED).thenCancel().verify(Duration.ofSeconds(2));
-        }
-    }
 
     @Test
     @DisplayName("VT: pure expression delivers one value then completes")

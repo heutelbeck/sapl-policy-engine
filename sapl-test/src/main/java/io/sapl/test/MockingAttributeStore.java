@@ -21,7 +21,7 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.eval.AttributeStore;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
 import io.sapl.test.verification.AttributeInvocationRecord;

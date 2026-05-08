@@ -19,7 +19,7 @@ package io.sapl.compiler.document;
 
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
-import io.sapl.compiler.eval.AttributeStore;
+import io.sapl.attributes.store.AttributeStore;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

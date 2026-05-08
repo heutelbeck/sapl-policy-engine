@@ -26,7 +26,7 @@ import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.Voter;
-import io.sapl.compiler.eval.VTVoterEvaluator;
+import io.sapl.attributes.store.VTVoterEvaluator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;

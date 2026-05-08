@@ -19,13 +19,14 @@ package io.sapl.pdp;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 /**
  * Synchronous, Reactor-free policy decision point. Drives the
  * compiled PDP voter and coverage voter against a per-evaluation
- * {@link io.sapl.compiler.eval.AttributeStore} subscription with a
+ * {@link AttributeStore} subscription with a
  * future-based blocking primitive (the same shape used by
  * {@code ReactivePolicyDecisionPoint.evaluateOnce}). Intended as the
  * substrate for sapl-test and other testing or tooling consumers

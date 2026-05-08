@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.eval;
+package io.sapl.attributes.store;
 
 import io.sapl.api.model.EvaluationContext;
+import io.sapl.api.stream.QueueStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.policy.CoverageVoter;

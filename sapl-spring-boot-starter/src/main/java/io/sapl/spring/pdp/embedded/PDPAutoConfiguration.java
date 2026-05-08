@@ -28,7 +28,7 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
 import io.sapl.attributes.store.InMemoryAttributeStore;
-import io.sapl.compiler.eval.AttributeStore;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;

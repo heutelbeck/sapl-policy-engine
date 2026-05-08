@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.compiler.eval;
+package io.sapl.attributes.store;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Occurrence;
@@ -23,11 +23,11 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.LatestSlotStream;
+import io.sapl.api.stream.Stream;
 import io.sapl.util.SaplTesting;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,52 +35,62 @@ import java.util.UUID;
 
 /**
  * Compiles an expression string and exposes its evaluation as a
- * {@link Flux} of {@link Value}, driven by an {@link AttributeStore}.
- * Pure expressions emit one value and complete. Streaming expressions
- * emit the latest value per fulfilled trigger until the subscription is
- * cancelled; intermediate values are dropped via
- * {@code onBackpressureLatest()} when downstream is slow.
+ * {@link Stream} of {@link Value} backed by an {@link AttributeStore}.
+ * Pure expressions deliver one value then complete. Streaming
+ * expressions deliver the latest value per fulfilled trigger; the
+ * consumer blocks on {@link Stream#awaitNext()} until the next value
+ * or completion.
  * <p>
- * Test fixture for end-to-end exercise of the {@link AttributeStore}
- * contract; the production decision-publication path follows the same
- * shape with {@code Vote} as the payload type.
+ * Single-slot mailbox semantic: if the producer fires multiple times
+ * before the consumer reads, the consumer observes only the latest
+ * value. Intermediate values are dropped.
  */
 @UtilityClass
-public class FluxExpressionEvaluator {
+public class VTExpressionEvaluator {
 
-    public static Flux<Value> evaluate(String expression, AttributeStore store) {
+    public static Stream<Value> evaluate(String expression, AttributeStore store) {
         return evaluate(SaplTesting.compileExpression(expression), store);
     }
 
-    public static Flux<Value> evaluate(CompiledExpression expr, AttributeStore store) {
+    public static Stream<Value> evaluate(CompiledExpression expr, AttributeStore store) {
         val baseCtx = SaplTesting.evaluationContext();
+        val stream  = new LatestSlotStream<Value>();
 
         if (expr instanceof Value v) {
-            return Flux.just(v);
+            stream.put(v);
+            stream.complete();
+            return stream;
         }
         if (expr instanceof PureOperator p) {
-            return Flux.just(p.evaluate(baseCtx));
+            stream.put(p.evaluate(baseCtx));
+            stream.complete();
+            return stream;
         }
         if (!(expr instanceof StreamOperator streamOp)) {
-            return Flux.error(
-                    new IllegalStateException("Unexpected CompiledExpression variant: " + expr.getClass().getName()));
+            stream.put(Value.error("Unexpected CompiledExpression variant: " + expr.getClass().getName()));
+            stream.complete();
+            return stream;
         }
 
         val initialDeps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
         StreamOperator.evalChild(streamOp, baseCtx, initialDeps);
         if (initialDeps.isEmpty()) {
             val r = streamOp.evaluate(baseCtx);
-            return r.result() != null ? Flux.just(r.result()) : Flux.empty();
+            if (r.result() != null) {
+                stream.put(r.result());
+            }
+            stream.complete();
+            return stream;
         }
 
-        val sink = Sinks.many().unicast().<Value>onBackpressureBuffer();
-        val sub  = store.open("flux-eval-" + UUID.randomUUID(), initialDeps.keySet(), snap -> {
-                     val r = streamOp.evaluate(baseCtx.withSnapshot(snap));
-                     if (r.result() != null) {
-                         sink.tryEmitNext(r.result());
-                     }
-                     return r.dependencies().keySet();
-                 });
-        return sink.asFlux().onBackpressureLatest().doFinally(signal -> sub.close());
+        val sub = store.open("vt-eval-" + UUID.randomUUID(), initialDeps.keySet(), snap -> {
+            val r = streamOp.evaluate(baseCtx.withSnapshot(snap));
+            if (r.result() != null) {
+                stream.put(r.result());
+            }
+            return r.dependencies().keySet();
+        });
+        stream.onClose(sub::close);
+        return stream;
     }
 }
