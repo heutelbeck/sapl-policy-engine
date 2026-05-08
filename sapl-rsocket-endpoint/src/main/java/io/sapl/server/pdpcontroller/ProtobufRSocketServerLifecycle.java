@@ -29,7 +29,7 @@ import io.netty.channel.unix.DomainSocketAddress;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -51,7 +51,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final @Nullable Duration                       maxConnectionLifetime;
-    private final MultiTenantPolicyDecisionPoint           pdp;
+    private final PolicyDecisionPoint                      pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
     private volatile @Nullable CloseableChannel server;

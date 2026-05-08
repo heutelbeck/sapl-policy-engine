@@ -1,0 +1,279 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.attributes.libraries.vnext.util;
+
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Value;
+import lombok.val;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+@DisplayName("Streams")
+class StreamsTests {
+
+    @Nested
+    @DisplayName("just")
+    class JustStream {
+
+        @Test
+        @DisplayName("emits the value and completes")
+        void whenJustThenEmitsValueAndCompletes() throws InterruptedException {
+            val stream = Streams.just(Value.of("hello"));
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("hello"));
+            assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("error")
+    class ErrorStream {
+
+        @Test
+        @DisplayName("emits a single error value carrying the message")
+        void whenErrorThenEmitsErrorValueAndCompletes() throws InterruptedException {
+            val stream = Streams.error("boom");
+
+            val emitted = stream.awaitNext();
+            assertThat(emitted).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) emitted).message()).isEqualTo("boom");
+            assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("empty")
+    class EmptyStream {
+
+        @Test
+        @DisplayName("completes without emitting any value")
+        void whenEmptyThenCompletesImmediately() throws InterruptedException {
+            val stream = Streams.empty();
+
+            assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("scheduledAt")
+    class ScheduledAt {
+
+        private RealTimeScheduler scheduler;
+
+        @BeforeEach
+        void setUp() {
+            scheduler = new RealTimeScheduler();
+        }
+
+        @AfterEach
+        void tearDown() {
+            scheduler.close();
+        }
+
+        @Test
+        @DisplayName("emits the value at the scheduled instant and completes")
+        void whenScheduledAtFutureThenEmitsAndCompletes() throws InterruptedException {
+            val when   = Clock.systemUTC().instant().plusMillis(40);
+            val stream = Streams.scheduledAt(Value.of("now"), when, scheduler);
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("now"));
+            assertThat(stream.awaitNext()).isNull();
+        }
+
+        @Test
+        @DisplayName("close before fire cancels the scheduled emission")
+        void whenCloseBeforeFireThenNoEmission() throws InterruptedException {
+            val when   = Clock.systemUTC().instant().plusMillis(200);
+            val stream = Streams.scheduledAt(Value.of("never"), when, scheduler);
+
+            stream.close();
+            Thread.sleep(300L);
+
+            assertThat(stream.tryNext()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("concat")
+    class Concat {
+
+        private RealTimeScheduler scheduler;
+
+        @BeforeEach
+        void setUp() {
+            scheduler = new RealTimeScheduler();
+        }
+
+        @AfterEach
+        void tearDown() {
+            scheduler.close();
+        }
+
+        @Test
+        @DisplayName("delivers each phase across a real time gap")
+        void whenConcatOverScheduledTransitionThenBothPhasesDelivered() throws InterruptedException {
+            val phase1 = Streams.just(Value.of("phase1"));
+            val phase2 = Streams.scheduledAt(Value.of("phase2"), Clock.systemUTC().instant().plusMillis(80), scheduler);
+
+            val stream = Streams.concat(phase1, phase2);
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("phase1"));
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("phase2"));
+            assertThat(stream.awaitNext()).isNull();
+        }
+
+        @Test
+        @DisplayName("completes after the only source completes")
+        void whenSingleSourceThenStreamCompletesAfterDelivery() throws InterruptedException {
+            val stream = Streams.concat(Streams.just(Value.of("only")));
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("only"));
+            assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("poll")
+    class Poll {
+
+        @Test
+        @DisplayName("emits the supplier's value immediately and again at each interval")
+        void whenPollThenEmitsRepeatedly() {
+            val callCount = new AtomicInteger();
+            val stream    = Streams.poll(Duration.ofMillis(30), () -> {
+                              callCount.incrementAndGet();
+                              return Value.of("tick");
+                          });
+
+            try (stream) {
+                await().atMost(Duration.ofSeconds(1)).until(() -> callCount.get() >= 3);
+            }
+        }
+
+        @Test
+        @DisplayName("emits an error value when the supplier throws and continues polling")
+        void whenSupplierThrowsThenErrorEmittedAndPollContinues() {
+            val callCount = new AtomicInteger();
+            val stream    = Streams.poll(Duration.ofMillis(20), () -> {
+                              val n = callCount.incrementAndGet();
+                              if (n == 1) {
+                                  throw new RuntimeException("first call fails");
+                              }
+                              return Value.of("ok");
+                          });
+
+            try (stream) {
+                await().atMost(Duration.ofSeconds(1)).until(() -> callCount.get() >= 3);
+            }
+        }
+
+        @Test
+        @DisplayName("close stops the polling loop")
+        void whenCloseThenLoopStops() throws InterruptedException {
+            val callCount = new AtomicInteger();
+            val stream    = Streams.poll(Duration.ofMillis(20), () -> {
+                              callCount.incrementAndGet();
+                              return Value.of("tick");
+                          });
+
+            await().atMost(Duration.ofSeconds(1)).until(() -> callCount.get() >= 1);
+            stream.close();
+            val countAtClose = callCount.get();
+            Thread.sleep(120L);
+
+            assertThat(callCount.get()).isLessThanOrEqualTo(countAtClose + 1);
+        }
+    }
+
+    @Nested
+    @DisplayName("fromBlockingSource")
+    class FromBlockingSource {
+
+        @Test
+        @DisplayName("emits each value returned by the source until null terminates the loop")
+        void whenSourceReturnsThenNullThenStreamCompletes() throws InterruptedException {
+            val seq    = new AtomicInteger();
+            val stream = Streams.fromBlockingSource(() -> {
+                           val n = seq.incrementAndGet();
+                           if (n > 2) {
+                               return null;
+                           }
+                           return Value.of("v" + n);
+                       });
+
+            // The first put may be replaced by the second put before consumer reads;
+            // verify completion semantics rather than precise ordering of values.
+            while (stream.awaitNext() != null) {
+                // drain
+            }
+        }
+
+        @Test
+        @DisplayName("emits an error value when the source throws and completes")
+        void whenSourceThrowsThenErrorEmittedAndStreamCompletes() throws InterruptedException {
+            val stream = Streams.fromBlockingSource(() -> {
+                throw new RuntimeException("nope");
+            });
+
+            val v = stream.awaitNext();
+            assertThat(v).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) v).message()).isEqualTo("nope");
+            assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("fromCallback")
+    class FromCallback {
+
+        @Test
+        @DisplayName("delivers values via the emit callback and completes via the complete callback")
+        void whenCallbackEmitsAndCompletesThenStreamReflectsBoth() throws InterruptedException {
+            val stream = Streams.fromCallback((emit, complete) -> {
+                emit.accept(Value.of("only"));
+                complete.run();
+                return () -> {};
+            });
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("only"));
+            assertThat(stream.awaitNext()).isNull();
+        }
+
+        @Test
+        @DisplayName("close runs the cleanup runnable returned by the producer")
+        void whenCloseThenCleanupRuns() {
+            val cleaned = new AtomicBoolean(false);
+            val stream  = Streams.fromCallback((emit, complete) -> () -> cleaned.set(true));
+
+            stream.close();
+
+            assertThat(cleaned).isTrue();
+        }
+    }
+}

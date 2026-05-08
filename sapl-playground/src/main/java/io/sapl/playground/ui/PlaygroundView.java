@@ -319,13 +319,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ValidationStatusDisplay subscriptionValidationDisplay;
     private ValidationStatusDisplay pdpStatusDisplay;
 
-    private Button                            playStopButton;
-    private Button                            scrollLockButton;
-    private IntegerField                      bufferSizeField;
-    private DecisionsGrid                     decisionsGrid;
+    private Button                       playStopButton;
+    private Button                       scrollLockButton;
+    private IntegerField                 bufferSizeField;
+    private DecisionsGrid                decisionsGrid;
     private GridListDataView<TracedVote> decisionsGridView;
-    private Checkbox                          clearOnNewSubscriptionCheckBox;
-    private Checkbox                          followLatestDecisionCheckbox;
+    private Checkbox                     clearOnNewSubscriptionCheckBox;
+    private Checkbox                     followLatestDecisionCheckbox;
 
     private JsonEditor             decisionJsonEditor;
     private JsonEditor             decisionJsonReportEditor;

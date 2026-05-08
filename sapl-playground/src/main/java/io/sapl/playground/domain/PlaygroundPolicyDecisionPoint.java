@@ -22,7 +22,7 @@ import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.MultiTenantPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TracedVote;
@@ -53,7 +53,7 @@ import java.util.UUID;
 public class PlaygroundPolicyDecisionPoint {
 
     private final PlaygroundConfigurationSource configurationSource;
-    private final ReactivePolicyDecisionPoint policyDecisionPoint;
+    private final ReactivePolicyDecisionPoint   policyDecisionPoint;
 
     /**
      * Creates a new playground policy decision point. Initializes the embedded PDP
@@ -84,7 +84,7 @@ public class PlaygroundPolicyDecisionPoint {
      */
     public Flux<TracedVote> decide(AuthorizationSubscription authorizationSubscription) {
         return policyDecisionPoint.gatherVotes(authorizationSubscription,
-                MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
+                PolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**
