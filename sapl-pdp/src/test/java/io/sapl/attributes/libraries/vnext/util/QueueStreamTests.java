@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes.libraries.vnext.util;
 
+import io.sapl.api.model.Poll;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,11 +44,11 @@ class QueueStreamTests {
     }
 
     @Test
-    @DisplayName("tryNext returns Optional.empty when queue is empty but not completed")
+    @DisplayName("tryNext returns Poll.empty when queue is empty but not completed")
     void whenQueueEmptyAndNotCompletedThenTryNextEmpty() {
         val stream = new QueueStream<String>();
 
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.empty());
     }
 
     @Test
@@ -62,15 +63,15 @@ class QueueStreamTests {
     }
 
     @Test
-    @DisplayName("tryNext returns Optional.empty after completion is reached")
-    void whenCompletionDrainedThenTryNextStaysEmpty() throws InterruptedException {
+    @DisplayName("tryNext returns Poll.done after completion is reached")
+    void whenCompletionDrainedThenTryNextStaysDone() throws InterruptedException {
         val stream = new QueueStream<String>();
         stream.put("one");
         stream.complete();
 
         assertThat(stream.awaitNext()).isEqualTo("one");
-        assertThat(stream.tryNext()).isEmpty();
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.done());
+        assertThat(stream.tryNext()).isEqualTo(Poll.done());
     }
 
     @Test

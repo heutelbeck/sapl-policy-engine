@@ -131,6 +131,9 @@ public class Streams {
                                 }
                                 pumpInto(source, out, stopped);
                             }
+                        } catch (RuntimeException loopFailure) {
+                            out.put(Value.error(loopFailure.getMessage() == null ? loopFailure.toString()
+                                    : loopFailure.getMessage()));
                         } finally {
                             out.complete();
                         }
@@ -325,6 +328,9 @@ public class Streams {
                                 val src = sourceFactory.get();
                                 pumpInto(src, out, stopped);
                             }
+                        } catch (RuntimeException loopFailure) {
+                            out.put(Value.error(loopFailure.getMessage() == null ? loopFailure.toString()
+                                    : loopFailure.getMessage()));
                         } finally {
                             out.complete();
                         }
@@ -364,6 +370,9 @@ public class Streams {
                              }
                          } catch (InterruptedException ie) {
                              Thread.currentThread().interrupt();
+                         } catch (RuntimeException loopFailure) {
+                             out.put(Value.error(loopFailure.getMessage() == null ? loopFailure.toString()
+                                     : loopFailure.getMessage()));
                          } finally {
                              out.complete();
                              source.close();
@@ -399,10 +408,13 @@ public class Streams {
             if (stopped.get()) {
                 return;
             }
+            boolean supplierEmittedError = false;
             try {
                 s.put(source.get());
-            } catch (RuntimeException e) {
-                s.put(Value.error(e.getMessage() == null ? e.toString() : e.getMessage()));
+            } catch (RuntimeException supplierFailure) {
+                s.put(Value.error(supplierFailure.getMessage() == null ? supplierFailure.toString()
+                        : supplierFailure.getMessage()));
+                supplierEmittedError = true;
             }
             if (stopped.get()) {
                 return;
@@ -411,6 +423,13 @@ public class Streams {
                 val nextInstant = clock.instant().plus(interval);
                 cancelHolder.set(scheduler.scheduleAt(nextInstant, tick.get()));
             } catch (RuntimeException reschedulingFailure) {
+                // Preserve the supplier's diagnostic (the user-visible error) by not
+                // overwriting it in the latest-wins slot. If only rescheduling failed,
+                // that error reaches the consumer.
+                if (!supplierEmittedError) {
+                    s.put(Value.error(reschedulingFailure.getMessage() == null ? reschedulingFailure.toString()
+                            : reschedulingFailure.getMessage()));
+                }
                 stopped.set(true);
                 s.complete();
             }

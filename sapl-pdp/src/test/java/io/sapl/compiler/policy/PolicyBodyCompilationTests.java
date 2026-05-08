@@ -455,8 +455,8 @@ class PolicyBodyCompilationTests {
                         .isInstanceOf(ErrorValue.class);
             }
             case Step.ExpectNoValue ignored        -> {
-                assertThat(expr.tryNext()).as("expr at " + pos).isEmpty();
-                assertThat(coverage.tryNext()).as("coverage at " + pos).isEmpty();
+                assertThat(expr.tryNext()).as("expr at " + pos).isNotInstanceOf(Poll.Value.class);
+                assertThat(coverage.tryNext()).as("coverage at " + pos).isNotInstanceOf(Poll.Value.class);
             }
             }
             idx++;

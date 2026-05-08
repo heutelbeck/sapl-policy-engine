@@ -17,10 +17,10 @@
  */
 package io.sapl.compiler.eval;
 
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Stream;
 import lombok.val;
 
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -95,16 +95,16 @@ final class QueueStream<T> implements Stream<T> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Optional<T> tryNext() {
+    public Poll<T> tryNext() {
         val item = queue.poll();
         if (item == null) {
-            return Optional.empty();
+            return completed ? Poll.done() : Poll.empty();
         }
         if (item == COMPLETION_SENTINEL) {
             queue.add(COMPLETION_SENTINEL);
-            return Optional.empty();
+            return Poll.done();
         }
-        return Optional.of((T) item);
+        return Poll.value((T) item);
     }
 
     @Override

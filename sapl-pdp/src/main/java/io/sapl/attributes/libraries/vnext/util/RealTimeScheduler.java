@@ -64,7 +64,11 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
                                       try {
                                           task.run();
                                       } catch (RuntimeException e) {
-                                          log.warn("Scheduled task raised an exception", e);
+                                          // Tasks scheduled here are expected to handle their own
+                                          // exceptions (Streams helpers do, via stream error
+                                          // emission). Reaching here means a bug in a task's own
+                                          // exception handling. Log loudly with stack trace.
+                                          log.error("Scheduled task raised an unhandled exception", e);
                                       }
                                   }, delay, TimeUnit.NANOSECONDS);
         return () -> future.cancel(false);

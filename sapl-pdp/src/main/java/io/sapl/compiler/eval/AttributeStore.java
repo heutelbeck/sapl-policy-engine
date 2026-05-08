@@ -90,7 +90,7 @@ public interface AttributeStore extends AutoCloseable {
      * all)
      * @param onUpdate fired when a fulfilled snapshot is available;
      * receives the snapshot, returns the next dep set;
-     * per-subscription serialised (never invoked concurrently with
+     * per-subscription serialized (never invoked concurrently with
      * itself for the same {@code subscriptionId}); fires outside any
      * internal store lock; an empty returned set or a {@code null}
      * returned set causes the store to fail the subscription with an

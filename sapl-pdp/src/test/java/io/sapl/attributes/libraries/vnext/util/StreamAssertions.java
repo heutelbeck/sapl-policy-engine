@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes.libraries.vnext.util;
 
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Stream;
 import lombok.val;
 import org.assertj.core.api.AbstractAssert;
@@ -126,23 +127,27 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
 
     /**
      * Drains every value the stream emits until completion or
-     * timeout, returning them as a list. Closes the stream after.
+     * timeout, returning them as a list. Exits early when the stream
+     * signals completion. Closes the stream after.
      */
     public List<T> drain() {
         val collected = new ArrayList<T>();
         val deadline  = System.nanoTime() + timeout.toNanos();
         try (val stream = actual) {
             while (System.nanoTime() < deadline) {
-                val maybe = stream.tryNext();
-                if (maybe.isPresent()) {
-                    collected.add(maybe.get());
-                    continue;
+                switch (stream.tryNext()) {
+                case Poll.Value<T>(var v) -> collected.add(v);
+                case Poll.Done<T> done    -> {
+                    return collected;
                 }
-                try {
-                    Thread.sleep(2L);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
+                case Poll.Empty<T> empty  -> {
+                    try {
+                        Thread.sleep(2L);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return collected;
+                    }
+                }
                 }
             }
         }
@@ -152,16 +157,23 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     private T pollOrFail(String op) {
         val deadline = System.nanoTime() + timeout.toNanos();
         while (System.nanoTime() < deadline) {
-            val maybe = actual.tryNext();
-            if (maybe.isPresent()) {
-                return maybe.get();
+            switch (actual.tryNext()) {
+            case Poll.Value<T>(var v) -> {
+                return v;
             }
-            try {
-                Thread.sleep(2L);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                failWithMessage("Interrupted while waiting for %s", op);
+            case Poll.Done<T> done    -> {
+                failWithMessage("Stream completed before producing a value for %s", op);
                 return null;
+            }
+            case Poll.Empty<T> empty  -> {
+                try {
+                    Thread.sleep(2L);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    failWithMessage("Interrupted while waiting for %s", op);
+                    return null;
+                }
+            }
             }
         }
         failWithMessage("Timed out after %s waiting for %s", timeout, op);

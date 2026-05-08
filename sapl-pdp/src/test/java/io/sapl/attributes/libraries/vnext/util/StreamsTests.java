@@ -18,6 +18,7 @@
 package io.sapl.attributes.libraries.vnext.util;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
@@ -115,7 +116,7 @@ class StreamsTests {
             stream.close();
             Thread.sleep(300L);
 
-            assertThat(stream.tryNext()).isEmpty();
+            assertThat(stream.tryNext()).isEqualTo(Poll.done());
         }
     }
 
@@ -160,7 +161,7 @@ class StreamsTests {
 
     @Nested
     @DisplayName("poll")
-    class Poll {
+    class PollHelper {
 
         @Test
         @DisplayName("emits the supplier's value immediately and again at each interval")

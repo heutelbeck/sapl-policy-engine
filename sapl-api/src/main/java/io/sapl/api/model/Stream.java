@@ -17,18 +17,17 @@
  */
 package io.sapl.api.model;
 
-import java.util.Optional;
-
 /**
  * A closeable handle for receiving values one at a time. Use
  * {@link #awaitNext()} to block until a value is ready. Use
- * {@link #tryNext()} to retrieve a value without blocking, or
- * {@link Optional#empty()} if none is queued.
+ * {@link #tryNext()} for a non-blocking poll that distinguishes a
+ * delivered value, an open-but-empty stream, and a completed
+ * stream via the {@link Poll} sealed type.
  * <p>
  * A stream that has completed delivers no further values:
  * {@link #awaitNext()} returns {@code null}, {@link #tryNext()}
- * returns {@link Optional#empty()}. A stream completes either when
- * its source has no more values to produce or when {@link #close()}
+ * returns {@link Poll.Done}. A stream completes either when its
+ * source has no more values to produce or when {@link #close()}
  * is called.
  * <p>
  * Always close the stream when finished. Use try-with-resources.
@@ -50,12 +49,32 @@ public interface Stream<T> extends AutoCloseable {
     T awaitNext() throws InterruptedException;
 
     /**
-     * Returns the next value if one is queued, otherwise
-     * returns {@link Optional#empty()}. Never blocks.
+     * Polls for the next value without blocking. Returns one of:
+     * <ul>
+     * <li>{@link Poll.Value} - a value was available and is consumed</li>
+     * <li>{@link Poll.Empty} - no value was available; the stream is
+     * still open and may yield a value later</li>
+     * <li>{@link Poll.Done} - the stream has completed; no further
+     * values will be produced</li>
+     * </ul>
+     * <p>
+     * Drain pattern:
      *
-     * @return the next value, or empty if none is queued
+     * <pre>{@code
+     * while (true) {
+     *     switch (stream.tryNext()) {
+     *     case Poll.Value(var v) -> handle(v);
+     *     case Poll.Empty<T> e -> waitOrYield();
+     *     case Poll.Done<T> d -> {
+     *         return;
+     *     }
+     *     }
+     * }
+     * }</pre>
+     *
+     * @return the poll outcome
      */
-    Optional<T> tryNext();
+    Poll<T> tryNext();
 
     /**
      * Closes the stream. After this returns, no further values

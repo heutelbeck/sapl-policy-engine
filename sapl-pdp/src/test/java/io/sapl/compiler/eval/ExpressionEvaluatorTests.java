@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.eval;
 
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.store.TestAttributeStore;
 import lombok.val;
@@ -76,11 +77,11 @@ class ExpressionEvaluatorTests {
         try (val store = new TestAttributeStore()) {
             store.register("test.attr");
             try (val stream = VTExpressionEvaluator.evaluate("<test.attr>", store)) {
-                assertThat(stream.tryNext()).isEmpty();
+                assertThat(stream.tryNext()).isEqualTo(Poll.empty());
 
                 store.publishByName("test.attr", Value.of("first"));
                 assertThat(stream.awaitNext()).isEqualTo(Value.of("first"));
-                assertThat(stream.tryNext()).isEmpty();
+                assertThat(stream.tryNext()).isEqualTo(Poll.empty());
 
                 store.publishByName("test.attr", Value.of("second"));
                 assertThat(stream.awaitNext()).isEqualTo(Value.of("second"));
@@ -95,7 +96,7 @@ class ExpressionEvaluatorTests {
             store.register("test.attr", Value.of("primed"));
             try (val stream = VTExpressionEvaluator.evaluate("<test.attr>", store)) {
                 assertThat(stream.awaitNext()).isEqualTo(Value.of("primed"));
-                assertThat(stream.tryNext()).isEmpty();
+                assertThat(stream.tryNext()).isEqualTo(Poll.empty());
 
                 store.publishByName("test.attr", Value.of("updated"));
                 assertThat(stream.awaitNext()).isEqualTo(Value.of("updated"));

@@ -17,10 +17,10 @@
  */
 package io.sapl.attributes.libraries.vnext.util;
 
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Stream;
 import lombok.val;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -88,14 +88,17 @@ public final class LatestSlotStream<T> implements Stream<T> {
     }
 
     @Override
-    public synchronized Optional<T> tryNext() {
+    public synchronized Poll<T> tryNext() {
         if (hasValue) {
             val result = value;
             value    = null;
             hasValue = false;
-            return Optional.of(result);
+            return Poll.value(result);
         }
-        return Optional.empty();
+        if (completed) {
+            return Poll.done();
+        }
+        return Poll.empty();
     }
 
     @Override

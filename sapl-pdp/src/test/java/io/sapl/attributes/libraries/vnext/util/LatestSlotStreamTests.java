@@ -17,6 +17,7 @@
  */
 package io.sapl.attributes.libraries.vnext.util;
 
+import io.sapl.api.model.Poll;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,8 +40,8 @@ class LatestSlotStreamTests {
 
         stream.put("first");
 
-        assertThat(stream.tryNext()).contains("first");
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.value("first"));
+        assertThat(stream.tryNext()).isEqualTo(Poll.empty());
     }
 
     @Test
@@ -52,8 +53,8 @@ class LatestSlotStreamTests {
         stream.put("second");
         stream.put("third");
 
-        assertThat(stream.tryNext()).contains("third");
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.value("third"));
+        assertThat(stream.tryNext()).isEqualTo(Poll.empty());
     }
 
     @Test
@@ -88,13 +89,13 @@ class LatestSlotStreamTests {
     }
 
     @Test
-    @DisplayName("tryNext returns Optional.empty after complete with empty slot")
-    void whenCompleteWithoutPendingValueThenTryNextIsEmpty() {
+    @DisplayName("tryNext returns Poll.done after complete with empty slot")
+    void whenCompleteWithoutPendingValueThenTryNextIsDone() {
         val stream = new LatestSlotStream<String>();
 
         stream.complete();
 
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.done());
     }
 
     @Test
@@ -105,7 +106,7 @@ class LatestSlotStreamTests {
         stream.complete();
         stream.put("ignored");
 
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.done());
     }
 
     @Test
@@ -119,7 +120,7 @@ class LatestSlotStreamTests {
         stream.close();
 
         assertThat(callCount).hasValue(1);
-        assertThat(stream.tryNext()).isEmpty();
+        assertThat(stream.tryNext()).isEqualTo(Poll.done());
     }
 
     @Test
