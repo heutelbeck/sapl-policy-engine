@@ -18,7 +18,7 @@
 package io.sapl.compiler.eval;
 
 import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.Stream;
+import io.sapl.api.stream.Stream;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.policy.CoverageVoter;
 import io.sapl.util.SaplTesting;

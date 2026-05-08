@@ -20,9 +20,9 @@ package io.sapl.attributes.libraries.vnext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.libraries.vnext.util.MutableClock;
-import io.sapl.attributes.libraries.vnext.util.StreamAssertions;
-import io.sapl.attributes.libraries.vnext.util.TestTimeScheduler;
+import io.sapl.api.test.stream.MutableClock;
+import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.api.test.stream.TestTimeScheduler;
 import lombok.val;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -70,7 +70,7 @@ class TimePolicyInformationPointTests {
         }
     }
 
-    private static void awaitsErrorAndCompletes(io.sapl.api.model.Stream<Value> stream) {
+    private static void awaitsErrorAndCompletes(io.sapl.api.stream.Stream<Value> stream) {
         StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(v -> {
             if (!(v instanceof ErrorValue)) {
                 throw new AssertionError("Expected ErrorValue, got: " + v);

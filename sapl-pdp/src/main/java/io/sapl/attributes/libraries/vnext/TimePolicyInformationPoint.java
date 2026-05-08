@@ -22,11 +22,11 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.Stream;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.libraries.vnext.util.Streams;
-import io.sapl.attributes.libraries.vnext.util.TimeScheduler;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.stream.TimeScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 

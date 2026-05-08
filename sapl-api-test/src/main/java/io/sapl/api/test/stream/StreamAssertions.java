@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.libraries.vnext.util;
+package io.sapl.api.test.stream;
 
 import io.sapl.api.model.Poll;
-import io.sapl.api.model.Stream;
+import io.sapl.api.stream.Stream;
 import lombok.val;
 import org.assertj.core.api.AbstractAssert;
 
@@ -136,11 +136,11 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
         try (val stream = actual) {
             while (System.nanoTime() < deadline) {
                 switch (stream.tryNext()) {
-                case Poll.Value<T>(var v) -> collected.add(v);
-                case Poll.Done<T> done    -> {
+                case Poll.Value<T>(var v)  -> collected.add(v);
+                case Poll.Done<T> ignored  -> {
                     return collected;
                 }
-                case Poll.Empty<T> empty  -> {
+                case Poll.Empty<T> ignored -> {
                     try {
                         Thread.sleep(2L);
                     } catch (InterruptedException ie) {
@@ -158,14 +158,14 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
         val deadline = System.nanoTime() + timeout.toNanos();
         while (System.nanoTime() < deadline) {
             switch (actual.tryNext()) {
-            case Poll.Value<T>(var v) -> {
+            case Poll.Value<T>(var v)  -> {
                 return v;
             }
-            case Poll.Done<T> done    -> {
+            case Poll.Done<T> ignored  -> {
                 failWithMessage("Stream completed before producing a value for %s", op);
                 return null;
             }
-            case Poll.Empty<T> empty  -> {
+            case Poll.Empty<T> ignored -> {
                 try {
                     Thread.sleep(2L);
                 } catch (InterruptedException ie) {

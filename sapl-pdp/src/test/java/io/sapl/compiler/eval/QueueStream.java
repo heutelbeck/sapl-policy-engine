@@ -18,7 +18,7 @@
 package io.sapl.compiler.eval;
 
 import io.sapl.api.model.Poll;
-import io.sapl.api.model.Stream;
+import io.sapl.api.stream.Stream;
 import lombok.val;
 
 import java.util.concurrent.BlockingQueue;

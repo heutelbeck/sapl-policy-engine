@@ -19,9 +19,9 @@ package io.sapl.attributes.libraries.vnext;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.libraries.vnext.util.MutableClock;
-import io.sapl.attributes.libraries.vnext.util.StreamAssertions;
-import io.sapl.attributes.libraries.vnext.util.TestTimeScheduler;
+import io.sapl.api.test.stream.MutableClock;
+import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.api.test.stream.TestTimeScheduler;
 import lombok.val;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;

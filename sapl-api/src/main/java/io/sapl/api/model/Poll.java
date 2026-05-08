@@ -17,6 +17,8 @@
  */
 package io.sapl.api.model;
 
+import io.sapl.api.stream.Stream;
+
 /**
  * Result of a non-blocking poll on a {@link Stream}. Distinguishes
  * the three observable outcomes: a value was available, no value was

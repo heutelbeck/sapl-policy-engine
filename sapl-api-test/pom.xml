@@ -27,32 +27,30 @@
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>4.1.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>sapl-api</artifactId>
-	<name>SAPL API</name>
-	<description>Core API types for SAPL policy evaluation including Value model,
-		authorization decisions, and extension interfaces.</description>
+	<artifactId>sapl-api-test</artifactId>
+	<name>SAPL API Test Support</name>
+	<description>Reusable test infrastructure for code that consumes the SAPL API.
+		Provides a deterministic TimeScheduler and mutable Clock for boundary tests,
+		and AssertJ-style fluent assertions over Stream&lt;T&gt;. Intended to be used
+		as a test-scope dependency by modules that build on sapl-api (PIPs,
+		extensions, transports).</description>
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 
 	<dependencies>
-		<!-- JSON Processing (Jackson 3) -->
+		<!-- SAPL API: provides Stream, Poll, TimeScheduler, etc. -->
 		<dependency>
-			<groupId>tools.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-api</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
-		<!-- Reactive Streams -->
+		<!-- AssertJ: StreamAssertions extends AbstractAssert -->
 		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-core</artifactId>
-		</dependency>
-
-		<!-- Logging API (used by Streams infrastructure via @Slf4j) -->
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
 		</dependency>
 
 		<!-- Annotations -->
@@ -61,36 +59,21 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.jetbrains</groupId>
-			<artifactId>annotations</artifactId>
-			<scope>provided</scope>
-		</dependency>
 
-		<!-- Testing -->
-		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<scope>test</scope>
-		</dependency>
+		<!-- Testing (self-tests for the test infrastructure) -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.awaitility</groupId>
 			<artifactId>awaitility</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>mockwebserver</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

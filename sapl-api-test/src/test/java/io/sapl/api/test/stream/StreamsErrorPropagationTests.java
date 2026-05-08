@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.libraries.vnext.util;
+package io.sapl.api.test.stream;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Poll;
-import io.sapl.api.model.Stream;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.Stream;
+import io.sapl.api.stream.Streams;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

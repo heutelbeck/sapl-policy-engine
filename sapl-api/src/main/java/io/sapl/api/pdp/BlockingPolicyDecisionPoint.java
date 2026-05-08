@@ -17,7 +17,7 @@
  */
 package io.sapl.api.pdp;
 
-import io.sapl.api.model.Stream;
+import io.sapl.api.stream.Stream;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 /**

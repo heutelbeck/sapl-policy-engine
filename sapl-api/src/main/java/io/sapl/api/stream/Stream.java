@@ -15,7 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.model;
+package io.sapl.api.stream;
+
+import io.sapl.api.model.Poll;
 
 /**
  * A closeable handle for receiving values one at a time. Use

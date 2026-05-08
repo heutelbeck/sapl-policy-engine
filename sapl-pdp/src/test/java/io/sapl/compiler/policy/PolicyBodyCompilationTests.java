@@ -18,6 +18,7 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.*;
+import io.sapl.api.stream.Stream;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;

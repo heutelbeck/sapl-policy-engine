@@ -20,7 +20,7 @@ package io.sapl.compiler.eval;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Stream;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;

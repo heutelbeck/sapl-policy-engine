@@ -637,6 +637,7 @@
 		<!-- Core modules -->
 		<module>sapl-api</module>
 		<module>sapl-api-proto</module>
+		<module>sapl-api-test</module>
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>
 

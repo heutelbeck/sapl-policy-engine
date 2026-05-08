@@ -15,8 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.libraries.vnext.util;
+package io.sapl.api.test.stream;
 
+import io.sapl.api.stream.Cancellable;
+import io.sapl.api.stream.TimeScheduler;
 import lombok.val;
 
 import java.time.Instant;
