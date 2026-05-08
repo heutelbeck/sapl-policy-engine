@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
@@ -895,7 +896,7 @@ public class TimePolicyInformationPoint {
     private ZoneId resolveZone(TextValue timezone) {
         try {
             return ZoneId.of(timezone.value());
-        } catch (Exception e) {
+        } catch (DateTimeException e) {
             throw new IllegalArgumentException(String.format(ERROR_TIMEZONE_INVALID, timezone.value()), e);
         }
     }

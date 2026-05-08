@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -135,7 +136,7 @@ public class BlockingWebClient {
             val supplier = jsonRequestSupplier(request, accept);
             return Streams.scheduledPoll(Duration.ofMillis(pollingMs), supplier, clock, scheduler);
         } catch (RuntimeException e) {
-            return Streams.error(e.getMessage() == null ? e.toString() : e.getMessage());
+            return Streams.error(messageOf(e));
         }
     }
 
@@ -153,7 +154,7 @@ public class BlockingWebClient {
             val uri     = URI.create(baseUrl + path);
             return openWebSocket(uri, headers, body);
         } catch (RuntimeException e) {
-            return Streams.error(e.getMessage() == null ? e.toString() : e.getMessage());
+            return Streams.error(messageOf(e));
         }
     }
 
@@ -182,7 +183,7 @@ public class BlockingWebClient {
                 return Value.error(e.getMessage());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return Value.error(e.getMessage() == null ? e.toString() : e.getMessage());
+                return Value.error(messageOf(e));
             }
         };
     }
@@ -203,7 +204,7 @@ public class BlockingWebClient {
                                 bodyRef.set(lines);
                                 pumpServerSentEvents(lines.iterator(), emit, stopped);
                             } catch (IOException e) {
-                                emit.accept(Value.error(e.getMessage() == null ? e.toString() : e.getMessage()));
+                                emit.accept(Value.error(messageOf(e)));
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             } finally {
@@ -272,8 +273,7 @@ public class BlockingWebClient {
                     ws.sendText(body.asString(), true);
                 }
             } catch (ExecutionException e) {
-                val cause = e.getCause();
-                emit.accept(Value.error(cause == null ? e.getMessage() : cause.getMessage()));
+                emit.accept(Value.error(messageOf(e.getCause() != null ? e.getCause() : e)));
                 complete.run();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -326,7 +326,7 @@ public class BlockingWebClient {
         var builder = HttpRequest.newBuilder().uri(uri).timeout(READ_TIMEOUT).header("Accept", accept);
         builder = applyHttpHeaders(builder, headers);
 
-        val upper = method.toUpperCase();
+        val upper = method.toUpperCase(Locale.ROOT);
         return switch (upper) {
         case "GET"    -> builder.GET().build();
         case "DELETE" -> builder.DELETE().build();
@@ -376,8 +376,8 @@ public class BlockingWebClient {
             throw new IllegalArgumentException(ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST);
         }
         val value = requestSettings.get(BASE_URL);
-        if (value instanceof TextValue text) {
-            return text.value();
+        if (value instanceof TextValue(var s)) {
+            return s;
         }
         throw new IllegalArgumentException(ERROR_BASE_URL_MUST_BE_TEXT);
     }
@@ -387,8 +387,8 @@ public class BlockingWebClient {
             return defaultValue;
         }
         val value = requestSettings.get(fieldName);
-        if (value instanceof TextValue text) {
-            return text.value();
+        if (value instanceof TextValue(var s)) {
+            return s;
         }
         return defaultValue;
     }
@@ -408,8 +408,8 @@ public class BlockingWebClient {
         if (value == null) {
             throw new IllegalArgumentException(ERROR_FIELD_MUST_BE_NUMBER_NULL.formatted(fieldName));
         }
-        if (value instanceof NumberValue num) {
-            return num.value().longValue();
+        if (value instanceof NumberValue(var n)) {
+            return n.longValue();
         }
         throw new IllegalArgumentException(
                 ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE.formatted(fieldName, value.getClass().getSimpleName()));
@@ -417,6 +417,10 @@ public class BlockingWebClient {
 
     private Map<String, String> toStringMap(JsonNode node) {
         return mapper.convertValue(node, new TypeReference<Map<String, String>>() {});
+    }
+
+    private static String messageOf(Throwable t) {
+        return t.getMessage() == null ? t.toString() : t.getMessage();
     }
 
     /**
@@ -465,7 +469,7 @@ public class BlockingWebClient {
 
         @Override
         public void onError(WebSocket webSocket, Throwable error) {
-            emit.accept(Value.error(error.getMessage() == null ? error.toString() : error.getMessage()));
+            emit.accept(Value.error(messageOf(error)));
             complete.run();
         }
 
