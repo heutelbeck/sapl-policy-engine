@@ -18,16 +18,13 @@
 package io.sapl.spring.pdp.embedded;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildAttributeBroker;
+import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildAttributeStore;
 import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
-import io.sapl.legacy.api.attributes.AttributeBroker;
-import io.sapl.legacy.api.attributes.AttributeBrokerException;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryClassProvider;
-import io.sapl.attributes.store.InMemoryAttributeStore;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
@@ -81,7 +78,7 @@ import java.util.Set;
  * <p>
  * Each top-level collaborator of the PDP is exposed as its own Spring
  * bean so the container manages each lifecycle individually:
- * {@link FunctionBroker}, {@link AttributeBroker},
+ * {@link FunctionBroker}, {@link AttributeStore},
  * {@link PDPConfigurationSource}, {@link PdpVoterSource},
  * {@link IdFactory}, and the {@link PolicyDecisionPoint} itself. Beans
  * that hold real resources implement {@link AutoCloseable} (the voter
@@ -151,16 +148,6 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeBroker attributeBroker(JsonMapper mapper, Clock clock, ApplicationContext applicationContext)
-            throws AttributeBrokerException {
-        val pips = collectPolicyInformationPoints(applicationContext);
-        log.debug("Building AttributeBroker: {} custom PIP instances.", pips.size());
-        return buildAttributeBroker(null, clock, true, mapper, null, pips);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PDPConfigurationSource pdpConfigurationSource(EmbeddedPDPProperties properties) {
         val rawPath      = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPoliciesPath());
         val resolvedPath = rawPath.toAbsolutePath().normalize();
@@ -201,9 +188,9 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PdpVoterSource pdpVoterSource(FunctionBroker functionBroker, AttributeBroker attributeBroker, Clock clock,
+    PdpVoterSource pdpVoterSource(FunctionBroker functionBroker, Clock clock,
             ObjectProvider<PDPConfigurationSource> sourceProvider) {
-        val voterSource = new PdpVoterSource(functionBroker, attributeBroker, clock);
+        val voterSource = new PdpVoterSource(functionBroker, clock);
         val source      = sourceProvider.getIfAvailable();
         if (source != null) {
             source.subscribe(voterSource::handle);
@@ -228,8 +215,10 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeStore attributeStore() {
-        return new InMemoryAttributeStore();
+    AttributeStore attributeStore(JsonMapper mapper, Clock clock, ApplicationContext applicationContext) {
+        val pips = collectPolicyInformationPoints(applicationContext);
+        log.debug("Building AttributeStore: SAPL default PIPs plus {} custom PIP instances.", pips.size());
+        return buildAttributeStore(clock, mapper, true, pips);
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {

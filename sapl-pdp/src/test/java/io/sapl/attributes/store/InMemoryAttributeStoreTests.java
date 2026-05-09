@@ -423,6 +423,21 @@ class InMemoryAttributeStoreTests {
                 assertThat(valueFor(key, recorder, 0)).isInstanceOf(ErrorValue.class);
             }
         }
+
+        @Test
+        @DisplayName("bare-Value PIP returning Java null surfaces an ErrorValue (gate opens, no hang)")
+        void whenBareValueReturnsJavaNullThenErrorValue() {
+            store.load(new NullReturningPip());
+            val key      = envKey("nullpip.value");
+            val recorder = new Recorder(Set.of(key));
+
+            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+                Awaitility.await().atMost(Duration.ofSeconds(2))
+                        .untilAsserted(() -> assertThat(recorder.snapshots).hasSizeGreaterThanOrEqualTo(1));
+                assertThat(valueFor(key, recorder, 0)).isInstanceOfSatisfying(ErrorValue.class,
+                        e -> assertThat(e.message()).contains("returned Java null"));
+            }
+        }
     }
 
     @Nested
@@ -702,6 +717,14 @@ class InMemoryAttributeStoreTests {
         @EnvironmentAttribute
         public static Value always() {
             return Value.error("always-fail");
+        }
+    }
+
+    @PolicyInformationPoint(name = "nullpip")
+    static class NullReturningPip {
+        @EnvironmentAttribute
+        public static Value value() {
+            return null;
         }
     }
 

@@ -71,6 +71,7 @@ public class StreamAttributeMethodSignatureProcessor {
 
     public static final String ERROR_ATTRIBUTE_EXECUTION_TEMPLATE   = "Attribute '%s' execution failed: %s";
     public static final String ERROR_ATTRIBUTE_NOT_STATIC           = "Attribute method '%s' must be static when no PIP instance is provided.";
+    public static final String ERROR_ATTRIBUTE_RETURNED_NULL        = "Attribute '%s' returned Java null; PIPs returning Value must return Value.UNDEFINED or Value.error explicitly.";
     public static final String ERROR_BAD_PARAMETER_TYPE             = "Attributes must only have Value or its Sub-Types as parameters, but found: %s.";
     public static final String ERROR_BAD_RETURN_TYPE                = "Attribute method must return Stream<Value> or a Value subtype, but returns: %s.";
     public static final String ERROR_BAD_VARARGS_PARAMETER_TYPE     = "Varargs array must have Value or its Sub-Types as component type, but found: %s.";
@@ -239,6 +240,10 @@ public class StreamAttributeMethodSignatureProcessor {
                 }
 
                 val result = methodHandle.invokeWithArguments((Object[]) methodParameters);
+                if (!returnsStream && result == null) {
+                    return Streams
+                            .just(Value.error(ERROR_ATTRIBUTE_RETURNED_NULL.formatted(invocation.attributeName())));
+                }
                 return convertResultToStream(result, returnsStream);
 
             } catch (Throwable throwable) {
