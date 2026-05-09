@@ -17,7 +17,6 @@
  */
 package io.sapl.util;
 
-import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionInvocation;
@@ -59,7 +58,6 @@ import lombok.val;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.jspecify.annotations.Nullable;
-import reactor.core.publisher.Flux;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -84,7 +82,6 @@ public class SaplTesting {
     public static final SourceLocation        TEST_LOCATION           = new SourceLocation("test", "", 0, 0, 1, 1, 1,
             1);
     public static final FunctionBroker        FUNCTION_BROKER;
-    public static final AttributeBroker       ATTRIBUTE_BROKER;
     public static final DefaultFunctionBroker DEFAULT_FUNCTION_BROKER = new DefaultFunctionBroker();
 
     private static final JsonMapper            MAPPER      = JsonMapper.builder().addModule(new SaplJacksonModule())
@@ -102,18 +99,6 @@ public class SaplTesting {
         functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class);
         functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
         FUNCTION_BROKER = functionBroker;
-
-        ATTRIBUTE_BROKER = new AttributeBroker() {
-            @Override
-            public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-                return Flux.just(Value.error("No attribute finder registered for: " + invocation.attributeName()));
-            }
-
-            @Override
-            public List<Class<?>> getRegisteredLibraries() {
-                return List.of();
-            }
-        };
     }
 
     public static Expression parseExpression(String expressionSource) {

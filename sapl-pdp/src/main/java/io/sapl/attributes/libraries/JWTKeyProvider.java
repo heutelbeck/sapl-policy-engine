@@ -18,18 +18,20 @@
 package io.sapl.attributes.libraries;
 
 import io.sapl.api.SaplVersion;
-import lombok.Getter;
 import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
-import reactor.core.publisher.Mono;
+import lombok.val;
 import tools.jackson.databind.JsonNode;
 
+import java.io.IOException;
 import java.io.Serial;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.Key;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -38,18 +40,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Class for retrieving public keys from the JWT Authorization Server.
+ * Retrieves public keys from a remote JWT authorization server with
+ * a TTL-bounded cache. Synchronous: a call to {@link #provide(String,
+ * JsonNode)} blocks until the key is available or the request fails.
  */
 @Slf4j
 public class JWTKeyProvider {
 
     private static final String ERROR_JWT_KEY_CACHING_CONFIGURATION = "The provided caching configuration was not understood: ";
-    private static final String ERROR_JWT_KEY_SERVER_HTTP           = "Error trying to retrieve a public key: ";
+    private static final String ERROR_JWT_KEY_SERVER_HTTP           = "Error trying to retrieve a public key: HTTP {}";
+    private static final String ERROR_JWT_KEY_SERVER_IO             = "I/O error retrieving a public key: {}";
 
-    public static final String PUBLIC_KEY_URI_KEY     = "uri";
-    public static final String PUBLIC_KEY_METHOD_KEY  = "method";
-    public static final String KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
-    static final long          DEFAULT_CACHING_TTL    = 300000L;
+    public static final String    PUBLIC_KEY_URI_KEY     = "uri";
+    public static final String    PUBLIC_KEY_METHOD_KEY  = "method";
+    public static final String    KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
+    static final long             DEFAULT_CACHING_TTL    = 300_000L;
+    private static final Duration HTTP_REQUEST_TIMEOUT   = Duration.ofSeconds(10L);
 
     /**
      * Exception indicating a caching error.
@@ -62,84 +68,84 @@ public class JWTKeyProvider {
 
     private final Map<String, Key>  keyCache;
     private final Queue<CacheEntry> cachingTimes;
-    private final WebClient         webClient;
-    private long                    lastTTL = DEFAULT_CACHING_TTL;
+    private final HttpClient        httpClient;
+    private final Clock             clock;
+    private long                    lastTtl = DEFAULT_CACHING_TTL;
 
     /**
-     * Creates a JWTKeyProvider.
-     *
-     * @param builder a WebClient builder.
+     * Creates a JWTKeyProvider backed by the given {@link HttpClient}
+     * and reading the current time from {@code clock} for cache TTL
+     * decisions.
      */
-    public JWTKeyProvider(WebClient.Builder builder) {
-        webClient    = builder.build();
-        keyCache     = new ConcurrentHashMap<>();
-        cachingTimes = new ConcurrentLinkedQueue<>();
+    public JWTKeyProvider(HttpClient httpClient, Clock clock) {
+        this.httpClient   = httpClient;
+        this.clock        = clock;
+        this.keyCache     = new ConcurrentHashMap<>();
+        this.cachingTimes = new ConcurrentLinkedQueue<>();
     }
 
     /**
-     * Creates a JWTKeyProvider without a WebClient. Intended for dummy/stub
-     * subclasses that override {@link #provide} and never make HTTP calls.
+     * Creates a JWTKeyProvider with no HTTP client. Intended for stub
+     * subclasses in tests that override {@link #provide} and never
+     * make HTTP calls.
      */
-    protected JWTKeyProvider() {
-        webClient    = null;
-        keyCache     = new ConcurrentHashMap<>();
-        cachingTimes = new ConcurrentLinkedQueue<>();
+    protected JWTKeyProvider(Clock clock) {
+        this.httpClient   = null;
+        this.clock        = clock;
+        this.keyCache     = new ConcurrentHashMap<>();
+        this.cachingTimes = new ConcurrentLinkedQueue<>();
     }
 
     /**
-     * Fetches the public key of a server.
+     * Fetches the public key for the given key id. Returns
+     * {@link Optional#empty()} if the key cannot be retrieved.
      *
      * @param kid the key id
-     * @param jPublicKeyServer the key server
-     * @return the public key
-     * @throws CachingException on errors
+     * @param jPublicKeyServer the key-server configuration node
+     * @return the public key, or empty if not available
+     * @throws CachingException if the caching configuration is invalid
      */
-    public Mono<Key> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
+    public Optional<Key> provide(String kid, JsonNode jPublicKeyServer) throws CachingException {
+        val jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
+        if (null == jUri) {
+            return Optional.empty();
+        }
 
-        final var jUri = jPublicKeyServer.get(PUBLIC_KEY_URI_KEY);
-        if (null == jUri)
-            return Mono.empty();
-
-        final var jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
-        var       sMethod = "GET";
-        if (null != jMethod && jMethod.isString())
+        val jMethod = jPublicKeyServer.get(PUBLIC_KEY_METHOD_KEY);
+        var sMethod = "GET";
+        if (null != jMethod && jMethod.isString()) {
             sMethod = jMethod.asString();
+        }
 
-        final var sUri = jUri.asString();
-        final var jTTL = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
-        var       lTTL = DEFAULT_CACHING_TTL;
-        if (null != jTTL) {
-            if (jTTL.canConvertToLong()) {
-                lTTL = jTTL.longValue();
+        val sUri = jUri.asString();
+        val jTtl = jPublicKeyServer.get(KEY_CACHING_TTL_MILLIS);
+        var lTtl = DEFAULT_CACHING_TTL;
+        if (null != jTtl) {
+            if (jTtl.canConvertToLong()) {
+                lTtl = jTtl.longValue();
             } else {
-                throw new CachingException(ERROR_JWT_KEY_CACHING_CONFIGURATION + jTTL);
+                throw new CachingException(ERROR_JWT_KEY_CACHING_CONFIGURATION + jTtl);
             }
         }
 
-        setTtlMillis(lTTL);
+        setTtlMillis(lTtl);
         return fetchPublicKey(kid, sUri, sMethod);
     }
 
     /**
-     * Put key into cache.
-     *
-     * @param kid the key id
-     * @param key the key
+     * Inserts the key into the cache, ignoring duplicates.
      */
     public void cache(String kid, Key key) {
-
-        if (isCached(kid))
+        if (isCached(kid)) {
             return;
-
+        }
         keyCache.put(kid, key);
-        cachingTimes.add(new CacheEntry(kid));
+        cachingTimes.add(new CacheEntry(kid, clock.instant()));
     }
 
     /**
-     * Checks if the key is in the cache.
-     *
-     * @param kid key id
-     * @return true, if the cache contains the key with the given id.
+     * Returns {@code true} if the cache currently holds a key under
+     * the given id (after pruning stale entries).
      */
     public boolean isCached(String kid) {
         pruneCache();
@@ -147,73 +153,60 @@ public class JWTKeyProvider {
     }
 
     /**
-     * Sets the cache TTL.
-     *
-     * @param newTtlMillis time to live for cache entries.
+     * Sets the cache TTL in milliseconds. Negative values are treated
+     * as {@link #DEFAULT_CACHING_TTL}.
      */
     public void setTtlMillis(long newTtlMillis) {
-        lastTTL = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
+        lastTtl = newTtlMillis >= 0L ? newTtlMillis : DEFAULT_CACHING_TTL;
     }
 
-    /**
-     * Fetches public key from remote authentication server.
-     *
-     * @param kid ID of public key to fetch
-     * @param publicKeyURI URI to request the public key
-     * @param publicKeyRequestMethod HTTP request method: GET or POST
-     * @return public key or empty
-     */
-    private Mono<Key> fetchPublicKey(String kid, String publicKeyURI, String publicKeyRequestMethod) {
-        final ResponseSpec response;
-
+    private Optional<Key> fetchPublicKey(String kid, String publicKeyUri, String publicKeyRequestMethod) {
         if (isCached(kid)) {
-            return Mono.just(keyCache.get(kid));
+            return Optional.of(keyCache.get(kid));
         }
 
+        val               resolvedUri = publicKeyUri.replace("{id}", kid);
+        val               builder     = HttpRequest.newBuilder().uri(URI.create(resolvedUri))
+                .timeout(HTTP_REQUEST_TIMEOUT);
+        final HttpRequest request;
         if ("post".equalsIgnoreCase(publicKeyRequestMethod)) {
-            response = webClient.post().uri(publicKeyURI, kid).retrieve();
+            request = builder.POST(HttpRequest.BodyPublishers.noBody()).build();
         } else {
-            response = webClient.get().uri(publicKeyURI, kid).retrieve();
+            request = builder.GET().build();
         }
 
-        return response.onStatus(HttpStatusCode::isError, this::handleHttpError).bodyToMono(String.class)
-                .map(JWTEncodingDecodingUtils::encodedX509ToPublicKey).filter(Optional::isPresent).map(Optional::get);
-    }
-
-    private Mono<? extends Throwable> handleHttpError(ClientResponse response) {
-        log.trace(ERROR_JWT_KEY_SERVER_HTTP + response.statusCode());
-        return Mono.empty();
+        try {
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                log.trace(ERROR_JWT_KEY_SERVER_HTTP, response.statusCode());
+                return Optional.empty();
+            }
+            return JWTEncodingDecodingUtils.encodedX509ToPublicKey(response.body());
+        } catch (IOException e) {
+            log.trace(ERROR_JWT_KEY_SERVER_IO, e.getMessage());
+            return Optional.empty();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return Optional.empty();
+        }
     }
 
     /**
-     * Remove all keys from cache that are older than ttlMillis before now.
+     * Removes cache entries older than the configured TTL.
      */
     private void pruneCache() {
-        final var pruneTime   = Instant.now().minusMillis(lastTTL);
-        var       oldestEntry = cachingTimes.peek();
+        val pruneTime   = clock.instant().minusMillis(lastTtl);
+        var oldestEntry = cachingTimes.peek();
         while (null != oldestEntry && oldestEntry.wasCachedBefore(pruneTime)) {
-            keyCache.remove(oldestEntry.getKeyId());
+            keyCache.remove(oldestEntry.keyId());
             cachingTimes.poll();
             oldestEntry = cachingTimes.peek();
         }
     }
 
-    private static class CacheEntry {
-
-        @Getter
-        private final String keyId;
-
-        private final Instant cachingTime;
-
-        CacheEntry(String keyId) {
-            this.keyId  = keyId;
-            cachingTime = Instant.now();
-        }
-
+    private record CacheEntry(String keyId, Instant cachingTime) {
         boolean wasCachedBefore(Instant instant) {
             return cachingTime.isBefore(instant);
         }
-
     }
-
 }

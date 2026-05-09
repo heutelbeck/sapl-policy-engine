@@ -27,13 +27,10 @@ import java.util.List;
 import static io.sapl.api.shared.NameValidator.requireValidName;
 
 /**
- * Metadata describing a {@link StreamAttributeFinder}'s signature and
- * implementation. Mirrors the legacy
- * {@link io.sapl.api.attributes.AttributeFinderSpecification} but wraps
- * a {@link StreamAttributeFinder} instead of the Reactor-based
- * {@code AttributeFinder}, so that PIPs returning
- * {@link io.sapl.api.stream.Stream} can register through the
- * Stream-based broker path.
+ * Metadata describing a {@link StreamAttributeFinder}'s signature
+ * and implementation. The store uses this record to detect spec
+ * collisions at load time ({@link #collidesWith}) and to match
+ * incoming invocations to a serving spec ({@link #matches}).
  *
  * @param namespace the PIP namespace (e.g. "time")
  * @param attributeName the attribute name (e.g. "now")
@@ -41,7 +38,7 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
  * attribute (no entity parameter)
  * @param parameterTypes fixed parameter types (entity excluded)
  * @param varArgsParameterType type of varargs parameter, or null
- * @param attributeFinder the Stream-based implementation
+ * @param attributeFinder the implementation
  */
 public record StreamAttributeFinderSpecification(
         @NonNull String namespace,

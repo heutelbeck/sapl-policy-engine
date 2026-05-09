@@ -19,22 +19,24 @@ package io.sapl.playground.config;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import io.sapl.legacy.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.api.stream.RealTimeScheduler;
+import io.sapl.api.stream.Stream;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.stream.TimeScheduler;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
-import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
+import io.sapl.attributes.store.InMemoryAttributeStore;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
@@ -46,13 +48,12 @@ import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
+import java.net.http.HttpClient;
 import java.security.Key;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Optional;
 
 @Configuration
 public class PlaygroundConfiguration {
@@ -79,18 +80,21 @@ public class PlaygroundConfiguration {
     }
 
     @Bean
-    AttributeBroker attributeBroker(JsonMapper mapper) {
-        var repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        var broker     = new CachingAttributeBroker(repository);
-        var webClient  = new DummyReactiveWebClient(mapper);
+    InMemoryAttributeStore attributeStore(JsonMapper mapper) {
+        var clock     = Clock.systemUTC();
+        var scheduler = new RealTimeScheduler(clock);
+        var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
+        var mqtt      = new DummySaplMqttClient(clock, scheduler);
+        var keys      = new DummyJWTKeyProvider(clock);
 
-        broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
-        broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(webClient));
-        broker.loadPolicyInformationPointLibrary(new TraccarPolicyInformationPoint(webClient));
-        broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
-        broker.loadPolicyInformationPointLibrary(new MqttPolicyInformationPoint(new DummySaplMqttClient()));
-        broker.loadPolicyInformationPointLibrary(new X509PolicyInformationPoint(Clock.systemUTC()));
-        return broker;
+        var store = new InMemoryAttributeStore();
+        store.load(new TimePolicyInformationPoint(clock, scheduler));
+        store.load(new HttpPolicyInformationPoint(webClient));
+        store.load(new TraccarPolicyInformationPoint(webClient));
+        store.load(new JWTPolicyInformationPoint(keys, clock, scheduler));
+        store.load(new MqttPolicyInformationPoint(mqtt));
+        store.load(new X509PolicyInformationPoint(clock, scheduler));
+        return store;
     }
 
     @Bean
@@ -112,38 +116,42 @@ public class PlaygroundConfiguration {
     }
 
     public static class DummyJWTKeyProvider extends JWTKeyProvider {
-        public DummyJWTKeyProvider() {
-            super();
+        public DummyJWTKeyProvider(Clock clock) {
+            super(clock);
         }
 
         @Override
-        public Mono<Key> provide(String kid, JsonNode publicKeyServer) throws CachingException {
-            return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
+        public Optional<Key> provide(String kid, JsonNode jPublicKeyServer) {
+            return Optional.empty();
         }
     }
 
     public static class DummySaplMqttClient extends SaplMqttClient {
+        public DummySaplMqttClient(Clock clock, TimeScheduler scheduler) {
+            super(clock, scheduler);
+        }
+
         @Override
-        public Flux<Value> buildSaplMqttMessageFlux(Value topic, AttributeAccessContext ctx, Value qos,
+        public Stream<Value> buildSaplMqttMessageStream(Value topic, AttributeAccessContext ctx, Value qos,
                 Value mqttPipConfig) {
-            return Flux.just(PIP_CALL_BLOCKED);
+            return Streams.just(PIP_CALL_BLOCKED);
         }
     }
 
-    public static class DummyReactiveWebClient extends ReactiveWebClient {
+    public static class DummyBlockingWebClient extends BlockingWebClient {
 
-        public DummyReactiveWebClient(JsonMapper mapper) {
-            super(mapper);
+        public DummyBlockingWebClient(JsonMapper mapper, HttpClient httpClient, Clock clock, TimeScheduler scheduler) {
+            super(mapper, httpClient, clock, scheduler);
         }
 
         @Override
-        public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
-            return Flux.just(PIP_CALL_BLOCKED);
+        public Stream<Value> httpRequest(String httpMethod, ObjectValue requestSettings) {
+            return Streams.just(PIP_CALL_BLOCKED);
         }
 
         @Override
-        public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {
-            return Flux.just(PIP_CALL_BLOCKED);
+        public Stream<Value> consumeWebSocket(ObjectValue requestSettings) {
+            return Streams.just(PIP_CALL_BLOCKED);
         }
     }
 

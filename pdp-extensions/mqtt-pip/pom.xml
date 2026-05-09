@@ -67,6 +67,12 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>io.sapl</groupId>
+			<artifactId>sapl-pdp</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>

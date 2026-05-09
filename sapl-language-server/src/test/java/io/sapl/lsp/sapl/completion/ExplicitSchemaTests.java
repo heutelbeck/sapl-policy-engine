@@ -180,8 +180,7 @@ class ExplicitSchemaTests {
         var variables    = new HashMap<String, Value>();
         variables.put("serverConfigSchema", ValueJsonMarshaller.fromJsonNode(schemaNode));
         var minimal = LSPConfiguration.minimal();
-        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
-                minimal.attributeBroker());
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
 

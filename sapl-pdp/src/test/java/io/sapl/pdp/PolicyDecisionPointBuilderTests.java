@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.legacy.api.attributes.AttributeBroker;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -79,7 +79,7 @@ class PolicyDecisionPointBuilderTests {
             assertThat(c.pdp()).isNotNull();
             assertThat(c.pdpVoterSource()).isNotNull();
             assertThat(c.functionBroker()).isNotNull();
-            assertThat(c.attributeBroker()).isNotNull();
+            assertThat(c.attributeStore()).isNotNull();
             assertThat(c.source()).isNull();
         });
 
@@ -272,31 +272,24 @@ class PolicyDecisionPointBuilderTests {
     }
 
     @Test
-    void whenBuildingWithExternalAttributeBrokerThenBrokerIsUsed() throws Exception {
-        val externalBroker = mock(AttributeBroker.class);
+    void whenBuildingWithExternalAttributeStoreThenStoreIsUsed() throws Exception {
+        val externalStore = mock(AttributeStore.class);
 
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeBroker(externalBroker).build();
+        val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeStore(externalStore).build();
 
-        assertThat(components.attributeBroker()).isSameAs(externalBroker);
+        assertThat(components.attributeStore()).isSameAs(externalStore);
 
         closeSource(components);
     }
 
     @Test
-    void whenBuildingWithExternalBrokersThenLibrariesAndPipsAreIgnored() throws Exception {
-        val externalFunctionBroker  = mock(FunctionBroker.class);
-        val externalAttributeBroker = mock(AttributeBroker.class);
+    void whenBuildingWithExternalFunctionBrokerThenLibrariesAreIgnored() throws Exception {
+        val externalFunctionBroker = mock(FunctionBroker.class);
 
-        // These would fail if actually loaded, but external brokers should bypass
-        // traced building
         val components = PolicyDecisionPointBuilder.withoutDefaults().withFunctionBroker(externalFunctionBroker)
-                .withAttributeBroker(externalAttributeBroker).withPolicyInformationPoints(List.of(new Object()))
                 .withFunctionLibraryInstances(List.of(new Object())).build();
 
-        assertThat(components).satisfies(c -> {
-            assertThat(c.functionBroker()).isSameAs(externalFunctionBroker);
-            assertThat(c.attributeBroker()).isSameAs(externalAttributeBroker);
-        });
+        assertThat(components.functionBroker()).isSameAs(externalFunctionBroker);
 
         closeSource(components);
     }

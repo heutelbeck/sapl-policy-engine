@@ -838,13 +838,12 @@ public class ScenarioInterpreter {
                 if (attrRef instanceof EnvironmentAttributeReferenceContext envAttr) {
                     val attributeName = buildAttributeName(envAttr.attributeFullName);
                     val parameters    = buildAttributeParameters(envAttr.attributeParameters());
-                    fixture.getMockingAttributeBroker().verifyEnvironmentAttribute(attributeName, parameters, times);
+                    fixture.getMockingAttributeStore().verifyEnvironmentAttribute(attributeName, parameters, times);
                 } else if (attrRef instanceof EntityAttributeReferenceContext entityAttr) {
                     val attributeName = buildAttributeName(entityAttr.attributeFullName);
                     val entityMatcher = MatcherConverter.convert(entityAttr.entityMatcher);
                     val parameters    = buildAttributeParameters(entityAttr.attributeParameters());
-                    fixture.getMockingAttributeBroker().verifyAttribute(attributeName, entityMatcher, parameters,
-                            times);
+                    fixture.getMockingAttributeStore().verifyAttribute(attributeName, entityMatcher, parameters, times);
                 }
             }
             default                                      -> { /* NO-OP */ }

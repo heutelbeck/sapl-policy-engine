@@ -18,8 +18,8 @@
 package io.sapl.playground.domain;
 
 import com.vaadin.flow.spring.annotation.UIScope;
-import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
@@ -57,18 +57,19 @@ public class PlaygroundPolicyDecisionPoint {
 
     /**
      * Creates a new playground policy decision point. Initializes the embedded PDP
-     * with the provided attribute broker
+     * with the provided attribute store
      * and function broker.
      *
-     * @param attributeBroker
-     * broker for attribute streams and policy information points
+     * @param attributeStore
+     * store of attribute streams and policy information points
      * @param functionBroker
      * broker providing function libraries for policy evaluation
      */
-    public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
-        val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker, Clock.systemUTC());
+    public PlaygroundPolicyDecisionPoint(AttributeStore attributeStore, FunctionBroker functionBroker) {
+        val pdpVoterSource = new PdpVoterSource(functionBroker, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
-        this.policyDecisionPoint = new ReactivePolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString());
+        this.policyDecisionPoint = new ReactivePolicyDecisionPoint(pdpVoterSource, attributeStore,
+                () -> UUID.randomUUID().toString());
     }
 
     /**

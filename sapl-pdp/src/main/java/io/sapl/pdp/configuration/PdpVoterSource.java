@@ -24,7 +24,6 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.compiler.util.CompilationErrorFormatter;
-import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -78,10 +77,8 @@ public class PdpVoterSource implements AutoCloseable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     @Getter
-    private final FunctionBroker  functionBroker;
-    @Getter
-    private final AttributeBroker attributeBroker;
-    private final Clock           clock;
+    private final FunctionBroker functionBroker;
+    private final Clock          clock;
 
     /**
      * Per-PDP configuration cache. Lock-free volatile reads via

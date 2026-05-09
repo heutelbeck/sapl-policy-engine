@@ -22,12 +22,12 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.BlockingWebClient;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import org.springframework.http.HttpMethod;
-import reactor.core.publisher.Flux;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -37,6 +37,7 @@ import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 @RequiredArgsConstructor
 @PolicyInformationPoint(name = "http", description = HttpPolicyInformationPoint.DESCRIPTION, pipDocumentation = HttpPolicyInformationPoint.DOCUMENTATION)
 public class HttpPolicyInformationPoint {
+
     public static final String DESCRIPTION   = "This Policy Information Point to get and monitor HTTP based information.";
     public static final String DOCUMENTATION = """
             This Policy Information Point provides means to source attribute data by consuming
@@ -167,8 +168,16 @@ public class HttpPolicyInformationPoint {
     private static final String          SECRETS_HTTP    = "http";
     private static final String          SECRETS_KEY     = "secretsKey";
 
-    private final ReactiveWebClient webClient;
+    private final BlockingWebClient webClient;
 
+    /**
+     * Performs an HTTP GET against {@code requestSettings.baseUrl} and
+     * polls it according to the request settings.
+     *
+     * @param ctx the attribute access context (variables, secrets sources)
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute
     @EnvironmentAttribute(docs = """
             ```<get(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
@@ -186,10 +195,17 @@ public class HttpPolicyInformationPoint {
               <http.get(request)>.status == "OK";
             ```
             """)
-    public Flux<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.GET, mergeHeaders(ctx, requestSettings));
+    public Stream<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("GET", mergeHeaders(ctx, requestSettings));
     }
 
+    /**
+     * Performs an HTTP POST against {@code requestSettings.baseUrl}.
+     *
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute
     @EnvironmentAttribute(docs = """
             ```<post(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
@@ -208,10 +224,17 @@ public class HttpPolicyInformationPoint {
               <http.post(request)>.status == "off";
             ```
             """)
-    public Flux<Value> post(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.POST, mergeHeaders(ctx, requestSettings));
+    public Stream<Value> post(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("POST", mergeHeaders(ctx, requestSettings));
     }
 
+    /**
+     * Performs an HTTP PUT against {@code requestSettings.baseUrl}.
+     *
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute
     @EnvironmentAttribute(docs = """
             ```<put(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
@@ -230,10 +253,17 @@ public class HttpPolicyInformationPoint {
               <http.put(request)>.status == "off";
             ```
             """)
-    public Flux<Value> put(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PUT, mergeHeaders(ctx, requestSettings));
+    public Stream<Value> put(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("PUT", mergeHeaders(ctx, requestSettings));
     }
 
+    /**
+     * Performs an HTTP PATCH against {@code requestSettings.baseUrl}.
+     *
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute
     @EnvironmentAttribute(docs = """
             ```<patch(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
@@ -252,10 +282,17 @@ public class HttpPolicyInformationPoint {
               <http.patch(request)>.status == "off";
             ```
             """)
-    public Flux<Value> patch(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PATCH, mergeHeaders(ctx, requestSettings));
+    public Stream<Value> patch(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("PATCH", mergeHeaders(ctx, requestSettings));
     }
 
+    /**
+     * Performs an HTTP DELETE against {@code requestSettings.baseUrl}.
+     *
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute
     @EnvironmentAttribute(docs = """
             ```<delete(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
@@ -273,10 +310,19 @@ public class HttpPolicyInformationPoint {
               <http.delete(request)> != undefined;
             ```
             """)
-    public Flux<Value> delete(AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.DELETE, mergeHeaders(ctx, requestSettings));
+    public Stream<Value> delete(AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("DELETE", mergeHeaders(ctx, requestSettings));
     }
 
+    /**
+     * Opens a WebSocket against {@code requestSettings.baseUrl} and
+     * emits each server message as a value. The configured {@code body}
+     * is sent on connect.
+     *
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of WebSocket message values
+     */
     @Attribute
     @EnvironmentAttribute(docs = """
             ```<websocket(OBJECT requestSettings)>``` is an environment attribute stream and takes no left-hand arguments.
@@ -295,10 +341,18 @@ public class HttpPolicyInformationPoint {
               <http.websocket(request)>.health == "GOOD";
             ```
             """)
-    public Flux<Value> websocket(AttributeAccessContext ctx, ObjectValue requestSettings) {
+    public Stream<Value> websocket(AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.consumeWebSocket(mergeHeaders(ctx, requestSettings));
     }
 
+    /**
+     * Entity-form HTTP GET on {@code resourceUrl} with default
+     * request settings.
+     *
+     * @param resourceUrl the resource URL acting as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<get>``` is an attribute of the resource identified by the ```resourceUrl```.
             Performs an HTTP GET request with default settings.
@@ -310,10 +364,19 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.get>.status == "HEALTHY";
             ```
             """)
-    public Flux<Value> get(TextValue resourceUrl, AttributeAccessContext ctx) {
+    public Stream<Value> get(TextValue resourceUrl, AttributeAccessContext ctx) {
         return get(resourceUrl, ctx, Value.EMPTY_OBJECT);
     }
 
+    /**
+     * Entity-form HTTP GET on {@code resourceUrl} merged with
+     * {@code requestSettings}.
+     *
+     * @param resourceUrl the resource URL, supplied as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<get(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -327,18 +390,35 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.get({ })>.status == "HEALTHY";
             ```
             """)
-    public Flux<Value> get(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.GET, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+    public Stream<Value> get(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("GET", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    /**
+     * Entity-form HTTP POST on {@code resourceUrl} with default
+     * request settings.
+     *
+     * @param resourceUrl the resource URL acting as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<post>``` is an attribute of the resource identified by the ```resourceUrl```.
             Performs an HTTP POST request with default settings.
             """)
-    public Flux<Value> post(TextValue resourceUrl, AttributeAccessContext ctx) {
+    public Stream<Value> post(TextValue resourceUrl, AttributeAccessContext ctx) {
         return post(resourceUrl, ctx, Value.EMPTY_OBJECT);
     }
 
+    /**
+     * Entity-form HTTP POST on {@code resourceUrl} merged with
+     * {@code requestSettings}.
+     *
+     * @param resourceUrl the resource URL, supplied as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<post(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -352,18 +432,35 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.post({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    public Flux<Value> post(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.POST, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+    public Stream<Value> post(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("POST", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    /**
+     * Entity-form HTTP PUT on {@code resourceUrl} with default
+     * request settings.
+     *
+     * @param resourceUrl the resource URL acting as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<put>``` is an attribute of the resource identified by the ```resourceUrl```.
             Performs an HTTP PUT request with default settings.
             """)
-    public Flux<Value> put(TextValue resourceUrl, AttributeAccessContext ctx) {
+    public Stream<Value> put(TextValue resourceUrl, AttributeAccessContext ctx) {
         return put(resourceUrl, ctx, Value.EMPTY_OBJECT);
     }
 
+    /**
+     * Entity-form HTTP PUT on {@code resourceUrl} merged with
+     * {@code requestSettings}.
+     *
+     * @param resourceUrl the resource URL, supplied as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<put(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -377,18 +474,35 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.put({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    public Flux<Value> put(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PUT, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+    public Stream<Value> put(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("PUT", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    /**
+     * Entity-form HTTP PATCH on {@code resourceUrl} with default
+     * request settings.
+     *
+     * @param resourceUrl the resource URL acting as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<patch>``` is an attribute of the resource identified by the ```resourceUrl```.
             Performs an HTTP PATCH request with default settings.
             """)
-    public Flux<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx) {
+    public Stream<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx) {
         return patch(resourceUrl, ctx, Value.EMPTY_OBJECT);
     }
 
+    /**
+     * Entity-form HTTP PATCH on {@code resourceUrl} merged with
+     * {@code requestSettings}.
+     *
+     * @param resourceUrl the resource URL, supplied as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<patch(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -402,18 +516,35 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.patch({ "body": "\\"test\\"" })>.status == "OK";
             ```
             """)
-    public Flux<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.PATCH, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+    public Stream<Value> patch(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("PATCH", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    /**
+     * Entity-form HTTP DELETE on {@code resourceUrl} with default
+     * request settings.
+     *
+     * @param resourceUrl the resource URL acting as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<delete>``` is an attribute of the resource identified by the ```resourceUrl```.
             Performs an HTTP DELETE request with default settings.
             """)
-    public Flux<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx) {
+    public Stream<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx) {
         return delete(resourceUrl, ctx, Value.EMPTY_OBJECT);
     }
 
+    /**
+     * Entity-form HTTP DELETE on {@code resourceUrl} merged with
+     * {@code requestSettings}.
+     *
+     * @param resourceUrl the resource URL, supplied as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of response values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<delete(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -427,18 +558,35 @@ public class HttpPolicyInformationPoint {
               "https://example.com/resources/123".<http.delete({})> != undefined;
             ```
             """)
-    public Flux<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
-        return webClient.httpRequest(HttpMethod.DELETE, withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
+    public Stream<Value> delete(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
+        return webClient.httpRequest("DELETE", withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
+    /**
+     * Entity-form WebSocket connection to {@code resourceUrl} with
+     * default request settings.
+     *
+     * @param resourceUrl the resource URL acting as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @return a stream of WebSocket message values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<websocket>``` is an attribute of the resource identified by the ```resourceUrl```.
             Connects to a WebSocket with default settings.
             """)
-    public Flux<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx) {
+    public Stream<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx) {
         return websocket(resourceUrl, ctx, Value.EMPTY_OBJECT);
     }
 
+    /**
+     * Entity-form WebSocket connection to {@code resourceUrl} merged
+     * with {@code requestSettings}.
+     *
+     * @param resourceUrl the resource URL, supplied as {@code baseUrl}
+     * @param ctx the attribute access context
+     * @param requestSettings request configuration object
+     * @return a stream of WebSocket message values
+     */
     @Attribute(docs = """
             ```(TEXT resourceUrl).<websocket(OBJECT requestSettings)>``` is an attribute of the resource identified by
             the ```resourceUrl```.
@@ -453,14 +601,14 @@ public class HttpPolicyInformationPoint {
               "https://example.com/status".<http.websocket(request)>.health == "GOOD";
             ```
             """)
-    public Flux<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
+    public Stream<Value> websocket(TextValue resourceUrl, AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.consumeWebSocket(withBaseUrl(resourceUrl, mergeHeaders(ctx, requestSettings)));
     }
 
     private static ObjectValue withBaseUrl(TextValue baseUrl, ObjectValue requestSettings) {
         val builder = ObjectValue.builder();
         builder.putAll(requestSettings);
-        builder.put(ReactiveWebClient.BASE_URL, baseUrl);
+        builder.put(BlockingWebClient.BASE_URL, baseUrl);
         return builder.build();
     }
 
@@ -491,7 +639,7 @@ public class HttpPolicyInformationPoint {
                 builder.put(entry.getKey(), entry.getValue());
             }
         }
-        builder.put(ReactiveWebClient.HEADERS, fromJsonNode(merged));
+        builder.put(BlockingWebClient.HEADERS, fromJsonNode(merged));
         return builder.build();
     }
 
@@ -522,14 +670,14 @@ public class HttpPolicyInformationPoint {
             return null;
         }
         val v = requestSettings.get(SECRETS_KEY);
-        return v instanceof TextValue text ? text.value() : null;
+        return v instanceof TextValue(var s) ? s : null;
     }
 
     private static ObjectValue extractPolicyHeaders(ObjectValue requestSettings) {
-        if (!requestSettings.containsKey(ReactiveWebClient.HEADERS)) {
+        if (!requestSettings.containsKey(BlockingWebClient.HEADERS)) {
             return Value.EMPTY_OBJECT;
         }
-        val h = requestSettings.get(ReactiveWebClient.HEADERS);
+        val h = requestSettings.get(BlockingWebClient.HEADERS);
         return h instanceof ObjectValue obj && !obj.isEmpty() ? obj : Value.EMPTY_OBJECT;
     }
 

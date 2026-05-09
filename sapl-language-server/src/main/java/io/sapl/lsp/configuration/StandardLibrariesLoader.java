@@ -17,28 +17,15 @@
  */
 package io.sapl.lsp.configuration;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.http.HttpMethod;
-
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-
-import io.sapl.legacy.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
-import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
-import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.documentation.LibraryDocumentationExtractor;
@@ -52,7 +39,6 @@ import io.sapl.functions.libraries.EncodingFunctionLibrary;
 import io.sapl.functions.libraries.FilterFunctionLibrary;
 import io.sapl.functions.libraries.GraphFunctionLibrary;
 import io.sapl.functions.libraries.GraphQLFunctionLibrary;
-
 import io.sapl.functions.libraries.JsonFunctionLibrary;
 import io.sapl.functions.libraries.KeysFunctionLibrary;
 import io.sapl.functions.libraries.MacFunctionLibrary;
@@ -78,15 +64,11 @@ import io.sapl.functions.libraries.XmlFunctionLibrary;
 import io.sapl.functions.libraries.YamlFunctionLibrary;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.security.Key;
 
 /**
  * Loads all standard SAPL function libraries and policy information points.
- * Creates a complete LSPConfiguration with documentation and brokers for all
- * built-in libraries.
+ * Creates a complete LSPConfiguration with documentation and the function
+ * broker for all built-in libraries.
  */
 @Slf4j
 @UtilityClass
@@ -107,10 +89,6 @@ public class StandardLibrariesLoader {
     private static final List<Class<?>> POLICY_INFORMATION_POINTS = List.of(TimePolicyInformationPoint.class,
             HttpPolicyInformationPoint.class, JWTPolicyInformationPoint.class, X509PolicyInformationPoint.class);
 
-    private static final String ERROR_EXTERNAL_DATA_SOURCE_BLOCKED = "Access to external data sources is not available in the language server.";
-
-    private static final Value PIP_CALL_BLOCKED = Value.error(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED);
-
     /**
      * Creates an LSPConfiguration with all standard libraries loaded.
      *
@@ -118,14 +96,13 @@ public class StandardLibrariesLoader {
      * @return a fully configured LSPConfiguration with all standard libraries
      */
     public static LSPConfiguration loadStandardConfiguration(String configurationId) {
-        var functionBroker  = createFunctionBroker();
-        var attributeBroker = createAttributeBroker();
-        var documentation   = createDocumentationBundle();
+        var functionBroker = createFunctionBroker();
+        var documentation  = createDocumentationBundle();
 
         log.info("Loaded {} function libraries and {} PIPs for LSP configuration", FUNCTION_LIBRARIES.size(),
                 POLICY_INFORMATION_POINTS.size());
 
-        return new LSPConfiguration(configurationId, documentation, Map.of(), functionBroker, attributeBroker);
+        return new LSPConfiguration(configurationId, documentation, Map.of(), functionBroker);
     }
 
     private static FunctionBroker createFunctionBroker() {
@@ -137,39 +114,6 @@ public class StandardLibrariesLoader {
                 log.warn("Failed to load function library {}: {}", libraryClass.getSimpleName(), e.getMessage());
             }
         }
-        return broker;
-    }
-
-    private static AttributeBroker createAttributeBroker() {
-        var clock      = Clock.systemUTC();
-        var repository = new InMemoryAttributeRepository(clock);
-        var broker     = new CachingAttributeBroker(repository);
-
-        try {
-            broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(clock));
-        } catch (Exception e) {
-            log.warn("Failed to load TimePolicyInformationPoint: {}", e.getMessage());
-        }
-
-        try {
-            var webClient = new DummyReactiveWebClient(JsonMapper.builder().build());
-            broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(webClient));
-        } catch (Exception e) {
-            log.warn("Failed to load HttpPolicyInformationPoint: {}", e.getMessage());
-        }
-
-        try {
-            broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
-        } catch (Exception e) {
-            log.warn("Failed to load JWTPolicyInformationPoint: {}", e.getMessage());
-        }
-
-        try {
-            broker.loadPolicyInformationPointLibrary(new X509PolicyInformationPoint(clock));
-        } catch (Exception e) {
-            log.warn("Failed to load X509PolicyInformationPoint: {}", e.getMessage());
-        }
-
         return broker;
     }
 
@@ -193,35 +137,6 @@ public class StandardLibrariesLoader {
         }
 
         return new DocumentationBundle(libraries);
-    }
-
-    private static class DummyReactiveWebClient extends ReactiveWebClient {
-
-        DummyReactiveWebClient(JsonMapper mapper) {
-            super(mapper);
-        }
-
-        @Override
-        public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
-            return Flux.just(PIP_CALL_BLOCKED);
-        }
-
-        @Override
-        public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {
-            return Flux.just(PIP_CALL_BLOCKED);
-        }
-    }
-
-    private static class DummyJWTKeyProvider extends JWTKeyProvider {
-
-        DummyJWTKeyProvider() {
-            super();
-        }
-
-        @Override
-        public Mono<Key> provide(String kid, JsonNode publicKeyServer) {
-            return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
-        }
     }
 
 }

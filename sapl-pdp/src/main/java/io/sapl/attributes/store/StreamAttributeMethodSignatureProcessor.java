@@ -41,21 +41,30 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Reflective registration helper for Stream-based PIP attribute methods.
- * Mirrors {@link io.sapl.attributes.AttributeMethodSignatureProcessor}
- * but accepts the new return-type contract:
+ * Reflective registration helper. Inspects a PIP class for methods
+ * annotated with {@link io.sapl.api.attributes.Attribute} or
+ * {@link io.sapl.api.attributes.EnvironmentAttribute} and, for each,
+ * builds a {@link StreamAttributeFinderSpecification} bound to the
+ * supplied PIP instance.
+ * <p>
+ * Accepted return types:
  * <ul>
- * <li>{@link Stream}{@code <Value>} for streaming attributes (legacy
- * {@code Flux<Value>} equivalent), or</li>
- * <li>a {@link Value} (or subtype) for one-shot attributes (legacy
- * {@code Mono<Value>} equivalent). The processor wraps the returned
- * value in {@link Streams#just(Value)} so the broker uniformly sees
- * {@code Stream<Value>}.</li>
+ * <li>{@link Stream}{@code <Value>} for streaming attributes; the
+ * spec returns the stream as the PIP produces it.</li>
+ * <li>{@link Value} (or any subtype) for one-shot attributes; the
+ * spec wraps the returned value in {@link Streams#just(Value)} so
+ * the store always sees a {@code Stream<Value>}.</li>
  * </ul>
- * Parameter handling (entity, {@link AttributeAccessContext}, fixed
- * Value parameters, varargs of Value) is identical to the legacy
- * processor; argument-count and per-parameter type checks surface as
- * single-emit error streams rather than thrown exceptions.
+ * Any other return type causes registration to fail with
+ * {@link IllegalStateException}.
+ * <p>
+ * Parameter rules (positional, entity excluded for environment
+ * attributes): the optional {@link AttributeAccessContext} comes
+ * first, followed by fixed {@link Value} parameters, optionally
+ * ending in a varargs of a {@link Value} subtype. Argument-count
+ * mismatches and per-parameter type mismatches surface as
+ * single-emit error streams rather than thrown exceptions, so a
+ * misconfigured policy never crashes the dispatcher.
  */
 @UtilityClass
 public class StreamAttributeMethodSignatureProcessor {

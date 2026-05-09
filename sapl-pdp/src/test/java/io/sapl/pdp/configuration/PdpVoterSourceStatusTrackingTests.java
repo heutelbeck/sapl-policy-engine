@@ -50,7 +50,7 @@ class PdpVoterSourceStatusTrackingTests {
     }
 
     private PdpVoterSource createSource(Clock clock) {
-        return new PdpVoterSource(SaplTesting.FUNCTION_BROKER, SaplTesting.ATTRIBUTE_BROKER, clock);
+        return new PdpVoterSource(SaplTesting.FUNCTION_BROKER, clock);
     }
 
     private PDPConfiguration validConfig(String pdpId, String configId) {

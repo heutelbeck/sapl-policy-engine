@@ -68,13 +68,15 @@ public class JWTEncodingDecodingUtils {
      * @return the key, or empty if extraction fails
      */
     public static Optional<Key> jsonNodeToKey(JsonNode jsonNode) {
-        if (!jsonNode.isString())
+        if (!jsonNode.isString()) {
             return Optional.empty();
+        }
 
         val encoded    = jsonNode.asString();
         val asymmetric = encodedX509ToPublicKey(encoded);
-        if (asymmetric.isPresent())
+        if (asymmetric.isPresent()) {
             return asymmetric;
+        }
         return encodedToSecretKey(encoded);
     }
 

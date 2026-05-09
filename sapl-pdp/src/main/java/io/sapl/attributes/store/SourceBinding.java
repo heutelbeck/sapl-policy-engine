@@ -15,30 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.legacy.api.attributes;
+package io.sapl.attributes.store;
 
 import io.sapl.api.model.Value;
-
-import java.time.Duration;
-import java.time.Instant;
+import io.sapl.api.stream.Stream;
 
 /**
- * Attribute data persisted to storage.
- * <p>
- * Sequence numbers are NOT persisted - they coordinate in-flight subscribers
- * during runtime only. On restart, sequence
- * numbers start fresh from zero.
+ * Result of {@link Source#open}. Pairs the value stream with an
+ * opaque tag the store may use to identify the binding's
+ * provenance (e.g. for matching against a catalog-change event so
+ * the store can rebind or evict the right backings during hot-swap).
+ *
+ * @param stream the value stream the source produced
+ * @param tag opaque identifier the store may compare to itself;
+ * a catalog-backed source uses the resolved
+ * {@link StreamAttributeFinderSpecification}; sources whose
+ * provenance is irrelevant to the store may pass {@code null}
  */
-public record PersistedAttribute(
-        Value value,
-        Instant timestamp,
-        Duration ttl,
-        AttributeRepository.TimeOutStrategy timeoutStrategy,
-        Instant timeoutDeadline) {
-    public boolean isExpiredAt(Instant now) {
-        if (timeoutDeadline == null) {
-            return false; // Infinite TTL never expires
-        }
-        return now.isAfter(timeoutDeadline);
-    }
-}
+record SourceBinding(Stream<Value> stream, Object tag) {}

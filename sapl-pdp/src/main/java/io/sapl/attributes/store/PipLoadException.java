@@ -15,33 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.libraries.vnext.util;
+package io.sapl.attributes.store;
 
-public enum DispatchMode {
+/**
+ * Thrown when {@link InMemoryAttributeStore#load} or
+ * {@link InMemoryAttributeStore#swap} cannot register a Policy
+ * Information Point: missing annotation, invalid attribute method
+ * signature, or a spec collision against the existing catalog.
+ * Catalog state is unchanged whenever this exception is raised.
+ */
+public class PipLoadException extends RuntimeException {
 
-    /**
-     * Dispatcher returns the true Base64Url-encoded key, matching the kid
-     */
-    TRUE,
-    /**
-     * Dispatcher returns the true Base64-encoded key, matching the kid
-     */
-    BASIC,
-    /**
-     * Dispatcher returns a wrong Base64Url-encoded key, not matching the kid
-     */
-    WRONG,
-    /**
-     * Dispatcher returns the key with Base64(URL) encoding errors
-     */
-    INVALID,
-    /**
-     * Dispatcher returns bogus data, not resembling an encoded key
-     */
-    BOGUS,
-    /**
-     * Dispatcher always returns 404 - unknown
-     */
-    UNKNOWN
+    private static final long serialVersionUID = 1L;
 
+    public PipLoadException(String message) {
+        super(message);
+    }
+
+    public PipLoadException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

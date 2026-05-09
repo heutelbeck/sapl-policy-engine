@@ -19,8 +19,10 @@ package io.sapl.attributes.libraries;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.api.test.stream.MutableClock;
+import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.api.test.stream.TestTimeScheduler;
+import io.sapl.attributes.store.InMemoryAttributeStore;
 import lombok.val;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -33,7 +35,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import reactor.test.StepVerifier;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -43,22 +46,18 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-@DisplayName("X509PolicyInformationPoint")
+@DisplayName("X509PolicyInformationPoint (vnext)")
 class X509PolicyInformationPointTests {
 
-    private static final String CTHULHU_DN     = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";
-    private static final String YOG_SOTHOTH_DN = "CN=Yog-Sothoth Time Services,O=Beyond the Gate,C=XX";
+    private static final String  CTHULHU_DN     = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";
+    private static final String  YOG_SOTHOTH_DN = "CN=Yog-Sothoth Time Services,O=Beyond the Gate,C=XX";
+    private static final Instant NOW            = Instant.parse("2025-06-15T12:00:00Z");
 
     private static KeyPair keyPair;
 
@@ -77,86 +76,100 @@ class X509PolicyInformationPointTests {
         @DisplayName("when cert is currently valid then emits true")
         void whenCertIsCurrentlyValidThenEmitsTrue()
                 throws OperatorCreationException, CertificateException, IOException {
-            val now     = Instant.parse("2025-06-15T12:00:00Z");
-            val certPem = toPem(
-                    generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS), now.plus(365, ChronoUnit.DAYS)));
-            val clock   = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val certPem   = toPem(
+                    generateCertificate(CTHULHU_DN, NOW.minus(1, ChronoUnit.DAYS), NOW.plus(365, ChronoUnit.DAYS)));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.create(sut.isCurrentlyValid(Value.of(certPem)).take(1)).expectNext(Value.TRUE)
-                    .verifyComplete();
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("when cert is expired then emits false and completes")
         void whenCertIsExpiredThenEmitsFalse() throws OperatorCreationException, CertificateException, IOException {
-            val now     = Instant.parse("2025-06-15T12:00:00Z");
-            val certPem = toPem(generateCertificate(YOG_SOTHOTH_DN, now.minus(365, ChronoUnit.DAYS),
-                    now.minus(1, ChronoUnit.DAYS)));
-            val clock   = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val certPem   = toPem(generateCertificate(YOG_SOTHOTH_DN, NOW.minus(365, ChronoUnit.DAYS),
+                    NOW.minus(1, ChronoUnit.DAYS)));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.create(sut.isCurrentlyValid(Value.of(certPem))).expectNext(Value.FALSE).verifyComplete();
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("when cert is not yet valid then emits false then true at notBefore")
         void whenCertIsNotYetValidThenEmitsFalseThenTrueAtNotBefore()
                 throws OperatorCreationException, CertificateException, IOException {
-            val now       = Instant.parse("2025-06-15T12:00:00Z");
-            val notBefore = now.plus(10, ChronoUnit.SECONDS);
-            val notAfter  = now.plus(60, ChronoUnit.SECONDS);
+            val notBefore = NOW.plus(10, ChronoUnit.SECONDS);
+            val notAfter  = NOW.plus(60, ChronoUnit.SECONDS);
             val certPem   = toPem(generateCertificate(CTHULHU_DN, notBefore, notAfter));
-            val clock     = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.<Value>withVirtualTime(() -> sut.isCurrentlyValid(Value.of(certPem))).expectNext(Value.FALSE)
-                    .thenAwait(Duration.ofSeconds(10)).expectNext(Value.TRUE).thenCancel().verify();
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                scheduler.advanceTo(notBefore);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("when cert is valid then emits true then false at notAfter")
         void whenCertIsValidThenEmitsTrueThenFalseAtNotAfter()
                 throws OperatorCreationException, CertificateException, IOException {
-            val now      = Instant.parse("2025-06-15T12:00:00Z");
-            val notAfter = now.plus(30, ChronoUnit.SECONDS);
-            val certPem  = toPem(generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS), notAfter));
-            val clock    = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val notAfter  = NOW.plus(30, ChronoUnit.SECONDS);
+            val certPem   = toPem(generateCertificate(CTHULHU_DN, NOW.minus(1, ChronoUnit.DAYS), notAfter));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.<Value>withVirtualTime(() -> sut.isCurrentlyValid(Value.of(certPem))).expectNext(Value.TRUE)
-                    .thenAwait(Duration.ofSeconds(30)).expectNext(Value.FALSE).verifyComplete();
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                scheduler.advanceTo(notAfter);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("when cert is not yet valid then emits all three transitions")
         void whenCertIsNotYetValidThenEmitsAllTransitions()
                 throws OperatorCreationException, CertificateException, IOException {
-            val now       = Instant.parse("2025-06-15T12:00:00Z");
-            val notBefore = now.plus(10, ChronoUnit.SECONDS);
-            val notAfter  = now.plus(60, ChronoUnit.SECONDS);
+            val notBefore = NOW.plus(10, ChronoUnit.SECONDS);
+            val notAfter  = NOW.plus(60, ChronoUnit.SECONDS);
             val certPem   = toPem(generateCertificate(CTHULHU_DN, notBefore, notAfter));
-            val clock     = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.<Value>withVirtualTime(() -> sut.isCurrentlyValid(Value.of(certPem))).expectNext(Value.FALSE)
-                    .thenAwait(Duration.ofSeconds(10)).expectNext(Value.TRUE).thenAwait(Duration.ofSeconds(50))
-                    .expectNext(Value.FALSE).verifyComplete();
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                scheduler.advanceTo(notBefore);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                scheduler.advanceTo(notAfter);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("when PEM is malformed then emits error")
         void whenCertPemIsMalformedThenEmitsError() {
-            val clock = mock(Clock.class);
-            val sut   = new X509PolicyInformationPoint(clock);
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.create(sut.isCurrentlyValid(Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh")))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            try (val stream = sut.isCurrentlyValid(Value.of("Ph'nglui mglw'nafh Cthulhu R'lyeh"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    if (!(v instanceof ErrorValue)) {
+                        throw new AssertionError("Expected ErrorValue, got: " + v);
+                    }
+                }).awaitsCompletion();
+            }
         }
     }
 
@@ -168,55 +181,64 @@ class X509PolicyInformationPointTests {
         @DisplayName("when cert is valid then isExpired emits false")
         void whenCertIsValidThenIsExpiredEmitsFalse()
                 throws OperatorCreationException, CertificateException, IOException {
-            val now     = Instant.parse("2025-06-15T12:00:00Z");
-            val certPem = toPem(
-                    generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS), now.plus(365, ChronoUnit.DAYS)));
-            val clock   = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val certPem   = toPem(
+                    generateCertificate(CTHULHU_DN, NOW.minus(1, ChronoUnit.DAYS), NOW.plus(365, ChronoUnit.DAYS)));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.create(sut.isExpired(Value.of(certPem)).take(1)).expectNext(Value.FALSE).verifyComplete();
+            try (val stream = sut.isExpired(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
         @DisplayName("when cert is expired then isExpired emits true")
         void whenCertIsExpiredThenIsExpiredEmitsTrue()
                 throws OperatorCreationException, CertificateException, IOException {
-            val now     = Instant.parse("2025-06-15T12:00:00Z");
-            val certPem = toPem(generateCertificate(YOG_SOTHOTH_DN, now.minus(365, ChronoUnit.DAYS),
-                    now.minus(1, ChronoUnit.DAYS)));
-            val clock   = mock(Clock.class);
-            when(clock.instant()).thenReturn(now);
-            val sut = new X509PolicyInformationPoint(clock);
+            val certPem   = toPem(generateCertificate(YOG_SOTHOTH_DN, NOW.minus(365, ChronoUnit.DAYS),
+                    NOW.minus(1, ChronoUnit.DAYS)));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.create(sut.isExpired(Value.of(certPem))).expectNext(Value.TRUE).verifyComplete();
+            try (val stream = sut.isExpired(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("when PEM is malformed then isExpired emits error")
         void whenCertPemIsMalformedThenIsExpiredEmitsError() {
-            val clock = mock(Clock.class);
-            val sut   = new X509PolicyInformationPoint(clock);
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
 
-            StepVerifier.create(sut.isExpired(Value.of("not a certificate")))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            try (val stream = sut.isExpired(Value.of("not a certificate"))) {
+                StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(v -> {
+                    if (!(v instanceof ErrorValue)) {
+                        throw new AssertionError("Expected ErrorValue, got: " + v);
+                    }
+                }).awaitsCompletion();
+            }
         }
     }
 
     @Nested
-    @DisplayName("broker loading")
-    class BrokerLoading {
+    @DisplayName("store registration")
+    class StoreRegistration {
 
         @Test
-        @DisplayName("when loaded into broker then registers under x509 namespace")
-        void whenLoadedIntoBrokerThenRegistersUnderX509Namespace() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-            val pip        = new X509PolicyInformationPoint(Clock.systemUTC());
+        @DisplayName("loads under the x509 namespace without errors")
+        void whenLoadedIntoStoreThenRegistersUnderX509Namespace() {
+            try (val store = new InMemoryAttributeStore()) {
+                val handle = store
+                        .load(new X509PolicyInformationPoint(new MutableClock(NOW), new TestTimeScheduler(NOW)));
 
-            broker.loadPolicyInformationPointLibrary(pip);
-
-            assertThat(broker.getLoadedLibraryNames()).contains("x509");
+                assertThat(handle.pipName()).isEqualTo(X509PolicyInformationPoint.NAME);
+                assertThat(handle.isLoaded()).isTrue();
+                assertThat(store.catalog()).containsExactly(handle);
+            }
         }
     }
 
