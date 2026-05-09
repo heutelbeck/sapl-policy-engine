@@ -21,7 +21,6 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -31,7 +30,6 @@ import java.util.Set;
 /**
  * Functions for converting human-readable unit strings into numeric values.
  */
-@UtilityClass
 @FunctionLibrary(name = UnitsFunctionLibrary.NAME, description = UnitsFunctionLibrary.DESCRIPTION, libraryDocumentation = UnitsFunctionLibrary.DOCUMENTATION)
 public class UnitsFunctionLibrary {
 

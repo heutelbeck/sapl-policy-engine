@@ -34,8 +34,7 @@ class JsonFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(JsonFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new JsonFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test

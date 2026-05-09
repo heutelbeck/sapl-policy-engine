@@ -21,7 +21,6 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.text.Normalizer;
@@ -36,7 +35,6 @@ import java.util.regex.Pattern;
  * input validation as secondary defense. This library provides the input
  * validation component.
  */
-@UtilityClass
 @FunctionLibrary(name = SanitizationFunctionLibrary.NAME, description = SanitizationFunctionLibrary.DESCRIPTION_MD, libraryDocumentation = SanitizationFunctionLibrary.DOCUMENTATION_MD)
 public class SanitizationFunctionLibrary {
 

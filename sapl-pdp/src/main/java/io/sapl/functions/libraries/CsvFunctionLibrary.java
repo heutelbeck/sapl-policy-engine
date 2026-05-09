@@ -20,7 +20,6 @@ package io.sapl.functions.libraries;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.MappingIterator;
@@ -37,7 +36,6 @@ import java.util.Map;
  * files (100,000+ rows), consider
  * processing in chunks or using external data sources.
  */
-@UtilityClass
 @FunctionLibrary(name = CsvFunctionLibrary.NAME, description = CsvFunctionLibrary.DESCRIPTION, libraryDocumentation = CsvFunctionLibrary.DOCUMENTATION)
 public class CsvFunctionLibrary {
 

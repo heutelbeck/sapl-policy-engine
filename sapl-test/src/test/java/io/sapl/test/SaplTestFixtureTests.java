@@ -263,15 +263,7 @@ class SaplTestFixtureTests {
 
     @Test
     void whenAddingFunctionLibrary_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withFunctionLibrary(Object.class)
-                .withPolicy(PERMIT_ALL_POLICY);
-
-        assertThat(fixture).isNotNull();
-    }
-
-    @Test
-    void whenAddingFunctionLibraryInstance_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withFunctionLibraryInstance(new Object())
+        var fixture = SaplTestFixture.createSingleTest().withFunctionLibrary(new Object())
                 .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
@@ -291,8 +283,8 @@ class SaplTestFixtureTests {
         var fixedClock = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
 
         var fixture = SaplTestFixture.createSingleTest().withJsonMapper(jsonMapper).withClock(fixedClock)
-                .withFunctionLibrary(Object.class).withFunctionLibraryInstance(new Object())
-                .withPolicyInformationPoint(new Object()).withPolicy(PERMIT_ALL_POLICY);
+                .withFunctionLibrary(new Object()).withPolicyInformationPoint(new Object())
+                .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }

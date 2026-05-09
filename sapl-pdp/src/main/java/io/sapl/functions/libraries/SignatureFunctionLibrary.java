@@ -23,7 +23,6 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
@@ -64,7 +63,6 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
  * comparison for signature verification on most
  * JVM implementations, providing protection against timing attacks.
  */
-@UtilityClass
 @FunctionLibrary(name = SignatureFunctionLibrary.NAME, description = SignatureFunctionLibrary.DESCRIPTION, libraryDocumentation = SignatureFunctionLibrary.DOCUMENTATION)
 public class SignatureFunctionLibrary {
 

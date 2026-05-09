@@ -93,11 +93,11 @@ public class SaplTesting {
 
     static {
         val functionBroker = new DefaultFunctionBroker();
-        functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class);
-        functionBroker.loadStaticFunctionLibrary(SimpleFunctionLibrary.class);
+        functionBroker.load(new StandardFunctionLibrary());
+        functionBroker.load(new FilterFunctionLibrary());
+        functionBroker.load(new TemporalFunctionLibrary());
+        functionBroker.load(new StringFunctionLibrary());
+        functionBroker.load(new SimpleFunctionLibrary());
         FUNCTION_BROKER = functionBroker;
     }
 
@@ -221,6 +221,11 @@ public class SaplTesting {
     public static FunctionBroker functionBroker(String expectedName, Function<List<Value>, Value> fn) {
         return new FunctionBroker() {
             @Override
+            public void load(Object libraryInstance) {
+                /* no-op for test broker */
+            }
+
+            @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
                 if (invocation.functionName().equals(expectedName))
                     return fn.apply(invocation.arguments());
@@ -236,6 +241,11 @@ public class SaplTesting {
 
     public static FunctionBroker functionBroker(Map<String, Function<List<Value>, Value>> functions) {
         return new FunctionBroker() {
+            @Override
+            public void load(Object libraryInstance) {
+                /* no-op for test broker */
+            }
+
             @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
                 val fn = functions.get(invocation.functionName());
@@ -254,6 +264,11 @@ public class SaplTesting {
     public static FunctionBroker capturingFunctionBroker(FunctionInvocation[] capture, Value returnValue) {
         return new FunctionBroker() {
             @Override
+            public void load(Object libraryInstance) {
+                /* no-op for test broker */
+            }
+
+            @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
                 capture[0] = invocation;
                 return returnValue;
@@ -269,6 +284,11 @@ public class SaplTesting {
     public static FunctionBroker capturingFunctionBroker(List<FunctionInvocation> capture,
             Function<List<Value>, Value> fn) {
         return new FunctionBroker() {
+            @Override
+            public void load(Object libraryInstance) {
+                /* no-op for test broker */
+            }
+
             @Override
             public Value evaluateFunction(FunctionInvocation invocation) {
                 capture.add(invocation);

@@ -41,8 +41,7 @@ class NumeralFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(NumeralFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new NumeralFunctionLibrary())).doesNotThrowAnyException();
     }
 
     /* Parsing Tests */

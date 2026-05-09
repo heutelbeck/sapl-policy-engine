@@ -287,7 +287,7 @@ class PolicyDecisionPointBuilderTests {
         val externalFunctionBroker = mock(FunctionBroker.class);
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withFunctionBroker(externalFunctionBroker)
-                .withFunctionLibraryInstances(List.of(new Object())).build();
+                .withFunctionLibraries(List.of(new Object())).build();
 
         assertThat(components.functionBroker()).isSameAs(externalFunctionBroker);
 
@@ -302,7 +302,6 @@ class PolicyDecisionPointBuilderTests {
 
         // These methods should not throw
         builder.withFunctionLibraries(List.of());
-        builder.withFunctionLibraryInstances(List.of());
         builder.withPolicyInformationPoints(List.of());
 
         val components = builder.build();

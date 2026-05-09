@@ -117,9 +117,9 @@ public class SaplTestFixture {
      * <p>
      * These are the most commonly used libraries for policy evaluation.
      */
-    public static final List<Class<?>> DEFAULT_FUNCTION_LIBRARIES = List.of(StandardFunctionLibrary.class,
-            TemporalFunctionLibrary.class, FilterFunctionLibrary.class, ArrayFunctionLibrary.class,
-            StringFunctionLibrary.class, GraphFunctionLibrary.class);
+    public static final List<Object> DEFAULT_FUNCTION_LIBRARIES = List.of(new StandardFunctionLibrary(),
+            new TemporalFunctionLibrary(), new FilterFunctionLibrary(), new ArrayFunctionLibrary(),
+            new StringFunctionLibrary(), new GraphFunctionLibrary());
 
     private static final String ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST          = "withBundle not allowed in single test mode.";
     private static final String ERROR_BUNDLE_RESOURCE_NOT_FOUND                  = "Bundle resource not found: %s";
@@ -158,9 +158,8 @@ public class SaplTestFixture {
     private JsonMapper     jsonMapper;
     private Clock          clock;
 
-    private final List<Class<?>> staticFunctionLibraries       = new ArrayList<>();
-    private final List<Object>   instantiatedFunctionLibraries = new ArrayList<>();
-    private final List<Object>   policyInformationPoints       = new ArrayList<>();
+    private final List<Object> functionLibraries       = new ArrayList<>();
+    private final List<Object> policyInformationPoints = new ArrayList<>();
 
     @Getter
     private final MockingFunctionBroker mockingFunctionBroker = new MockingFunctionBroker();
@@ -591,16 +590,16 @@ public class SaplTestFixture {
     }
 
     /**
-     * Registers a static function library class.
+     * Registers a function library instance.
      * <p>
-     * The library class must have a no-arg constructor and methods annotated with
-     * {@code @Function}.
+     * The instance's class must be annotated with {@code @FunctionLibrary} and
+     * carry methods annotated with {@code @Function}.
      *
-     * @param libraryClass the function library class
+     * @param libraryInstance the function library instance
      * @return this fixture for chaining
      */
-    public SaplTestFixture withFunctionLibrary(@NonNull Class<?> libraryClass) {
-        staticFunctionLibraries.add(libraryClass);
+    public SaplTestFixture withFunctionLibrary(@NonNull Object libraryInstance) {
+        functionLibraries.add(libraryInstance);
         return this;
     }
 
@@ -619,21 +618,7 @@ public class SaplTestFixture {
      * @return this fixture for chaining
      */
     public SaplTestFixture withDefaultFunctionLibraries() {
-        staticFunctionLibraries.addAll(DEFAULT_FUNCTION_LIBRARIES);
-        return this;
-    }
-
-    /**
-     * Registers an instantiated function library.
-     * <p>
-     * Use this when the library requires constructor arguments or specific
-     * configuration.
-     *
-     * @param libraryInstance the function library instance
-     * @return this fixture for chaining
-     */
-    public SaplTestFixture withFunctionLibraryInstance(@NonNull Object libraryInstance) {
-        instantiatedFunctionLibraries.add(libraryInstance);
+        functionLibraries.addAll(DEFAULT_FUNCTION_LIBRARIES);
         return this;
     }
 
@@ -820,16 +805,13 @@ public class SaplTestFixture {
     }
 
     private boolean hasFunctionLibraries() {
-        return !staticFunctionLibraries.isEmpty() || !instantiatedFunctionLibraries.isEmpty();
+        return !functionLibraries.isEmpty();
     }
 
     private DefaultFunctionBroker buildDefaultFunctionBroker() {
         var defaultBroker = new DefaultFunctionBroker();
-        for (var libraryClass : staticFunctionLibraries) {
-            defaultBroker.loadStaticFunctionLibrary(libraryClass);
-        }
-        for (var libraryInstance : instantiatedFunctionLibraries) {
-            defaultBroker.loadInstantiatedFunctionLibrary(libraryInstance);
+        for (var library : functionLibraries) {
+            defaultBroker.load(library);
         }
         return defaultBroker;
     }

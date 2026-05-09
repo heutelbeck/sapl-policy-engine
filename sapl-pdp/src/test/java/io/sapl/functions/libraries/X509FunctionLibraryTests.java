@@ -68,8 +68,7 @@ class X509FunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(X509FunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new X509FunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static final String CTHULHU_DN     = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";

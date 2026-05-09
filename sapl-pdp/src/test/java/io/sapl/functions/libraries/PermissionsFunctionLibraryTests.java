@@ -39,8 +39,7 @@ class PermissionsFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(PermissionsFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new PermissionsFunctionLibrary())).doesNotThrowAnyException();
     }
 
     /* Core Permission Semantics Tests */

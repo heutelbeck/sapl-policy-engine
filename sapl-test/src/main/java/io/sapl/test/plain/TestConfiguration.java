@@ -40,7 +40,7 @@ import java.util.Map;
  * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2)
  *         .withSaplTestDocument(testDoc)
  *         .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE))
- *         .withFunctionLibrary(TemporalFunctionLibrary.class).build();
+ *         .withFunctionLibrary(new TemporalFunctionLibrary()).build();
  * }</pre>
  */
 public record TestConfiguration(
@@ -49,7 +49,7 @@ public record TestConfiguration(
         CombiningAlgorithm defaultAlgorithm,
         Map<String, Value> pdpVariables,
         Map<String, Value> pdpSecrets,
-        List<Class<?>> functionLibraries,
+        List<Object> functionLibraries,
         List<Object> policyInformationPoints,
         boolean failFast,
         Duration verificationTimeout,
@@ -78,7 +78,7 @@ public record TestConfiguration(
                 PROPAGATE);
         private final Map<String, Value>     pdpVariables            = new HashMap<>();
         private final Map<String, Value>     pdpSecrets              = new HashMap<>();
-        private final List<Class<?>>         functionLibraries       = new ArrayList<>();
+        private final List<Object>           functionLibraries       = new ArrayList<>();
         private final List<Object>           policyInformationPoints = new ArrayList<>();
         private boolean                      failFast                = false;
         private Duration                     verificationTimeout     = DEFAULT_VERIFICATION_TIMEOUT;
@@ -157,18 +157,18 @@ public record TestConfiguration(
         }
 
         /**
-         * Adds a function library class.
+         * Adds a function library instance.
          */
-        public Builder withFunctionLibrary(Class<?> libraryClass) {
-            this.functionLibraries.add(libraryClass);
+        public Builder withFunctionLibrary(Object libraryInstance) {
+            this.functionLibraries.add(libraryInstance);
             return this;
         }
 
         /**
-         * Adds multiple function library classes.
+         * Adds multiple function library instances.
          */
-        public Builder withFunctionLibraries(List<Class<?>> libraryClasses) {
-            this.functionLibraries.addAll(libraryClasses);
+        public Builder withFunctionLibraries(List<?> libraryInstances) {
+            this.functionLibraries.addAll(libraryInstances);
             return this;
         }
 

@@ -50,8 +50,7 @@ class GraphQLFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GraphQLFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new GraphQLFunctionLibrary())).doesNotThrowAnyException();
     }
 
     public static final String  MULTI_QUERY  = """

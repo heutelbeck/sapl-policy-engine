@@ -22,6 +22,14 @@ import io.sapl.api.model.Value;
 import java.util.List;
 
 public interface FunctionBroker {
+
+    /**
+     * Loads a function library from the supplied instance. The
+     * instance's class must be annotated with {@link FunctionLibrary}.
+     * All methods annotated as functions are registered.
+     */
+    void load(Object libraryInstance);
+
     Value evaluateFunction(FunctionInvocation invocation);
 
     List<Class<?>> getRegisteredLibraries();

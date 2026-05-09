@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.dataformat.toml.TomlMapper;
@@ -30,7 +29,6 @@ import tools.jackson.dataformat.toml.TomlMapper;
 /**
  * Function library providing TOML marshalling and unmarshalling operations.
  */
-@UtilityClass
 @FunctionLibrary(name = TomlFunctionLibrary.NAME, description = TomlFunctionLibrary.DESCRIPTION, libraryDocumentation = TomlFunctionLibrary.DOCUMENTATION)
 public class TomlFunctionLibrary {
 

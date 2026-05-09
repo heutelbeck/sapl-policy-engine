@@ -22,13 +22,11 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
  * Functions for JSON object manipulation and inspection.
  */
-@UtilityClass
 @FunctionLibrary(name = ObjectFunctionLibrary.NAME, description = ObjectFunctionLibrary.DESCRIPTION, libraryDocumentation = ObjectFunctionLibrary.DOCUMENTATION)
 public class ObjectFunctionLibrary {
 

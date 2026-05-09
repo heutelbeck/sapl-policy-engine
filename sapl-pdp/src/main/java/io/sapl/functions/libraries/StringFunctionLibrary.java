@@ -20,7 +20,6 @@ package io.sapl.functions.libraries;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -35,7 +34,6 @@ import java.util.regex.Pattern;
  * alternatives for cases where pattern matching
  * is unnecessary.
  */
-@UtilityClass
 @FunctionLibrary(name = StringFunctionLibrary.NAME, description = StringFunctionLibrary.DESCRIPTION, libraryDocumentation = StringFunctionLibrary.DOCUMENTATION)
 public class StringFunctionLibrary {
 

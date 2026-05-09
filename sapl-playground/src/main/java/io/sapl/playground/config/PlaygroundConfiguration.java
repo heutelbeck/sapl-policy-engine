@@ -70,12 +70,12 @@ public class PlaygroundConfiguration {
     @Bean
     FunctionBroker functionBroker() {
         var broker = new DefaultFunctionBroker();
-        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
-            broker.loadStaticFunctionLibrary(libraryClass);
+        for (var library : DefaultLibraries.defaults()) {
+            broker.load(library);
         }
-        broker.loadStaticFunctionLibrary(GeographicFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(MqttFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(TraccarFunctionLibrary.class);
+        broker.load(new GeographicFunctionLibrary());
+        broker.load(new MqttFunctionLibrary());
+        broker.load(new TraccarFunctionLibrary());
         return broker;
     }
 
@@ -100,8 +100,8 @@ public class PlaygroundConfiguration {
     @Bean
     DocumentationBundle documentationBundle() {
         var libraries = new ArrayList<LibraryDocumentation>();
-        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
-            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
+        for (var library : DefaultLibraries.defaults()) {
+            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(library.getClass()));
         }
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(GeographicFunctionLibrary.class));
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(MqttFunctionLibrary.class));

@@ -22,13 +22,11 @@ import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
 
-@UtilityClass
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
 

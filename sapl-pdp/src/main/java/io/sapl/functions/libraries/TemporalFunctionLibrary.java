@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.time.*;
@@ -40,7 +39,6 @@ import java.util.Locale;
  * date-time parsing, comparison, arithmetic, and
  * formatting using ISO 8601 and RFC3339 standards.
  */
-@UtilityClass
 @FunctionLibrary(name = TemporalFunctionLibrary.NAME, description = TemporalFunctionLibrary.DESCRIPTION, libraryDocumentation = TemporalFunctionLibrary.DOCUMENTATION)
 public class TemporalFunctionLibrary {
 

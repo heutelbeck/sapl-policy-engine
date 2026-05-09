@@ -36,8 +36,7 @@ class UuidFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UuidFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new UuidFunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static final String VALID_UUID_V4 = "550e8400-e29b-41d4-a716-446655440000";

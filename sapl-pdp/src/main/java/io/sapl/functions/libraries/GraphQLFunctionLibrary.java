@@ -34,7 +34,6 @@ import io.sapl.api.model.*;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
@@ -49,7 +48,6 @@ import java.util.*;
  * calculation, and security metrics for
  * authorization decisions based on GraphQL query characteristics.
  */
-@UtilityClass
 @FunctionLibrary(name = GraphQLFunctionLibrary.NAME, description = GraphQLFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphQLFunctionLibrary.DOCUMENTATION)
 public class GraphQLFunctionLibrary {
 

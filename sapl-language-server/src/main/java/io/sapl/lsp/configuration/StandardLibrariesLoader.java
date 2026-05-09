@@ -30,38 +30,7 @@ import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.libraries.ArrayFunctionLibrary;
-import io.sapl.functions.libraries.BitwiseFunctionLibrary;
-import io.sapl.functions.libraries.CidrFunctionLibrary;
-import io.sapl.functions.libraries.CsvFunctionLibrary;
-import io.sapl.functions.libraries.DigestFunctionLibrary;
-import io.sapl.functions.libraries.EncodingFunctionLibrary;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.functions.libraries.GraphFunctionLibrary;
-import io.sapl.functions.libraries.GraphQLFunctionLibrary;
-import io.sapl.functions.libraries.JsonFunctionLibrary;
-import io.sapl.functions.libraries.KeysFunctionLibrary;
-import io.sapl.functions.libraries.MacFunctionLibrary;
-import io.sapl.functions.libraries.MathFunctionLibrary;
-import io.sapl.functions.libraries.NumeralFunctionLibrary;
-import io.sapl.functions.libraries.ObjectFunctionLibrary;
-import io.sapl.functions.libraries.PatternsFunctionLibrary;
-import io.sapl.functions.libraries.PermissionsFunctionLibrary;
-import io.sapl.functions.libraries.ReflectionFunctionLibrary;
-import io.sapl.functions.libraries.SanitizationFunctionLibrary;
-import io.sapl.functions.libraries.SaplFunctionLibrary;
-import io.sapl.functions.libraries.SchemaValidationLibrary;
-import io.sapl.functions.libraries.SemVerFunctionLibrary;
-import io.sapl.functions.libraries.SignatureFunctionLibrary;
-import io.sapl.functions.libraries.StandardFunctionLibrary;
-import io.sapl.functions.libraries.StringFunctionLibrary;
-import io.sapl.functions.libraries.TemporalFunctionLibrary;
-import io.sapl.functions.libraries.TomlFunctionLibrary;
-import io.sapl.functions.libraries.UnitsFunctionLibrary;
-import io.sapl.functions.libraries.UuidFunctionLibrary;
-import io.sapl.functions.libraries.X509FunctionLibrary;
-import io.sapl.functions.libraries.XmlFunctionLibrary;
-import io.sapl.functions.libraries.YamlFunctionLibrary;
+import io.sapl.functions.DefaultLibraries;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -73,18 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @UtilityClass
 public class StandardLibrariesLoader {
-
-    private static final List<Class<?>> FUNCTION_LIBRARIES = List.of(ArrayFunctionLibrary.class,
-            BitwiseFunctionLibrary.class, CidrFunctionLibrary.class, CsvFunctionLibrary.class,
-            DigestFunctionLibrary.class, EncodingFunctionLibrary.class, FilterFunctionLibrary.class,
-            GraphFunctionLibrary.class, GraphQLFunctionLibrary.class, JsonFunctionLibrary.class,
-            KeysFunctionLibrary.class, MacFunctionLibrary.class, MathFunctionLibrary.class,
-            NumeralFunctionLibrary.class, ObjectFunctionLibrary.class, PatternsFunctionLibrary.class,
-            PermissionsFunctionLibrary.class, ReflectionFunctionLibrary.class, SanitizationFunctionLibrary.class,
-            SaplFunctionLibrary.class, SchemaValidationLibrary.class, SemVerFunctionLibrary.class,
-            SignatureFunctionLibrary.class, StandardFunctionLibrary.class, StringFunctionLibrary.class,
-            TemporalFunctionLibrary.class, TomlFunctionLibrary.class, UnitsFunctionLibrary.class,
-            UuidFunctionLibrary.class, X509FunctionLibrary.class, XmlFunctionLibrary.class, YamlFunctionLibrary.class);
 
     private static final List<Class<?>> POLICY_INFORMATION_POINTS = List.of(TimePolicyInformationPoint.class,
             HttpPolicyInformationPoint.class, JWTPolicyInformationPoint.class, X509PolicyInformationPoint.class);
@@ -99,7 +56,7 @@ public class StandardLibrariesLoader {
         var functionBroker = createFunctionBroker();
         var documentation  = createDocumentationBundle();
 
-        log.info("Loaded {} function libraries and {} PIPs for LSP configuration", FUNCTION_LIBRARIES.size(),
+        log.info("Loaded {} function libraries and {} PIPs for LSP configuration", DefaultLibraries.defaults().size(),
                 POLICY_INFORMATION_POINTS.size());
 
         return new LSPConfiguration(configurationId, documentation, Map.of(), functionBroker);
@@ -107,11 +64,11 @@ public class StandardLibrariesLoader {
 
     private static FunctionBroker createFunctionBroker() {
         var broker = new DefaultFunctionBroker();
-        for (var libraryClass : FUNCTION_LIBRARIES) {
+        for (var library : DefaultLibraries.defaults()) {
             try {
-                broker.loadStaticFunctionLibrary(libraryClass);
+                broker.load(library);
             } catch (Exception e) {
-                log.warn("Failed to load function library {}: {}", libraryClass.getSimpleName(), e.getMessage());
+                log.warn("Failed to load function library {}: {}", library.getClass().getSimpleName(), e.getMessage());
             }
         }
         return broker;
@@ -120,11 +77,12 @@ public class StandardLibrariesLoader {
     private static DocumentationBundle createDocumentationBundle() {
         var libraries = new ArrayList<LibraryDocumentation>();
 
-        for (var libraryClass : FUNCTION_LIBRARIES) {
+        for (var library : DefaultLibraries.defaults()) {
             try {
-                libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
+                libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(library.getClass()));
             } catch (Exception e) {
-                log.warn("Failed to extract documentation from {}: {}", libraryClass.getSimpleName(), e.getMessage());
+                log.warn("Failed to extract documentation from {}: {}", library.getClass().getSimpleName(),
+                        e.getMessage());
             }
         }
 

@@ -23,7 +23,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -33,7 +32,6 @@ import java.util.function.DoubleBinaryOperator;
 /**
  * Array manipulation functions.
  */
-@UtilityClass
 @FunctionLibrary(name = ArrayFunctionLibrary.NAME, description = ArrayFunctionLibrary.DESCRIPTION, libraryDocumentation = ArrayFunctionLibrary.DOCUMENTATION)
 public class ArrayFunctionLibrary {
 

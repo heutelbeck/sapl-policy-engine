@@ -25,7 +25,6 @@ import io.sapl.api.documentation.*;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.IOException;
@@ -43,7 +42,6 @@ import java.util.Map;
  * {@link PolicyInformationPoint} annotated classes, extracting
  * documentation metadata into serializable DTOs.
  */
-@UtilityClass
 public class LibraryDocumentationExtractor {
 
     public static final String VALUE = "Value";

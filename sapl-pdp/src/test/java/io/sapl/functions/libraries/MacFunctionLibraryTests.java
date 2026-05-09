@@ -42,8 +42,7 @@ class MacFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(MacFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new MacFunctionLibrary())).doesNotThrowAnyException();
     }
 
     /* HMAC Computation Tests */

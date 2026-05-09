@@ -48,8 +48,7 @@ class SignatureFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SignatureFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SignatureFunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static KeyPair rsaKeyPair;

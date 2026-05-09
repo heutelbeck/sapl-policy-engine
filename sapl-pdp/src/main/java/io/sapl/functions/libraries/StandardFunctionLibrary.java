@@ -20,10 +20,8 @@ package io.sapl.functions.libraries;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
-@UtilityClass
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION, libraryDocumentation = StandardFunctionLibrary.DOCUMENTATION)
 public class StandardFunctionLibrary {
 

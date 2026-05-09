@@ -40,8 +40,7 @@ class SemVerFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SemVerFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SemVerFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0}")

@@ -41,8 +41,7 @@ class CidrFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(CidrFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new CidrFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0} contains {1} = {2}")

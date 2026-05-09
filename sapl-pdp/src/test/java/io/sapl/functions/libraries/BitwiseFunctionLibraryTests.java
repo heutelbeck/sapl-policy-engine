@@ -41,8 +41,7 @@ class BitwiseFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(BitwiseFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new BitwiseFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0}")

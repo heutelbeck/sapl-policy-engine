@@ -92,7 +92,7 @@ public class JUnitTestAdapter {
      * <pre>{@code
      * @Override
      * protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
-     *     return Map.of(ImportType.STATIC_FUNCTION_LIBRARY, Map.of("temporal", TemporalFunctionLibrary.class),
+     *     return Map.of(ImportType.STATIC_FUNCTION_LIBRARY, Map.of("temporal", new TemporalFunctionLibrary()),
      *             ImportType.PIP, Map.of("myPip", new MyPolicyInformationPoint()));
      * }
      * }</pre>
@@ -155,9 +155,7 @@ public class JUnitTestAdapter {
         var functionLibraries = registrations.get(ImportType.STATIC_FUNCTION_LIBRARY);
         if (functionLibraries != null) {
             for (var entry : functionLibraries.entrySet()) {
-                if (entry.getValue() instanceof Class<?> clazz) {
-                    builder.withFunctionLibrary(clazz);
-                }
+                builder.withFunctionLibrary(entry.getValue());
             }
         }
 

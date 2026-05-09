@@ -23,7 +23,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.*;
@@ -41,7 +40,6 @@ import java.util.*;
  * closure. O(V + E + S) where S = total output size. Functions fold at compile
  * time when the input is a PDP variable.
  */
-@UtilityClass
 @FunctionLibrary(name = GraphFunctionLibrary.NAME, description = GraphFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphFunctionLibrary.DOCUMENTATION)
 public class GraphFunctionLibrary {
 

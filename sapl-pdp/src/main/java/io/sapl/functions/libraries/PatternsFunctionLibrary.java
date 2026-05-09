@@ -23,7 +23,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -65,7 +64,6 @@ import java.util.regex.PatternSyntaxException;
  * alternations are rejected before evaluation.
  */
 @Slf4j
-@UtilityClass
 @FunctionLibrary(name = PatternsFunctionLibrary.NAME, description = PatternsFunctionLibrary.DESCRIPTION, libraryDocumentation = PatternsFunctionLibrary.DOCUMENTATION)
 public class PatternsFunctionLibrary {
 

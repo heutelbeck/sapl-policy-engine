@@ -23,7 +23,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.semver4j.Semver;
 import org.semver4j.SemverException;
@@ -33,7 +32,6 @@ import org.semver4j.SemverException;
  * policies. Supports version-based access
  * control, API compatibility checks, and feature gating.
  */
-@UtilityClass
 @FunctionLibrary(name = SemVerFunctionLibrary.NAME, description = SemVerFunctionLibrary.DESCRIPTION, libraryDocumentation = SemVerFunctionLibrary.DOCUMENTATION)
 public class SemVerFunctionLibrary {
 

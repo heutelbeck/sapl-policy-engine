@@ -111,6 +111,15 @@ public final class MockingFunctionBroker implements FunctionBroker {
     }
 
     @Override
+    public void load(Object libraryInstance) {
+        if (delegate == null) {
+            throw new IllegalStateException(
+                    "MockingFunctionBroker has no delegate; configure libraries on the delegate.");
+        }
+        delegate.load(libraryInstance);
+    }
+
+    @Override
     public List<Class<?>> getRegisteredLibraries() {
         if (delegate == null) {
             return List.of();

@@ -21,7 +21,6 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.security.SecureRandom;
@@ -30,7 +29,6 @@ import java.util.Random;
 /**
  * Collection of mathematical functions for scalar operations.
  */
-@UtilityClass
 @FunctionLibrary(name = MathFunctionLibrary.NAME, description = MathFunctionLibrary.DESCRIPTION, libraryDocumentation = MathFunctionLibrary.DOCUMENTATION)
 public class MathFunctionLibrary {
 

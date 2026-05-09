@@ -23,7 +23,6 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.Random;
@@ -32,7 +31,6 @@ import java.util.UUID;
 /**
  * Utility functions for UUID handling.
  */
-@UtilityClass
 @FunctionLibrary(name = UuidFunctionLibrary.NAME, description = UuidFunctionLibrary.DESCRIPTION, libraryDocumentation = UuidFunctionLibrary.DOCUMENTATION)
 public class UuidFunctionLibrary {
 

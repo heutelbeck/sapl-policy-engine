@@ -38,8 +38,7 @@ class PatternsFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(PatternsFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new PatternsFunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static ArrayValue createDelimitersArray(String... delimiters) {

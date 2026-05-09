@@ -20,14 +20,12 @@ package io.sapl.functions.libraries;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
 
 /**
  * Functions for runtime type inspection and reflection on Value objects.
  */
-@UtilityClass
 @FunctionLibrary(name = ReflectionFunctionLibrary.NAME, description = ReflectionFunctionLibrary.DESCRIPTION, libraryDocumentation = ReflectionFunctionLibrary.DOCUMENTATION)
 public class ReflectionFunctionLibrary {
 

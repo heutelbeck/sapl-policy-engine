@@ -33,8 +33,7 @@ class SchemaValidationLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SchemaValidationLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SchemaValidationLibrary())).doesNotThrowAnyException();
     }
 
     @Test

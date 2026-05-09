@@ -45,8 +45,7 @@ class EncodingFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(EncodingFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new EncodingFunctionLibrary())).doesNotThrowAnyException();
     }
 
     /* Encoding Tests */

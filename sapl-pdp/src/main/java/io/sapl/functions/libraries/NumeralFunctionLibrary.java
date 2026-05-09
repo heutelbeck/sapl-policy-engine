@@ -23,7 +23,6 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -31,7 +30,6 @@ import java.math.BigDecimal;
 /**
  * Numeric base conversion for authorization policies.
  */
-@UtilityClass
 @FunctionLibrary(name = NumeralFunctionLibrary.NAME, description = NumeralFunctionLibrary.DESCRIPTION, libraryDocumentation = NumeralFunctionLibrary.DOCUMENTATION)
 public class NumeralFunctionLibrary {
 

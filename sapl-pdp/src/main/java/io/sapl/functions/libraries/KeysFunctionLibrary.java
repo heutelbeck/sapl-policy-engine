@@ -24,7 +24,6 @@ import io.sapl.functions.libraries.crypto.CertificateUtils;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import io.sapl.functions.libraries.crypto.PemUtils;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -58,7 +57,6 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
  * JWK conversion follows RFC 7517 (JSON Web Key) and RFC 7518 (JSON Web
  * Algorithms).
  */
-@UtilityClass
 @FunctionLibrary(name = KeysFunctionLibrary.NAME, description = KeysFunctionLibrary.DESCRIPTION, libraryDocumentation = KeysFunctionLibrary.DOCUMENTATION)
 public class KeysFunctionLibrary {
 

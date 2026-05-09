@@ -40,8 +40,7 @@ class SanitizationFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SanitizationFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SanitizationFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "[{index}] {1}: {0}")

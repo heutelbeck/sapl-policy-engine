@@ -42,8 +42,7 @@ class UnitsFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(UnitsFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new UnitsFunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static final TextValue VERY_LONG_NUMBER = Value.of("1".repeat(10000) + "X");

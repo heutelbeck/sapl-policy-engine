@@ -65,7 +65,7 @@ import java.util.Objects;
  * <h2>Basic Usage</h2>
  *
  * <pre>{@code
- * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withFunctionLibrary(MyCustomLibrary.class)
+ * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withFunctionLibrary(new MyCustomLibrary())
  *         .withPolicyInformationPoint(new MyCustomPIP()).build();
  *
  * var pdp = pdpComponents.pdp();
@@ -105,9 +105,8 @@ public class PolicyDecisionPointBuilder {
     private boolean includeDefaultFunctionLibraries       = true;
     private boolean includeDefaultPolicyInformationPoints = true;
 
-    private final List<Class<?>> staticFunctionLibraries       = new ArrayList<>();
-    private final List<Object>   instantiatedFunctionLibraries = new ArrayList<>();
-    private final List<Object>   policyInformationPoints       = new ArrayList<>();
+    private final List<Object> functionLibraries       = new ArrayList<>();
+    private final List<Object> policyInformationPoints = new ArrayList<>();
 
     private IdFactory idFactory;
 
@@ -203,62 +202,25 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a static function library class. The library will be instantiated using
-     * its no-arg constructor.
+     * Adds a function library instance.
      *
-     * @param libraryClass
-     * the function library class
-     *
+     * @param libraryInstance the function library instance
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withFunctionLibrary(Class<?> libraryClass) {
-        this.staticFunctionLibraries.add(libraryClass);
+    public PolicyDecisionPointBuilder withFunctionLibrary(Object libraryInstance) {
+        this.functionLibraries.add(libraryInstance);
         return this;
     }
 
     /**
-     * Adds an already instantiated function library. Use this for libraries that
-     * require constructor dependencies.
+     * Adds multiple function library instances. Useful for Spring integration
+     * where library beans are collected automatically.
      *
-     * @param libraryInstance
-     * the function library instance
-     *
+     * @param libraryInstances the function library instances
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withFunctionLibraryInstance(Object libraryInstance) {
-        this.instantiatedFunctionLibraries.add(libraryInstance);
-        return this;
-    }
-
-    /**
-     * Adds multiple static function library classes. Each library will be
-     * instantiated using its no-arg constructor.
-     * This is useful for Spring integration where libraries are collected
-     * automatically.
-     *
-     * @param libraryClasses
-     * the function library classes
-     *
-     * @return this builder
-     */
-    public PolicyDecisionPointBuilder withFunctionLibraries(Collection<Class<?>> libraryClasses) {
-        this.staticFunctionLibraries.addAll(libraryClasses);
-        return this;
-    }
-
-    /**
-     * Adds multiple already instantiated function libraries. Use this for libraries
-     * that require constructor
-     * dependencies. This is useful for Spring integration where library beans are
-     * collected automatically.
-     *
-     * @param libraryInstances
-     * the function library instances
-     *
-     * @return this builder
-     */
-    public PolicyDecisionPointBuilder withFunctionLibraryInstances(Collection<?> libraryInstances) {
-        this.instantiatedFunctionLibraries.addAll(libraryInstances);
+    public PolicyDecisionPointBuilder withFunctionLibraries(Collection<?> libraryInstances) {
+        this.functionLibraries.addAll(libraryInstances);
         return this;
     }
 
@@ -296,11 +258,9 @@ public class PolicyDecisionPointBuilder {
      * is useful for Spring integration where the broker is managed as a bean with
      * its own dependencies.
      * <p>
-     * When an external broker is provided, the {@code withFunctionLibrary},
-     * {@code withFunctionLibraryInstance},
-     * {@code withFunctionLibraries}, and {@code withFunctionLibraryInstances}
-     * methods have no effect - configure
-     * libraries directly on the provided broker instead.
+     * When an external broker is provided, the {@code withFunctionLibrary} and
+     * {@code withFunctionLibraries} methods have no effect - configure libraries
+     * directly on the provided broker instead.
      *
      * @param functionBroker
      * the pre-configured function broker
@@ -728,8 +688,8 @@ public class PolicyDecisionPointBuilder {
     }
 
     private FunctionBroker resolveFunctionBroker() {
-        return Objects.requireNonNullElseGet(externalFunctionBroker, () -> buildFunctionBroker(functionCacheSize,
-                includeDefaultFunctionLibraries, staticFunctionLibraries, instantiatedFunctionLibraries));
+        return Objects.requireNonNullElseGet(externalFunctionBroker,
+                () -> buildFunctionBroker(functionCacheSize, includeDefaultFunctionLibraries, functionLibraries));
     }
 
     /**
@@ -738,32 +698,26 @@ public class PolicyDecisionPointBuilder {
      * Boot auto-configuration) so the construction logic stays in a single
      * place.
      *
-     * @param functionCacheSize maximum function result cache entries; values
-     * less than or equal to zero use the broker's default
+     * @param functionCacheSize maximum function result cache entries. Values
+     * less than or equal to zero use the broker's default.
      * @param includeDefaultFunctionLibraries whether to load the SAPL
-     * default static libraries
-     * @param staticFunctionLibraries additional static library classes to load
-     * @param instantiatedFunctionLibraries additional pre-instantiated
-     * libraries to load
+     * default libraries
+     * @param additionalFunctionLibraries additional library instances to load
      * @return a fully configured function broker
      */
     public static FunctionBroker buildFunctionBroker(int functionCacheSize, boolean includeDefaultFunctionLibraries,
-            List<Class<?>> staticFunctionLibraries, List<Object> instantiatedFunctionLibraries) {
+            List<?> additionalFunctionLibraries) {
         val functionBroker = functionCacheSize > 0 ? new DefaultFunctionBroker(functionCacheSize)
                 : new DefaultFunctionBroker();
 
         if (includeDefaultFunctionLibraries) {
-            for (val lib : DefaultLibraries.STATIC_LIBRARIES) {
-                functionBroker.loadStaticFunctionLibrary(lib);
+            for (val lib : DefaultLibraries.defaults()) {
+                functionBroker.load(lib);
             }
         }
 
-        for (val lib : staticFunctionLibraries) {
-            functionBroker.loadStaticFunctionLibrary(lib);
-        }
-
-        for (val lib : instantiatedFunctionLibraries) {
-            functionBroker.loadInstantiatedFunctionLibrary(lib);
+        for (val lib : additionalFunctionLibraries) {
+            functionBroker.load(lib);
         }
 
         return functionBroker;

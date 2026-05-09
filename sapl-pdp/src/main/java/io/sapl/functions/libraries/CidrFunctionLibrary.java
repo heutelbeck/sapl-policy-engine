@@ -23,7 +23,6 @@ import inet.ipaddr.IPAddressString;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigInteger;
@@ -43,7 +42,6 @@ import java.util.function.UnaryOperator;
  * (compressed, lowercase). Address family mixing returns false rather than
  * errors for cleaner policy logic.
  */
-@UtilityClass
 @FunctionLibrary(name = CidrFunctionLibrary.NAME, description = CidrFunctionLibrary.DESCRIPTION, libraryDocumentation = CidrFunctionLibrary.DOCUMENTATION)
 public class CidrFunctionLibrary {
 
