@@ -24,7 +24,7 @@ import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildFunctionBroke
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.functions.FunctionLibraryClassProvider;
+import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
@@ -136,13 +136,12 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     FunctionBroker functionBroker(EmbeddedPDPProperties properties,
-            ObjectProvider<FunctionLibraryClassProvider> functionLibraryClassProviders,
-            ApplicationContext applicationContext) {
-        val staticClasses     = collectFunctionLibraryClasses(functionLibraryClassProviders);
-        val instanceLibraries = collectFunctionLibraries(applicationContext);
-        log.debug("Building FunctionBroker: {} static class providers, {} instance libraries.", staticClasses.size(),
-                instanceLibraries.size());
-        return buildFunctionBroker(properties.getFunctionCacheSize(), true, staticClasses, instanceLibraries);
+            ObjectProvider<FunctionLibraryProvider> functionLibraryProviders, ApplicationContext applicationContext) {
+        val libraries = new ArrayList<Object>();
+        libraries.addAll(collectFunctionLibrariesFromProviders(functionLibraryProviders));
+        libraries.addAll(collectFunctionLibraries(applicationContext));
+        log.debug("Building FunctionBroker: {} function libraries.", libraries.size());
+        return buildFunctionBroker(properties.getFunctionCacheSize(), true, libraries);
     }
 
     @Bean
@@ -336,15 +335,15 @@ public class PDPAutoConfiguration {
         return pips;
     }
 
-    private List<Class<?>> collectFunctionLibraryClasses(ObjectProvider<FunctionLibraryClassProvider> providers) {
-        val classes = new ArrayList<Class<?>>();
+    private List<Object> collectFunctionLibrariesFromProviders(ObjectProvider<FunctionLibraryProvider> providers) {
+        val libraries = new ArrayList<Object>();
         providers.orderedStream().forEach(provider -> {
-            val providerClasses = provider.functionLibraryClasses();
-            log.debug("Found {} function library classes from provider {}", providerClasses.size(),
+            val providerLibraries = provider.functionLibraries();
+            log.debug("Found {} function libraries from provider {}", providerLibraries.size(),
                     provider.getClass().getSimpleName());
-            classes.addAll(providerClasses);
+            libraries.addAll(providerLibraries);
         });
-        return classes;
+        return libraries;
     }
 
 }

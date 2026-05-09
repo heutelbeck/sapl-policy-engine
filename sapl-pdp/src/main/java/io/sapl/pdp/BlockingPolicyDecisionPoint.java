@@ -19,72 +19,135 @@ package io.sapl.pdp;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.api.stream.Stream;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.compiler.document.VoteWithCoverage;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 /**
- * Synchronous, Reactor-free policy decision point. Drives the
- * compiled PDP voter and coverage voter against a per-evaluation
- * {@link AttributeStore} subscription with a
- * future-based blocking primitive (the same shape used by
- * {@code ReactivePolicyDecisionPoint.evaluateOnce}). Intended as the
- * substrate for sapl-test and other testing or tooling consumers
- * that have no use for streaming evaluation and should not pull
- * Reactor as a transitive dependency.
+ * Reactor-free policy decision point implementing
+ * {@link StreamingPolicyDecisionPoint}. Drives the compiled PDP voter
+ * (and the engine-internal coverage voter) against a per-evaluation
+ * {@link AttributeStore} subscription using the SAPL
+ * {@link Stream} primitive; consumers block on each
+ * {@link Stream#awaitNext()} call. Intended substrate for sapl-test
+ * and other tooling consumers that should not pull Reactor as a
+ * transitive dependency.
  */
-public final class BlockingPolicyDecisionPoint {
+public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisionPoint {
 
     private static final String ERROR_NOT_YET_IMPLEMENTED = "BlockingPolicyDecisionPoint not yet implemented.";
 
-    /**
-     * One-shot synchronous evaluation for a specific tenant. Returns
-     * the first complete authorization decision for the subscription.
-     *
-     * @param authorizationSubscription the authorization subscription
-     * @param pdpId the tenant identifier
-     * @return the authorization decision
-     */
+    @Override
     public AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        // TODO: implement decideOnce: drive CompiledPdp.voter() through
-        // Voters.awaitFirstVote against the AttributeStore, return the
-        // resulting AuthorizationDecision.
+        // TODO: implement decideOnce. Mirror ReactivePolicyDecisionPoint.voteSync /
+        // evaluateOnceSync: fetch the CompiledPdp for pdpId, drive the production
+        // voter through Voters.awaitFirstVote against the AttributeStore, return
+        // the resulting AuthorizationDecision (INDETERMINATE on missing config).
+        throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
+    }
+
+    @Override
+    public Stream<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        // TODO: implement streaming decide for a single subscription. Open the
+        // AttributeStore subscription, push each round's decision into a
+        // LatestSlotStream, wrap with
+        // Streams.distinctUntilChanged(s, e -> AuthorizationDecision.INDETERMINATE)
+        // so transient evaluation failures surface as INDETERMINATE rather than
+        // silent completion.
+        throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
+    }
+
+    @Override
+    public Stream<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
+            String pdpId) {
+        // TODO: implement streaming multi-decide. Cannot use the simple
+        // distinctUntilChanged helper here: emission is per-identifier, not
+        // per-bundle. Each round produces a MultiAuthorizationDecision; the
+        // method must diff against the previous bundle and emit only the
+        // IdentifiableAuthorizationDecision entries whose decision changed.
+        // Mirror ReactivePolicyDecisionPoint.identifiableChanges(prev, current),
+        // which itself carries a verification TODO regarding subscription removals
+        // and dynamic subscription set changes. The diff state is held in an
+        // AtomicReference<MultiAuthorizationDecision>; the pump thread does the
+        // diff and pushes one IdentifiableAuthorizationDecision per change into
+        // the output Stream.
+        throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
+    }
+
+    @Override
+    public Stream<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription,
+            String pdpId) {
+        // TODO: implement streaming decideAll. Open the AttributeStore subscription,
+        // run evaluateRound across all sub-subscriptions on each snapshot, push the
+        // bundled MultiAuthorizationDecision into a LatestSlotStream, wrap with
+        // Streams.distinctUntilChanged(s, e ->
+        // MultiAuthorizationDecision.indeterminate())
+        // so the transport surfaces INDETERMINATE on transient evaluation failure.
+        // The whole-bundle equals on MultiAuthorizationDecision compares the
+        // decisions map by value, which is the correct dedupe key here.
         throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
     }
 
     /**
      * One-shot synchronous evaluation with coverage information for a
-     * specific tenant. Drives the compiled PDP's coverage voter and
-     * returns the vote together with the recorded branch coverage.
-     *
-     * @param authorizationSubscription the authorization subscription
-     * @param pdpId the tenant identifier
-     * @return the vote with coverage
+     * specific tenant. Engine-internal: not part of the
+     * {@link StreamingPolicyDecisionPoint} contract; consumed by
+     * sapl-test and tooling that need branch-coverage data alongside
+     * the decision.
      */
-    public VoteWithCoverage voteOnceWithCoverage(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        // TODO: implement voteOnceWithCoverage: drive
-        // CompiledPdp.coverageVoter() through a future-based blocking
-        // primitive against the AttributeStore, return the
-        // VoteResultWithCoverage payload as VoteWithCoverage.
+    public VoteWithCoverage decideOnceWithCoverage(AuthorizationSubscription authorizationSubscription, String pdpId) {
+        // TODO: implement decideOnceWithCoverage. Drive CompiledPdp.coverageVoter()
+        // through a future-based blocking primitive against the AttributeStore,
+        // return the VoteResultWithCoverage payload as VoteWithCoverage.
         throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
     }
 
     /**
-     * Convenience overload for single-tenant or context-free callers.
-     * Delegates to {@link #decideOnce(AuthorizationSubscription, String)}
-     * with {@link PolicyDecisionPoint#DEFAULT_PDP_ID}.
+     * Streaming evaluation with coverage information for a specific
+     * tenant. Engine-internal: not part of the
+     * {@link StreamingPolicyDecisionPoint} contract. Each round emits
+     * a {@link VoteWithCoverage}; coverage emissions are NOT
+     * deduplicated because consumers depend on observing every round's
+     * branch hits.
      */
-    public AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription) {
-        return decideOnce(authorizationSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
+    public Stream<VoteWithCoverage> decideWithCoverage(AuthorizationSubscription authorizationSubscription,
+            String pdpId) {
+        // TODO: implement streaming decideWithCoverage. Open the AttributeStore
+        // subscription, push every round's VoteWithCoverage into a QueueStream
+        // (not LatestSlotStream: coverage data accumulates per round and a slow
+        // consumer must observe every emission). Do NOT apply distinctUntilChanged.
+        throw new UnsupportedOperationException(ERROR_NOT_YET_IMPLEMENTED);
     }
 
-    /**
-     * Convenience overload for single-tenant or context-free callers.
-     * Delegates to
-     * {@link #voteOnceWithCoverage(AuthorizationSubscription, String)}
-     * with {@link PolicyDecisionPoint#DEFAULT_PDP_ID}.
-     */
-    public VoteWithCoverage voteOnceWithCoverage(AuthorizationSubscription authorizationSubscription) {
-        return voteOnceWithCoverage(authorizationSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
+    @Override
+    public AuthorizationDecision decideOnce(AuthorizationSubscription authorizationSubscription) {
+        return decideOnce(authorizationSubscription, DEFAULT_PDP_ID);
+    }
+
+    @Override
+    public Stream<AuthorizationDecision> decide(AuthorizationSubscription authorizationSubscription) {
+        return decide(authorizationSubscription, DEFAULT_PDP_ID);
+    }
+
+    @Override
+    public Stream<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription) {
+        return decide(multiSubscription, DEFAULT_PDP_ID);
+    }
+
+    @Override
+    public Stream<MultiAuthorizationDecision> decideAll(MultiAuthorizationSubscription multiSubscription) {
+        return decideAll(multiSubscription, DEFAULT_PDP_ID);
+    }
+
+    public VoteWithCoverage decideOnceWithCoverage(AuthorizationSubscription authorizationSubscription) {
+        return decideOnceWithCoverage(authorizationSubscription, DEFAULT_PDP_ID);
+    }
+
+    public Stream<VoteWithCoverage> decideWithCoverage(AuthorizationSubscription authorizationSubscription) {
+        return decideWithCoverage(authorizationSubscription, DEFAULT_PDP_ID);
     }
 }

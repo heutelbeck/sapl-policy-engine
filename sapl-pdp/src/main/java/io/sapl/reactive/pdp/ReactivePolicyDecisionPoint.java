@@ -367,6 +367,14 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         });
     }
 
+    // TODO: verify per-identifier diff dedupe under dynamic subscription set
+    // changes. identifiableChanges() emits only subs whose decision differs
+    // from the previous bundle; it does not detect removals (a sub vanishing
+    // between rounds produces no event). The baseline assumes
+    // MultiAuthorizationDecision
+    // is constructed fresh per round in evaluateRound (which it is today), so
+    // the AtomicReference compare-and-set works correctly; reconfirm if that
+    // construction pattern changes.
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
             String pdpId) {

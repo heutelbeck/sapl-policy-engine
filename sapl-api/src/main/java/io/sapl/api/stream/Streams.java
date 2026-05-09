@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -349,18 +350,23 @@ public class Streams {
     }
 
     /**
-     * Stream that emits values from {@code source} but suppresses any
-     * value equal to its immediate predecessor. The first value is
-     * always emitted. Useful for polling sources whose value rarely
-     * changes between polls.
+     * Distinct-until-changed wrapper. Emits values from {@code source}
+     * but suppresses any value equal (per {@link Objects#equals}) to
+     * its immediate predecessor. The first value is always emitted.
+     * <p>
+     * The caller supplies an {@code onError} mapper so a transient
+     * source failure can surface as a domain value rather than a
+     * silent completion: PIPs map to {@link Value#error(String)},
+     * decision streams map to
+     * {@code AuthorizationDecision.INDETERMINATE}, and so on.
      * <p>
      * Hot: spawns one virtual thread that pulls from {@code source}.
      * Caller must {@code close()} the returned stream.
      */
-    public static Stream<Value> distinctUntilChanged(Stream<Value> source) {
-        val out      = new LatestSlotStream<Value>();
+    public static <T> Stream<T> distinctUntilChanged(Stream<T> source, Function<Exception, T> onError) {
+        val out      = new LatestSlotStream<T>();
         val stopped  = new AtomicBoolean(false);
-        val previous = new AtomicReference<Value>();
+        val previous = new AtomicReference<T>();
         val pump     = Thread.startVirtualThread(() -> {
                          try {
                              while (!stopped.get()) {
@@ -374,10 +380,10 @@ public class Streams {
                                      out.put(v);
                                  }
                              }
-                         } catch (InterruptedException ie) {
+                         } catch (InterruptedException expected) {
                              Thread.currentThread().interrupt();
-                         } catch (RuntimeException loopFailure) {
-                             out.put(Value.error(messageOf(loopFailure)));
+                         } catch (RuntimeException sourceFailed) {
+                             out.put(onError.apply(sourceFailed));
                          } finally {
                              out.complete();
                              source.close();
@@ -389,6 +395,15 @@ public class Streams {
             source.close();
         });
         return out;
+    }
+
+    /**
+     * Convenience overload for {@link Value} streams. Equivalent to
+     * {@link #distinctUntilChanged(Stream, Function)} with the error
+     * mapper {@code e -> Value.error(messageOf(e))}.
+     */
+    public static Stream<Value> distinctUntilChanged(Stream<Value> source) {
+        return distinctUntilChanged(source, e -> Value.error(messageOf(e)));
     }
 
     /**

@@ -21,8 +21,10 @@ import io.sapl.api.stream.Stream;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 /**
- * Synchronous counterpart to {@link PolicyDecisionPoint} for callers
- * that do not use Reactor.
+ * Reactor-free counterpart to {@link PolicyDecisionPoint} for callers
+ * that consume decisions through the SAPL {@link Stream} primitive.
+ * Implementations block the calling thread on each
+ * {@link Stream#awaitNext()} call.
  * <p>
  * Every method takes an explicit {@code pdpId} for tenant routing.
  * The no-argument overloads delegate to the parameterised form with
@@ -44,7 +46,7 @@ import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
  *
  * @since 4.1.0
  */
-public interface BlockingPolicyDecisionPoint {
+public interface StreamingPolicyDecisionPoint {
 
     /**
      * Default PDP identifier for single-tenant deployments and for

@@ -20,30 +20,30 @@ package io.sapl.api.functions;
 import java.util.Collection;
 
 /**
- * Provider interface for static function library classes.
+ * Provider interface for function library instances.
  * <p>
- * Use this interface to register function libraries that are utility classes
- * with static methods (e.g., classes annotated with Lombok's
- * {@code @UtilityClass}). These libraries cannot be instantiated as beans but
- * their static methods can still be used as SAPL functions.
+ * Use this interface to register function libraries supplied by an
+ * extension module. Each entry is a fully constructed instance whose
+ * class carries the {@link FunctionLibrary} annotation; the function
+ * broker reads its annotated methods reflectively.
  * <p>
  * Example:
  *
  * <pre>{@code
  * @Bean
- * FunctionLibraryClassProvider additionalLibraries() {
- *     return () -> List.of(GeographicFunctionLibrary.class, MathFunctionLibrary.class);
+ * FunctionLibraryProvider additionalLibraries() {
+ *     return () -> List.of(new GeographicFunctionLibrary(), new MathFunctionLibrary());
  * }
  * }</pre>
  */
 @FunctionalInterface
-public interface FunctionLibraryClassProvider {
+public interface FunctionLibraryProvider {
 
     /**
-     * Returns the collection of function library classes to register.
+     * Returns the collection of function library instances to register.
      *
-     * @return collection of function library classes
+     * @return collection of function library instances
      */
-    Collection<Class<?>> functionLibraryClasses();
+    Collection<Object> functionLibraries();
 
 }

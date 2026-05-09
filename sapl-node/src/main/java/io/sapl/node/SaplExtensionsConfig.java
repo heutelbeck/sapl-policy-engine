@@ -18,7 +18,7 @@
 package io.sapl.node;
 
 import tools.jackson.databind.json.JsonMapper;
-import io.sapl.api.functions.FunctionLibraryClassProvider;
+import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
@@ -60,8 +60,8 @@ public class SaplExtensionsConfig {
     }
 
     @Bean
-    FunctionLibraryClassProvider extensionFunctionLibraries() {
-        return () -> List.of(GeographicFunctionLibrary.class, TraccarFunctionLibrary.class, MqttFunctionLibrary.class);
+    FunctionLibraryProvider extensionFunctionLibraries() {
+        return () -> List.of(new GeographicFunctionLibrary(), new TraccarFunctionLibrary(), new MqttFunctionLibrary());
     }
 
 }
