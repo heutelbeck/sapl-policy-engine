@@ -117,11 +117,8 @@ public record VoteReport(
         for (val entry : dependencies.entrySet()) {
             val occurrencesInDocument = entry.getValue().stream()
                     .filter(occ -> documentName.equals(occ.location().documentName())).toList();
-            if (occurrencesInDocument.isEmpty()) {
-                continue;
-            }
-            val snapshot = readSnapshot.get(entry.getKey());
-            if (snapshot == null) {
+            val snapshot              = readSnapshot.get(entry.getKey());
+            if (occurrencesInDocument.isEmpty() || snapshot == null) {
                 continue;
             }
             result.add(new AttributeContribution(entry.getKey(), snapshot.value(), snapshot.timestamp(),

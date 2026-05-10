@@ -93,9 +93,6 @@ public final class InMemoryAttributeStore implements AttributeStore {
     private final List<Source>                                                 sources              = List
             .of(this::resolveFromCatalog);
 
-    public InMemoryAttributeStore() {
-    }
-
     /**
      * Loads the given PIP instance and registers all of its annotated
      * attribute methods. Atomic: either every spec the instance
@@ -392,8 +389,8 @@ public final class InMemoryAttributeStore implements AttributeStore {
     }
 
     private static StreamAttributeFinderSpecification findShapeMatch(StreamAttributeFinderSpecification needle,
-            List<StreamAttributeFinderSpecification> haystack) {
-        for (val candidate : haystack) {
+            List<StreamAttributeFinderSpecification> candidates) {
+        for (val candidate : candidates) {
             if (sameShape(needle, candidate)) {
                 return candidate;
             }

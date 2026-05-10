@@ -238,8 +238,8 @@ class DeduplicationTests {
             voterSource.loadConfiguration(config, false);
             voterSource.loadConfiguration(config, false);
 
-            assertThat(received).hasSize(2);
-            assertThat(received).allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
+            assertThat(received).hasSize(2)
+                    .allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
         }
 
         @Test

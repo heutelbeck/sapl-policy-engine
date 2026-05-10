@@ -136,7 +136,9 @@ public interface Stream<T> extends AutoCloseable {
             // surface as TimeoutException.
             joinUninterruptibly(watchdog);
             Thread.interrupted();
-            throw new TimeoutException();
+            val timeoutFailure = new TimeoutException();
+            timeoutFailure.initCause(e);
+            throw timeoutFailure;
         }
     }
 

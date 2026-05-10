@@ -21,6 +21,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Objects;
 
 /**
  * Test {@link Clock} whose current instant is mutated explicitly by
@@ -69,5 +70,21 @@ public final class MutableClock extends Clock {
     @Override
     public Instant instant() {
         return instant;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof MutableClock that)) {
+            return false;
+        }
+        return Objects.equals(instant, that.instant) && Objects.equals(zone, that.zone);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(instant, zone);
     }
 }

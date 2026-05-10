@@ -307,7 +307,7 @@ public final class MockingAttributeStore implements AttributeStore {
                 continue;
             }
             val match = findMostSpecificMatch(key.invocation());
-            recordInvocation(key.invocation(), match.isPresent());
+            recordInvocation(key.invocation());
             if (match.isPresent()) {
                 val mockId = match.get().mockId();
                 keyToMockId.put(key, mockId);
@@ -398,7 +398,7 @@ public final class MockingAttributeStore implements AttributeStore {
                 .max(Comparator.comparingInt(AttributeMock::specificity));
     }
 
-    private void recordInvocation(AttributeFinderInvocation invocation, boolean matched) {
+    private void recordInvocation(AttributeFinderInvocation invocation) {
         invocations.add(new AttributeInvocationRecord(invocation.attributeName(), invocation.entity(),
                 invocation.arguments(), sequenceCounter.getAndIncrement()));
     }

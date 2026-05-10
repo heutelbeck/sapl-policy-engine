@@ -431,6 +431,16 @@ public class StreamAttributeMethodSignatureProcessor {
             String minArgCountError,
             String varArgErrorTemplate) {
 
+        @Override
+        public String toString() {
+            return "InvocationConfig[minArgCount=" + minArgCount + ", hasVarArgs=" + hasVarArgs + ", hasEntityParam="
+                    + hasEntityParam + ", hasAttributeAccessContextParam=" + hasAttributeAccessContextParam
+                    + ", methodParameterCount=" + methodParameterCount + ", parameterTypes=" + parameterTypes
+                    + ", varArgsParameterType=" + varArgsParameterType + ", fixedParamErrorTemplates="
+                    + Arrays.toString(fixedParamErrorTemplates) + ", exactArgCountError=" + exactArgCountError
+                    + ", minArgCountError=" + minArgCountError + ", varArgErrorTemplate=" + varArgErrorTemplate + "]";
+        }
+
         InvocationConfig(Method method, SignatureInfo signatureInfo) {
             this(signatureInfo.parameterTypes.size(), signatureInfo.varArgsParameterType != null,
                     hasEntityParameter(method), hasAttributeAccessContextParameter(method),

@@ -152,32 +152,6 @@ public class NaryOperatorCompiler {
     }
 
     /**
-     * Folds stream values with an initial value, collecting attributes along the
-     * way.
-     *
-     * @return TracedValue with folded result and accumulated attributes
-     */
-    private static TracedValue foldStreamValues(Value initial, Object[] emittedValues, BinaryOperation op,
-            SourceLocation location) {
-        val   attributes = new ArrayList<AttributeRecord>();
-        Value result     = initial;
-
-        for (val obj : emittedValues) {
-            val tv = (TracedValue) obj;
-            attributes.addAll(tv.contributingAttributes());
-            val v = tv.value();
-            if (v instanceof ErrorValue) {
-                return new TracedValue(v, attributes);
-            }
-            result = result == null ? v : op.apply(result, v, location);
-            if (result instanceof ErrorValue) {
-                return new TracedValue(result, attributes);
-            }
-        }
-        return new TracedValue(result, attributes);
-    }
-
-    /**
      * N-ary operation with only Value and Pure operands (no streams).
      * <p>
      * At runtime: evaluates all pures, folding with the pre-computed valueResult.

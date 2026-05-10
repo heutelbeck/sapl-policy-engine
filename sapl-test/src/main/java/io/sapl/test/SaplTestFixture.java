@@ -808,7 +808,7 @@ public class SaplTestFixture {
         var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper, effectiveClock);
 
         configureFunctionBroker();
-        configureAttributeStore(effectiveClock);
+        configureAttributeStore();
         pdpBuilder.withPolicyInformationPoints(policyInformationPoints);
 
         var effectivePolicies = resolvePolicies();
@@ -840,15 +840,15 @@ public class SaplTestFixture {
         return defaultBroker;
     }
 
-    private void configureAttributeStore(Clock effectiveClock) {
+    private void configureAttributeStore() {
         if (customAttributeStore != null) {
             mockingAttributeStore.setDelegate(customAttributeStore);
         } else if (!policyInformationPoints.isEmpty()) {
-            mockingAttributeStore.setDelegate(buildAttributeStoreFromPips(effectiveClock));
+            mockingAttributeStore.setDelegate(buildAttributeStoreFromPips());
         }
     }
 
-    private InMemoryAttributeStore buildAttributeStoreFromPips(Clock effectiveClock) {
+    private InMemoryAttributeStore buildAttributeStoreFromPips() {
         var attributeStore = new InMemoryAttributeStore();
         for (var pip : policyInformationPoints) {
             attributeStore.load(pip);
@@ -1366,7 +1366,7 @@ public class SaplTestFixture {
             @Override
             public void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos)
                     throws InterruptedException {
-                Thread.sleep(duration.toMillis(), (int) (duration.toNanosPart() % 1_000_000));
+                Thread.sleep(duration.toMillis(), duration.toNanosPart() % 1_000_000);
             }
         }
 
