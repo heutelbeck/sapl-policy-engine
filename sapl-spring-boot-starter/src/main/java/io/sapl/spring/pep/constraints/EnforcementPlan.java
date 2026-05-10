@@ -89,7 +89,7 @@ public record EnforcementPlan(
      * applying mappers, consumers, and runners best-effort: a handler that throws
      * is logged and skipped; only obligation-tagged failures flip the returned
      * failure state. JVM-fatal and Reactor-fatal throwables are re-raised via
-     * {@link Exceptions#throwIfFatal}.
+     * {@link reactor.core.Exceptions#throwIfFatal}.
      *
      * @param signal the fired signal; data-carrying signals contribute their value
      * as the initial current value, self-contained signals start with

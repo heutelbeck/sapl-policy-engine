@@ -81,8 +81,8 @@ public class NaryBooleanCompiler {
 
     /**
      * Compiles an n-ary boolean with lazy semantics. Used by
-     * {@link io.sapl.compiler.policy.policybody.PolicyBodyCompiler} for implicit
-     * AND of policy body conditions.
+     * {@link io.sapl.compiler.policy.PolicyCompiler} for implicit AND of
+     * policy body conditions.
      */
     public static CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
             Value shortCircuitValue, Value identityValue) {

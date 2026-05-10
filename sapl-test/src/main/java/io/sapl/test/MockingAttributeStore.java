@@ -46,10 +46,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 /**
- * {@link AttributeStore} mocking facility for tests. Mirror of
- * {@link MockingAttributeBroker} for the snapshot-driven evaluator path:
- * mocks are registered against attribute name + matchers + entity
- * matcher; values are emitted via {@link #emit(String, Value)} keyed by
+ * {@link AttributeStore} mocking facility for tests. Mocks are
+ * registered against attribute name + matchers + entity matcher;
+ * values are emitted via {@link #emit(String, Value)} keyed by
  * mockId; invocations are recorded for after-the-fact verification.
  * <p>
  * PIP-aware gate semantic: mock registration acts as a PIP registration

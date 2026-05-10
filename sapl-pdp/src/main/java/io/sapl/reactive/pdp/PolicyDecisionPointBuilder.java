@@ -356,8 +356,8 @@ public class PolicyDecisionPointBuilder {
      * Only one configuration source can be registered. Attempting to register
      * multiple sources will throw an exception.
      *
-     * @param sourceFactory
-     * factory that creates the configuration source given a consumer
+     * @param configurationSource
+     * the configuration source to register
      *
      * @return this builder
      *
