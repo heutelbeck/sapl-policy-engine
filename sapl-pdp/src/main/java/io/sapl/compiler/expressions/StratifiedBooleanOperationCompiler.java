@@ -36,10 +36,11 @@ import static io.sapl.api.model.StreamOperator.evalChild;
  * On the value and pure strata, lazy and eager variants behave identically.
  * On the streaming stratum they differ:
  * <ul>
- * <li>Lazy ({@code &&}, {@code ||}): uses switchMap for short-circuit
- * evaluation, avoiding unnecessary depscriptions.</li>
- * <li>Eager ({@code &}, {@code |}): uses combineLatest, keeping both
- * depscriptions active for lower latency.</li>
+ * <li>Lazy ({@code &&}, {@code ||}): short-circuits on the snapshot value of
+ * the left operand and skips the right subtree entirely, opening no
+ * subscriptions to skipped operands.</li>
+ * <li>Eager ({@code &}, {@code |}): walks every operand against the snapshot
+ * to accumulate all dependencies, even past a short-circuit value.</li>
  * </ul>
  */
 @UtilityClass

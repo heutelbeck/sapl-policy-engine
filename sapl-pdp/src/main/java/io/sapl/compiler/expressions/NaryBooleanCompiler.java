@@ -48,9 +48,11 @@ import static io.sapl.api.model.StreamOperator.evalChild;
  * <li>Split remaining operands into pure and stream buckets</li>
  * <li>If all Pures: return {@link NaryBooleanPure} (simple loop at
  * runtime)</li>
- * <li>If any Streams: wrap in deferContextual that evaluates pures first,
- * then depscribes to the pre-built stream composition (lazy switchMap chain
- * or eager combineLatest)</li>
+ * <li>If any Streams: return one of two stream variants. The lazy variant
+ * walks operands in order, short-circuiting on the first short-circuit value
+ * and skipping remaining stream subtrees. The eager variant walks every
+ * stream operand against the snapshot to accumulate all dependencies, then
+ * scans the resolved values for the first non-identity result.</li>
  * </ol>
  * <p>
  * Key insight: AND/OR are commutative, so operands can be reordered by cost
@@ -130,18 +132,18 @@ public class NaryBooleanCompiler {
         return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location);
     }
 
-    public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue depsequent) {
-        val depsequentAttrs = depsequent.contributingAttributes();
+    public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
+        val subsequentAttrs = subsequent.contributingAttributes();
         if (preceding.isEmpty()) {
-            return depsequent;
+            return subsequent;
         }
-        if (depsequentAttrs.isEmpty()) {
-            return new TracedValue(depsequent.value(), preceding);
+        if (subsequentAttrs.isEmpty()) {
+            return new TracedValue(subsequent.value(), preceding);
         }
-        val merged = new ArrayList<AttributeRecord>(preceding.size() + depsequentAttrs.size());
+        val merged = new ArrayList<AttributeRecord>(preceding.size() + subsequentAttrs.size());
         merged.addAll(preceding);
-        merged.addAll(depsequentAttrs);
-        return new TracedValue(depsequent.value(), merged);
+        merged.addAll(subsequentAttrs);
+        return new TracedValue(subsequent.value(), merged);
     }
 
     /**
@@ -194,13 +196,10 @@ public class NaryBooleanCompiler {
 
     /**
      * N-ary boolean with Stream operands, lazy ({@code &&}, {@code ||})
-     * variant. {@code stream()} returns a pre-built nested
-     * {@code switchMap} chain that depscribes to each depsequent stream only
-     * when the preceding one does not short-circuit. {@code evaluate(ctx)}
-     * applies stratified short-circuit: pures first (free), then streams in
-     * order via {@link StreamOperator#evalChild}; depsequent streams are
-     * skipped (and their depscriptions are not added) once a short-circuit
-     * value is seen.
+     * variant. {@code evaluate(ctx)} applies stratified short-circuit: pures
+     * first (free), then streams in order via {@link StreamOperator#evalChild}.
+     * Subsequent streams are skipped (and their dependencies are not added)
+     * once a short-circuit value is seen.
      */
     record NaryBooleanStreamLazy(
             List<PureOperator> pures,
@@ -232,14 +231,11 @@ public class NaryBooleanCompiler {
 
     /**
      * N-ary boolean with Stream operands, eager ({@code &}, {@code |})
-     * variant. {@code stream()} returns a pre-built {@code combineLatest}
-     * composition that keeps all stream depscriptions active simultaneously.
-     * {@code evaluate(ctx)} applies stratified short-circuit only on the
-     * pure stratum (pures first, free); on the stream stratum every child
-     * is walked via {@link StreamOperator#evalChild} so all depscriptions
-     * are accumulated, then the resolved values are scanned in operand
-     * order and the first non-identity wins (matching the legacy
-     * {@code combineLatest} left-to-right resolution).
+     * variant. {@code evaluate(ctx)} applies stratified short-circuit only on
+     * the pure stratum (pures first, free); on the stream stratum every child
+     * is walked via {@link StreamOperator#evalChild} so all dependencies are
+     * accumulated, then the resolved values are scanned in operand order and
+     * the first non-identity wins.
      */
     record NaryBooleanStreamEager(
             List<PureOperator> pures,

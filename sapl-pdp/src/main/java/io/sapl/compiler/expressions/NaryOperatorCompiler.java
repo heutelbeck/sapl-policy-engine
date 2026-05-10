@@ -39,8 +39,8 @@ import static io.sapl.api.model.StreamOperator.evalChild;
  * but we still apply cost-stratified optimization:
  * <ul>
  * <li>Fold all Value operands at compile time</li>
- * <li>Evaluate Pure operands before subscribing to Streams</li>
- * <li>Return error early without unnecessary evaluation/subscription</li>
+ * <li>Evaluate Pure operands before walking Streams</li>
+ * <li>Return error early without walking the stream stratum</li>
  * </ul>
  * <p>
  * Cost strata (cheapest first): Value, Pure, Stream
@@ -190,9 +190,10 @@ public class NaryOperatorCompiler {
      * N-ary operation with at least one Stream operand.
      * <p>
      * At runtime:
-     * 1. Evaluates all pures first (before subscribing to any streams)
-     * 2. If pure evaluation fails, returns error without stream subscription
-     * 3. Subscribes to all streams with combineLatest
+     * 1. Evaluates all pures first (before walking any streams)
+     * 2. If pure evaluation fails, returns error without walking streams
+     * 3. Walks every stream operand against the snapshot, accumulating
+     * dependencies even past an error
      * 4. Folds stream values with the pre-combined result from values+pures
      */
     record NaryStream(
