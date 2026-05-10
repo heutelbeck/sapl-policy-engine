@@ -49,7 +49,7 @@ import java.time.Instant;
 @DisplayName("PdpMetricsCollector")
 class PdpMetricsCollectorTests {
 
-    private SimpleMeterRegistry    meterRegistry;
+    private SimpleMeterRegistry meterRegistry;
     private PdpMetricsCollector interceptor;
 
     private static final AuthorizationSubscription SUBSCRIPTION = AuthorizationSubscription.of("subject", "action",
