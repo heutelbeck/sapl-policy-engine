@@ -143,7 +143,7 @@ class ResourcesPDPConfigurationSourceTests {
     void whenDisposeIsCalledThenIsDisposedReturnsTrue() {
         val source = new ResourcesPDPConfigurationSource("/single-pdp-policies");
 
-        val configs = captureConfigurations(source);
+        captureConfigurations(source);
         assertThat(source.isClosed()).isFalse();
 
         source.close();

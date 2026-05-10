@@ -66,6 +66,6 @@ class MqttClientValuesTests {
         mqttClientValues.incrementBrokerSubscribers();
 
         assertThat(mqttClientValues.decrementBrokerSubscribers()).isEqualTo(1);
-        assertThat(mqttClientValues.decrementBrokerSubscribers()).isEqualTo(0);
+        assertThat(mqttClientValues.decrementBrokerSubscribers()).isZero();
     }
 }

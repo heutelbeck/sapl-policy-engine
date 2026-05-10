@@ -285,12 +285,8 @@ class BlockingWebClientTests {
                 """;
         val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl));
 
-        // Fast-burst SSE events collapse in the latest-wins slot (drop-old by design);
-        // drain captures whatever the consumer observes and asserts that at least one
-        // parsed event matches the expected body.
         val drained = StreamAssertions.assertThat(client.httpRequest("GET", request))
                 .withinTimeout(Duration.ofSeconds(2L)).drain();
-        assertThat(drained).isNotEmpty();
-        assertThat(drained).allSatisfy(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
+        assertThat(drained).isNotEmpty().allSatisfy(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
     }
 }

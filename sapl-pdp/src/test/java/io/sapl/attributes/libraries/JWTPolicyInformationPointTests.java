@@ -894,12 +894,12 @@ class JWTPolicyInformationPointTests {
         @DisplayName("loads under the jwt namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderJwtNamespace() {
             try (val store = new InMemoryAttributeStore()) {
-                val now         = Instant.parse("2025-06-15T12:00:00Z");
-                val clock       = new MutableClock(now);
-                val scheduler   = new TestTimeScheduler(now);
-                val httpClient  = HttpClient.newHttpClient();
-                val keyProvider = new JWTKeyProvider(httpClient, clock);
-                val handle      = store.load(new JWTPolicyInformationPoint(keyProvider, clock, scheduler));
+                val now            = Instant.parse("2025-06-15T12:00:00Z");
+                val localClock     = new MutableClock(now);
+                val localScheduler = new TestTimeScheduler(now);
+                val httpClient     = HttpClient.newHttpClient();
+                val keyProvider    = new JWTKeyProvider(httpClient, localClock);
+                val handle         = store.load(new JWTPolicyInformationPoint(keyProvider, localClock, localScheduler));
 
                 assertThat(handle.pipName()).isEqualTo(JWTPolicyInformationPoint.NAME);
                 assertThat(handle.isLoaded()).isTrue();

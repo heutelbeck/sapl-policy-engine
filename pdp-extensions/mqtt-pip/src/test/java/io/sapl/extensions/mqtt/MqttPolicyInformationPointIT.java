@@ -369,10 +369,10 @@ class MqttPolicyInformationPointIT {
             val before = SaplMqttClient.MQTT_CLIENT_CACHE.size();
             try (val s = pip.messages(Value.of("test/eviction/topic"), ctx)) {
                 StreamAssertions.assertThat(s).withinTimeout(Duration.ofSeconds(3)).drain();
-                assertThat(SaplMqttClient.MQTT_CLIENT_CACHE.size()).isGreaterThanOrEqualTo(before);
+                assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSizeGreaterThanOrEqualTo(before);
             }
             Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(() -> assertThat(SaplMqttClient.MQTT_CLIENT_CACHE.size()).isEqualTo(before));
+                    .untilAsserted(() -> assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(before));
         }
     }
 }

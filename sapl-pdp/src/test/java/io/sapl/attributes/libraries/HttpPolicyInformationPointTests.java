@@ -52,7 +52,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -83,7 +82,7 @@ class HttpPolicyInformationPointTests {
             val pip     = new HttpPolicyInformationPoint(mockClient);
 
             assertThatCode(() -> invoker.invoke(pip, EMPTY_CTX, request)).doesNotThrowAnyException();
-            verify(mockClient, times(1)).httpRequest(eq(expectedMethod), eq(request));
+            verify(mockClient, times(1)).httpRequest(expectedMethod, request);
         }
 
         static java.util.stream.Stream<Arguments> whenEnvironmentAttributeCalledThenDelegatesToClient() {
@@ -122,7 +121,7 @@ class HttpPolicyInformationPointTests {
             val pip             = new HttpPolicyInformationPoint(mockClient);
 
             assertThatCode(() -> invoker.invoke(pip, URL, EMPTY_CTX, request)).doesNotThrowAnyException();
-            verify(mockClient, times(1)).httpRequest(eq(expectedMethod), eq(expectedRequest));
+            verify(mockClient, times(1)).httpRequest(expectedMethod, expectedRequest);
         }
 
         static java.util.stream.Stream<Arguments> whenEntityAttributeCalledThenDelegatesToClientWithMergedUrl() {
@@ -161,7 +160,7 @@ class HttpPolicyInformationPointTests {
             val pip             = new HttpPolicyInformationPoint(mockClient);
 
             assertThatCode(() -> invoker.invoke(pip, URL, EMPTY_CTX)).doesNotThrowAnyException();
-            verify(mockClient, times(1)).httpRequest(eq(expectedMethod), eq(expectedRequest));
+            verify(mockClient, times(1)).httpRequest(expectedMethod, expectedRequest);
         }
 
         static java.util.stream.Stream<Arguments> whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject() {

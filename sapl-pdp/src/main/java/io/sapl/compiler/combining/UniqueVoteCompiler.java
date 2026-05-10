@@ -216,15 +216,15 @@ public class UniqueVoteCompiler {
 
         @Override
         public VoteResultWithCoverage evaluate(EvaluationContext ctx) {
-            Value targetMatch;
-            if (isApplicable instanceof Value v) {
-                targetMatch = v;
-            } else if (isApplicable instanceof PureOperator p) {
-                targetMatch = p.evaluate(ctx);
-            } else {
+            final Value targetMatch;
+            switch (isApplicable) {
+            case Value v        -> targetMatch = v;
+            case PureOperator p -> targetMatch = p.evaluate(ctx);
+            default             -> {
                 val coverage = new Coverage.PolicySetCoverage(voterMetadata, Coverage.NO_TARGET_HIT, List.of());
                 val vote     = Vote.error(Value.error(ERROR_UNEXPECTED_STREAM_IN_TARGET), voterMetadata);
                 return new VoteResultWithCoverage(new VoteResult(vote, Map.of()), coverage);
+            }
             }
             val targetHit = targetLocation == null ? Coverage.BLANK_TARGET_HIT
                     : new Coverage.TargetResult(targetMatch, targetLocation);

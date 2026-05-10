@@ -121,7 +121,6 @@ public class BlockingWebClient {
             val urlParameters = toStringMap(jsonOrDefault(requestSettings, URL_PARAMS, JSON.objectNode()));
             val headers       = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val pollingMs     = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL_MS);
-            val repetitions   = longOrDefault(requestSettings, REPEAT_TIMES, DEFAULT_REPETITIONS);
             val accept        = jsonOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON).asString();
             val contentType   = jsonOrDefault(requestSettings, CONTENT_MEDIATYPE, APPLICATION_JSON).asString();
             val body          = jsonOrDefault(requestSettings, BODY, null);
@@ -176,9 +175,7 @@ public class BlockingWebClient {
                     return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
                 }
                 return Value.of(response.body());
-            } catch (JacksonException e) {
-                return Value.error(e.getMessage());
-            } catch (IOException e) {
+            } catch (JacksonException | IOException e) {
                 return Value.error(e.getMessage());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
