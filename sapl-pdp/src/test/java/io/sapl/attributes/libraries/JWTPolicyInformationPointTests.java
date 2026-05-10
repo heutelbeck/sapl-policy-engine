@@ -43,6 +43,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -55,8 +58,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("JWTPolicyInformationPoint (vnext)")
 class JWTPolicyInformationPointTests {
@@ -730,34 +735,29 @@ class JWTPolicyInformationPointTests {
     @DisplayName("with clock skew tolerance")
     class ClockSkewTests {
 
-        @Test
-        @DisplayName("expired within skew window stays VALID")
-        void whenExpiredWithinSkewThenValid() throws JOSEException {
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("expirationSkewScenarios")
+        @DisplayName("expiration claim and clock-skew config combine to yield the expected validity")
+        void whenExpirationAndClockSkewConfiguredThenExpectedValidity(String description, long expirationOffsetSeconds,
+                int clockSkewSeconds, String expectedValidity) throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims    = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.minusSeconds(30))).build();
+            val claims    = new JWTClaimsSet.Builder()
+                    .expirationTime(Date.from(NOW.plusSeconds(expirationOffsetSeconds))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 60));
+                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, clockSkewSeconds));
             val accessCtx = ctx(variables, Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(validity(v)).isEqualTo(expectedValidity));
             }
         }
 
-        @Test
-        @DisplayName("expired beyond skew window emits EXPIRED")
-        void whenExpiredBeyondSkewThenExpired() throws JOSEException {
-            val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims    = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.minusSeconds(90))).build();
-            val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 60));
-            val accessCtx = ctx(variables, Map.of("jwt", source));
-
-            try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("EXPIRED"));
-            }
+        static Stream<Arguments> expirationSkewScenarios() {
+            return Stream.of(arguments("expired within skew window stays VALID", -30L, 60, "VALID"),
+                    arguments("expired beyond skew window emits EXPIRED", -90L, 60, "EXPIRED"),
+                    arguments("zero skew yields exact comparison and emits EXPIRED", -5L, 0, "EXPIRED"));
         }
 
         @Test
@@ -772,21 +772,6 @@ class JWTPolicyInformationPointTests {
 
             try (val stream = sut.token(accessCtx)) {
                 StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
-            }
-        }
-
-        @Test
-        @DisplayName("zero skew yields exact comparison")
-        void whenClockSkewZeroThenExact() throws JOSEException {
-            val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims    = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.minusSeconds(5))).build();
-            val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 0));
-            val accessCtx = ctx(variables, Map.of("jwt", source));
-
-            try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("EXPIRED"));
             }
         }
     }

@@ -68,6 +68,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("AttributeStore end-to-end demo")
 class AttributeStoreDemoTest {
 
+    private static final boolean PRINT_OUTPUT = false;
+
     @BeforeEach
     void clearCapturedLogs() {
         TestLoggerFactory.clear();
@@ -75,6 +77,9 @@ class AttributeStoreDemoTest {
 
     @AfterEach
     void dumpCapturedLogs() {
+        if (!PRINT_OUTPUT) {
+            return;
+        }
         // The store emits DEBUG/TRACE around load/swap/unload (cold-path
         // events). slf4j-test captures them silently; surface them here so the
         // demo trace is actually visible when this test runs. Filter to events

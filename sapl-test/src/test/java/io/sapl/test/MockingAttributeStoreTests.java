@@ -108,7 +108,9 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("blank mockId is rejected")
         void blankMockIdRejected() {
-            assertThatThrownBy(() -> store.mockEnvironmentAttribute("", "time.now", args()))
+            val params = args();
+
+            assertThatThrownBy(() -> store.mockEnvironmentAttribute("", "time.now", params))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("blank");
         }
 
@@ -116,7 +118,9 @@ class MockingAttributeStoreTests {
         @DisplayName("duplicate mockId is rejected")
         void duplicateMockIdRejected() {
             store.mockEnvironmentAttribute("mock1", "time.now", args());
-            assertThatThrownBy(() -> store.mockEnvironmentAttribute("mock1", "other.attr", args()))
+            val params = args();
+
+            assertThatThrownBy(() -> store.mockEnvironmentAttribute("mock1", "other.attr", params))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already registered");
         }
 
@@ -255,7 +259,9 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("emit unknown mockId throws")
         void emitUnknownThrows() {
-            assertThatThrownBy(() -> store.emit("nope", Value.of("x"))).isInstanceOf(IllegalStateException.class)
+            val payload = Value.of("x");
+
+            assertThatThrownBy(() -> store.emit("nope", payload)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("nope");
         }
 
@@ -398,7 +404,10 @@ class MockingAttributeStoreTests {
         void verifyNeverFailsWhenInvoked() {
             store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
-            assertThatThrownBy(() -> store.verifyEnvironmentAttribute("time.now", args(), Times.never()))
+            val params = args();
+            val never  = Times.never();
+
+            assertThatThrownBy(() -> store.verifyEnvironmentAttribute("time.now", params, never))
                     .isInstanceOf(MockVerificationError.class).hasMessageContaining("time.now");
         }
 
@@ -416,7 +425,10 @@ class MockingAttributeStoreTests {
         void verificationErrorIncludesRecorded() {
             store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
-            assertThatThrownBy(() -> store.verifyEnvironmentAttribute("time.now", args(), Times.times(2)))
+            val params = args();
+            val twice  = Times.times(2);
+
+            assertThatThrownBy(() -> store.verifyEnvironmentAttribute("time.now", params, twice))
                     .isInstanceOf(MockVerificationError.class).hasMessageContaining("Recorded invocations");
         }
     }

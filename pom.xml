@@ -621,6 +621,7 @@
 						<install>SCRIPT_STYLE</install>
 						<nix>SCRIPT_STYLE</nix>
 						<rego>SCRIPT_STYLE</rego>
+						<fbs>DOUBLESLASH_STYLE</fbs>
 					</mapping>
 				</configuration>
 				<executions>

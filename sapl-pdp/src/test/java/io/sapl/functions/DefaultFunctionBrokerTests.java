@@ -76,8 +76,9 @@ class DefaultFunctionBrokerTests {
                 return Value.of("Nyarlathotep");
             }
         }
+        val unannotated = new NotAnnotated();
 
-        assertThatThrownBy(() -> broker.load(new NotAnnotated())).isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> broker.load(unannotated)).isInstanceOf(IllegalStateException.class)
                 .hasMessage("Provided class has no @FunctionLibrary annotation.");
     }
 
@@ -129,9 +130,9 @@ class DefaultFunctionBrokerTests {
     @Test
     void whenLoadingDuplicateFunctionSignatureThenThrowsException() {
         broker.load(new CthulhuLibrary());
+        val duplicate = new DuplicateCthulhuLibrary();
 
-        assertThatThrownBy(() -> broker.load(new DuplicateCthulhuLibrary()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> broker.load(duplicate)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Function collision error for 'cthulhu.summonEntity'");
     }
 

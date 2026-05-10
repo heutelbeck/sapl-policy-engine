@@ -1,3 +1,4 @@
+//
 // Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -13,6 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 // FlatBuffers schema definitions for SAPL API types.
 // These mirror the Java types in io.sapl.api.pdp and io.sapl.api.model.

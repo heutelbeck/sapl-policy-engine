@@ -43,19 +43,21 @@ class StreamAssertionsTests {
     @Test
     @DisplayName("awaitsNext fails when the next emitted value differs from expected")
     void whenNextValueMismatchesThenFails() {
-        val stream = Streams.just(Value.of("actual"));
+        val stream   = Streams.just(Value.of("actual"));
+        val asserter = StreamAssertions.assertThat(stream);
 
-        assertThatThrownBy(() -> StreamAssertions.assertThat(stream).awaitsNext(Value.of("expected")))
-                .isInstanceOf(AssertionError.class).hasMessageContaining("expected").hasMessageContaining("actual");
+        assertThatThrownBy(() -> asserter.awaitsNext(Value.of("expected"))).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("expected").hasMessageContaining("actual");
     }
 
     @Test
     @DisplayName("awaitsNext fails when the stream times out before producing a value")
     void whenNoValueWithinTimeoutThenFails() {
-        val stream = new LatestSlotStream<Value>();
+        val stream   = new LatestSlotStream<Value>();
+        val asserter = StreamAssertions.assertThat(stream).withinTimeout(Duration.ofMillis(50));
 
-        assertThatThrownBy(() -> StreamAssertions.assertThat(stream).withinTimeout(Duration.ofMillis(50))
-                .awaitsNext(Value.of("expected"))).isInstanceOf(AssertionError.class).hasMessageContaining("Timed out");
+        assertThatThrownBy(() -> asserter.awaitsNext(Value.of("expected"))).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("Timed out");
 
         stream.close();
     }
@@ -79,20 +81,21 @@ class StreamAssertionsTests {
     @Test
     @DisplayName("awaitsCompletion fails when the stream emits a further value")
     void whenStreamEmitsThenAwaitsCompletionFails() {
-        val stream = Streams.just(Value.of("unexpected"));
+        val stream   = Streams.just(Value.of("unexpected"));
+        val asserter = StreamAssertions.assertThat(stream);
 
-        assertThatThrownBy(() -> StreamAssertions.assertThat(stream).awaitsCompletion())
-                .isInstanceOf(AssertionError.class).hasMessageContaining("unexpected");
+        assertThatThrownBy(asserter::awaitsCompletion).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("unexpected");
     }
 
     @Test
     @DisplayName("awaitsCompletion fails when the stream neither completes nor emits within timeout")
     void whenStreamHangsThenAwaitsCompletionTimesOut() {
-        val stream = new LatestSlotStream<Value>();
+        val stream   = new LatestSlotStream<Value>();
+        val asserter = StreamAssertions.assertThat(stream).withinTimeout(Duration.ofMillis(50));
 
-        assertThatThrownBy(
-                () -> StreamAssertions.assertThat(stream).withinTimeout(Duration.ofMillis(50)).awaitsCompletion())
-                .isInstanceOf(AssertionError.class).hasMessageContaining("Timed out");
+        assertThatThrownBy(asserter::awaitsCompletion).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("Timed out");
 
         stream.close();
     }

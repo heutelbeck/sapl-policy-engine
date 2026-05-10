@@ -28,6 +28,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.http.HttpHeaders;
@@ -155,37 +162,24 @@ class OpenIdAuthorizationApiControllerTests {
     @DisplayName("validation 400s")
     class Validation {
 
-        @Test
-        void missingSubjectReturnsBadRequest() {
-            final var body = """
-                    { "action": { "name": "can_read" }, "resource": { "type": "book", "id": "42" } }
-                    """;
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidBodies")
+        void invalidBodyReturnsBadRequest(String description, String body) {
             postBody(body).expectStatus().isBadRequest();
         }
 
-        @Test
-        void missingActionNameReturnsBadRequest() {
-            final var body = """
+        static Stream<Arguments> invalidBodies() {
+            return Stream.of(arguments("missing subject", """
+                    { "action": { "name": "can_read" }, "resource": { "type": "book", "id": "42" } }
+                    """), arguments("missing action name", """
                     { "subject": { "type": "user", "id": "alice" },
                       "action":   { },
                       "resource": { "type": "book", "id": "42" } }
-                    """;
-            postBody(body).expectStatus().isBadRequest();
-        }
-
-        @Test
-        void missingResourceIdReturnsBadRequest() {
-            final var body = """
+                    """), arguments("missing resource id", """
                     { "subject":  { "type": "user", "id": "alice" },
                       "action":   { "name": "can_read" },
                       "resource": { "type": "book" } }
-                    """;
-            postBody(body).expectStatus().isBadRequest();
-        }
-
-        @Test
-        void malformedJsonReturnsBadRequest() {
-            postBody("not json at all").expectStatus().isBadRequest();
+                    """), arguments("malformed JSON", "not json at all"));
         }
     }
 

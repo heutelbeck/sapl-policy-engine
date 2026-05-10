@@ -172,9 +172,10 @@ class InMemoryAttributeStoreTests {
         @DisplayName("instance with no @PolicyInformationPoint annotation throws and leaves catalog unchanged")
         void whenAnnotationMissingThenThrowsAndCatalogUnchanged() {
             store.load(new StaticPip());
-            val before = store.catalog();
+            val before   = store.catalog();
+            val unloaded = new Object();
 
-            assertThatThrownBy(() -> store.load(new Object())).isInstanceOf(PipLoadException.class)
+            assertThatThrownBy(() -> store.load(unloaded)).isInstanceOf(PipLoadException.class)
                     .hasMessageContaining("not annotated");
             assertThat(store.catalog()).isEqualTo(before);
         }
@@ -182,9 +183,10 @@ class InMemoryAttributeStoreTests {
         @Test
         @DisplayName("instance with an invalid attribute method signature throws and leaves catalog unchanged")
         void whenInvalidSignatureThenThrowsAndNoPartialRegistration() {
-            val before = store.catalog();
+            val before  = store.catalog();
+            val invalid = new InvalidReturnTypePip();
 
-            assertThatThrownBy(() -> store.load(new InvalidReturnTypePip())).isInstanceOf(PipLoadException.class);
+            assertThatThrownBy(() -> store.load(invalid)).isInstanceOf(PipLoadException.class);
             assertThat(store.catalog()).isEqualTo(before);
             assertThat(store.resolve(envInvocation("invalidreturn.good"))).isEmpty();
         }
@@ -192,9 +194,10 @@ class InMemoryAttributeStoreTests {
         @Test
         @DisplayName("collision with already-loaded PIP throws and leaves catalog unchanged")
         void whenCollisionThenThrowsAndExistingHandleIntact() {
-            val handleA = store.load(new StaticPip());
+            val handleA   = store.load(new StaticPip());
+            val colliding = new CollidingStaticPip();
 
-            assertThatThrownBy(() -> store.load(new CollidingStaticPip())).isInstanceOf(PipLoadException.class)
+            assertThatThrownBy(() -> store.load(colliding)).isInstanceOf(PipLoadException.class)
                     .hasMessageContaining("collides");
             assertThat(store.catalog()).containsExactly(handleA);
             assertThat(handleA.isLoaded()).isTrue();
@@ -204,9 +207,9 @@ class InMemoryAttributeStoreTests {
         @DisplayName("partial-good then-collision PIP rolls back fully (first attribute also not registered)")
         void whenSecondAttributeCollidesThenFirstAlsoNotRegistered() {
             store.load(new StaticPip());
+            val partial = new PipWithGoodAttributeAndColliding();
 
-            assertThatThrownBy(() -> store.load(new PipWithGoodAttributeAndColliding()))
-                    .isInstanceOf(PipLoadException.class);
+            assertThatThrownBy(() -> store.load(partial)).isInstanceOf(PipLoadException.class);
             assertThat(store.resolve(envInvocation("static.newAttribute"))).as("rolled back attribute should be absent")
                     .isEmpty();
             assertThat(store.resolve(envInvocation("static.greeting"))).as("existing PIP unaffected").isPresent();
@@ -304,10 +307,11 @@ class InMemoryAttributeStoreTests {
         @Test
         @DisplayName("swap atomically rejects if new specs would collide with another loaded PIP, leaving original intact")
         void whenSwapWouldCollideThenThrowsAndOriginalIntact() {
-            val a      = store.load(new StaticPip());
-            val target = store.load(new InstancePip());
+            val a         = store.load(new StaticPip());
+            val target    = store.load(new InstancePip());
+            val colliding = new CollidingStaticPip();
 
-            assertThatThrownBy(() -> store.swap(target, new CollidingStaticPip())).isInstanceOf(PipLoadException.class);
+            assertThatThrownBy(() -> store.swap(target, colliding)).isInstanceOf(PipLoadException.class);
             assertThat(target.isLoaded()).isTrue();
             assertThat(a.isLoaded()).isTrue();
         }
@@ -335,15 +339,17 @@ class InMemoryAttributeStoreTests {
         @Test
         @DisplayName("blank subscriptionId throws")
         void whenBlankIdThenIllegalArgument() {
-            assertThatThrownBy(
-                    () -> store.open("", Set.of(envKey("static.greeting")), s -> Set.of(envKey("static.greeting"))))
-                    .isInstanceOf(IllegalArgumentException.class);
+            val deps = Set.of(envKey("static.greeting"));
+
+            assertThatThrownBy(() -> store.open("", deps, s -> deps)).isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         @DisplayName("empty deps throws")
         void whenEmptyDepsThenIllegalArgument() {
-            assertThatThrownBy(() -> store.open("s1", Set.of(), s -> Set.of()))
+            val emptyDeps = Set.<SubscriptionKey>of();
+
+            assertThatThrownBy(() -> store.open("s1", emptyDeps, s -> emptyDeps))
                     .isInstanceOf(IllegalArgumentException.class);
         }
 

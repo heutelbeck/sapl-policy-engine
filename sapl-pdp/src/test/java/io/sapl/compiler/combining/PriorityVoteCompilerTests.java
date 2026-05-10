@@ -244,85 +244,51 @@ class PriorityVoteCompilerTests {
     @DisplayName("StreamPriorityVoter evaluation branches")
     class StreamPriorityVoterBranches {
 
-        @Test
-        @DisplayName("stream voter with constant TRUE applicability")
-        void streamVoterWithConstantTrueApplicability() throws InterruptedException {
-            val compiled = compilePolicySet("""
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("streamVoterApplicabilityScenarios")
+        @DisplayName("stream voter resolves the applicability branch and emits the expected decision")
+        void streamVoterApplicabilityScenarios(String description, String policySet, String subscriptionJson,
+                Decision expected) throws InterruptedException {
+            val compiled = compilePolicySet(policySet);
+            val ctx      = evaluationContext(parseSubscription(subscriptionJson));
+            try (val store = new TestAttributeStore()) {
+                store.register("test.attr", Value.TRUE);
+                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(expected);
+                }
+            }
+        }
+
+        static Stream<Arguments> streamVoterApplicabilityScenarios() {
+            val aliceReads = """
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """;
+            return Stream.of(arguments("constant TRUE applicability", """
                     set "test"
                     priority permit or abstain
 
                     policy "stream" permit <test.attr>;
-                    """);
-            val ctx      = evaluationContext(parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
-                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                }
-            }
-        }
-
-        @Test
-        @DisplayName("stream voter with runtime applicability evaluated as PureOperator")
-        void streamVoterWithRuntimeApplicability() throws InterruptedException {
-            val compiled = compilePolicySet("""
+                    """, aliceReads, Decision.PERMIT), arguments("runtime PureOperator applicability", """
                     set "test"
                     priority permit or abstain
 
                     policy "stream" permit subject == "alice" && <test.attr>;
-                    """);
-            val ctx      = evaluationContext(parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
-                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                }
-            }
-        }
+                    """, aliceReads, Decision.PERMIT),
+                    arguments("error in applicability check propagates as INDETERMINATE", """
+                            set "test"
+                            priority permit or abstain errors propagate
 
-        @Test
-        @DisplayName("stream voter with error in applicability check")
-        void streamVoterWithErrorInApplicability() throws InterruptedException {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    priority permit or abstain errors propagate
+                            policy "error" permit subject.missing && <test.attr>;
+                            """, """
+                            { "subject": "simple-string", "action": "read", "resource": "data" }
+                            """, Decision.INDETERMINATE),
+                    arguments("FALSE applicability skips stream and yields next combiner outcome", """
+                            set "test"
+                            priority deny or abstain
 
-                    policy "error" permit subject.missing && <test.attr>;
-                    """);
-            val ctx      = evaluationContext(parseSubscription("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
-                    """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
-                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
-                }
-            }
-        }
-
-        @Test
-        @DisplayName("stream voter with FALSE applicability skips stream")
-        void streamVoterWithFalseApplicabilitySkipsStream() throws InterruptedException {
-            val compiled = compilePolicySet("""
-                    set "test"
-                    priority deny or abstain
-
-                    policy "skipped" permit subject == "bob" && <test.attr>;
-                    policy "active" deny
-                    """);
-            val ctx      = evaluationContext(parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
-                    """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
-                    assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.DENY);
-                }
-            }
+                            policy "skipped" permit subject == "bob" && <test.attr>;
+                            policy "active" deny
+                            """, aliceReads, Decision.DENY));
         }
 
         @Test

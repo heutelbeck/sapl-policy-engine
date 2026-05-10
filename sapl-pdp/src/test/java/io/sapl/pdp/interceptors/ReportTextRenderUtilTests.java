@@ -35,6 +35,8 @@ import io.sapl.compiler.document.AttributeContribution;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -54,34 +56,16 @@ class ReportTextRenderUtilTests {
     private static final AttributeAccessContext    EMPTY_CTX             = new AttributeAccessContext(
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
-    @Test
-    @DisplayName("renders decision in text report")
-    void whenTextReportThenContainsDecision() {
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "Decision       : PERMIT", "PDP ID         : cthulhu-pdp",
+            "Algorithm      : PRIORITY_DENY" })
+    @DisplayName("text report contains the expected header line")
+    void whenTextReportThenContainsExpectedHeaderLine(String expectedLine) {
         val report = reportWithDecision(Decision.PERMIT);
 
         val text = ReportTextRenderUtil.textReport(report);
 
-        assertThat(text).contains("Decision       : PERMIT");
-    }
-
-    @Test
-    @DisplayName("renders PDP ID in text report")
-    void whenTextReportThenContainsPdpId() {
-        val report = reportWithDecision(Decision.PERMIT);
-
-        val text = ReportTextRenderUtil.textReport(report);
-
-        assertThat(text).contains("PDP ID         : cthulhu-pdp");
-    }
-
-    @Test
-    @DisplayName("renders algorithm in text report")
-    void whenTextReportThenContainsAlgorithm() {
-        val report = reportWithDecision(Decision.PERMIT);
-
-        val text = ReportTextRenderUtil.textReport(report);
-
-        assertThat(text).contains("Algorithm      : PRIORITY_DENY");
+        assertThat(text).contains(expectedLine);
     }
 
     @Test
