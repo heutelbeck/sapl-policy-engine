@@ -19,7 +19,6 @@ package io.sapl.pdp;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.TracedVote;
-import reactor.core.publisher.SignalType;
 
 /**
  * Interceptor for processing votes during policy evaluation. Receives
@@ -61,13 +60,13 @@ public interface VoteInterceptor extends Comparable<VoteInterceptor> {
     }
 
     /**
-     * Called when an authorization subscription stream ends.
+     * Called when an authorization subscription stream ends, regardless
+     * of whether it completed normally, errored, or was cancelled by
+     * the consumer.
      *
      * @param subscriptionId the per-evaluation subscription identifier
-     * @param signal the termination signal: {@link SignalType#ON_COMPLETE},
-     * {@link SignalType#ON_ERROR}, or {@link SignalType#CANCEL}
      */
-    default void onUnsubscribe(String subscriptionId, SignalType signal) {
+    default void onUnsubscribe(String subscriptionId) {
         // no-op by default
     }
 

@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@DisplayName("TimePolicyInformationPoint (vnext)")
+@DisplayName("TimePolicyInformationPoint")
 class TimePolicyInformationPointTests {
 
     private static Fixture fixtureAt(String instantIso) {
@@ -699,7 +699,7 @@ class TimePolicyInformationPointTests {
     class MonthBetween {
 
         @ParameterizedTest(name = "{4}")
-        @MethodSource("io.sapl.attributes.libraries.vnext.TimePolicyInformationPointTests#monthBetweenRangeArgs")
+        @MethodSource("io.sapl.attributes.libraries.TimePolicyInformationPointTests#monthBetweenRangeArgs")
         void whenMonthBetweenRangeThenExpected(String clockTime, long start, long end, Value expected,
                 String description) {
             val f = fixtureAt(clockTime);

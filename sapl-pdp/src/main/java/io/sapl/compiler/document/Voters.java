@@ -23,6 +23,7 @@ import io.sapl.attributes.store.AttributeStore;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -63,6 +64,57 @@ public class Voters {
                 future.complete(r.vote());
             }
             return r.dependencies().keySet();
+        })) {
+            return future.get();
+        } catch (ExecutionException ee) {
+            val cause = ee.getCause();
+            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
+        }
+    }
+
+    /**
+     * Traced variant of {@link #awaitFirstVote}. Returns the first
+     * snapshot round whose {@link VoteResult#vote()} is non-null,
+     * wrapped as a {@link TracedVote} carrying the emit timestamp
+     * (read from {@code clock}) and the dependency-filtered snapshot.
+     */
+    public static TracedVote awaitFirstTracedVote(AttributeStore store, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, Clock clock)
+            throws InterruptedException {
+        val future = new CompletableFuture<TracedVote>();
+        try (val ignored = store.open(subscriptionId, initialDependencies, snapshot -> {
+            val r = evaluator.apply(snapshot);
+            if (r.vote() != null) {
+                future.complete(new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, snapshot)));
+            }
+            return r.dependencies().keySet();
+        })) {
+            return future.get();
+        } catch (ExecutionException ee) {
+            val cause = ee.getCause();
+            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
+        }
+    }
+
+    /**
+     * Coverage-instrumented analogue of {@link #awaitFirstVote}. Drives
+     * a {@link io.sapl.compiler.policy.CoverageVoter}-backed evaluator
+     * and returns the first {@link VoteResultWithCoverage} whose
+     * {@link VoteResult#vote()} is non-null, packaged as a
+     * {@link VoteWithCoverage}.
+     */
+    public static VoteWithCoverage awaitFirstVoteWithCoverage(AttributeStore store, String subscriptionId,
+            Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResultWithCoverage> evaluator)
+            throws InterruptedException {
+        val future = new CompletableFuture<VoteWithCoverage>();
+        try (val ignored = store.open(subscriptionId, initialDependencies, snapshot -> {
+            val r = evaluator.apply(snapshot);
+            if (r.voteResult().vote() != null) {
+                future.complete(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));
+            }
+            return r.voteResult().dependencies().keySet();
         })) {
             return future.get();
         } catch (ExecutionException ee) {

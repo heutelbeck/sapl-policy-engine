@@ -38,7 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.SignalType;
 
 import java.time.Instant;
 import java.util.List;
@@ -118,7 +117,7 @@ class ReportingDecisionInterceptorTests {
         void whenOnUnsubscribeWithLoggingEnabledThenNoException() {
             val interceptor = new ReportingDecisionInterceptor(false, false, false, false, false, true);
 
-            interceptor.onUnsubscribe(DUMMY_SUBSCRIPTION_ID, SignalType.ON_COMPLETE);
+            interceptor.onUnsubscribe(DUMMY_SUBSCRIPTION_ID);
         }
 
     }

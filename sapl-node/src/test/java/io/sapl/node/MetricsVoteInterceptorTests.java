@@ -43,7 +43,6 @@ import io.sapl.compiler.document.Vote;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import lombok.val;
-import reactor.core.publisher.SignalType;
 
 import java.time.Instant;
 
@@ -97,11 +96,11 @@ class MetricsVoteInterceptorTests {
 
             assertThat(gaugeValue()).isEqualTo(2.0);
 
-            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
+            interceptor.onUnsubscribe("sub-1");
 
             assertThat(gaugeValue()).isEqualTo(1.0);
 
-            interceptor.onUnsubscribe("sub-2", SignalType.ON_COMPLETE);
+            interceptor.onUnsubscribe("sub-2");
 
             assertThat(gaugeValue()).isEqualTo(0.0);
         }
@@ -134,7 +133,7 @@ class MetricsVoteInterceptorTests {
         void whenUnsubscribed_thenRecordsDuration() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
+            interceptor.onUnsubscribe("sub-1");
 
             val timer = meterRegistry.find(METRIC_SUBSCRIPTION_DURATION).timer();
             assertThat(timer).isNotNull();
@@ -152,11 +151,11 @@ class MetricsVoteInterceptorTests {
         void whenUnsubscribed_thenNewSubscriptionWithSameIdStartsFresh() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
+            interceptor.onUnsubscribe("sub-1");
 
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.intercept(voteWithDecision(Decision.DENY), "sub-1", SUBSCRIPTION);
-            interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
+            interceptor.onUnsubscribe("sub-1");
 
             val firstDecisionTimer = meterRegistry.find(METRIC_FIRST_DECISION_LATENCY).timer();
             assertThat(firstDecisionTimer).isNotNull();

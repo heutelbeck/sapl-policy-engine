@@ -25,7 +25,6 @@ import io.sapl.pdp.VoteInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import reactor.core.publisher.SignalType;
 
 /**
  * Interceptor that logs authorization decisions for debugging and auditing.
@@ -81,9 +80,9 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void onUnsubscribe(String subscriptionId, SignalType signal) {
+    public void onUnsubscribe(String subscriptionId) {
         if (printUnsubscriptionEvents) {
-            log.info("Unsubscription [{}] ({})", subscriptionId, signal);
+            log.info("Unsubscription [{}]", subscriptionId);
         }
     }
 

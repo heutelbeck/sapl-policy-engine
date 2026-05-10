@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.core.publisher.SignalType;
+
 import reactor.test.StepVerifier;
 
 import java.util.ArrayList;
@@ -414,7 +414,7 @@ class ReactivePolicyDecisionPointTests {
             }
 
             @Override
-            public void onUnsubscribe(String subscriptionId, SignalType signal) {
+            public void onUnsubscribe(String subscriptionId) {
                 unsubscribedIds.add(subscriptionId);
             }
         };

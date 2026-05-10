@@ -41,7 +41,6 @@ import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.VoteInterceptor;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.val;
-import reactor.core.publisher.SignalType;
 
 import java.time.Instant;
 
@@ -71,7 +70,7 @@ class MetricsConfigurationTests {
 
                 interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
                 interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-                interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
+                interceptor.onUnsubscribe("sub-1");
 
                 assertThat(registry.find(METRIC_DECISIONS).counter()).isNotNull()
                         .satisfies(counter -> assertThat(counter.count()).isEqualTo(1.0));
@@ -94,7 +93,7 @@ class MetricsConfigurationTests {
 
                 interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
                 interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-                interceptor.onUnsubscribe("sub-1", SignalType.ON_COMPLETE);
+                interceptor.onUnsubscribe("sub-1");
 
                 assertThat(registry.find(METRIC_DECISIONS).counter()).isNull();
                 assertThat(registry.find(METRIC_SUBSCRIPTIONS_ACTIVE).gauge()).isNull();

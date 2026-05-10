@@ -40,7 +40,6 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -158,7 +157,7 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
                     .orElseGet(() -> Flux.just(tracedNoConfiguration(pdpId)));
             return tracedFlux.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, sub, pdpId))
                     .doOnNext(tv -> fireInterceptors(tv, subscriptionId, sub))
-                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId, signal));
+                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId));
         });
     }
 
@@ -170,7 +169,7 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
                     .orElseGet(() -> Mono.just(tracedNoConfiguration(pdpId)));
             return tracedMono.doOnSubscribe(s -> invokeOnSubscribe(subscriptionId, sub, pdpId))
                     .doOnNext(tv -> fireInterceptors(tv, subscriptionId, sub))
-                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId, signal));
+                    .doFinally(signal -> invokeOnUnsubscribe(subscriptionId));
         });
     }
 
@@ -184,7 +183,7 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
             fireInterceptors(tracedVote, subscriptionId, sub);
             return tracedVote;
         } finally {
-            invokeOnUnsubscribe(subscriptionId, SignalType.ON_COMPLETE);
+            invokeOnUnsubscribe(subscriptionId);
         }
     }
 
@@ -367,14 +366,6 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         });
     }
 
-    // TODO: verify per-identifier diff dedupe under dynamic subscription set
-    // changes. identifiableChanges() emits only subs whose decision differs
-    // from the previous bundle; it does not detect removals (a sub vanishing
-    // between rounds produces no event). The baseline assumes
-    // MultiAuthorizationDecision
-    // is constructed fresh per round in evaluateRound (which it is today), so
-    // the AtomicReference compare-and-set works correctly; reconfirm if that
-    // construction pattern changes.
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
             String pdpId) {
@@ -512,10 +503,10 @@ public class ReactivePolicyDecisionPoint implements PolicyDecisionPoint {
         }
     }
 
-    private void invokeOnUnsubscribe(String subscriptionId, SignalType signal) {
+    private void invokeOnUnsubscribe(String subscriptionId) {
         for (val interceptor : interceptors) {
             try {
-                interceptor.onUnsubscribe(subscriptionId, signal);
+                interceptor.onUnsubscribe(subscriptionId);
             } catch (Throwable swallowed) {
                 // see invokeOnSubscribe.
             }

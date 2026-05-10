@@ -26,7 +26,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.pdp.VoteInterceptor;
 import lombok.val;
-import reactor.core.publisher.SignalType;
 
 /**
  * Records PDP decision metrics for Prometheus via Micrometer.
@@ -100,7 +99,7 @@ class MetricsVoteInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void onUnsubscribe(String subscriptionId, SignalType signal) {
+    public void onUnsubscribe(String subscriptionId) {
         if (!enabled) {
             return;
         }
