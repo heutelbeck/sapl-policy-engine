@@ -41,7 +41,6 @@ class UuidFunctionLibraryTests {
 
     private static final String VALID_UUID_V4 = "550e8400-e29b-41d4-a716-446655440000";
     private static final String VALID_UUID_V1 = "c232ab00-9414-11ec-b3c8-9f6bdeced846";
-    private static final String UUID_REGEX    = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 
     @Test
     void whenValidUuidV4ThenParsesCorrectly() {
@@ -84,50 +83,6 @@ class UuidFunctionLibraryTests {
     }
 
     @Test
-    void whenRandomThenGeneratesValidUuid() {
-        val result = UuidFunctionLibrary.random();
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        val uuidString = ((TextValue) result).value();
-        assertThat(uuidString).matches(UUID_REGEX);
-        assertThat(UUID.fromString(uuidString).version()).isEqualTo(4);
-    }
-
-    @Test
-    void whenRandomCalledTwiceThenGeneratesDifferentUuids() {
-        val result1 = UuidFunctionLibrary.random();
-        val result2 = UuidFunctionLibrary.random();
-
-        assertThat(result1).isNotEqualTo(result2);
-    }
-
-    @Test
-    void whenSeededRandomThenGeneratesValidUuid() {
-        val result = UuidFunctionLibrary.seededRandom(Value.of(12345));
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        val uuidString = ((TextValue) result).value();
-        assertThat(uuidString).matches(UUID_REGEX);
-        assertThat(UUID.fromString(uuidString).version()).isEqualTo(4);
-    }
-
-    @Test
-    void whenSeededRandomWithSameSeedThenGeneratesSameUuid() {
-        val result1 = UuidFunctionLibrary.seededRandom(Value.of(42));
-        val result2 = UuidFunctionLibrary.seededRandom(Value.of(42));
-
-        assertThat(result1).isEqualTo(result2);
-    }
-
-    @Test
-    void whenSeededRandomWithDifferentSeedsThenGeneratesDifferentUuids() {
-        val result1 = UuidFunctionLibrary.seededRandom(Value.of(12345));
-        val result2 = UuidFunctionLibrary.seededRandom(Value.of(67890));
-
-        assertThat(result1).isNotEqualTo(result2);
-    }
-
-    @Test
     void whenParseAndCompareSignificantBitsThenMatchesJavaUuid() {
         val uuid   = UUID.fromString(VALID_UUID_V4);
         val result = UuidFunctionLibrary.parse(Value.of(VALID_UUID_V4));
@@ -138,32 +93,5 @@ class UuidFunctionLibraryTests {
                 .isEqualTo(uuid.getLeastSignificantBits());
         assertThat(((NumberValue) obj.get("mostSignificantBits")).value().longValue())
                 .isEqualTo(uuid.getMostSignificantBits());
-    }
-
-    @Test
-    void whenSeededRandomWithNegativeSeedThenGeneratesValidUuid() {
-        val result = UuidFunctionLibrary.seededRandom(Value.of(-999));
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        val uuidString = ((TextValue) result).value();
-        assertThat(uuidString).matches(UUID_REGEX);
-    }
-
-    @Test
-    void whenSeededRandomWithZeroSeedThenGeneratesValidUuid() {
-        val result = UuidFunctionLibrary.seededRandom(Value.of(0));
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        val uuidString = ((TextValue) result).value();
-        assertThat(uuidString).matches(UUID_REGEX);
-    }
-
-    @Test
-    void whenSeededRandomWithLargeSeedThenGeneratesValidUuid() {
-        val result = UuidFunctionLibrary.seededRandom(Value.of(Long.MAX_VALUE));
-
-        assertThat(result).isInstanceOf(TextValue.class);
-        val uuidString = ((TextValue) result).value();
-        assertThat(uuidString).matches(UUID_REGEX);
     }
 }

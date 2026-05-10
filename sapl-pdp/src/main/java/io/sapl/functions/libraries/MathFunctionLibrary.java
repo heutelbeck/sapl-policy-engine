@@ -23,9 +23,6 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 
-import java.security.SecureRandom;
-import java.util.Random;
-
 /**
  * Collection of mathematical functions for scalar operations.
  */
@@ -40,27 +37,22 @@ public class MathFunctionLibrary {
             This library provides standard mathematical functions for numeric operations in policies.
             Functions include basic arithmetic operations (min, max, abs), rounding (ceil, floor, round),
             exponentiation and roots (pow, sqrt), logarithms (log, log10, logb), clamping, sign determination,
-            random number generation, and mathematical constants (pi, e).
+            and mathematical constants (pi, e).
 
             All functions operate on JSON numbers and return numeric results or error values for invalid inputs.
             """;
 
-    private static final String ERROR_BASE_INVALID           = "Logarithm base must be positive and not equal to 1.";
-    private static final String ERROR_BOUND_MUST_BE_INTEGER  = "Bound must be an integer.";
-    private static final String ERROR_BOUND_MUST_BE_POSITIVE = "Bound must be positive.";
-    private static final String ERROR_LOG_REQUIRES_POSITIVE  = "Logarithm requires a positive value.";
-    private static final String ERROR_MIN_GREATER_THAN_MAX   = "Minimum must be less than or equal to maximum.";
-    private static final String ERROR_POWER_RESULTED_IN_NAN  = "Power operation resulted in NaN (e.g., negative base with fractional exponent).";
-    private static final String ERROR_SEED_MUST_BE_INTEGER   = "Seed must be an integer.";
-    private static final String ERROR_SQRT_NEGATIVE          = "Cannot calculate square root of a negative number.";
+    private static final String ERROR_BASE_INVALID          = "Logarithm base must be positive and not equal to 1.";
+    private static final String ERROR_LOG_REQUIRES_POSITIVE = "Logarithm requires a positive value.";
+    private static final String ERROR_MIN_GREATER_THAN_MAX  = "Minimum must be less than or equal to maximum.";
+    private static final String ERROR_POWER_RESULTED_IN_NAN = "Power operation resulted in NaN (e.g., negative base with fractional exponent).";
+    private static final String ERROR_SQRT_NEGATIVE         = "Cannot calculate square root of a negative number.";
 
     private static final String SCHEMA_RETURNS_NUMBER = """
             {
                 "type": "number"
             }
             """;
-
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     /**
      * Returns the smaller of two numbers.
@@ -338,141 +330,6 @@ public class MathFunctionLibrary {
     }
 
     /**
-     * Returns a cryptographically secure random integer in the range [0, bound).
-     *
-     * @param bound
-     * the upper bound (exclusive)
-     *
-     * @return a random integer, or ErrorValue if bound is invalid
-     */
-    @Function(docs = """
-            ```randomInteger(NUMBER bound)```: Returns a cryptographically secure random integer in the range ```[0, bound)```
-            (inclusive of 0, exclusive of bound). Uses ```SecureRandom``` for cryptographic strength randomness.
-
-            **Requirements:**
-            - ```bound``` must be a positive integer
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              var diceRoll = math.randomInteger(6) + 1;       // 1-6 inclusive
-              var randomPercent = math.randomInteger(101);    // 0-100 inclusive
-            ```
-            """, schema = SCHEMA_RETURNS_NUMBER)
-    public static Value randomInteger(NumberValue bound) {
-        val validation = validateIntegerBound(bound);
-        if (validation != null) {
-            return validation;
-        }
-
-        return Value.of(SECURE_RANDOM.nextInt(bound.value().intValue()));
-    }
-
-    /**
-     * Returns a seeded random integer in the range [0, bound).
-     *
-     * @param bound
-     * the upper bound (exclusive)
-     * @param seed
-     * the seed for the random number generator
-     *
-     * @return a random integer, or ErrorValue if bound or seed is invalid
-     */
-    @Function(docs = """
-            ```randomIntegerSeeded(NUMBER bound, NUMBER seed)```: Returns a seeded random integer in the range ```[0, bound)```
-            (inclusive of 0, exclusive of bound). The seed determines the sequence of random numbers, allowing for
-            reproducible results.
-
-            **Requirements:**
-            - ```bound``` must be a positive integer
-            - ```seed``` must be an integer
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              math.randomIntegerSeeded(10, 42) == math.randomIntegerSeeded(10, 42);  // same seed produces same result
-            ```
-            """, schema = SCHEMA_RETURNS_NUMBER)
-    public static Value randomIntegerSeeded(NumberValue bound, NumberValue seed) {
-        val boundValidation = validateIntegerBound(bound);
-        if (boundValidation != null) {
-            return boundValidation;
-        }
-
-        val seedValidation = validateIntegerSeed(seed);
-        if (seedValidation != null) {
-            return seedValidation;
-        }
-
-        val random = new Random(seed.value().longValue());
-        return Value.of(random.nextInt(bound.value().intValue()));
-    }
-
-    /**
-     * Returns a cryptographically secure random floating-point number in the range
-     * [0.0, 1.0).
-     *
-     * @return a random double
-     */
-    @Function(docs = """
-            ```randomFloat()```: Returns a cryptographically secure random floating-point number in the range ```[0.0, 1.0)```
-            (inclusive of 0.0, exclusive of 1.0). Uses ```SecureRandom``` for cryptographic strength randomness.
-
-            **Technical Note:** Despite the name ```randomFloat```, this function returns a double-precision floating-point
-            number (64-bit).
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              var probability = math.randomFloat();           // 0.0 <= probability < 1.0
-              var percentage = math.randomFloat() * 100;      // 0.0 <= percentage < 100.0
-              var range = math.randomFloat() * 50 + 10;       // 10.0 <= range < 60.0
-            ```
-            """, schema = SCHEMA_RETURNS_NUMBER)
-    public static Value randomFloat() {
-        return Value.of(SECURE_RANDOM.nextDouble());
-    }
-
-    /**
-     * Returns a seeded random floating-point number in the range [0.0, 1.0).
-     *
-     * @param seed
-     * the seed for the random number generator
-     *
-     * @return a random double, or ErrorValue if seed is invalid
-     */
-    @Function(docs = """
-            ```randomFloatSeeded(NUMBER seed)```: Returns a seeded random floating-point number in the range ```[0.0, 1.0)```
-            (inclusive of 0.0, exclusive of 1.0). The seed determines the sequence of random numbers, allowing for
-            reproducible results.
-
-            **Technical Note:** Despite the name ```randomFloatSeeded```, this function returns a double-precision floating-point
-            number (64-bit).
-
-            **Requirements:**
-            - ```seed``` must be an integer
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              math.randomFloatSeeded(42) == math.randomFloatSeeded(42);  // same seed produces same result
-            ```
-            """, schema = SCHEMA_RETURNS_NUMBER)
-    public static Value randomFloatSeeded(NumberValue seed) {
-        val seedValidation = validateIntegerSeed(seed);
-        if (seedValidation != null) {
-            return seedValidation;
-        }
-
-        val random = new Random(seed.value().longValue());
-        return Value.of(random.nextDouble());
-    }
-
-    /**
      * Returns the mathematical constant π (pi).
      *
      * @return the value of pi
@@ -607,28 +464,6 @@ public class MathFunctionLibrary {
         }
 
         return Value.of(Math.log(value.value().doubleValue()) / Math.log(baseNumber));
-    }
-
-    private static Value validateIntegerBound(NumberValue bound) {
-        val boundValue = bound.value();
-
-        if (boundValue.scale() > 0 && boundValue.stripTrailingZeros().scale() > 0) {
-            return Value.error(ERROR_BOUND_MUST_BE_INTEGER);
-        }
-
-        if (boundValue.intValue() <= 0) {
-            return Value.error(ERROR_BOUND_MUST_BE_POSITIVE);
-        }
-
-        return null;
-    }
-
-    private static Value validateIntegerSeed(NumberValue seed) {
-        val seedValue = seed.value();
-        if (seedValue.scale() > 0 && seedValue.stripTrailingZeros().scale() > 0) {
-            return Value.error(ERROR_SEED_MUST_BE_INTEGER);
-        }
-        return null;
     }
 
     private static Value validatePositiveValueForLogs(NumberValue value) {
