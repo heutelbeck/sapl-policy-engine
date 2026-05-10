@@ -108,9 +108,9 @@ class ScenarioCompilationAndCorrectnessTests {
                 assertThat(smtddDecision).as("SMTDD vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
             }
 
-            naiveComponents.dispose();
-            canonComponents.dispose();
-            smtddComponents.dispose();
+            naiveComponents.close();
+            canonComponents.close();
+            smtddComponents.close();
         }
     }
 

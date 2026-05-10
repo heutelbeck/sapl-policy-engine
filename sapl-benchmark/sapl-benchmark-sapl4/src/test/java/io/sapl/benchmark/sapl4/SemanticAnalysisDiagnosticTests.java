@@ -57,7 +57,7 @@ class SemanticAnalysisDiagnosticTests {
         // ourselves
         val components = scenario.buildPdp(flags);
         val pdpData    = new PdpData(scenario.variables(), Value.EMPTY_OBJECT);
-        val ctx        = new CompilationContext(pdpData, components.functionBroker(), components.attributeBroker());
+        val ctx        = new CompilationContext(pdpData, components.functionBroker());
         ctx.setCompilerOptions(flags);
 
         val policies  = scenario.policies().get();

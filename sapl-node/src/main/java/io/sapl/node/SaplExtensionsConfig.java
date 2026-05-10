@@ -19,7 +19,9 @@ package io.sapl.node;
 
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.functions.FunctionLibraryProvider;
-import io.sapl.attributes.libraries.ReactiveWebClient;
+import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.api.stream.RealTimeScheduler;
+import io.sapl.api.stream.TimeScheduler;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
 import io.sapl.extensions.mqtt.SaplMqttClient;
@@ -31,6 +33,8 @@ import org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.net.http.HttpClient;
+import java.time.Clock;
 import java.util.List;
 
 /**
@@ -45,18 +49,23 @@ import java.util.List;
 public class SaplExtensionsConfig {
 
     @Bean
-    ReactiveWebClient reactiveWebClient(JsonMapper mapper) {
-        return new ReactiveWebClient(mapper);
+    TimeScheduler timeScheduler(Clock clock) {
+        return new RealTimeScheduler(clock);
     }
 
     @Bean
-    TraccarPolicyInformationPoint traccarPolicyInformationPoint(ReactiveWebClient reactiveWebClient) {
-        return new TraccarPolicyInformationPoint(reactiveWebClient);
+    BlockingWebClient blockingWebClient(JsonMapper mapper, Clock clock, TimeScheduler scheduler) {
+        return new BlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
     }
 
     @Bean
-    MqttPolicyInformationPoint mqttPolicyInformationPoint() {
-        return new MqttPolicyInformationPoint(new SaplMqttClient());
+    TraccarPolicyInformationPoint traccarPolicyInformationPoint(BlockingWebClient blockingWebClient) {
+        return new TraccarPolicyInformationPoint(blockingWebClient);
+    }
+
+    @Bean
+    MqttPolicyInformationPoint mqttPolicyInformationPoint(Clock clock, TimeScheduler scheduler) {
+        return new MqttPolicyInformationPoint(new SaplMqttClient(clock, scheduler));
     }
 
     @Bean
