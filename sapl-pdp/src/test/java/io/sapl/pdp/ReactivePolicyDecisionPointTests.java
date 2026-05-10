@@ -27,7 +27,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.compiler.document.TracedVote;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
@@ -395,18 +395,7 @@ class ReactivePolicyDecisionPointTests {
         val subscribedIds   = new ArrayList<String>();
         val unsubscribedIds = new ArrayList<String>();
 
-        val lifecycleInterceptor = new VoteInterceptor() {
-            @Override
-            public int priority() {
-                return 0;
-            }
-
-            @Override
-            public void intercept(TracedVote vote, String subscriptionId,
-                    AuthorizationSubscription authorizationSubscription) {
-                // no-op
-            }
-
+        val lifecycleListener = new SubscriptionLifecycleListener() {
             @Override
             public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription,
                     String pdpId) {
@@ -419,7 +408,8 @@ class ReactivePolicyDecisionPointTests {
             }
         };
 
-        val components     = PolicyDecisionPointBuilder.withoutDefaults().withInterceptor(lifecycleInterceptor).build();
+        val components     = PolicyDecisionPointBuilder.withoutDefaults()
+                .withSubscriptionLifecycleListener(lifecycleListener).build();
         val interceptedPdp = (ReactivePolicyDecisionPoint) components.pdp();
         val voterSource    = components.pdpVoterSource();
 

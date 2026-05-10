@@ -29,9 +29,10 @@ import io.sapl.attributes.store.AttributeStore;
 import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
-import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
@@ -99,7 +100,9 @@ import java.util.Set;
  * <li>Custom policy information points (beans annotated with
  * {@link PolicyInformationPoint})</li>
  * <li>Decision interceptors (beans implementing
- * {@link VoteInterceptor})</li>
+ * {@link DecisionInterceptor})</li>
+ * <li>Subscription lifecycle listeners (beans implementing
+ * {@link SubscriptionLifecycleListener})</li>
  * <li>Multi-tenant routing via the {@code pdpId}-form methods on
  * {@link PolicyDecisionPoint}</li>
  * </ul>
@@ -201,14 +204,17 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, AttributeStore attributeStore,
-            IdFactory idFactory, ObjectProvider<VoteInterceptor> interceptorProvider) {
-        val interceptors = interceptorProvider.orderedStream().toList();
-        if (!interceptors.isEmpty()) {
-            log.debug("Registering {} decision interceptors: {}.", interceptors.size(),
-                    interceptors.stream().map(i -> i.getClass().getSimpleName()).toList());
+            IdFactory idFactory, ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
+            ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
+        val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
+        val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
+        if (!decisionInterceptors.isEmpty() || !lifecycleListeners.isEmpty()) {
+            log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
+                    lifecycleListeners.size());
         }
         log.info("Deploying embedded Policy Decision Point.");
-        return new ReactivePolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, interceptors);
+        return new ReactivePolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, decisionInterceptors,
+                lifecycleListeners);
     }
 
     @Bean

@@ -17,12 +17,12 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -61,21 +61,21 @@ public class InterceptorAutoConfiguration {
     private final EmbeddedPDPProperties properties;
 
     /**
-     * Creates the reporting decision interceptor if any reporting is enabled.
-     * <p>
-     * The interceptor uses {@code Integer.MAX_VALUE} priority to ensure it runs
-     * last and captures all modifications made by other interceptors.
+     * Creates the reporting decision interceptor when at least one print option
+     * is enabled. The bean is not registered at all when none of the print flags
+     * are set.
      *
      * @return the reporting decision interceptor
      */
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(ReportingDecisionInterceptor.class)
-    VoteInterceptor reportingDecisionInterceptor() {
-        if (!properties.isPrintTrace() && !properties.isPrintJsonReport() && !properties.isPrintTextReport()
-                && !properties.isPrintSubscriptionEvents() && !properties.isPrintUnsubscriptionEvents()) {
-            return null;
-        }
+    @ConditionalOnExpression("${io.sapl.pdp.embedded.print-trace:false} "
+            + "or ${io.sapl.pdp.embedded.print-json-report:false} "
+            + "or ${io.sapl.pdp.embedded.print-text-report:false} "
+            + "or ${io.sapl.pdp.embedded.print-subscription-events:false} "
+            + "or ${io.sapl.pdp.embedded.print-unsubscription-events:false}")
+    ReportingDecisionInterceptor reportingDecisionInterceptor() {
         return new ReportingDecisionInterceptor(properties.isPrettyPrintReports(), properties.isPrintTrace(),
                 properties.isPrintJsonReport(), properties.isPrintTextReport(), properties.isPrintSubscriptionEvents(),
                 properties.isPrintUnsubscriptionEvents());

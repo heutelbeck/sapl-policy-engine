@@ -21,7 +21,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.sapl.pdp.VoteInterceptor;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.RequiredArgsConstructor;
 
@@ -45,8 +44,8 @@ class MetricsConfiguration {
     private final EmbeddedPDPProperties properties;
 
     @Bean
-    VoteInterceptor metricsVoteInterceptor(MeterRegistry meterRegistry) {
-        return new MetricsVoteInterceptor(properties.isMetricsEnabled(), meterRegistry);
+    PdpMetricsCollector pdpMetricsCollector(MeterRegistry meterRegistry) {
+        return new PdpMetricsCollector(properties.isMetricsEnabled(), meterRegistry);
     }
 
 }

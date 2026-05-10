@@ -20,6 +20,8 @@ package io.sapl.pdp.interceptors;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
@@ -30,7 +32,6 @@ import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
-import io.sapl.pdp.VoteInterceptor;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -58,21 +59,21 @@ class ReportingDecisionInterceptorTests {
             VotingMode.PRIORITY_DENY, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE);
 
     @Nested
-    @DisplayName("when intercepting votes")
-    class WhenIntercepting {
+    @DisplayName("when observing decisions")
+    class WhenObserving {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource
         @DisplayName("executes without exception for logging flag combinations")
-        void whenInterceptWithLoggingFlagsThenNoException(String description, boolean prettyPrint, boolean trace,
+        void whenOnDecisionWithLoggingFlagsThenNoException(String description, boolean prettyPrint, boolean trace,
                 boolean json, boolean text, boolean subscribe, boolean unsubscribe, Decision decision) {
             val interceptor = new ReportingDecisionInterceptor(prettyPrint, trace, json, text, subscribe, unsubscribe);
-            val vote        = createTracedVote(decision);
+            val tracedVote  = createTracedVote(decision);
 
-            interceptor.intercept(vote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
+            interceptor.onDecision(tracedVote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
         }
 
-        private static Stream<Arguments> whenInterceptWithLoggingFlagsThenNoException() {
+        private static Stream<Arguments> whenOnDecisionWithLoggingFlagsThenNoException() {
             return Stream.of(
                     arguments("all logging disabled", false, false, false, false, false, false, Decision.PERMIT),
                     arguments("trace logging enabled", false, true, false, false, false, false, Decision.PERMIT),
@@ -82,8 +83,8 @@ class ReportingDecisionInterceptorTests {
         }
 
         @Test
-        @DisplayName("handles vote with contributing votes")
-        void whenInterceptWithContributingVotesThenNoException() {
+        @DisplayName("renders a TracedVote with contributing votes without error")
+        void whenOnDecisionWithContributingVotesThenNoException() {
             val interceptor = new ReportingDecisionInterceptor(false, false, false, true, false, false);
             val policyVoter = new PolicyVoterMetadata("test-policy", "pdp", "config", null, Outcome.PERMIT, false);
             val policyVote  = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
@@ -95,9 +96,18 @@ class ReportingDecisionInterceptorTests {
                     Outcome.PERMIT);
             val tracedVote = TracedVote.of(vote, DUMMY_TIMESTAMP);
 
-            interceptor.intercept(tracedVote, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
+            interceptor.onDecision(tracedVote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
         }
 
+        @Test
+        @DisplayName("renders a bare Vote (non-engine TracedDecision) with trace only, no rich report")
+        void whenOnDecisionWithBareVoteThenTraceOnly() {
+            val interceptor = new ReportingDecisionInterceptor(false, true, true, true, false, false);
+            val voter       = new PolicyVoterMetadata("test-policy", "pdp", "config", null, Outcome.PERMIT, false);
+            val vote        = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, voter);
+
+            interceptor.onDecision(vote, DUMMY_TIMESTAMP, DUMMY_SUBSCRIPTION_ID, DUMMY_SUBSCRIPTION);
+        }
     }
 
     @Nested
@@ -119,50 +129,20 @@ class ReportingDecisionInterceptorTests {
 
             interceptor.onUnsubscribe(DUMMY_SUBSCRIPTION_ID);
         }
-
     }
 
     @Nested
-    @DisplayName("when ordering interceptors")
-    class WhenOrdering {
+    @DisplayName("interface implementations")
+    class InterfaceImplementations {
 
         @Test
-        @DisplayName("returns highest priority to execute last")
-        void whenGetPriorityThenReturnsMaxValue() {
+        @DisplayName("implements both DecisionInterceptor and SubscriptionLifecycleListener")
+        void whenCreatedThenImplementsBothInterfaces() {
             val interceptor = new ReportingDecisionInterceptor(false, false, false, false, false, false);
 
-            assertThat(interceptor.priority()).isEqualTo(Integer.MAX_VALUE);
+            assertThat(interceptor).isInstanceOf(DecisionInterceptor.class)
+                    .isInstanceOf(SubscriptionLifecycleListener.class);
         }
-
-        @Test
-        @DisplayName("implements VoteInterceptor interface")
-        void whenCreatedThenImplementsInterface() {
-            val interceptor = new ReportingDecisionInterceptor(false, false, false, false, false, false);
-
-            assertThat(interceptor).isInstanceOf(VoteInterceptor.class);
-        }
-
-        @Test
-        @DisplayName("sorts after lower-priority interceptors")
-        void whenComparedWithOtherInterceptorThenOrderedByPriority() {
-            val reportingInterceptor     = new ReportingDecisionInterceptor(false, false, false, false, false, false);
-            val lowerPriorityInterceptor = new VoteInterceptor() {
-                                             @Override
-                                             public void intercept(TracedVote vote, String subscriptionId,
-                                                     AuthorizationSubscription authorizationSubscription) {
-                                                 // no-op
-                                             }
-
-                                             @Override
-                                             public int priority() {
-                                                 return 100;
-                                             }
-                                         };
-
-            assertThat(reportingInterceptor.compareTo(lowerPriorityInterceptor)).isPositive();
-            assertThat(lowerPriorityInterceptor.compareTo(reportingInterceptor)).isNegative();
-        }
-
     }
 
     private static TracedVote createTracedVote(Decision decision) {

@@ -35,10 +35,11 @@ import io.sapl.attributes.store.InMemoryAttributeStore;
 import io.sapl.attributes.store.PipLoadException;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.LazyFastClock;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
-import io.sapl.pdp.VoteInterceptor;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -114,7 +115,8 @@ public class PolicyDecisionPointBuilder {
     private FunctionBroker externalFunctionBroker;
     private AttributeStore externalAttributeStore;
 
-    private final List<VoteInterceptor> interceptors = new ArrayList<>();
+    private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
+    private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
 
     private PDPConfigurationSource       configurationSource;
     private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
@@ -316,31 +318,54 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a vote interceptor.
+     * Adds a decision interceptor that observes every
+     * {@link io.sapl.api.pdp.TracedDecision}
+     * produced by the PDP.
      *
-     * @param interceptor the interceptor to add
+     * @param interceptor the decision interceptor to add
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withInterceptor(VoteInterceptor interceptor) {
-        this.interceptors.add(interceptor);
+    public PolicyDecisionPointBuilder withDecisionInterceptor(DecisionInterceptor interceptor) {
+        this.decisionInterceptors.add(interceptor);
         return this;
     }
 
     /**
-     * Adds multiple traced decision interceptors. Interceptors are applied to every
-     * authorization decision in priority
-     * order (lower values execute first).
-     * <p>
-     * This is useful for Spring integration where interceptors are collected as
-     * beans.
+     * Adds a collection of decision interceptors. Useful for Spring
+     * integration where interceptor beans are collected automatically.
      *
-     * @param interceptors
-     * the interceptors to add
-     *
+     * @param interceptors the decision interceptors to add
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withInterceptors(Collection<? extends VoteInterceptor> interceptors) {
-        this.interceptors.addAll(interceptors);
+    public PolicyDecisionPointBuilder withDecisionInterceptors(Collection<? extends DecisionInterceptor> interceptors) {
+        this.decisionInterceptors.addAll(interceptors);
+        return this;
+    }
+
+    /**
+     * Adds a subscription lifecycle listener that receives one
+     * {@code onSubscribe} call when an authorization subscription stream
+     * begins and one {@code onUnsubscribe} call when it ends.
+     *
+     * @param listener the lifecycle listener to add
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withSubscriptionLifecycleListener(SubscriptionLifecycleListener listener) {
+        this.lifecycleListeners.add(listener);
+        return this;
+    }
+
+    /**
+     * Adds a collection of subscription lifecycle listeners. Useful for
+     * Spring integration where listener beans are collected
+     * automatically.
+     *
+     * @param listeners the lifecycle listeners to add
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withSubscriptionLifecycleListeners(
+            Collection<? extends SubscriptionLifecycleListener> listeners) {
+        this.lifecycleListeners.addAll(listeners);
         return this;
     }
 
@@ -659,9 +684,10 @@ public class PolicyDecisionPointBuilder {
         val attributeStore        = resolveAttributeStore();
         val configurationRegister = new PdpVoterSource(functionBroker, clock);
         val timestampClock        = new LazyFastClock();
-        val sortedInterceptors    = List.copyOf(interceptors);
+        val decisionPipeline      = List.copyOf(decisionInterceptors);
+        val lifecyclePipeline     = List.copyOf(lifecycleListeners);
         val pdp                   = new ReactivePolicyDecisionPoint(configurationRegister, attributeStore,
-                resolveIdFactory(), clock, sortedInterceptors);
+                resolveIdFactory(), clock, decisionPipeline, lifecyclePipeline);
 
         // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {
@@ -684,7 +710,7 @@ public class PolicyDecisionPointBuilder {
         }
 
         return new PDPComponents(pdp, configurationRegister, functionBroker, attributeStore, configurationSource,
-                timestampClock, sortedInterceptors);
+                timestampClock, decisionPipeline, lifecyclePipeline);
     }
 
     private FunctionBroker resolveFunctionBroker() {
@@ -789,7 +815,8 @@ public class PolicyDecisionPointBuilder {
             AttributeStore attributeStore,
             @Nullable PDPConfigurationSource source,
             LazyFastClock timestampClock,
-            List<VoteInterceptor> sortedInterceptors) implements AutoCloseable {
+            List<DecisionInterceptor> decisionInterceptors,
+            List<SubscriptionLifecycleListener> lifecycleListeners) implements AutoCloseable {
 
         private static final String WARN_ERROR_CLOSING_RESOURCE = "Error closing {}: {}";
 
@@ -801,7 +828,8 @@ public class PolicyDecisionPointBuilder {
          */
         @Override
         public void close() {
-            closeAll(timestampClock, source, pdpVoterSource, attributeStore, functionBroker, sortedInterceptors);
+            closeAll(timestampClock, source, pdpVoterSource, attributeStore, functionBroker, decisionInterceptors,
+                    lifecycleListeners);
         }
 
         private static void closeAll(Object... resources) {

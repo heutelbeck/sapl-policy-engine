@@ -17,17 +17,28 @@
  */
 package io.sapl.compiler.document;
 
-import io.sapl.api.model.*;
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.TracedDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.Accessors;
 import lombok.val;
 
 import java.util.ArrayList;
@@ -44,13 +55,36 @@ import java.util.List;
  * time, when each was retrieved) is the trigger loop's responsibility
  * and lives in a wrapper at the trigger-loop output, not in Vote
  * itself.
+ * <p>
+ * The {@link #toTrace()} result is computed lazily and cached on first
+ * call. Multiple observers (interceptors, reports) reading the trace
+ * share one tree. The cache uses the racy single-check idiom: the
+ * field is non-{@code volatile}, but {@link ObjectValue} is immutable
+ * and its final fields are safely published, so concurrent readers are
+ * safe and a benign race only costs a redundant computation.
  */
-public record Vote(
-        AuthorizationDecision authorizationDecision,
-        List<ErrorValue> errors,
-        List<Vote> contributingVotes,
-        VoterMetadata voter,
-        Outcome outcome) implements Voter {
+@Getter
+@ToString
+@EqualsAndHashCode
+@Accessors(fluent = true)
+@RequiredArgsConstructor
+public final class Vote implements Voter, TracedDecision {
+
+    private final AuthorizationDecision authorizationDecision;
+    private final List<ErrorValue>      errors;
+    private final List<Vote>            contributingVotes;
+    private final VoterMetadata         voter;
+    private final Outcome               outcome;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @Getter(AccessLevel.NONE)
+    private ObjectValue cachedTrace;
+
+    @Override
+    public Value trace() {
+        return toTrace();
+    }
 
     /**
      * Creates a combined vote from multiple contributing votes.
@@ -132,9 +166,19 @@ public record Vote(
     /**
      * Converts this vote to a trace ObjectValue. Carries the vote's pure
      * decision data; subscription/attribute trace lives in the trigger-
-     * loop wrapper and is not part of Vote.toTrace().
+     * loop wrapper and is not part of {@code Vote.toTrace()}. The result
+     * is cached after the first call.
      */
     public ObjectValue toTrace() {
+        ObjectValue cache = cachedTrace;
+        if (cache == null) {
+            cache       = computeTrace();
+            cachedTrace = cache;
+        }
+        return cache;
+    }
+
+    private ObjectValue computeTrace() {
         val builder = ObjectValue.builder();
         builder.put("decision", Value.of(authorizationDecision.decision().name()));
         if (!authorizationDecision.obligations().isEmpty()) {

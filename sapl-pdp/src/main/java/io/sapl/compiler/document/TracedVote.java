@@ -18,10 +18,15 @@
 package io.sapl.compiler.document;
 
 import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Occurrence;
 import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.model.Value;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.TracedDecision;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -45,12 +50,27 @@ public record TracedVote(
         Vote vote,
         Instant timestamp,
         Map<SubscriptionKey, List<Occurrence>> dependencies,
-        Map<SubscriptionKey, AttributeSnapshot> readSnapshot) {
+        Map<SubscriptionKey, AttributeSnapshot> readSnapshot) implements TracedDecision {
 
     /**
      * Wraps a vote with an emit timestamp and empty trace inputs.
      */
     public static TracedVote of(Vote vote, Instant timestamp) {
         return new TracedVote(vote, timestamp, Map.of(), Map.of());
+    }
+
+    @Override
+    public AuthorizationDecision authorizationDecision() {
+        return vote.authorizationDecision();
+    }
+
+    @Override
+    public Value trace() {
+        return vote.toTrace();
+    }
+
+    @Override
+    public Collection<ErrorValue> errors() {
+        return vote.errors();
     }
 }

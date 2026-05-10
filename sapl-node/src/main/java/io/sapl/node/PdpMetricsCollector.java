@@ -17,18 +17,22 @@
  */
 package io.sapl.node;
 
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.TracedVote;
-import io.sapl.pdp.VoteInterceptor;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.api.pdp.TracedDecision;
 import lombok.val;
 
 /**
- * Records PDP decision metrics for Prometheus via Micrometer.
+ * Records PDP decision metrics for Prometheus via Micrometer. Implements both
+ * {@link DecisionInterceptor} (decision counter, first-decision latency) and
+ * {@link SubscriptionLifecycleListener} (active count, subscription duration).
  *
  * <p>
  * Captures the four golden signals for authorization decisions:
@@ -46,7 +50,7 @@ import lombok.val;
  * The flag is a final field so the JIT can eliminate the dead branches
  * entirely.
  */
-class MetricsVoteInterceptor implements VoteInterceptor {
+class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleListener {
 
     static final String METRIC_DECISIONS              = "sapl.decisions";
     static final String METRIC_FIRST_DECISION_LATENCY = "sapl.decision.first.latency";
@@ -61,16 +65,11 @@ class MetricsVoteInterceptor implements VoteInterceptor {
     private final ConcurrentHashMap<String, Timer.Sample> subscriptionTimers     = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Boolean>      firstDecisionDelivered = new ConcurrentHashMap<>();
 
-    MetricsVoteInterceptor(boolean enabled, MeterRegistry meterRegistry) {
+    PdpMetricsCollector(boolean enabled, MeterRegistry meterRegistry) {
         this.enabled             = enabled;
         this.meterRegistry       = meterRegistry;
         this.activeSubscriptions = enabled ? meterRegistry.gauge(METRIC_SUBSCRIPTIONS_ACTIVE, new AtomicInteger(0))
                 : new AtomicInteger(0);
-    }
-
-    @Override
-    public int priority() {
-        return 0;
     }
 
     @Override
@@ -83,12 +82,13 @@ class MetricsVoteInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void intercept(TracedVote vote, String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+    public void onDecision(TracedDecision decision, Instant timestamp, String subscriptionId,
+            AuthorizationSubscription authorizationSubscription) {
         if (!enabled) {
             return;
         }
-        val decision = vote.vote().authorizationDecision().decision();
-        meterRegistry.counter(METRIC_DECISIONS, TAG_DECISION, decision.name()).increment();
+        val outcome = decision.authorizationDecision().decision();
+        meterRegistry.counter(METRIC_DECISIONS, TAG_DECISION, outcome.name()).increment();
 
         if (firstDecisionDelivered.putIfAbsent(subscriptionId, Boolean.TRUE) == null) {
             val sample = subscriptionTimers.get(subscriptionId);

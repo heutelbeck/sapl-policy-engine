@@ -17,8 +17,8 @@
  */
 package io.sapl.node;
 
-import static io.sapl.node.MetricsVoteInterceptor.METRIC_DECISIONS;
-import static io.sapl.node.MetricsVoteInterceptor.METRIC_SUBSCRIPTIONS_ACTIVE;
+import static io.sapl.node.PdpMetricsCollector.METRIC_DECISIONS;
+import static io.sapl.node.PdpMetricsCollector.METRIC_SUBSCRIPTIONS_ACTIVE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -38,7 +38,6 @@ import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
-import io.sapl.pdp.VoteInterceptor;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.val;
 
@@ -63,13 +62,14 @@ class MetricsConfigurationTests {
         @DisplayName("registers interceptor that records decision metrics")
         void whenMetricsEnabled_thenInterceptorRecordsDecisions() {
             contextRunner(true).run(context -> {
-                assertThat(context).hasSingleBean(VoteInterceptor.class);
+                assertThat(context).hasSingleBean(PdpMetricsCollector.class);
 
-                val interceptor = context.getBean(VoteInterceptor.class);
+                val interceptor = context.getBean(PdpMetricsCollector.class);
                 val registry    = context.getBean(MeterRegistry.class);
 
                 interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
-                interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
+                interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"),
+                        "sub-1", SUBSCRIPTION);
                 interceptor.onUnsubscribe("sub-1");
 
                 assertThat(registry.find(METRIC_DECISIONS).counter()).isNotNull()
@@ -88,11 +88,12 @@ class MetricsConfigurationTests {
         @DisplayName("interceptor is a no-op and records no metrics")
         void whenMetricsDisabled_thenNoMetricsRecorded() {
             contextRunner(false).run(context -> {
-                val interceptor = context.getBean(VoteInterceptor.class);
+                val interceptor = context.getBean(PdpMetricsCollector.class);
                 val registry    = context.getBean(MeterRegistry.class);
 
                 interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
-                interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
+                interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"),
+                        "sub-1", SUBSCRIPTION);
                 interceptor.onUnsubscribe("sub-1");
 
                 assertThat(registry.find(METRIC_DECISIONS).counter()).isNull();

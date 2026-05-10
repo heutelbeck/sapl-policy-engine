@@ -17,11 +17,11 @@
  */
 package io.sapl.node;
 
-import static io.sapl.node.MetricsVoteInterceptor.METRIC_DECISIONS;
-import static io.sapl.node.MetricsVoteInterceptor.METRIC_FIRST_DECISION_LATENCY;
-import static io.sapl.node.MetricsVoteInterceptor.METRIC_SUBSCRIPTIONS_ACTIVE;
-import static io.sapl.node.MetricsVoteInterceptor.METRIC_SUBSCRIPTION_DURATION;
-import static io.sapl.node.MetricsVoteInterceptor.TAG_DECISION;
+import static io.sapl.node.PdpMetricsCollector.METRIC_DECISIONS;
+import static io.sapl.node.PdpMetricsCollector.METRIC_FIRST_DECISION_LATENCY;
+import static io.sapl.node.PdpMetricsCollector.METRIC_SUBSCRIPTIONS_ACTIVE;
+import static io.sapl.node.PdpMetricsCollector.METRIC_SUBSCRIPTION_DURATION;
+import static io.sapl.node.PdpMetricsCollector.TAG_DECISION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -46,11 +46,11 @@ import lombok.val;
 
 import java.time.Instant;
 
-@DisplayName("MetricsVoteInterceptor")
-class MetricsVoteInterceptorTests {
+@DisplayName("PdpMetricsCollector")
+class PdpMetricsCollectorTests {
 
     private SimpleMeterRegistry    meterRegistry;
-    private MetricsVoteInterceptor interceptor;
+    private PdpMetricsCollector interceptor;
 
     private static final AuthorizationSubscription SUBSCRIPTION = AuthorizationSubscription.of("subject", "action",
             "resource");
@@ -58,7 +58,7 @@ class MetricsVoteInterceptorTests {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        interceptor   = new MetricsVoteInterceptor(true, meterRegistry);
+        interceptor   = new PdpMetricsCollector(true, meterRegistry);
     }
 
     @Nested
@@ -71,8 +71,8 @@ class MetricsVoteInterceptorTests {
         void whenDecisionEmitted_thenCounterIncrements(Decision decision) {
             val vote = voteWithDecision(decision);
 
-            interceptor.intercept(vote, "sub-1", SUBSCRIPTION);
-            interceptor.intercept(vote, "sub-1", SUBSCRIPTION);
+            interceptor.onDecision(vote, Instant.parse("2026-02-13T00:00:00Z"), "sub-1", SUBSCRIPTION);
+            interceptor.onDecision(vote, Instant.parse("2026-02-13T00:00:00Z"), "sub-1", SUBSCRIPTION);
 
             val count = meterRegistry.counter(METRIC_DECISIONS, TAG_DECISION, decision.name()).count();
             assertThat(count).isEqualTo(2.0);
@@ -120,8 +120,10 @@ class MetricsVoteInterceptorTests {
         void whenMultipleDecisions_thenRecordsFirstOnly() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
 
-            interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
-            interceptor.intercept(voteWithDecision(Decision.DENY), "sub-1", SUBSCRIPTION);
+            interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
+            interceptor.onDecision(voteWithDecision(Decision.DENY), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
 
             val timer = meterRegistry.find(METRIC_FIRST_DECISION_LATENCY).timer();
             assertThat(timer).isNotNull();
@@ -132,7 +134,8 @@ class MetricsVoteInterceptorTests {
         @DisplayName("records subscription duration on unsubscribe")
         void whenUnsubscribed_thenRecordsDuration() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
-            interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
+            interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
             interceptor.onUnsubscribe("sub-1");
 
             val timer = meterRegistry.find(METRIC_SUBSCRIPTION_DURATION).timer();
@@ -150,11 +153,13 @@ class MetricsVoteInterceptorTests {
         @DisplayName("cleans up state on unsubscribe")
         void whenUnsubscribed_thenNewSubscriptionWithSameIdStartsFresh() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
-            interceptor.intercept(voteWithDecision(Decision.PERMIT), "sub-1", SUBSCRIPTION);
+            interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
             interceptor.onUnsubscribe("sub-1");
 
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
-            interceptor.intercept(voteWithDecision(Decision.DENY), "sub-1", SUBSCRIPTION);
+            interceptor.onDecision(voteWithDecision(Decision.DENY), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
             interceptor.onUnsubscribe("sub-1");
 
             val firstDecisionTimer = meterRegistry.find(METRIC_FIRST_DECISION_LATENCY).timer();

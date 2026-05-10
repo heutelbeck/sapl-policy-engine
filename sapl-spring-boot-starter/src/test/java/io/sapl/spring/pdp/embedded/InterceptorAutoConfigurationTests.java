@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.pdp.VoteInterceptor;
+import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class InterceptorAutoConfigurationTests {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.embedded." + property + "=true", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(VoteInterceptor.class)
+                    assertThat(context).hasNotFailed().hasSingleBean(DecisionInterceptor.class)
                             .hasSingleBean(ReportingDecisionInterceptor.class);
                 });
     }
