@@ -45,8 +45,9 @@ class StreamAssertionsTests {
     void whenNextValueMismatchesThenFails() {
         val stream   = Streams.just(Value.of("actual"));
         val asserter = StreamAssertions.assertThat(stream);
+        val expected = Value.of("expected");
 
-        assertThatThrownBy(() -> asserter.awaitsNext(Value.of("expected"))).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(() -> asserter.awaitsNext(expected)).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("expected").hasMessageContaining("actual");
     }
 
@@ -55,8 +56,9 @@ class StreamAssertionsTests {
     void whenNoValueWithinTimeoutThenFails() {
         val stream   = new LatestSlotStream<Value>();
         val asserter = StreamAssertions.assertThat(stream).withinTimeout(Duration.ofMillis(50));
+        val expected = Value.of("expected");
 
-        assertThatThrownBy(() -> asserter.awaitsNext(Value.of("expected"))).isInstanceOf(AssertionError.class)
+        assertThatThrownBy(() -> asserter.awaitsNext(expected)).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Timed out");
 
         stream.close();

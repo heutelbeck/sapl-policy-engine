@@ -155,34 +155,39 @@ public class SaplMqttClient implements Closeable {
         return Streams.fromCallback((emit, complete) -> {
             val cached = MQTT_CLIENT_CACHE.computeIfAbsent(brokerHash,
                     h -> buildClientValues(brokerConfig, pipConfig, pdpSecrets));
-            val client = cached.getMqttAsyncClient();
             cached.incrementBrokerSubscribers();
 
             val firstMessage = new AtomicBoolean(false);
             val closed       = new AtomicBoolean(false);
+            val ctx          = new SubscriptionContext(cached, cached.getMqttAsyncClient(), filters, qos, closed);
 
             val onDisconnect = registerDisconnectListener(cached, emitAtRetry, closed, emit);
             val timerCancel  = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
 
-            Thread.startVirtualThread(
-                    () -> connectAndSubscribe(cached, client, filters, qos, closed, firstMessage, emit, complete));
+            Thread.startVirtualThread(() -> connectAndSubscribe(ctx, firstMessage, emit, complete));
 
-            return buildCloseCallback(brokerHash, cached, client, filters, timerCancel, onDisconnect, closed);
+            return buildCloseCallback(brokerHash, ctx, timerCancel, onDisconnect);
         });
     }
 
-    private static void connectAndSubscribe(MqttClientValues cached, Mqtt5AsyncClient client,
-            List<MqttTopicFilter> filters, MqttQos qos, AtomicBoolean closed, AtomicBoolean firstMessage,
-            Consumer<Value> emit, Runnable complete) {
+    private record SubscriptionContext(
+            MqttClientValues cached,
+            Mqtt5AsyncClient client,
+            List<MqttTopicFilter> filters,
+            MqttQos qos,
+            AtomicBoolean closed) {}
+
+    private static void connectAndSubscribe(SubscriptionContext ctx, AtomicBoolean firstMessage, Consumer<Value> emit,
+            Runnable complete) {
         try {
-            client.connect().get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            for (val filter : filters) {
-                if (closed.get()) {
+            ctx.client.connect().get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            for (val filter : ctx.filters) {
+                if (ctx.closed.get()) {
                     return;
                 }
-                cached.incrementTopicSubscribers(filter.toString());
-                client.subscribeWith().topicFilter(filter).qos(qos)
-                        .callback(publish -> deliverPublish(publish, closed, firstMessage, emit)).send()
+                ctx.cached.incrementTopicSubscribers(filter.toString());
+                ctx.client.subscribeWith().topicFilter(filter).qos(ctx.qos)
+                        .callback(publish -> deliverPublish(publish, ctx.closed, firstMessage, emit)).send()
                         .get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
             }
         } catch (InterruptedException e) {
@@ -202,22 +207,22 @@ public class SaplMqttClient implements Closeable {
         emit.accept(decodePublish(publish));
     }
 
-    private Runnable buildCloseCallback(int brokerHash, MqttClientValues cached, Mqtt5AsyncClient client,
-            List<MqttTopicFilter> filters, Cancellable timerCancel, Runnable onDisconnect, AtomicBoolean closed) {
+    private Runnable buildCloseCallback(int brokerHash, SubscriptionContext ctx, Cancellable timerCancel,
+            Runnable onDisconnect) {
         return () -> {
-            closed.set(true);
+            ctx.closed.set(true);
             timerCancel.cancel();
             if (onDisconnect != null) {
-                cached.getOnDisconnectCallbacks().remove(onDisconnect);
+                ctx.cached.getOnDisconnectCallbacks().remove(onDisconnect);
             }
-            for (val filter : filters) {
-                if (!cached.decrementTopicSubscribers(filter.toString())) {
-                    unsubscribeQuietly(client, filter);
+            for (val filter : ctx.filters) {
+                if (!ctx.cached.decrementTopicSubscribers(filter.toString())) {
+                    unsubscribeQuietly(ctx.client, filter);
                 }
             }
-            if (cached.decrementBrokerSubscribers() <= 0) {
+            if (ctx.cached.decrementBrokerSubscribers() <= 0) {
                 MQTT_CLIENT_CACHE.remove(brokerHash);
-                disconnectQuietly(cached, client);
+                disconnectQuietly(ctx.cached, ctx.client);
             }
         };
     }

@@ -223,10 +223,10 @@ public class ObjectCompiler {
             if (this == other) {
                 return true;
             }
-            if (!(other instanceof StreamObject that)) {
+            if (!(other instanceof StreamObject(var thatKeys, var thatEntries))) {
                 return false;
             }
-            return Arrays.equals(keys, that.keys) && Objects.equals(entries, that.entries);
+            return Arrays.equals(keys, thatKeys) && Objects.equals(entries, thatEntries);
         }
 
         @Override
