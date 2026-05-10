@@ -68,9 +68,9 @@ class StreamsExtendedTests {
             await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 2);
             stream.close();
             val countAtClose = factoryCalls.get();
-            Thread.sleep(80L);
 
-            assertThat(factoryCalls.get()).isLessThanOrEqualTo(countAtClose + 1);
+            await().pollDelay(Duration.ofMillis(80)).atMost(Duration.ofMillis(180))
+                    .untilAsserted(() -> assertThat(factoryCalls.get()).isLessThanOrEqualTo(countAtClose + 1));
         }
     }
 

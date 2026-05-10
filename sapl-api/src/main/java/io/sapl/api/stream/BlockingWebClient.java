@@ -196,18 +196,15 @@ public class BlockingWebClient {
                                             Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode())));
                                     return;
                                 }
-                                val lines = response.body();
-                                bodyRef.set(lines);
-                                pumpServerSentEvents(lines.iterator(), emit, stopped);
+                                try (val lines = response.body()) {
+                                    bodyRef.set(lines);
+                                    pumpServerSentEvents(lines.iterator(), emit, stopped);
+                                }
                             } catch (IOException e) {
                                 emit.accept(Value.error(messageOf(e)));
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             } finally {
-                                val body = bodyRef.get();
-                                if (body != null) {
-                                    body.close();
-                                }
                                 complete.run();
                             }
                         });

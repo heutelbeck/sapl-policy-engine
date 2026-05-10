@@ -179,52 +179,68 @@ public class AttributeCompiler {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
-            val     deps        = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size() + 2);
-            boolean seenNull    = false;
-            Value   firstError  = null;
-            Value   entityValue = null;
-            if (entity != null) {
-                val v = evalChild(entity, ctx, deps);
-                if (v == null) {
-                    seenNull = true;
-                } else if (v instanceof ErrorValue) {
-                    firstError = v;
-                } else if (v instanceof UndefinedValue) {
-                    firstError = Value.errorAt(location, ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS);
-                } else {
-                    entityValue = v;
-                }
+            val deps         = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(arguments.size() + 2);
+            val entityResult = evaluateEntity(ctx, deps);
+
+            val argValues  = new ArrayList<Value>(arguments.size());
+            val argsResult = evaluateArguments(ctx, deps, argValues);
+
+            val firstError = entityResult.firstError != null ? entityResult.firstError : argsResult.firstError;
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
+            }
+            if (entityResult.seenNull || argsResult.seenNull) {
+                return new ExpressionResult(null, deps);
             }
 
-            val argValues = new ArrayList<Value>(arguments.size());
+            val invocation = createInvocation(entityResult.value, argValues, ctx);
+            val key        = new SubscriptionKey(invocation, head);
+            deps.computeIfAbsent(key, k -> new ArrayList<>()).add(new Occurrence(location));
+            return new ExpressionResult(ctx.lookup(key), deps);
+        }
+
+        private EntityEval evaluateEntity(EvaluationContext ctx, HashMap<SubscriptionKey, List<Occurrence>> deps) {
+            if (entity == null) {
+                return EntityEval.NONE;
+            }
+            val v = evalChild(entity, ctx, deps);
+            if (v == null) {
+                return EntityEval.NULL_SEEN;
+            }
+            if (v instanceof ErrorValue) {
+                return new EntityEval(null, v, false);
+            }
+            if (v instanceof UndefinedValue) {
+                return new EntityEval(null, Value.errorAt(location, ERROR_UNDEFINED_ENTITY_IN_ATTRIBUTE_ACCESS), false);
+            }
+            return new EntityEval(v, null, false);
+        }
+
+        private ArgsEval evaluateArguments(EvaluationContext ctx, HashMap<SubscriptionKey, List<Occurrence>> deps,
+                ArrayList<Value> argValues) {
+            boolean seenNull   = false;
+            Value   firstError = null;
             for (val arg : arguments) {
                 val argValue = evalChild(arg, ctx, deps);
                 if (argValue == null) {
                     seenNull = true;
-                    continue;
-                }
-                if (argValue instanceof ErrorValue) {
+                } else if (argValue instanceof ErrorValue) {
                     if (firstError == null) {
                         firstError = argValue;
                     }
-                    continue;
+                } else {
+                    argValues.add(argValue);
                 }
-                argValues.add(argValue);
             }
-
-            if (firstError != null) {
-                return new ExpressionResult(firstError, deps);
-            }
-            if (seenNull) {
-                return new ExpressionResult(null, deps);
-            }
-
-            val invocation = createInvocation(entityValue, argValues, ctx);
-            val key        = new SubscriptionKey(invocation, head);
-            deps.computeIfAbsent(key, k -> new ArrayList<>()).add(new Occurrence(location));
-            val value = ctx.lookup(key);
-            return new ExpressionResult(value, deps);
+            return new ArgsEval(firstError, seenNull);
         }
+
+        private record EntityEval(Value value, Value firstError, boolean seenNull) {
+            static final EntityEval NONE = new EntityEval(null, null, false);
+            static final EntityEval NULL_SEEN = new EntityEval(null, null, true);
+        }
+
+        private record ArgsEval(Value firstError, boolean seenNull) {}
 
         private AttributeFinderInvocation createInvocation(Value entityValue, List<Value> argValues,
                 EvaluationContext ctx) {

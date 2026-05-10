@@ -68,6 +68,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.HashMap;
 import java.util.List;
@@ -1333,7 +1334,8 @@ public class SaplTestFixture {
         }
 
         private sealed interface Action {
-            void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos) throws Exception;
+            void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos)
+                    throws InterruptedException, TimeoutException;
         }
 
         private record ExpectDecision(
@@ -1341,7 +1343,7 @@ public class SaplTestFixture {
                 java.util.function.Function<AuthorizationDecision, String> describeMismatch) implements Action {
             @Override
             public void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos)
-                    throws Exception {
+                    throws InterruptedException, TimeoutException {
                 val remaining = remainingTimeout(deadlineNanos);
                 val emission  = stream.awaitNext(remaining);
                 if (emission == null) {

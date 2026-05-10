@@ -59,33 +59,13 @@ public class BinaryOperationCompiler {
             Map.entry(XOR, BooleanOperators::xor));
 
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
+        val special = tryCompileSpecialCase(binaryOperation, ctx);
+        if (special != null) {
+            return special;
+        }
+
         val operatorType = binaryOperation.op();
-        if (operatorType == REGEX) {
-            return RegexCompiler.compile(binaryOperation, ctx);
-        }
-
-        if (operatorType == SUBTEMPLATE) {
-            return SubtemplateCompiler.compile(binaryOperation, ctx);
-        }
-
-        if (ctx.unrollInOperator() && operatorType == IN) {
-            val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
-            if (unrolled != null) {
-                return unrolled;
-            }
-        }
-
-        if ((operatorType == ANY_IN || operatorType == ALL_IN) && binaryOperation.left() instanceof ArrayExpression arr
-                && arr.elements().size() == 1) {
-            return compile(new BinaryOperator(IN, arr.elements().getFirst(), binaryOperation.right(),
-                    binaryOperation.location()), ctx);
-        }
-
-        if (operatorType.isBooleanAndOr()) {
-            return StratifiedBooleanOperationCompiler.compile(binaryOperation, ctx);
-        }
-
-        val op = BINARY_OPERATIONS.get(operatorType);
+        val op           = BINARY_OPERATIONS.get(operatorType);
         if (op == null) {
             throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(operatorType),
                     binaryOperation);
@@ -98,8 +78,36 @@ public class BinaryOperationCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-        val loc = binaryOperation.location();
+        return dispatchToShape(operatorType, op, left, right, binaryOperation.location());
+    }
 
+    private CompiledExpression tryCompileSpecialCase(BinaryOperator binaryOperation, CompilationContext ctx) {
+        val operatorType = binaryOperation.op();
+        if (operatorType == REGEX) {
+            return RegexCompiler.compile(binaryOperation, ctx);
+        }
+        if (operatorType == SUBTEMPLATE) {
+            return SubtemplateCompiler.compile(binaryOperation, ctx);
+        }
+        if (ctx.unrollInOperator() && operatorType == IN) {
+            val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
+            if (unrolled != null) {
+                return unrolled;
+            }
+        }
+        if ((operatorType == ANY_IN || operatorType == ALL_IN) && binaryOperation.left() instanceof ArrayExpression arr
+                && arr.elements().size() == 1) {
+            return compile(new BinaryOperator(IN, arr.elements().getFirst(), binaryOperation.right(),
+                    binaryOperation.location()), ctx);
+        }
+        if (operatorType.isBooleanAndOr()) {
+            return StratifiedBooleanOperationCompiler.compile(binaryOperation, ctx);
+        }
+        return null;
+    }
+
+    private static CompiledExpression dispatchToShape(BinaryOperatorType operatorType, BinaryOperation op,
+            CompiledExpression left, CompiledExpression right, SourceLocation loc) {
         if (left instanceof Value lv && right instanceof Value rv) {
             return op.apply(lv, rv, loc);
         }

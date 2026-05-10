@@ -162,65 +162,85 @@ public class SaplMqttClient implements Closeable {
             val closed       = new AtomicBoolean(false);
 
             val onDisconnect = registerDisconnectListener(cached, emitAtRetry, closed, emit);
+            val timerCancel  = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
 
-            val timerCancel = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
+            Thread.startVirtualThread(
+                    () -> connectAndSubscribe(cached, client, filters, qos, closed, firstMessage, emit, complete));
 
-            Thread.startVirtualThread(() -> {
-                try {
-                    client.connect().get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-                    for (val filter : filters) {
-                        if (closed.get()) {
-                            return;
-                        }
-                        cached.incrementTopicSubscribers(filter.toString());
-                        client.subscribeWith().topicFilter(filter).qos(qos).callback(publish -> {
-                            if (closed.get()) {
-                                return;
-                            }
-                            firstMessage.set(true);
-                            emit.accept(decodePublish(publish));
-                        }).send().get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (ExecutionException | TimeoutException e) {
-                    emit.accept(Value.error(ERROR_MQTT_CONNECT_FAILED.formatted(messageOf(e))));
-                    complete.run();
-                }
-            });
-
-            return () -> {
-                closed.set(true);
-                timerCancel.cancel();
-                if (onDisconnect != null) {
-                    cached.getOnDisconnectCallbacks().remove(onDisconnect);
-                }
-                for (val filter : filters) {
-                    val stillUsed = cached.decrementTopicSubscribers(filter.toString());
-                    if (!stillUsed) {
-                        try {
-                            client.unsubscribeWith().addTopicFilter(filter).send().get(UNSUBSCRIBE_TIMEOUT.toMillis(),
-                                    TimeUnit.MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        } catch (ExecutionException | TimeoutException e) {
-                            log.debug("Unsubscribe for topic {} failed: {}", filter, messageOf(e));
-                        }
-                    }
-                }
-                val remaining = cached.decrementBrokerSubscribers();
-                if (remaining <= 0) {
-                    MQTT_CLIENT_CACHE.remove(brokerHash);
-                    try {
-                        client.disconnect().get(DISCONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    } catch (ExecutionException | TimeoutException e) {
-                        log.debug("Disconnect failed for client {}: {}", cached.getClientId(), messageOf(e));
-                    }
-                }
-            };
+            return buildCloseCallback(brokerHash, cached, client, filters, timerCancel, onDisconnect, closed);
         });
+    }
+
+    private static void connectAndSubscribe(MqttClientValues cached, Mqtt5AsyncClient client,
+            List<MqttTopicFilter> filters, MqttQos qos, AtomicBoolean closed, AtomicBoolean firstMessage,
+            Consumer<Value> emit, Runnable complete) {
+        try {
+            client.connect().get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            for (val filter : filters) {
+                if (closed.get()) {
+                    return;
+                }
+                cached.incrementTopicSubscribers(filter.toString());
+                client.subscribeWith().topicFilter(filter).qos(qos)
+                        .callback(publish -> deliverPublish(publish, closed, firstMessage, emit)).send()
+                        .get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException e) {
+            emit.accept(Value.error(ERROR_MQTT_CONNECT_FAILED.formatted(messageOf(e))));
+            complete.run();
+        }
+    }
+
+    private static void deliverPublish(Mqtt5Publish publish, AtomicBoolean closed, AtomicBoolean firstMessage,
+            Consumer<Value> emit) {
+        if (closed.get()) {
+            return;
+        }
+        firstMessage.set(true);
+        emit.accept(decodePublish(publish));
+    }
+
+    private Runnable buildCloseCallback(int brokerHash, MqttClientValues cached, Mqtt5AsyncClient client,
+            List<MqttTopicFilter> filters, Cancellable timerCancel, Runnable onDisconnect, AtomicBoolean closed) {
+        return () -> {
+            closed.set(true);
+            timerCancel.cancel();
+            if (onDisconnect != null) {
+                cached.getOnDisconnectCallbacks().remove(onDisconnect);
+            }
+            for (val filter : filters) {
+                if (!cached.decrementTopicSubscribers(filter.toString())) {
+                    unsubscribeQuietly(client, filter);
+                }
+            }
+            if (cached.decrementBrokerSubscribers() <= 0) {
+                MQTT_CLIENT_CACHE.remove(brokerHash);
+                disconnectQuietly(cached, client);
+            }
+        };
+    }
+
+    private static void unsubscribeQuietly(Mqtt5AsyncClient client, MqttTopicFilter filter) {
+        try {
+            client.unsubscribeWith().addTopicFilter(filter).send().get(UNSUBSCRIBE_TIMEOUT.toMillis(),
+                    TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException e) {
+            log.debug("Unsubscribe for topic {} failed: {}", filter, messageOf(e));
+        }
+    }
+
+    private static void disconnectQuietly(MqttClientValues cached, Mqtt5AsyncClient client) {
+        try {
+            client.disconnect().get(DISCONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException e) {
+            log.debug("Disconnect failed for client {}: {}", cached.getClientId(), messageOf(e));
+        }
     }
 
     private static Runnable registerDisconnectListener(MqttClientValues cached, boolean emitAtRetry,

@@ -24,6 +24,7 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -150,6 +151,28 @@ public class ObjectCompiler {
             }
             return SemanticHashing.ordered(hash, Objects.hashCode(location));
         }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof PureObject that)) {
+                return false;
+            }
+            return Arrays.equals(keys, that.keys) && Objects.equals(entries, that.entries)
+                    && Objects.equals(location, that.location);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(keys), entries, location);
+        }
+
+        @Override
+        public String toString() {
+            return "PureObject[keys=" + Arrays.toString(keys) + ", entries=" + entries + ", location=" + location + "]";
+        }
     }
 
     /**
@@ -193,6 +216,27 @@ public class ObjectCompiler {
                 return new ExpressionResult(null, deps);
             }
             return new ExpressionResult(builder.build(), deps);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof StreamObject that)) {
+                return false;
+            }
+            return Arrays.equals(keys, that.keys) && Objects.equals(entries, that.entries);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(keys), entries);
+        }
+
+        @Override
+        public String toString() {
+            return "StreamObject[keys=" + Arrays.toString(keys) + ", entries=" + entries + "]";
         }
     }
 

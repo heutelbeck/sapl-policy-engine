@@ -476,34 +476,41 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private Stream<IdentifiableAuthorizationDecision> identifiableChangeStream(
             Stream<MultiAuthorizationDecision> source, AtomicReference<MultiAuthorizationDecision> previousRef) {
         val out  = new QueueStream<IdentifiableAuthorizationDecision>();
-        val pump = Thread.startVirtualThread(() -> {
-                     try {
-                         while (true) {
-                             val current = source.awaitNext();
-                             if (current == null) {
-                                 return;
-                             }
-                             val previous = previousRef.getAndSet(current);
-                             for (val identifiable : current) {
-                                 val prevDecision = previous == null ? null
-                                         : previous.getDecision(identifiable.subscriptionId());
-                                 if (!java.util.Objects.equals(prevDecision, identifiable.decision())) {
-                                     out.put(identifiable);
-                                 }
-                             }
-                         }
-                     } catch (InterruptedException expected) {
-                         Thread.currentThread().interrupt();
-                     } finally {
-                         out.complete();
-                         source.close();
-                     }
-                 });
+        val pump = Thread.startVirtualThread(() -> pumpChangedDecisions(source, previousRef, out));
         out.onClose(() -> {
             pump.interrupt();
             source.close();
         });
         return out;
+    }
+
+    private static void pumpChangedDecisions(Stream<MultiAuthorizationDecision> source,
+            AtomicReference<MultiAuthorizationDecision> previousRef,
+            QueueStream<IdentifiableAuthorizationDecision> out) {
+        try {
+            while (true) {
+                val current = source.awaitNext();
+                if (current == null) {
+                    return;
+                }
+                emitDecisionDiffs(current, previousRef.getAndSet(current), out);
+            }
+        } catch (InterruptedException expected) {
+            Thread.currentThread().interrupt();
+        } finally {
+            out.complete();
+            source.close();
+        }
+    }
+
+    private static void emitDecisionDiffs(MultiAuthorizationDecision current, MultiAuthorizationDecision previous,
+            QueueStream<IdentifiableAuthorizationDecision> out) {
+        for (val identifiable : current) {
+            val prevDecision = previous == null ? null : previous.getDecision(identifiable.subscriptionId());
+            if (!java.util.Objects.equals(prevDecision, identifiable.decision())) {
+                out.put(identifiable);
+            }
+        }
     }
 
     private static <T> Stream<T> singleton(T value) {

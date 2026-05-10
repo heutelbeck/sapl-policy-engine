@@ -108,12 +108,12 @@ class InMemoryAttributeStoreTests {
         return r.snapshots.get(snapshotIndex).get(key).value();
     }
 
-    private static void sleep(long millis) {
+    private static void simulateSlowCallback(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -404,8 +404,8 @@ class InMemoryAttributeStoreTests {
             val recorder    = new Recorder(Set.of(constantKey, ctrlKey));
 
             try (val sub = store.open("s1", Set.of(constantKey, ctrlKey), recorder.asCallback())) {
-                sleep(150);
-                assertThat(recorder.snapshots).isEmpty();
+                Awaitility.await().pollDelay(Duration.ofMillis(150)).atMost(Duration.ofMillis(250))
+                        .untilAsserted(() -> assertThat(recorder.snapshots).isEmpty());
 
                 ControllablePip.emitToAll(Value.of("ctrl1"));
 
@@ -662,9 +662,11 @@ class InMemoryAttributeStoreTests {
             try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
                 Awaitility.await().atMost(Duration.ofSeconds(2))
                         .untilAsserted(() -> assertThat(recorder.snapshots).hasSizeGreaterThanOrEqualTo(1));
-                sleep(100);
-                val last = recorder.snapshots.get(recorder.snapshots.size() - 1).get(key).value();
-                assertThat(last).isEqualTo(Value.of("constant"));
+                Awaitility.await().pollDelay(Duration.ofMillis(100)).atMost(Duration.ofMillis(200))
+                        .untilAsserted(() -> {
+                            val last = recorder.snapshots.get(recorder.snapshots.size() - 1).get(key).value();
+                            assertThat(last).isEqualTo(Value.of("constant"));
+                        });
             }
         }
     }
@@ -689,7 +691,7 @@ class InMemoryAttributeStoreTests {
                 }
                 maxConcurrent.accumulateAndGet(cur, Math::max);
                 try {
-                    sleep(5);
+                    simulateSlowCallback(5);
                 } finally {
                     concurrentEntries.decrementAndGet();
                 }
@@ -698,7 +700,7 @@ class InMemoryAttributeStoreTests {
                 for (int i = 0; i < 50; i++) {
                     ControllablePip.emitToAll(Value.of(i));
                 }
-                sleep(500);
+                Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> concurrentEntries.get() == 0);
             }
 
             assertThat(concurrencyDetected).isFalse();

@@ -112,9 +112,7 @@ class AttributeStoreDemoTest {
         // config. The store IS the catalog. Plug-in engines call
         // load/swap/unload on this object; evaluators call open/close.
         // ----------------------------------------------------------------
-        val store = new InMemoryAttributeStore();
-
-        try {
+        try (val store = new InMemoryAttributeStore()) {
             // ------------------------------------------------------------
             // 2) Load the v1 PIP. The store extracts every annotated
             // method into a StreamAttributeFinderSpecification, checks
@@ -193,14 +191,11 @@ class AttributeStoreDemoTest {
             // subscription's routing entries; backing subscriptions
             // whose refcount drops to zero are torn down.
             // ------------------------------------------------------------
+            // ------------------------------------------------------------
+            // 7) Closing the store (here via try-with-resources) releases
+            // any remaining subscriptions and backing subscriptions.
+            // ------------------------------------------------------------
             consumerSub.close();
-
-        } finally {
-            // ------------------------------------------------------------
-            // 7) Close the store. Any remaining subscriptions and backing
-            // subscriptions are released.
-            // ------------------------------------------------------------
-            store.close();
         }
     }
 

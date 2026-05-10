@@ -70,7 +70,8 @@ class LatestSlotStreamTests {
                          }
                      });
 
-        Thread.sleep(20L);
+        await().atMost(Duration.ofSeconds(1)).until(
+                () -> consumer.getState() == Thread.State.WAITING || consumer.getState() == Thread.State.TIMED_WAITING);
         assertThat(received.get()).isNull();
         stream.put("delivered");
         consumer.join(500L);

@@ -156,12 +156,9 @@ public final class InMemoryAttributeStore implements AttributeStore {
         val newSpecs         = extractSpecs(newInstance, newNamespace);
         val newDocumentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(newInstance.getClass());
 
-        Map<StreamAttributeFinderSpecification, StreamAttributeFinderSpecification> swapped;
-        List<StreamAttributeFinderSpecification>                                    evictedOnly;
-        List<StreamAttributeFinderSpecification>                                    addedOnly;
-        PipHandleImpl                                                               newHandle;
-        Map<BackingSubscription, StreamAttributeFinderSpecification>                swappedBackings;
-        List<BackingSubscription>                                                   evictedBackings;
+        SwapPlan         plan;
+        AffectedBackings affected;
+        PipHandleImpl    newHandle;
 
         synchronized (lock) {
             val oldSpecs = handleSpecs.get(old);
@@ -170,52 +167,72 @@ public final class InMemoryAttributeStore implements AttributeStore {
             }
             checkCollisions(newNamespace, newSpecs, oldSpecs);
 
-            swapped     = new LinkedHashMap<>();
-            evictedOnly = new ArrayList<>();
-            addedOnly   = new ArrayList<>(newSpecs);
-            for (val oldSpec : oldSpecs) {
-                val match = findShapeMatch(oldSpec, newSpecs);
-                if (match != null) {
-                    swapped.put(oldSpec, match);
-                    addedOnly.remove(match);
-                } else {
-                    evictedOnly.add(oldSpec);
-                }
-            }
+            plan = buildSwapPlan(oldSpecs, newSpecs);
 
             handleSpecs.remove(old);
             old.loaded.set(false);
             newHandle = new PipHandleImpl(newNamespace, newDocumentation);
             handleSpecs.put(newHandle, List.copyOf(newSpecs));
 
-            swappedBackings = new LinkedHashMap<>();
-            evictedBackings = new ArrayList<>();
-            for (val backing : allBackings()) {
-                if (!(backing.sourceTag() instanceof StreamAttributeFinderSpecification oldSpec)) {
-                    continue;
-                }
-                val newSpec = swapped.get(oldSpec);
-                if (newSpec != null) {
-                    swappedBackings.put(backing, newSpec);
-                } else if (evictedOnly.contains(oldSpec)) {
-                    evictedBackings.add(backing);
-                }
-            }
+            affected = collectAffectedBackings(plan);
         }
 
         // Outside the lock: rebind / evict. invoke(...) on the new spec may throw or
         // block.
-        for (val entry : swappedBackings.entrySet()) {
+        for (val entry : affected.swappedBackings.entrySet()) {
             rebindBacking(entry.getKey(), entry.getValue());
         }
-        for (val backing : evictedBackings) {
+        for (val backing : affected.evictedBackings) {
             evictBacking(backing);
         }
 
-        log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace, swapped.size(),
-                evictedOnly.size(), addedOnly.size());
+        log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace, plan.swapped.size(),
+                plan.evictedOnly.size(), plan.addedOnly.size());
         return newHandle;
     }
+
+    private static SwapPlan buildSwapPlan(List<StreamAttributeFinderSpecification> oldSpecs,
+            List<StreamAttributeFinderSpecification> newSpecs) {
+        val swapped     = new LinkedHashMap<StreamAttributeFinderSpecification, StreamAttributeFinderSpecification>();
+        val evictedOnly = new ArrayList<StreamAttributeFinderSpecification>();
+        val addedOnly   = new ArrayList<>(newSpecs);
+        for (val oldSpec : oldSpecs) {
+            val match = findShapeMatch(oldSpec, newSpecs);
+            if (match != null) {
+                swapped.put(oldSpec, match);
+                addedOnly.remove(match);
+            } else {
+                evictedOnly.add(oldSpec);
+            }
+        }
+        return new SwapPlan(swapped, evictedOnly, addedOnly);
+    }
+
+    private AffectedBackings collectAffectedBackings(SwapPlan plan) {
+        val swappedBackings = new LinkedHashMap<BackingSubscription, StreamAttributeFinderSpecification>();
+        val evictedBackings = new ArrayList<BackingSubscription>();
+        for (val backing : allBackings()) {
+            if (!(backing.sourceTag() instanceof StreamAttributeFinderSpecification oldSpec)) {
+                continue;
+            }
+            val newSpec = plan.swapped.get(oldSpec);
+            if (newSpec != null) {
+                swappedBackings.put(backing, newSpec);
+            } else if (plan.evictedOnly.contains(oldSpec)) {
+                evictedBackings.add(backing);
+            }
+        }
+        return new AffectedBackings(swappedBackings, evictedBackings);
+    }
+
+    private record SwapPlan(
+            Map<StreamAttributeFinderSpecification, StreamAttributeFinderSpecification> swapped,
+            List<StreamAttributeFinderSpecification> evictedOnly,
+            List<StreamAttributeFinderSpecification> addedOnly) {}
+
+    private record AffectedBackings(
+            Map<BackingSubscription, StreamAttributeFinderSpecification> swappedBackings,
+            List<BackingSubscription> evictedBackings) {}
 
     /**
      * @return an unmodifiable snapshot of currently loaded handles

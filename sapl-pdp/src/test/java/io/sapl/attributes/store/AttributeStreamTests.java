@@ -250,6 +250,8 @@ class AttributeStreamTests {
                     Thread.sleep(Duration.ofMillis(50));
                     stream.close();
                 } catch (InterruptedException ignored) {
+                    // Test cleanup helper: the close-after-delay closure is fire-and-forget; if
+                    // interrupted we simply skip the close.
                 }
             });
 

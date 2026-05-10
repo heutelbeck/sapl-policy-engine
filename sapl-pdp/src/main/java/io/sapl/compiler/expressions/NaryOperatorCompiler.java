@@ -28,6 +28,7 @@ import lombok.val;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 
@@ -210,40 +211,43 @@ public class NaryOperatorCompiler {
                 return new ExpressionResult(preCombined, deps);
             }
 
+            val state = foldStreams(ctx, preCombined, deps);
+
+            if (state.firstError != null) {
+                return new ExpressionResult(state.firstError, deps);
+            }
+            if (state.seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            if (state.result == null) {
+                return new ExpressionResult(Value.error(ERROR_EMPTY_NARY_EXPRESSION), deps);
+            }
+            return new ExpressionResult(state.result, deps);
+        }
+
+        private FoldState foldStreams(EvaluationContext ctx, Value preCombined,
+                Map<SubscriptionKey, List<Occurrence>> deps) {
             Value   result     = preCombined;
             boolean seenNull   = false;
             Value   firstError = null;
-
             for (val s : streams) {
                 val sv = evalChild(s, ctx, deps);
                 if (sv == null) {
                     seenNull = true;
-                    continue;
-                }
-                if (sv instanceof ErrorValue err) {
+                } else if (sv instanceof ErrorValue err) {
                     if (firstError == null) {
                         firstError = err;
                     }
-                    continue;
-                }
-                if (firstError == null && !seenNull) {
+                } else if (firstError == null && !seenNull) {
                     result = result == null ? sv : op.apply(result, sv, location);
                     if (result instanceof ErrorValue) {
                         firstError = result;
                     }
                 }
             }
-
-            if (firstError != null) {
-                return new ExpressionResult(firstError, deps);
-            }
-            if (seenNull) {
-                return new ExpressionResult(null, deps);
-            }
-            if (result == null) {
-                return new ExpressionResult(Value.error(ERROR_EMPTY_NARY_EXPRESSION), deps);
-            }
-            return new ExpressionResult(result, deps);
+            return new FoldState(result, firstError, seenNull);
         }
+
+        private record FoldState(Value result, Value firstError, boolean seenNull) {}
     }
 }

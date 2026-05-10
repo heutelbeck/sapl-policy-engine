@@ -109,14 +109,14 @@ class StreamsTests {
 
         @Test
         @DisplayName("close before fire cancels the scheduled emission")
-        void whenCloseBeforeFireThenNoEmission() throws InterruptedException {
+        void whenCloseBeforeFireThenNoEmission() {
             val when   = Clock.systemUTC().instant().plusMillis(200);
             val stream = Streams.scheduledAt(Value.of("never"), when, scheduler);
 
             stream.close();
-            Thread.sleep(300L);
 
-            assertThat(stream.tryNext()).isEqualTo(Poll.done());
+            await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofMillis(400))
+                    .untilAsserted(() -> assertThat(stream.tryNext()).isEqualTo(Poll.done()));
         }
     }
 
@@ -206,9 +206,9 @@ class StreamsTests {
             await().atMost(Duration.ofSeconds(1)).until(() -> callCount.get() >= 1);
             stream.close();
             val countAtClose = callCount.get();
-            Thread.sleep(120L);
 
-            assertThat(callCount.get()).isLessThanOrEqualTo(countAtClose + 1);
+            await().pollDelay(Duration.ofMillis(120)).atMost(Duration.ofMillis(220))
+                    .untilAsserted(() -> assertThat(callCount.get()).isLessThanOrEqualTo(countAtClose + 1));
         }
     }
 

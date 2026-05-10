@@ -68,14 +68,14 @@ class RealTimeSchedulerTests {
 
     @Test
     @DisplayName("cancel before fire prevents the task from running")
-    void whenCancelBeforeFireThenTaskDoesNotRun() throws InterruptedException {
+    void whenCancelBeforeFireThenTaskDoesNotRun() {
         val ranCount = new AtomicInteger();
 
         val cancellable = scheduler.scheduleAt(Clock.systemUTC().instant().plusMillis(200), ranCount::incrementAndGet);
         cancellable.cancel();
 
-        Thread.sleep(300L);
-        assertThat(ranCount).hasValue(0);
+        await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofMillis(400))
+                .untilAsserted(() -> assertThat(ranCount).hasValue(0));
     }
 
     @Test

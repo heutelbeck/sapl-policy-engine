@@ -148,6 +148,8 @@ class StreamsErrorPropagationTests {
 
                 @Override
                 public void close() {
+                    // No resources to release: this is a poison fixture for concat
+                    // error-propagation testing.
                 }
             };
 
@@ -205,6 +207,8 @@ class StreamsErrorPropagationTests {
 
                 @Override
                 public void close() {
+                    // No resources to release: this is a poison fixture for distinctUntilChanged
+                    // error-propagation testing.
                 }
             };
 

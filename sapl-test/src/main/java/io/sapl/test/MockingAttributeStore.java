@@ -296,40 +296,62 @@ public final class MockingAttributeStore implements AttributeStore {
         val     now         = Instant.now();
         boolean mailboxGrew = false;
         for (val key : keys) {
-            if (keyToMockId.containsKey(key)) {
-                // Mock-bound: shared across consumers, no refcount needed (mocks live for the
-                // store lifetime).
-                continue;
-            }
-            val existingForward = forwards.get(key);
-            if (existingForward != null) {
-                existingForward.refcount++;
-                continue;
-            }
-            val match = findMostSpecificMatch(key.invocation());
-            recordInvocation(key.invocation());
-            if (match.isPresent()) {
-                val mockId = match.get().mockId();
-                keyToMockId.put(key, mockId);
-                val current = currentValueByMockId.get(mockId);
-                if (current != null && !mailbox.containsKey(key)) {
-                    mailbox.put(key, new AttributeSnapshot(current, now));
-                    mailboxGrew = true;
-                }
-            } else if (registeredPips.containsKey(key.invocation().attributeName())) {
-                val initial = registeredPips.get(key.invocation().attributeName());
-                if (initial != null && !mailbox.containsKey(key)) {
-                    mailbox.put(key, new AttributeSnapshot(initial, now));
-                    mailboxGrew = true;
-                }
-            } else if (delegate != null) {
-                openDelegateForward(key);
-            } else if (!mailbox.containsKey(key)) {
-                mailbox.put(key, new AttributeSnapshot(Value.UNDEFINED, now));
-                mailboxGrew = true;
-            }
+            mailboxGrew |= bindKey(key, now);
         }
         return mailboxGrew;
+    }
+
+    private boolean bindKey(SubscriptionKey key, Instant now) {
+        if (keyToMockId.containsKey(key)) {
+            // Mock-bound: shared across consumers, no refcount needed (mocks live for the
+            // store lifetime).
+            return false;
+        }
+        val existingForward = forwards.get(key);
+        if (existingForward != null) {
+            existingForward.refcount++;
+            return false;
+        }
+        val match = findMostSpecificMatch(key.invocation());
+        recordInvocation(key.invocation());
+        if (match.isPresent()) {
+            return seedFromMockMatch(key, match.get().mockId(), now);
+        }
+        if (registeredPips.containsKey(key.invocation().attributeName())) {
+            return seedFromRegisteredPip(key, now);
+        }
+        if (delegate != null) {
+            openDelegateForward(key);
+            return false;
+        }
+        return seedAsUndefined(key, now);
+    }
+
+    private boolean seedFromMockMatch(SubscriptionKey key, String mockId, Instant now) {
+        keyToMockId.put(key, mockId);
+        val current = currentValueByMockId.get(mockId);
+        if (current == null || mailbox.containsKey(key)) {
+            return false;
+        }
+        mailbox.put(key, new AttributeSnapshot(current, now));
+        return true;
+    }
+
+    private boolean seedFromRegisteredPip(SubscriptionKey key, Instant now) {
+        val initial = registeredPips.get(key.invocation().attributeName());
+        if (initial == null || mailbox.containsKey(key)) {
+            return false;
+        }
+        mailbox.put(key, new AttributeSnapshot(initial, now));
+        return true;
+    }
+
+    private boolean seedAsUndefined(SubscriptionKey key, Instant now) {
+        if (mailbox.containsKey(key)) {
+            return false;
+        }
+        mailbox.put(key, new AttributeSnapshot(Value.UNDEFINED, now));
+        return true;
     }
 
     private void releaseKeys(Set<SubscriptionKey> keys) {
