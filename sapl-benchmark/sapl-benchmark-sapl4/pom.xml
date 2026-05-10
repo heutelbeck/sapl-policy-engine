@@ -31,10 +31,9 @@
 
 	<artifactId>sapl-benchmark-sapl4</artifactId>
 	<packaging>jar</packaging>
-	<name>SAPL Benchmark (SAPL 4.0)</name>
-	<description>Rigorous JMH benchmarks for SAPL 4.0 PDP evaluation
-		performance. Uses forks(1) with convergence warmup and 45-second
-		iterations for reproducible results.</description>
+	<name>SAPL Benchmark (SAPL 4.1)</name>
+	<description>Rigorous JMH benchmarks for SAPL 4.1 PDP evaluation
+		performance.</description>
 
 	<organization>
 		<name>Dominic Heutelbeck</name>

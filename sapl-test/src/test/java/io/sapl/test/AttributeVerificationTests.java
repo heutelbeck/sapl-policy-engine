@@ -63,7 +63,7 @@ class AttributeVerificationTests {
         var results = adapter.execute(config);
 
         assertThat(results.allPassed()).withFailMessage(() -> buildFailureMessage(results)).isTrue();
-        assertThat(results.passed()).isEqualTo(3);
+        assertThat(results.passed()).isEqualTo(4);
     }
 
     @Test

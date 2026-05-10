@@ -12,13 +12,28 @@ requirement "Environment Attribute Verification" {
 
 }
 
-requirement "Environment Attribute Not Called" {
+requirement "Environment Attribute Subscribed Eagerly" {
 
     given
         - documents "location-policy", "bypass-policy"
         - attribute "loc-bypass" <geo.location> emits { "country": "DE" }
 
-    scenario "environment attribute called zero times when not needed"
+    scenario "environment attribute is subscribed eagerly even when policy short-circuits"
+        when "user" attempts "bypass" on "data"
+        expect permit
+        verify
+            - attribute <geo.location> is called once;
+
+}
+
+requirement "Environment Attribute Not Called Under Lazy Mode" {
+
+    given
+        - documents "location-policy", "bypass-policy"
+        - low-latency-mode false
+        - attribute "loc-bypass-lazy" <geo.location> emits { "country": "DE" }
+
+    scenario "lazy coverage voter short-circuits before unused attribute"
         when "user" attempts "bypass" on "data"
         expect permit
         verify

@@ -64,6 +64,16 @@ givenItem
     | DASH mockDefinition                # mockGivenItem
     | DASH configurationSpecification    # configurationGivenItem
     | DASH pdpConfigurationSpecification # pdpConfigurationGivenItem
+    | DASH lowLatencyModeSpecification   # lowLatencyModeGivenItem
+    ;
+
+// low-latency-mode true|false
+// Default (omitted): true (matches the production PDP default).
+// Set false to compile against the Lazy coverage voter, where body
+// conditions short-circuit in source order and unused attribute
+// dependencies are not subscribed.
+lowLatencyModeSpecification
+    : LOW_LATENCY_MODE flag=(TRUE | FALSE)
     ;
 
 // Document specification
