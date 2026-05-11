@@ -679,6 +679,7 @@
 
 		<!-- Server applications -->
 		<module>sapl-node</module>
+		<module>sapl-node-jetty</module>
 		<module>sapl-playground</module>
 
 		<!-- Benchmarks (not published, not in BOM) -->
