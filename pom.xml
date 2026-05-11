@@ -650,6 +650,7 @@
 		<module>sapl-api-test</module>
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>
+		<module>sapl-pdp-reactive</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>

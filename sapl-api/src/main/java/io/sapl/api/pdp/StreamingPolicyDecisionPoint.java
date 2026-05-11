@@ -18,10 +18,10 @@
 package io.sapl.api.pdp;
 
 import io.sapl.api.stream.Stream;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 
 /**
- * Reactor-free counterpart to {@link ReactivePolicyDecisionPoint} for callers
+ * Reactor-free counterpart to {@code ReactivePolicyDecisionPoint} (in
+ * {@code sapl-pdp-reactive}) for callers
  * that consume decisions through the SAPL {@link Stream} primitive.
  * Implementations block the calling thread on each
  * {@link Stream#awaitNext()} call.

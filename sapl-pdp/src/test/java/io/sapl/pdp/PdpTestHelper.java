@@ -18,14 +18,12 @@
 package io.sapl.pdp;
 
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.*;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.test.StepVerifier;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,8 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Test utility for PDP tests providing common subscription creation, decision
@@ -71,20 +67,6 @@ public class PdpTestHelper {
     public static AuthorizationSubscription subscription(Value subject, Value action, Value resource,
             Value environment) {
         return new AuthorizationSubscription(subject, action, resource, environment, Value.EMPTY_OBJECT);
-    }
-
-    /**
-     * Asserts that the PDP returns the expected decision for the given
-     * subscription.
-     *
-     * @param pdp the policy decision point
-     * @param subscription the authorization subscription
-     * @param expectedDecision the expected decision
-     */
-    public static void assertDecision(ReactivePolicyDecisionPoint pdp, AuthorizationSubscription subscription,
-            Decision expectedDecision) {
-        StepVerifier.create(pdp.decide(subscription).take(1))
-                .assertNext(decision -> assertThat(decision.decision()).isEqualTo(expectedDecision)).verifyComplete();
     }
 
     /**
