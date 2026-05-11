@@ -56,6 +56,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -204,8 +205,9 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    ReactivePolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, AttributeStore attributeStore,
-            IdFactory idFactory, ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
+    BlockingPolicyDecisionPoint blockingPolicyDecisionPoint(PdpVoterSource pdpVoterSource,
+            AttributeStore attributeStore, IdFactory idFactory,
+            ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
             ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
         val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
         val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
@@ -214,9 +216,27 @@ public class PDPAutoConfiguration {
                     lifecycleListeners.size());
         }
         log.info("Deploying embedded Policy Decision Point.");
-        val blockingPdp = new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory,
-                decisionInterceptors, lifecycleListeners);
-        return new DelegatingReactivePolicyDecisionPoint(blockingPdp);
+        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, decisionInterceptors,
+                lifecycleListeners);
+    }
+
+    /**
+     * Reactive adapter, only registered when {@code sapl-pdp-reactive} is on
+     * the classpath. Allows consumers to exclude the reactive module without
+     * breaking {@link PDPAutoConfiguration}'s class loading. The class
+     * condition is evaluated by name, so the inner class (and its imports of
+     * the reactive types) is not loaded when the reactive module is absent.
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint")
+    static class ReactiveAdapter {
+
+        @Bean
+        @ConditionalOnMissingBean
+        @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+        ReactivePolicyDecisionPoint reactivePolicyDecisionPoint(BlockingPolicyDecisionPoint blockingPdp) {
+            return new DelegatingReactivePolicyDecisionPoint(blockingPdp);
+        }
     }
 
     @Bean
@@ -344,7 +364,7 @@ public class PDPAutoConfiguration {
     }
 
     private List<Object> collectFunctionLibrariesFromProviders(ObjectProvider<FunctionLibraryProvider> providers) {
-        val libraries = new ArrayList<Object>();
+        val libraries = new ArrayList<>();
         providers.orderedStream().forEach(provider -> {
             val providerLibraries = provider.functionLibraries();
             log.debug("Found {} function libraries from provider {}", providerLibraries.size(),

@@ -19,13 +19,14 @@ package io.sapl.server.openidauthzapi;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -58,8 +58,8 @@ public class OpenIdAuthorizationApiController {
 
     private static final String X_REQUEST_ID = "X-Request-ID";
 
-    private final ReactivePolicyDecisionPoint pdp;
-    private final ReactiveTenantResolver      tenantResolver;
+    private final BlockingPolicyDecisionPoint pdp;
+    private final BlockingTenantResolver      tenantResolver;
     private final ObjectMapper                objectMapper;
 
     /**
@@ -69,7 +69,7 @@ public class OpenIdAuthorizationApiController {
      * @param request the access evaluation request (subject, action, resource,
      * optional context)
      * @param requestId optional X-Request-ID header to echo in the response
-     * @return a Mono emitting the access evaluation response
+     * @return the access evaluation response wrapped in a {@link ResponseEntity}
      */
     @Operation(summary = "Evaluate an access request", description = """
             Returns a boolean access decision per OpenID Authorization API 1.0.
@@ -85,14 +85,19 @@ public class OpenIdAuthorizationApiController {
 
             The `X-Request-ID` request header is echoed in the response when present.""")
     @PostMapping(value = "/evaluation", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<ResponseEntity<OpenIdEvaluationResponse>> evaluate(@Valid @RequestBody OpenIdEvaluationRequest request,
+    public ResponseEntity<OpenIdEvaluationResponse> evaluate(@Valid @RequestBody OpenIdEvaluationRequest request,
             @RequestHeader(value = X_REQUEST_ID, required = false) String requestId) {
-        final var subscription = toSubscription(request);
-        return tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(subscription, pdpId)).onErrorResume(error -> {
+        val                   subscription = toSubscription(request);
+        AuthorizationDecision decision;
+        try {
+            val pdpId = tenantResolver.resolve();
+            decision = pdp.decideOnce(subscription, pdpId);
+        } catch (Throwable error) {
             log.error("Error during OpenID access evaluation: {}", error.getMessage(), error);
-            return Mono.just(AuthorizationDecision.INDETERMINATE);
-        }).map(decision -> DecisionMapper.map(decision, objectMapper))
-                .map(body -> withRequestId(ResponseEntity.ok(), requestId).body(body));
+            decision = AuthorizationDecision.INDETERMINATE;
+        }
+        val body = DecisionMapper.map(decision, objectMapper);
+        return withRequestId(ResponseEntity.ok(), requestId).body(body);
     }
 
     private AuthorizationSubscription toSubscription(OpenIdEvaluationRequest request) {

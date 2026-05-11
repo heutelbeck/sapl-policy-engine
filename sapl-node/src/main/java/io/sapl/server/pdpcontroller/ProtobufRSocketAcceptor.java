@@ -23,6 +23,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Executors;
 
+import io.sapl.api.stream.Stream;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -86,6 +88,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
             .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
+    private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
     private final @Nullable Duration                       maxConnectionLifetime;
@@ -94,15 +97,20 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * Creates an acceptor with authentication and optional connection lifetime
      * limit.
      *
-     * @param pdp the multi-tenant policy decision point
+     * @param blockingPdp the blocking policy decision point used for unary
+     * (request-response) calls
+     * @param pdp the reactive policy decision point used for streaming
+     * (request-stream) calls
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
      * @param maxConnectionLifetime maximum connection lifetime, or null for
      * unlimited (JWT expiry still enforced)
      */
-    public ProtobufRSocketAcceptor(ReactivePolicyDecisionPoint pdp,
+    public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp,
+            ReactivePolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator,
             @Nullable Duration maxConnectionLifetime) {
+        this.blockingPdp           = blockingPdp;
         this.pdp                   = pdp;
         this.authenticator         = authenticator;
         this.maxConnectionLifetime = maxConnectionLifetime;
@@ -111,22 +119,25 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     /**
      * Creates an acceptor with authentication and no connection lifetime limit.
      *
-     * @param pdp the multi-tenant policy decision point
+     * @param blockingPdp the blocking policy decision point used for unary calls
+     * @param pdp the reactive policy decision point used for streaming calls
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
      */
-    public ProtobufRSocketAcceptor(ReactivePolicyDecisionPoint pdp,
+    public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp,
+            ReactivePolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator) {
-        this(pdp, authenticator, null);
+        this(blockingPdp, pdp, authenticator, null);
     }
 
     /**
      * Creates an acceptor without authentication (development only).
      *
-     * @param pdp the multi-tenant policy decision point
+     * @param blockingPdp the blocking policy decision point used for unary calls
+     * @param pdp the reactive policy decision point used for streaming calls
      */
-    public ProtobufRSocketAcceptor(ReactivePolicyDecisionPoint pdp) {
-        this(pdp, null, null);
+    public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp) {
+        this(blockingPdp, pdp, null, null);
     }
 
     @Override
@@ -257,7 +268,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Payload handleDecideOnceBlocking(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
-                val decision     = pdp.decideOnceBlocking(subscription, pdpId);
+                val decision     = blockingPdp.decideOnce(subscription, pdpId);
                 return encodeDecision(decision);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
@@ -268,10 +279,16 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         private Payload handleMultiDecideAllOnceBlocking(byte[] data) {
             try {
                 val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                val decision     = pdp.decideAll(subscription, pdpId).blockFirst();
-                return encodeMultiDecision(decision != null ? decision : MultiAuthorizationDecision.indeterminate());
+                try (Stream<MultiAuthorizationDecision> stream = blockingPdp.decideAll(subscription, pdpId)) {
+                    val decision = stream.awaitNext();
+                    return encodeMultiDecision(
+                            decision != null ? decision : MultiAuthorizationDecision.indeterminate());
+                }
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
+                return encodeMultiDecision(MultiAuthorizationDecision.indeterminate());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 return encodeMultiDecision(MultiAuthorizationDecision.indeterminate());
             }
         }

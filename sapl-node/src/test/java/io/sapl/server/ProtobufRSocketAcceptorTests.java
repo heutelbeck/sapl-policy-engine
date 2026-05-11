@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -67,10 +68,11 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
+            val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+            when(blockingPdp.decideOnce(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
             val pdp = mock(ReactivePolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
-            val acceptor = new ProtobufRSocketAcceptor(pdp, setup -> {
+            val acceptor = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> {
                 val metadata = setup.metadata();
                 if (metadata.readableBytes() == 0) {
                     return Mono.error(new RuntimeException("No credentials"));
@@ -143,10 +145,11 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
+            val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+            when(blockingPdp.decideOnce(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
             val pdp = mock(ReactivePolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
-            val acceptor = new ProtobufRSocketAcceptor(pdp, setup -> {
+            val acceptor = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> {
                 val metadata = setup.metadata();
                 if (metadata.readableBytes() == 0) {
                     return Mono.error(new RuntimeException("No credentials"));
@@ -206,11 +209,12 @@ class ProtobufRSocketAcceptorTests {
         @Test
         @DisplayName("max-connection-lifetime enforced for non-expiring credentials")
         void whenMaxLifetimeThenConnectionDisposed() throws IOException {
+            val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+            when(blockingPdp.decideOnce(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
             val pdp = mock(ReactivePolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val localPort = TestSocketUtils.findAvailableTcpPort();
-            val acceptor  = new ProtobufRSocketAcceptor(pdp, setup -> {
+            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> {
                               val metadata = setup.metadata();
                               if (metadata.readableBytes() == 0) {
                                   return Mono.error(new RuntimeException("No credentials"));
@@ -249,12 +253,13 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
+            val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+            when(blockingPdp.decideOnce(any(), any())).thenReturn(AuthorizationDecision.DENY);
             val pdp = mock(ReactivePolicyDecisionPoint.class);
-            when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.DENY);
             when(pdp.decide(any(AuthorizationSubscription.class), any()))
                     .thenReturn(Flux.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY));
 
-            val acceptor = new ProtobufRSocketAcceptor(pdp);
+            val acceptor = new ProtobufRSocketAcceptor(blockingPdp, pdp);
             server = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(port));
         }
 

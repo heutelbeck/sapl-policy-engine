@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 
 /**
@@ -52,8 +53,10 @@ public class ProtobufRSocketServerConfiguration {
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
             @Value("${sapl.pdp.rsocket.max-connection-lifetime:#{null}}") @Nullable Duration maxConnectionLifetime,
-            ReactivePolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
-        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxConnectionLifetime, pdp, authenticator);
+            BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
+            @Nullable RSocketConnectionAuthenticator authenticator) {
+        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxConnectionLifetime, blockingPdp, pdp,
+                authenticator);
     }
 
 }

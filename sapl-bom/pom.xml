@@ -101,6 +101,11 @@
 			</dependency>
 			<dependency>
 				<groupId>${project.groupId}</groupId>
+				<artifactId>sapl-spring-pdp</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
 				<artifactId>sapl-spring-boot-starter</artifactId>
 				<version>${project.version}</version>
 			</dependency>

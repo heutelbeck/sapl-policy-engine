@@ -21,8 +21,9 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import io.sapl.server.pdpcontroller.SaplJacksonAutoConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,20 +37,23 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
-import org.springframework.http.HttpHeaders;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Mono;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DisplayName("OpenID Authorization API controller")
-@WebFluxTest(controllers = OpenIdAuthorizationApiController.class)
+@WebMvcTest(controllers = OpenIdAuthorizationApiController.class)
 @ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, SaplJacksonAutoConfiguration.class })
 class OpenIdAuthorizationApiControllerTests {
 
@@ -64,17 +68,17 @@ class OpenIdAuthorizationApiControllerTests {
             """;
 
     @MockitoBean
-    private ReactivePolicyDecisionPoint pdp;
+    private BlockingPolicyDecisionPoint pdp;
 
     @MockitoBean
-    private ReactiveTenantResolver tenantResolver;
+    private BlockingTenantResolver tenantResolver;
 
     @Autowired
-    private WebTestClient webClient;
+    private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        when(tenantResolver.resolve()).thenReturn(Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
+        when(tenantResolver.resolve()).thenReturn(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @Nested
@@ -82,39 +86,39 @@ class OpenIdAuthorizationApiControllerTests {
     class VerbMapping {
 
         @Test
-        void permitReturnsDecisionTrue() {
+        void permitReturnsDecisionTrue() throws Exception {
             stubPdp(AuthorizationDecision.PERMIT);
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(true)
-                    .jsonPath("$.context").doesNotExist();
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(true))
+                    .andExpect(jsonPath("$.context").doesNotExist());
         }
 
         @Test
-        void denyReturnsDecisionFalse() {
+        void denyReturnsDecisionFalse() throws Exception {
             stubPdp(AuthorizationDecision.DENY);
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(false)
-                    .jsonPath("$.context").doesNotExist();
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context").doesNotExist());
         }
 
         @Test
-        void notApplicableReturnsDecisionFalse() {
+        void notApplicableReturnsDecisionFalse() throws Exception {
             stubPdp(AuthorizationDecision.NOT_APPLICABLE);
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(false)
-                    .jsonPath("$.context").doesNotExist();
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context").doesNotExist());
         }
 
         @Test
-        void indeterminateReturnsDecisionFalseWithReasonAdmin() {
+        void indeterminateReturnsDecisionFalseWithReasonAdmin() throws Exception {
             stubPdp(AuthorizationDecision.INDETERMINATE);
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(false)
-                    .jsonPath("$.context.reason_admin.en").exists();
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context.reason_admin.en").exists());
         }
 
         @Test
-        void suspendReturnsDecisionFalseWithReasonUserAndSaplMarker() {
+        void suspendReturnsDecisionFalseWithReasonUserAndSaplMarker() throws Exception {
             stubPdp(AuthorizationDecision.SUSPEND);
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(false)
-                    .jsonPath("$.context.reason_user.en-403").exists().jsonPath("$.context.sapl.decision")
-                    .isEqualTo("SUSPEND");
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context.reason_user.en-403").exists())
+                    .andExpect(jsonPath("$.context.sapl.decision").value("SUSPEND"));
         }
     }
 
@@ -123,19 +127,19 @@ class OpenIdAuthorizationApiControllerTests {
     class SaplExtensions {
 
         @Test
-        void permitWithObligationsCarriesObligationsInContext() {
+        void permitWithObligationsCarriesObligationsInContext() throws Exception {
             stubPdp(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("notify-admin")),
                     Value.EMPTY_ARRAY, Value.UNDEFINED));
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(true)
-                    .jsonPath("$.context.sapl.obligations").exists();
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(true))
+                    .andExpect(jsonPath("$.context.sapl.obligations").exists());
         }
 
         @Test
-        void permitWithResourceTransformationCarriesResourceInContext() {
+        void permitWithResourceTransformationCarriesResourceInContext() throws Exception {
             stubPdp(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of("redacted")));
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(true)
-                    .jsonPath("$.context.sapl.resource").exists();
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(true))
+                    .andExpect(jsonPath("$.context.sapl.resource").exists());
         }
     }
 
@@ -144,17 +148,17 @@ class OpenIdAuthorizationApiControllerTests {
     class RequestIdEcho {
 
         @Test
-        void requestIdHeaderEchoedInResponse() {
+        void requestIdHeaderEchoedInResponse() throws Exception {
             stubPdp(AuthorizationDecision.PERMIT);
-            webClient.post().uri(EVALUATION_PATH).contentType(MediaType.APPLICATION_JSON)
-                    .header("X-Request-ID", "trace-abc-123").bodyValue(VALID_REQUEST_BODY).exchange().expectStatus()
-                    .isOk().expectHeader().valueEquals("X-Request-ID", "trace-abc-123");
+            mockMvc.perform(post(EVALUATION_PATH).contentType(MediaType.APPLICATION_JSON)
+                    .header("X-Request-ID", "trace-abc-123").content(VALID_REQUEST_BODY)).andExpect(status().isOk())
+                    .andExpect(header().string("X-Request-ID", "trace-abc-123"));
         }
 
         @Test
-        void noRequestIdHeaderMeansNoEchoHeader() {
+        void noRequestIdHeaderMeansNoEchoHeader() throws Exception {
             stubPdp(AuthorizationDecision.PERMIT);
-            postValidRequest().expectStatus().isOk().expectHeader().doesNotExist("X-Request-ID");
+            postValidRequest().andExpect(status().isOk()).andExpect(header().doesNotExist("X-Request-ID"));
         }
     }
 
@@ -164,8 +168,8 @@ class OpenIdAuthorizationApiControllerTests {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("invalidBodies")
-        void invalidBodyReturnsBadRequest(String description, String body) {
-            postBody(body).expectStatus().isBadRequest();
+        void invalidBodyReturnsBadRequest(String description, String body) throws Exception {
+            postBody(body).andExpect(status().isBadRequest());
         }
 
         static Stream<Arguments> invalidBodies() {
@@ -188,25 +192,25 @@ class OpenIdAuthorizationApiControllerTests {
     class ErrorHandling {
 
         @Test
-        void pdpErrorReturnsIndeterminate() {
+        void pdpErrorReturnsIndeterminate() throws Exception {
             when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)))
-                    .thenReturn(Mono.error(new RuntimeException("boom")));
-            postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(false)
-                    .jsonPath("$.context.reason_admin.en").exists();
+                    .thenThrow(new RuntimeException("boom"));
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context.reason_admin.en").exists());
         }
     }
 
     private void stubPdp(AuthorizationDecision decision) {
         when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)))
-                .thenReturn(Mono.just(decision));
+                .thenReturn(decision);
     }
 
-    private WebTestClient.ResponseSpec postValidRequest() {
+    private ResultActions postValidRequest() throws Exception {
         return postBody(VALID_REQUEST_BODY);
     }
 
-    private WebTestClient.ResponseSpec postBody(String body) {
-        return webClient.post().uri(EVALUATION_PATH).contentType(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE).bodyValue(body).exchange();
+    private ResultActions postBody(String body) throws Exception {
+        return mockMvc.perform(post(EVALUATION_PATH).contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON).content(body));
     }
 }

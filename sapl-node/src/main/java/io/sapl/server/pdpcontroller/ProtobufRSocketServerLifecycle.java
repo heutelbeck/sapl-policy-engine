@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.SmartLifecycle;
@@ -51,6 +52,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final @Nullable Duration                       maxConnectionLifetime;
+    private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
@@ -70,7 +72,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         if (maxConnectionLifetime != null) {
             log.info("RSocket max connection lifetime: {}", maxConnectionLifetime);
         }
-        val acceptor  = new ProtobufRSocketAcceptor(pdp, authenticator, maxConnectionLifetime);
+        val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator, maxConnectionLifetime);
         val transport = socketPath != null ? createUnixTransport(socketPath) : TcpServerTransport.create(port);
         server  = RSocketServer.create(acceptor).bindNow(transport);
         running = true;
