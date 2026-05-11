@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -48,6 +49,7 @@ import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.document.Voters;
 import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
+import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
 
@@ -59,7 +61,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -122,35 +127,58 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     @Override
     public AuthorizationDecision decideOnce(AuthorizationSubscription sub, String pdpId) {
         val subscriptionId = idFactory.newRandom();
-        notifyOnSubscribe(subscriptionId, sub, pdpId);
+        notifyOnSubscribe(lifecycleListeners, subscriptionId, sub, pdpId);
         try {
             if (hasDecisionInterceptors) {
                 val tv = computeTracedVoteSync(sub, subscriptionId, pdpId);
-                dispatchDecisionObservers(tv, tv.timestamp(), subscriptionId, sub);
+                dispatchDecisionObservers(decisionInterceptors, tv, tv.timestamp(), subscriptionId, sub);
                 return tv.authorizationDecision();
             }
             return computeVoteSync(sub, subscriptionId, pdpId).authorizationDecision();
         } finally {
-            notifyOnUnsubscribe(subscriptionId);
+            notifyOnUnsubscribe(lifecycleListeners, subscriptionId);
         }
     }
 
     @Override
     public Stream<AuthorizationDecision> decide(AuthorizationSubscription sub, String pdpId) {
         val subscriptionId = idFactory.newRandom();
-        notifyOnSubscribe(subscriptionId, sub, pdpId);
-        Stream<AuthorizationDecision> source;
-        if (hasDecisionInterceptors) {
-            val tracedSource = computeTracedVoteStream(sub, subscriptionId, pdpId);
-            source = mapStream(tracedSource, tv -> {
-                dispatchDecisionObservers(tv, tv.timestamp(), subscriptionId, sub);
-                return tv.authorizationDecision();
-            });
-        } else {
-            source = mapStream(computeVoteStream(sub, subscriptionId, pdpId), Vote::authorizationDecision);
-        }
+        notifyOnSubscribe(lifecycleListeners, subscriptionId, sub, pdpId);
+        val source  = hasDecisionInterceptors
+                ? rewireOnConfigChange(pdpId, maybePdp -> evaluateDecisionsTraced(maybePdp, sub, subscriptionId, pdpId))
+                : rewireOnConfigChange(pdpId, maybePdp -> evaluateDecisions(maybePdp, sub, subscriptionId, pdpId));
         val deduped = Streams.distinctUntilChanged(source, e -> AuthorizationDecision.INDETERMINATE);
         return withUnsubscribeNotification(deduped, subscriptionId);
+    }
+
+    private Stream<AuthorizationDecision> evaluateDecisions(Optional<CompiledPdp> maybePdp,
+            AuthorizationSubscription sub, String subscriptionId, String pdpId) {
+        val voteSource = maybePdp.map(pdp -> voteStream(pdp, sub, subscriptionId))
+                .orElseGet(() -> singleton(noConfigurationVote(pdpId)));
+        return mapStream(voteSource, Vote::authorizationDecision);
+    }
+
+    private Stream<AuthorizationDecision> evaluateDecisionsTraced(Optional<CompiledPdp> maybePdp,
+            AuthorizationSubscription sub, String subscriptionId, String pdpId) {
+        val tracedSource = maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
+                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, clock)));
+        return mapStream(tracedSource, tv -> {
+            dispatchDecisionObservers(decisionInterceptors, tv, tv.timestamp(), subscriptionId, sub);
+            return tv.authorizationDecision();
+        });
+    }
+
+    private <T> Stream<T> rewireOnConfigChange(String pdpId, Function<Optional<CompiledPdp>, Stream<T>> innerFactory) {
+        val out = new LatestSlotStream<T>();
+        switchOnConfig(pdpId, out::put, out::onClose, innerFactory);
+        return out;
+    }
+
+    private <T> Stream<T> rewireOnConfigChangeBuffered(String pdpId,
+            Function<Optional<CompiledPdp>, Stream<T>> innerFactory) {
+        val out = new QueueStream<T>();
+        switchOnConfig(pdpId, out::put, out::onClose, innerFactory);
+        return out;
     }
 
     @Override
@@ -170,13 +198,37 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (!multiSubscription.hasSubscriptions()) {
             return singleton(MultiAuthorizationDecision.indeterminate());
         }
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return singleton(MultiAuthorizationDecision.indeterminate());
-        }
         val subscriptionId = idFactory.newRandom();
-        val raw            = multiVoteStream(multiSubscription, pdpConfiguration.get(), subscriptionId);
+        val raw            = rewireOnConfigChange(pdpId,
+                maybePdp -> evaluateMulti(maybePdp, multiSubscription, subscriptionId));
         return Streams.distinctUntilChanged(raw, e -> MultiAuthorizationDecision.indeterminate());
+    }
+
+    private Stream<MultiAuthorizationDecision> evaluateMulti(Optional<CompiledPdp> maybePdp,
+            MultiAuthorizationSubscription multiSubscription, String subscriptionId) {
+        return maybePdp.map(pdp -> multiVoteStream(multiSubscription, pdp, subscriptionId))
+                .orElseGet(() -> singleton(MultiAuthorizationDecision.indeterminate()));
+    }
+
+    /**
+     * Streams the {@link TracedVote}s the PDP produces for the
+     * subscription — vote, emit timestamp, dependency map, and per-key
+     * snapshot read. Re-evaluates on every PDP configuration change
+     * with the same semantics as {@link #decide}; the stream stays
+     * alive until the consumer closes it.
+     * <p>
+     * Engine-internal: consumed by tooling (playground, tests) that
+     * needs the full per-round trace, not just the final decision.
+     */
+    public Stream<TracedVote> gatherVotes(AuthorizationSubscription sub, String pdpId) {
+        val subscriptionId = idFactory.newRandom();
+        return rewireOnConfigChange(pdpId, maybePdp -> evaluateTracedVotes(maybePdp, sub, subscriptionId, pdpId));
+    }
+
+    private Stream<TracedVote> evaluateTracedVotes(Optional<CompiledPdp> maybePdp, AuthorizationSubscription sub,
+            String subscriptionId, String pdpId) {
+        return maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
+                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, clock)));
     }
 
     /**
@@ -216,18 +268,24 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      * Engine-internal streaming evaluation that emits a fresh
      * {@link VoteWithCoverage} every round. Coverage emissions are NOT
      * deduplicated and are buffered through a {@link QueueStream}: a
-     * slow consumer must observe every round's branch hits.
+     * slow consumer must observe every round's branch hits. Re-evaluates
+     * on every PDP configuration change, just like the public decision
+     * methods.
      */
     public Stream<VoteWithCoverage> decideWithCoverage(AuthorizationSubscription sub, String pdpId) {
-        val out              = new QueueStream<VoteWithCoverage>();
-        val subscriptionId   = idFactory.newRandom();
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            out.put(new VoteWithCoverage(noConfigurationVote(pdpId), null));
-            out.complete();
-            return out;
-        }
-        val pdp     = pdpConfiguration.get();
+        val subscriptionId = idFactory.newRandom();
+        return rewireOnConfigChangeBuffered(pdpId, maybePdp -> evaluateCoverage(maybePdp, sub, subscriptionId, pdpId));
+    }
+
+    private Stream<VoteWithCoverage> evaluateCoverage(Optional<CompiledPdp> maybePdp, AuthorizationSubscription sub,
+            String subscriptionId, String pdpId) {
+        return maybePdp.map(pdp -> coverageStream(pdp, sub, subscriptionId))
+                .orElseGet(() -> singleton(new VoteWithCoverage(noConfigurationVote(pdpId), null)));
+    }
+
+    private Stream<VoteWithCoverage> coverageStream(CompiledPdp pdp, AuthorizationSubscription sub,
+            String subscriptionId) {
+        val out     = new QueueStream<VoteWithCoverage>();
         val baseCtx = evaluationContext(pdp, sub, subscriptionId);
         val initial = pdp.coverageVoter().evaluate(baseCtx);
         if (initial.voteResult().dependencies().isEmpty()) {
@@ -279,6 +337,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return decideWithCoverage(sub, DEFAULT_PDP_ID);
     }
 
+    public Stream<TracedVote> gatherVotes(AuthorizationSubscription sub) {
+        return gatherVotes(sub, DEFAULT_PDP_ID);
+    }
+
     private Vote computeVoteSync(AuthorizationSubscription sub, String subscriptionId, String pdpId) {
         val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
         if (pdpConfiguration.isEmpty()) {
@@ -317,7 +379,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private TracedVote computeTracedVoteSync(AuthorizationSubscription sub, String subscriptionId, String pdpId) {
         val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
         return pdpConfiguration.map(pdp -> evaluateOnceTracedSync(pdp, sub, subscriptionId))
-                .orElseGet(() -> tracedNoConfiguration(pdpId));
+                .orElseGet(() -> tracedNoConfiguration(pdpId, clock));
     }
 
     private TracedVote evaluateOnceTracedSync(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
@@ -349,12 +411,99 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         }
     }
 
-    private Stream<Vote> computeVoteStream(AuthorizationSubscription sub, String subscriptionId, String pdpId) {
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return singleton(noConfigurationVote(pdpId));
+    /**
+     * Spawns the configuration-change pump that drives {@code outputSink}
+     * with a fresh inner evaluator on every configuration change for
+     * {@code pdpId}. Configuration removals route to {@code
+     * Optional.empty()} so {@code innerFactory} can produce a "no
+     * configuration" stream. Inner streams that complete (e.g., static
+     * voters) leave the output silent until the next config event.
+     * <p>
+     * The output stream type is the caller's choice (latest-slot for
+     * dedup-friendly decision flows, queued for coverage where every
+     * emission must reach the consumer); the caller passes the put and
+     * onClose method references and binds them to whichever stream it
+     * returns to its consumer.
+     */
+    private <T> void switchOnConfig(String pdpId, Consumer<T> outputSink, Consumer<Runnable> closeBinder,
+            Function<Optional<CompiledPdp>, Stream<T>> innerFactory) {
+        val configEvents   = configurationEventStream(pdpId);
+        val innerStreamRef = new AtomicReference<Stream<T>>();
+        val innerPumpRef   = new AtomicReference<Thread>();
+        val configPump     = Thread.startVirtualThread(
+                () -> driveConfigChanges(configEvents, innerStreamRef, innerPumpRef, outputSink, innerFactory));
+        closeBinder.accept(() -> {
+            configPump.interrupt();
+            configEvents.close();
+        });
+    }
+
+    private <T> void driveConfigChanges(Stream<Optional<CompiledPdp>> configEvents,
+            AtomicReference<Stream<T>> innerStreamRef, AtomicReference<Thread> innerPumpRef, Consumer<T> outputSink,
+            Function<Optional<CompiledPdp>, Stream<T>> innerFactory) {
+        try {
+            while (!Thread.interrupted()) {
+                val configState = configEvents.awaitNext();
+                if (configState == null) {
+                    return;
+                }
+                terminateCurrentInner(innerPumpRef, innerStreamRef);
+                val newInner = innerFactory.apply(configState);
+                innerStreamRef.set(newInner);
+                innerPumpRef.set(Thread.startVirtualThread(() -> pumpInto(newInner, outputSink)));
+            }
+        } catch (InterruptedException expected) {
+            Thread.currentThread().interrupt();
+        } finally {
+            terminateCurrentInner(innerPumpRef, innerStreamRef);
         }
-        return voteStream(pdpConfiguration.get(), sub, subscriptionId);
+    }
+
+    private static <T> void pumpInto(Stream<T> source, Consumer<T> sink) {
+        try {
+            while (!Thread.interrupted()) {
+                val value = source.awaitNext();
+                if (value == null) {
+                    return;
+                }
+                sink.accept(value);
+            }
+        } catch (InterruptedException expected) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static <T> void terminateCurrentInner(AtomicReference<Thread> pumpRef,
+            AtomicReference<Stream<T>> streamRef) {
+        val previousPump = pumpRef.getAndSet(null);
+        if (previousPump != null) {
+            previousPump.interrupt();
+        }
+        val previousInner = streamRef.getAndSet(null);
+        if (previousInner != null) {
+            previousInner.close();
+        }
+    }
+
+    /**
+     * Hot stream of compiled-PDP states for {@code pdpId}: emits the
+     * current snapshot immediately, then one item on every Load or Remove
+     * event. Stays alive until the consumer closes it.
+     */
+    private Stream<Optional<CompiledPdp>> configurationEventStream(String pdpId) {
+        val                      out      = new LatestSlotStream<Optional<CompiledPdp>>();
+        Consumer<PdpUpdateEvent> listener = event -> {
+                                              switch (event) {
+                                              case PdpUpdateEvent.Voter(var ignoredId, var voter) ->
+                                                  out.put(Optional.of(voter));
+                                              case PdpUpdateEvent.Removed(var ignoredId)          ->
+                                                  out.put(Optional.empty());
+                                              }
+                                          };
+        pdpConfigurationSource.subscribeToUpdates(pdpId, listener);
+        out.put(pdpConfigurationSource.getCurrentConfiguration(pdpId));
+        out.onClose(() -> pdpConfigurationSource.unsubscribeFromUpdates(pdpId, listener));
+        return out;
     }
 
     private Stream<Vote> voteStream(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
@@ -389,15 +538,6 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return out;
     }
 
-    private Stream<TracedVote> computeTracedVoteStream(AuthorizationSubscription sub, String subscriptionId,
-            String pdpId) {
-        val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
-        if (pdpConfiguration.isEmpty()) {
-            return singleton(tracedNoConfiguration(pdpId));
-        }
-        return tracedVoteStream(pdpConfiguration.get(), sub, subscriptionId);
-    }
-
     private Stream<TracedVote> tracedVoteStream(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
         val baseCtx = evaluationContext(pdp, sub, subscriptionId);
         return switch (pdp.voter()) {
@@ -423,7 +563,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         val handle = attributeStore.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
             val r = voter.evaluate(baseCtx.withSnapshot(snapshot));
             if (r.vote() != null) {
-                out.put(buildTracedVote(r, snapshot));
+                out.put(buildTracedVote(r, snapshot, clock));
             }
             return r.dependencies().keySet();
         });
@@ -431,7 +571,14 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return out;
     }
 
-    private TracedVote buildTracedVote(VoteResult result, Map<SubscriptionKey, AttributeSnapshot> snapshot) {
+    /**
+     * Builds a {@link TracedVote} from a freshly-computed
+     * {@link VoteResult} plus the snapshot the round read. Shared with
+     * the reactive PDP so a single algorithm produces traced votes
+     * regardless of which transport the consumer uses.
+     */
+    public static TracedVote buildTracedVote(VoteResult result, Map<SubscriptionKey, AttributeSnapshot> snapshot,
+            Clock clock) {
         return new TracedVote(result.vote(), clock.instant(), result.dependencies(),
                 Voters.readSnapshot(result, snapshot));
     }
@@ -464,28 +611,42 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return out;
     }
 
-    private MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items, CompiledPdp pdp,
-            String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
-            Set<SubscriptionKey> depsAccumulator) {
+    /**
+     * Evaluates one snapshot round across every sub in a multi-
+     * subscription bundle. Returns {@code null} when any sub fails to
+     * produce a vote (the round is suppressed); otherwise returns the
+     * combined {@link MultiAuthorizationDecision}, accumulates every
+     * dependency the round read into {@code depsAccumulator}, and (if
+     * supplied) hands each per-sub traced vote to {@code
+     * perSubTraceObserver}. Shared between both PDPs so the multi-vote
+     * loop is one implementation.
+     */
+    public static MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items,
+            CompiledPdp pdp, String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
+            Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, Clock clock,
+            BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> perSubTraceObserver) {
         val multi = new MultiAuthorizationDecision();
         for (val item : items) {
-            val ctx = evaluationContext(pdp, item.subscription(), subscriptionId).withSnapshot(snapshot);
+            val ctx = evaluationContext(pdp, item.subscription(), subscriptionId, functionBroker)
+                    .withSnapshot(snapshot);
             val r   = evaluateVoter(pdp.voter(), ctx);
             depsAccumulator.addAll(r.dependencies().keySet());
             if (r.vote() == null) {
                 return null;
             }
-            if (hasDecisionInterceptors) {
-                val perSubTraced = buildTracedVote(r, snapshot);
-                dispatchDecisionObservers(perSubTraced, perSubTraced.timestamp(), item.subscriptionId(),
-                        item.subscription());
+            if (perSubTraceObserver != null) {
+                perSubTraceObserver.accept(buildTracedVote(r, snapshot, clock), item);
             }
             multi.setDecision(item.subscriptionId(), r.vote().authorizationDecision());
         }
         return multi;
     }
 
-    private static VoteResult evaluateVoter(Voter voter, EvaluationContext ctx) {
+    /**
+     * Dispatches a {@link Voter} variant to its evaluator. Shared
+     * between both PDPs so the variant table lives in one place.
+     */
+    public static VoteResult evaluateVoter(Voter voter, EvaluationContext ctx) {
         return switch (voter) {
         case Vote v        -> new VoteResult(v, Map.of());
         case PureVoter p   -> new VoteResult(p.vote(ctx), Map.of());
@@ -581,7 +742,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                      } finally {
                          out.complete();
                          source.close();
-                         notifyOnUnsubscribe(subscriptionId);
+                         notifyOnUnsubscribe(lifecycleListeners, subscriptionId);
                      }
                  });
         out.onClose(() -> {
@@ -591,26 +752,68 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         return out;
     }
 
-    private EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+    /**
+     * Builds the per-evaluation {@link EvaluationContext}. Shared with
+     * the reactive PDP so context wiring (pdpId, configurationId,
+     * subscriptionId, function broker) is one assembly.
+     */
+    public static EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub,
+            String subscriptionId, FunctionBroker functionBroker) {
         return EvaluationContext.of(pdp.metadata().pdpId(), pdp.metadata().configurationId(), subscriptionId, sub,
-                pdpConfigurationSource.getFunctionBroker());
+                functionBroker);
     }
 
-    private Vote noConfigurationVote(String pdpId) {
+    private EvaluationContext evaluationContext(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
+        return evaluationContext(pdp, sub, subscriptionId, pdpConfigurationSource.getFunctionBroker());
+    }
+
+    private MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items, CompiledPdp pdp,
+            String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
+            Set<SubscriptionKey> depsAccumulator) {
+        return evaluateRound(items, pdp, subscriptionId, snapshot, depsAccumulator,
+                pdpConfigurationSource.getFunctionBroker(), clock,
+                hasDecisionInterceptors ? this::observePerSubTrace : null);
+    }
+
+    private void observePerSubTrace(TracedVote perSubTraced, IdentifiableAuthorizationSubscription item) {
+        dispatchDecisionObservers(decisionInterceptors, perSubTraced, perSubTraced.timestamp(), item.subscriptionId(),
+                item.subscription());
+    }
+
+    /**
+     * Synthesises the "no PDP configuration" vote returned to consumers
+     * subscribing while the bound pdpId has no compiled configuration.
+     */
+    public static Vote noConfigurationVote(String pdpId) {
         val metadata = new PdpVoterMetadata("no-configuration", pdpId, "none", null, Outcome.PERMIT_OR_DENY, false);
         return Vote.error(new ErrorValue(ERROR_NO_PDP_CONFIGURATION), metadata);
     }
 
-    private TracedVote tracedNoConfiguration(String pdpId) {
+    /**
+     * Wraps {@link #noConfigurationVote(String)} as a {@link TracedVote}
+     * with the current emit timestamp.
+     */
+    public static TracedVote tracedNoConfiguration(String pdpId, Clock clock) {
         return TracedVote.of(noConfigurationVote(pdpId), clock.instant());
     }
 
-    private Vote errorVote(CompiledPdp pdp, String message) {
+    /**
+     * Builds an INDETERMINATE vote attributed to the supplied
+     * {@code pdp}'s metadata, carrying {@code message} as the error.
+     */
+    public static Vote errorVote(CompiledPdp pdp, String message) {
         return Vote.error(new ErrorValue(message), pdp.metadata());
     }
 
-    private void notifyOnSubscribe(String subscriptionId, AuthorizationSubscription sub, String pdpId) {
-        for (val listener : lifecycleListeners) {
+    /**
+     * Fires {@code onSubscribe} on every registered listener, swallowing
+     * and ignoring any exception each one throws so a misbehaving
+     * observer cannot affect authorization correctness. Shared with the
+     * reactive PDP.
+     */
+    public static void notifyOnSubscribe(List<SubscriptionLifecycleListener> listeners, String subscriptionId,
+            AuthorizationSubscription sub, String pdpId) {
+        for (val listener : listeners) {
             try {
                 listener.onSubscribe(subscriptionId, sub, pdpId);
             } catch (Throwable swallowed) {
@@ -621,8 +824,13 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         }
     }
 
-    private void notifyOnUnsubscribe(String subscriptionId) {
-        for (val listener : lifecycleListeners) {
+    /**
+     * Fires {@code onUnsubscribe} on every registered listener.
+     * Exceptions are swallowed; see {@link #notifyOnSubscribe(List,
+     * String, AuthorizationSubscription, String)}.
+     */
+    public static void notifyOnUnsubscribe(List<SubscriptionLifecycleListener> listeners, String subscriptionId) {
+        for (val listener : listeners) {
             try {
                 listener.onUnsubscribe(subscriptionId);
             } catch (Throwable swallowed) {
@@ -631,9 +839,14 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         }
     }
 
-    private void dispatchDecisionObservers(TracedDecision decision, Instant timestamp, String subscriptionId,
-            AuthorizationSubscription sub) {
-        for (val interceptor : decisionInterceptors) {
+    /**
+     * Fires {@code onDecision} on every registered interceptor.
+     * Exceptions are swallowed; see {@link #notifyOnSubscribe(List,
+     * String, AuthorizationSubscription, String)}.
+     */
+    public static void dispatchDecisionObservers(List<DecisionInterceptor> interceptors, TracedDecision decision,
+            Instant timestamp, String subscriptionId, AuthorizationSubscription sub) {
+        for (val interceptor : interceptors) {
             try {
                 interceptor.onDecision(decision, timestamp, subscriptionId, sub);
             } catch (Throwable swallowed) {

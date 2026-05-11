@@ -21,18 +21,28 @@ import io.sapl.api.model.Poll;
 import lombok.val;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Producer-facing {@link Stream} backed by a single-slot, latest-wins
  * mailbox. Producers push values via {@link #put(Object)}; a lagging
  * consumer reads only the latest. Producers signal end-of-stream via
  * {@link #complete()} or via {@link #close()}.
+ * <p>
+ * Coordination uses {@link ReentrantLock} + {@link Condition} rather
+ * than {@code synchronized} + {@code Object.wait()} so a virtual-thread
+ * consumer blocked in {@link #awaitNext()} unmounts its carrier
+ * thread. Equivalent on JDK 24+ (JEP 491); strictly required on
+ * JDK 21 to avoid pinning the carrier pool.
  *
  * @param <T> the value type carried by this stream
  */
 public final class LatestSlotStream<T> implements Stream<T> {
 
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean closed    = new AtomicBoolean(false);
+    private final ReentrantLock lock      = new ReentrantLock();
+    private final Condition     slotReady = lock.newCondition();
 
     private Runnable closeAction = () -> {};
     private T        value;
@@ -53,13 +63,18 @@ public final class LatestSlotStream<T> implements Stream<T> {
      * Pushes a value into the slot. Overwrites any pending unread
      * value. No effect after {@link #complete()} or {@link #close()}.
      */
-    public synchronized void put(T v) {
-        if (completed) {
-            return;
+    public void put(T v) {
+        lock.lock();
+        try {
+            if (completed) {
+                return;
+            }
+            value    = v;
+            hasValue = true;
+            slotReady.signalAll();
+        } finally {
+            lock.unlock();
         }
-        value    = v;
-        hasValue = true;
-        notifyAll();
     }
 
     /**
@@ -67,37 +82,52 @@ public final class LatestSlotStream<T> implements Stream<T> {
      * returns {@code null} once the slot is drained, and {@link #put}
      * is a no-op.
      */
-    public synchronized void complete() {
-        completed = true;
-        notifyAll();
+    public void complete() {
+        lock.lock();
+        try {
+            completed = true;
+            slotReady.signalAll();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    public synchronized T awaitNext() throws InterruptedException {
-        while (!hasValue && !completed) {
-            wait();
+    public T awaitNext() throws InterruptedException {
+        lock.lock();
+        try {
+            while (!hasValue && !completed) {
+                slotReady.await();
+            }
+            if (hasValue) {
+                val result = value;
+                value    = null;
+                hasValue = false;
+                return result;
+            }
+            return null;
+        } finally {
+            lock.unlock();
         }
-        if (hasValue) {
-            val result = value;
-            value    = null;
-            hasValue = false;
-            return result;
-        }
-        return null;
     }
 
     @Override
-    public synchronized Poll<T> tryNext() {
-        if (hasValue) {
-            val result = value;
-            value    = null;
-            hasValue = false;
-            return Poll.value(result);
+    public Poll<T> tryNext() {
+        lock.lock();
+        try {
+            if (hasValue) {
+                val result = value;
+                value    = null;
+                hasValue = false;
+                return Poll.value(result);
+            }
+            if (completed) {
+                return Poll.done();
+            }
+            return Poll.empty();
+        } finally {
+            lock.unlock();
         }
-        if (completed) {
-            return Poll.done();
-        }
-        return Poll.empty();
     }
 
     @Override
