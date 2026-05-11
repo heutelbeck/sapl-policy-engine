@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,7 +46,6 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
@@ -70,17 +70,17 @@ class ReactiveSaplAuthorizationManagerTests {
 
     private static final String CAPTURE_REQUEST = "captureRequest";
 
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(PolicyDecisionPoint.class);
+        pdp = mock(ReactivePolicyDecisionPoint.class);
     }
 
     private ReactiveSaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new ReactiveSaplAuthorizationManager(pdp, () -> Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID), planner,
-                new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER));
+        return new ReactiveSaplAuthorizationManager(pdp, () -> Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID),
+                planner, new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER));
     }
 
     private static AuthorizationContext exchangeContext() {

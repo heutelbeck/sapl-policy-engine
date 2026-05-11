@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -53,7 +54,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
 import lombok.val;
@@ -93,7 +93,7 @@ class MongoDbShimChainIT {
     ReactiveMongoTemplate mongoTemplate;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void resetCollection() {

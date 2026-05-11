@@ -38,7 +38,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import javax.net.ssl.SSLException;
 import lombok.Getter;
@@ -59,7 +59,7 @@ import reactor.util.retry.Retry;
  * @see RemotePolicyDecisionPoint#builder()
  */
 @Slf4j
-public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
+public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint {
 
     private static final String ROUTE_DECIDE                = "decide";
     private static final String ROUTE_DECIDE_ONCE           = "decide-once";
@@ -89,7 +89,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     // connection drop. Mono.defer() re-evaluates on each subscription, so
     // retryWhen in decide() naturally triggers reconnection when the cached
     // socket is disposed.
-    ProtobufRemotePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
+    ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
         val connectMono = rSocketMono;
         this.rSocketMono        = Mono.defer(() -> {
                                     val existing = cachedSocket.get();
@@ -202,7 +202,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
      * after the first bundled result.
      * <p>
      * Mirrors the {@code MultiDecideAllOnce} RPC in the proto service definition.
-     * Not part of the {@link PolicyDecisionPoint} interface.
+     * Not part of the {@link ReactivePolicyDecisionPoint} interface.
      *
      * @param multiAuthzSubscription the multi-subscription to evaluate
      * @return the bundled authorization decisions
@@ -288,7 +288,7 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
     }
 
     /**
-     * Builder for {@link ProtobufRemotePolicyDecisionPoint}. Supports TLS,
+     * Builder for {@link ProtobufRemoteReactivePolicyDecisionPoint}. Supports TLS,
      * basic authentication, API key, and bearer token authentication via
      * RSocket setup frame metadata.
      */
@@ -408,17 +408,17 @@ public class ProtobufRemotePolicyDecisionPoint implements PolicyDecisionPoint {
         }
 
         /**
-         * Build the {@link ProtobufRemotePolicyDecisionPoint}.
+         * Build the {@link ProtobufRemoteReactivePolicyDecisionPoint}.
          *
          * @return a new instance
          */
-        public ProtobufRemotePolicyDecisionPoint build() {
+        public ProtobufRemoteReactivePolicyDecisionPoint build() {
             val connector = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime);
             if (setupPayload != null) {
                 connector.setupPayload(setupPayload);
             }
             val rSocketMono = connector.connect(TcpClientTransport.create(tcpClient));
-            return new ProtobufRemotePolicyDecisionPoint(rSocketMono, 500, 5000);
+            return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 5000);
         }
     }
 }

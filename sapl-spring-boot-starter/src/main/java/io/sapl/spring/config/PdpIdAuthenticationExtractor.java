@@ -17,9 +17,9 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.security.core.Authentication;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import reactor.core.publisher.Mono;
 
 /**
@@ -54,7 +54,7 @@ public interface PdpIdAuthenticationExtractor {
      *
      * @param authentication the current user's authentication
      * @return a Mono emitting the PDP ID, or empty to fall back to
-     * {@link PolicyDecisionPoint#DEFAULT_PDP_ID}
+     * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}
      */
     Mono<String> extractPdpId(Authentication authentication);
 

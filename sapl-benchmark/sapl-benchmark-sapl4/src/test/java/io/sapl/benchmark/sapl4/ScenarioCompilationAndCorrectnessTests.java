@@ -65,7 +65,7 @@ class ScenarioCompilationAndCorrectnessTests {
             }
 
             for (val sub : scenario.subscriptions()) {
-                val decision = pdp.decideOnceBlocking(sub).decision();
+                val decision = pdp.decideOnce(sub).decision();
                 counts.merge(decision, 1, Integer::sum);
             }
 
@@ -101,9 +101,9 @@ class ScenarioCompilationAndCorrectnessTests {
             val subs = scenario.subscriptions();
             for (int i = 0; i < subs.size(); i++) {
                 val sub           = subs.get(i);
-                val naiveDecision = naivePdp.decideOnceBlocking(sub).decision();
-                val canonDecision = canonPdp.decideOnceBlocking(sub).decision();
-                val smtddDecision = smtddPdp.decideOnceBlocking(sub).decision();
+                val naiveDecision = naivePdp.decideOnce(sub).decision();
+                val canonDecision = canonPdp.decideOnce(sub).decision();
+                val smtddDecision = smtddPdp.decideOnce(sub).decision();
                 assertThat(canonDecision).as("CANONICAL vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
                 assertThat(smtddDecision).as("SMTDD vs NAIVE subscription[%d]", i).isEqualTo(naiveDecision);
             }

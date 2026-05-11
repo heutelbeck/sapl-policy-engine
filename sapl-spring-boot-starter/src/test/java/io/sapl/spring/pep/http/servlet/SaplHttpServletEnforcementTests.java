@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -61,7 +62,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -95,7 +95,7 @@ class SaplHttpServletEnforcementTests {
     MockMvc mockMvc;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
 
     @Autowired
     Probes probes;

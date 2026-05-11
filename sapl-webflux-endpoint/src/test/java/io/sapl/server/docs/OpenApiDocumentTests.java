@@ -17,7 +17,7 @@
  */
 package io.sapl.server.docs;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class OpenApiDocumentTests {
     }
 
     @MockitoBean
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @MockitoBean
     private ReactiveTenantResolver tenantResolver;

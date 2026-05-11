@@ -18,17 +18,18 @@
 package io.sapl.spring.pdp.embedded;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildAttributeStore;
-import static io.sapl.reactive.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
+import static io.sapl.pdp.PolicyDecisionPointBuilder.buildAttributeStore;
+import static io.sapl.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.attributes.store.AttributeStore;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.functions.libraries.crypto.PemUtils;
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.pdp.IdFactory;
@@ -81,7 +82,7 @@ import java.util.Set;
  * bean so the container manages each lifecycle individually:
  * {@link FunctionBroker}, {@link AttributeStore},
  * {@link PDPConfigurationSource}, {@link PdpVoterSource},
- * {@link IdFactory}, and the {@link PolicyDecisionPoint} itself. Beans
+ * {@link IdFactory}, and the {@link ReactivePolicyDecisionPoint} itself. Beans
  * that hold real resources implement {@link AutoCloseable} (the voter
  * source and the configuration source); Spring invokes their
  * {@code close()} method on context shutdown.
@@ -104,7 +105,7 @@ import java.util.Set;
  * <li>Subscription lifecycle listeners (beans implementing
  * {@link SubscriptionLifecycleListener})</li>
  * <li>Multi-tenant routing via the {@code pdpId}-form methods on
- * {@link PolicyDecisionPoint}</li>
+ * {@link ReactivePolicyDecisionPoint}</li>
  * </ul>
  * <p>
  * Configuration is controlled via {@link EmbeddedPDPProperties} with prefix
@@ -113,7 +114,7 @@ import java.util.Set;
 @Slf4j
 @AutoConfiguration
 @EnableConfigurationProperties(EmbeddedPDPProperties.class)
-@ConditionalOnClass(name = "io.sapl.reactive.pdp.PolicyDecisionPointBuilder")
+@ConditionalOnClass(name = "io.sapl.pdp.PolicyDecisionPointBuilder")
 @ConditionalOnProperty(prefix = "io.sapl.pdp.embedded", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class PDPAutoConfiguration {
 
@@ -203,7 +204,7 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, AttributeStore attributeStore,
+    ReactivePolicyDecisionPoint policyDecisionPoint(PdpVoterSource pdpVoterSource, AttributeStore attributeStore,
             IdFactory idFactory, ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
             ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
         val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
@@ -213,8 +214,9 @@ public class PDPAutoConfiguration {
                     lifecycleListeners.size());
         }
         log.info("Deploying embedded Policy Decision Point.");
-        return new ReactivePolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, decisionInterceptors,
-                lifecycleListeners);
+        val blockingPdp = new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory,
+                decisionInterceptors, lifecycleListeners);
+        return new DelegatingReactivePolicyDecisionPoint(blockingPdp);
     }
 
     @Bean

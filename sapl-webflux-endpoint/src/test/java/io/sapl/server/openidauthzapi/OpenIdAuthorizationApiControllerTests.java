@@ -21,7 +21,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.sapl.server.pdpcontroller.SaplJacksonAutoConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,7 +64,7 @@ class OpenIdAuthorizationApiControllerTests {
             """;
 
     @MockitoBean
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @MockitoBean
     private ReactiveTenantResolver tenantResolver;
@@ -74,7 +74,7 @@ class OpenIdAuthorizationApiControllerTests {
 
     @BeforeEach
     void setUp() {
-        when(tenantResolver.resolve()).thenReturn(Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID));
+        when(tenantResolver.resolve()).thenReturn(Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
     }
 
     @Nested
@@ -189,7 +189,7 @@ class OpenIdAuthorizationApiControllerTests {
 
         @Test
         void pdpErrorReturnsIndeterminate() {
-            when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
+            when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)))
                     .thenReturn(Mono.error(new RuntimeException("boom")));
             postValidRequest().expectStatus().isOk().expectBody().jsonPath("$.decision").isEqualTo(false)
                     .jsonPath("$.context.reason_admin.en").exists();
@@ -197,7 +197,7 @@ class OpenIdAuthorizationApiControllerTests {
     }
 
     private void stubPdp(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(PolicyDecisionPoint.DEFAULT_PDP_ID)))
+        when(pdp.decideOnce(any(AuthorizationSubscription.class), eq(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)))
                 .thenReturn(Mono.just(decision));
     }
 

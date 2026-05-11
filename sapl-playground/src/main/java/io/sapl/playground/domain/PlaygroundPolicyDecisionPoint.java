@@ -22,11 +22,13 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TracedVote;
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
@@ -37,7 +39,6 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * UI-scoped Policy Decision Point for the SAPL playground. Manages the embedded
@@ -52,8 +53,8 @@ import java.util.UUID;
 @Component
 public class PlaygroundPolicyDecisionPoint {
 
-    private final PlaygroundConfigurationSource configurationSource;
-    private final ReactivePolicyDecisionPoint   policyDecisionPoint;
+    private final PlaygroundConfigurationSource         configurationSource;
+    private final DelegatingReactivePolicyDecisionPoint policyDecisionPoint;
 
     /**
      * Creates a new playground policy decision point. Initializes the embedded PDP
@@ -68,8 +69,9 @@ public class PlaygroundPolicyDecisionPoint {
     public PlaygroundPolicyDecisionPoint(AttributeStore attributeStore, FunctionBroker functionBroker) {
         val pdpVoterSource = new PdpVoterSource(functionBroker, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
-        this.policyDecisionPoint = new ReactivePolicyDecisionPoint(pdpVoterSource, attributeStore,
-                () -> UUID.randomUUID().toString());
+        val blockingPdp = new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore,
+                new ThreadLocalRandomIdFactory());
+        this.policyDecisionPoint = new DelegatingReactivePolicyDecisionPoint(blockingPdp);
     }
 
     /**
@@ -84,7 +86,7 @@ public class PlaygroundPolicyDecisionPoint {
      * @return flux of timestamped votes with evaluation details
      */
     public Flux<TracedVote> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.gatherVotes(authorizationSubscription, PolicyDecisionPoint.DEFAULT_PDP_ID);
+        return policyDecisionPoint.gatherVotes(authorizationSubscription, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**

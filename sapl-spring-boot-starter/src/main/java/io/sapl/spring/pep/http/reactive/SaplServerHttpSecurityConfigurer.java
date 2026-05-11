@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.reactive;
 
 import java.util.function.Consumer;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -26,7 +27,6 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity.AuthorizeExchangeSpec;
 import org.springframework.security.config.web.server.ServerHttpSecurity.ExceptionHandlingSpec;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.val;
@@ -147,7 +147,7 @@ public final class SaplServerHttpSecurityConfigurer {
             return authorizationManager;
         }
         if (subscriptionFactory != null) {
-            return new ReactiveSaplAuthorizationManager(context.getBean(PolicyDecisionPoint.class),
+            return new ReactiveSaplAuthorizationManager(context.getBean(ReactivePolicyDecisionPoint.class),
                     context.getBean(ReactiveTenantResolver.class), context.getBean(EnforcementPlanner.class),
                     subscriptionFactory);
         }

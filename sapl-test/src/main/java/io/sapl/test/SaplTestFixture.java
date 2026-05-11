@@ -39,8 +39,8 @@ import io.sapl.attributes.store.InMemoryAttributeStore;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -1158,18 +1158,18 @@ public class SaplTestFixture {
 
         private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
-        private final Stream<VoteWithCoverage>                 voteWithCoverageStream;
-        private final List<Action>                             actions        = new ArrayList<>();
-        private final MockingAttributeStore                    attributeStore;
-        private final PolicyDecisionPointBuilder.PDPComponents components;
-        private final CoverageAccumulator                      coverageAccumulator;
-        private final CoverageWriter                           coverageWriter;
-        private final boolean                                  coverageFileWriteEnabled;
-        private final AtomicReference<TracedVote>              lastTracedVote = new AtomicReference<>();
+        private final Stream<VoteWithCoverage>    voteWithCoverageStream;
+        private final List<Action>                actions        = new ArrayList<>();
+        private final MockingAttributeStore       attributeStore;
+        private final PDPComponents               components;
+        private final CoverageAccumulator         coverageAccumulator;
+        private final CoverageWriter              coverageWriter;
+        private final boolean                     coverageFileWriteEnabled;
+        private final AtomicReference<TracedVote> lastTracedVote = new AtomicReference<>();
 
         DecisionResult(Stream<VoteWithCoverage> voteWithCoverageStream,
                 MockingAttributeStore attributeStore,
-                PolicyDecisionPointBuilder.PDPComponents components,
+                PDPComponents components,
                 CoverageAccumulator coverageAccumulator,
                 CoverageWriter coverageWriter,
                 boolean coverageFileWriteEnabled) {

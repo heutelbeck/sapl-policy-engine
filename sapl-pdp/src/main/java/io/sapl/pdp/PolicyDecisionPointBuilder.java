@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.reactive.pdp;
+package io.sapl.pdp;
 
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
@@ -37,14 +37,10 @@ import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
-import io.sapl.pdp.IdFactory;
-import io.sapl.pdp.LazyFastClock;
-import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.*;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -686,7 +682,7 @@ public class PolicyDecisionPointBuilder {
         val timestampClock        = new LazyFastClock();
         val decisionPipeline      = List.copyOf(decisionInterceptors);
         val lifecyclePipeline     = List.copyOf(lifecycleListeners);
-        val pdp                   = new ReactivePolicyDecisionPoint(configurationRegister, attributeStore,
+        val blockingPdp           = new BlockingPolicyDecisionPoint(configurationRegister, attributeStore,
                 resolveIdFactory(), clock, decisionPipeline, lifecyclePipeline);
 
         // Create default configuration from collected policies
@@ -709,8 +705,8 @@ public class PolicyDecisionPointBuilder {
             configurationSource.subscribe(configurationRegister::handle);
         }
 
-        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeStore, configurationSource,
-                timestampClock, decisionPipeline, lifecyclePipeline);
+        return new PDPComponents(blockingPdp, configurationRegister, functionBroker, attributeStore,
+                configurationSource, timestampClock, decisionPipeline, lifecyclePipeline);
     }
 
     private FunctionBroker resolveFunctionBroker() {
@@ -801,58 +797,4 @@ public class PolicyDecisionPointBuilder {
         return idFactory != null ? idFactory : new ThreadLocalRandomIdFactory();
     }
 
-    /**
-     * Components created by the builder. Implements {@link AutoCloseable}
-     * so the whole bundle can be released in one call (or via a
-     * try-with-resources block) when the embedding application shuts
-     * down. {@link #close()} is idempotent: each held component is
-     * required to tolerate being closed more than once.
-     */
-    public record PDPComponents(
-            PolicyDecisionPoint pdp,
-            PdpVoterSource pdpVoterSource,
-            FunctionBroker functionBroker,
-            AttributeStore attributeStore,
-            @Nullable PDPConfigurationSource source,
-            LazyFastClock timestampClock,
-            List<DecisionInterceptor> decisionInterceptors,
-            List<SubscriptionLifecycleListener> lifecycleListeners) implements AutoCloseable {
-
-        private static final String WARN_ERROR_CLOSING_RESOURCE = "Error closing {}: {}";
-
-        /**
-         * Closes every held component. Resources that are not
-         * {@link AutoCloseable} are skipped silently. Exceptions thrown
-         * by individual components are logged and otherwise ignored so
-         * a single failure cannot prevent the rest of the cleanup.
-         */
-        @Override
-        public void close() {
-            closeAll(timestampClock, source, pdpVoterSource, attributeStore, functionBroker, decisionInterceptors,
-                    lifecycleListeners);
-        }
-
-        private static void closeAll(Object... resources) {
-            for (val resource : resources) {
-                if (resource instanceof Iterable<?> iterable) {
-                    for (val item : iterable) {
-                        closeQuietly(item);
-                    }
-                } else {
-                    closeQuietly(resource);
-                }
-            }
-        }
-
-        private static void closeQuietly(@Nullable Object resource) {
-            if (!(resource instanceof AutoCloseable closeable)) {
-                return;
-            }
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
-            }
-        }
-    }
 }

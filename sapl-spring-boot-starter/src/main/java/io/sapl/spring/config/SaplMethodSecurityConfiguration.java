@@ -19,6 +19,7 @@ package io.sapl.spring.config;
 
 import java.util.List;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -26,7 +27,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.data.ShimSignalContributor;
@@ -51,7 +51,7 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<ReactivePolicyDecisionPoint> policyDecisionPointProvider,
             ObjectProvider<BlockingTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
@@ -66,7 +66,7 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<ReactivePolicyDecisionPoint> policyDecisionPointProvider,
             ObjectProvider<BlockingTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,

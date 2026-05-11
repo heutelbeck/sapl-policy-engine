@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Executors;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Subscriber;
@@ -37,7 +38,6 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -53,7 +53,7 @@ import reactor.core.scheduler.Schedulers;
  * Authentication is performed once per connection via the
  * {@link RSocketConnectionAuthenticator}. The authenticated PDP ID is stored on
  * the per-connection {@code RSocket} instance and passed explicitly to the
- * {@link PolicyDecisionPoint} for tenant routing.
+ * {@link ReactivePolicyDecisionPoint} for tenant routing.
  * <p>
  * Connection lifetime is bounded by the credential expiry (JWT {@code exp}
  * claim) and an optional maximum connection lifetime. When a connection exceeds
@@ -61,7 +61,7 @@ import reactor.core.scheduler.Schedulers;
  * with fresh credentials.
  * <p>
  * Request-response operations ({@code decide-once}) use
- * {@link PolicyDecisionPoint#decideOnceBlocking} on virtual threads
+ * {@link ReactivePolicyDecisionPoint#decideOnceBlocking} on virtual threads
  * for maximum throughput. Streaming operations use the reactive PDP methods
  * directly.
  */
@@ -86,7 +86,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
             .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
-    private final PolicyDecisionPoint                      pdp;
+    private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
     private final @Nullable Duration                       maxConnectionLifetime;
 
@@ -100,7 +100,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * @param maxConnectionLifetime maximum connection lifetime, or null for
      * unlimited (JWT expiry still enforced)
      */
-    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp,
+    public ProtobufRSocketAcceptor(ReactivePolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator,
             @Nullable Duration maxConnectionLifetime) {
         this.pdp                   = pdp;
@@ -115,7 +115,8 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
      */
-    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp, @Nullable RSocketConnectionAuthenticator authenticator) {
+    public ProtobufRSocketAcceptor(ReactivePolicyDecisionPoint pdp,
+            @Nullable RSocketConnectionAuthenticator authenticator) {
         this(pdp, authenticator, null);
     }
 
@@ -124,14 +125,14 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      *
      * @param pdp the multi-tenant policy decision point
      */
-    public ProtobufRSocketAcceptor(PolicyDecisionPoint pdp) {
+    public ProtobufRSocketAcceptor(ReactivePolicyDecisionPoint pdp) {
         this(pdp, null, null);
     }
 
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just(createRSocket(PolicyDecisionPoint.DEFAULT_PDP_ID, null, sendingSocket));
+            return Mono.just(createRSocket(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID, null, sendingSocket));
         }
         return authenticator.authenticate(setup)
                 .<RSocket>map(result -> createRSocket(result.pdpId(), result.expiresAt(), sendingSocket))

@@ -34,12 +34,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.HdrHistogram.Histogram;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -79,7 +79,8 @@ public class EmbeddedBenchmarkRunner {
         try (val components = ctx.buildEmbeddedPdp()) {
             val mapper        = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscriptions = loadSubscriptions(ctx, mapper);
-            val methods       = resolveMethods(components.pdp(), subscriptions, cfg.benchmarks());
+            val reactivePdp   = ReactivePolicyDecisionPointBuilder.from(components).pdp();
+            val methods       = resolveMethods(reactivePdp, subscriptions, cfg.benchmarks());
 
             val results = cfg.machineReadable() ? measureMachineReadable(methods, cfg, threads, out, err)
                     : measureInteractive(methods, cfg, threads, out, err);
@@ -250,7 +251,7 @@ public class EmbeddedBenchmarkRunner {
                 mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class) };
     }
 
-    private static Map<String, BenchmarkMethod> resolveMethods(PolicyDecisionPoint pdp,
+    private static Map<String, BenchmarkMethod> resolveMethods(ReactivePolicyDecisionPoint pdp,
             AuthorizationSubscription[] subscriptions, List<String> filter) {
         val                                 index   = new AtomicInteger(0);
         Supplier<AuthorizationSubscription> nextSub = () -> subscriptions[Integer

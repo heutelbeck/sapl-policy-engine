@@ -26,9 +26,9 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -48,7 +48,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Diagnostic tests for verifying that {@code distinctUntilChanged} in
- * {@link ReactivePolicyDecisionPoint#decide} correctly suppresses duplicate
+ * {@link DelegatingReactivePolicyDecisionPoint#decide} correctly
+ * suppresses
+ * duplicate
  * decisions from time-triggered policy re-evaluation.
  * <p>
  * Investigates whether {@code distinctUntilChanged} in the embedded PDP
@@ -115,12 +117,12 @@ class DeduplicationTests {
             val fixedClock  = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
             val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = (ReactivePolicyDecisionPoint) components.pdp();
+            val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
-            val decisions = pdp.gatherVotes(sub, PolicyDecisionPoint.DEFAULT_PDP_ID)
+            val decisions = pdp.gatherVotes(sub, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)
                     .map(tv -> tv.vote().authorizationDecision()).take(3).collectList().block(Duration.ofSeconds(10));
 
             assertThat(decisions).isNotNull().hasSizeGreaterThanOrEqualTo(2);
@@ -150,7 +152,7 @@ class DeduplicationTests {
             StepVerifier.withVirtualTime(() -> {
                 val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
                 val voterSource = components.pdpVoterSource();
-                val pdp         = components.pdp();
+                val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
                 voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
                 return pdp.decide(sub);
             }).assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT)).expectNoEvent(Duration.ofSeconds(5))
@@ -164,7 +166,7 @@ class DeduplicationTests {
             val fixedClock  = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
             val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = components.pdp();
+            val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
@@ -181,12 +183,12 @@ class DeduplicationTests {
             val mapper      = JsonMapper.builder().build();
             val components  = PolicyDecisionPointBuilder.withDefaults(mapper, Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = (ReactivePolicyDecisionPoint) components.pdp();
+            val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
             val sub       = subscription("user", "stream:heartbeat", "heartbeat");
-            val decisions = pdp.gatherVotes(sub, PolicyDecisionPoint.DEFAULT_PDP_ID)
+            val decisions = pdp.gatherVotes(sub, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)
                     .map(tv -> tv.vote().authorizationDecision()).take(Duration.ofSeconds(5)).collectList()
                     .block(Duration.ofSeconds(10));
 
@@ -201,7 +203,7 @@ class DeduplicationTests {
             val mapper      = JsonMapper.builder().build();
             val components  = PolicyDecisionPointBuilder.withDefaults(mapper, Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = components.pdp();
+            val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
             voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
 
@@ -248,7 +250,7 @@ class DeduplicationTests {
             val mapper      = JsonMapper.builder().build();
             val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
-            val pdp         = components.pdp();
+            val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);
 
             voterSource.loadConfiguration(config, false);

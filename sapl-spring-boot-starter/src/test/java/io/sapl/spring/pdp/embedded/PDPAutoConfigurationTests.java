@@ -17,8 +17,8 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -38,17 +38,17 @@ class PDPAutoConfigurationTests {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(ReactivePolicyDecisionPoint.class);
+                    assertThat(context).hasNotFailed().hasSingleBean(DelegatingReactivePolicyDecisionPoint.class);
                 });
     }
 
     @Test
     void whenAnotherPDPIsAlreadyPresent_thenDoNotLoadANewOne() {
-        contextRunner.withBean(PolicyDecisionPoint.class, () -> mock(PolicyDecisionPoint.class))
+        contextRunner.withBean(ReactivePolicyDecisionPoint.class, () -> mock(ReactivePolicyDecisionPoint.class))
                 .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(PolicyDecisionPoint.class)
-                            .doesNotHaveBean(ReactivePolicyDecisionPoint.class);
+                    assertThat(context).hasNotFailed().hasSingleBean(ReactivePolicyDecisionPoint.class)
+                            .doesNotHaveBean(DelegatingReactivePolicyDecisionPoint.class);
                 });
     }
 

@@ -21,6 +21,7 @@ import java.io.Serial;
 import java.util.function.Supplier;
 
 import io.sapl.api.SaplVersion;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import tools.jackson.databind.json.JsonMapper;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
@@ -58,7 +59,6 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
@@ -68,7 +68,8 @@ import java.util.function.UnaryOperator;
 /**
  * HTTP/HTTPS client for connecting to a remote SAPL Policy Decision Point.
  * <p>
- * This class implements the {@link PolicyDecisionPoint} interface, allowing
+ * This class implements the {@link ReactivePolicyDecisionPoint} interface,
+ * allowing
  * seamless integration with applications that use SAPL for authorization.
  * <p>
  * Supports multiple authentication methods:
@@ -86,7 +87,7 @@ import java.util.function.UnaryOperator;
  * @see RemotePolicyDecisionPoint#builder()
  */
 @Slf4j
-public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
+public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint {
 
     private static final String DECIDE                = "/api/pdp/decide";
     private static final String DECIDE_ONCE           = "/api/pdp/decide-once";
@@ -117,20 +118,26 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
     @Getter
     private int timeoutMillis = 5000;
 
-    public RemoteHttpPolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, SslContext sslContext) {
+    public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
+            String clientKey,
+            String clientSecret,
+            SslContext sslContext) {
         this(baseUrl, clientKey, clientSecret, HttpClient.create().secure(spec -> spec.sslContext(sslContext)));
     }
 
-    public RemoteHttpPolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret) {
+    public RemoteHttpReactivePolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret) {
         this(baseUrl, clientKey, clientSecret, HttpClient.create().secure());
     }
 
-    public RemoteHttpPolicyDecisionPoint(String baseUrl, String clientKey, String clientSecret, HttpClient httpClient) {
+    public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
+            String clientKey,
+            String clientSecret,
+            HttpClient httpClient) {
         client = WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl)
                 .defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
     }
 
-    private RemoteHttpPolicyDecisionPoint(WebClient client) {
+    private RemoteHttpReactivePolicyDecisionPoint(WebClient client) {
         this.client = client;
     }
 
@@ -207,7 +214,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
      * in a single bundled response. This is a one-shot operation that completes
      * after the first bundled result.
      * <p>
-     * Not part of the {@link PolicyDecisionPoint} interface.
+     * Not part of the {@link ReactivePolicyDecisionPoint} interface.
      *
      * @param multiAuthzSubscription the multi-subscription to evaluate
      * @return the bundled authorization decisions
@@ -344,7 +351,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
             return this;
         }
 
-        public RemoteHttpPolicyDecisionPoint build() {
+        public RemoteHttpReactivePolicyDecisionPoint build() {
             val mapper     = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val strategies = ExchangeStrategies.builder().codecs(configurer -> {
                                configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
@@ -356,7 +363,7 @@ public class RemoteHttpPolicyDecisionPoint implements PolicyDecisionPoint {
             if (this.authenticationCustomizer != null) {
                 builder = authenticationCustomizer.apply(builder);
             }
-            return new RemoteHttpPolicyDecisionPoint(builder.build());
+            return new RemoteHttpReactivePolicyDecisionPoint(builder.build());
         }
     }
 

@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -50,7 +51,6 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
@@ -114,7 +114,7 @@ class PreEnforcePolicyEnforcementPointTests {
     WatchHouse watch;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
 
     @Autowired
     PatricianLogbook logbook;

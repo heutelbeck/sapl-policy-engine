@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.remote;
 
-import io.sapl.pdp.remote.RemoteHttpPolicyDecisionPoint;
+import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -35,7 +35,7 @@ class RemotePDPAutoConfigurationTests {
                 "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.key=aKey",
                 "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.enabled=true").run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(RemoteHttpPolicyDecisionPoint.class);
+                    assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
                 });
     }
 
@@ -46,7 +46,7 @@ class RemotePDPAutoConfigurationTests {
                         "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.apiKey=anApiKey")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(RemoteHttpPolicyDecisionPoint.class);
+                    assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
                 });
     }
 
@@ -58,7 +58,7 @@ class RemotePDPAutoConfigurationTests {
                         "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.ignoreCertificates=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(RemoteHttpPolicyDecisionPoint.class);
+                    assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
                 });
     }
 

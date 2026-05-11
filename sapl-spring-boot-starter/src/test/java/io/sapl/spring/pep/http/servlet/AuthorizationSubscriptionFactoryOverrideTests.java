@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.serialization.SaplServletJacksonModule;
 import lombok.val;
@@ -60,11 +60,11 @@ class AuthorizationSubscriptionFactoryOverrideTests {
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule())
             .addModule(new SaplServletJacksonModule()).build();
 
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(PolicyDecisionPoint.class);
+        pdp = mock(ReactivePolicyDecisionPoint.class);
         when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
     }
 
@@ -125,7 +125,8 @@ class AuthorizationSubscriptionFactoryOverrideTests {
 
     private AuthorizationSubscription subscribeAndCapture(AuthorizationSubscriptionFactory factory) {
         val planner = new EnforcementPlanner(java.util.List.of(), MAPPER);
-        val manager = new SaplAuthorizationManager(pdp, () -> PolicyDecisionPoint.DEFAULT_PDP_ID, planner, factory);
+        val manager = new SaplAuthorizationManager(pdp, () -> ReactivePolicyDecisionPoint.DEFAULT_PDP_ID, planner,
+                factory);
         val request = new MockHttpServletRequest("GET", "/orders/42");
         val auth    = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",
                 AuthorityUtils.createAuthorityList("ROLE_USER"));

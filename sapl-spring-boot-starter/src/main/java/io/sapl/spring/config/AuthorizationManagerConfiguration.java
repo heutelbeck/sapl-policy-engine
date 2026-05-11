@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -26,7 +27,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.http.reactive.DefaultReactiveAuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.reactive.ReactiveAuthorizationSubscriptionFactory;
@@ -81,7 +81,7 @@ public final class AuthorizationManagerConfiguration {
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        SaplAuthorizationManager saplAuthorizationManager(PolicyDecisionPoint pdp,
+        SaplAuthorizationManager saplAuthorizationManager(ReactivePolicyDecisionPoint pdp,
                 BlockingTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
                 AuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
@@ -118,7 +118,7 @@ public final class AuthorizationManagerConfiguration {
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(PolicyDecisionPoint pdp,
+        ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(ReactivePolicyDecisionPoint pdp,
                 ReactiveTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
                 ReactiveAuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");

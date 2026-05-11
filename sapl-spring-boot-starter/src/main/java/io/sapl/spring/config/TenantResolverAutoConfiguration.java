@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.config;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import io.sapl.spring.tenant.DefaultBlockingTenantResolver;
 import io.sapl.spring.tenant.DefaultReactiveTenantResolver;
@@ -36,7 +36,7 @@ import org.springframework.context.annotation.Bean;
  * resolver reads the id from {@code SecurityContextHolder} via a
  * configured {@link PdpIdAuthenticationExtractorBlocking}; without
  * one, every call resolves to
- * {@link PolicyDecisionPoint#DEFAULT_PDP_ID}.
+ * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
  */
 @AutoConfiguration
 public class TenantResolverAutoConfiguration {
@@ -50,7 +50,7 @@ public class TenantResolverAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PdpIdAuthenticationExtractorBlocking pdpIdAuthenticationExtractorBlocking() {
-        return authentication -> PolicyDecisionPoint.DEFAULT_PDP_ID;
+        return authentication -> ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
     }
 
     @Bean

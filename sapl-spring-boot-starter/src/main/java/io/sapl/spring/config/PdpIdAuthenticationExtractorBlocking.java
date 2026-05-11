@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.security.core.Authentication;
 
 /**
@@ -27,7 +28,7 @@ import org.springframework.security.core.Authentication;
  * Applications wishing to support tenant routing on the servlet path
  * register a bean of this type. The default implementation registered
  * by Spring autoconfig returns
- * {@link io.sapl.reactive.api.pdp.PolicyDecisionPoint#DEFAULT_PDP_ID}
+ * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}
  * unconditionally.
  */
 @FunctionalInterface

@@ -29,7 +29,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.metadata.StreamEnforce;
@@ -68,7 +68,7 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
 
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE = "@StreamEnforce reactive PEP supports Flux only at this time. Found return type %s.";
 
-    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
     private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;

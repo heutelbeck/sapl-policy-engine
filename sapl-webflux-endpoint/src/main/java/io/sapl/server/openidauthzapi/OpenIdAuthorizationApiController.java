@@ -19,7 +19,7 @@ package io.sapl.server.openidauthzapi;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,9 +58,9 @@ public class OpenIdAuthorizationApiController {
 
     private static final String X_REQUEST_ID = "X-Request-ID";
 
-    private final PolicyDecisionPoint    pdp;
-    private final ReactiveTenantResolver tenantResolver;
-    private final ObjectMapper           objectMapper;
+    private final ReactivePolicyDecisionPoint pdp;
+    private final ReactiveTenantResolver      tenantResolver;
+    private final ObjectMapper                objectMapper;
 
     /**
      * Evaluates an access request and returns a binary decision per OpenID

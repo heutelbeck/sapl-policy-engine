@@ -27,8 +27,9 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
+import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.DirectoryPDPConfigurationSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
@@ -52,7 +53,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 
 @DisplayName("PolicyDecisionPointBuilder")
-class PolicyDecisionPointBuilderTests {
+class ReactivePolicyDecisionPointBuilderTests {
 
     private static final String DEFAULT_PDP_ID = "default";
 
@@ -107,7 +108,9 @@ class PolicyDecisionPointBuilderTests {
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config).build();
 
-        StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
+        StepVerifier
+                .create(ReactivePolicyDecisionPointBuilder.from(components).pdp()
+                        .decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
         closeSource(components);
@@ -120,7 +123,9 @@ class PolicyDecisionPointBuilderTests {
         val components = PolicyDecisionPointBuilder.withoutDefaults()
                 .withBundle(bundleBytes, DEFAULT_PDP_ID, developmentPolicy).build();
 
-        StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
+        StepVerifier
+                .create(ReactivePolicyDecisionPointBuilder.from(components).pdp()
+                        .decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.DENY)).verifyComplete();
 
         closeSource(components);
@@ -142,7 +147,8 @@ class PolicyDecisionPointBuilderTests {
         assertThat(components.source()).isNotNull();
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> StepVerifier
-                .create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
+                .create(ReactivePolicyDecisionPointBuilder.from(components).pdp()
+                        .decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete());
 
         closeSource(components);
@@ -161,7 +167,8 @@ class PolicyDecisionPointBuilderTests {
         assertThat(components.source()).isNotNull();
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> StepVerifier
-                .create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
+                .create(ReactivePolicyDecisionPointBuilder.from(components).pdp()
+                        .decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete());
 
         closeSource(components);
@@ -318,7 +325,9 @@ class PolicyDecisionPointBuilderTests {
 
         val components = PolicyDecisionPointBuilder.withoutDefaults().withConfiguration(config).build();
 
-        StepVerifier.create(components.pdp().decide(subscription("subject", "action", "resource")).take(1))
+        StepVerifier
+                .create(ReactivePolicyDecisionPointBuilder.from(components).pdp()
+                        .decide(subscription("subject", "action", "resource")).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
         closeSource(components);

@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
  * context) is the caller's responsibility and lives in application
  * infrastructure, not here.
  */
-public interface PolicyDecisionPoint {
+public interface ReactivePolicyDecisionPoint {
 
     /**
      * Default PDP identifier for single-tenant deployments and for callers

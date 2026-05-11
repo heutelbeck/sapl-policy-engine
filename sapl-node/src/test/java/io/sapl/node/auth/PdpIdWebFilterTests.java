@@ -35,7 +35,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.web.server.WebFilterChain;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.config.PdpIdAuthenticationExtractor;
 import io.sapl.spring.config.PdpIdWebFilter;
 import io.sapl.spring.tenant.DefaultReactiveTenantResolver;
@@ -63,7 +63,7 @@ class PdpIdWebFilterTests {
             if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
                 return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
             }
-            return Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID);
+            return Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
         };
         filter = new PdpIdWebFilter(extractor);
     }

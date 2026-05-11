@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.SmartLifecycle;
 
@@ -29,7 +30,6 @@ import io.netty.channel.unix.DomainSocketAddress;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -51,7 +51,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final @Nullable Duration                       maxConnectionLifetime;
-    private final PolicyDecisionPoint                      pdp;
+    private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
     private volatile @Nullable CloseableChannel server;

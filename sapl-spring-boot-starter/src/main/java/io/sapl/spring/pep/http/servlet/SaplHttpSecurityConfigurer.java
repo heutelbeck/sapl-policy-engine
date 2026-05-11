@@ -17,13 +17,13 @@
  */
 package io.sapl.spring.pep.http.servlet;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.val;
@@ -117,7 +117,7 @@ public final class SaplHttpSecurityConfigurer extends AbstractHttpConfigurer<Sap
             return authorizationManager;
         }
         if (subscriptionFactory != null) {
-            return new SaplAuthorizationManager(context.getBean(PolicyDecisionPoint.class),
+            return new SaplAuthorizationManager(context.getBean(ReactivePolicyDecisionPoint.class),
                     context.getBean(BlockingTenantResolver.class), context.getBean(EnforcementPlanner.class),
                     subscriptionFactory);
         }

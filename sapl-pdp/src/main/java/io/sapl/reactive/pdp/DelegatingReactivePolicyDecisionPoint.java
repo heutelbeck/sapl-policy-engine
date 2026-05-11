@@ -25,7 +25,7 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.Stream;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import reactor.core.publisher.Flux;
@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 
 /**
  * Adapter that exposes a {@link BlockingPolicyDecisionPoint} through the
- * Reactor-flavoured {@link PolicyDecisionPoint} contract. Every
+ * Reactor-flavoured {@link ReactivePolicyDecisionPoint} contract. Every
  * decision flow runs on the blocking PDP using the SAPL
  * {@link Stream} primitive; this class only bridges those streams to
  * {@link Flux}/{@link Mono} via a virtual-thread pump, with no
@@ -48,7 +48,7 @@ import java.util.function.Supplier;
  * @since 4.1.0
  */
 @RequiredArgsConstructor
-public final class DelegatingReactivePolicyDecisionPoint implements PolicyDecisionPoint {
+public final class DelegatingReactivePolicyDecisionPoint implements ReactivePolicyDecisionPoint {
 
     private final BlockingPolicyDecisionPoint blocking;
 
@@ -87,7 +87,7 @@ public final class DelegatingReactivePolicyDecisionPoint implements PolicyDecisi
     /**
      * Engine-internal flux of {@link TracedVote}s for a subscription:
      * vote, emit timestamp, dependency map, and per-key snapshot read.
-     * Mirrors {@link io.sapl.reactive.pdp.ReactivePolicyDecisionPoint#gatherVotes}
+     * Mirrors {@link DelegatingReactivePolicyDecisionPoint#gatherVotes}
      * for tooling that consumes the trace through Reactor (the SAPL
      * playground).
      */

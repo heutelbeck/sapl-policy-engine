@@ -19,6 +19,7 @@ package io.sapl.spring.pdp.remote;
 
 import javax.net.ssl.SSLException;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -26,7 +27,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +44,7 @@ public class RemotePDPAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    PolicyDecisionPoint policyDecisionPoint() throws SSLException {
+    ReactivePolicyDecisionPoint policyDecisionPoint() throws SSLException {
         if ("http".equals(configuration.getType())) {
             log.info("Binding to http remote PDP server: {}", configuration.getHost());
             final var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());

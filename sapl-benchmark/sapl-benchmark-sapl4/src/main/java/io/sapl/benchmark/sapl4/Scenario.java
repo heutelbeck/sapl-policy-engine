@@ -24,8 +24,8 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PDPComponents;
 import lombok.val;
 
 import java.util.List;

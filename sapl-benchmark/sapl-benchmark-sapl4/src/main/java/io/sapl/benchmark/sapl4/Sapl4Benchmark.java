@@ -220,7 +220,7 @@ class Sapl4Benchmark implements Callable<Integer> {
                     .put(FLAG_UNROLL_IN_OPERATOR, Value.of(unroll)).build();
             var components       = resolvedScenario.buildPdp(flags);
             var pdp              = components.pdp();
-            var decision         = pdp.decideOnceBlocking(resolvedScenario.subscription());
+            var decision         = pdp.decideOnce(resolvedScenario.subscription());
             components.close();
             if (resolvedScenario.expectedDecision() != null
                     && decision.decision() != resolvedScenario.expectedDecision().decision()) {
@@ -494,7 +494,7 @@ class Sapl4Benchmark implements Callable<Integer> {
             counts.put(d, 0);
         }
         for (var sub : resolvedScenario.subscriptions()) {
-            var decision = pdp.decideOnceBlocking(sub).decision();
+            var decision = pdp.decideOnce(sub).decision();
             counts.merge(decision, 1, Integer::sum);
         }
         components.close();

@@ -20,12 +20,12 @@ package io.sapl.node.cli.support;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.node.SaplNodeApplication;
 import io.sapl.node.cli.options.PdpOptions;
 import io.sapl.node.cli.options.RemoteConnectionOptions;
-import io.sapl.pdp.remote.ProtobufRemotePolicyDecisionPoint;
-import io.sapl.pdp.remote.RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
+import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -41,7 +41,7 @@ import java.io.PrintWriter;
 import java.util.Map;
 
 /**
- * Sets up a {@link PolicyDecisionPoint} and {@link JsonMapper} for CLI
+ * Sets up a {@link ReactivePolicyDecisionPoint} and {@link JsonMapper} for CLI
  * commands. Handles both local (Spring-based) and remote (HTTP client) modes.
  * Call {@link #shutdown()} when done.
  *
@@ -49,7 +49,7 @@ import java.util.Map;
  * @param mapper a Jackson mapper configured for SAPL types
  * @param context the Spring context (null for remote mode)
  */
-public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableApplicationContext context) {
+public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableApplicationContext context) {
 
     public static final String ERROR_BASIC_AUTH_FORMAT = "Error: --basic-auth must be in format 'user:password'.";
     public static final String ERROR_REMOTE_CONNECTION = "Error: Failed to connect to remote PDP: %s.";
@@ -104,7 +104,8 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
     }
 
     private static PdpSetup openRsocket(RemoteConnectionOptions remote) {
-        val builder = ProtobufRemotePolicyDecisionPoint.builder().host(remote.rsocketHost).port(remote.rsocketPort);
+        val builder = ProtobufRemoteReactivePolicyDecisionPoint.builder().host(remote.rsocketHost)
+                .port(remote.rsocketPort);
         configureRsocketAuth(builder, remote.auth);
         val pdp    = builder.build();
         val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
@@ -128,10 +129,11 @@ public record PdpSetup(PolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableA
             val logbackContext = (LoggerContext) LoggerFactory.getILoggerFactory();
             logbackContext.getLogger("io.sapl.pdp.interceptors").setLevel(Level.INFO);
         }
-        return new PdpSetup(context.getBean(PolicyDecisionPoint.class), context.getBean(JsonMapper.class), context);
+        return new PdpSetup(context.getBean(ReactivePolicyDecisionPoint.class), context.getBean(JsonMapper.class),
+                context);
     }
 
-    private static void configureRsocketAuth(ProtobufRemotePolicyDecisionPoint.Builder builder,
+    private static void configureRsocketAuth(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder,
             RemoteConnectionOptions.AuthOptions auth) {
         val resolved = resolveCredentials(auth);
         if (resolved.basicAuth != null) {

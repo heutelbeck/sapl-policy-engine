@@ -22,7 +22,7 @@ import io.sapl.api.pdp.*;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.test.StepVerifier;
@@ -81,7 +81,7 @@ public class PdpTestHelper {
      * @param subscription the authorization subscription
      * @param expectedDecision the expected decision
      */
-    public static void assertDecision(PolicyDecisionPoint pdp, AuthorizationSubscription subscription,
+    public static void assertDecision(ReactivePolicyDecisionPoint pdp, AuthorizationSubscription subscription,
             Decision expectedDecision) {
         StepVerifier.create(pdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(expectedDecision)).verifyComplete();

@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.reactive;
 
 import java.util.Set;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationResult;
 import org.springframework.security.authorization.ReactiveAuthorizationManager;
@@ -30,7 +31,6 @@ import org.springframework.web.server.ServerWebExchange;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpDenialSignal;
@@ -67,7 +67,7 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
             HttpRequestSignal.SIGNAL_TYPE, HttpRequestMutationSignal.SIGNAL_TYPE, HttpResponseSignal.SIGNAL_TYPE,
             HttpDenialSignal.SIGNAL_TYPE);
 
-    private final PolicyDecisionPoint                      pdp;
+    private final ReactivePolicyDecisionPoint              pdp;
     private final ReactiveTenantResolver                   tenantResolver;
     private final EnforcementPlanner                       enforcementPlanner;
     private final ReactiveAuthorizationSubscriptionFactory subscriptionFactory;

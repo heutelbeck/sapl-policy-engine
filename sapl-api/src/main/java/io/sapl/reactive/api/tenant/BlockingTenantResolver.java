@@ -17,7 +17,7 @@
  */
 package io.sapl.reactive.api.tenant;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 
 /**
  * Resolves the PDP tenant identifier for a blocking request.
@@ -28,7 +28,7 @@ import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
  * Implementations may read the id from {@code SecurityContextHolder},
  * a request-scoped attribute, or any other synchronous source. A
  * missing tenant must resolve to
- * {@link PolicyDecisionPoint#DEFAULT_PDP_ID}.
+ * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
  */
 @FunctionalInterface
 public interface BlockingTenantResolver {

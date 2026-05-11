@@ -19,7 +19,7 @@ package io.sapl.pdp.remote;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -62,7 +62,7 @@ class RemoteHttpDecisionPointServerIT {
     static class TestConfiguration {
     }
 
-    private void requestDecision(PolicyDecisionPoint pdp) {
+    private void requestDecision(ReactivePolicyDecisionPoint pdp) {
         StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
                 .verify();
     }

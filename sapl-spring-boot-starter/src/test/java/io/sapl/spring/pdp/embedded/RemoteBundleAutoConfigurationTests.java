@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,6 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.RemoteFetchMode;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
@@ -136,7 +136,7 @@ class RemoteBundleAutoConfigurationTests {
                             PREFIX + "remoteBundles.baseUrl=http://localhost:1/bundles",
                             PREFIX + "remoteBundles.pdpIds[0]=default", PREFIX + "bundleSecurity.allowUnsigned=true")
                     .run(context -> {
-                        assertThat(context).hasNotFailed().hasSingleBean(ReactivePolicyDecisionPoint.class);
+                        assertThat(context).hasNotFailed().hasSingleBean(DelegatingReactivePolicyDecisionPoint.class);
                     });
         }
 

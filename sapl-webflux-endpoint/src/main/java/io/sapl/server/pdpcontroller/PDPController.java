@@ -22,7 +22,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,10 +52,10 @@ import java.time.Duration;
 @RequestMapping("/api/pdp")
 @Tag(name = "SAPL native", description = "Full SAPL PDP HTTP surface: one-shot decisions, server-sent-event streams, multi-decision boxcars, with the five-valued decision verb and obligations / advice / resource transformation.")
 public class PDPController {
-    private final PolicyDecisionPoint    pdp;
-    private final ReactiveTenantResolver tenantResolver;
+    private final ReactivePolicyDecisionPoint pdp;
+    private final ReactiveTenantResolver      tenantResolver;
     @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}")
-    private long                         keepAliveSeconds = 0;
+    private long                              keepAliveSeconds = 0;
 
     /**
      * Enables keep alive comments to keep tcp connection active. This is usually
@@ -76,12 +76,13 @@ public class PDPController {
     }
 
     /**
-     * Delegates to {@link PolicyDecisionPoint#decide(AuthorizationSubscription)}.
+     * Delegates to
+     * {@link ReactivePolicyDecisionPoint#decide(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
      * the PDP.
      * @return a flux emitting the current authorization decisions.
-     * @see PolicyDecisionPoint#decide(AuthorizationSubscription)
+     * @see ReactivePolicyDecisionPoint#decide(AuthorizationSubscription)
      */
     @Operation(summary = "Subscribe to a stream of authorization decisions", description = "Returns a server-sent-event stream of AuthorizationDecision values. Each event represents an updated decision, re-emitted whenever the underlying authorization context changes (attribute updates, policy changes). The connection stays open until the client disconnects.")
     @PostMapping(value = "/decide", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -97,12 +98,12 @@ public class PDPController {
 
     /**
      * Delegates to
-     * {@link PolicyDecisionPoint#decideOnce(AuthorizationSubscription)}.
+     * {@link ReactivePolicyDecisionPoint#decideOnce(AuthorizationSubscription)}.
      *
      * @param authzSubscription the authorization subscription to be processed by
      * the PDP.
      * @return a Mono for the initial decision.
-     * @see PolicyDecisionPoint#decideOnce(AuthorizationSubscription)
+     * @see ReactivePolicyDecisionPoint#decideOnce(AuthorizationSubscription)
      */
     @Operation(summary = "Get a single authorization decision", description = "Returns the first authorization decision for the subscription. Empty upstream is mapped to INDETERMINATE.")
     @PostMapping(value = "/decide-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -113,14 +114,14 @@ public class PDPController {
 
     /**
      * Delegates to
-     * {@link PolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
+     * {@link ReactivePolicyDecisionPoint#decide(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      * processed by the PDP.
      * @return a flux emitting authorization decisions related to the individual
      * subscriptions contained in the given {@code multiAuthzSubscription} as soon
      * as they are available.
-     * @see PolicyDecisionPoint#decide(MultiAuthorizationSubscription)
+     * @see ReactivePolicyDecisionPoint#decide(MultiAuthorizationSubscription)
      */
     @Operation(summary = "Subscribe to a stream of identifiable decisions for many subscriptions", description = "Server-sent-event stream of IdentifiableAuthorizationDecision values: one event per (subscription id, decision) pair, emitted as decisions become available or change.")
     @PostMapping(value = "/multi-decide", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -133,14 +134,14 @@ public class PDPController {
 
     /**
      * Delegates to
-     * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
+     * {@link ReactivePolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      * processed by the PDP.
      * @return a flux emitting multi-decisions containing authorization decisions
      * for all the individual authorization subscriptions contained in the given
      * {@code multiAuthzSubscription}.
-     * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
+     * @see ReactivePolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
     @Operation(summary = "Subscribe to a stream of bundled multi-decisions", description = "Server-sent-event stream of MultiAuthorizationDecision values: each event carries the current decision for every subscription in the request.")
     @PostMapping(value = "/multi-decide-all", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -153,14 +154,14 @@ public class PDPController {
 
     /**
      * Delegates to
-     * {@link PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
+     * {@link ReactivePolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)}.
      *
      * @param multiAuthzSubscription the authorization multi-subscription to be
      * processed by the PDP.
      * @return a Mono emitting the initial multi-decision containing authorization
      * decisions for all the individual authorization subscriptions contained in the
      * given {@code multiAuthzSubscription}.
-     * @see PolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
+     * @see ReactivePolicyDecisionPoint#decideAll(MultiAuthorizationSubscription)
      */
     @Operation(summary = "Get a single bundled multi-decision", description = "Returns the first MultiAuthorizationDecision for the multi-subscription, with one decision per included subscription id.")
     @PostMapping(value = "/multi-decide-all-once", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)

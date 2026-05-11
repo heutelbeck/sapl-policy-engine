@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pdp.embedded;
 
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -43,7 +43,7 @@ class AllAutoConfigurationsIntegrationTests {
                 .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=DIRECTORY", "io.sapl.pdp.embedded.enabled=true",
                         "io.sapl.pdp.embedded.policiesPath=" + tempDir)
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(ReactivePolicyDecisionPoint.class);
+                    assertThat(context).hasNotFailed().hasSingleBean(DelegatingReactivePolicyDecisionPoint.class);
                 });
     }
 
@@ -53,7 +53,7 @@ class AllAutoConfigurationsIntegrationTests {
                 .withPropertyValues("io.sapl.pdp.embedded.pdpConfigType=RESOURCES", "io.sapl.pdp.embedded.enabled=true",
                         "io.sapl.pdp.embedded.policiesPath=/policies")
                 .run(context -> {
-                    assertThat(context).hasNotFailed().hasSingleBean(ReactivePolicyDecisionPoint.class);
+                    assertThat(context).hasNotFailed().hasSingleBean(DelegatingReactivePolicyDecisionPoint.class);
                 });
     }
 

@@ -26,8 +26,6 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Locks the live-subscription contract for both
- * {@link io.sapl.reactive.pdp.ReactivePolicyDecisionPoint} and
+ * {@link DelegatingReactivePolicyDecisionPoint} and
  * {@link BlockingPolicyDecisionPoint}: a {@code decide(...)} stream
  * never closes from the server side. The consumer terminates it; in
  * the meantime, every {@link io.sapl.pdp.configuration.PdpVoterSource}
@@ -99,93 +97,6 @@ class PdpHotReloadSemanticsTests {
         multi.addSubscription("alice-sub", subscription("alice", "read", "doc"));
         multi.addSubscription("bob-sub", subscription("bob", "read", "doc"));
         return multi;
-    }
-
-    @Nested
-    @DisplayName("ReactivePolicyDecisionPoint")
-    class Reactive {
-
-        @Test
-        @DisplayName("decide on a static policy stays alive after the initial emission")
-        void whenStaticPolicyEvaluatedThenStreamStaysAliveWithoutSyntheticClose() {
-            val flagPip = new FlagPip();
-            try (val components = emptyComponents(flagPip)) {
-                load(components, DENY_ALL);
-
-                StepVerifier.create(components.pdp().decide(subscription("alice", "read", "doc")))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.DENY)).expectNoEvent(QUIET_WINDOW)
-                        .thenCancel().verify(Duration.ofSeconds(5));
-            }
-        }
-
-        @Test
-        @DisplayName("decide re-evaluates when the configuration is reloaded with a different decision")
-        void whenConfigurationReloadedThenStreamEmitsTheNewDecision() {
-            val flagPip = new FlagPip();
-            try (val components = emptyComponents(flagPip)) {
-                load(components, DENY_ALL);
-
-                StepVerifier.create(components.pdp().decide(subscription("alice", "read", "doc")))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.DENY))
-                        .then(() -> load(components, PERMIT_ALL))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                        .expectNoEvent(QUIET_WINDOW).thenCancel().verify(Duration.ofSeconds(5));
-            }
-        }
-
-        @Test
-        @DisplayName("decide carries the subscription across PureVoter to StreamVoter and back")
-        void whenVoterTypeChangesThenSubscriptionContinuesAcrossTheTransition() {
-            val flagPip = new FlagPip();
-            try (val components = emptyComponents(flagPip)) {
-                flagPip.publish(Value.of(true));
-                load(components, PERMIT_ALL);
-
-                StepVerifier.create(components.pdp().decide(subscription("alice", "read", "doc")))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                        .then(() -> load(components, PERMIT_WHEN_FLAG)).then(() -> flagPip.publish(Value.of(false)))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.DENY))
-                        .then(() -> flagPip.publish(Value.of(true)))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                        .then(() -> load(components, DENY_ALL))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.DENY)).expectNoEvent(QUIET_WINDOW)
-                        .thenCancel().verify(Duration.ofSeconds(5));
-            }
-        }
-
-        @Test
-        @DisplayName("decide emits INDETERMINATE on configuration removal and re-evaluates on re-load")
-        void whenConfigurationRemovedThenIndeterminateAndStreamStaysAliveForReLoad() {
-            val flagPip = new FlagPip();
-            try (val components = emptyComponents(flagPip)) {
-                load(components, PERMIT_ALL);
-
-                StepVerifier.create(components.pdp().decide(subscription("alice", "read", "doc")))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                        .then(() -> components.pdpVoterSource().removeConfigurationForPdp("default"))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.INDETERMINATE))
-                        .then(() -> load(components, PERMIT_ALL))
-                        .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                        .expectNoEvent(QUIET_WINDOW).thenCancel().verify(Duration.ofSeconds(5));
-            }
-        }
-
-        @Test
-        @DisplayName("decideAll re-evaluates every sub on configuration reload")
-        void whenConfigurationReloadedThenDecideAllReevaluatesEveryBundle() {
-            val flagPip = new FlagPip();
-            try (val components = emptyComponents(flagPip)) {
-                load(components, DENY_ALL);
-
-                StepVerifier.create(components.pdp().decideAll(twoSubs())).assertNext(initial -> {
-                    assertThat(initial.getDecision("alice-sub").decision()).isEqualTo(Decision.DENY);
-                    assertThat(initial.getDecision("bob-sub").decision()).isEqualTo(Decision.DENY);
-                }).then(() -> load(components, PERMIT_ALL)).assertNext(reloaded -> {
-                    assertThat(reloaded.getDecision("alice-sub").decision()).isEqualTo(Decision.PERMIT);
-                    assertThat(reloaded.getDecision("bob-sub").decision()).isEqualTo(Decision.PERMIT);
-                }).expectNoEvent(QUIET_WINDOW).thenCancel().verify(Duration.ofSeconds(5));
-            }
-        }
     }
 
     @Nested

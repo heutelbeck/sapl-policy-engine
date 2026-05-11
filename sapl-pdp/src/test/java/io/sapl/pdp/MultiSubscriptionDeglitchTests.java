@@ -30,9 +30,8 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -51,7 +50,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 /**
  * Locks the de-glitching invariants of the multi-subscription paths
- * in both {@link ReactivePolicyDecisionPoint} and
+ * in both {@link DelegatingReactivePolicyDecisionPoint} and
  * {@link BlockingPolicyDecisionPoint}.
  * <p>
  * Two contracts are tested for each PDP:
@@ -114,7 +113,7 @@ class MultiSubscriptionDeglitchTests {
     }
 
     @Nested
-    @DisplayName("ReactivePolicyDecisionPoint")
+    @DisplayName("DelegatingReactivePolicyDecisionPoint")
     class Reactive {
 
         @Test
@@ -125,7 +124,7 @@ class MultiSubscriptionDeglitchTests {
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
                 flagPip.publish(Value.of(false));
 
-                StepVerifier.create(components.pdp().decideAll(twoSubs()))
+                StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decideAll(twoSubs()))
                         .assertNext(initial -> assertBundleDecisions(initial, Decision.DENY, Decision.DENY))
                         .then(() -> flagPip.publish(Value.of(true)))
                         .assertNext(flipped -> assertBundleDecisions(flipped, Decision.PERMIT, Decision.PERMIT))
@@ -141,8 +140,9 @@ class MultiSubscriptionDeglitchTests {
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
                 flagPip.publish(Value.of(true));
 
-                StepVerifier.create(components.pdp().decideAll(twoSubs())).assertNext(
-                        initial -> assertThat(initial.getDecision("alice-sub").decision()).isEqualTo(Decision.PERMIT))
+                StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decideAll(twoSubs()))
+                        .assertNext(initial -> assertThat(initial.getDecision("alice-sub").decision())
+                                .isEqualTo(Decision.PERMIT))
                         .then(() -> {
                             flagPip.publish(Value.of(true));
                             flagPip.publish(Value.of(true));
@@ -162,7 +162,7 @@ class MultiSubscriptionDeglitchTests {
                 val initialIds = new CopyOnWriteArrayList<String>();
                 val flippedIds = new CopyOnWriteArrayList<String>();
 
-                StepVerifier.create(components.pdp().decide(twoSubs()))
+                StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decide(twoSubs()))
                         .assertNext(change -> recordInitialDeny(change, initialIds))
                         .assertNext(change -> recordInitialDeny(change, initialIds))
                         .then(() -> flagPip.publish(Value.of(true)))

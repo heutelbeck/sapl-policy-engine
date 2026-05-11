@@ -682,7 +682,6 @@
 
 		<!-- Benchmarks (not published, not in BOM) -->
 		<module>sapl-benchmark/sapl-benchmark-sapl4</module>
-		<module>sapl-benchmark/sapl-benchmark-sapl3</module>
 
 		<!-- BOM (after all artifacts it references) -->
 		<module>sapl-bom</module>

@@ -42,7 +42,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class RemoteHttpPolicyDecisionPointLogTests {
+class RemoteHttpReactivePolicyDecisionPointLogTests {
 
     private static final String SUBJECT      = "subject";
     private static final String ACTION       = "action";
@@ -62,7 +62,7 @@ class RemoteHttpPolicyDecisionPointLogTests {
 
         logAppender = new ListAppender<>();
         logAppender.start();
-        pdpLogger = (Logger) LoggerFactory.getLogger(RemoteHttpPolicyDecisionPoint.class);
+        pdpLogger = (Logger) LoggerFactory.getLogger(RemoteHttpReactivePolicyDecisionPoint.class);
         pdpLogger.addAppender(logAppender);
         retryLogger = (Logger) LoggerFactory.getLogger(RemotePdpRetry.class);
         retryLogger.addAppender(logAppender);
@@ -76,7 +76,7 @@ class RemoteHttpPolicyDecisionPointLogTests {
         server.shutdown();
     }
 
-    private RemoteHttpPolicyDecisionPoint createPdpWithBasicAuth(String key, String secret) {
+    private RemoteHttpReactivePolicyDecisionPoint createPdpWithBasicAuth(String key, String secret) {
         val p = RemotePolicyDecisionPoint.builder().http().baseUrl(server.url("/").toString())
                 .withHttpClient(HttpClient.create()).basicAuth(key, secret).build();
         p.setFirstBackoffMillis(50);
@@ -85,7 +85,7 @@ class RemoteHttpPolicyDecisionPointLogTests {
         return p;
     }
 
-    private RemoteHttpPolicyDecisionPoint createPdpWithApiKey(String apiKey) {
+    private RemoteHttpReactivePolicyDecisionPoint createPdpWithApiKey(String apiKey) {
         val p = RemotePolicyDecisionPoint.builder().http().baseUrl(server.url("/").toString())
                 .withHttpClient(HttpClient.create()).apiKey(apiKey).build();
         p.setFirstBackoffMillis(50);

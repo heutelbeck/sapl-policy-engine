@@ -19,7 +19,7 @@ package io.sapl.spring.pep.method.reactive;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
@@ -74,7 +74,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private static final Object EMPTY_RAP_MARKER = new Object();
 
-    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
     private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;

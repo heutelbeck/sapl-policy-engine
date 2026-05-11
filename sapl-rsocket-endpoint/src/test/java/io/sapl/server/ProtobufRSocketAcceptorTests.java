@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +45,6 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import io.sapl.server.pdpcontroller.ProtobufRSocketAcceptor;
 import io.sapl.server.pdpcontroller.RSocketConnectionAuthenticator.AuthenticationResult;
@@ -67,7 +67,7 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
-            val pdp = mock(PolicyDecisionPoint.class);
+            val pdp = mock(ReactivePolicyDecisionPoint.class);
             when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val acceptor = new ProtobufRSocketAcceptor(pdp, setup -> {
@@ -143,7 +143,7 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
-            val pdp = mock(PolicyDecisionPoint.class);
+            val pdp = mock(ReactivePolicyDecisionPoint.class);
             when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val acceptor = new ProtobufRSocketAcceptor(pdp, setup -> {
@@ -206,7 +206,7 @@ class ProtobufRSocketAcceptorTests {
         @Test
         @DisplayName("max-connection-lifetime enforced for non-expiring credentials")
         void whenMaxLifetimeThenConnectionDisposed() throws IOException {
-            val pdp = mock(PolicyDecisionPoint.class);
+            val pdp = mock(ReactivePolicyDecisionPoint.class);
             when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
 
             val localPort = TestSocketUtils.findAvailableTcpPort();
@@ -249,7 +249,7 @@ class ProtobufRSocketAcceptorTests {
 
         @BeforeAll
         void startServer() {
-            val pdp = mock(PolicyDecisionPoint.class);
+            val pdp = mock(ReactivePolicyDecisionPoint.class);
             when(pdp.decideOnceBlocking(any(), any())).thenReturn(AuthorizationDecision.DENY);
             when(pdp.decide(any(AuthorizationSubscription.class), any()))
                     .thenReturn(Flux.just(AuthorizationDecision.PERMIT, AuthorizationDecision.DENY));

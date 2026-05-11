@@ -42,7 +42,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.config.PdpIdAuthenticationExtractor;
 import io.sapl.node.auth.SaplAuthenticationToken;
 import io.sapl.node.auth.SaplJwtAuthenticationConverter;
@@ -98,7 +98,7 @@ public class SecurityConfiguration {
             if (principal instanceof UserDetails userDetails) {
                 return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
             }
-            return Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID);
+            return Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
         };
     }
 

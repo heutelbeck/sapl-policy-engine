@@ -21,8 +21,10 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.pdp.PDPComponents;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
 import lombok.val;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -57,7 +59,8 @@ public class EmbeddedPdpBenchmark {
     @Param({ "42" })
     public String seed;
 
-    private PolicyDecisionPoint         pdp;
+    private BlockingPolicyDecisionPoint blockingPdp;
+    private ReactivePolicyDecisionPoint reactivePdp;
     private AuthorizationSubscription[] subscriptions;
     private PDPComponents               components;
     private final AtomicInteger         subscriptionIndex = new AtomicInteger(0);
@@ -68,7 +71,8 @@ public class EmbeddedPdpBenchmark {
         val flags    = ObjectValue.builder().put("indexing", Value.of(indexingStrategy.toUpperCase()))
                 .put("unrollInOperator", Value.of(Boolean.parseBoolean(unrollInOperator))).build();
         components    = scenario.buildPdp(flags);
-        pdp           = components.pdp();
+        blockingPdp   = components.pdp();
+        reactivePdp   = ReactivePolicyDecisionPointBuilder.from(components).pdp();
         subscriptions = scenario.subscriptions().toArray(AuthorizationSubscription[]::new);
     }
 
@@ -91,25 +95,28 @@ public class EmbeddedPdpBenchmark {
     }
 
     /**
-     * Evaluates a single authorization decision using the blocking API.
-     * Cycles through subscriptions round-robin.
+     * Evaluates a single authorization decision against the blocking PDP
+     * (no Reactor pipeline in the path). Cycles through subscriptions
+     * round-robin.
      *
      * @return the authorization decision
      */
     @Benchmark
     public AuthorizationDecision decideOnceBlocking() {
-        return pdp.decideOnceBlocking(nextSubscription());
+        return blockingPdp.decideOnce(nextSubscription());
     }
 
     /**
-     * Evaluates a single authorization decision by subscribing to the reactive
-     * stream and taking the first element.
+     * Evaluates a single authorization decision against the reactive PDP
+     * by subscribing to the {@link reactor.core.publisher.Flux} stream
+     * and taking the first element. Measures the Reactor adapter
+     * overhead on top of the same underlying evaluation.
      *
      * @return the authorization decision
      */
     @Benchmark
     public AuthorizationDecision decideStreamFirst() {
-        return pdp.decide(nextSubscription()).blockFirst();
+        return reactivePdp.decide(nextSubscription()).blockFirst();
     }
 
     private AuthorizationSubscription nextSubscription() {

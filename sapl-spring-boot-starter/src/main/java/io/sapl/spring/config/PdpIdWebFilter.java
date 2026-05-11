@@ -19,7 +19,7 @@ package io.sapl.spring.config;
 
 import static io.sapl.spring.tenant.DefaultReactiveTenantResolver.REACTOR_CONTEXT_PDP_ID_KEY;
 
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.tenant.DefaultReactiveTenantResolver;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import org.jspecify.annotations.NonNull;
@@ -45,7 +45,8 @@ import reactor.util.context.Context;
  * written under
  * {@link DefaultReactiveTenantResolver#REACTOR_CONTEXT_PDP_ID_KEY};
  * a missing authentication or empty extraction falls back to
- * {@link PolicyDecisionPoint#DEFAULT_PDP_ID}. {@link ReactiveTenantResolver}
+ * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
+ * {@link ReactiveTenantResolver}
  * implementations downstream consume the value.
  */
 @RequiredArgsConstructor
@@ -58,10 +59,10 @@ public class PdpIdWebFilter implements WebFilter {
         return ReactiveSecurityContextHolder.getContext().flatMap(securityContext -> {
             var authentication = securityContext.getAuthentication();
             if (authentication == null) {
-                return Mono.just(PolicyDecisionPoint.DEFAULT_PDP_ID);
+                return Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
             }
-            return extractor.extractPdpId(authentication).defaultIfEmpty(PolicyDecisionPoint.DEFAULT_PDP_ID);
-        }).defaultIfEmpty(PolicyDecisionPoint.DEFAULT_PDP_ID)
+            return extractor.extractPdpId(authentication).defaultIfEmpty(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+        }).defaultIfEmpty(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)
                 .flatMap(pdpId -> chain.filter(exchange).contextWrite(Context.of(REACTOR_CONTEXT_PDP_ID_KEY, pdpId)));
     }
 

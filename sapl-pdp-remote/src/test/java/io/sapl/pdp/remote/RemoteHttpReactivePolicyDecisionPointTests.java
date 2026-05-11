@@ -54,7 +54,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class RemoteHttpPolicyDecisionPointTests {
+class RemoteHttpReactivePolicyDecisionPointTests {
 
     private static final String ID = "id1";
 
@@ -69,7 +69,7 @@ class RemoteHttpPolicyDecisionPointTests {
 
     private MockWebServer server;
 
-    private RemoteHttpPolicyDecisionPoint pdp;
+    private RemoteHttpReactivePolicyDecisionPoint pdp;
 
     @BeforeAll
     static void setupLog() {

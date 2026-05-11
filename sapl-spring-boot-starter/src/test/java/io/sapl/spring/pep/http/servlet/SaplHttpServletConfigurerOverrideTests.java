@@ -28,6 +28,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -52,7 +53,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -69,7 +69,7 @@ class SaplHttpServletConfigurerOverrideTests {
     MockMvc mockMvc;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
 
     @Test
     @DisplayName("Configurer subscriptionFactory(...) shapes the subscription that reaches the PDP")

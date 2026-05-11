@@ -44,7 +44,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
@@ -66,16 +66,16 @@ class SaplAuthorizationManagerTests {
 
     private static final String CAPTURE_REQUEST = "captureRequest";
 
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(PolicyDecisionPoint.class);
+        pdp = mock(ReactivePolicyDecisionPoint.class);
     }
 
     private SaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new SaplAuthorizationManager(pdp, () -> PolicyDecisionPoint.DEFAULT_PDP_ID, planner,
+        return new SaplAuthorizationManager(pdp, () -> ReactivePolicyDecisionPoint.DEFAULT_PDP_ID, planner,
                 new DefaultAuthorizationSubscriptionFactory(MAPPER));
     }
 

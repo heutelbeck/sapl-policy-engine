@@ -25,7 +25,6 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PdpVoterSource;
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,11 +43,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * End-to-end tests for {@link BlockingPolicyDecisionPoint}. Mirrors
- * {@link ReactivePolicyDecisionPointTests} scenario shape so behavioural
+ * {@link DelegatingReactivePolicyDecisionPointTests} scenario shape so
+ * behavioural
  * parity between the two PDPs is observable from the test inputs.
  */
 @DisplayName("BlockingPolicyDecisionPoint")
-class BlockingPolicyDecisionPointTests {
+class BlockingReactivePolicyDecisionPointTests {
 
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
             DefaultDecision.DENY, ErrorHandling.ABSTAIN);

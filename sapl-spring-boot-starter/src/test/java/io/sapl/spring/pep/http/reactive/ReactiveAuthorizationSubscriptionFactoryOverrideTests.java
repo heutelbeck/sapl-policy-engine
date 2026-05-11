@@ -42,7 +42,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.serialization.SaplReactiveJacksonModule;
 import lombok.val;
@@ -62,11 +62,11 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule())
             .addModule(new SaplReactiveJacksonModule()).build();
 
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(PolicyDecisionPoint.class);
+        pdp = mock(ReactivePolicyDecisionPoint.class);
         when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
                 .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
     }
@@ -126,8 +126,7 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
     private AuthorizationSubscription subscribeAndCapture(ReactiveAuthorizationSubscriptionFactory factory) {
         val planner  = new EnforcementPlanner(java.util.List.of(), MAPPER);
         val manager  = new ReactiveSaplAuthorizationManager(pdp,
-                () -> reactor.core.publisher.Mono.just(io.sapl.reactive.api.pdp.PolicyDecisionPoint.DEFAULT_PDP_ID),
-                planner, factory);
+                () -> reactor.core.publisher.Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID), planner, factory);
         val request  = MockServerHttpRequest.get("/orders/42").build();
         val exchange = MockServerWebExchange.from(request);
         val auth     = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",
