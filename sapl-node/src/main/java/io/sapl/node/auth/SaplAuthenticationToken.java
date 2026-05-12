@@ -19,6 +19,7 @@ package io.sapl.node.auth;
 
 import java.io.Serial;
 import java.util.List;
+import java.util.Objects;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -48,10 +49,7 @@ public class SaplAuthenticationToken extends AbstractAuthenticationToken {
      */
     public SaplAuthenticationToken(SaplUser saplUser, Object credentials) {
         super(List.of(PDP_CLIENT_AUTHORITY));
-        if (saplUser == null) {
-            throw new IllegalArgumentException("SaplUser must not be null");
-        }
-        this.saplUser    = saplUser;
+        this.saplUser    = Objects.requireNonNull(saplUser, "SaplUser must not be null");
         this.credentials = credentials;
         setAuthenticated(true);
     }

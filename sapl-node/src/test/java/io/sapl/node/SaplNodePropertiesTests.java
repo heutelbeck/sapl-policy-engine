@@ -37,7 +37,7 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("normalizes missing pdpId to defaultPdpId when rejectOnMissingPdpId is false")
-        void whenRejectDisabledAndPdpIdMissing_thenNormalizesToDefault() {
+        void whenRejectDisabledAndPdpIdMissingThenNormalizesToDefault() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
             properties.setDefaultPdpId("fallback");
@@ -50,7 +50,7 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("normalizes blank pdpId to defaultPdpId when rejectOnMissingPdpId is false")
-        void whenRejectDisabledAndPdpIdBlank_thenNormalizesToDefault() {
+        void whenRejectDisabledAndPdpIdBlankThenNormalizesToDefault() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
             properties.setDefaultPdpId("fallback");
@@ -63,7 +63,7 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("preserves pdpId when explicitly set")
-        void whenPdpIdSet_thenPreserved() {
+        void whenPdpIdSetThenPreserved() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
 
@@ -81,7 +81,7 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("throws when pdpId missing and rejectOnMissingPdpId is true")
-        void whenRejectEnabledAndPdpIdMissing_thenThrows() {
+        void whenRejectEnabledAndPdpIdMissingThenThrows() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(true);
 
@@ -94,7 +94,7 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("throws when pdpId blank and rejectOnMissingPdpId is true")
-        void whenRejectEnabledAndPdpIdBlank_thenThrows() {
+        void whenRejectEnabledAndPdpIdBlankThenThrows() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(true);
 
@@ -107,7 +107,7 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("already-normalized users are not rejected when rejectOnMissingPdpId changes to true")
-        void whenRejectChangesToTrue_thenAlreadyNormalizedUsersAreAccepted() {
+        void whenRejectChangesToTrueThenAlreadyNormalizedUsersAreAccepted() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
             properties.setDefaultPdpId("fallback");

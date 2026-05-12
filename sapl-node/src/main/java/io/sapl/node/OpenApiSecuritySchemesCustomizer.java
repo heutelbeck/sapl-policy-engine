@@ -75,7 +75,7 @@ import lombok.val;
 @Slf4j
 @Configuration(proxyBeanMethods = false)
 @RequiredArgsConstructor
-public class OpenApiSecuritySchemesCustomizer {
+class OpenApiSecuritySchemesCustomizer {
 
     private static final String SCHEME_BASIC   = "basic";
     private static final String SCHEME_API_KEY = "saplApiKey";

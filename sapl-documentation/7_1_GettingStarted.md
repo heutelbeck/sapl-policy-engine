@@ -128,7 +128,7 @@ curl -s http://localhost:8443/actuator/health | jq .
 
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
-The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allow-no-auth` is enabled by default):
+The info endpoint shows PDP configuration (this endpoint requires authentication in production; the snippet below assumes you started the node with `--io.sapl.node.allow-no-auth=true` for local exploration):
 
 ```shell
 curl -s http://localhost:8443/actuator/info | jq .

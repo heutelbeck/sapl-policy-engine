@@ -18,7 +18,7 @@
 package io.sapl.node.cli.benchmark;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.jspecify.annotations.Nullable;
 
@@ -32,8 +32,8 @@ import lombok.val;
  */
 class LatencyCollector {
 
-    private final long[]        samples;
-    private final AtomicInteger index = new AtomicInteger(0);
+    private final long[]     samples;
+    private final AtomicLong index = new AtomicLong(0);
 
     /**
      * Creates a collector with the given capacity.
@@ -41,6 +41,9 @@ class LatencyCollector {
      * @param capacity maximum number of samples before wrapping
      */
     LatencyCollector(int capacity) {
+        if (capacity <= 0) {
+            throw new IllegalArgumentException("capacity must be positive, got " + capacity);
+        }
         this.samples = new long[capacity];
     }
 
@@ -51,7 +54,7 @@ class LatencyCollector {
      */
     void addSample(long nanos) {
         val i = index.getAndIncrement();
-        samples[i % samples.length] = nanos;
+        samples[(int) Math.floorMod(i, (long) samples.length)] = nanos;
     }
 
     /**
@@ -60,7 +63,7 @@ class LatencyCollector {
      * @return sample count
      */
     int count() {
-        return Math.min(index.get(), samples.length);
+        return (int) Math.min(index.get(), (long) samples.length);
     }
 
     /**

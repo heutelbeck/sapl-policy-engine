@@ -23,12 +23,12 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.functions.libraries.SaplFunctionLibrary;
 import io.sapl.node.cli.commands.BenchmarkCommand;
-import io.sapl.node.cli.commands.LoadtestCommand;
 import io.sapl.node.cli.commands.BundleCommand;
 import io.sapl.node.cli.commands.CheckCommand;
 import io.sapl.node.cli.commands.DecideCommand;
 import io.sapl.node.cli.commands.DecideOnceCommand;
 import io.sapl.node.cli.commands.GenerateCredentialsCommand;
+import io.sapl.node.cli.commands.LoadtestCommand;
 import io.sapl.node.cli.commands.ServerCommand;
 import io.sapl.node.cli.commands.TestCommand;
 import lombok.val;
@@ -93,7 +93,7 @@ public class SaplNodeCli implements Callable<Integer> {
         return 0;
     }
 
-    static class VersionProvider implements IVersionProvider {
+    static final class VersionProvider implements IVersionProvider {
 
         private static final String UNKNOWN = "unknown";
 

@@ -44,7 +44,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("--dir sets policy source directory")
-        void whenDirOption_thenPolicySourceDirIsSet() {
+        void whenDirOptionThenPolicySourceDirIsSet() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--dir", "/tmp/policies");
             assertThat(cmd.pdpOptions.policySource.dir).isEqualTo(Path.of("/tmp/policies"));
@@ -52,7 +52,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("--bundle sets policy source bundle")
-        void whenBundleOption_thenPolicySourceBundleIsSet() {
+        void whenBundleOptionThenPolicySourceBundleIsSet() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--bundle", "/tmp/my.saplbundle");
             assertThat(cmd.pdpOptions.policySource.bundle).isEqualTo(Path.of("/tmp/my.saplbundle"));
@@ -61,7 +61,7 @@ class DecideOnceCommandTests {
         @ParameterizedTest(name = "rejects {0}")
         @DisplayName("mutually exclusive options are rejected")
         @MethodSource
-        void whenMutuallyExclusiveOptions_thenNonZeroExitCode(String description, String[] args) {
+        void whenMutuallyExclusiveOptionsThenNonZeroExitCode(String description, String[] args) {
             val err = new StringWriter();
             val cmd = new CommandLine(new DecideOnceCommand());
             cmd.setErr(new PrintWriter(err));
@@ -69,7 +69,7 @@ class DecideOnceCommandTests {
             assertThat(exitCode).isNotZero();
         }
 
-        static Stream<Arguments> whenMutuallyExclusiveOptions_thenNonZeroExitCode() {
+        static Stream<Arguments> whenMutuallyExclusiveOptionsThenNonZeroExitCode() {
             return Stream.of(arguments("--dir and --bundle", new String[] { "--dir", "/a", "--bundle", "/b" }),
                     arguments("--public-key and --no-verify", new String[] { "--public-key", "/k", "--no-verify" }),
                     arguments("named flags and --file",
@@ -78,7 +78,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("named flags populate subscription input fields")
-        void whenNamedFlags_thenSubscriptionInputPopulated() {
+        void whenNamedFlagsThenSubscriptionInputPopulated() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
             assertThat(cmd.pdpOptions.subscriptionInput.named).satisfies(named -> {
@@ -90,7 +90,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("-s alone without -a and -r is rejected")
-        void whenSubjectOnly_thenNonZeroExitCode() {
+        void whenSubjectOnlyThenNonZeroExitCode() {
             val err = new StringWriter();
             val cmd = new CommandLine(new DecideOnceCommand());
             cmd.setErr(new PrintWriter(err));
@@ -100,7 +100,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("-f alone sets file path with named input null")
-        void whenFileOnly_thenFilePopulatedAndNamedNull() {
+        void whenFileOnlyThenFilePopulatedAndNamedNull() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("-f", "request.json");
             assertThat(cmd.pdpOptions.subscriptionInput).satisfies(input -> {
@@ -111,7 +111,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("-f - sets stdin marker path")
-        void whenFileDash_thenStdinMarkerPath() {
+        void whenFileDashThenStdinMarkerPath() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("-f", "-");
             assertThat(cmd.pdpOptions.subscriptionInput.file).isEqualTo(Path.of("-"));
@@ -119,7 +119,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("--trace sets trace flag")
-        void whenTraceFlag_thenTraceIsTrue() {
+        void whenTraceFlagThenTraceIsTrue() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--trace");
             assertThat(cmd.pdpOptions.trace).isTrue();
@@ -127,7 +127,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("no subscription input leaves subscriptionInput null")
-        void whenNoSubscriptionInput_thenSubscriptionInputIsNull() {
+        void whenNoSubscriptionInputThenSubscriptionInputIsNull() {
             val cmd = new DecideOnceCommand();
             new CommandLine(cmd).parseArgs("--dir", "/tmp");
             assertThat(cmd.pdpOptions.subscriptionInput).isNull();
@@ -135,7 +135,7 @@ class DecideOnceCommandTests {
 
         @Test
         @DisplayName("--help produces help text and exits with code 0")
-        void whenHelp_thenExitZeroWithHelpText() {
+        void whenHelpThenExitZeroWithHelpText() {
             val out = new StringWriter();
             val cmd = new CommandLine(new DecideOnceCommand());
             cmd.setOut(new PrintWriter(out));

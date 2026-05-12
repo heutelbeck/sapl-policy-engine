@@ -50,7 +50,7 @@ import lombok.val;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SpringBootScalarProperties.class)
-public class ScalarConfiguration {
+class ScalarConfiguration {
 
     private static final String SAPL_SCALAR_THEME_CSS = "static/css/sapl-scalar-theme.css";
 
@@ -86,7 +86,7 @@ public class ScalarConfiguration {
     @Bean
     WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> openApiYamlMimeMapping() {
         return factory -> {
-            var mappings = new MimeMappings(MimeMappings.DEFAULT);
+            val mappings = new MimeMappings(MimeMappings.DEFAULT);
             mappings.add("yaml", "application/yaml");
             mappings.add("yml", "application/yaml");
             factory.setMimeMappings(mappings);

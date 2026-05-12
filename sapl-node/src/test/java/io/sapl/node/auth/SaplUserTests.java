@@ -36,7 +36,7 @@ class SaplUserTests {
 
         @Test
         @DisplayName("creates user with given id and pdpId")
-        void whenValidIdAndPdpId_thenCreatesUser() {
+        void whenValidIdAndPdpIdThenCreatesUser() {
             var user = new SaplUser("user-1", "production");
 
             assertThat(user.id()).isEqualTo("user-1");
@@ -47,7 +47,7 @@ class SaplUserTests {
         @NullAndEmptySource
         @ValueSource(strings = { "  ", "\t", "\n" })
         @DisplayName("throws IllegalArgumentException for null or blank id")
-        void whenNullOrBlankId_thenThrows(String id) {
+        void whenNullOrBlankIdThenThrows(String id) {
             assertThatThrownBy(() -> new SaplUser(id, "pdp")).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("id must not be null or blank");
         }
@@ -56,7 +56,7 @@ class SaplUserTests {
         @NullAndEmptySource
         @ValueSource(strings = { "  ", "\t", "\n" })
         @DisplayName("defaults pdpId to 'default' when null or blank")
-        void whenNullOrBlankPdpId_thenDefaultsToDefault(String pdpId) {
+        void whenNullOrBlankPdpIdThenDefaultsToDefault(String pdpId) {
             var user = new SaplUser("user-1", pdpId);
 
             assertThat(user.pdpId()).isEqualTo("default");
@@ -70,7 +70,7 @@ class SaplUserTests {
 
         @Test
         @DisplayName("creates user with 'default' pdpId")
-        void whenCalled_thenCreatesUserWithDefaultPdpId() {
+        void whenCalledThenCreatesUserWithDefaultPdpId() {
             var user = SaplUser.withDefaultPdpId("user-1");
 
             assertThat(user.id()).isEqualTo("user-1");

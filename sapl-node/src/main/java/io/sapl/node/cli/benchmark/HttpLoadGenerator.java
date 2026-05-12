@@ -52,12 +52,12 @@ import reactor.core.scheduler.Schedulers;
 @UtilityClass
 public class HttpLoadGenerator {
 
-    private static final int    MAX_LATENCY_SAMPLES   = 2_000_000;
     private static final int    CONVERGENCE_THRESHOLD = 5;
     private static final int    CONVERGENCE_WINDOW    = 3;
+    private static final String ENDPOINT              = "/api/pdp/decide-once";
+    private static final int    MAX_LATENCY_SAMPLES   = 2_000_000;
     private static final int    MAX_WARMUP_ITERATIONS = 15;
     private static final int    WARMUP_INTERVAL_SECS  = 3;
-    private static final String ENDPOINT              = "/api/pdp/decide-once";
 
     /**
      * Runs an HTTP load test against a SAPL PDP server.

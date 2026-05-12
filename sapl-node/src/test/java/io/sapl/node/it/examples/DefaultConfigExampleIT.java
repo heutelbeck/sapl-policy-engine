@@ -36,11 +36,10 @@ import lombok.val;
 import reactor.test.StepVerifier;
 
 /**
- * Smoke tests for the out-of-the-box default configuration.
- * <p>
- * Validates that the default application.yml shipped inside the sapl-node image
- * works correctly: no TLS, no authentication required (allowNoAuth: true),
- * DIRECTORY policy source. Policies are mounted from test resources.
+ * Smoke tests for the no-authentication path with the DIRECTORY policy
+ * source. The fail-closed default refuses to start without an auth mode, so
+ * this test enables {@code allow-no-auth} explicitly to exercise the
+ * unauthenticated path. Policies are mounted from test resources.
  */
 @Testcontainers
 @DisplayName("Default Config Smoke Tests")
@@ -51,7 +50,8 @@ class DefaultConfigExampleIT extends BaseIntegrationTest {
         return createSaplNodeContainer()
                 .withClasspathResourceMapping("it/policies/single-pdp", "/pdp/data/", BindMode.READ_ONLY)
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
-                .withEnv("IO_SAPL_PDP_EMBEDDED_CONFIGPATH", "/pdp/data").withEnv("SERVER_SSL_ENABLED", "false");
+                .withEnv("IO_SAPL_PDP_EMBEDDED_CONFIGPATH", "/pdp/data").withEnv("SERVER_SSL_ENABLED", "false")
+                .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true");
     }
 
     @Nested

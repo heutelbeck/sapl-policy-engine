@@ -32,7 +32,7 @@ import java.util.Map;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "Resource being accessed, identified by type and id with optional attributes.")
-public record OpenIdResource(
+record OpenIdResource(
         @NotBlank @Schema(example = "book", requiredMode = Schema.RequiredMode.REQUIRED) String type,
         @NotBlank @Schema(example = "42", requiredMode = Schema.RequiredMode.REQUIRED) String id,
         @Schema(description = "Free-form resource attributes.") Map<String, Object> properties) {}

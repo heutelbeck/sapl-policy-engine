@@ -38,7 +38,7 @@ class DecideCommandTests {
 
         @Test
         @DisplayName("--help produces help text and exits with code 0")
-        void whenHelp_thenExitZeroWithHelpText() {
+        void whenHelpThenExitZeroWithHelpText() {
             val out = new StringWriter();
             val cmd = new CommandLine(new DecideCommand());
             cmd.setOut(new PrintWriter(out));

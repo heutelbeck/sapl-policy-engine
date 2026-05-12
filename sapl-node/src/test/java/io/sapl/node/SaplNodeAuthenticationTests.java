@@ -19,15 +19,20 @@ package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -44,29 +49,42 @@ import io.sapl.node.auth.UserLookupService;
 import lombok.val;
 
 @DisplayName("SAPL Node Authentication")
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class SaplNodeAuthenticationTests {
 
     private static final String   API_KEY         = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+    private static final String   API_KEY_ID      = "7A7ByyQd6U";
     private static final String   INVALID_API_KEY = "invalid-api-key";
     private static final String   ENCODED_API_KEY = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
     private static final String   USER_ID         = "test-user";
     private static final String   PDP_ID          = "test-pdp";
     private final PasswordEncoder passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
 
-    private CacheManager      cacheManager;
+    @Mock
+    private SaplNodeProperties pdpProperties;
+
+    @Mock
+    private CacheManager cacheManager;
+
+    @Mock
+    private Cache cache;
+
+    @Mock
+    private Cache.ValueWrapper cacheEntry;
+
     private UserLookupService userLookupService;
 
     @BeforeEach
     void setUp() {
-        val pdpProperties = mock(SaplNodeProperties.class);
-        cacheManager = mock(CacheManager.class);
-
         val userEntry = new UserEntry();
         userEntry.setId(USER_ID);
         userEntry.setPdpId(PDP_ID);
         userEntry.setApiKey(ENCODED_API_KEY);
+        userEntry.setApiKeyId(API_KEY_ID);
 
         when(pdpProperties.getUsers()).thenReturn(List.of(userEntry));
+        when(pdpProperties.getApiKeyIdIndex()).thenReturn(Map.of(API_KEY_ID, userEntry));
         userLookupService = new UserLookupService(pdpProperties, passwordEncoder);
     }
 
@@ -82,7 +100,7 @@ class SaplNodeAuthenticationTests {
 
         @Test
         @DisplayName("returns SaplAuthenticationToken with correct pdpId when valid API key provided")
-        void whenValidApiKeyProvided_thenReturnsSaplAuthenticationTokenWithPdpId() {
+        void whenValidApiKeyProvidedThenReturnsSaplAuthenticationTokenWithPdpId() {
             val authenticationManager = new ApiKeyAuthenticationManager();
             val request               = requestWithBearer(API_KEY);
 
@@ -108,9 +126,7 @@ class SaplNodeAuthenticationTests {
 
         @Test
         @DisplayName("returns cached SaplUser when API key is in cache")
-        void whenApiKeyInCache_thenReturnsCachedSaplUser() {
-            val cache      = mock(Cache.class);
-            val cacheEntry = mock(Cache.ValueWrapper.class);
+        void whenApiKeyInCacheThenReturnsCachedSaplUser() {
             val cachedUser = new SaplUser(USER_ID, PDP_ID);
 
             when(cacheManager.getCache("ApiKeyCache")).thenReturn(cache);
@@ -130,7 +146,7 @@ class SaplNodeAuthenticationTests {
 
         @Test
         @DisplayName("returns null when non-SAPL API key provided")
-        void whenNonSaplApiKeyProvided_thenReturnsNull() {
+        void whenNonSaplApiKeyProvidedThenReturnsNull() {
             val request       = requestWithBearer(INVALID_API_KEY);
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
             val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
@@ -140,7 +156,7 @@ class SaplNodeAuthenticationTests {
 
         @Test
         @DisplayName("throws exception when SAPL-prefixed API key is invalid")
-        void whenInvalidSaplApiKeyProvided_thenThrowsException() {
+        void whenInvalidSaplApiKeyProvidedThenThrowsException() {
             val request       = requestWithBearer(API_KEY + "XYZ");
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
             val converter     = apiKeyService.getHttpApiKeyAuthenticationConverter();

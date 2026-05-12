@@ -39,7 +39,7 @@ class SpringArgsBuilderTests {
 
     @Test
     @DisplayName("directory mode produces config-type, config-path, and policies-path")
-    void whenDirectoryMode_thenCorrectSpringArgs() {
+    void whenDirectoryModeThenCorrectSpringArgs() {
         val resolved = new ResolvedPolicy(DIRECTORY, "/tmp/policies", null, false);
         val args     = SpringArgsBuilder.build(resolved, false, false, false);
         assertThat(args)
@@ -51,7 +51,7 @@ class SpringArgsBuilderTests {
 
     @Test
     @DisplayName("bundle with public key includes key path without allow-unsigned")
-    void whenBundleWithKey_thenIncludesPublicKeyPath() {
+    void whenBundleWithKeyThenIncludesPublicKeyPath() {
         val resolved = new ResolvedPolicy(BUNDLES, "/tmp", "/tmp/key.pub", false);
         val args     = SpringArgsBuilder.build(resolved, false, false, false);
         assertThat(args)
@@ -62,7 +62,7 @@ class SpringArgsBuilderTests {
 
     @Test
     @DisplayName("bundle with no-verify includes allow-unsigned without key path")
-    void whenBundleNoVerify_thenIncludesAllowUnsigned() {
+    void whenBundleNoVerifyThenIncludesAllowUnsigned() {
         val resolved = new ResolvedPolicy(BUNDLES, "/tmp", null, true);
         val args     = SpringArgsBuilder.build(resolved, false, false, false);
         assertThat(args).contains("--io.sapl.pdp.embedded.bundle-security.allow-unsigned=true")
@@ -72,14 +72,14 @@ class SpringArgsBuilderTests {
     @ParameterizedTest(name = "when {0} enabled")
     @DisplayName("reporting flag includes property and logging override")
     @MethodSource
-    void whenReportingFlagEnabled_thenIncludesPropertyAndLogging(String flagName, boolean trace, boolean jsonReport,
+    void whenReportingFlagEnabledThenIncludesPropertyAndLogging(String flagName, boolean trace, boolean jsonReport,
             boolean textReport, String expectedProperty) {
         val resolved = new ResolvedPolicy(DIRECTORY, "/tmp", null, false);
         val args     = SpringArgsBuilder.build(resolved, trace, jsonReport, textReport);
         assertThat(args).contains(expectedProperty, "--logging.level.[io.sapl.pdp.interceptors]=INFO");
     }
 
-    static Stream<Arguments> whenReportingFlagEnabled_thenIncludesPropertyAndLogging() {
+    static Stream<Arguments> whenReportingFlagEnabledThenIncludesPropertyAndLogging() {
         return Stream.of(arguments("trace", true, false, false, "--io.sapl.pdp.embedded.print-trace=true"),
                 arguments("json-report", false, true, false, "--io.sapl.pdp.embedded.print-json-report=true"),
                 arguments("text-report", false, false, true, "--io.sapl.pdp.embedded.print-text-report=true"));
@@ -87,7 +87,7 @@ class SpringArgsBuilderTests {
 
     @Test
     @DisplayName("no reporting flags omits logging override")
-    void whenNoReportingFlags_thenNoLoggingOverride() {
+    void whenNoReportingFlagsThenNoLoggingOverride() {
         val resolved = new ResolvedPolicy(DIRECTORY, "/tmp", null, false);
         val args     = SpringArgsBuilder.build(resolved, false, false, false);
         assertThat(args).noneMatch(a -> a.contains("logging.level"));
@@ -95,7 +95,7 @@ class SpringArgsBuilderTests {
 
     @Test
     @DisplayName("multiple reporting flags produce single logging override")
-    void whenMultipleReportingFlags_thenSingleLoggingOverride() {
+    void whenMultipleReportingFlagsThenSingleLoggingOverride() {
         val resolved     = new ResolvedPolicy(DIRECTORY, "/tmp", null, false);
         val args         = SpringArgsBuilder.build(resolved, true, true, true);
         val loggingCount = Arrays.stream(args).filter(a -> a.contains("logging.level")).count();

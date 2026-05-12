@@ -29,7 +29,7 @@ import java.util.Map;
  * @param context optional reason fields and SAPL extensions; omitted when null
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Schema(description = "Access evaluation response: boolean decision and optional context with reasons or SAPL extensions.")
-public record OpenIdEvaluationResponse(
+@Schema(description = "Access evaluation response. Carries the boolean decision and an optional context with reasons or SAPL extensions.")
+record OpenIdEvaluationResponse(
         @Schema(example = "true", requiredMode = Schema.RequiredMode.REQUIRED) boolean decision,
         @Schema(description = "Optional reason fields (reason_admin, reason_user) and SAPL extensions (sapl.obligations, sapl.advice, sapl.resource, sapl.decision).") Map<String, Object> context) {}

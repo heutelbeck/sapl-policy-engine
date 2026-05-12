@@ -54,23 +54,22 @@ import java.util.Map;
  * NOT_APPLICABLE.
  */
 @UtilityClass
-public class DecisionMapper {
+class DecisionMapper {
 
-    static final String SAPL_KEY          = "sapl";
-    static final String OBLIGATIONS_KEY   = "obligations";
-    static final String ADVICE_KEY        = "advice";
-    static final String RESOURCE_KEY      = "resource";
-    static final String SAPL_DECISION_KEY = "decision";
-    static final String REASON_ADMIN_KEY  = "reason_admin";
-    static final String REASON_USER_KEY   = "reason_user";
-    static final String LANG_EN           = "en";
-    static final String LANG_EN_403       = "en-403";
-
-    static final String REASON_INDETERMINATE_EN            = "Policy evaluation could not reach a conclusion.";
-    static final String REASON_SUSPEND_EN_403              = "Authorization deferred. Retry after additional authentication.";
+    static final String ADVICE_KEY                         = "advice";
+    static final String LANG_EN                            = "en";
+    static final String LANG_EN_403                        = "en-403";
+    static final String OBLIGATIONS_KEY                    = "obligations";
+    static final String REASON_ADMIN_KEY                   = "reason_admin";
     static final String REASON_DENY_EN                     = "Access denied by policy.";
+    static final String REASON_INDETERMINATE_EN            = "Policy evaluation could not reach a conclusion.";
     static final String REASON_NOT_APPLICABLE_EN           = "No policy matched the request.";
     static final String REASON_PERMIT_NEEDS_ENFORCEMENT_EN = "Permit requires SAPL-aware enforcement of obligations or a transformed resource; mapped to deny for vanilla OpenID PEPs.";
+    static final String REASON_SUSPEND_EN_403              = "Authorization deferred. Retry after additional authentication.";
+    static final String REASON_USER_KEY                    = "reason_user";
+    static final String RESOURCE_KEY                       = "resource";
+    static final String SAPL_DECISION_KEY                  = "decision";
+    static final String SAPL_KEY                           = "sapl";
 
     public static OpenIdEvaluationResponse map(AuthorizationDecision sapl, ObjectMapper mapper) {
         final boolean             permitted = isUnambiguouslyPermitted(sapl);

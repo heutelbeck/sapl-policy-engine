@@ -32,7 +32,7 @@ import java.util.Map;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "Entity requesting permission, identified by type and id with optional attributes.")
-public record OpenIdSubject(
+record OpenIdSubject(
         @NotBlank @Schema(example = "user", requiredMode = Schema.RequiredMode.REQUIRED) String type,
         @NotBlank @Schema(example = "alice@acmecorp.com", requiredMode = Schema.RequiredMode.REQUIRED) String id,
-        @Schema(description = "Free-form attributes (department, ip_address, device_id, ...).") Map<String, Object> properties) {}
+        @Schema(description = "Free-form attributes such as department, ip_address, or device_id.") Map<String, Object> properties) {}

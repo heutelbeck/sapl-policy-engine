@@ -108,8 +108,7 @@ public class RSocketSecurityConfiguration {
         val passwordBuf = AuthMetadataCodec.readPassword(metadata);
         val username    = usernameBuf.toString(StandardCharsets.UTF_8);
         val password    = passwordBuf.toString(StandardCharsets.UTF_8);
-        log.debug("RSocket basic auth attempt: username='{}', password length={}", username, password.length());
-        val userOpt = userLookupService.findByBasicUsername(username);
+        val userOpt     = userLookupService.findByBasicUsername(username);
         if (userOpt.isEmpty()) {
             return Mono.error(new BadCredentialsException(ERROR_UNKNOWN_USER.formatted(username)));
         }
@@ -117,7 +116,6 @@ public class RSocketSecurityConfiguration {
         if (!passwordEncoder.matches(password, user.getBasic().getSecret())) {
             return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
         }
-        log.debug("RSocket basic auth: user={}, pdpId={}", user.getId(), user.getPdpId());
         return Mono.just(new AuthenticationResult(user.getPdpId(), null));
     }
 

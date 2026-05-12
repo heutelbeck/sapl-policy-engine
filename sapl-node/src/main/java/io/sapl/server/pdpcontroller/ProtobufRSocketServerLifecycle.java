@@ -52,6 +52,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final @Nullable Duration                       maxConnectionLifetime;
+    private final int                                      maxInboundPayloadSize;
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
@@ -64,6 +65,9 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         if (!enabled || running) {
             return;
         }
+        if (maxInboundPayloadSize <= 0) {
+            throw new IllegalStateException("maxInboundPayloadSize must be positive, got " + maxInboundPayloadSize);
+        }
         if (authenticator != null) {
             log.info("RSocket authentication enabled");
         } else {
@@ -72,9 +76,10 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         if (maxConnectionLifetime != null) {
             log.info("RSocket max connection lifetime: {}", maxConnectionLifetime);
         }
+        log.info("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
         val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator, maxConnectionLifetime);
         val transport = socketPath != null ? createUnixTransport(socketPath) : TcpServerTransport.create(port);
-        server  = RSocketServer.create(acceptor).bindNow(transport);
+        server  = RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
         running = true;
         if (socketPath != null) {
             log.info("Protobuf RSocket PDP server started on Unix socket {}", socketPath);

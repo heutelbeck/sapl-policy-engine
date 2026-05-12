@@ -31,6 +31,6 @@ import java.util.Map;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Schema(description = "Activity for which permission is requested.")
-public record OpenIdAction(
+record OpenIdAction(
         @NotBlank @Schema(example = "can_read", requiredMode = Schema.RequiredMode.REQUIRED) String name,
         @Schema(description = "Free-form action attributes.") Map<String, Object> properties) {}

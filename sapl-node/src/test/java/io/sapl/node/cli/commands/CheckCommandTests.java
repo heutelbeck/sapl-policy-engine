@@ -51,11 +51,11 @@ class CheckCommandTests {
         @ParameterizedTest(name = "{0} -> exit {1}")
         @DisplayName("decision maps to expected exit code")
         @MethodSource
-        void whenDecision_thenExpectedExitCode(String description, AuthorizationDecision decision, int expectedCode) {
+        void whenDecisionThenExpectedExitCode(String description, AuthorizationDecision decision, int expectedCode) {
             assertThat(toExitCode(decision)).isEqualTo(expectedCode);
         }
 
-        static Stream<Arguments> whenDecision_thenExpectedExitCode() {
+        static Stream<Arguments> whenDecisionThenExpectedExitCode() {
             return Stream.of(arguments("simple PERMIT", AuthorizationDecision.PERMIT, 0),
                     arguments("DENY", AuthorizationDecision.DENY, 2),
                     arguments("NOT_APPLICABLE", AuthorizationDecision.NOT_APPLICABLE, 3),
@@ -66,11 +66,11 @@ class CheckCommandTests {
         @ParameterizedTest(name = "PERMIT with {0} -> exit 4")
         @DisplayName("PERMIT with constraints returns exit code 4")
         @MethodSource
-        void whenPermitWithConstraints_thenExitCode4(String description, AuthorizationDecision decision) {
+        void whenPermitWithConstraintsThenExitCode4(String description, AuthorizationDecision decision) {
             assertThat(toExitCode(decision)).isEqualTo(4);
         }
 
-        static Stream<Arguments> whenPermitWithConstraints_thenExitCode4() {
+        static Stream<Arguments> whenPermitWithConstraintsThenExitCode4() {
             val obligation = new ArrayValue(List.of(new TextValue("log-access")));
             return Stream.of(
                     arguments("obligations",
@@ -84,7 +84,7 @@ class CheckCommandTests {
 
         @Test
         @DisplayName("PERMIT with advice but no obligations returns exit code 0")
-        void whenPermitWithAdviceOnly_thenExitCode0() {
+        void whenPermitWithAdviceOnlyThenExitCode0() {
             val advice   = new ArrayValue(List.of(new TextValue("consider-logging")));
             val decision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, advice, Value.UNDEFINED);
             assertThat(toExitCode(decision)).isZero();
@@ -98,7 +98,7 @@ class CheckCommandTests {
 
         @Test
         @DisplayName("--help produces help text and exits with code 0")
-        void whenHelp_thenExitZeroWithHelpText() {
+        void whenHelpThenExitZeroWithHelpText() {
             val out = new StringWriter();
             val cmd = new CommandLine(new CheckCommand());
             cmd.setOut(new PrintWriter(out));

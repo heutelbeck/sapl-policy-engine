@@ -48,7 +48,7 @@ class PdpSourceValidationTests {
 
         @Test
         @DisplayName("rejects RESOURCES as PDP config type")
-        void whenResourcesConfigured_thenContextFails() {
+        void whenResourcesConfiguredThenContextFails() {
             contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdp-config-type=RESOURCES")
                     .withBean(PdpSourceValidation.class)
                     .run(context -> assertThat(context).hasFailed().getFailure().rootCause()
@@ -65,7 +65,7 @@ class PdpSourceValidationTests {
         @ParameterizedTest(name = "{0} is accepted")
         @MethodSource("supportedConfigTypes")
         @DisplayName("accepts supported PDP config types")
-        void whenSupportedTypeConfigured_thenNoValidationError(String configType) {
+        void whenSupportedTypeConfiguredThenNoValidationError(String configType) {
             contextRunner.withPropertyValues("io.sapl.pdp.embedded.pdp-config-type=" + configType)
                     .withBean(PdpSourceValidation.class).run(context -> assertThat(context).hasNotFailed());
         }

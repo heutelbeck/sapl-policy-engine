@@ -43,7 +43,7 @@ class SaplNodeInfoContributorTests {
     @Test
     @DisplayName("contributes PDP configuration details to info endpoint")
     @SuppressWarnings("unchecked")
-    void whenContribute_thenAddsSaplDetails() {
+    void whenContributeThenAddsSaplDetails() {
         when(pdpProperties.getPdpConfigType()).thenReturn(PDPDataSource.DIRECTORY);
         when(pdpProperties.getConfigPath()).thenReturn("/pdp/data");
         when(pdpProperties.getPoliciesPath()).thenReturn("/pdp/data");

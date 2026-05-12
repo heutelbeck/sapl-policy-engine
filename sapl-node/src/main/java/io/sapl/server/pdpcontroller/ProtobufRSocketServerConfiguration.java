@@ -53,10 +53,11 @@ public class ProtobufRSocketServerConfiguration {
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
             @Value("${sapl.pdp.rsocket.max-connection-lifetime:#{null}}") @Nullable Duration maxConnectionLifetime,
+            @Value("${sapl.pdp.rsocket.max-inbound-payload-size:65536}") int maxInboundPayloadSize,
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator) {
-        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxConnectionLifetime, blockingPdp, pdp,
-                authenticator);
+        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxConnectionLifetime,
+                maxInboundPayloadSize, blockingPdp, pdp, authenticator);
     }
 
 }

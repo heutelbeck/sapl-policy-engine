@@ -22,7 +22,6 @@ import org.springframework.context.annotation.Configuration;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Registers the PDP metrics interceptor for Prometheus instrumentation.
@@ -38,10 +37,13 @@ import lombok.RequiredArgsConstructor;
  * behavior in both JVM and GraalVM native images.
  */
 @Configuration
-@RequiredArgsConstructor
 class MetricsConfiguration {
 
     private final EmbeddedPDPProperties properties;
+
+    MetricsConfiguration(EmbeddedPDPProperties properties) {
+        this.properties = properties;
+    }
 
     @Bean
     PdpMetricsCollector pdpMetricsCollector(MeterRegistry meterRegistry) {

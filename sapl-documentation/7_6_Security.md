@@ -40,7 +40,7 @@ In both contexts, authorization requests without matching policies are denied.
 
 SAPL Node supports four authentication modes. Each mode is controlled by a boolean property under `io.sapl.node`. Multiple modes can be active at the same time. When all four modes are disabled, every request is rejected.
 
-By default, `allow-no-auth` is enabled so the node is functional out of the box for development. For production, disable `allow-no-auth` and enable one or more credential-based modes.
+By default all four modes are disabled (fail-closed) and the node refuses to start. Enable at least one mode before launching. For local exploration set `allow-no-auth: true`; for production use one or more credential-based modes.
 
 A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdp-id` from the matched credential entry selects which tenant's policies evaluate the request.
 
@@ -81,7 +81,7 @@ The command prints the plaintext password and the YAML configuration block. Stor
 
 ### API Key Authentication
 
-API keys are sent as Bearer tokens in the `Authorization` header. The client sends `Authorization: Bearer sapl_...` on each request.
+API keys are sent as Bearer tokens in the `Authorization` header. The wire format is `sapl_<id>_<secret>` and the client sends `Authorization: Bearer sapl_<id>_<secret>` on each request.
 
 ```yaml
 io.sapl.node:
@@ -89,6 +89,7 @@ io.sapl.node:
   users:
     - id: "service-b"
       pdp-id: "production"
+      api-key-id: "<from-generator>"
       api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 ```
 
@@ -98,7 +99,7 @@ Generate a key with the CLI:
 sapl generate apikey --id service-b --pdp-id production
 ```
 
-The command prints the plaintext API key and the Argon2 encoded hash. The plaintext key is shown once and cannot be recovered from the hash.
+The command prints three things: the plaintext API key, its public `api-key-id` (the middle segment of the wire format), and the Argon2 encoded hash. Both `api-key-id` and `api-key` go into the user entry; the plaintext is shown once and cannot be recovered from the hash. The `api-key-id` lets the server route incoming requests in O(1); user entries without it fall back to an O(N) Argon2 scan and are kept only for backward compatibility with older configurations.
 
 ### OAuth2 and JWT
 
@@ -129,9 +130,11 @@ io.sapl.node:
   users:
     - id: "prod-client"
       pdp-id: "production"
+      api-key-id: "<from-generator>"
       api-key: "$argon2id$..."
     - id: "staging-client"
       pdp-id: "staging"
+      api-key-id: "<from-generator>"
       api-key: "$argon2id$..."
 ```
 
@@ -221,6 +224,7 @@ io.sapl:
     users:
       - id: "service-a"
         pdp-id: "default"
+        api-key-id: "<from-generator>"
         api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 
 server:

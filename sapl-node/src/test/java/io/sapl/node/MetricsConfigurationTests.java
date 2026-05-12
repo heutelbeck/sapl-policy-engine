@@ -60,7 +60,7 @@ class MetricsConfigurationTests {
 
         @Test
         @DisplayName("registers interceptor that records decision metrics")
-        void whenMetricsEnabled_thenInterceptorRecordsDecisions() {
+        void whenMetricsEnabledThenInterceptorRecordsDecisions() {
             contextRunner(true).run(context -> {
                 assertThat(context).hasSingleBean(PdpMetricsCollector.class);
 
@@ -86,7 +86,7 @@ class MetricsConfigurationTests {
 
         @Test
         @DisplayName("interceptor is a no-op and records no metrics")
-        void whenMetricsDisabled_thenNoMetricsRecorded() {
+        void whenMetricsDisabledThenNoMetricsRecorded() {
             contextRunner(false).run(context -> {
                 val interceptor = context.getBean(PdpMetricsCollector.class);
                 val registry    = context.getBean(MeterRegistry.class);

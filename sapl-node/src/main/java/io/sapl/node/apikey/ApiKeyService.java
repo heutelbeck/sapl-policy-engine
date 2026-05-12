@@ -41,15 +41,15 @@ import lombok.val;
 @RequiredArgsConstructor
 public class ApiKeyService {
 
+    static final String API_KEY_CACHE     = "ApiKeyCache";
     static final String HEADER            = "Authorization";
     static final String HEADER_PREFIX     = "Bearer ";
     static final String SAPL_TOKEN_PREFIX = "sapl_";
-    static final String API_KEY_CACHE     = "ApiKeyCache";
+
+    private static final String ERROR_API_KEY_NOT_AUTHORIZED = "ApiKey not authorized.";
 
     private final UserLookupService userLookupService;
     private final CacheManager      cacheManager;
-
-    private static final String ERROR_API_KEY_NOT_AUTHORIZED = "ApiKey not authorized.";
 
     private Authentication checkApiKey(String apiKey) {
         val cache = cacheManager.getCache(API_KEY_CACHE);
@@ -67,6 +67,7 @@ public class ApiKeyService {
             }
             return new SaplAuthenticationToken(saplUser);
         }
+        log.info("API key authentication failed: no matching user");
         throw new ApiKeyAuthenticationException(ERROR_API_KEY_NOT_AUTHORIZED);
     }
 

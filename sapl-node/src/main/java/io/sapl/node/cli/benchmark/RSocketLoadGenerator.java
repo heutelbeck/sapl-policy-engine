@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.netty.channel.unix.DomainSocketAddress;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -36,6 +37,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.netty.tcp.TcpClient;
 
 /**
  * Reactive RSocket/protobuf load generator using multiple TCP connections.
@@ -51,12 +53,12 @@ import reactor.core.scheduler.Schedulers;
 @UtilityClass
 public class RSocketLoadGenerator {
 
-    private static final int    MAX_LATENCY_SAMPLES   = 5_000_000;
     private static final int    CONVERGENCE_THRESHOLD = 5;
     private static final int    CONVERGENCE_WINDOW    = 3;
+    private static final int    MAX_LATENCY_SAMPLES   = 5_000_000;
     private static final int    MAX_WARMUP_ITERATIONS = 15;
-    private static final int    WARMUP_INTERVAL_SECS  = 3;
     private static final String ROUTE                 = "decide-once";
+    private static final int    WARMUP_INTERVAL_SECS  = 3;
 
     /**
      * Runs an RSocket load test against a SAPL PDP server.
@@ -135,8 +137,8 @@ public class RSocketLoadGenerator {
         val sockets = new ArrayList<RSocket>(connections);
         for (int i = 0; i < connections; i++) {
             val transport = socketPath != null
-                    ? TcpClientTransport.create(reactor.netty.tcp.TcpClient.create()
-                            .remoteAddress(() -> new io.netty.channel.unix.DomainSocketAddress(socketPath)))
+                    ? TcpClientTransport
+                            .create(TcpClient.create().remoteAddress(() -> new DomainSocketAddress(socketPath)))
                     : TcpClientTransport.create(host, port);
             val rsocket   = RSocketConnector.create().connect(transport).block();
             val endpoint  = socketPath != null ? "unix://" + socketPath : "rsocket://" + host + ":" + port;

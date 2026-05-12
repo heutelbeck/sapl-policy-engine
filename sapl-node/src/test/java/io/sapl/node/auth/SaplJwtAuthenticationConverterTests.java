@@ -19,7 +19,6 @@ package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -29,6 +28,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 
@@ -37,15 +41,18 @@ import io.sapl.node.SaplNodeProperties.OAuthConfig;
 import lombok.val;
 
 @DisplayName("SaplJwtAuthenticationConverter")
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class SaplJwtAuthenticationConverterTests {
 
-    private SaplNodeProperties             properties;
+    @Mock
+    private SaplNodeProperties properties;
+
     private OAuthConfig                    oauthConfig;
     private SaplJwtAuthenticationConverter converter;
 
     @BeforeEach
     void setUp() {
-        properties  = mock(SaplNodeProperties.class);
         oauthConfig = new OAuthConfig();
         when(properties.getOauth()).thenReturn(oauthConfig);
         converter = new SaplJwtAuthenticationConverter(properties);
@@ -62,7 +69,7 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("extracts pdpId from JWT claim")
-        void whenPdpIdClaimPresent_thenExtractsPdpId() {
+        void whenPdpIdClaimPresentThenExtractsPdpId() {
             val jwt  = createJwt("user-1", Map.of("sapl_pdp_id", "production"));
             val auth = converter.convert(jwt);
             assertThat(auth).isInstanceOf(SaplJwtAuthenticationToken.class);
@@ -73,7 +80,7 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("uses custom claim name from config")
-        void whenCustomClaimName_thenUsesIt() {
+        void whenCustomClaimNameThenUsesIt() {
             oauthConfig.setPdpIdClaim("custom_pdp");
             val jwt      = createJwt("user-1", Map.of("custom_pdp", "custom-pdp-id"));
             val saplAuth = (SaplJwtAuthenticationToken) converter.convert(jwt);
@@ -87,7 +94,7 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("rejects token when rejectOnMissingPdpId is true")
-        void whenRejectOnMissingTrue_thenRejectsToken() {
+        void whenRejectOnMissingTrueThenRejectsToken() {
             when(properties.isRejectOnMissingPdpId()).thenReturn(true);
             val jwt = createJwt("user-1", Map.of());
 
@@ -97,7 +104,7 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("uses default pdpId when rejectOnMissingPdpId is false")
-        void whenRejectOnMissingFalse_thenUsesDefault() {
+        void whenRejectOnMissingFalseThenUsesDefault() {
             when(properties.isRejectOnMissingPdpId()).thenReturn(false);
             when(properties.getDefaultPdpId()).thenReturn("fallback");
             val jwt      = createJwt("user-1", Map.of());
@@ -107,7 +114,7 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("treats blank claim as missing")
-        void whenBlankClaim_thenTreatsAsMissing() {
+        void whenBlankClaimThenTreatsAsMissing() {
             when(properties.isRejectOnMissingPdpId()).thenReturn(false);
             when(properties.getDefaultPdpId()).thenReturn("fallback");
             val jwt      = createJwt("user-1", Map.of("sapl_pdp_id", "  "));

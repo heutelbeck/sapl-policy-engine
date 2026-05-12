@@ -1,15 +1,9 @@
 openapi: 3.1.0
 info:
-  title: SAPL PDP Native HTTP API
+  title: SAPL PDP HTTP API
   version: "1"
   description: |
-    The native SAPL Policy Decision Point HTTP transport at `/api/pdp/*`.
-
-    These endpoints bypass Spring's `DispatcherServlet` and are served by
-    `HttpServlet` implementations registered via `ServletRegistrationBean`.
-    The bypass eliminates MVC processing overhead from the per-request hot
-    path so this transport runs roughly an order of magnitude faster than
-    a Spring MVC controller would on the same engine.
+    The SAPL Policy Decision Point HTTP transport at `/api/pdp/*`.
 
     Five routes are exposed:
 
@@ -26,21 +20,14 @@ info:
     comment frames at the configured interval. The stream stays open until
     the client disconnects or the underlying SAPL stream terminates.
 
-    Authentication is handled inside the servlet (see
-    `io.sapl.node.http.auth.HttpAuthHandler`) using the same Basic / API
-    key / JWT mechanisms the Spring chain uses, plus the optional
-    `allow-no-auth: true` shortcut. The Spring Security filter chain
-    explicitly excludes `/api/pdp/**` (see
-    `SecurityConfiguration.pdpEndpointSecurityBypass`) because the bypass
-    handles auth itself.
+    Supported authentication mechanisms are HTTP Basic, API key, and JWT.
 
 tags:
   - name: SAPL Authorization API
     description: |
-      Native SAPL PDP HTTP transport at `/api/pdp/*`. Two operation
-      shapes share the same surface: one-shot routes return a single
-      JSON response, streaming routes hold the connection open and emit
-      `text/event-stream` events as decisions change.
+      SAPL PDP HTTP transport at `/api/pdp/*`. One-shot routes return
+      a single JSON response. Streaming routes hold the connection
+      open and emit `text/event-stream` events as decisions change.
 
 paths:
 
@@ -89,10 +76,9 @@ paths:
       tags: [SAPL Authorization API]
       summary: Open a Server-Sent Event stream of decisions for a single subscription
       description: |
-        The body of each event is a JSON-serialised
-        `AuthorizationDecision`. The stream emits whenever the decision
-        changes (combined attribute snapshot, policy reload, etc.) and
-        stays open until the client disconnects.
+        Each event is a JSON-serialised `AuthorizationDecision`. A new
+        event is emitted whenever the decision changes. The stream stays
+        open until the client disconnects.
       requestBody:
         required: true
         content:
@@ -146,10 +132,11 @@ paths:
       tags: [SAPL Authorization API]
       summary: SSE stream of bundled decisions for a subscription bundle
       description: |
-        Each event carries a full `MultiAuthorizationDecision`
-        representing the current decision for every subscription in the
-        bundle. The stream emits glitch-free; one event per consistent
-        snapshot regardless of how many underlying attributes changed.
+        Each event carries a `MultiAuthorizationDecision` with the
+        current decision for every subscription in the bundle. Each
+        event represents one consistent snapshot of the bundle.
+        Simultaneous attribute changes are coalesced into a single
+        event reflecting the resulting state.
       requestBody:
         required: true
         content:
@@ -183,9 +170,10 @@ components:
       type: string
       enum: [PERMIT, DENY, SUSPEND, INDETERMINATE, NOT_APPLICABLE]
       description: |
-        Authorization verb. SAPL extends the XACML/OpenID set with `SUSPEND`
-        (decision deferred; client should re-evaluate later) and
-        `NOT_APPLICABLE` (no policy matched).
+        Authorization verb. `PERMIT` and `DENY` grant or refuse access.
+        `SUSPEND` defers the decision. The client should re-evaluate
+        later. `INDETERMINATE` signals an evaluation error.
+        `NOT_APPLICABLE` indicates no policy matched.
 
     AuthorizationSubscription:
       type: object
@@ -217,11 +205,11 @@ components:
           $ref: "#/components/schemas/Decision"
         obligations:
           type: array
-          description: Constraints the PEP must enforce for the decision to be valid.
+          description: Constraints the PEP must enforce. If any obligation cannot be enforced, access must not be granted.
           items: {}
         advice:
           type: array
-          description: Recommendations the PEP should consider; non-enforcement.
+          description: Recommendations the PEP may act on.
           items: {}
         resource:
           description: |

@@ -44,7 +44,7 @@ import tools.jackson.databind.ObjectMapper;
  * <p>
  * Reference: https://openid.net/specs/authorization-api-1_0-01.html
  * <p>
- * The OpenID API is a strict subset of the SAPL native API at /api/pdp: a
+ * The OpenID API is a strict subset of the SAPL PDP API at /api/pdp: a
  * single one-shot evaluation, boolean decision, no streaming, no batching.
  * The full SAPL decision (verb, obligations, advice, transformed resource) is
  * surfaced through the response context for SAPL-aware clients.
@@ -54,7 +54,7 @@ import tools.jackson.databind.ObjectMapper;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/access/v1")
-@Tag(name = "OpenID Authorization API", description = "OpenID Authorization API 1.0 binding for the SAPL PDP. Boolean decision, single evaluation, no streaming.")
+@Tag(name = "OpenID Authorization API", description = "OpenID Authorization API 1.0 binding for the SAPL PDP. Returns a single boolean decision per request.")
 @ConditionalOnProperty(name = "io.sapl.server.openid-authz-api.enabled", matchIfMissing = true)
 public class OpenIdAuthorizationApiController {
 
@@ -81,16 +81,16 @@ public class OpenIdAuthorizationApiController {
             fields, authentication failure).
 
             The boolean is `true` only for a PERMIT that carries no obligations and no \
-            transformed resource. DENY, INDETERMINATE, NOT_APPLICABLE, SUSPEND and any \
-            PERMIT carrying obligations or a transformed resource all map to `false`, so a \
-            vanilla OpenID PEP that ignores the SAPL extensions cannot accidentally grant \
-            access that depended on PEP-side enforcement.
+            transformed resource. DENY, INDETERMINATE, NOT_APPLICABLE, SUSPEND, and any \
+            PERMIT that carries obligations or a transformed resource map to `false`. \
+            Access is therefore granted only when the SAPL decision would permit it \
+            unconditionally.
 
             Whenever the boolean is `false` the response also carries a `reason_admin` \
-            (technical: INDETERMINATE, PERMIT-needs-enforcement) or `reason_user` \
-            (subject-facing: DENY, NOT_APPLICABLE, SUSPEND) field. SAPL-aware clients \
-            read `context.sapl.{decision,obligations,advice,resource}` for the full \
-            decision.
+            field (technical, for INDETERMINATE and PERMIT-needs-enforcement) or a \
+            `reason_user` field (subject-facing, for DENY, NOT_APPLICABLE, and SUSPEND). \
+            SAPL-aware clients read `context.sapl.{decision,obligations,advice,resource}` \
+            for the full decision.
 
             The `X-Request-ID` request header is echoed in the response when present.""")
     @PostMapping(value = "/evaluation", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -101,7 +101,7 @@ public class OpenIdAuthorizationApiController {
         try {
             val pdpId = tenantResolver.resolve();
             decision = pdp.decideOnce(subscription, pdpId);
-        } catch (Throwable error) {
+        } catch (Exception error) {
             log.error("Error during OpenID access evaluation: {}", error.getMessage(), error);
             decision = AuthorizationDecision.INDETERMINATE;
         }

@@ -33,8 +33,8 @@ import java.util.Map;
  * @param context optional environmental attributes (time, IP, request id, ...)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Schema(description = "Access evaluation request: subject, action, resource, optional context.")
-public record OpenIdEvaluationRequest(
+@Schema(description = "Access evaluation request with subject, action, resource, and optional context.")
+record OpenIdEvaluationRequest(
         @Valid @NotNull OpenIdSubject subject,
         @Valid @NotNull OpenIdAction action,
         @Valid @NotNull OpenIdResource resource,

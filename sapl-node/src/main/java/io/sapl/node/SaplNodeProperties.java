@@ -19,11 +19,14 @@ package io.sapl.node;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Data;
+import lombok.val;
 
 /**
  * Configuration properties for SAPL Node authentication and user management.
@@ -34,8 +37,9 @@ public class SaplNodeProperties {
 
     public static final String DEFAULT_PDP_ID = "default";
 
-    private static final String ERROR_MISSING_PDP_ID = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled.";
-    private static final String ERROR_SHORT_API_KEY  = "Detected short API key in configuration. API key must be at least %d characters long.";
+    private static final String ERROR_DUPLICATE_API_KEY_ID = "Duplicate api-key-id '%s' in user configuration. Each api-key-id must route to exactly one user.";
+    private static final String ERROR_MISSING_PDP_ID       = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled.";
+    private static final String ERROR_SHORT_API_KEY        = "Detected short API key in configuration. API key must be at least %d characters long.";
 
     // Authentication methods
     private boolean allowNoAuth     = false;
@@ -49,6 +53,11 @@ public class SaplNodeProperties {
 
     // User entries with unified credentials
     private List<UserEntry> users = new ArrayList<>();
+
+    // O(1) lookup index for API key authentication, rebuilt on every setUsers().
+    // Indexed by the public api-key-id segment of the sapl_<id>_<secret> wire
+    // format.
+    private Map<String, UserEntry> apiKeyIdIndex = Map.of();
 
     // OAuth2 configuration
     private OAuthConfig oauth = new OAuthConfig();
@@ -71,13 +80,33 @@ public class SaplNodeProperties {
      * @param users the user entries to set
      */
     public void setUsers(List<UserEntry> users) {
+        val nextIndex = new HashMap<String, UserEntry>();
         for (UserEntry user : users) {
             if (user.getApiKey() != null) {
                 assertIsValidApiKey(user.getApiKey());
             }
             normalizeOrRejectPdpId(user);
+            val apiKeyId = user.getApiKeyId();
+            if (apiKeyId != null && !apiKeyId.isBlank()) {
+                if (nextIndex.putIfAbsent(apiKeyId, user) != null) {
+                    throw new IllegalStateException(ERROR_DUPLICATE_API_KEY_ID.formatted(apiKeyId));
+                }
+            }
         }
-        this.users = new ArrayList<>(users);
+        this.users         = new ArrayList<>(users);
+        this.apiKeyIdIndex = Map.copyOf(nextIndex);
+    }
+
+    /**
+     * Returns an O(1) lookup map from {@code api-key-id} (the public middle
+     * segment of {@code sapl_<id>_<secret>}) to user entry. Built at
+     * {@link #setUsers} time; users without an {@code api-key-id} configured
+     * are omitted.
+     *
+     * @return immutable map by api-key-id; empty when no users configured
+     */
+    public Map<String, UserEntry> getApiKeyIdIndex() {
+        return apiKeyIdIndex;
     }
 
     /**
@@ -116,6 +145,7 @@ public class SaplNodeProperties {
         private String           pdpId;
         private BasicCredentials basic;
         private String           apiKey;
+        private String           apiKeyId;
     }
 
     /**

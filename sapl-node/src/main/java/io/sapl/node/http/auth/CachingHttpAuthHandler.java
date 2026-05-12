@@ -77,13 +77,18 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
             PasswordEncoder passwordEncoder,
             @Nullable JwtDecoder jwtDecoder,
             Duration positiveTtl,
-            Duration negativeTtl) {
+            Duration negativeTtl,
+            long maxSize) {
+        if (maxSize <= 0) {
+            throw new IllegalArgumentException("maxSize must be positive, got " + maxSize);
+        }
         this.properties        = properties;
         this.userLookupService = userLookupService;
         this.passwordEncoder   = passwordEncoder;
         this.jwtDecoder        = jwtDecoder;
         this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId());
-        this.cache             = Caffeine.newBuilder().expireAfter(new TtlExpiry(positiveTtl, negativeTtl)).build();
+        this.cache             = Caffeine.newBuilder().maximumSize(maxSize)
+                .expireAfter(new TtlExpiry(positiveTtl, negativeTtl)).build();
     }
 
     @Override
@@ -110,18 +115,18 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
 
     private Outcome resolveOutcome(String header) {
         try {
-            return new Outcome.Success(verify(header));
+            return verify(header);
         } catch (HttpAuthenticationException e) {
-            return new Outcome.Failure(e.getMessage(), Instant.MAX);
+            return new Outcome.Failure(e.getMessage());
         }
     }
 
-    private HttpAuthResult verify(String header) {
+    private Outcome.Success verify(String header) {
         if (header.startsWith(BEARER_PREFIX + SAPL_PREFIX) && properties.isAllowApiKeyAuth()) {
-            return verifyApiKey(header.substring(BEARER_PREFIX.length()));
+            return new Outcome.Success(verifyApiKey(header.substring(BEARER_PREFIX.length())), null);
         }
         if (header.startsWith(BASIC_PREFIX) && properties.isAllowBasicAuth()) {
-            return verifyBasic(header.substring(BASIC_PREFIX.length()));
+            return new Outcome.Success(verifyBasic(header.substring(BASIC_PREFIX.length())), null);
         }
         if (header.startsWith(BEARER_PREFIX) && properties.isAllowOauth2Auth()) {
             return verifyJwt(header.substring(BEARER_PREFIX.length()));
@@ -153,7 +158,7 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
         return new HttpAuthResult(userOpt.get().getPdpId());
     }
 
-    private HttpAuthResult verifyJwt(String token) {
+    private Outcome.Success verifyJwt(String token) {
         if (jwtDecoder == null) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
@@ -165,13 +170,14 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
         }
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
         val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
+        val expiresAt  = jwt.getExpiresAt();
         if (pdpIdValue == null || pdpIdValue.isBlank()) {
             if (properties.isRejectOnMissingPdpId()) {
                 throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
             }
-            return new HttpAuthResult(properties.getDefaultPdpId());
+            return new Outcome.Success(new HttpAuthResult(properties.getDefaultPdpId()), expiresAt);
         }
-        return new HttpAuthResult(pdpIdValue);
+        return new Outcome.Success(new HttpAuthResult(pdpIdValue), expiresAt);
     }
 
     private static String sha256(String header) {
@@ -186,15 +192,19 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
     /**
      * Sealed outcome carried by the cache. Splitting positive and negative
      * cases lets the {@link Expiry} policy give them different TTLs.
+     * <p>
+     * A successful JWT verification carries the token's {@code exp} claim so
+     * the cache can evict the entry no later than the token expires; other
+     * credentials carry {@code null} and fall back to {@code positiveTtl}.
      */
-    private sealed interface Outcome {
+    sealed interface Outcome {
 
-        record Success(HttpAuthResult result) implements Outcome {}
+        record Success(HttpAuthResult result, @Nullable Instant expiresAt) implements Outcome {}
 
-        record Failure(String message, Instant expiry) implements Outcome {}
+        record Failure(String message) implements Outcome {}
     }
 
-    private static final class TtlExpiry implements Expiry<String, Outcome> {
+    static final class TtlExpiry implements Expiry<String, Outcome> {
 
         private final long positiveNanos;
         private final long negativeNanos;
@@ -222,10 +232,12 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
         }
 
         private long ttl(Outcome value) {
-            if (value instanceof Outcome.Failure) {
-                return negativeNanos;
-            }
-            return positiveNanos;
+            return switch (value) {
+            case Outcome.Failure ignored                               -> negativeNanos;
+            case Outcome.Success(var result, var exp) when exp != null ->
+                Math.max(0L, Math.min(positiveNanos, Duration.between(Instant.now(), exp).toNanos()));
+            case Outcome.Success ignored                               -> positiveNanos;
+            };
         }
     }
 }

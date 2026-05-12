@@ -200,10 +200,7 @@ public class TestCommand implements Callable<Integer> {
         val coverage = aggregateCoverage(results);
         generateReports(coverage, err);
 
-        if (results.errors() > 0) {
-            return 2;
-        }
-        if (!results.allPassed()) {
+        if (results.errors() > 0 || !results.allPassed()) {
             return 2;
         }
 

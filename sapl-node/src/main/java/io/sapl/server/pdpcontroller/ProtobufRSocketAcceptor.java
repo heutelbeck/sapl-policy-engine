@@ -63,8 +63,8 @@ import reactor.core.scheduler.Schedulers;
  * with fresh credentials.
  * <p>
  * Request-response operations ({@code decide-once}) use
- * {@link ReactivePolicyDecisionPoint#decideOnceBlocking} on virtual threads
- * for maximum throughput. Streaming operations use the reactive PDP methods
+ * {@link BlockingPolicyDecisionPoint#decideOnce} on virtual threads for
+ * maximum throughput. Streaming operations use the reactive PDP methods
  * directly.
  */
 @Slf4j
@@ -215,7 +215,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
 
         @Override
         public void onComplete() {
-            // Timer completed after emitting
+            // no-op
         }
     }
 

@@ -65,12 +65,13 @@ class RootIndexController {
     @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
     ModelAndView indexHtml() {
         val status = healthStatus();
+        val up     = "UP".equals(status);
         val model  = new LinkedHashMap<String, Object>();
         model.put("version", version);
         model.put("commit", commit);
         model.put("health", status);
-        model.put("healthUp", "UP".equals(status));
-        model.put("healthDown", !"UP".equals(status));
+        model.put("healthUp", up);
+        model.put("healthDown", !up);
         return new ModelAndView("index", model);
     }
 
@@ -89,7 +90,7 @@ class RootIndexController {
         }
         val health = endpoint.health();
         val status = health == null ? null : health.getStatus();
-        return status == null ? STATUS_UNKNOWN : (status.equals(Status.UP) ? "UP" : status.getCode());
+        return status == null ? STATUS_UNKNOWN : status.getCode();
     }
 
 }

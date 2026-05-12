@@ -43,7 +43,7 @@ import java.util.List;
  * included in the PDP defaults and should not be registered here.
  */
 @Configuration
-public class SaplExtensionsConfig {
+class SaplExtensionsConfig {
 
     @Bean
     TimeScheduler timeScheduler(Clock clock) {

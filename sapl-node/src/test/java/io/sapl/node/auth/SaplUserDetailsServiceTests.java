@@ -19,7 +19,6 @@ package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -28,6 +27,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import io.sapl.node.SaplNodeProperties.BasicCredentials;
@@ -35,15 +37,17 @@ import io.sapl.node.SaplNodeProperties.UserEntry;
 import lombok.val;
 
 @DisplayName("SaplUserDetailsService")
+@ExtendWith(MockitoExtension.class)
 class SaplUserDetailsServiceTests {
 
-    private UserLookupService      userLookupService;
+    @Mock
+    private UserLookupService userLookupService;
+
     private SaplUserDetailsService service;
 
     @BeforeEach
     void setUp() {
-        userLookupService = mock(UserLookupService.class);
-        service           = new SaplUserDetailsService(userLookupService);
+        service = new SaplUserDetailsService(userLookupService);
     }
 
     @Nested
@@ -52,7 +56,7 @@ class SaplUserDetailsServiceTests {
 
         @Test
         @DisplayName("returns UserDetails when user found")
-        void whenUserFound_thenReturnsUserDetails() {
+        void whenUserFoundThenReturnsUserDetails() {
             val basic = new BasicCredentials();
             basic.setUsername("admin");
             basic.setSecret("encoded-secret");
@@ -73,7 +77,7 @@ class SaplUserDetailsServiceTests {
 
         @Test
         @DisplayName("throws UsernameNotFoundException when user not found")
-        void whenUserNotFound_thenThrowsException() {
+        void whenUserNotFoundThenThrowsException() {
             when(userLookupService.findByBasicUsername("unknown")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.loadUserByUsername("unknown"))
@@ -87,7 +91,7 @@ class SaplUserDetailsServiceTests {
 
         @Test
         @DisplayName("returns SaplUser when user found")
-        void whenUserFound_thenReturnsSaplUser() {
+        void whenUserFoundThenReturnsSaplUser() {
             val userEntry = new UserEntry();
             userEntry.setId("user-1");
             userEntry.setPdpId("production");
@@ -110,7 +114,7 @@ class SaplUserDetailsServiceTests {
 
         @Test
         @DisplayName("returns empty when user not found")
-        void whenUserNotFound_thenReturnsEmpty() {
+        void whenUserNotFoundThenReturnsEmpty() {
             when(userLookupService.findByBasicUsername("unknown")).thenReturn(Optional.empty());
 
             assertThat(service.resolveSaplUser("unknown")).isEmpty();

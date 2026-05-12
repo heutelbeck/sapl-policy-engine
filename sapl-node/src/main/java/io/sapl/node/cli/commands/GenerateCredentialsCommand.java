@@ -25,7 +25,10 @@ import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
 
-import static io.sapl.node.SecretGenerator.*;
+import static io.sapl.node.SecretGenerator.encodeWithArgon2;
+import static io.sapl.node.SecretGenerator.newApiKey;
+import static io.sapl.node.SecretGenerator.newKey;
+import static io.sapl.node.SecretGenerator.newSecret;
 
 /**
  * Commands for generating authentication credentials.
@@ -178,18 +181,19 @@ public class GenerateCredentialsCommand {
         @Override
         public Integer call() {
             val id         = userId.isEmpty() ? "user-" + newKey() : userId;
-            val key        = newKey();
+            val apiKeyId   = newKey();
             val secret     = newApiKey();
-            val apiKey     = "sapl_" + key + "_" + secret;
+            val apiKey     = "sapl_" + apiKeyId + "_" + secret;
             val encodedKey = encodeWithArgon2(apiKey);
             spec.commandLine().getOut().printf("""
                     %n\
                     API Key%n\
                     =======%n\
                     %n\
-                    User ID: %s%n\
-                    PDP ID:  %s%n\
-                    Key:     %s%n\
+                    User ID:    %s%n\
+                    PDP ID:     %s%n\
+                    Key:        %s%n\
+                    API Key ID: %s%n\
                     %n\
                     Configuration (application.yml):%n\
                     --------------------------------%n\
@@ -198,7 +202,15 @@ public class GenerateCredentialsCommand {
                       users:%n\
                         - id: "%s"%n\
                           pdpId: "%s"%n\
+                          apiKeyId: "%s"%n\
                           apiKey: "%s"%n\
+                    %n\
+                    The 'apiKeyId' field is the public middle segment of the key%n\
+                    (between the 'sapl_' prefix and the secret). The server uses it%n\
+                    for O(1) routing on incoming requests; without it, requests fall%n\
+                    back to a slow scan across all configured users. Both 'apiKeyId'%n\
+                    and 'apiKey' come from the same generator run -- pair them or%n\
+                    rotate together.%n\
                     %n\
                     Usage (curl):%n\
                     -------------%n\
@@ -210,7 +222,7 @@ public class GenerateCredentialsCommand {
                     %n\
                     IMPORTANT: This key grants full PDP access. Store securely and%n\
                     rotate periodically. Multiple users with API keys can be configured.%n\
-                    """, id, pdpId, apiKey, id, pdpId, encodedKey, apiKey);
+                    """, id, pdpId, apiKey, apiKeyId, id, pdpId, apiKeyId, encodedKey, apiKey);
             return 0;
         }
 

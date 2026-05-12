@@ -50,7 +50,7 @@ import lombok.val;
  */
 @Slf4j
 @Configuration(proxyBeanMethods = false)
-public class OpenApiPdpHttpRoutesCustomizer {
+class OpenApiPdpHttpRoutesCustomizer {
 
     private static final String PDP_HTTP_SPEC = "static/openapi/pdp-http.yaml";
 
@@ -68,7 +68,9 @@ public class OpenApiPdpHttpRoutesCustomizer {
         try (InputStream in = new ClassPathResource(PDP_HTTP_SPEC).getInputStream()) {
             return Yaml31.mapper().readValue(in, OpenAPI.class);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to load " + PDP_HTTP_SPEC, e);
+            throw new IllegalStateException("Required classpath resource " + PDP_HTTP_SPEC
+                    + " is missing from the deployment artifact. If this is a native image, verify that "
+                    + "SaplNodeApplication.NativeResourceHints registers the resource pattern.", e);
         }
     }
 

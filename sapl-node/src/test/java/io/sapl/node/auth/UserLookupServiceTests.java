@@ -18,15 +18,18 @@
 package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -36,19 +39,21 @@ import io.sapl.node.SaplNodeProperties.UserEntry;
 import lombok.val;
 
 @DisplayName("UserLookupService")
+@ExtendWith(MockitoExtension.class)
 class UserLookupServiceTests {
 
     private static final String          ENCODED_API_KEY  = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
     private static final String          RAW_API_KEY      = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
     private static final PasswordEncoder PASSWORD_ENCODER = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
 
+    @Mock
     private SaplNodeProperties properties;
-    private UserLookupService  service;
+
+    private UserLookupService service;
 
     @BeforeEach
     void setUp() {
-        properties = mock(SaplNodeProperties.class);
-        service    = new UserLookupService(properties, PASSWORD_ENCODER);
+        service = new UserLookupService(properties, PASSWORD_ENCODER);
     }
 
     @Nested
@@ -57,7 +62,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("returns user when username matches")
-        void whenUsernameMatches_thenReturnsUser() {
+        void whenUsernameMatchesThenReturnsUser() {
             val basic = new BasicCredentials();
             basic.setUsername("admin");
             basic.setSecret("encoded-secret");
@@ -79,7 +84,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("returns empty when username not found")
-        void whenUsernameNotFound_thenReturnsEmpty() {
+        void whenUsernameNotFoundThenReturnsEmpty() {
             when(properties.getUsers()).thenReturn(List.of());
 
             val result = service.findByBasicUsername("unknown");
@@ -89,7 +94,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("returns empty when username is null")
-        void whenUsernameNull_thenReturnsEmpty() {
+        void whenUsernameNullThenReturnsEmpty() {
             val result = service.findByBasicUsername(null);
 
             assertThat(result).isEmpty();
@@ -97,7 +102,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("skips users without basic credentials")
-        void whenUserHasNoBasicCredentials_thenSkips() {
+        void whenUserHasNoBasicCredentialsThenSkips() {
             val userEntry = new UserEntry();
             userEntry.setId("api-user");
             userEntry.setApiKey(ENCODED_API_KEY);
@@ -116,13 +121,33 @@ class UserLookupServiceTests {
     class FindByApiKeyTests {
 
         @Test
-        @DisplayName("returns user when API key matches")
-        void whenApiKeyMatches_thenReturnsUser() {
+        @DisplayName("returns user via O(1) index when api-key-id is configured")
+        void whenApiKeyIdIndexedThenReturnsUserViaFastPath() {
+            val userEntry = new UserEntry();
+            userEntry.setId("api-user");
+            userEntry.setPdpId("staging");
+            userEntry.setApiKey(ENCODED_API_KEY);
+            userEntry.setApiKeyId("7A7ByyQd6U");
+
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of("7A7ByyQd6U", userEntry));
+
+            val result = service.findByApiKey(RAW_API_KEY);
+
+            assertThat(result).isPresent().hasValueSatisfying(user -> {
+                assertThat(user.getId()).isEqualTo("api-user");
+                assertThat(user.getPdpId()).isEqualTo("staging");
+            });
+        }
+
+        @Test
+        @DisplayName("returns user via fallback scan when api-key-id is absent")
+        void whenApiKeyIdMissingThenReturnsUserViaFallback() {
             val userEntry = new UserEntry();
             userEntry.setId("api-user");
             userEntry.setPdpId("staging");
             userEntry.setApiKey(ENCODED_API_KEY);
 
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
             when(properties.getUsers()).thenReturn(List.of(userEntry));
 
             val result = service.findByApiKey(RAW_API_KEY);
@@ -134,8 +159,25 @@ class UserLookupServiceTests {
         }
 
         @Test
+        @DisplayName("indexed users are not also scanned in the fallback path")
+        void whenApiKeyIdIndexedThenFallbackSkipsThem() {
+            val userEntry = new UserEntry();
+            userEntry.setId("api-user");
+            userEntry.setPdpId("staging");
+            userEntry.setApiKey(ENCODED_API_KEY);
+            userEntry.setApiKeyId("DIFFERENT");
+
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of("DIFFERENT", userEntry));
+            when(properties.getUsers()).thenReturn(List.of(userEntry));
+
+            val result = service.findByApiKey(RAW_API_KEY);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
         @DisplayName("returns empty when API key not found")
-        void whenApiKeyNotFound_thenReturnsEmpty() {
+        void whenApiKeyNotFoundThenReturnsEmpty() {
             val userEntry = new UserEntry();
             userEntry.setId("api-user");
             userEntry.setApiKey(ENCODED_API_KEY);
@@ -149,7 +191,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("returns empty when API key is null")
-        void whenApiKeyNull_thenReturnsEmpty() {
+        void whenApiKeyNullThenReturnsEmpty() {
             val result = service.findByApiKey(null);
 
             assertThat(result).isEmpty();
@@ -163,7 +205,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("converts UserEntry to SaplUser")
-        void whenUserEntry_thenConvertsTOSaplUser() {
+        void whenUserEntryThenConvertsTOSaplUser() {
             val userEntry = new UserEntry();
             userEntry.setId("user-1");
             userEntry.setPdpId("production");
@@ -176,7 +218,7 @@ class UserLookupServiceTests {
 
         @Test
         @DisplayName("defaults pdpId when null")
-        void whenPdpIdNull_thenDefaults() {
+        void whenPdpIdNullThenDefaults() {
             val userEntry = new UserEntry();
             userEntry.setId("user-1");
             userEntry.setPdpId(null);

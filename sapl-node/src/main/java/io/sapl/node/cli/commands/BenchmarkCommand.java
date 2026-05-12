@@ -33,6 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -188,7 +189,7 @@ public class BenchmarkCommand implements Callable<Integer> {
         if (policyPath == null) {
             return null;
         }
-        val subscriptionsFile = java.nio.file.Path.of(policyPath).resolve("subscriptions.json");
+        val subscriptionsFile = Path.of(policyPath).resolve("subscriptions.json");
         try {
             if (Files.exists(subscriptionsFile)) {
                 return Files.readString(subscriptionsFile);

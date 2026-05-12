@@ -68,7 +68,7 @@ class PdpMetricsCollectorTests {
         @ParameterizedTest(name = "counts {0} decisions")
         @MethodSource("allDecisions")
         @DisplayName("increments counter for each decision type")
-        void whenDecisionEmitted_thenCounterIncrements(Decision decision) {
+        void whenDecisionEmittedThenCounterIncrements(Decision decision) {
             val vote = voteWithDecision(decision);
 
             interceptor.onDecision(vote, Instant.parse("2026-02-13T00:00:00Z"), "sub-1", SUBSCRIPTION);
@@ -90,7 +90,7 @@ class PdpMetricsCollectorTests {
 
         @Test
         @DisplayName("tracks active subscription count")
-        void whenSubscriptionsStartAndEnd_thenGaugeReflectsCount() {
+        void whenSubscriptionsStartAndEndThenGaugeReflectsCount() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.onSubscribe("sub-2", SUBSCRIPTION, "test-pdp");
 
@@ -117,7 +117,7 @@ class PdpMetricsCollectorTests {
 
         @Test
         @DisplayName("records first decision latency only once per subscription")
-        void whenMultipleDecisions_thenRecordsFirstOnly() {
+        void whenMultipleDecisionsThenRecordsFirstOnly() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
 
             interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
@@ -132,7 +132,7 @@ class PdpMetricsCollectorTests {
 
         @Test
         @DisplayName("records subscription duration on unsubscribe")
-        void whenUnsubscribed_thenRecordsDuration() {
+        void whenUnsubscribedThenRecordsDuration() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
                     SUBSCRIPTION);
@@ -151,7 +151,7 @@ class PdpMetricsCollectorTests {
 
         @Test
         @DisplayName("cleans up state on unsubscribe")
-        void whenUnsubscribed_thenNewSubscriptionWithSameIdStartsFresh() {
+        void whenUnsubscribedThenNewSubscriptionWithSameIdStartsFresh() {
             interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
             interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
                     SUBSCRIPTION);

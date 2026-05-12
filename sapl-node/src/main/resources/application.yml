@@ -74,14 +74,17 @@ server:
 # --- Client Authentication ---
 #
 # The node supports four authentication modes. Multiple can be enabled
-# simultaneously. With no authentication required (allow-no-auth: true),
-# the node is functional out of the box on localhost.
+# simultaneously. By default the node ships with all four modes disabled
+# (fail-closed) and refuses to start until at least one is configured.
 #
-# WARNING: Enable authentication before exposing the node to a network.
+# For local exploration, set `allow-no-auth: true` to accept unauthenticated
+# requests against the default PDP. Production deployments configure one or
+# more of `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth` and
+# the corresponding credentials.
 
 io.sapl:
   node:
-    allow-no-auth: true
+    allow-no-auth: false
     allow-basic-auth: false
     allow-api-key-auth: false
     allow-oauth2-auth: false
@@ -117,6 +120,7 @@ io.sapl:
     #
     #   - id: "my-apikey-client"
     #     pdp-id: "default"
+    #     api-key-id: "<10-char-id-from-generator>"
     #     api-key: "$argon2id$..."
 
   # --- PDP Policy Source ---

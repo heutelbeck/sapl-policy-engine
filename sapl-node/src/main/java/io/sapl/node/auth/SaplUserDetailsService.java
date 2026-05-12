@@ -39,7 +39,8 @@ import lombok.val;
 @RequiredArgsConstructor
 public class SaplUserDetailsService implements UserDetailsService {
 
-    static final String ROLE_PDP_CLIENT = "PDP_CLIENT";
+    static final String ERROR_USER_NOT_FOUND = "User not found: %s";
+    static final String ROLE_PDP_CLIENT      = "PDP_CLIENT";
 
     private final UserLookupService userLookupService;
 
@@ -47,7 +48,7 @@ public class SaplUserDetailsService implements UserDetailsService {
     public @NonNull UserDetails loadUserByUsername(@NonNull String username) {
         val userEntryOpt = userLookupService.findByBasicUsername(username);
         if (userEntryOpt.isEmpty()) {
-            throw new UsernameNotFoundException("User not found: " + username);
+            throw new UsernameNotFoundException(ERROR_USER_NOT_FOUND.formatted(username));
         }
         val basic = userEntryOpt.get().getBasic();
         return User.builder().username(basic.getUsername()).password(basic.getSecret()).roles(ROLE_PDP_CLIENT).build();

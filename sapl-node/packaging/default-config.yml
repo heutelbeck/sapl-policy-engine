@@ -124,6 +124,7 @@ io.sapl:
     #
     #   - id: "my-apikey-client"
     #     pdp-id: "default"
+    #     api-key-id: "<10-char-id-from-generator>"
     #     api-key: "$argon2id$..."
 
   # --- PDP Policy Source ---

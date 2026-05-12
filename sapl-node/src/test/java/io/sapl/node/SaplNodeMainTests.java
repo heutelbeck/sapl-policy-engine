@@ -42,13 +42,13 @@ class SaplNodeMainTests {
     }
 
     @Test
-    void whenExecutingRun_withGenerateApiKeyCommand_thenReturnsZero() {
+    void whenExecutingRunWithGenerateApiKeyCommandThenReturnsZero() {
         int exitCode = SaplNodeApplication.run(new String[] { "generate", "apikey" });
         assertThat(exitCode).isZero();
     }
 
     @Test
-    void whenExecutingRun_withGenerateBasicCommand_thenReturnsZero() {
+    void whenExecutingRunWithGenerateBasicCommandThenReturnsZero() {
         int exitCode = SaplNodeApplication.run(new String[] { "generate", "basic" });
         assertThat(exitCode).isZero();
     }

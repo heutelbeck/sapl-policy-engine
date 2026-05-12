@@ -17,7 +17,6 @@
  */
 package io.sapl.node.auth;
 
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
@@ -39,12 +38,8 @@ public final class DefaultBlockingTenantResolver implements BlockingTenantResolv
 
     @Override
     public String resolve() {
-        val securityContext = SecurityContextHolder.getContext();
-        if (securityContext == null) {
-            return ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
-        }
-        Authentication authentication = securityContext.getAuthentication();
-        val            extracted      = extractor.extractPdpId(authentication);
+        val authentication = SecurityContextHolder.getContext().getAuthentication();
+        val extracted      = extractor.extractPdpId(authentication);
         return extracted == null || extracted.isBlank() ? ReactivePolicyDecisionPoint.DEFAULT_PDP_ID : extracted;
     }
 }

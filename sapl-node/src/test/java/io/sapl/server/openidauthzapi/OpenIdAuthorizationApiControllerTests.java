@@ -86,24 +86,26 @@ class OpenIdAuthorizationApiControllerTests {
     class VerbMapping {
 
         @Test
-        void permitReturnsDecisionTrue() throws Exception {
+        void permitReturnsDecisionTrueWithSaplMarker() throws Exception {
             stubPdp(AuthorizationDecision.PERMIT);
             postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(true))
-                    .andExpect(jsonPath("$.context").doesNotExist());
+                    .andExpect(jsonPath("$.context.sapl.decision").value("PERMIT"));
         }
 
         @Test
-        void denyReturnsDecisionFalse() throws Exception {
+        void denyReturnsDecisionFalseWithReasonUserAndSaplMarker() throws Exception {
             stubPdp(AuthorizationDecision.DENY);
             postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
-                    .andExpect(jsonPath("$.context").doesNotExist());
+                    .andExpect(jsonPath("$.context.reason_user.en-403").exists())
+                    .andExpect(jsonPath("$.context.sapl.decision").value("DENY"));
         }
 
         @Test
-        void notApplicableReturnsDecisionFalse() throws Exception {
+        void notApplicableReturnsDecisionFalseWithReasonUserAndSaplMarker() throws Exception {
             stubPdp(AuthorizationDecision.NOT_APPLICABLE);
             postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
-                    .andExpect(jsonPath("$.context").doesNotExist());
+                    .andExpect(jsonPath("$.context.reason_user.en-403").exists())
+                    .andExpect(jsonPath("$.context.sapl.decision").value("NOT_APPLICABLE"));
         }
 
         @Test
@@ -127,18 +129,22 @@ class OpenIdAuthorizationApiControllerTests {
     class SaplExtensions {
 
         @Test
-        void permitWithObligationsCarriesObligationsInContext() throws Exception {
+        void permitWithObligationsMapsToFalseAndCarriesObligationsInContext() throws Exception {
             stubPdp(new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("notify-admin")),
                     Value.EMPTY_ARRAY, Value.UNDEFINED));
-            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(true))
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context.reason_admin.en").exists())
+                    .andExpect(jsonPath("$.context.sapl.decision").value("PERMIT"))
                     .andExpect(jsonPath("$.context.sapl.obligations").exists());
         }
 
         @Test
-        void permitWithResourceTransformationCarriesResourceInContext() throws Exception {
+        void permitWithResourceTransformationMapsToFalseAndCarriesResourceInContext() throws Exception {
             stubPdp(new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of("redacted")));
-            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(true))
+            postValidRequest().andExpect(status().isOk()).andExpect(jsonPath("$.decision").value(false))
+                    .andExpect(jsonPath("$.context.reason_admin.en").exists())
+                    .andExpect(jsonPath("$.context.sapl.decision").value("PERMIT"))
                     .andExpect(jsonPath("$.context.sapl.resource").exists());
         }
     }

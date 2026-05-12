@@ -54,15 +54,16 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Configuration
 @Profile("!cli")
-public class PdpHttpEndpointConfiguration {
+class PdpHttpEndpointConfiguration {
 
     @Bean
     HttpAuthHandler httpAuthHandler(SaplNodeProperties properties, UserLookupService userLookupService,
             PasswordEncoder passwordEncoder, @Nullable JwtDecoder jwtDecoder,
             @Value("${io.sapl.node.http.auth-cache.positive-ttl:5m}") Duration positiveTtl,
-            @Value("${io.sapl.node.http.auth-cache.negative-ttl:5s}") Duration negativeTtl) {
+            @Value("${io.sapl.node.http.auth-cache.negative-ttl:5s}") Duration negativeTtl,
+            @Value("${io.sapl.node.http.auth-cache.max-size:10000}") long maxSize) {
         return new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, jwtDecoder, positiveTtl,
-                negativeTtl);
+                negativeTtl, maxSize);
     }
 
     @Bean(destroyMethod = "shutdown")
