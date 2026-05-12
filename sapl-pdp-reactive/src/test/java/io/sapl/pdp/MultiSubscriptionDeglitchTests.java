@@ -105,6 +105,11 @@ class MultiSubscriptionDeglitchTests {
         return components;
     }
 
+    private static BlockingPolicyDecisionPoint blockingPdp(PDPComponents components) {
+        return new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
+                new ThreadLocalRandomIdFactory());
+    }
+
     private static void assertBundleDecisions(MultiAuthorizationDecision bundle, Decision aliceExpected,
             Decision bobExpected) {
         assertThat(bundle).isNotNull();
@@ -196,8 +201,7 @@ class MultiSubscriptionDeglitchTests {
             val flagPip = new FlagPip();
             try (val components = buildComponents(flagPip, SHARED_ATTRIBUTE_POLICY_ALICE,
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = blockingPdp(components);
                 flagPip.publish(Value.of(false));
 
                 try (val stream = blocking.decideAll(twoSubs())) {
@@ -217,8 +221,7 @@ class MultiSubscriptionDeglitchTests {
             val flagPip = new FlagPip();
             try (val components = buildComponents(flagPip, SHARED_ATTRIBUTE_POLICY_ALICE,
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = blockingPdp(components);
                 flagPip.publish(Value.of(true));
 
                 try (val stream = blocking.decideAll(twoSubs())) {
@@ -239,25 +242,24 @@ class MultiSubscriptionDeglitchTests {
             val flagPip = new FlagPip();
             try (val components = buildComponents(flagPip, SHARED_ATTRIBUTE_POLICY_ALICE,
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = blockingPdp(components);
                 flagPip.publish(Value.of(false));
 
                 try (val stream = blocking.decide(twoSubs())) {
-                    val initialOne = stream.awaitNext();
-                    val initialTwo = stream.awaitNext();
-                    assertThat(List.of(initialOne, initialTwo)).extracting(c -> c.subscriptionId())
-                            .containsExactlyInAnyOrder("alice-sub", "bob-sub");
-                    assertThat(List.of(initialOne, initialTwo)).extracting(c -> c.decision().decision())
-                            .containsOnly(Decision.DENY);
+                    val initial = List.of(stream.awaitNext(), stream.awaitNext());
+                    assertThat(initial).satisfies(items -> {
+                        assertThat(items).extracting(IdentifiableAuthorizationDecision::subscriptionId)
+                                .containsExactlyInAnyOrder("alice-sub", "bob-sub");
+                        assertThat(items).extracting(c -> c.decision().decision()).containsOnly(Decision.DENY);
+                    });
 
                     flagPip.publish(Value.of(true));
-                    val flipOne = stream.awaitNext();
-                    val flipTwo = stream.awaitNext();
-                    assertThat(List.of(flipOne, flipTwo)).extracting(c -> c.subscriptionId())
-                            .containsExactlyInAnyOrder("alice-sub", "bob-sub");
-                    assertThat(List.of(flipOne, flipTwo)).extracting(c -> c.decision().decision())
-                            .containsOnly(Decision.PERMIT);
+                    val flipped = List.of(stream.awaitNext(), stream.awaitNext());
+                    assertThat(flipped).satisfies(items -> {
+                        assertThat(items).extracting(IdentifiableAuthorizationDecision::subscriptionId)
+                                .containsExactlyInAnyOrder("alice-sub", "bob-sub");
+                        assertThat(items).extracting(c -> c.decision().decision()).containsOnly(Decision.PERMIT);
+                    });
 
                     assertThatExceptionOfType(TimeoutException.class).isThrownBy(() -> stream.awaitNext(QUIET_WINDOW));
                 }
@@ -269,8 +271,7 @@ class MultiSubscriptionDeglitchTests {
         void whenSingleSubReEvaluatesIdenticallyThenDeduped() throws Exception {
             val flagPip = new FlagPip();
             try (val components = buildComponents(flagPip, SHARED_ATTRIBUTE_POLICY_ALICE)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = blockingPdp(components);
                 flagPip.publish(Value.of(true));
 
                 try (val stream = blocking.decide(subscription("alice", "read", "doc"))) {

@@ -144,10 +144,12 @@ public class SecurityConfiguration {
             log.warn("Server has been configured to reply to requests without authentication.");
             http.authorizeHttpRequests(requests -> requests.requestMatchers("/**").permitAll());
         } else {
-            http.authorizeHttpRequests(requests -> requests
-                    .requestMatchers("/", "/actuator/health", "/actuator/health/**", "/error", "/error/**", "/css/**",
-                            "/favicon.png", "/sapl-icon.svg", "/sapl-icon-light.svg")
-                    .permitAll().anyRequest().authenticated());
+            http.authorizeHttpRequests(
+                    requests -> requests
+                            .requestMatchers("/", "/actuator/health", "/actuator/health/**", "/error", "/error/**",
+                                    "/css/**", "/favicon.png", "/sapl-icon.svg", "/sapl-icon-light.svg", "/scalar",
+                                    "/scalar/**", "/v3/api-docs", "/v3/api-docs/**")
+                            .permitAll().anyRequest().authenticated());
         }
 
         if (pdpProperties.isAllowApiKeyAuth()) {

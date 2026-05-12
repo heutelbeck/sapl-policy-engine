@@ -20,6 +20,7 @@ package io.sapl.node;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -137,6 +138,40 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("git.properties");
             hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
             hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");
+            hints.resources().registerPattern("static/css/sapl-scalar-theme.css");
+            registerScalarReflection(hints, classLoader);
+        }
+
+        private static void registerScalarReflection(RuntimeHints hints, ClassLoader classLoader) {
+            val binder = new BindingReflectionHintsRegistrar();
+            for (val className : new String[] { "com.scalar.maven.core.internal.ScalarConfiguration",
+                    "com.scalar.maven.core.ScalarProperties", "com.scalar.maven.webmvc.SpringBootScalarProperties",
+                    "com.scalar.maven.core.config.ScalarSource", "com.scalar.maven.core.config.ScalarServer",
+                    "com.scalar.maven.core.config.ScalarServerVariable",
+                    "com.scalar.maven.core.config.ScalarAgentOptions", "com.scalar.maven.core.config.DefaultHttpClient",
+                    "com.scalar.maven.core.authentication.ScalarAuthenticationOptions",
+                    "com.scalar.maven.core.authentication.schemes.ScalarSecurityScheme",
+                    "com.scalar.maven.core.authentication.schemes.ScalarApiKeySecurityScheme",
+                    "com.scalar.maven.core.authentication.schemes.ScalarHttpSecurityScheme",
+                    "com.scalar.maven.core.authentication.schemes.ScalarOAuth2SecurityScheme",
+                    "com.scalar.maven.core.authentication.flows.ScalarFlows",
+                    "com.scalar.maven.core.authentication.flows.OAuthFlow",
+                    "com.scalar.maven.core.authentication.flows.AuthorizationCodeFlow",
+                    "com.scalar.maven.core.authentication.flows.ClientCredentialsFlow",
+                    "com.scalar.maven.core.authentication.flows.ImplicitFlow",
+                    "com.scalar.maven.core.authentication.flows.PasswordFlow",
+                    "com.scalar.maven.core.enums.ScalarTheme", "com.scalar.maven.core.enums.ThemeMode",
+                    "com.scalar.maven.core.enums.Pkce", "com.scalar.maven.core.enums.CredentialsLocation",
+                    "com.scalar.maven.core.enums.DeveloperToolsVisibility",
+                    "com.scalar.maven.core.enums.DocumentDownloadType", "com.scalar.maven.core.enums.Layout",
+                    "com.scalar.maven.core.enums.OperationSorter", "com.scalar.maven.core.enums.OperationTitleSource",
+                    "com.scalar.maven.core.enums.SchemaPropertyOrder", "com.scalar.maven.core.enums.TagSorter" }) {
+                try {
+                    binder.registerReflectionHints(hints.reflection(), Class.forName(className, false, classLoader));
+                } catch (ClassNotFoundException ignored) {
+                    // Optional Scalar type not on the classpath.
+                }
+            }
 
             for (val className : PICOCLI_REFLECTION_CLASSES) {
                 hints.reflection().registerTypeIfPresent(classLoader, className,
@@ -152,6 +187,12 @@ public class SaplNodeApplication {
                     MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
             hints.reflection().registerTypeIfPresent(classLoader, "org.eclipse.jetty.ee11.servlet.SessionHandler",
                     MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+
+            // springdoc's ActuatorOperationCustomizer reflects on the private
+            // 'operation' field of OperationHandler when show-actuator is on.
+            hints.reflection().registerTypeIfPresent(classLoader,
+                    "org.springframework.boot.webmvc.actuate.endpoint.web.AbstractWebMvcEndpointHandlerMapping$OperationHandler",
+                    MemberCategory.ACCESS_DECLARED_FIELDS);
         }
 
     }

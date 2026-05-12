@@ -304,6 +304,7 @@
 							     <clinit> reaches java.awt.Toolkit which loads libawt.so,
 							     whose JNI_OnLoad fails to FindClass("java/awt/GraphicsEnvironment"). -->
 							<buildArg>--initialize-at-build-time=io.sapl.functions.geo.GeographicFunctionLibrary,org.geotools.xsd.Parser,org.geotools.util.logging.Logging,org.geotools.util.logging.Logging$LogLevel,org.eclipse.imagen.ImageN,java.awt.Dimension,java.awt.Toolkit</buildArg>
+							<buildArg>--initialize-at-run-time=com.scalar.maven.core.ScalarHtmlRenderer</buildArg>
 						</buildArgs>
 					</configuration>
 					<executions>
