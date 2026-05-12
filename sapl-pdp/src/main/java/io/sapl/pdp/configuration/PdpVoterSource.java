@@ -45,12 +45,12 @@ import java.util.function.Consumer;
  * <p>
  * Two access patterns are supported:
  * <ul>
- * <li><b>Snapshot read</b> via {@link #getCurrentConfiguration(String)} —
- * lock-free volatile read of the current compiled voter from a
- * per-pdpId {@link AtomicReference} cache. This is the fast path for
- * one-shot evaluations.</li>
+ * <li><b>Snapshot read</b> via {@link #getCurrentConfiguration(String)}.
+ * Performs a lock-free volatile read of the current compiled voter
+ * from a per-pdpId {@link AtomicReference} cache. This is the fast
+ * path for one-shot evaluations.</li>
  * <li><b>Change notification</b> via
- * {@link #subscribeToUpdates(String, Consumer)} — registers a callback
+ * {@link #subscribeToUpdates(String, Consumer)}. Registers a callback
  * invoked synchronously on the loader thread whenever the configuration
  * for a pdpId is replaced or removed. Callers that need a reactive
  * stream compose snapshot + notifications themselves; this class stays

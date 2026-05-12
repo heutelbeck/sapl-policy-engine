@@ -27,6 +27,7 @@ import java.util.HexFormat;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -57,7 +58,6 @@ import lombok.val;
 @Slf4j
 public class CachingHttpAuthHandler implements HttpAuthHandler {
 
-    private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String BASIC_PREFIX  = "Basic ";
     private static final String SAPL_PREFIX   = "sapl_";
@@ -93,7 +93,7 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
 
     @Override
     public HttpAuthResult authenticate(HttpServletRequest request) {
-        val header = request.getHeader(AUTHORIZATION);
+        val header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header == null || header.isBlank()) {
             if (properties.isAllowNoAuth()) {
                 return defaultPdpResult;
@@ -102,15 +102,10 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
         }
         val key     = sha256(header);
         val outcome = cache.get(key, k -> resolveOutcome(header));
-        if (outcome instanceof Outcome.Success success) {
-            return success.result;
-        }
-        if (outcome instanceof Outcome.Failure failure) {
-            throw new HttpAuthenticationException(failure.message);
-        }
-        // Defensive: cache.get is non-null, but the exhaustiveness check needs an
-        // explicit branch.
-        throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
+        return switch (outcome) {
+        case Outcome.Success success -> success.result;
+        case Outcome.Failure failure -> throw new HttpAuthenticationException(failure.message);
+        };
     }
 
     private Outcome resolveOutcome(String header) {
@@ -143,9 +138,14 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
     }
 
     private HttpAuthResult verifyBasic(String credentials) {
-        val decoded = Base64.getDecoder().decode(credentials);
-        val text    = new String(decoded, StandardCharsets.UTF_8);
-        val colon   = text.indexOf(':');
+        final byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(credentials);
+        } catch (IllegalArgumentException e) {
+            throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS, e);
+        }
+        val text  = new String(decoded, StandardCharsets.UTF_8);
+        val colon = text.indexOf(':');
         if (colon < 0) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }

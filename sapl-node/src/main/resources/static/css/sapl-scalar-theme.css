@@ -16,7 +16,7 @@ a[href*="scalar.com"][target="_blank"] { display: none !important; }
         "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 }
 
-/* Light theme — sapl.io light palette. */
+/* Light theme. sapl.io light palette. */
 .light-mode,
 :root:not(.dark-mode) {
     --scalar-color-1: #1a1a2e;
@@ -56,7 +56,7 @@ a[href*="scalar.com"][target="_blank"] { display: none !important; }
     --scalar-header-call-to-action-color: #027080;
 }
 
-/* Dark theme — sapl.io dark palette, aligned with the Vaadin Aura tokens. */
+/* Dark theme. sapl.io dark palette, aligned with the Vaadin Aura tokens. */
 .dark-mode {
     --scalar-color-1: hsl(210, 10%, 90%);
     --scalar-color-2: hsl(210, 10%, 60%);

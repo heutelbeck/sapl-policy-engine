@@ -209,7 +209,8 @@ class PostEnforcePolicyEnforcementPointTests {
 
             // Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran; it skipped
             // because the OutputSignal value is Maybe.absent for void. The PEP still
-            // consulted the PDP — verifying that proves the obligation was processed.
+            // consulted the PDP. Verifying that consultation proves the obligation
+            // was processed.
             verify(pdp).decideOnceBlocking(any(), anyString());
         }
 

@@ -24,7 +24,7 @@ const lintCompartment = new Compartment();
 const bracketMatchingCompartment = new Compartment();
 const closeBracketsCompartment = new Compartment();
 
-// SAPL light theme — WCAG AA compliant, brand-aligned colors
+// SAPL light theme. WCAG AA compliant, brand-aligned colors
 const saplLightHighlightStyle = HighlightStyle.define([
     { tag: tags.keyword, color: '#027080' },
     { tag: tags.variableName, color: '#0070c1' },

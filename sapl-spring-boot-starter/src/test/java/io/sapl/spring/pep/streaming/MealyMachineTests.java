@@ -66,12 +66,12 @@ import io.sapl.spring.util.Maybe;
  * <p>
  * Two complementary suites:
  * <ul>
- * <li>{@code RoutingMatrix} — exhaustively asserts the per-cell
+ * <li>{@code RoutingMatrix}. Exhaustively asserts the per-cell
  * (state, event) routing as documented in
  * {@code notes/4.1.0-notes/streaming-pep-mealy-diagrams.md}. The
  * routing table here is the executable spec; if it diverges from
  * the implementation, one of the two is wrong.</li>
- * <li>{@code Properties} — sequence-quantified invariants the matrix
+ * <li>{@code Properties}. Sequence-quantified invariants the matrix
  * cannot capture (absorption, universalities, no-leak under suspend,
  * boundary count fidelity).</li>
  * </ul>

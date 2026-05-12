@@ -274,7 +274,7 @@ You cannot mix SAPL annotations with Spring Security annotations like `@PreAutho
 
 ### Streaming Enforcement with `@StreamEnforce`
 
-`@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For methods that return a `Flux<T>`, the decision is rarely a single point in time — the same subscription stays open while the policy evaluates against attribute streams that may change. SAPL exposes a third method-security annotation for this case.
+`@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For methods that return a `Flux<T>`, the decision is rarely a single point in time. The same subscription stays open while the policy evaluates against attribute streams that may change. SAPL exposes a third method-security annotation for this case.
 
 ```java
 @StreamEnforce
@@ -299,7 +299,7 @@ Every decision the PDP emits during the lifetime of the subscription has one of 
 
 The mapping of `INDETERMINATE` and `NOT_APPLICABLE` to silent-drop is deliberate: streaming subscriptions should be resilient to transient policy gaps and broker errors. Operators who want hard fail-closed semantics on these set the combining algorithm's `defaultDecision` to `DENY` (so `NOT_APPLICABLE` collapses to `DENY`) or its `errorHandling` to `PROPAGATE` (so `INDETERMINATE` collapses to `DENY`) at the PDP level. The streaming PEP honours whatever decision the PDP produces.
 
-A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for — see [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
+A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
 
 #### Three Flags
 
@@ -313,17 +313,17 @@ A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP 
 )
 ```
 
-**`signalTransitions`** — surface every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused — waiting for access") opt in to `signalTransitions=true`.
+**`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused, waiting for access") opt in to `signalTransitions=true`.
 
-**`terminateOnItemEnforcementFailure`** — controls what happens when a per-item obligation handler fails. With the default `false`, an item-level failure silences the subscription as if the PDP had emitted `SUSPEND`; the subscription stays alive and may resume on a later decision. With `true`, an item-level failure terminates the subscription with an `AccessDeniedException`. Choose `true` for protected methods whose per-item side effects are unsafe to leave unenforced (where letting one item slip past would be a security failure). Choose `false` (the default) for streams where transient enforcement hiccups should pause the subscription without tearing it down.
+**`terminateOnItemEnforcementFailure`**. Controls what happens when a per-item obligation handler fails. With the default `false`, an item-level failure silences the subscription as if the PDP had emitted `SUSPEND`; the subscription stays alive and may resume on a later decision. With `true`, an item-level failure terminates the subscription with an `AccessDeniedException`. Choose `true` for protected methods whose per-item side effects are unsafe to leave unenforced (where letting one item slip past would be a security failure). Choose `false` (the default) for streams where transient enforcement hiccups should pause the subscription without tearing it down.
 
-**`pauseRapDuringSuspend`** — controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
+**`pauseRapDuringSuspend`**. Controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
 
 #### Three Common Patterns
 
 The flag combinations encode the three behavioural patterns most streaming endpoints want.
 
-**Terminate on deny** — the subscription should end the moment access is revoked, and the subscriber should know.
+**Terminate on deny.** The subscription should end the moment access is revoked, and the subscriber should know.
 
 ```java
 @StreamEnforce
@@ -332,7 +332,7 @@ public Flux<Trade> liveTrades() { ... }
 
 Defaults are sufficient. A `DENY` from the PDP terminates the subscription with `AccessDeniedException`. A `SUSPEND` keeps the subscription alive but silently drops items. The subscriber sees data while permitted and a terminal error if denied. This matches subscription-based business models where service delivery should stop when the subscriber's contract ends.
 
-**Drop while suspended, silent transitions** — the subscription should survive deny windows transparently. The subscriber sees data when permitted and silence otherwise, with no boundary events.
+**Drop while suspended, silent transitions.** The subscription should survive deny windows transparently. The subscriber sees data when permitted and silence otherwise, with no boundary events.
 
 ```java
 @StreamEnforce
@@ -341,7 +341,7 @@ public Flux<TelemetryEvent> telemetry() { ... }
 
 Same defaults; the difference is in the policy: use the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open. When the policy returns `PERMIT` again, items resume. Useful for legacy clients that cannot renegotiate connections, or when revealing the deny condition itself would leak information.
 
-**Survive deny with explicit transition signals** — the subscription should survive, and the subscriber wants to know about every boundary.
+**Survive deny with explicit transition signals.** The subscription should survive, and the subscriber wants to know about every boundary.
 
 ```java
 @StreamEnforce(signalTransitions = true)

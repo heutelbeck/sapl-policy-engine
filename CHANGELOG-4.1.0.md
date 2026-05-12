@@ -53,7 +53,7 @@ exchange. Policy obligations can shape the request (header injection,
 attribute set), the response (status, headers, body rewrite), and the
 denial response (custom error page, redirect). The five-signal lifecycle
 and the configurer entry point are identical across servlet and
-reactive — the same SAPL policy text works against both backends.
+reactive. The same SAPL policy text works against both backends.
 
 4.0's HTTP authorization managers fired only `DecisionSignal` and a
 misnamed `HttpRequestShimSignal` and could not enforce response- or
@@ -111,15 +111,15 @@ The `StreamMode` enum is removed.
 
 Two new flags surface concerns the 4.0 aliases could not express:
 
-- `terminateOnItemEnforcementFailure` — when a per-item obligation
-  handler fails, terminate the subscription (default `false` —
-  suspend instead). Set to `true` for protected methods whose per-item
-  side effects are unsafe to leave unenforced.
-- `pauseRapDuringSuspend` — dispose the upstream subscription whenever
-  the stream is silenced, and re-subscribe when it resumes (default
-  `false` — upstream stays connected, items dropped silently). Set to
-  `true` for upstream sources with expensive side effects that must
-  not run while denied.
+- `terminateOnItemEnforcementFailure`. When a per-item obligation
+  handler fails, terminate the subscription. Defaults to `false`,
+  which suspends instead. Set to `true` for protected methods whose
+  per-item side effects are unsafe to leave unenforced.
+- `pauseRapDuringSuspend`. Dispose the upstream subscription whenever
+  the stream is silenced, and re-subscribe when it resumes. Defaults
+  to `false`, which keeps the upstream connected with items dropped
+  silently. Set to `true` for upstream sources with expensive side
+  effects that must not run while denied.
 
 ### `ConstraintHandlerProvider`
 
@@ -133,7 +133,7 @@ Optional<ScopedConstraintHandler> getConstraintHandler(Value, Set<SignalType>);
 List<ScopedConstraintHandler> getConstraintHandlers(Value, Set<SignalType>);
 ```
 
-A single obligation may now drive several handlers — return multiple
+A single obligation may now drive several handlers. Return multiple
 entries from one provider call.
 
 ### Authorization subscription factory

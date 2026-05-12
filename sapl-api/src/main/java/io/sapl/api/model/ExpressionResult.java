@@ -27,11 +27,11 @@ import org.jspecify.annotations.Nullable;
  * <p>
  * Field meanings:
  * <ul>
- * <li>{@code result} — the computed {@link Value} if all needed
- * attribute reads were resolvable from the snapshot at evaluation
- * time; {@code null} if at least one read could not complete and
- * the trigger loop must subscribe and retry.</li>
- * <li>{@code dependencies} — the <strong>complete</strong> map of
+ * <li>{@code result}. Holds the computed {@link Value} when all
+ * needed attribute reads resolved from the snapshot at evaluation
+ * time. When at least one read could not complete, {@code result}
+ * is {@code null} and the trigger loop must subscribe and retry.</li>
+ * <li>{@code dependencies}. The <strong>complete</strong> map of
  * attribute subscriptions this evaluation pass needed or touched,
  * keyed by {@link SubscriptionKey} (the natural deduplication key
  * on the attribute store side, combining the
@@ -49,9 +49,9 @@ import org.jspecify.annotations.Nullable;
  * <p>
  * Why this shape rather than {@code Value | NeedsMore}: a sum-type
  * result can only signal "I need MORE attributes." It cannot signal
- * "I need FEWER" — the dependency set could only grow monotonically
- * across passes, which prevents correct cleanup when parameterised
- * attribute references resolve to different branches. The
+ * "I need FEWER". A monotonically growing dependency set prevents
+ * correct cleanup when parameterised attribute references resolve to
+ * different branches. The
  * full-map-per-pass shape supports both directions symmetrically.
  *
  * @param result the computed value, or {@code null} if evaluation

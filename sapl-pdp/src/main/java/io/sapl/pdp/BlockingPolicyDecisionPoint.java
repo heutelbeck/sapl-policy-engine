@@ -212,8 +212,9 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     /**
      * Streams the {@link TracedVote}s the PDP produces for the
-     * subscription — vote, emit timestamp, dependency map, and per-key
-     * snapshot read. Re-evaluates on every PDP configuration change
+     * subscription. Each vote carries the verb, emit timestamp,
+     * dependency map, and per-key snapshot read. Re-evaluates on every PDP
+     * configuration change
      * with the same semantics as {@link #decide}; the stream stays
      * alive until the consumer closes it.
      * <p>

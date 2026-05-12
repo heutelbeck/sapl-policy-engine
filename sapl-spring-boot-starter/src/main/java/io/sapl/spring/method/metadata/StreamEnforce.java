@@ -44,21 +44,21 @@ import java.lang.annotation.Target;
  * <p>
  * Three optional flags refine the PEP-side behaviour:
  * <ul>
- * <li>{@link #signalTransitions()} (default {@code false}) — surface every
- * suspend/resume boundary to the subscriber as a non-terminal exception
- * on the error channel
+ * <li>{@link #signalTransitions()} (default {@code false}). Surfaces
+ * every suspend/resume boundary to the subscriber as a non-terminal
+ * exception on the error channel
  * ({@link org.springframework.security.access.AccessDeniedException
  * AccessDeniedException} on entry to suspended,
  * {@link io.sapl.spring.pep.streaming.AccessGrantedException} on resume).
  * Subscribers consume the signals with {@code onErrorContinue} or via
  * {@link io.sapl.spring.pep.streaming.TransitionSignals}.</li>
- * <li>{@link #terminateOnItemEnforcementFailure()} (default {@code false})
- * — strict per-item failure handling. When {@code false}, an item
+ * <li>{@link #terminateOnItemEnforcementFailure()} (default {@code false}).
+ * Strict per-item failure handling. When {@code false}, an item
  * whose obligation handlers fail transitions the subscription to
  * suspended and a future decision may resume it. When {@code true}, the
  * failure terminates the subscription loudly.</li>
- * <li>{@link #pauseRapDuringSuspend()} (default {@code false}) — RAP
- * connection management while suspended. When {@code false}, the RAP
+ * <li>{@link #pauseRapDuringSuspend()} (default {@code false}). Manages
+ * the RAP connection while suspended. When {@code false}, the RAP
  * subscription stays connected and items keep arriving; the PEP drops
  * them silently. When {@code true}, the PEP disposes the RAP
  * subscription on entering suspended and re-subscribes on resume.</li>

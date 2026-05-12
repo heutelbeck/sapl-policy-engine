@@ -20,18 +20,22 @@ package io.sapl.node.apikey;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 
+import io.sapl.node.auth.SaplAuthenticationToken;
+
 /**
  * Authentication manager that accepts an already-validated API key
- * authentication. The actual API key check happens in {@link ApiKeyService};
- * by the time this manager sees the {@link Authentication}, credentials are
- * known to be valid, so we simply mark it as authenticated.
+ * authentication. The actual API key check happens in {@link ApiKeyService}
+ * and produces a {@link SaplAuthenticationToken}; the manager marks only
+ * tokens of that exact shape as authenticated. Any other Authentication
+ * type reaching this manager indicates a misrouted filter chain and is
+ * returned untrusted.
  */
 public class ApiKeyAuthenticationManager implements AuthenticationManager {
 
     @Override
     public Authentication authenticate(Authentication authentication) {
-        if (authentication != null && authentication.getCredentials() != null) {
-            authentication.setAuthenticated(true);
+        if (authentication instanceof SaplAuthenticationToken sapl) {
+            sapl.setAuthenticated(true);
         }
         return authentication;
     }

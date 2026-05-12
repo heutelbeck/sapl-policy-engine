@@ -28,7 +28,7 @@ import lombok.experimental.UtilityClass;
  * {@link ReactivePDPComponents} for consumers that want a Reactor-flavoured
  * interface.
  * <p>
- * No fluent API of its own — all engine setup happens on the core
+ * No fluent API of its own. All engine setup happens on the core
  * {@link PolicyDecisionPointBuilder}. This is intentionally a thin layer
  * so the core engine stays Reactor-free and the reactive package can be
  * extracted into its own module without dragging Reactor into the core.
