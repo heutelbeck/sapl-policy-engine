@@ -120,17 +120,6 @@ public class SaplNodeApplication {
 
     static class NativeResourceHints implements RuntimeHintsRegistrar {
 
-        private static final String   COMMANDS_PACKAGE           = "io.sapl.node.cli.commands.";
-        private static final String   OPTIONS_PACKAGE            = "io.sapl.node.cli.options.";
-        private static final String[] PICOCLI_REFLECTION_CLASSES = { COMMANDS_PACKAGE + "BenchmarkCommand",
-                COMMANDS_PACKAGE + "LoadtestCommand", OPTIONS_PACKAGE + "BenchmarkOptions",
-                OPTIONS_PACKAGE + "BundleVerificationOptions", COMMANDS_PACKAGE + "CheckCommand",
-                COMMANDS_PACKAGE + "DecideCommand", COMMANDS_PACKAGE + "DecideOnceCommand",
-                OPTIONS_PACKAGE + "NamedSubscriptionOptions", OPTIONS_PACKAGE + "PdpOptions",
-                OPTIONS_PACKAGE + "PolicySourceOptions", OPTIONS_PACKAGE + "RemoteConnectionOptions",
-                OPTIONS_PACKAGE + "RemoteConnectionOptions$AuthOptions", COMMANDS_PACKAGE + "ServerCommand",
-                OPTIONS_PACKAGE + "SubscriptionInputOptions", COMMANDS_PACKAGE + "TestCommand" };
-
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
             hints.resources().registerPattern("banner.txt");
@@ -171,11 +160,6 @@ public class SaplNodeApplication {
                 } catch (ClassNotFoundException ignored) {
                     // Optional Scalar type not on the classpath.
                 }
-            }
-
-            for (val className : PICOCLI_REFLECTION_CLASSES) {
-                hints.reflection().registerTypeIfPresent(classLoader, className,
-                        MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.ACCESS_DECLARED_FIELDS);
             }
 
             // Jetty servlet stack: Spring Boot's JettyServletWebServerFactory uses
