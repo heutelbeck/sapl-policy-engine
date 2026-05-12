@@ -17,8 +17,6 @@
  */
 package io.sapl.node.cli.support;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
@@ -29,7 +27,6 @@ import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicy
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
@@ -52,6 +49,7 @@ import java.util.Map;
 public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, ConfigurableApplicationContext context) {
 
     public static final String ERROR_BASIC_AUTH_FORMAT = "Error: --basic-auth must be in format 'user:password'.";
+    public static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
     public static final String ERROR_REMOTE_CONNECTION = "Error: Failed to connect to remote PDP: %s.";
     public static final String ERROR_REMOTE_WITH_LOCAL = "Error: --remote cannot be used with --dir or --bundle.";
     public static final String ERROR_REMOTE_WITH_VERIFICATION = "Error: --remote cannot be used with --public-key or --no-verify.";
@@ -92,7 +90,7 @@ public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, Confi
     }
 
     private static PdpSetup openHttp(RemoteConnectionOptions remote) throws SSLException {
-        val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8443");
+        val url     = resolveWithEnv(remote.url, "SAPL_URL", "https://localhost:8443");
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
             builder.withUnsecureSSL();
@@ -125,10 +123,6 @@ public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, Confi
         app.setAdditionalProfiles("cli");
         app.setDefaultProperties(Map.of("org.springframework.boot.logging.LoggingSystem", "none"));
         val context = app.run(springArgs);
-        if (options.trace || options.jsonReport || options.textReport) {
-            val logbackContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-            logbackContext.getLogger("io.sapl.pdp.interceptors").setLevel(Level.INFO);
-        }
         return new PdpSetup(context.getBean(ReactivePolicyDecisionPoint.class), context.getBean(JsonMapper.class),
                 context);
     }

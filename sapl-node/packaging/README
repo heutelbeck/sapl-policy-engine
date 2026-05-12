@@ -44,7 +44,7 @@ service account to protect policy confidentiality.
 
 5. Verify:
 
-   curl -s http://localhost:8443/actuator/health | jq .
+   curl -s https://localhost:8443/actuator/health | jq .
 
    You should see "status": "UP".
 

@@ -190,13 +190,15 @@ public class BenchmarkCommand implements Callable<Integer> {
             return null;
         }
         val subscriptionsFile = Path.of(policyPath).resolve("subscriptions.json");
-        try {
-            if (Files.exists(subscriptionsFile)) {
-                return Files.readString(subscriptionsFile);
-            }
-        } catch (IOException e) {
-            // fall through to single subscription
+        if (!Files.exists(subscriptionsFile)) {
+            return null;
         }
-        return null;
+        try {
+            return Files.readString(subscriptionsFile);
+        } catch (IOException e) {
+            System.err.println("Failed to read " + subscriptionsFile + ": " + e.getMessage()
+                    + ". Falling back to a single hard-coded subscription.");
+            return null;
+        }
     }
 }

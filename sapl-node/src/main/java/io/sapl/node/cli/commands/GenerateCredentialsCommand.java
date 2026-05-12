@@ -95,43 +95,48 @@ public class GenerateCredentialsCommand {
 
         @Override
         public Integer call() {
-            val id            = userId.isEmpty() ? "user-" + newKey() : userId;
-            val username      = newKey();
-            val secret        = newSecret();
-            val encodedSecret = encodeWithArgon2(secret);
-            spec.commandLine().getOut().printf("""
-                    %n\
-                    Basic Auth Credentials%n\
-                    ======================%n\
-                    %n\
-                    User ID:  %s%n\
-                    PDP ID:   %s%n\
-                    Username: %s%n\
-                    Password: %s%n\
-                    %n\
-                    Configuration (application.yml):%n\
-                    --------------------------------%n\
-                    io.sapl.node:%n\
-                      allowBasicAuth: true%n\
-                      users:%n\
-                        - id: "%s"%n\
-                          pdpId: "%s"%n\
-                          basic:%n\
-                            username: "%s"%n\
-                            secret: "%s"%n\
-                    %n\
-                    Usage (curl):%n\
-                    -------------%n\
-                    curl -u '%s:%s' \\%n\
-                      -X POST https://localhost:8443/api/pdp/decide-once \\%n\
-                      -H 'Content-Type: application/json' \\%n\
-                      -d '{"subject":"alice","action":"read","resource":"document"}' \\%n\
-                      --cacert server.crt%n\
-                    %n\
-                    IMPORTANT: Store the password securely. Use the encoded value in%n\
-                    server configuration; use the plaintext password in clients.%n\
-                    """, id, pdpId, username, secret, id, pdpId, username, encodedSecret, username, secret);
-            return 0;
+            try {
+                val id            = userId.isEmpty() ? "user-" + newKey() : userId;
+                val username      = newKey();
+                val secret        = newSecret();
+                val encodedSecret = encodeWithArgon2(secret);
+                spec.commandLine().getOut().printf("""
+                        %n\
+                        Basic Auth Credentials%n\
+                        ======================%n\
+                        %n\
+                        User ID:  %s%n\
+                        PDP ID:   %s%n\
+                        Username: %s%n\
+                        Password: %s%n\
+                        %n\
+                        Configuration (application.yml):%n\
+                        --------------------------------%n\
+                        io.sapl.node:%n\
+                          allowBasicAuth: true%n\
+                          users:%n\
+                            - id: "%s"%n\
+                              pdpId: "%s"%n\
+                              basic:%n\
+                                username: "%s"%n\
+                                secret: "%s"%n\
+                        %n\
+                        Usage (curl):%n\
+                        -------------%n\
+                        curl -u '%s:%s' \\%n\
+                          -X POST https://localhost:8443/api/pdp/decide-once \\%n\
+                          -H 'Content-Type: application/json' \\%n\
+                          -d '{"subject":"alice","action":"read","resource":"document"}' \\%n\
+                          --cacert server.crt%n\
+                        %n\
+                        IMPORTANT: Store the password securely. Use the encoded value in%n\
+                        server configuration; use the plaintext password in clients.%n\
+                        """, id, pdpId, username, secret, id, pdpId, username, encodedSecret, username, secret);
+                return 0;
+            } catch (RuntimeException e) {
+                spec.commandLine().getErr().println("Error: Failed to generate credentials: " + e.getMessage());
+                return 1;
+            }
         }
 
     }
@@ -180,50 +185,55 @@ public class GenerateCredentialsCommand {
 
         @Override
         public Integer call() {
-            val id         = userId.isEmpty() ? "user-" + newKey() : userId;
-            val apiKeyId   = newKey();
-            val secret     = newApiKey();
-            val apiKey     = "sapl_" + apiKeyId + "_" + secret;
-            val encodedKey = encodeWithArgon2(apiKey);
-            spec.commandLine().getOut().printf("""
-                    %n\
-                    API Key%n\
-                    =======%n\
-                    %n\
-                    User ID:    %s%n\
-                    PDP ID:     %s%n\
-                    Key:        %s%n\
-                    API Key ID: %s%n\
-                    %n\
-                    Configuration (application.yml):%n\
-                    --------------------------------%n\
-                    io.sapl.node:%n\
-                      allowApiKeyAuth: true%n\
-                      users:%n\
-                        - id: "%s"%n\
-                          pdpId: "%s"%n\
-                          apiKeyId: "%s"%n\
-                          apiKey: "%s"%n\
-                    %n\
-                    The 'apiKeyId' field is the public middle segment of the key%n\
-                    (between the 'sapl_' prefix and the secret). The server uses it%n\
-                    for O(1) routing on incoming requests; without it, requests fall%n\
-                    back to a slow scan across all configured users. Both 'apiKeyId'%n\
-                    and 'apiKey' come from the same generator run -- pair them or%n\
-                    rotate together.%n\
-                    %n\
-                    Usage (curl):%n\
-                    -------------%n\
-                    curl -H 'Authorization: Bearer %s' \\%n\
-                      -X POST https://localhost:8443/api/pdp/decide-once \\%n\
-                      -H 'Content-Type: application/json' \\%n\
-                      -d '{"subject":"alice","action":"read","resource":"document"}' \\%n\
-                      --cacert server.crt%n\
-                    %n\
-                    IMPORTANT: This key grants full PDP access. Store securely and%n\
-                    rotate periodically. Multiple users with API keys can be configured.%n\
-                    """, id, pdpId, apiKey, apiKeyId, id, pdpId, apiKeyId, encodedKey, apiKey);
-            return 0;
+            try {
+                val id         = userId.isEmpty() ? "user-" + newKey() : userId;
+                val apiKeyId   = newKey();
+                val secret     = newApiKey();
+                val apiKey     = "sapl_" + apiKeyId + "_" + secret;
+                val encodedKey = encodeWithArgon2(apiKey);
+                spec.commandLine().getOut().printf("""
+                        %n\
+                        API Key%n\
+                        =======%n\
+                        %n\
+                        User ID:    %s%n\
+                        PDP ID:     %s%n\
+                        Key:        %s%n\
+                        API Key ID: %s%n\
+                        %n\
+                        Configuration (application.yml):%n\
+                        --------------------------------%n\
+                        io.sapl.node:%n\
+                          allowApiKeyAuth: true%n\
+                          users:%n\
+                            - id: "%s"%n\
+                              pdpId: "%s"%n\
+                              apiKeyId: "%s"%n\
+                              apiKey: "%s"%n\
+                        %n\
+                        The 'apiKeyId' field is the public middle segment of the key%n\
+                        (between the 'sapl_' prefix and the secret). The server uses it%n\
+                        for O(1) routing on incoming requests; without it, requests fall%n\
+                        back to a slow scan across all configured users. Both 'apiKeyId'%n\
+                        and 'apiKey' come from the same generator run -- pair them or%n\
+                        rotate together.%n\
+                        %n\
+                        Usage (curl):%n\
+                        -------------%n\
+                        curl -H 'Authorization: Bearer %s' \\%n\
+                          -X POST https://localhost:8443/api/pdp/decide-once \\%n\
+                          -H 'Content-Type: application/json' \\%n\
+                          -d '{"subject":"alice","action":"read","resource":"document"}' \\%n\
+                          --cacert server.crt%n\
+                        %n\
+                        IMPORTANT: This key grants full PDP access. Store securely and%n\
+                        rotate periodically. Multiple users with API keys can be configured.%n\
+                        """, id, pdpId, apiKey, apiKeyId, id, pdpId, apiKeyId, encodedKey, apiKey);
+                return 0;
+            } catch (RuntimeException e) {
+                spec.commandLine().getErr().println("Error: Failed to generate API key: " + e.getMessage());
+                return 1;
+            }
         }
 
     }

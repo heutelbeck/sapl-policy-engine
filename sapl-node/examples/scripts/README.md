@@ -15,8 +15,8 @@ This directory contains bash scripts for manually testing and experimenting with
 Tests SAPL Node without authentication (for development/testing environments).
 
 ```bash
-./test-no-auth.sh                        # Default: http://localhost:8443
-./test-no-auth.sh http://localhost:8443  # Custom URL
+./test-no-auth.sh                        # Default: https://localhost:8443
+./test-no-auth.sh https://localhost:8443  # Custom URL
 ```
 
 ### test-basic-auth.sh
@@ -47,8 +47,8 @@ Tests streaming subscriptions that receive live policy updates.
 
 ```bash
 ./test-streaming.sh noauth
-./test-streaming.sh basic "username:password" http://localhost:8443
-./test-streaming.sh apikey "sapl_..." http://localhost:8443
+./test-streaming.sh basic "username:password" https://localhost:8443
+./test-streaming.sh apikey "sapl_..." https://localhost:8443
 ```
 
 **Tip:** Run this script and then modify a policy file. You should see the updated decision streamed to your terminal.
@@ -94,7 +94,7 @@ This script prompts for credentials for two different tenants and demonstrates t
    ./test-no-auth.sh http://localhost:8080
 
    # Against Docker (port 8443):
-   ./test-no-auth.sh http://localhost:8443
+   ./test-no-auth.sh https://localhost:8443
    ```
 
 ## Common Test Subscription
@@ -123,7 +123,7 @@ The scripts use `-k` flag to skip SSL verification for self-signed certificates.
 
 Verify SAPL Node is running and listening on the expected port:
 ```bash
-curl http://localhost:8443/actuator/health
+curl https://localhost:8443/actuator/health
 ```
 
 ### Authentication Failures

@@ -47,6 +47,13 @@ server:
     # key-store-password: changeme
     # key-password: changeme
     # key-alias: sapl-node
+    #
+    # The cipher list and protocol settings below are inactive while
+    # ssl.enabled is false. They are kept here so that flipping
+    # ssl.enabled to true yields a known-good baseline.
+    # The cipher set originates from a Qualys SSL Labs audit of a
+    # running SAPL Node and is more than two years old at the time of
+    # writing. Re-audit before relying on it in a fresh deployment.
     ciphers:
       - TLS_AES_128_GCM_SHA256
       - TLS_AES_256_GCM_SHA384

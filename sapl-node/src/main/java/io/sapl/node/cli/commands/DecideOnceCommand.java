@@ -29,6 +29,7 @@ import picocli.CommandLine.Spec;
 import javax.net.ssl.SSLException;
 import java.util.concurrent.Callable;
 
+import static io.sapl.node.cli.support.PdpSetup.ERROR_EVALUATION_FAILED;
 import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 
 /**
@@ -74,8 +75,6 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 )
 // @formatter:on
 public class DecideOnceCommand implements Callable<Integer> {
-
-    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
 
     @Spec
     CommandSpec spec;

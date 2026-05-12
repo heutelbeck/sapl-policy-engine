@@ -76,7 +76,13 @@ public class SaplNodeApplication {
             return 0;
         }
         configureCliLogging();
-        return new CommandLine(new SaplNodeCli()).execute(args);
+        val cli         = new SaplNodeCli();
+        val commandLine = new CommandLine(cli);
+        commandLine.setExecutionStrategy(parseResult -> {
+            cli.applyVerbosityToLogging();
+            return new CommandLine.RunLast().execute(parseResult);
+        });
+        return commandLine.execute(args);
     }
 
     /**

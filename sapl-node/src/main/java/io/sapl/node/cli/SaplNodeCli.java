@@ -31,8 +31,15 @@ import io.sapl.node.cli.commands.GenerateCredentialsCommand;
 import io.sapl.node.cli.commands.LoadtestCommand;
 import io.sapl.node.cli.commands.ServerCommand;
 import io.sapl.node.cli.commands.TestCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import lombok.val;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.IVersionProvider;
 
 /**
@@ -87,6 +94,45 @@ import picocli.CommandLine.IVersionProvider;
 )
 // @formatter:on
 public class SaplNodeCli implements Callable<Integer> {
+
+    @ArgGroup(exclusive = true)
+    Verbosity verbosity;
+
+    /**
+     * Mutually exclusive verbosity flags. {@code --quiet}/{@code -q}
+     * suppresses everything below ERROR; {@code --verbose}/{@code -v}
+     * raises {@code io.sapl} to DEBUG and the rest to INFO. Each
+     * subcommand's primary stdout output (decision JSON, report tables)
+     * is unaffected by either flag, so {@code sapl decide -q ... | jq}
+     * works.
+     */
+    static class Verbosity {
+        @Option(names = { "-q", "--quiet" }, description = "Only show errors. Subcommand primary output is unaffected.")
+        boolean quiet;
+
+        @Option(names = { "-v", "--verbose" }, description = "Enable diagnostic logging (io.sapl=DEBUG, others=INFO).")
+        boolean verbose;
+    }
+
+    /**
+     * Applies the parsed verbosity flags to the Logback root and io.sapl loggers
+     * before any subcommand runs. No-op when neither flag was supplied.
+     */
+    public void applyVerbosityToLogging() {
+        if (verbosity == null) {
+            return;
+        }
+        val ctx        = (LoggerContext) LoggerFactory.getILoggerFactory();
+        val rootLogger = ctx.getLogger(Logger.ROOT_LOGGER_NAME);
+        val saplLogger = ctx.getLogger("io.sapl");
+        if (verbosity.quiet) {
+            rootLogger.setLevel(Level.ERROR);
+            saplLogger.setLevel(Level.ERROR);
+        } else if (verbosity.verbose) {
+            rootLogger.setLevel(Level.INFO);
+            saplLogger.setLevel(Level.DEBUG);
+        }
+    }
 
     @Override
     public Integer call() {

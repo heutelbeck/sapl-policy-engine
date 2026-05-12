@@ -34,7 +34,6 @@ import io.rsocket.util.DefaultPayload;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.tcp.TcpClient;
@@ -79,8 +78,6 @@ public class RSocketLoadGenerator {
 
     public static BenchmarkResult run(String host, int port, String socketPath, byte[] protoPayload, int connections,
             int concurrencyPerConnection, int warmupSeconds, int measureSeconds, int targetRate, PrintWriter out) {
-        Hooks.onErrorDropped(e -> {});
-
         val totalConcurrency = connections * concurrencyPerConnection;
         val sockets          = connectAll(host, port, socketPath, connections, out);
 
@@ -154,7 +151,7 @@ public class RSocketLoadGenerator {
 
     private static Mono<Void> sendOnce(LoadResources res, int workerIndex) {
         val rsocket = res.sockets().get(workerIndex % res.sockets().size());
-        val payload = DefaultPayload.create(res.protoPayload().clone(), res.routeBytes().clone());
+        val payload = DefaultPayload.create(res.protoPayload(), res.routeBytes());
         return rsocket.requestResponse(payload).doOnNext(r -> r.release()).then();
     }
 

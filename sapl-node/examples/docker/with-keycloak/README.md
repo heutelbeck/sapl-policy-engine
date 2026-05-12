@@ -78,7 +78,7 @@ entry to your hosts file:
 
 4. **Make an authorization request:**
    ```bash
-   curl -X POST http://localhost:8443/api/pdp/decide \
+   curl -X POST https://localhost:8443/api/pdp/decide \
      -H "Authorization: Bearer ${TOKEN}" \
      -H "Content-Type: application/json" \
      -d '{"subject":"user","action":"read","resource":"document"}'

@@ -45,6 +45,14 @@ public class SecretGenerator {
         return generateKey(MIN_API_KEY_LENGTH);
     }
 
+    /**
+     * Argon2 parameters from Spring Security 5.8: m=16384 (16 MiB), t=2,
+     * p=1, salt=16 bytes, hash=32 bytes. These are below OWASP 2024
+     * recommendations (m=19456 / t=2) but kept on the Spring Security
+     * defaults so a credential generated here matches what Spring's own
+     * matcher accepts without configuration drift across releases.
+     * Operators with stricter requirements can re-encode externally.
+     */
     public static String encodeWithArgon2(String secret) {
         val encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
         return encoder.encode(secret);

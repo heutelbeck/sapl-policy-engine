@@ -622,7 +622,7 @@ Start a server in one terminal and benchmark against it from another:
 
 ```shell
 sapl server --dir ./policies
-sapl benchmark --remote --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"document"'
+sapl benchmark --remote --url https://localhost:8443 -s '"alice"' -a '"read"' -r '"document"'
 ```
 
 ### Generating benchmark policy corpus

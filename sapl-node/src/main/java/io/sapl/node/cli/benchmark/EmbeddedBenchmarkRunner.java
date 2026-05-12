@@ -163,6 +163,8 @@ public class EmbeddedBenchmarkRunner {
         if (!cfg.latency()) {
             return null;
         }
+        // Force GC before measurement so a stop-the-world pause is less likely to land
+        // mid-iteration and skew tail latency. JIT'd code is unaffected.
         System.gc();
         val histogram = new Histogram(3_600_000_000_000L, 3);
         runLatencyIteration(cfg.measurementTimeSeconds(), threads, method, histogram);
@@ -278,6 +280,8 @@ public class EmbeddedBenchmarkRunner {
             PrintWriter out, boolean collect) {
         val results = collect ? new ArrayList<Double>(iterations) : null;
         for (int i = 0; i < iterations; i++) {
+            // Same rationale as measureLatency: pre-iteration GC reduces variance
+            // from incidental collections during the timed run.
             System.gc();
             val opsCount   = runThroughputIteration(seconds, threads, bm.method()) * bm.opsPerInvocation();
             val throughput = (double) opsCount / seconds;
