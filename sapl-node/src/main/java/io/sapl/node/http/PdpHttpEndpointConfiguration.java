@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
@@ -67,9 +68,13 @@ class PdpHttpEndpointConfiguration {
     }
 
     @Bean(destroyMethod = "shutdown")
-    ScheduledExecutorService sseKeepAliveScheduler() {
-        return Executors.newSingleThreadScheduledExecutor(r -> {
-            val t = new Thread(r, "sapl-sse-keepalive");
+    ScheduledExecutorService sseKeepAliveScheduler(
+            @Value("${io.sapl.node.http.sse.keep-alive-pool-size:0}") int configuredPoolSize) {
+        val poolSize    = configuredPoolSize > 0 ? configuredPoolSize
+                : Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
+        val threadIndex = new AtomicInteger();
+        return Executors.newScheduledThreadPool(poolSize, r -> {
+            val t = new Thread(r, "sapl-sse-keepalive-" + threadIndex.incrementAndGet());
             t.setDaemon(true);
             return t;
         });

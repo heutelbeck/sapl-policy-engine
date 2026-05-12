@@ -100,8 +100,13 @@ public class DecideCommand implements Callable<Integer> {
             val latch  = new CountDownLatch(1);
 
             pdp.decide(sub).doOnNext(decision -> {
-                out.println(mapper.writeValueAsString(decision));
-                out.flush();
+                try {
+                    out.println(mapper.writeValueAsString(decision));
+                    out.flush();
+                } catch (Exception serializationFailure) {
+                    err.println(ERROR_EVALUATION_FAILED.formatted(serializationFailure.getMessage()));
+                    latch.countDown();
+                }
             }).doOnError(e -> {
                 err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
                 latch.countDown();

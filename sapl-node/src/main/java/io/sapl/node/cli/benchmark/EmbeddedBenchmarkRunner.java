@@ -28,7 +28,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -298,21 +300,19 @@ public class EmbeddedBenchmarkRunner {
     private static volatile Object sink;
 
     private static long runThroughputIteration(int seconds, int threadCount, Supplier<Object> method) {
-        val totalOps      = new AtomicLong(0);
-        val startBarrier  = new CountDownLatch(threadCount);
-        val completeLatch = new CountDownLatch(threadCount);
-        val threads       = new Thread[threadCount];
-        val durationNanos = TimeUnit.SECONDS.toNanos(seconds);
+        val totalOps       = new AtomicLong(0);
+        val sharedDeadline = new AtomicLong(0);
+        val durationNanos  = TimeUnit.SECONDS.toNanos(seconds);
+        val startBarrier   = new CyclicBarrier(threadCount,
+                () -> sharedDeadline.set(System.nanoTime() + durationNanos));
+        val completeLatch  = new CountDownLatch(threadCount);
+        val threads        = new Thread[threadCount];
         for (int t = 0; t < threadCount; t++) {
             threads[t] = new Thread(() -> {
-                startBarrier.countDown();
-                try {
-                    startBarrier.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                if (!awaitStart(startBarrier)) {
                     return;
                 }
-                val    deadline   = System.nanoTime() + durationNanos;
+                val    deadline   = sharedDeadline.get();
                 long   localOps   = 0;
                 Object lastResult = null;
                 while (System.nanoTime() < deadline) {
@@ -331,22 +331,20 @@ public class EmbeddedBenchmarkRunner {
     }
 
     private static void runLatencyIteration(int seconds, int threadCount, Supplier<Object> method, Histogram target) {
-        val startBarrier  = new CountDownLatch(threadCount);
-        val completeLatch = new CountDownLatch(threadCount);
-        val threads       = new Thread[threadCount];
-        val durationNanos = TimeUnit.SECONDS.toNanos(seconds);
-        val perThread     = new Histogram[threadCount];
+        val sharedDeadline = new AtomicLong(0);
+        val durationNanos  = TimeUnit.SECONDS.toNanos(seconds);
+        val startBarrier   = new CyclicBarrier(threadCount,
+                () -> sharedDeadline.set(System.nanoTime() + durationNanos));
+        val completeLatch  = new CountDownLatch(threadCount);
+        val threads        = new Thread[threadCount];
+        val perThread      = new Histogram[threadCount];
         for (int t = 0; t < threadCount; t++) {
             val threadIndex = t;
             threads[t] = new Thread(() -> {
-                startBarrier.countDown();
-                try {
-                    startBarrier.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                if (!awaitStart(startBarrier)) {
                     return;
                 }
-                val    deadline       = System.nanoTime() + durationNanos;
+                val    deadline       = sharedDeadline.get();
                 Object lastResult     = null;
                 val    localHistogram = new Histogram(3_600_000_000_000L, 3);
                 while (System.nanoTime() < deadline) {
@@ -366,6 +364,22 @@ public class EmbeddedBenchmarkRunner {
             if (threadHistogram != null) {
                 target.add(threadHistogram);
             }
+        }
+    }
+
+    /**
+     * Wait at the start barrier; the barrier action populates the shared
+     * deadline so every worker thread reads the same value once released.
+     */
+    private static boolean awaitStart(CyclicBarrier barrier) {
+        try {
+            barrier.await();
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (BrokenBarrierException e) {
+            return false;
         }
     }
 

@@ -23,6 +23,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jspecify.annotations.Nullable;
 import org.springdoc.core.customizers.OpenApiCustomizer;
@@ -97,6 +98,8 @@ class OpenApiSecuritySchemesCustomizer {
     @Value("${io.sapl.node.scalar.oauth-redirect-uri:" + DEFAULT_REDIRECT + "}")
     private String scalarOauthRedirectUri;
 
+    private final AtomicReference<SecurityScheme> cachedOauth2Scheme = new AtomicReference<>();
+
     @Bean
     OpenApiCustomizer securitySchemesCustomizer() {
         return openApi -> {
@@ -116,13 +119,31 @@ class OpenApiSecuritySchemesCustomizer {
                 security.add(new SecurityRequirement().addList(SCHEME_API_KEY));
             }
             if (saplNodeProperties.isAllowOauth2Auth() && jwtIssuerUri != null) {
-                val oauth = oauth2Scheme(jwtIssuerUri, scalarOauthClientId, scalarOauthRedirectUri);
+                val oauth = resolveOauth2Scheme();
                 if (oauth != null) {
                     components.addSecuritySchemes(SCHEME_OAUTH2, oauth);
                     security.add(new SecurityRequirement().addList(SCHEME_OAUTH2));
                 }
             }
         };
+    }
+
+    /**
+     * Returns the OAuth2 scheme, computing it once on the first successful
+     * resolution and caching the result for the lifetime of the bean. A
+     * failed resolution leaves the cache empty so a transient issuer outage
+     * at first request does not permanently disable the scheme.
+     */
+    private @Nullable SecurityScheme resolveOauth2Scheme() {
+        val cached = cachedOauth2Scheme.get();
+        if (cached != null) {
+            return cached;
+        }
+        val resolved = oauth2Scheme(jwtIssuerUri, scalarOauthClientId, scalarOauthRedirectUri);
+        if (resolved != null) {
+            cachedOauth2Scheme.compareAndSet(null, resolved);
+        }
+        return resolved;
     }
 
     private static void ensureComponents(OpenAPI openApi) {

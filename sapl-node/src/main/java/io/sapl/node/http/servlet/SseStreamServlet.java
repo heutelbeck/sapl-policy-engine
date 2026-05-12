@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import java.io.Serial;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -130,7 +131,12 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
         val asyncContext = request.startAsync();
         asyncContext.setTimeout(0);
 
-        pumpExecutor.submit(() -> pump(asyncContext, subscription, pdpId));
+        try {
+            pumpExecutor.submit(() -> pump(asyncContext, subscription, pdpId));
+        } catch (RejectedExecutionException e) {
+            log.warn("SSE pump rejected by executor for pdpId={}: {}", pdpId, e.getMessage());
+            asyncContext.complete();
+        }
     }
 
     private void pump(AsyncContext asyncContext, S subscription, String pdpId) {
@@ -138,30 +144,36 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
         ScheduledFuture<?> keepAliveTask = null;
         try (PrintWriter writer = response.getWriter(); Stream<D> stream = openStream(subscription, pdpId)) {
             keepAliveTask = scheduleKeepAlive(writer);
-            while (!Thread.currentThread().isInterrupted()) {
-                D decision;
-                try {
-                    decision = stream.awaitNext();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    D decision;
+                    try {
+                        decision = stream.awaitNext();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                    if (decision == null) {
+                        return;
+                    }
+                    writeEvent(writer, decision);
+                    if (writer.checkError()) {
+                        log.debug("SSE stream client disconnected for pdpId={}", pdpId);
+                        return;
+                    }
                 }
-                if (decision == null) {
-                    return;
+            } catch (Exception e) {
+                log.debug("SSE stream terminated for pdpId={}: {}", pdpId, e.getMessage());
+                if (keepAliveTask != null) {
+                    keepAliveTask.cancel(false);
+                    keepAliveTask = null;
                 }
-                writeEvent(writer, decision);
-                if (writer.checkError()) {
-                    log.debug("SSE stream client disconnected for pdpId={}", pdpId);
-                    return;
+                if (!writer.checkError()) {
+                    writeEvent(writer, indeterminate());
                 }
             }
         } catch (Exception e) {
-            log.debug("SSE stream terminated for pdpId={}: {}", pdpId, e.getMessage());
-            try {
-                writeEvent(response.getWriter(), indeterminate());
-            } catch (Exception ignored) {
-                // best effort
-            }
+            log.debug("SSE stream setup failed for pdpId={}: {}", pdpId, e.getMessage());
         } finally {
             if (keepAliveTask != null) {
                 keepAliveTask.cancel(false);

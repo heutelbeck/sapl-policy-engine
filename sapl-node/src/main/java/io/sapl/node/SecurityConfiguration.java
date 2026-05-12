@@ -32,6 +32,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.SupplierJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
@@ -222,9 +224,17 @@ public class SecurityConfiguration {
     @Bean
     @Nullable
     JwtDecoder jwtDecoder() {
-        if (pdpProperties.isAllowOauth2Auth()) {
-            return JwtDecoders.fromIssuerLocation(jwtIssuerURI);
+        if (!pdpProperties.isAllowOauth2Auth()) {
+            return null;
         }
-        return null;
+        return new SupplierJwtDecoder(() -> {
+            try {
+                return JwtDecoders.fromIssuerLocation(jwtIssuerURI);
+            } catch (Exception e) {
+                log.warn("OIDC discovery against issuer {} failed: {}; OAuth2 token validation will retry on the next "
+                        + "request", jwtIssuerURI, e.getMessage());
+                throw new JwtException("OIDC issuer unavailable: " + e.getMessage(), e);
+            }
+        });
     }
 }
