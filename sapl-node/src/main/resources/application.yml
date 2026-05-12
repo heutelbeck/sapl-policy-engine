@@ -186,6 +186,7 @@ io.sapl:
 springdoc:
   show-actuator: true
   paths-to-exclude:
+    - /
     - /scalar
     - /scalar/**
 
