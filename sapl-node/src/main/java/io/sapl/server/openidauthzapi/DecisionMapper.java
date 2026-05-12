@@ -21,6 +21,7 @@ import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
@@ -82,10 +83,12 @@ class DecisionMapper {
                 && sapl.resource() instanceof UndefinedValue;
     }
 
+    private record Reason(String key, Map<String, String> value) {}
+
     private static Map<String, Object> buildContext(AuthorizationDecision sapl, boolean permitted,
             ObjectMapper mapper) {
-        final var ctx     = new LinkedHashMap<String, Object>();
-        final var saplExt = buildSaplExtensions(sapl, mapper);
+        val ctx     = new LinkedHashMap<String, Object>();
+        val saplExt = buildSaplExtensions(sapl, mapper);
 
         // Always surface the SAPL verb under sapl.decision. The OpenID boolean
         // is lossy (PERMIT with obligations or a transformed resource also maps
@@ -94,17 +97,18 @@ class DecisionMapper {
 
         // A reason is present whenever the boolean is false, so a vanilla OpenID
         // PEP that ignores the SAPL extensions still has something to log or
-        // surface.
-        switch (sapl.decision()) {
-        case PERMIT         -> {
-            if (!permitted) {
-                ctx.put(REASON_ADMIN_KEY, Map.of(LANG_EN, REASON_PERMIT_NEEDS_ENFORCEMENT_EN));
-            }
-        }
-        case DENY           -> ctx.put(REASON_USER_KEY, Map.of(LANG_EN_403, REASON_DENY_EN));
-        case NOT_APPLICABLE -> ctx.put(REASON_USER_KEY, Map.of(LANG_EN_403, REASON_NOT_APPLICABLE_EN));
-        case INDETERMINATE  -> ctx.put(REASON_ADMIN_KEY, Map.of(LANG_EN, REASON_INDETERMINATE_EN));
-        case SUSPEND        -> ctx.put(REASON_USER_KEY, Map.of(LANG_EN_403, REASON_SUSPEND_EN_403));
+        // surface. Switch expression makes adding a new Decision verb a compile
+        // error.
+        Reason reason = switch (sapl.decision()) {
+        case PERMIT         ->
+            permitted ? null : new Reason(REASON_ADMIN_KEY, Map.of(LANG_EN, REASON_PERMIT_NEEDS_ENFORCEMENT_EN));
+        case DENY           -> new Reason(REASON_USER_KEY, Map.of(LANG_EN_403, REASON_DENY_EN));
+        case NOT_APPLICABLE -> new Reason(REASON_USER_KEY, Map.of(LANG_EN_403, REASON_NOT_APPLICABLE_EN));
+        case INDETERMINATE  -> new Reason(REASON_ADMIN_KEY, Map.of(LANG_EN, REASON_INDETERMINATE_EN));
+        case SUSPEND        -> new Reason(REASON_USER_KEY, Map.of(LANG_EN_403, REASON_SUSPEND_EN_403));
+        };
+        if (reason != null) {
+            ctx.put(reason.key(), reason.value());
         }
 
         ctx.put(SAPL_KEY, saplExt);
@@ -112,7 +116,7 @@ class DecisionMapper {
     }
 
     private static Map<String, Object> buildSaplExtensions(AuthorizationDecision sapl, ObjectMapper mapper) {
-        final var ext = new LinkedHashMap<String, Object>();
+        val ext = new LinkedHashMap<String, Object>();
         if (!sapl.obligations().isEmpty()) {
             ext.put(OBLIGATIONS_KEY, mapper.valueToTree(sapl.obligations()));
         }

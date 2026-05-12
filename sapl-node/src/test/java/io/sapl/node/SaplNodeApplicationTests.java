@@ -17,11 +17,10 @@
  */
 package io.sapl.node;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
@@ -34,12 +33,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class SaplNodeApplicationTests {
 
+    @TempDir
+    static Path pdpDir;
+
     @DynamicPropertySource
-    static void pdpPaths(DynamicPropertyRegistry registry) throws IOException {
-        var dir = Path.of(System.getProperty("java.io.tmpdir"), "sapl-test");
-        Files.createDirectories(dir);
-        registry.add("io.sapl.pdp.embedded.config-path", dir::toString);
-        registry.add("io.sapl.pdp.embedded.policies-path", dir::toString);
+    static void pdpPaths(DynamicPropertyRegistry registry) {
+        registry.add("io.sapl.pdp.embedded.config-path", pdpDir::toString);
+        registry.add("io.sapl.pdp.embedded.policies-path", pdpDir::toString);
     }
 
     @Test

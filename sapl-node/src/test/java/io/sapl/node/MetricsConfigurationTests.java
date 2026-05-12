@@ -29,15 +29,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import static io.sapl.node.MetricsTestFixtures.voteWithDecision;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.ast.Outcome;
-import io.sapl.compiler.document.TracedVote;
-import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.val;
 
@@ -107,19 +104,6 @@ class MetricsConfigurationTests {
         return new ApplicationContextRunner().withUserConfiguration(TestConfiguration.class, MetricsConfiguration.class)
                 .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
                 .withPropertyValues("io.sapl.pdp.embedded.metrics-enabled=" + metricsEnabled);
-    }
-
-    private static TracedVote voteWithDecision(Decision decision) {
-        val authzDecision = switch (decision) {
-                          case PERMIT         -> AuthorizationDecision.PERMIT;
-                          case DENY           -> AuthorizationDecision.DENY;
-                          case SUSPEND        -> AuthorizationDecision.SUSPEND;
-                          case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
-                          case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
-                          };
-        val voterMetadata = new PdpVoterMetadata("pdp", "default", "config-1", null, Outcome.PERMIT, false);
-        val vote          = new Vote(authzDecision, List.of(), List.of(), voterMetadata, voterMetadata.outcome());
-        return TracedVote.of(vote, Instant.parse("2026-02-13T00:00:00Z"));
     }
 
 }

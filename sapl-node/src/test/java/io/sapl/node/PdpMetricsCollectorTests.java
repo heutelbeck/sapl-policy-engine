@@ -34,14 +34,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import static io.sapl.node.MetricsTestFixtures.voteWithDecision;
+
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.compiler.document.TracedVote;
-import io.sapl.compiler.document.Vote;
-import io.sapl.ast.Outcome;
-import io.sapl.compiler.pdp.PdpVoterMetadata;
 import lombok.val;
 
 import java.time.Instant;
@@ -79,7 +76,8 @@ class PdpMetricsCollectorTests {
         }
 
         static Stream<Decision> allDecisions() {
-            return Stream.of(Decision.PERMIT, Decision.DENY, Decision.INDETERMINATE, Decision.NOT_APPLICABLE);
+            return Stream.of(Decision.PERMIT, Decision.DENY, Decision.INDETERMINATE, Decision.NOT_APPLICABLE,
+                    Decision.SUSPEND);
         }
 
     }
@@ -167,19 +165,6 @@ class PdpMetricsCollectorTests {
             assertThat(firstDecisionTimer.count()).isEqualTo(2);
         }
 
-    }
-
-    private static TracedVote voteWithDecision(Decision decision) {
-        val authzDecision = switch (decision) {
-                          case PERMIT         -> AuthorizationDecision.PERMIT;
-                          case DENY           -> AuthorizationDecision.DENY;
-                          case SUSPEND        -> AuthorizationDecision.SUSPEND;
-                          case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
-                          case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
-                          };
-        val voterMetadata = new PdpVoterMetadata("pdp", "default", "config-1", null, Outcome.PERMIT, false);
-        val vote          = new Vote(authzDecision, List.of(), List.of(), voterMetadata, voterMetadata.outcome());
-        return TracedVote.of(vote, Instant.parse("2026-02-13T00:00:00Z"));
     }
 
 }

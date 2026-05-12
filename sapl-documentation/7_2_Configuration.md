@@ -110,6 +110,15 @@ sapl:
 
 The RSocket endpoint shares the same authentication configuration as the HTTP endpoints (`io.sapl.node.users`, `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth`). Authentication occurs once at connection setup. See [RSocket API](../6_1_HTTPApi/#rsocket-api) for the wire protocol specification.
 
+### OpenID Authorization API Properties
+
+The OpenID Authorization API binding at `/access/v1/evaluation` is enabled by default and shares the authentication configuration with the rest of the HTTP transport. One additional knob caps request body size:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `io.sapl.server.openid-authz-api.enabled` | `boolean` | `true` | Enables the OpenID Authorization API 1.0 binding. |
+| `io.sapl.server.openid-authz-api.max-request-body-bytes` | `long` | `16384` | Caps the request body size on `/access/v1/*`. Requests whose `Content-Length` exceeds the limit are rejected with `413 Content Too Large` before any body bytes are read. Authorization subscriptions are small (typically below 1 KiB); raise only when policies routinely receive large `properties` maps. Mirrors the `sapl.pdp.rsocket.max-inbound-payload-size` guard on the RSocket transport. |
+
 ### CLI Argument Overrides
 
 Any property can be passed as a command line argument using Spring Boot's `--property=value` syntax:

@@ -110,8 +110,9 @@ public class OpenIdAuthorizationApiController {
     }
 
     private AuthorizationSubscription toSubscription(OpenIdEvaluationRequest request) {
+        final Object noSecrets = null;
         return AuthorizationSubscription.of(request.subject(), request.action(), request.resource(), request.context(),
-                null, objectMapper);
+                noSecrets, objectMapper);
     }
 
     private static ResponseEntity.BodyBuilder withRequestId(ResponseEntity.BodyBuilder builder, String requestId) {

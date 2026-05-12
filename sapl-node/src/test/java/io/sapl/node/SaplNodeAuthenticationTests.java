@@ -99,13 +99,12 @@ class SaplNodeAuthenticationTests {
     class ApiKeyAuthenticationTests {
 
         @Test
-        @DisplayName("returns SaplAuthenticationToken with correct pdpId when valid API key provided")
-        void whenValidApiKeyProvidedThenReturnsSaplAuthenticationTokenWithPdpId() {
-            val authenticationManager = new ApiKeyAuthenticationManager();
-            val request               = requestWithBearer(API_KEY);
-
+        @DisplayName("converter returns an authenticated SaplAuthenticationToken when a valid API key is provided")
+        void whenValidApiKeyProvidedThenConverterReturnsAuthenticatedSaplToken() {
+            val request       = requestWithBearer(API_KEY);
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
-            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
+
+            val result = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
 
             assertThat(result).isNotNull().isInstanceOf(SaplAuthenticationToken.class).satisfies(auth -> {
                 assertThat(auth.isAuthenticated()).isTrue();
@@ -114,13 +113,22 @@ class SaplNodeAuthenticationTests {
                 assertThat(auth.getCredentials()).isNull();
                 assertThat(auth.getName()).isEqualTo(USER_ID);
             });
+            assertThat((SaplAuthenticationToken) result).satisfies(saplAuth -> {
+                assertThat(saplAuth.getPdpId()).isEqualTo(PDP_ID);
+                assertThat(saplAuth.getPrincipal()).isInstanceOf(SaplUser.class)
+                        .extracting(SaplUser::id, SaplUser::pdpId).containsExactly(USER_ID, PDP_ID);
+            });
+        }
 
-            val saplAuth = (SaplAuthenticationToken) result;
-            assertThat(saplAuth.getPdpId()).isEqualTo(PDP_ID);
-            assertThat(saplAuth.getPrincipal()).isInstanceOf(SaplUser.class).extracting(SaplUser::id, SaplUser::pdpId)
-                    .containsExactly(USER_ID, PDP_ID);
+        @Test
+        @DisplayName("authentication manager marks the converter's token as authenticated")
+        void whenConverterTokenIsAuthenticatedThenManagerAcceptsIt() {
+            val request       = requestWithBearer(API_KEY);
+            val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
+            val token         = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
 
-            val authentication = authenticationManager.authenticate(result);
+            val authentication = new ApiKeyAuthenticationManager().authenticate(token);
+
             assertThat(authentication).isNotNull().satisfies(auth -> assertThat(auth.isAuthenticated()).isTrue());
         }
 

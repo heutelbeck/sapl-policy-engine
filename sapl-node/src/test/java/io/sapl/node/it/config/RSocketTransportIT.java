@@ -208,11 +208,20 @@ class RSocketTransportIT extends BaseIntegrationTest {
     @DisplayName("OAuth2/JWT Authentication")
     class OAuth2JwtAuthenticationTests {
 
-        private static final Path   OAUTH_POLICIES_DIR = Path.of("examples/docker/with-keycloak/policies")
-                .toAbsolutePath();
-        private static final Path   REALM_EXPORT       = Path
-                .of("examples/docker/with-keycloak/keycloak/realm-export.json").toAbsolutePath();
+        private static final Path   OAUTH_POLICIES_DIR = requireExists(
+                Path.of("examples/docker/with-keycloak/policies").toAbsolutePath());
+        private static final Path   REALM_EXPORT       = requireExists(
+                Path.of("examples/docker/with-keycloak/keycloak/realm-export.json").toAbsolutePath());
         private static final String KEYCLOAK_IMAGE     = "quay.io/keycloak/keycloak:25.0";
+
+        private static Path requireExists(Path path) {
+            if (!java.nio.file.Files.exists(path)) {
+                throw new IllegalStateException("RSocketTransportIT requires the sapl-node module's working directory; "
+                        + "expected to find " + path + ". Run from the sapl-node module root, e.g. "
+                        + "'mvn -pl sapl-node test' from the engine repo root.");
+            }
+            return path;
+        }
 
         @Test
         @DisplayName("returns PERMIT with valid JWT over RSocket")
@@ -286,7 +295,15 @@ class RSocketTransportIT extends BaseIntegrationTest {
                             .with("password", password))
                     .retrieve().bodyToMono(JsonNode.class).block(Duration.ofSeconds(30));
 
-            return response.get("access_token").asString();
+            if (response == null) {
+                throw new IllegalStateException("Keycloak token endpoint at " + tokenUrl + " returned no body");
+            }
+            val accessToken = response.get("access_token");
+            if (accessToken == null) {
+                throw new IllegalStateException(
+                        "Keycloak token endpoint response did not contain 'access_token': " + response);
+            }
+            return accessToken.asString();
         }
     }
 
