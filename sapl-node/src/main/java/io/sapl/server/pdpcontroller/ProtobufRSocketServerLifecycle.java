@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.concurrent.locks.ReentrantLock;
 
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
@@ -48,75 +49,112 @@ import reactor.netty.tcp.TcpServer;
 @RequiredArgsConstructor
 public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
+    private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(2);
+
     private final boolean                                  enabled;
     private final int                                      port;
     private final @Nullable String                         socketPath;
-    private final @Nullable Duration                       maxConnectionLifetime;
     private final int                                      maxInboundPayloadSize;
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
 
-    private volatile @Nullable CloseableChannel server;
-    private volatile boolean                    running;
+    // ReentrantLock instead of synchronized to avoid carrier-thread pinning if
+    // start()/stop() ever runs on a virtual thread under JDK 21.
+    private final ReentrantLock        lifecycleLock = new ReentrantLock();
+    private @Nullable CloseableChannel server;
+    private boolean                    running;
 
     @Override
     public void start() {
-        if (!enabled || running) {
-            return;
-        }
-        if (maxInboundPayloadSize <= 0) {
-            throw new IllegalStateException("maxInboundPayloadSize must be positive, got " + maxInboundPayloadSize);
-        }
-        if (authenticator != null) {
-            log.info("RSocket authentication enabled");
-        } else {
-            log.warn("RSocket server has no authentication configured");
-        }
-        if (maxConnectionLifetime != null) {
-            log.info("RSocket max connection lifetime: {}", maxConnectionLifetime);
-        }
-        log.info("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
-        val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator, maxConnectionLifetime);
-        val transport = socketPath != null ? createUnixTransport(socketPath) : TcpServerTransport.create(port);
-        server  = RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
-        running = true;
-        if (socketPath != null) {
-            log.info("Protobuf RSocket PDP server started on Unix socket {}", socketPath);
-        } else {
-            log.info("Protobuf RSocket PDP server started on port {}", port);
+        lifecycleLock.lock();
+        try {
+            if (!enabled || running) {
+                return;
+            }
+            if (maxInboundPayloadSize <= 0) {
+                throw new IllegalStateException("maxInboundPayloadSize must be positive, got " + maxInboundPayloadSize);
+            }
+            if (authenticator != null) {
+                log.info("RSocket authentication enabled");
+            } else {
+                log.warn("RSocket server has no authentication configured");
+            }
+            log.info("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
+            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
+            val transport = socketPath != null ? createUnixTransport(socketPath) : TcpServerTransport.create(port);
+            server  = RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
+            running = true;
+            if (socketPath != null) {
+                log.info("Protobuf RSocket PDP server started on Unix socket {}", socketPath);
+            } else {
+                log.info("Protobuf RSocket PDP server started on port {}", port);
+            }
+        } finally {
+            lifecycleLock.unlock();
         }
     }
 
     @Override
     public void stop() {
-        if (server != null) {
-            log.info("Shutting down Protobuf RSocket PDP server");
-            server.dispose();
-            server = null;
+        lifecycleLock.lock();
+        try {
+            if (!running) {
+                return;
+            }
+            log.info("Shutting down Protobuf RSocket PDP server (graceful timeout {}s)", SHUTDOWN_TIMEOUT.toSeconds());
+            val current = server;
+            if (current != null) {
+                current.dispose();
+                try {
+                    current.onClose().block(SHUTDOWN_TIMEOUT);
+                } catch (RuntimeException e) {
+                    log.warn("RSocket server did not close within {}s: {}", SHUTDOWN_TIMEOUT.toSeconds(),
+                            e.getMessage());
+                }
+                server = null;
+            }
+            if (socketPath != null) {
+                deleteSocketFile(socketPath);
+            }
+            running = false;
+        } finally {
+            lifecycleLock.unlock();
         }
-        if (socketPath != null) {
-            deleteSocketFile(socketPath);
-        }
-        running = false;
     }
 
     private static TcpServerTransport createUnixTransport(String path) {
+        if (Files.exists(Path.of(path))) {
+            log.warn("Unix socket file {} already exists. Removing it before binding. "
+                    + "If another SAPL Node instance is bound to this path it will be displaced; "
+                    + "verify your deployment if this is unexpected.", path);
+        }
         deleteSocketFile(path);
         return TcpServerTransport.create(TcpServer.create().bindAddress(() -> new DomainSocketAddress(path)));
     }
 
+    /**
+     * Deletes the Unix socket file. Best-effort: a leftover file from a
+     * previous instance must be removed before bind succeeds. If deletion
+     * fails (file does not exist, or filesystem error), the subsequent bind
+     * call will surface the real error.
+     */
     private static void deleteSocketFile(String path) {
         try {
             Files.deleteIfExists(Path.of(path));
         } catch (IOException e) {
-            // best effort cleanup
+            log.debug("Unable to delete Unix socket file {}: {}", path, e.getMessage());
         }
     }
 
     @Override
     public boolean isRunning() {
-        return running;
+        lifecycleLock.lock();
+        try {
+            return running;
+        } finally {
+            lifecycleLock.unlock();
+        }
     }
 
     @Override

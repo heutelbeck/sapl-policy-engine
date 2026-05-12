@@ -19,8 +19,6 @@ package io.sapl.server.pdpcontroller;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.Executors;
 
 import io.sapl.api.stream.Stream;
@@ -28,13 +26,15 @@ import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
+import io.rsocket.exceptions.InvalidException;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -57,15 +57,21 @@ import reactor.core.scheduler.Schedulers;
  * the per-connection {@code RSocket} instance and passed explicitly to the
  * {@link ReactivePolicyDecisionPoint} for tenant routing.
  * <p>
- * Connection lifetime is bounded by the credential expiry (JWT {@code exp}
- * claim) and an optional maximum connection lifetime. When a connection exceeds
- * its lifetime, the server disposes it and the client is expected to reconnect
- * with fresh credentials.
+ * Connection lifetime is soft. JWT credentials are validated at the next
+ * decision call by the upstream authentication path; expired tokens are then
+ * rejected and the client reconnects with fresh credentials. The server does
+ * not maintain a separate hard-disconnect timer per connection.
  * <p>
  * Request-response operations ({@code decide-once}) use
  * {@link BlockingPolicyDecisionPoint#decideOnce} on virtual threads for
  * maximum throughput. Streaming operations use the reactive PDP methods
  * directly.
+ * <p>
+ * Bad input (unparseable protobuf, unknown route) is reported to the client
+ * with the RSocket {@code INVALID} error code (0x204), which the spec defines
+ * as "request invalid; client should not retry". Genuine policy
+ * indeterminacy still surfaces as a normal {@code AuthorizationDecision}
+ * with the {@code INDETERMINATE} verb.
  */
 @Slf4j
 public class ProtobufRSocketAcceptor implements SocketAcceptor {
@@ -76,26 +82,33 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final String ROUTE_MULTI_DECIDE_ALL      = "multi-decide-all";
     private static final String ROUTE_MULTI_DECIDE_ALL_ONCE = "multi-decide-all-once";
 
+    private static final ByteBuf ROUTE_DECIDE_BUF                = preEncode(ROUTE_DECIDE);
+    private static final ByteBuf ROUTE_DECIDE_ONCE_BUF           = preEncode(ROUTE_DECIDE_ONCE);
+    private static final ByteBuf ROUTE_MULTI_DECIDE_BUF          = preEncode(ROUTE_MULTI_DECIDE);
+    private static final ByteBuf ROUTE_MULTI_DECIDE_ALL_BUF      = preEncode(ROUTE_MULTI_DECIDE_ALL);
+    private static final ByteBuf ROUTE_MULTI_DECIDE_ALL_ONCE_BUF = preEncode(ROUTE_MULTI_DECIDE_ALL_ONCE);
+
+    private static final String ERROR_BAD_REQUEST                         = "Bad request";
     private static final String ERROR_ENCODE_DECISION_FAILED              = "Failed to encode decision: {}";
     private static final String ERROR_ENCODE_IDENTIFIABLE_DECISION_FAILED = "Failed to encode identifiable decision: {}";
     private static final String ERROR_ENCODE_MULTI_DECISION_FAILED        = "Failed to encode multi-decision: {}";
     private static final String ERROR_IN_ROUTE                            = "Error in {}: {}";
     private static final String ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED     = "Failed to parse multi-subscription: {}";
     private static final String ERROR_PARSE_SUBSCRIPTION_FAILED           = "Failed to parse subscription: {}";
+    private static final String ERROR_UNKNOWN_ROUTE                       = "Unknown RSocket route: {}";
+    private static final String WARN_MULTI_DECIDE_ALL_ONCE_NULL           = "decideAll for pdpId={} produced no value before stream completion; returning INDETERMINATE for the entire batch. This indicates a server-side defect.";
 
     // Virtual thread executor creates threads on demand with no pool to shut down.
-    // Static is safe here - no resource leak on application shutdown.
+    // Static is safe here, no resource leak on application shutdown.
     private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
             .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
-    private final @Nullable Duration                       maxConnectionLifetime;
 
     /**
-     * Creates an acceptor with authentication and optional connection lifetime
-     * limit.
+     * Creates an acceptor with optional connection authentication.
      *
      * @param blockingPdp the blocking policy decision point used for unary
      * (request-response) calls
@@ -103,31 +116,13 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * (request-stream) calls
      * @param authenticator the connection authenticator, or null for
      * unauthenticated access
-     * @param maxConnectionLifetime maximum connection lifetime, or null for
-     * unlimited (JWT expiry still enforced)
-     */
-    public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp,
-            ReactivePolicyDecisionPoint pdp,
-            @Nullable RSocketConnectionAuthenticator authenticator,
-            @Nullable Duration maxConnectionLifetime) {
-        this.blockingPdp           = blockingPdp;
-        this.pdp                   = pdp;
-        this.authenticator         = authenticator;
-        this.maxConnectionLifetime = maxConnectionLifetime;
-    }
-
-    /**
-     * Creates an acceptor with authentication and no connection lifetime limit.
-     *
-     * @param blockingPdp the blocking policy decision point used for unary calls
-     * @param pdp the reactive policy decision point used for streaming calls
-     * @param authenticator the connection authenticator, or null for
-     * unauthenticated access
      */
     public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp,
             ReactivePolicyDecisionPoint pdp,
             @Nullable RSocketConnectionAuthenticator authenticator) {
-        this(blockingPdp, pdp, authenticator, null);
+        this.blockingPdp   = blockingPdp;
+        this.pdp           = pdp;
+        this.authenticator = authenticator;
     }
 
     /**
@@ -137,212 +132,174 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
      * @param pdp the reactive policy decision point used for streaming calls
      */
     public ProtobufRSocketAcceptor(BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp) {
-        this(blockingPdp, pdp, null, null);
+        this(blockingPdp, pdp, null);
     }
 
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just(createRSocket(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID, null, sendingSocket));
+            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
         }
         return authenticator.authenticate(setup)
-                .<RSocket>map(result -> createRSocket(result.pdpId(), result.expiresAt(), sendingSocket))
+                .<RSocket>map(result -> new ProtobufRSocket(blockingPdp, pdp, result.pdpId()))
                 .onErrorMap(e -> new RejectedSetupException("Authentication failed: " + e.getMessage()));
     }
 
-    private RSocket createRSocket(String pdpId, @Nullable Instant credentialExpiry, RSocket sendingSocket) {
-        val effectiveLifetime = computeEffectiveLifetime(credentialExpiry);
-        val rsocket           = new ProtobufRSocket(pdpId);
-        if (effectiveLifetime != null) {
-            scheduleDisposal(sendingSocket, rsocket, effectiveLifetime, pdpId);
-        }
-        return rsocket;
+    private static ByteBuf preEncode(String route) {
+        return Unpooled.unreleasableBuffer(Unpooled.wrappedBuffer(route.getBytes(StandardCharsets.UTF_8))).asReadOnly();
     }
 
-    @Nullable
-    private Duration computeEffectiveLifetime(@Nullable Instant credentialExpiry) {
-        Duration tokenTtl  = credentialExpiry != null ? Duration.between(Instant.now(), credentialExpiry) : null;
-        Duration staticCap = maxConnectionLifetime;
+    private static final class ProtobufRSocket implements RSocket {
 
-        if (tokenTtl != null && staticCap != null) {
-            return tokenTtl.compareTo(staticCap) < 0 ? tokenTtl : staticCap;
-        }
-        if (tokenTtl != null) {
-            return tokenTtl;
-        }
-        return staticCap;
-    }
+        private final BlockingPolicyDecisionPoint blockingPdp;
+        private final ReactivePolicyDecisionPoint pdp;
+        private final String                      pdpId;
 
-    private void scheduleDisposal(RSocket sendingSocket, ProtobufRSocket serverSocket, Duration lifetime,
-            String pdpId) {
-        if (lifetime.isNegative() || lifetime.isZero()) {
-            log.warn("Connection for pdpId={} has expired credential, disposing immediately", pdpId);
-            sendingSocket.dispose();
-            return;
-        }
-        log.debug("Connection for pdpId={} will expire in {}", pdpId, lifetime);
-        Mono.delay(lifetime).subscribe(new ConnectionExpirySubscriber(sendingSocket, serverSocket, pdpId));
-    }
-
-    private static final class ConnectionExpirySubscriber implements Subscriber<Long> {
-
-        private final RSocket         sendingSocket;
-        private final ProtobufRSocket serverSocket;
-        private final String          pdpId;
-
-        ConnectionExpirySubscriber(RSocket sendingSocket, ProtobufRSocket serverSocket, String pdpId) {
-            this.sendingSocket = sendingSocket;
-            this.serverSocket  = serverSocket;
-            this.pdpId         = pdpId;
-        }
-
-        @Override
-        public void onSubscribe(@NonNull Subscription s) {
-            s.request(1);
-        }
-
-        @Override
-        public void onNext(@NonNull Long tick) {
-            log.info("Connection expired for pdpId={}, disposing", pdpId);
-            sendingSocket.dispose();
-            serverSocket.dispose();
-        }
-
-        @Override
-        public void onError(@NonNull Throwable t) {
-            log.debug("Connection expiry timer error for pdpId={}: {}", pdpId, t.getMessage());
-        }
-
-        @Override
-        public void onComplete() {
-            // no-op
-        }
-    }
-
-    private final class ProtobufRSocket implements RSocket {
-
-        private final String pdpId;
-
-        ProtobufRSocket(String pdpId) {
-            this.pdpId = pdpId;
+        ProtobufRSocket(BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp, String pdpId) {
+            this.blockingPdp = blockingPdp;
+            this.pdp         = pdp;
+            this.pdpId       = pdpId;
         }
 
         @Override
         public @NonNull Mono<Payload> requestResponse(@NonNull Payload payload) {
-            val route = extractRoute(payload);
-            val data  = extractData(payload);
-            payload.release();
+            final ByteBuf metadata;
+            final byte[]  data;
+            try {
+                metadata = payload.metadata();
+                data     = extractData(payload);
+            } finally {
+                payload.release();
+            }
 
-            return Mono.fromCallable(() -> handleBlockingRequestResponse(route, data))
-                    .subscribeOn(VIRTUAL_THREAD_SCHEDULER);
+            if (matches(metadata, ROUTE_DECIDE_ONCE_BUF)) {
+                return Mono.fromCallable(() -> handleDecideOnceBlocking(data)).subscribeOn(VIRTUAL_THREAD_SCHEDULER);
+            }
+            if (matches(metadata, ROUTE_MULTI_DECIDE_ALL_ONCE_BUF)) {
+                return Mono.fromCallable(() -> handleMultiDecideAllOnceBlocking(data))
+                        .subscribeOn(VIRTUAL_THREAD_SCHEDULER);
+            }
+            log.debug(ERROR_UNKNOWN_ROUTE, decodeRouteForLog(metadata));
+            return Mono.error(new InvalidException(ERROR_BAD_REQUEST));
         }
 
         @Override
         public @NonNull Flux<Payload> requestStream(@NonNull Payload payload) {
-            val route = extractRoute(payload);
-            val data  = extractData(payload);
-            payload.release();
-
-            return switch (route) {
-            case ROUTE_DECIDE           -> handleDecide(data);
-            case ROUTE_MULTI_DECIDE     -> handleMultiDecide(data);
-            case ROUTE_MULTI_DECIDE_ALL -> handleMultiDecideAll(data);
-            default                     -> {
-                log.debug(ERROR_IN_ROUTE, route, "Unknown route for request-stream");
-                yield Flux.just(encodeDecision(AuthorizationDecision.INDETERMINATE));
-            }
-            };
-        }
-
-        private Payload handleBlockingRequestResponse(String route, byte[] data) {
-            return switch (route) {
-            case ROUTE_DECIDE_ONCE           -> handleDecideOnceBlocking(data);
-            case ROUTE_MULTI_DECIDE_ALL_ONCE -> handleMultiDecideAllOnceBlocking(data);
-            default                          -> {
-                log.debug(ERROR_IN_ROUTE, route, "Unknown route for request-response");
-                yield encodeDecision(AuthorizationDecision.INDETERMINATE);
-            }
-            };
-        }
-
-        private Payload handleDecideOnceBlocking(byte[] data) {
+            final ByteBuf metadata;
+            final byte[]  data;
             try {
-                val subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
-                val decision     = blockingPdp.decideOnce(subscription, pdpId);
-                return encodeDecision(decision);
-            } catch (IOException e) {
-                log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
-                return encodeDecision(AuthorizationDecision.INDETERMINATE);
+                metadata = payload.metadata();
+                data     = extractData(payload);
+            } finally {
+                payload.release();
             }
+
+            if (matches(metadata, ROUTE_DECIDE_BUF)) {
+                return handleDecide(data);
+            }
+            if (matches(metadata, ROUTE_MULTI_DECIDE_BUF)) {
+                return handleMultiDecide(data);
+            }
+            if (matches(metadata, ROUTE_MULTI_DECIDE_ALL_BUF)) {
+                return handleMultiDecideAll(data);
+            }
+            log.debug(ERROR_UNKNOWN_ROUTE, decodeRouteForLog(metadata));
+            return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
         }
 
-        private Payload handleMultiDecideAllOnceBlocking(byte[] data) {
-            try {
-                val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                try (Stream<MultiAuthorizationDecision> stream = blockingPdp.decideAll(subscription, pdpId)) {
-                    val decision = stream.awaitNext();
-                    return encodeMultiDecision(
-                            decision != null ? decision : MultiAuthorizationDecision.indeterminate());
+        private Payload handleDecideOnceBlocking(byte[] data) throws InvalidException {
+            final var subscription = parseSubscriptionOrThrow(data);
+            val       decision     = blockingPdp.decideOnce(subscription, pdpId);
+            return encodeDecision(decision);
+        }
+
+        private Payload handleMultiDecideAllOnceBlocking(byte[] data) throws InvalidException, InterruptedException {
+            final var subscription = parseMultiSubscriptionOrThrow(data);
+            try (Stream<MultiAuthorizationDecision> stream = blockingPdp.decideAll(subscription, pdpId)) {
+                val decision = stream.awaitNext();
+                if (decision == null) {
+                    log.warn(WARN_MULTI_DECIDE_ALL_ONCE_NULL, pdpId);
+                    return encodeMultiDecision(MultiAuthorizationDecision.indeterminate());
                 }
-            } catch (IOException e) {
-                log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
-                return encodeMultiDecision(MultiAuthorizationDecision.indeterminate());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return encodeMultiDecision(MultiAuthorizationDecision.indeterminate());
+                return encodeMultiDecision(decision);
             }
         }
 
         private Flux<Payload> handleDecide(byte[] data) {
+            final io.sapl.api.pdp.AuthorizationSubscription subscription;
             try {
-                val subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
-                return pdp.decide(subscription, pdpId).onErrorResume(error -> {
-                    log.debug(ERROR_IN_ROUTE, ROUTE_DECIDE, error.getMessage());
-                    return Flux.just(AuthorizationDecision.INDETERMINATE);
-                }).map(this::encodeDecision);
+                subscription = SaplProtobufCodec.readAuthorizationSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
-                return Flux.just(encodeDecision(AuthorizationDecision.INDETERMINATE));
+                return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
             }
+            return pdp.decide(subscription, pdpId).onErrorResume(error -> {
+                log.debug(ERROR_IN_ROUTE, ROUTE_DECIDE, error.getMessage());
+                return Flux.just(AuthorizationDecision.INDETERMINATE);
+            }).map(this::encodeDecision);
         }
 
         private Flux<Payload> handleMultiDecide(byte[] data) {
+            final io.sapl.api.pdp.MultiAuthorizationSubscription subscription;
             try {
-                val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                return pdp.decide(subscription, pdpId).onErrorResume(error -> {
-                    log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE, error.getMessage());
-                    return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
-                }).map(this::encodeIdentifiableDecision);
+                subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
-                return Flux.just(encodeIdentifiableDecision(IdentifiableAuthorizationDecision.INDETERMINATE));
+                return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
             }
+            return pdp.decide(subscription, pdpId).onErrorResume(error -> {
+                log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE, error.getMessage());
+                return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
+            }).map(this::encodeIdentifiableDecision);
         }
 
         private Flux<Payload> handleMultiDecideAll(byte[] data) {
+            final io.sapl.api.pdp.MultiAuthorizationSubscription subscription;
             try {
-                val subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
-                return pdp.decideAll(subscription, pdpId).onErrorResume(error -> {
-                    log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE_ALL, error.getMessage());
-                    return Flux.just(MultiAuthorizationDecision.indeterminate());
-                }).map(this::encodeMultiDecision);
+                subscription = SaplProtobufCodec.readMultiAuthorizationSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
-                return Flux.just(encodeMultiDecision(MultiAuthorizationDecision.indeterminate()));
+                return Flux.error(new InvalidException(ERROR_BAD_REQUEST));
+            }
+            return pdp.decideAll(subscription, pdpId).onErrorResume(error -> {
+                log.debug(ERROR_IN_ROUTE, ROUTE_MULTI_DECIDE_ALL, error.getMessage());
+                return Flux.just(MultiAuthorizationDecision.indeterminate());
+            }).map(this::encodeMultiDecision);
+        }
+
+        private static io.sapl.api.pdp.AuthorizationSubscription parseSubscriptionOrThrow(byte[] data)
+                throws InvalidException {
+            try {
+                return SaplProtobufCodec.readAuthorizationSubscription(data);
+            } catch (IOException e) {
+                log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
+                throw new InvalidException(ERROR_BAD_REQUEST);
             }
         }
 
-        private String extractRoute(Payload payload) {
-            val metadata = payload.metadata();
+        private static io.sapl.api.pdp.MultiAuthorizationSubscription parseMultiSubscriptionOrThrow(byte[] data)
+                throws InvalidException {
+            try {
+                return SaplProtobufCodec.readMultiAuthorizationSubscription(data);
+            } catch (IOException e) {
+                log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
+                throw new InvalidException(ERROR_BAD_REQUEST);
+            }
+        }
+
+        private static boolean matches(ByteBuf metadata, ByteBuf route) {
+            return metadata.readableBytes() == route.readableBytes() && ByteBufUtil.equals(metadata,
+                    metadata.readerIndex(), route, route.readerIndex(), route.readableBytes());
+        }
+
+        private static String decodeRouteForLog(ByteBuf metadata) {
             if (metadata.readableBytes() == 0) {
                 return "";
             }
-            val routeBytes = new byte[metadata.readableBytes()];
-            metadata.readBytes(routeBytes);
-            return new String(routeBytes, StandardCharsets.UTF_8);
+            return metadata.toString(StandardCharsets.UTF_8);
         }
 
-        private byte[] extractData(Payload payload) {
+        private static byte[] extractData(Payload payload) {
             val data      = payload.data();
             val dataBytes = new byte[data.readableBytes()];
             data.readBytes(dataBytes);
@@ -376,7 +333,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             }
         }
 
-        private Payload encodeIndeterminateDecision() {
+        private static Payload encodeIndeterminateDecision() {
             try {
                 return DefaultPayload
                         .create(SaplProtobufCodec.writeAuthorizationDecision(AuthorizationDecision.INDETERMINATE));

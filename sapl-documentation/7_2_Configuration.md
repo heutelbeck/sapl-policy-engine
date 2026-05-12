@@ -79,11 +79,12 @@ All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `enabled` | `boolean` | `false` | Enables the protobuf RSocket PDP endpoint. |
+| `enabled` | `boolean` | `true` | Enables the protobuf RSocket PDP endpoint. |
 | `port` | `int` | `7000` | TCP port for RSocket connections. Ignored when `socket-path` is set. |
 | `socket-path` | `String` | | Unix domain socket path. When set, the server binds to this socket instead of TCP. Requires platform support (Linux epoll or macOS kqueue). |
-| `max-connection-lifetime` | `Duration` | | Maximum connection lifetime. Connections are disposed after this duration regardless of activity. For JWT credentials, the effective lifetime is the minimum of this value and the token's `exp` claim. Useful for forcing credential rotation on long-lived API key or Basic Auth connections. |
-| `max-inbound-payload-size` | `int` | `65536` | Maximum size in bytes of an inbound RSocket frame payload. Caps memory exposure from oversized protobuf payloads. Authorization subscriptions are typically below 1 KB; raise only when policies routinely receive large environment maps. |
+| `max-inbound-payload-size` | `int` | `16777215` | Maximum size in bytes of an inbound RSocket payload. The RSocket protocol fixes the per-frame ceiling at 16 MB; the configured value must be at least that, since any single frame must fit. Per-IP and per-account caps belong at an upstream load balancer or firewall. |
+
+Connection lifetime is soft. JWT credentials are validated at every decision call; expired tokens are then rejected, and the client is expected to reconnect with a refreshed credential. The server does not maintain a separate hard-disconnect timer.
 
 Connection counts are bounded by the OS file-descriptor limit (`ulimit -n` on Linux). Per-IP or per-account caps are not enforced inside the node and need to be applied at an upstream load balancer or firewall.
 
@@ -95,7 +96,6 @@ sapl:
     rsocket:
       enabled: true
       port: 7000
-      max-connection-lifetime: 24h
 ```
 
 Unix domain socket (alternative to TCP):

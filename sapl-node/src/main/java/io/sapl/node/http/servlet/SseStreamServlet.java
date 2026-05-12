@@ -41,6 +41,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -110,14 +111,15 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
         try {
             pdpId = authHandler.authenticate(request).pdpId();
         } catch (HttpAuthenticationException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+            log.debug("HTTP authentication failed: {}", e.getMessage());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
             return;
         }
 
         S subscription;
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, subscriptionType());
-        } catch (Exception e) {
+        } catch (IOException | JacksonException e) {
             log.debug("Failed to parse subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed subscription.");
             return;
@@ -139,6 +141,18 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
         }
     }
 
+    /**
+     * Drives the SSE response from a SAPL {@link Stream} of decisions.
+     * <p>
+     * Backpressure is structural, not explicit: {@code openStream} returns
+     * a {@code LatestSlotStream} whose producer overwrites the single slot
+     * when the consumer lags. {@code awaitNext} therefore reads only the
+     * most recent decision, and a slow client throttles the pump by
+     * blocking on socket flush via TCP flow control. Old decisions are
+     * dropped at the source slot rather than queued; the response buffer
+     * is bounded by the container's configured response buffer plus the
+     * kernel socket send buffer.
+     */
     private void pump(AsyncContext asyncContext, S subscription, String pdpId) {
         val                response      = (HttpServletResponse) asyncContext.getResponse();
         ScheduledFuture<?> keepAliveTask = null;

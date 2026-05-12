@@ -36,6 +36,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -65,14 +66,15 @@ public class MultiDecideAllOnceServlet extends HttpServlet {
         try {
             pdpId = authHandler.authenticate(request).pdpId();
         } catch (HttpAuthenticationException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+            log.debug("HTTP authentication failed: {}", e.getMessage());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
             return;
         }
 
         MultiAuthorizationSubscription subscription;
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, MultiAuthorizationSubscription.class);
-        } catch (Exception e) {
+        } catch (IOException | JacksonException e) {
             log.debug("Failed to parse multi-subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed multi-subscription.");
             return;

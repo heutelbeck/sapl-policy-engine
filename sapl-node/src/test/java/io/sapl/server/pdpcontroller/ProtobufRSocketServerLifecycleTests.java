@@ -67,7 +67,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("start does nothing and isRunning stays false when enabled is false")
         void whenDisabledThenStartIsNoOp() {
-            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, null, VALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, VALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             sut.start();
@@ -78,7 +78,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("isAutoStartup mirrors the enabled flag so Spring will not try to start a disabled lifecycle")
         void whenDisabledThenIsAutoStartupFalse() {
-            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, null, VALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, VALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             assertThat(sut.isAutoStartup()).isFalse();
@@ -87,7 +87,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("a misconfigured maxInboundPayloadSize is ignored when disabled (no early validation)")
         void whenDisabledThenInvalidPayloadDoesNotThrow() {
-            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, null, INVALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, INVALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             assertThatCode(sut::start).doesNotThrowAnyException();
@@ -96,7 +96,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("start invoked twice on a disabled lifecycle still results in not-running, no exception")
         void whenDisabledAndStartCalledTwiceThenStillNotRunning() {
-            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, null, VALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, VALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             sut.start();
@@ -113,7 +113,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("a non-positive maxInboundPayloadSize throws IllegalStateException so the misconfig is visible at startup")
         void whenEnabledAndPayloadSizeNonPositiveThenStartThrows() {
-            val sut = new ProtobufRSocketServerLifecycle(true, PORT, null, null, INVALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(true, PORT, null, INVALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             assertThatThrownBy(sut::start).isInstanceOf(IllegalStateException.class)
@@ -123,7 +123,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("isAutoStartup returns true when enabled, even with misconfigured maxInboundPayloadSize")
         void whenEnabledThenIsAutoStartupTrueRegardlessOfPayloadConfig() {
-            val sut = new ProtobufRSocketServerLifecycle(true, PORT, null, null, INVALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(true, PORT, null, INVALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             assertThat(sut.isAutoStartup()).isTrue();
@@ -137,7 +137,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("stop on a never-started lifecycle is a no-op and does not NPE")
         void whenStopWithoutStartThenNoException() {
-            val sut = new ProtobufRSocketServerLifecycle(true, PORT, null, null, VALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(true, PORT, null, VALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             assertThatCode(sut::stop).doesNotThrowAnyException();
@@ -147,7 +147,7 @@ class ProtobufRSocketServerLifecycleTests {
         @Test
         @DisplayName("stop after a no-op disabled start is a no-op and leaves running false")
         void whenDisabledStartThenStopIsSafe() {
-            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, null, VALID_PAYLOAD, blockingPdp, pdp,
+            val sut = new ProtobufRSocketServerLifecycle(false, PORT, null, VALID_PAYLOAD, blockingPdp, pdp,
                     authenticator);
 
             sut.start();

@@ -43,6 +43,7 @@ class SaplNodeDockerTests {
         registry.add("io.sapl.pdp.embedded.pdp-config-type", () -> "DIRECTORY");
         registry.add("io.sapl.pdp.embedded.config-path", dir::toString);
         registry.add("io.sapl.pdp.embedded.policies-path", dir::toString);
+        registry.add("sapl.pdp.rsocket.port", () -> "0");
     }
 
     @Test

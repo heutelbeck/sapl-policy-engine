@@ -231,7 +231,6 @@ scalar:
 # sapl.pdp.rsocket:
 #   enabled: true
 #   port: 7000
-#   max-connection-lifetime: 24h  # optional hard cap for non-JWT connections
 
 # --- Keep-Alive ---
 #

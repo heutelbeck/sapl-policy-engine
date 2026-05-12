@@ -17,9 +17,8 @@
  */
 package io.sapl.server.pdpcontroller;
 
-import java.time.Duration;
-
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,13 +29,14 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 /**
  * Configuration for the protobuf-based RSocket PDP server.
  * <p>
- * Enable with property {@code sapl.pdp.rsocket.enabled=true} and configure
- * the port with {@code sapl.pdp.rsocket.port} (default: 7000).
+ * Enabled by default on port 7000. Set
+ * {@code sapl.pdp.rsocket.enabled=false} to disable, or
+ * {@code sapl.pdp.rsocket.port} to override the port.
  * <p>
- * Optionally set {@code sapl.pdp.rsocket.max-connection-lifetime} to limit
- * connection duration for non-expiring credentials (API key, basic auth). JWT
- * connections are always bounded by the token's {@code exp} claim. The
- * effective lifetime is {@code min(token_expiry, max_connection_lifetime)}.
+ * Connection lifetime is soft. JWT credentials are validated at the next
+ * decision call; expired tokens are then rejected and clients reconnect with
+ * fresh credentials. There is no separate per-connection hard-disconnect
+ * timer.
  * <p>
  * If a {@link RSocketConnectionAuthenticator} bean is present, connections
  * are authenticated via the RSocket setup frame. Otherwise, all connections
@@ -49,15 +49,14 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 public class ProtobufRSocketServerConfiguration {
 
     @Bean
-    ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:false}") boolean enabled,
+    ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:true}") boolean enabled,
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
-            @Value("${sapl.pdp.rsocket.max-connection-lifetime:#{null}}") @Nullable Duration maxConnectionLifetime,
-            @Value("${sapl.pdp.rsocket.max-inbound-payload-size:65536}") int maxInboundPayloadSize,
+            @Value("${sapl.pdp.rsocket.max-inbound-payload-size:16777215}") int maxInboundPayloadSize,
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
-            @Nullable RSocketConnectionAuthenticator authenticator) {
-        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxConnectionLifetime,
-                maxInboundPayloadSize, blockingPdp, pdp, authenticator);
+            ObjectProvider<RSocketConnectionAuthenticator> authenticator) {
+        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxInboundPayloadSize, blockingPdp, pdp,
+                authenticator.getIfAvailable());
     }
 
 }

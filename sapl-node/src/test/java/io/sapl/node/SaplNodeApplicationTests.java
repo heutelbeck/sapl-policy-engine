@@ -40,6 +40,7 @@ class SaplNodeApplicationTests {
     static void pdpPaths(DynamicPropertyRegistry registry) {
         registry.add("io.sapl.pdp.embedded.config-path", pdpDir::toString);
         registry.add("io.sapl.pdp.embedded.policies-path", pdpDir::toString);
+        registry.add("sapl.pdp.rsocket.port", () -> "0");
     }
 
     @Test

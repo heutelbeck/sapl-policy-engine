@@ -22,6 +22,8 @@ import java.io.Serial;
 
 import org.jspecify.annotations.NonNull;
 
+import tools.jackson.core.JacksonException;
+
 import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
@@ -63,14 +65,15 @@ public class DecideOnceServlet extends HttpServlet {
         try {
             pdpId = authHandler.authenticate(request).pdpId();
         } catch (HttpAuthenticationException e) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+            log.debug("HTTP authentication failed: {}", e.getMessage());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
             return;
         }
 
         AuthorizationSubscription subscription;
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, AuthorizationSubscription.class);
-        } catch (Exception e) {
+        } catch (IOException | JacksonException e) {
             log.debug("Failed to parse authorization subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed authorization subscription.");
             return;

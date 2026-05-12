@@ -24,8 +24,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
 
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
@@ -136,114 +134,6 @@ class ProtobufRSocketAcceptorTests {
     }
 
     @Nested
-    @DisplayName("connection expiry")
-    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-    class ConnectionExpiryTests {
-
-        private final int  port = TestSocketUtils.findAvailableTcpPort();
-        private Disposable server;
-
-        @BeforeAll
-        void startServer() {
-            val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
-            when(blockingPdp.decideOnce(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
-            val pdp = mock(ReactivePolicyDecisionPoint.class);
-
-            val acceptor = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> {
-                val metadata = setup.metadata();
-                if (metadata.readableBytes() == 0) {
-                    return Mono.error(new RuntimeException("No credentials"));
-                }
-                val token = metadata.toString(StandardCharsets.UTF_8);
-                if ("short-lived-token".equals(token)) {
-                    return Mono.just(new AuthenticationResult("tenant-1", Instant.now().plusSeconds(2)));
-                }
-                return Mono.just(new AuthenticationResult("tenant-1", null));
-            });
-            server = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(port));
-        }
-
-        @AfterAll
-        void stopServer() {
-            if (server != null) {
-                server.dispose();
-            }
-        }
-
-        @Test
-        @DisplayName("connection works before token expires")
-        void whenTokenValidThenRequestsSucceed() throws IOException {
-            val setupPayload = DefaultPayload.create(new byte[0], "short-lived-token".getBytes(StandardCharsets.UTF_8));
-            val rsocket      = RSocketConnector.create().setupPayload(setupPayload)
-                    .connect(TcpClientTransport.create(port)).block();
-
-            val payload = createDecideOncePayload(AuthorizationSubscription.of("alice", "read", "doc"));
-            val result  = rsocket.requestResponse(payload).map(ProtobufRSocketAcceptorTests::decodeDecision);
-
-            StepVerifier.create(result).assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
-
-            rsocket.dispose();
-        }
-
-        @Test
-        @DisplayName("connection disposed after token expires")
-        void whenTokenExpiresThenConnectionDisposed() throws IOException {
-            val setupPayload = DefaultPayload.create(new byte[0], "short-lived-token".getBytes(StandardCharsets.UTF_8));
-            val rsocket      = RSocketConnector.create().setupPayload(setupPayload)
-                    .connect(TcpClientTransport.create(port)).block();
-
-            val payload = createDecideOncePayload(AuthorizationSubscription.of("alice", "read", "doc"));
-            StepVerifier.create(rsocket.requestResponse(payload).map(ProtobufRSocketAcceptorTests::decodeDecision))
-                    .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
-
-            StepVerifier.create(Mono.delay(Duration.ofSeconds(3)).then(Mono.defer(() -> {
-                val retryPayload = createDecideOncePayloadUnchecked(
-                        AuthorizationSubscription.of("alice", "read", "doc"));
-                return rsocket.requestResponse(retryPayload);
-            }))).expectError().verify(Duration.ofSeconds(5));
-
-            rsocket.dispose();
-        }
-
-        @Test
-        @DisplayName("max-connection-lifetime enforced for non-expiring credentials")
-        void whenMaxLifetimeThenConnectionDisposed() throws IOException {
-            val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
-            when(blockingPdp.decideOnce(any(), any())).thenReturn(AuthorizationDecision.PERMIT);
-            val pdp = mock(ReactivePolicyDecisionPoint.class);
-
-            val localPort = TestSocketUtils.findAvailableTcpPort();
-            val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> {
-                              val metadata = setup.metadata();
-                              if (metadata.readableBytes() == 0) {
-                                  return Mono.error(new RuntimeException("No credentials"));
-                              }
-                              return Mono.just(new AuthenticationResult("tenant-1", null));
-                          }, Duration.ofSeconds(2));
-
-            val localServer = RSocketServer.create(acceptor).bindNow(TcpServerTransport.create(localPort));
-
-            val setupPayload = DefaultPayload.create(new byte[0], "api-key".getBytes(StandardCharsets.UTF_8));
-            val rsocket      = RSocketConnector.create().setupPayload(setupPayload)
-                    .connect(TcpClientTransport.create(localPort)).block();
-
-            val payload = createDecideOncePayload(AuthorizationSubscription.of("alice", "read", "doc"));
-            StepVerifier.create(rsocket.requestResponse(payload).map(ProtobufRSocketAcceptorTests::decodeDecision))
-                    .assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
-
-            StepVerifier.create(Mono.delay(Duration.ofSeconds(3)).then(Mono.defer(() -> {
-                val retryPayload = createDecideOncePayloadUnchecked(
-                        AuthorizationSubscription.of("alice", "read", "doc"));
-                return rsocket.requestResponse(retryPayload);
-            }))).expectError().verify(Duration.ofSeconds(5));
-
-            rsocket.dispose();
-            localServer.dispose();
-        }
-    }
-
-    @Nested
     @DisplayName("unauthenticated mode")
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class UnauthenticatedTests {
@@ -297,14 +187,36 @@ class ProtobufRSocketAcceptorTests {
         }
 
         @Test
-        @DisplayName("returns INDETERMINATE for unknown route")
-        void whenUnknownRouteThenIndeterminate() {
+        @DisplayName("unknown route surfaces as RSocket error so the client knows the request was invalid, not policy-indeterminate")
+        void whenUnknownRouteThenInvalidError() {
             val rsocket = RSocketConnector.create().connect(TcpClientTransport.create(port)).block();
             val payload = DefaultPayload.create(new byte[0], "unknown-route".getBytes(StandardCharsets.UTF_8));
-            val result  = rsocket.requestResponse(payload).map(ProtobufRSocketAcceptorTests::decodeDecision);
 
-            StepVerifier.create(result).assertNext(d -> assertThat(d.decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+            StepVerifier.create(rsocket.requestResponse(payload)).expectError().verify();
+
+            rsocket.dispose();
+        }
+
+        @Test
+        @DisplayName("malformed protobuf body for decide-once surfaces as RSocket error, not as INDETERMINATE")
+        void whenMalformedDecideOnceThenInvalidError() {
+            val rsocket = RSocketConnector.create().connect(TcpClientTransport.create(port)).block();
+            val payload = DefaultPayload.create("not-protobuf".getBytes(StandardCharsets.UTF_8),
+                    "decide-once".getBytes(StandardCharsets.UTF_8));
+
+            StepVerifier.create(rsocket.requestResponse(payload)).expectError().verify();
+
+            rsocket.dispose();
+        }
+
+        @Test
+        @DisplayName("malformed protobuf body for decide stream surfaces as RSocket error, not a single INDETERMINATE next")
+        void whenMalformedDecideStreamThenInvalidError() {
+            val rsocket = RSocketConnector.create().connect(TcpClientTransport.create(port)).block();
+            val payload = DefaultPayload.create("not-protobuf".getBytes(StandardCharsets.UTF_8),
+                    "decide".getBytes(StandardCharsets.UTF_8));
+
+            StepVerifier.create(rsocket.requestStream(payload)).expectError().verify();
 
             rsocket.dispose();
         }
@@ -324,14 +236,6 @@ class ProtobufRSocketAcceptorTests {
     private static Payload createDecideOncePayload(AuthorizationSubscription sub) throws IOException {
         val data = SaplProtobufCodec.writeAuthorizationSubscription(sub);
         return DefaultPayload.create(data, "decide-once".getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static Payload createDecideOncePayloadUnchecked(AuthorizationSubscription sub) {
-        try {
-            return createDecideOncePayload(sub);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private static Payload createDecidePayload(AuthorizationSubscription sub) throws IOException {
