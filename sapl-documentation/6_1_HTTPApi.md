@@ -325,6 +325,14 @@ Returns all decisions as a single JSON object and closes the connection. The for
 
 All multi-subscription decisions may include optional `resource`, `obligations`, and `advice` fields, as described in [Authorization Decisions](../2_3_AuthorizationDecisions/).
 
+### OpenID Authorization API 1.0
+
+In addition to the native endpoints above, the node exposes `POST /access/v1/evaluation` as a binding for the [OpenID Authorization API 1.0](https://openid.net/specs/authorization-api-1_0-01.html). It is a strict subset of the native API: a single one-shot evaluation per request, boolean decision, no streaming or batching.
+
+The boolean is `true` only for a `PERMIT` that carries no obligations and no transformed resource. `DENY`, `INDETERMINATE`, `NOT_APPLICABLE`, `SUSPEND` and any `PERMIT` carrying obligations or a transformed resource all map to `false`, so a vanilla OpenID PEP that ignores the response `context` cannot accidentally grant access that depended on PEP-side enforcement. Whenever the boolean is `false` the response also carries a `reason_admin` (technical: `INDETERMINATE`, `PERMIT`-needs-enforcement) or `reason_user` (subject-facing: `DENY`, `NOT_APPLICABLE`, `SUSPEND`) field per the OpenID spec.
+
+SAPL-aware clients read the response `context.sapl.*` for the full picture: the SAPL verb under `context.sapl.decision`, and any `context.sapl.{obligations,advice,resource}` slots that were populated.
+
 ### Error Handling
 
 A PEP encountering connectivity issues or errors with the PDP server must treat this as an `INDETERMINATE` decision and deny access. The PEP should reconnect using an exponential backoff strategy to avoid overloading the PDP.

@@ -80,10 +80,17 @@ public class OpenIdAuthorizationApiController {
             (per spec). Non-2xx is reserved for request-level errors (malformed JSON, missing \
             fields, authentication failure).
 
-            The optional response `context` carries: `reason_admin` (for INDETERMINATE), \
-            `reason_user` (for SUSPEND), and `sapl.{obligations,advice,resource,decision}` \
-            SAPL-extension fields. Vanilla OpenID PEPs ignore the SAPL extensions; \
-            SAPL-aware clients can act on them.
+            The boolean is `true` only for a PERMIT that carries no obligations and no \
+            transformed resource. DENY, INDETERMINATE, NOT_APPLICABLE, SUSPEND and any \
+            PERMIT carrying obligations or a transformed resource all map to `false`, so a \
+            vanilla OpenID PEP that ignores the SAPL extensions cannot accidentally grant \
+            access that depended on PEP-side enforcement.
+
+            Whenever the boolean is `false` the response also carries a `reason_admin` \
+            (technical: INDETERMINATE, PERMIT-needs-enforcement) or `reason_user` \
+            (subject-facing: DENY, NOT_APPLICABLE, SUSPEND) field. SAPL-aware clients \
+            read `context.sapl.{decision,obligations,advice,resource}` for the full \
+            decision.
 
             The `X-Request-ID` request header is echoed in the response when present.""")
     @PostMapping(value = "/evaluation", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)

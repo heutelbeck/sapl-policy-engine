@@ -94,6 +94,13 @@ io.sapl:
     # oauth:
     #   pdp-id-claim: "sapl_pdp_id"
 
+    # Scalar OAuth2 client id (optional). When set, the Scalar Authorize
+    # dialog presents this id as the suggested OIDC client. Independent
+    # of whether OAuth2 is enabled server-side; effective only when
+    # allow-oauth2-auth is true.
+    # scalar:
+    #   oauth-client-id: "sapl-node-scalar"
+
     # User entries for Basic Auth and API Key authentication.
     # Each user is associated with a pdp-id for multi-tenant routing.
     #
@@ -174,6 +181,26 @@ io.sapl:
     #   # auth-header-value: "Bearer <token>"
     #   # follow-redirects: true
 
+# --- API Documentation (Scalar UI on top of springdoc-generated OpenAPI) ---
+
+springdoc:
+  show-actuator: true
+  paths-to-exclude:
+    - /scalar
+    - /scalar/**
+
+scalar:
+  url: /v3/api-docs
+  page-title: SAPL Node API
+  favicon: /favicon.png
+  show-developer-tools: never
+  # SAPL theme is loaded from classpath:static/css/sapl-scalar-theme.css
+  # and applied per request via ScalarConfiguration#scalarWebMvcController.
+  with-default-fonts: false
+  # disable Ask AI in scalar
+  agent:
+    disabled: true
+
 # --- OAuth2 Resource Server ---
 #
 # Required when allow-oauth2-auth is true.
@@ -203,11 +230,11 @@ io.sapl:
 
 # --- Keep-Alive ---
 #
-# Interval in seconds between keep-alive frames on idle connections.
-# Prevents firewalls from dropping inactive TCP connections.
-# Default 0 disables keep-alive.
-#
-# io.sapl.node.keep-alive: 15
+# Interval in seconds between keep-alive comment frames on idle SSE
+# streams. Prevents firewalls and proxies from dropping inactive TCP
+# connections. Set to 0 to disable.
+
+io.sapl.node.keep-alive: 15
 
 # --- Rate Limiting ---
 

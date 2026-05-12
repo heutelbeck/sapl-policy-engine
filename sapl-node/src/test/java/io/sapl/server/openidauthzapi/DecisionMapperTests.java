@@ -40,48 +40,152 @@ class DecisionMapperTests {
     class VerbMapping {
 
         @Test
-        void permitMapsToTrueWithNoContext() {
-            final var response = DecisionMapper.map(AuthorizationDecision.PERMIT, MAPPER);
-            assertThat(response.decision()).isTrue();
-            assertThat(response.context()).isNull();
+        void plainPermitMapsToTrue() {
+            assertThat(DecisionMapper.map(AuthorizationDecision.PERMIT, MAPPER).decision()).isTrue();
         }
 
         @Test
-        void denyMapsToFalseWithNoContext() {
-            final var response = DecisionMapper.map(AuthorizationDecision.DENY, MAPPER);
-            assertThat(response.decision()).isFalse();
-            assertThat(response.context()).isNull();
+        void permitWithObligationsMapsToFalse() {
+            final var sapl = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("notify-admin")),
+                    Value.EMPTY_ARRAY, Value.UNDEFINED);
+            assertThat(DecisionMapper.map(sapl, MAPPER).decision()).isFalse();
         }
 
         @Test
-        void notApplicableMapsToFalseWithNoContext() {
-            final var response = DecisionMapper.map(AuthorizationDecision.NOT_APPLICABLE, MAPPER);
-            assertThat(response.decision()).isFalse();
-            assertThat(response.context()).isNull();
+        void permitWithTransformedResourceMapsToFalse() {
+            final var sapl = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.of("redacted"));
+            assertThat(DecisionMapper.map(sapl, MAPPER).decision()).isFalse();
         }
 
         @Test
-        void indeterminateMapsToFalseWithReasonAdmin() {
-            final var response = DecisionMapper.map(AuthorizationDecision.INDETERMINATE, MAPPER);
-            assertThat(response.decision()).isFalse();
-            assertThat(response.context()).isNotNull().containsKey(DecisionMapper.REASON_ADMIN_KEY);
-            assertThat(response.context().get(DecisionMapper.REASON_ADMIN_KEY))
-                    .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-                    .containsEntry(DecisionMapper.LANG_EN, DecisionMapper.REASON_INDETERMINATE_EN);
+        void permitWithAdviceOnlyMapsToTrue() {
+            final var sapl = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY,
+                    Value.ofArray(Value.of("send-email")), Value.UNDEFINED);
+            assertThat(DecisionMapper.map(sapl, MAPPER).decision()).isTrue();
         }
 
         @Test
-        void suspendMapsToFalseWithReasonUserAndSaplDecisionMarker() {
-            final var response = DecisionMapper.map(AuthorizationDecision.SUSPEND, MAPPER);
-            assertThat(response.decision()).isFalse();
-            assertThat(response.context()).isNotNull().containsKey(DecisionMapper.REASON_USER_KEY)
-                    .containsKey(DecisionMapper.SAPL_KEY);
-            assertThat(response.context().get(DecisionMapper.REASON_USER_KEY))
-                    .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-                    .containsEntry(DecisionMapper.LANG_EN_403, DecisionMapper.REASON_SUSPEND_EN_403);
+        void denyMapsToFalse() {
+            assertThat(DecisionMapper.map(AuthorizationDecision.DENY, MAPPER).decision()).isFalse();
+        }
+
+        @Test
+        void notApplicableMapsToFalse() {
+            assertThat(DecisionMapper.map(AuthorizationDecision.NOT_APPLICABLE, MAPPER).decision()).isFalse();
+        }
+
+        @Test
+        void indeterminateMapsToFalse() {
+            assertThat(DecisionMapper.map(AuthorizationDecision.INDETERMINATE, MAPPER).decision()).isFalse();
+        }
+
+        @Test
+        void suspendMapsToFalse() {
+            assertThat(DecisionMapper.map(AuthorizationDecision.SUSPEND, MAPPER).decision()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("context.sapl.decision carries the SAPL verb for every decision")
+    class VerbInContext {
+
+        @Test
+        void permitVerbSurfaces() {
+            assertSaplDecision(DecisionMapper.map(AuthorizationDecision.PERMIT, MAPPER), Decision.PERMIT);
+        }
+
+        @Test
+        void denyVerbSurfaces() {
+            assertSaplDecision(DecisionMapper.map(AuthorizationDecision.DENY, MAPPER), Decision.DENY);
+        }
+
+        @Test
+        void notApplicableVerbSurfaces() {
+            assertSaplDecision(DecisionMapper.map(AuthorizationDecision.NOT_APPLICABLE, MAPPER),
+                    Decision.NOT_APPLICABLE);
+        }
+
+        @Test
+        void indeterminateVerbSurfaces() {
+            assertSaplDecision(DecisionMapper.map(AuthorizationDecision.INDETERMINATE, MAPPER), Decision.INDETERMINATE);
+        }
+
+        @Test
+        void suspendVerbSurfaces() {
+            assertSaplDecision(DecisionMapper.map(AuthorizationDecision.SUSPEND, MAPPER), Decision.SUSPEND);
+        }
+
+        private static void assertSaplDecision(OpenIdEvaluationResponse response, Decision expected) {
+            assertThat(response.context()).isNotNull().containsKey(DecisionMapper.SAPL_KEY);
             assertThat(response.context().get(DecisionMapper.SAPL_KEY))
                     .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-                    .containsEntry(DecisionMapper.SAPL_DECISION_KEY, DecisionMapper.SUSPEND_MARKER);
+                    .containsEntry(DecisionMapper.SAPL_DECISION_KEY, expected.name());
+        }
+    }
+
+    @Nested
+    @DisplayName("reason field present whenever the boolean is false")
+    class ReasonFields {
+
+        @Test
+        void plainPermitHasNoReason() {
+            final var ctx = DecisionMapper.map(AuthorizationDecision.PERMIT, MAPPER).context();
+            assertThat(ctx).doesNotContainKey(DecisionMapper.REASON_ADMIN_KEY)
+                    .doesNotContainKey(DecisionMapper.REASON_USER_KEY);
+        }
+
+        @Test
+        void denyCarriesUserReason() {
+            assertReasonUser(DecisionMapper.map(AuthorizationDecision.DENY, MAPPER), DecisionMapper.REASON_DENY_EN);
+        }
+
+        @Test
+        void notApplicableCarriesUserReason() {
+            assertReasonUser(DecisionMapper.map(AuthorizationDecision.NOT_APPLICABLE, MAPPER),
+                    DecisionMapper.REASON_NOT_APPLICABLE_EN);
+        }
+
+        @Test
+        void indeterminateCarriesAdminReason() {
+            assertReasonAdmin(DecisionMapper.map(AuthorizationDecision.INDETERMINATE, MAPPER),
+                    DecisionMapper.REASON_INDETERMINATE_EN);
+        }
+
+        @Test
+        void suspendCarriesUserReason() {
+            assertReasonUser(DecisionMapper.map(AuthorizationDecision.SUSPEND, MAPPER),
+                    DecisionMapper.REASON_SUSPEND_EN_403);
+        }
+
+        @Test
+        void permitWithObligationsCarriesAdminReason() {
+            final var sapl     = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("notify-admin")),
+                    Value.EMPTY_ARRAY, Value.UNDEFINED);
+            final var response = DecisionMapper.map(sapl, MAPPER);
+            assertReasonAdmin(response, DecisionMapper.REASON_PERMIT_NEEDS_ENFORCEMENT_EN);
+        }
+
+        @Test
+        void permitWithTransformedResourceCarriesAdminReason() {
+            final var sapl     = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
+                    Value.of("redacted"));
+            final var response = DecisionMapper.map(sapl, MAPPER);
+            assertReasonAdmin(response, DecisionMapper.REASON_PERMIT_NEEDS_ENFORCEMENT_EN);
+        }
+
+        private static void assertReasonAdmin(OpenIdEvaluationResponse response, String expected) {
+            assertThat(response.context()).containsKey(DecisionMapper.REASON_ADMIN_KEY);
+            assertThat(response.context().get(DecisionMapper.REASON_ADMIN_KEY))
+                    .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                    .containsEntry(DecisionMapper.LANG_EN, expected);
+        }
+
+        private static void assertReasonUser(OpenIdEvaluationResponse response, String expected) {
+            assertThat(response.context()).containsKey(DecisionMapper.REASON_USER_KEY);
+            assertThat(response.context().get(DecisionMapper.REASON_USER_KEY))
+                    .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
+                    .containsEntry(DecisionMapper.LANG_EN_403, expected);
         }
     }
 
@@ -90,20 +194,18 @@ class DecisionMapperTests {
     class SaplExtensions {
 
         @Test
-        void permitWithObligationsCarriesObligations() {
-            final var sapl     = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("notify-admin")),
-                    Value.EMPTY_ARRAY, Value.UNDEFINED);
-            final var response = DecisionMapper.map(sapl, MAPPER);
-            assertThat(response.decision()).isTrue();
-            assertSaplExtensionPresent(response, DecisionMapper.OBLIGATIONS_KEY);
-        }
-
-        @Test
         void denyWithObligationsCarriesObligations() {
             final var sapl     = new AuthorizationDecision(Decision.DENY, Value.ofArray(Value.of("audit-log")),
                     Value.EMPTY_ARRAY, Value.UNDEFINED);
             final var response = DecisionMapper.map(sapl, MAPPER);
-            assertThat(response.decision()).isFalse();
+            assertSaplExtensionPresent(response, DecisionMapper.OBLIGATIONS_KEY);
+        }
+
+        @Test
+        void permitWithObligationsCarriesObligations() {
+            final var sapl     = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("notify-admin")),
+                    Value.EMPTY_ARRAY, Value.UNDEFINED);
+            final var response = DecisionMapper.map(sapl, MAPPER);
             assertSaplExtensionPresent(response, DecisionMapper.OBLIGATIONS_KEY);
         }
 
@@ -116,7 +218,7 @@ class DecisionMapperTests {
         }
 
         @Test
-        void permitWithResourceTransformationCarriesResource() {
+        void permitWithResourceCarriesResource() {
             final var sapl     = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                     Value.of("redacted"));
             final var response = DecisionMapper.map(sapl, MAPPER);
@@ -124,26 +226,26 @@ class DecisionMapperTests {
         }
 
         @Test
-        void permitWithObligationsAndAdviceAndResourceCarriesAllThree() {
+        void permitWithObligationsAdviceAndResourceCarriesAllThree() {
             final var sapl     = new AuthorizationDecision(Decision.PERMIT, Value.ofArray(Value.of("ob")),
                     Value.ofArray(Value.of("ad")), Value.of("res"));
             final var response = DecisionMapper.map(sapl, MAPPER);
-            assertThat(response.context()).isNotNull().containsKey(DecisionMapper.SAPL_KEY);
+            assertThat(response.decision()).isFalse();
+            assertThat(response.context()).containsKey(DecisionMapper.SAPL_KEY);
             assertThat(response.context().get(DecisionMapper.SAPL_KEY))
                     .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class)).containsKeys(
                             DecisionMapper.OBLIGATIONS_KEY, DecisionMapper.ADVICE_KEY, DecisionMapper.RESOURCE_KEY);
         }
 
         @Test
-        void suspendWithObligationsCarriesBothMarkerAndObligations() {
+        void suspendWithObligationsCarriesBothVerbAndObligations() {
             final var sapl     = new AuthorizationDecision(Decision.SUSPEND, Value.ofArray(Value.of("step-up")),
                     Value.EMPTY_ARRAY, Value.UNDEFINED);
             final var response = DecisionMapper.map(sapl, MAPPER);
-            assertThat(response.decision()).isFalse();
             assertThat(response.context().get(DecisionMapper.SAPL_KEY))
                     .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsKeys(DecisionMapper.SAPL_DECISION_KEY, DecisionMapper.OBLIGATIONS_KEY)
-                    .containsEntry(DecisionMapper.SAPL_DECISION_KEY, DecisionMapper.SUSPEND_MARKER);
+                    .containsEntry(DecisionMapper.SAPL_DECISION_KEY, Decision.SUSPEND.name());
         }
 
         private static void assertSaplExtensionPresent(OpenIdEvaluationResponse response, String extensionKey) {

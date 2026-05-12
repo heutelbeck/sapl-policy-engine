@@ -144,7 +144,9 @@ public class SecurityConfiguration {
             log.warn("Server has been configured to reply to requests without authentication.");
             http.authorizeHttpRequests(requests -> requests.requestMatchers("/**").permitAll());
         } else {
-            http.authorizeHttpRequests(requests -> requests.requestMatchers("/actuator/health", "/actuator/health/**")
+            http.authorizeHttpRequests(requests -> requests
+                    .requestMatchers("/", "/actuator/health", "/actuator/health/**", "/error", "/error/**", "/css/**",
+                            "/favicon.png", "/sapl-icon.svg", "/sapl-icon-light.svg")
                     .permitAll().anyRequest().authenticated());
         }
 
