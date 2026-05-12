@@ -21,7 +21,7 @@ set -euo pipefail
 
 USERNAME="${1:-}"
 PASSWORD="${2:-}"
-BASE_URL="${3:-https://localhost:8443}"
+BASE_URL="${3:-http://localhost:8443}"
 ENDPOINT="${BASE_URL}/api/pdp/decide"
 
 if [[ -z "${USERNAME}" || -z "${PASSWORD}" ]]; then

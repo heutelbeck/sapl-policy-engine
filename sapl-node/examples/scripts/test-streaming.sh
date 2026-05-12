@@ -21,7 +21,7 @@ set -euo pipefail
 
 AUTH_TYPE="${1:-noauth}"
 CREDENTIALS="${2:-}"
-BASE_URL="${3:-https://localhost:8443}"
+BASE_URL="${3:-http://localhost:8443}"
 ENDPOINT="${BASE_URL}/api/pdp/decide"
 
 echo "=== SAPL Node Streaming Subscription Test ==="

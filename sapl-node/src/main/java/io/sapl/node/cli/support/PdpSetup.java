@@ -90,7 +90,7 @@ public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, Confi
     }
 
     private static PdpSetup openHttp(RemoteConnectionOptions remote) throws SSLException {
-        val url     = resolveWithEnv(remote.url, "SAPL_URL", "https://localhost:8443");
+        val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8443");
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
             builder.withUnsecureSSL();

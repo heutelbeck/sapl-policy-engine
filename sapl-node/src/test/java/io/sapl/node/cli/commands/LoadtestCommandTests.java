@@ -55,7 +55,7 @@ class LoadtestCommandTests {
             new CommandLine(cmd).parseArgs("-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
             assertThat(cmd).satisfies(c -> {
                 assertThat(c.rsocket).isFalse();
-                assertThat(c.url).isEqualTo("https://localhost:8443");
+                assertThat(c.url).isEqualTo("http://localhost:8443");
                 assertThat(c.concurrency).isEqualTo(64);
             });
         }
