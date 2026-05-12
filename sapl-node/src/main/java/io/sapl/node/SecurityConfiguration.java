@@ -19,49 +19,49 @@ package io.sapl.node;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
-import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.config.web.server.ServerHttpSecurity.CsrfSpec;
-import org.springframework.security.config.web.server.ServerHttpSecurity.FormLoginSpec;
-import org.springframework.security.config.web.server.ServerHttpSecurity.HttpBasicSpec;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsPasswordService;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders;
-import org.springframework.security.oauth2.server.resource.web.server.authentication.ServerBearerTokenAuthenticationConverter;
-import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
-import org.springframework.web.server.ServerWebExchange;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoders;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.node.apikey.ApiKeyAuthenticationFilter;
+import io.sapl.node.apikey.ApiKeyAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.spring.config.PdpIdAuthenticationExtractor;
 import io.sapl.node.auth.SaplAuthenticationToken;
+import io.sapl.node.auth.DefaultBlockingTenantResolver;
+import io.sapl.node.auth.PdpIdAuthenticationExtractorBlocking;
 import io.sapl.node.auth.SaplJwtAuthenticationConverter;
 import io.sapl.node.auth.SaplJwtAuthenticationToken;
 import io.sapl.node.auth.SaplUser;
-import io.sapl.node.auth.SaplReactiveUserDetailsService;
+import io.sapl.node.auth.SaplUserDetailsService;
 import io.sapl.node.auth.UserLookupService;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import reactor.core.publisher.Mono;
 
 /**
- * Security configuration for SAPL Node with unified user management.
+ * Servlet-based security configuration for SAPL Node with unified user
+ * management.
  */
 @Slf4j
 @Configuration
 @Profile("!cli")
-@EnableWebFluxSecurity
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
@@ -80,42 +80,54 @@ public class SecurityConfiguration {
     private String jwtIssuerURI;
 
     @Bean
-    SaplReactiveUserDetailsService saplUserDetailsService() {
-        return new SaplReactiveUserDetailsService(userLookupService);
+    SaplUserDetailsService saplUserDetailsService() {
+        return new SaplUserDetailsService(userLookupService);
     }
 
     @Bean
-    PdpIdAuthenticationExtractor pdpIdAuthenticationExtractor() {
-        val userDetailsService = saplUserDetailsService();
-        return authentication -> {
-            if (authentication instanceof SaplAuthenticationToken saplAuth) {
-                return Mono.just(saplAuth.getPdpId());
-            }
-            if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
-                return Mono.just(jwtAuth.getPdpId());
-            }
-            val principal = authentication.getPrincipal();
-            if (principal instanceof UserDetails userDetails) {
-                return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId);
-            }
-            return Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
-        };
+    BlockingTenantResolver blockingTenantResolver(PdpIdAuthenticationExtractorBlocking extractor) {
+        return new DefaultBlockingTenantResolver(extractor);
     }
 
     /**
-     * Provides a no-op password service to satisfy Spring Security requirements.
-     * Password updates are not supported; users are configured in application.yml.
+     * Excludes the bypass-Spring PDP HTTP endpoint from the Spring Security
+     * filter chain. Authentication for those routes is handled by
+     * {@link io.sapl.node.http.auth.HttpAuthHandler} inside the raw servlets.
      *
-     * @return the reactive user details password service
+     * @return the customizer
      */
     @Bean
-    ReactiveUserDetailsPasswordService reactiveUserDetailsPasswordService() {
-        return (user, newPassword) -> Mono.just(user);
+    WebSecurityCustomizer pdpEndpointSecurityBypass() {
+        return web -> web.ignoring().requestMatchers("/api/pdp/**");
     }
 
     @Bean
-    SecurityWebFilterChain securityFilterChainLocal(ServerHttpSecurity http) {
-        http = http.csrf(CsrfSpec::disable);
+    PdpIdAuthenticationExtractorBlocking pdpIdAuthenticationExtractor() {
+        val userDetailsService = saplUserDetailsService();
+        return authentication -> {
+            if (authentication == null) {
+                return ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
+            }
+            if (authentication instanceof SaplAuthenticationToken saplAuth) {
+                return saplAuth.getPdpId();
+            }
+            if (authentication instanceof SaplJwtAuthenticationToken jwtAuth) {
+                return jwtAuth.getPdpId();
+            }
+            val principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails userDetails) {
+                return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId)
+                        .orElse(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+            }
+            return ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
+        };
+    }
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(AbstractHttpConfigurer::disable);
 
         if (noAuthenticationMechanismIsDefined()) {
             throw new IllegalStateException(ERROR_NO_AUTH_MECHANISM_DEFINED);
@@ -123,19 +135,17 @@ public class SecurityConfiguration {
 
         if (pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
                 && !pdpProperties.isAllowOauth2Auth()) {
-            // No authentication at all: minimize security filter chain overhead
             log.warn("Server has been configured to reply to requests without authentication.");
-            return http.csrf(CsrfSpec::disable).formLogin(FormLoginSpec::disable).httpBasic(HttpBasicSpec::disable)
-                    .requestCache(spec -> spec.disable())
-                    .authorizeExchange(exchange -> exchange.anyExchange().permitAll()).build();
+            return http.httpBasic(AbstractHttpConfigurer::disable).requestCache(cache -> cache.disable())
+                    .authorizeHttpRequests(requests -> requests.anyRequest().permitAll()).build();
         }
 
         if (pdpProperties.isAllowNoAuth()) {
             log.warn("Server has been configured to reply to requests without authentication.");
-            http = http.authorizeExchange(exchange -> exchange.pathMatchers("/**").permitAll());
+            http.authorizeHttpRequests(requests -> requests.requestMatchers("/**").permitAll());
         } else {
-            http = http.authorizeExchange(exchange -> exchange.pathMatchers("/actuator/health", "/actuator/health/**")
-                    .permitAll().anyExchange().authenticated());
+            http.authorizeHttpRequests(requests -> requests.requestMatchers("/actuator/health", "/actuator/health/**")
+                    .permitAll().anyRequest().authenticated());
         }
 
         if (pdpProperties.isAllowApiKeyAuth()) {
@@ -143,10 +153,9 @@ public class SecurityConfiguration {
             if (!hasApiKeyUsers()) {
                 log.warn(WARN_NO_API_KEYS);
             }
-            val customAuthenticationWebFilter = new AuthenticationWebFilter(new ApiKeyReactiveAuthenticationManager());
-            customAuthenticationWebFilter
-                    .setServerAuthenticationConverter(apiKeyService.getHttpApiKeyAuthenticationConverter());
-            http = http.addFilterAt(customAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
+            val filter = new ApiKeyAuthenticationFilter(apiKeyService.getHttpApiKeyAuthenticationConverter(),
+                    new ApiKeyAuthenticationManager());
+            http.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
         }
 
         if (pdpProperties.isAllowBasicAuth()) {
@@ -154,7 +163,9 @@ public class SecurityConfiguration {
             if (!hasBasicAuthUsers()) {
                 throw new IllegalStateException(ERROR_NO_BASIC_AUTH_USERS);
             }
-            http = http.httpBasic(withDefaults());
+            http.httpBasic(withDefaults());
+        } else {
+            http.httpBasic(AbstractHttpConfigurer::disable);
         }
 
         if (pdpProperties.isAllowOauth2Auth()) {
@@ -162,22 +173,26 @@ public class SecurityConfiguration {
             if (jwtIssuerURI == null) {
                 throw new IllegalStateException(ERROR_JWT_ISSUER_REQUIRED);
             }
-            http = http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenConverter(createBearerTokenConverter())
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(new SaplJwtAuthenticationConverter(pdpProperties))));
+            val converter = new SaplJwtAuthenticationConverter(pdpProperties);
+            http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(skipSaplApiKeyResolver())
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(converter)));
         }
 
-        return http.formLogin(FormLoginSpec::disable).build();
+        return http.build();
     }
 
-    private ServerBearerTokenAuthenticationConverter createBearerTokenConverter() {
-        return new ServerBearerTokenAuthenticationConverter() {
-            @Override
-            public @NonNull Mono<Authentication> convert(@NonNull ServerWebExchange exchange) {
-                if (ApiKeyService.getApiKeyToken(exchange).isPresent()) {
-                    return Mono.empty();
-                }
-                return super.convert(exchange);
+    /**
+     * Bearer token resolver that skips SAPL API keys (Bearer sapl_*), so the
+     * JWT path does not try to validate them. SAPL API keys are handled by
+     * {@link ApiKeyAuthenticationFilter}, which runs earlier in the chain.
+     */
+    private static BearerTokenResolver skipSaplApiKeyResolver() {
+        val delegate = new DefaultBearerTokenResolver();
+        return request -> {
+            if (ApiKeyService.getApiKeyToken(request).isPresent()) {
+                return null;
             }
+            return delegate.resolve(request);
         };
     }
 
@@ -195,17 +210,17 @@ public class SecurityConfiguration {
     }
 
     /**
-     * Decodes JSON Web Token (JWT) according to the configuration that was
-     * initialized by the OpenID Provider specified in the jwtIssuerURI.
+     * JWT decoder bean. Returns {@code null} when OAuth2 is not active so that
+     * downstream consumers (e.g. RSocket auth) can skip JWT validation.
      *
-     * @return the reactive JWT decoder
+     * @return the JWT decoder, or {@code null}
      */
     @Bean
-    ReactiveJwtDecoder jwtDecoder() {
+    @Nullable
+    JwtDecoder jwtDecoder() {
         if (pdpProperties.isAllowOauth2Auth()) {
-            return ReactiveJwtDecoders.fromIssuerLocation(jwtIssuerURI);
+            return JwtDecoders.fromIssuerLocation(jwtIssuerURI);
         }
         return null;
     }
-
 }

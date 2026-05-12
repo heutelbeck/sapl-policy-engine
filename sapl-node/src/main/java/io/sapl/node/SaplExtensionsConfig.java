@@ -28,8 +28,6 @@ import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,7 +43,6 @@ import java.util.List;
  * included in the PDP defaults and should not be registered here.
  */
 @Configuration
-@EnableAutoConfiguration(exclude = { R2dbcAutoConfiguration.class })
 public class SaplExtensionsConfig {
 
     @Bean

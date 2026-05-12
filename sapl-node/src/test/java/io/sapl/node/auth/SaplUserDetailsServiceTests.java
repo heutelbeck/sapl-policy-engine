@@ -18,6 +18,7 @@
 package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,23 +33,22 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import io.sapl.node.SaplNodeProperties.BasicCredentials;
 import io.sapl.node.SaplNodeProperties.UserEntry;
 import lombok.val;
-import reactor.test.StepVerifier;
 
-@DisplayName("SaplReactiveUserDetailsService")
-class SaplReactiveUserDetailsServiceTests {
+@DisplayName("SaplUserDetailsService")
+class SaplUserDetailsServiceTests {
 
-    private UserLookupService              userLookupService;
-    private SaplReactiveUserDetailsService service;
+    private UserLookupService      userLookupService;
+    private SaplUserDetailsService service;
 
     @BeforeEach
     void setUp() {
         userLookupService = mock(UserLookupService.class);
-        service           = new SaplReactiveUserDetailsService(userLookupService);
+        service           = new SaplUserDetailsService(userLookupService);
     }
 
     @Nested
-    @DisplayName("findByUsername")
-    class FindByUsernameTests {
+    @DisplayName("loadUserByUsername")
+    class LoadUserByUsernameTests {
 
         @Test
         @DisplayName("returns UserDetails when user found")
@@ -64,12 +64,11 @@ class SaplReactiveUserDetailsServiceTests {
 
             when(userLookupService.findByBasicUsername("admin")).thenReturn(Optional.of(userEntry));
 
-            StepVerifier.create(service.findByUsername("admin")).assertNext(userDetails -> {
-                assertThat(userDetails.getUsername()).isEqualTo("admin");
-                assertThat(userDetails.getPassword()).isEqualTo("encoded-secret");
-                assertThat(userDetails.getAuthorities()).extracting(auth -> auth.getAuthority())
-                        .containsExactly("ROLE_PDP_CLIENT");
-            }).verifyComplete();
+            val userDetails = service.loadUserByUsername("admin");
+            assertThat(userDetails.getUsername()).isEqualTo("admin");
+            assertThat(userDetails.getPassword()).isEqualTo("encoded-secret");
+            assertThat(userDetails.getAuthorities()).extracting(auth -> auth.getAuthority())
+                    .containsExactly("ROLE_PDP_CLIENT");
         }
 
         @Test
@@ -77,10 +76,9 @@ class SaplReactiveUserDetailsServiceTests {
         void whenUserNotFound_thenThrowsException() {
             when(userLookupService.findByBasicUsername("unknown")).thenReturn(Optional.empty());
 
-            StepVerifier.create(service.findByUsername("unknown")).expectErrorSatisfies(error -> assertThat(error)
-                    .isInstanceOf(UsernameNotFoundException.class).hasMessageContaining("unknown")).verify();
+            assertThatThrownBy(() -> service.loadUserByUsername("unknown"))
+                    .isInstanceOf(UsernameNotFoundException.class).hasMessageContaining("unknown");
         }
-
     }
 
     @Nested
@@ -103,10 +101,11 @@ class SaplReactiveUserDetailsServiceTests {
             when(userLookupService.findByBasicUsername("admin")).thenReturn(Optional.of(userEntry));
             when(userLookupService.toSaplUser(userEntry)).thenReturn(saplUser);
 
-            StepVerifier.create(service.resolveSaplUser("admin")).assertNext(user -> {
+            val result = service.resolveSaplUser("admin");
+            assertThat(result).isPresent().get().satisfies(user -> {
                 assertThat(user.id()).isEqualTo("user-1");
                 assertThat(user.pdpId()).isEqualTo("production");
-            }).verifyComplete();
+            });
         }
 
         @Test
@@ -114,9 +113,7 @@ class SaplReactiveUserDetailsServiceTests {
         void whenUserNotFound_thenReturnsEmpty() {
             when(userLookupService.findByBasicUsername("unknown")).thenReturn(Optional.empty());
 
-            StepVerifier.create(service.resolveSaplUser("unknown")).verifyComplete();
+            assertThat(service.resolveSaplUser("unknown")).isEmpty();
         }
-
     }
-
 }

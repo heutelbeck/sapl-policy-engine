@@ -24,7 +24,7 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
-import io.sapl.server.pdpcontroller.SaplJacksonAutoConfiguration;
+import io.sapl.spring.pdp.embedded.PdpObjectMapperAutoConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DisplayName("OpenID Authorization API controller")
 @WebMvcTest(controllers = OpenIdAuthorizationApiController.class)
-@ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, SaplJacksonAutoConfiguration.class })
+@ContextConfiguration(classes = { OpenIdAuthorizationApiController.class, PdpObjectMapperAutoConfiguration.class })
 class OpenIdAuthorizationApiControllerTests {
 
     private static final String EVALUATION_PATH = "/access/v1/evaluation";

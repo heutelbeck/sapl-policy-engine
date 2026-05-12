@@ -17,21 +17,22 @@
  */
 package io.sapl.node.apikey;
 
-import org.jspecify.annotations.NonNull;
-import org.springframework.security.authentication.ReactiveAuthenticationManager;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 
-import reactor.core.publisher.Mono;
-
-public class ApiKeyReactiveAuthenticationManager implements ReactiveAuthenticationManager {
+/**
+ * Authentication manager that accepts an already-validated API key
+ * authentication. The actual API key check happens in {@link ApiKeyService};
+ * by the time this manager sees the {@link Authentication}, credentials are
+ * known to be valid, so we simply mark it as authenticated.
+ */
+public class ApiKeyAuthenticationManager implements AuthenticationManager {
 
     @Override
-    public @NonNull Mono<Authentication> authenticate(@NonNull Authentication authentication) {
-        return Mono.fromSupplier(() -> {
-            if (authentication != null && authentication.getCredentials() != null) {
-                authentication.setAuthenticated(true);
-            }
-            return authentication;
-        });
+    public Authentication authenticate(Authentication authentication) {
+        if (authentication != null && authentication.getCredentials() != null) {
+            authentication.setAuthenticated(true);
+        }
+        return authentication;
     }
 }

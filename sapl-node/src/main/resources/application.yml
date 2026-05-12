@@ -15,6 +15,9 @@
 
 spring:
   application.name: sapl
+  threads:
+    virtual:
+      enabled: true
   config:
     import: optional:classpath:git.properties
   cache:
@@ -213,7 +216,7 @@ bucket4j:
   filters:
     - id: filter1
       cache-name: buckets
-      filter-method: webflux
+      filter-method: servlet
       url: .*
       http-content-type: application/json;charset=UTF-8
       filter-order: 1

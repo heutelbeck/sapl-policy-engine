@@ -17,41 +17,40 @@
  */
 package io.sapl.node.auth;
 
+import java.util.Optional;
+
 import org.jspecify.annotations.NonNull;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import reactor.core.publisher.Mono;
 
 /**
- * Reactive user details service for Basic Auth, backed by UserLookupService.
+ * Servlet user-details service for Basic Auth, backed by
+ * {@link UserLookupService}.
  * <p>
- * The user's pdpId is stored as a custom attribute to be extracted later during
- * authentication success handling.
- * <p>
- * Note: This is not a Spring @Service to avoid triggering Spring Security's
- * auto-configuration which requires a ReactiveUserDetailsPasswordService.
+ * Note: not annotated as a Spring component to avoid triggering Spring
+ * Security's auto-configuration that requires a
+ * {@code UserDetailsPasswordService}.
  */
 @RequiredArgsConstructor
-public class SaplReactiveUserDetailsService implements ReactiveUserDetailsService {
+public class SaplUserDetailsService implements UserDetailsService {
 
     static final String ROLE_PDP_CLIENT = "PDP_CLIENT";
 
     private final UserLookupService userLookupService;
 
     @Override
-    public @NonNull Mono<UserDetails> findByUsername(@NonNull String username) {
+    public @NonNull UserDetails loadUserByUsername(@NonNull String username) {
         val userEntryOpt = userLookupService.findByBasicUsername(username);
         if (userEntryOpt.isEmpty()) {
-            return Mono.error(new UsernameNotFoundException("User not found: " + username));
+            throw new UsernameNotFoundException("User not found: " + username);
         }
         val basic = userEntryOpt.get().getBasic();
-        return Mono.just(User.builder().username(basic.getUsername()).password(basic.getSecret()).roles(ROLE_PDP_CLIENT)
-                .build());
+        return User.builder().username(basic.getUsername()).password(basic.getSecret()).roles(ROLE_PDP_CLIENT).build();
     }
 
     /**
@@ -60,12 +59,7 @@ public class SaplReactiveUserDetailsService implements ReactiveUserDetailsServic
      * @param username the authenticated username
      * @return the SaplUser if found, empty otherwise
      */
-    public Mono<SaplUser> resolveSaplUser(String username) {
-        val userEntryOpt = userLookupService.findByBasicUsername(username);
-        if (userEntryOpt.isEmpty()) {
-            return Mono.empty();
-        }
-        return Mono.just(userLookupService.toSaplUser(userEntryOpt.get()));
+    public Optional<SaplUser> resolveSaplUser(String username) {
+        return userLookupService.findByBasicUsername(username).map(userLookupService::toSaplUser);
     }
-
 }

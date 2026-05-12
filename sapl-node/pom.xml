@@ -49,20 +49,25 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
+			<artifactId>spring-boot-starter-web</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-tomcat</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-r2dbc</artifactId>
+			<artifactId>spring-boot-starter-jetty</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.http2</groupId>
+			<artifactId>jetty-http2-server</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-spring-boot-starter</artifactId>
-			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
@@ -86,13 +91,16 @@
 		</dependency>
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>sapl-webflux-endpoint</artifactId>
+			<artifactId>sapl-api-proto</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-api-proto</artifactId>
-			<version>${project.version}</version>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.scalar.maven</groupId>
+			<artifactId>scalar-webmvc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -210,17 +218,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-webflux-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-webmvc-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>jakarta.servlet</groupId>
-			<artifactId>jakarta.servlet-api</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -275,6 +273,21 @@
 					<configuration>
 						<imageName>sapl</imageName>
 						<quickBuild>false</quickBuild>
+						<!-- The graalvm-reachability-metadata repo only covers Caffeine
+						     up to 3.1.2; without this override the 3.2.x classpath
+						     skips Caffeine metadata entirely and dynamic cache classes
+						     such as 'com.github.benmanes.caffeine.cache.SSA' are
+						     missing reflection registrations at runtime. -->
+						<metadataRepository>
+							<enabled>true</enabled>
+							<dependencies>
+								<dependency>
+									<groupId>com.github.ben-manes.caffeine</groupId>
+									<artifactId>caffeine</artifactId>
+									<version>3.1.2</version>
+								</dependency>
+							</dependencies>
+						</metadataRepository>
 						<buildArgs>
 							<buildArg>--no-fallback</buildArg>
 							<buildArg>-H:+ReportExceptionStackTraces</buildArg>
@@ -283,6 +296,11 @@
 							<buildArg>-march=compatibility</buildArg>
 							<buildArg>-O3</buildArg>
 							<buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+							<!-- Initialise the geo function library and its Geotools/ImageN
+							     transitive init chain at build time. Otherwise runtime
+							     <clinit> reaches java.awt.Toolkit which loads libawt.so,
+							     whose JNI_OnLoad fails to FindClass("java/awt/GraphicsEnvironment"). -->
+							<buildArg>--initialize-at-build-time=io.sapl.functions.geo.GeographicFunctionLibrary,org.geotools.xsd.Parser,org.geotools.util.logging.Logging,org.geotools.util.logging.Logging$LogLevel,org.eclipse.imagen.ImageN,java.awt.Dimension,java.awt.Toolkit</buildArg>
 						</buildArgs>
 					</configuration>
 					<executions>

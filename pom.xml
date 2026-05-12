@@ -332,10 +332,20 @@
 				<artifactId>springdoc-openapi-starter-webflux-api</artifactId>
 				<version>${springdoc.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
 			<!-- Scalar API Reference renderer -->
 			<dependency>
 				<groupId>com.scalar.maven</groupId>
 				<artifactId>scalar-webflux</artifactId>
+				<version>${scalar.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.scalar.maven</groupId>
+				<artifactId>scalar-webmvc</artifactId>
 				<version>${scalar.version}</version>
 			</dependency>
 		</dependencies>
@@ -673,7 +683,6 @@
 		<module>sapl-documentation-generator</module>
 
 		<!-- Web endpoints -->
-		<module>sapl-webflux-endpoint</module>
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-vaadin-editor</module>
 

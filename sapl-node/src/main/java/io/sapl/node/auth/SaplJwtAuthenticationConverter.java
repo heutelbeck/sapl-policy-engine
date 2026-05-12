@@ -28,14 +28,13 @@ import org.springframework.security.oauth2.server.resource.InvalidBearerTokenExc
 import io.sapl.node.SaplNodeProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import reactor.core.publisher.Mono;
 
 /**
- * Converts a JWT to a SaplJwtAuthenticationToken, extracting the pdpId from
- * claims.
+ * Converts a JWT to a {@link SaplJwtAuthenticationToken}, extracting the
+ * pdpId from claims.
  */
 @RequiredArgsConstructor
-public class SaplJwtAuthenticationConverter implements Converter<Jwt, Mono<AbstractAuthenticationToken>> {
+public class SaplJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private static final String                       ERROR_MISSING_PDP_ID_CLAIM = "JWT token missing required claim: %s.";
     private static final List<SimpleGrantedAuthority> PDP_CLIENT_AUTHORITIES     = List
@@ -44,18 +43,15 @@ public class SaplJwtAuthenticationConverter implements Converter<Jwt, Mono<Abstr
     private final SaplNodeProperties properties;
 
     @Override
-    public Mono<AbstractAuthenticationToken> convert(Jwt jwt) {
+    public AbstractAuthenticationToken convert(Jwt jwt) {
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
         val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
-
         if (pdpIdValue == null || pdpIdValue.isBlank()) {
             if (properties.isRejectOnMissingPdpId()) {
-                return Mono.error(new InvalidBearerTokenException(ERROR_MISSING_PDP_ID_CLAIM.formatted(pdpIdClaim)));
+                throw new InvalidBearerTokenException(ERROR_MISSING_PDP_ID_CLAIM.formatted(pdpIdClaim));
             }
-            return Mono.just(new SaplJwtAuthenticationToken(jwt, PDP_CLIENT_AUTHORITIES, properties.getDefaultPdpId()));
+            return new SaplJwtAuthenticationToken(jwt, PDP_CLIENT_AUTHORITIES, properties.getDefaultPdpId());
         }
-
-        return Mono.just(new SaplJwtAuthenticationToken(jwt, PDP_CLIENT_AUTHORITIES, pdpIdValue));
+        return new SaplJwtAuthenticationToken(jwt, PDP_CLIENT_AUTHORITIES, pdpIdValue);
     }
-
 }

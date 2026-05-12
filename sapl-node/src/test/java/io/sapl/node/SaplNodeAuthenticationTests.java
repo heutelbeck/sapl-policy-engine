@@ -30,14 +30,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
-import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import io.sapl.node.SaplNodeProperties.UserEntry;
 import io.sapl.node.apikey.ApiKeyAuthenticationException;
-import io.sapl.node.apikey.ApiKeyReactiveAuthenticationManager;
+import io.sapl.node.apikey.ApiKeyAuthenticationManager;
 import io.sapl.node.apikey.ApiKeyService;
 import io.sapl.node.auth.SaplAuthenticationToken;
 import io.sapl.node.auth.SaplUser;
@@ -71,6 +70,12 @@ class SaplNodeAuthenticationTests {
         userLookupService = new UserLookupService(pdpProperties, passwordEncoder);
     }
 
+    private static MockHttpServletRequest requestWithBearer(String token) {
+        val request = new MockHttpServletRequest("GET", "/api/pdp/decide");
+        request.addHeader("Authorization", "Bearer " + token);
+        return request;
+    }
+
     @Nested
     @DisplayName("API Key Authentication")
     class ApiKeyAuthenticationTests {
@@ -78,12 +83,11 @@ class SaplNodeAuthenticationTests {
         @Test
         @DisplayName("returns SaplAuthenticationToken with correct pdpId when valid API key provided")
         void whenValidApiKeyProvided_thenReturnsSaplAuthenticationTokenWithPdpId() {
-            val apiKeyReactiveAuthenticationManager = new ApiKeyReactiveAuthenticationManager();
-            val exchange                            = MockServerWebExchange
-                    .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY));
+            val authenticationManager = new ApiKeyAuthenticationManager();
+            val request               = requestWithBearer(API_KEY);
 
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
-            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
+            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
 
             assertThat(result).isNotNull().isInstanceOf(SaplAuthenticationToken.class).satisfies(auth -> {
                 assertThat(auth.isAuthenticated()).isTrue();
@@ -98,7 +102,7 @@ class SaplNodeAuthenticationTests {
             assertThat(saplAuth.getPrincipal()).isInstanceOf(SaplUser.class).extracting(SaplUser::id, SaplUser::pdpId)
                     .containsExactly(USER_ID, PDP_ID);
 
-            val authentication = apiKeyReactiveAuthenticationManager.authenticate(result).block();
+            val authentication = authenticationManager.authenticate(result);
             assertThat(authentication).isNotNull().satisfies(auth -> assertThat(auth.isAuthenticated()).isTrue());
         }
 
@@ -113,11 +117,9 @@ class SaplNodeAuthenticationTests {
             when(cache.get(API_KEY)).thenReturn(cacheEntry);
             when(cacheEntry.get()).thenReturn(cachedUser);
 
-            val exchange = MockServerWebExchange
-                    .from(MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY));
-
+            val request       = requestWithBearer(API_KEY);
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
-            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
+            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
 
             assertThat(result).isNotNull().isInstanceOf(SaplAuthenticationToken.class)
                     .satisfies(auth -> assertThat(auth.isAuthenticated()).isTrue());
@@ -127,13 +129,11 @@ class SaplNodeAuthenticationTests {
         }
 
         @Test
-        @DisplayName("returns empty when non-SAPL API key provided")
-        void whenNonSaplApiKeyProvided_thenReturnsEmpty() {
-            val exchange = MockServerWebExchange.from(
-                    MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + INVALID_API_KEY));
-
+        @DisplayName("returns null when non-SAPL API key provided")
+        void whenNonSaplApiKeyProvided_thenReturnsNull() {
+            val request       = requestWithBearer(INVALID_API_KEY);
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
-            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange).block();
+            val result        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(request);
 
             assertThat(result).isNull();
         }
@@ -141,15 +141,11 @@ class SaplNodeAuthenticationTests {
         @Test
         @DisplayName("throws exception when SAPL-prefixed API key is invalid")
         void whenInvalidSaplApiKeyProvided_thenThrowsException() {
-            val exchange = MockServerWebExchange.from(
-                    MockServerHttpRequest.get("/api/pdp/decide").header("Authorization", "Bearer " + API_KEY + "XYZ"));
-
+            val request       = requestWithBearer(API_KEY + "XYZ");
             val apiKeyService = new ApiKeyService(userLookupService, cacheManager);
-            val action        = apiKeyService.getHttpApiKeyAuthenticationConverter().convert(exchange);
+            val converter     = apiKeyService.getHttpApiKeyAuthenticationConverter();
 
-            assertThatThrownBy(action::block).isInstanceOf(ApiKeyAuthenticationException.class);
+            assertThatThrownBy(() -> converter.convert(request)).isInstanceOf(ApiKeyAuthenticationException.class);
         }
-
     }
-
 }

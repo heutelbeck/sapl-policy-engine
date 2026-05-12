@@ -44,8 +44,7 @@ import picocli.CommandLine;
 
 @EnableCaching
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
-@SpringBootApplication(excludeName = { "io.sapl.spring.config.AuthorizationManagerConfiguration",
-        "io.sapl.spring.config.ConstraintsHandlerAutoconfiguration",
+@SpringBootApplication(excludeName = {
         "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration",
         "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
@@ -143,6 +142,16 @@ public class SaplNodeApplication {
                 hints.reflection().registerTypeIfPresent(classLoader, className,
                         MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.ACCESS_DECLARED_FIELDS);
             }
+
+            // Jetty servlet stack: Spring Boot's JettyServletWebServerFactory uses
+            // reflection on these types' no-arg constructors. Without these hints
+            // the native binary fails at startup with NoSuchMethodException for
+            // ConstraintSecurityHandler.<init>().
+            hints.reflection().registerTypeIfPresent(classLoader,
+                    "org.eclipse.jetty.ee11.servlet.security.ConstraintSecurityHandler",
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+            hints.reflection().registerTypeIfPresent(classLoader, "org.eclipse.jetty.ee11.servlet.SessionHandler",
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
         }
 
     }

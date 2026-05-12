@@ -1,5 +1,18 @@
 [
   {
+    "name": "com.github.benmanes.caffeine.cache.SSA",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": [
+          "com.github.benmanes.caffeine.cache.Caffeine",
+          "com.github.benmanes.caffeine.cache.AsyncCacheLoader",
+          "boolean"
+        ]
+      }
+    ]
+  },
+  {
     "name": "io.sapl.node.cli.SaplNodeCli",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
@@ -349,6 +362,30 @@
   },
   {
     "name": "io.sapl.api.pdp.Decision",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.MultiAuthorizationSubscription",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.MultiAuthorizationDecision",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.IdentifiableAuthorizationDecision",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.sapl.api.pdp.IdentifiableAuthorizationSubscription",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,
     "allDeclaredFields": true

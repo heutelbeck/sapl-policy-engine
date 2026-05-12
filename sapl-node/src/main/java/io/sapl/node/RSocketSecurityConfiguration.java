@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -68,10 +68,10 @@ public class RSocketSecurityConfiguration {
     private static final String ERROR_NO_CREDENTIALS    = "No authentication credentials in setup frame.";
     private static final String ERROR_UNKNOWN_USER      = "Unknown user: %s.";
 
-    private final SaplNodeProperties           properties;
-    private final UserLookupService            userLookupService;
-    private final PasswordEncoder              passwordEncoder;
-    private final @Nullable ReactiveJwtDecoder jwtDecoder;
+    private final SaplNodeProperties   properties;
+    private final UserLookupService    userLookupService;
+    private final PasswordEncoder      passwordEncoder;
+    private final @Nullable JwtDecoder jwtDecoder;
 
     @Bean
     @Nullable
@@ -126,7 +126,7 @@ public class RSocketSecurityConfiguration {
         val token      = new String(tokenChars);
 
         if (jwtDecoder != null && properties.isAllowOauth2Auth()) {
-            return jwtDecoder.decode(token).flatMap(this::extractPdpIdFromJwt)
+            return Mono.fromCallable(() -> jwtDecoder.decode(token)).flatMap(this::extractPdpIdFromJwt)
                     .onErrorResume(e -> authenticateApiKey(token));
         }
         return authenticateApiKey(token);

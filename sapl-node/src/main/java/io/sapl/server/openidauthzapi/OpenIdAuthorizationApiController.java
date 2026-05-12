@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,6 +50,7 @@ import tools.jackson.databind.ObjectMapper;
  * surfaced through the response context for SAPL-aware clients.
  */
 @Slf4j
+@Profile("!cli")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/access/v1")
