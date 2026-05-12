@@ -608,9 +608,14 @@
 								<exclude>**/*.pem</exclude>
 								<exclude>**/*.saplbundle</exclude>
 								<exclude>**/PKGBUILD</exclude>
-								<exclude>**/flake.lock</exclude>
 								<exclude>**/reference/**</exclude>
 								<exclude>**/*.csv</exclude>
+								<exclude>**/*.lock</exclude>
+								<exclude>**/*.1</exclude>
+								<exclude>**/__pycache__/**</exclude>
+								<exclude>**/*.pyc</exclude>
+								<exclude>**/.attach_pid*</exclude>
+								<exclude>**/sapl-benchmark/bin/**</exclude>
 							</excludes>
 						</licenseSet>
 					</licenseSets>
@@ -688,7 +693,6 @@
 
 		<!-- Server applications -->
 		<module>sapl-node</module>
-		<module>sapl-node-jetty</module>
 		<module>sapl-playground</module>
 
 		<!-- Benchmarks (not published, not in BOM) -->

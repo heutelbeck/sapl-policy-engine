@@ -29,10 +29,9 @@
 	</parent>
 
 	<artifactId>sapl-node</artifactId>
-
+	<name>SAPL PDP Node</name>
 	<packaging>jar</packaging>
 
-	<name>SAPL PDP Node</name>
 	<licenses>
 		<license>
 			<name>Apache 2.0</name>

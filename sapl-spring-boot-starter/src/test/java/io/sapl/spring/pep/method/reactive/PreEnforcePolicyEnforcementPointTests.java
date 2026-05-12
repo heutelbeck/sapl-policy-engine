@@ -37,8 +37,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.access.AccessDeniedException;
@@ -699,8 +698,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
     public record Suspect(String name, int dangerLevel) {}
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
     static class AnkhMorporkTestApp {
 

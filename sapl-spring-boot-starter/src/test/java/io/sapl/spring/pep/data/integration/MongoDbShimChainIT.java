@@ -33,8 +33,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
@@ -378,8 +377,7 @@ class MongoDbShimChainIT {
         }
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
     @EnableReactiveMongoRepositories(basePackageClasses = MongoChronicleRepository.class)
     static class AstinusChroniclesTestApp {

@@ -29,8 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -88,8 +87,7 @@ class SaplHttpReactiveConfigurerOverrideTests {
         assertThat(captured.resource()).isEqualTo(Value.of("/hello"));
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebFluxSecurity
     static class TestApp {
 

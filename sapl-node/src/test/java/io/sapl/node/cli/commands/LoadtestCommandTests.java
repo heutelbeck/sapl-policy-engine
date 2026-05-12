@@ -38,11 +38,14 @@ class LoadtestCommandTests {
     class ArgumentParsingTests {
 
         @Test
-        @DisplayName("--help shows usage without error")
-        void whenHelp_thenExitCode0() {
-            val cmd      = new CommandLine(new LoadtestCommand());
+        @DisplayName("--help produces help text and exits with code 0")
+        void whenHelp_thenExitZeroWithHelpText() {
+            val out = new StringWriter();
+            val cmd = new CommandLine(new LoadtestCommand());
+            cmd.setOut(new PrintWriter(out));
             val exitCode = cmd.execute("--help");
             assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("loadtest", "--rsocket", "--concurrency", "--rate", "-s", "-r");
         }
 
         @Test

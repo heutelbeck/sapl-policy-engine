@@ -40,8 +40,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
@@ -256,8 +255,7 @@ class SaplHttpServletEnforcementTests {
         return new AuthorizationDecision(Decision.DENY, Value.ofArray(obligation), Value.EMPTY_ARRAY, Value.UNDEFINED);
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebSecurity
     static class TestApp {
 

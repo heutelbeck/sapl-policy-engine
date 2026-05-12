@@ -1,4 +1,0 @@
-policy "permit reads on document"
-permit
-    action == "read";
-    resource == "document";

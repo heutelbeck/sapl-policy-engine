@@ -32,9 +32,8 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
@@ -89,8 +88,7 @@ class SaplHttpServletConfigurerOverrideTests {
         });
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebSecurity
     static class TestApp {
 
