@@ -38,6 +38,14 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.DefaultHttpFirewall;
+import org.springframework.security.web.firewall.FirewalledRequest;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.RequestRejectedHandler;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import io.sapl.node.apikey.ApiKeyAuthenticationFilter;
 import io.sapl.node.apikey.ApiKeyAuthenticationManager;
@@ -101,6 +109,32 @@ public class SecurityConfiguration {
     @Bean
     WebSecurityCustomizer pdpEndpointSecurityBypass() {
         return web -> web.ignoring().requestMatchers("/api/pdp/**");
+    }
+
+    @Bean
+    HttpFirewall pdpBypassHttpFirewall() {
+        val strict = new StrictHttpFirewall();
+        val pass   = new DefaultHttpFirewall();
+        return new HttpFirewall() {
+            @Override
+            public FirewalledRequest getFirewalledRequest(HttpServletRequest request) {
+                if (request.getRequestURI().startsWith("/api/pdp/")) {
+                    return pass.getFirewalledRequest(request);
+                }
+                return strict.getFirewalledRequest(request);
+            }
+
+            @Override
+            public HttpServletResponse getFirewalledResponse(HttpServletResponse response) {
+                return strict.getFirewalledResponse(response);
+            }
+        };
+    }
+
+    @Bean
+    RequestRejectedHandler pdpBypassRequestRejectedHandler() {
+        return (request, response, requestRejectedException) -> response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                "Bad request");
     }
 
     @Bean

@@ -61,9 +61,6 @@ services:
       - SERVER_PORT=8443
       - SERVER_SSL_ENABLED=true
       - SERVER_SSL_BUNDLE=sapl-bundle
-      # The bundled keystore lacks an ALPN-capable Jetty dependency, so
-      # disable HTTP/2 to fall back to HTTP/1.1 for this demo.
-      - SERVER_HTTP2_ENABLED=false
 
       # RSocket TLS on 7000 using the same bundle
       - SAPL_PDP_RSOCKET_ENABLED=true

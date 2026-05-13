@@ -71,5 +71,4 @@ The development keystore here is for local exploration only. Before exposing thi
 - [ ] Strengthen the keystore password (env var `SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_PASSWORD`) and source it from a secrets manager, not the compose file.
 - [ ] Enable authentication. The demo runs with `IO_SAPL_NODE_ALLOWNOAUTH=true`; flip to `false` and configure one or more of `IO_SAPL_NODE_ALLOWBASICAUTH`, `IO_SAPL_NODE_ALLOWAPIKEYAUTH`, `IO_SAPL_NODE_ALLOWOAUTH2AUTH` with corresponding `IO_SAPL_NODE_USERS_*` entries (see `examples/docker/single-node/` for the basic auth pattern, `examples/docker/with-keycloak/` for OAuth2/JWT).
 - [ ] Bind the host port to a specific interface (`127.0.0.1:8443:8443`) if the host is multi-homed and you only want local access.
-- [ ] Enable HTTP/2 if your load balancer terminates TLS and the path between LB and node carries enough concurrent requests to benefit. The demo disables HTTP/2 (`SERVER_HTTP2_ENABLED=false`) because the bundled Jetty does not ship the ALPN dependency required for HTTP/2-over-TLS.
 - [ ] Configure metrics scraping (`/actuator/prometheus`) and health endpoints (`/actuator/health`) on the same TLS bundle.

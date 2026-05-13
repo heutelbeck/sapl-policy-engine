@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.boot.web.server.servlet.context.ServletWebServerInitializedEvent;
@@ -63,10 +64,14 @@ class HttpTransportStartupWarningTests {
     private ListAppender<ILoggingEvent> appender;
     private Logger                      logger;
 
+    private Level originalLevel;
+
     @BeforeEach
     void setUp() {
-        sut      = new HttpTransportStartupWarning();
-        logger   = (Logger) org.slf4j.LoggerFactory.getLogger(HttpTransportStartupWarning.class);
+        sut           = new HttpTransportStartupWarning();
+        logger        = (Logger) LoggerFactory.getLogger(HttpTransportStartupWarning.class);
+        originalLevel = logger.getLevel();
+        logger.setLevel(Level.WARN);
         appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
@@ -75,6 +80,7 @@ class HttpTransportStartupWarningTests {
     @AfterEach
     void tearDown() {
         logger.detachAppender(appender);
+        logger.setLevel(originalLevel);
     }
 
     private void setSslEnabled(boolean enabled) throws ReflectiveOperationException {

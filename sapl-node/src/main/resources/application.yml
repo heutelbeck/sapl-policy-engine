@@ -15,6 +15,11 @@
 
 spring:
   application.name: sapl
+  # Per-request HTTP observation adds ~6% CPU on the bypass servlet path.
+  # Remove this exclude to enable HTTP request metrics for ops dashboards.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.webmvc.autoconfigure.WebMvcObservationAutoConfiguration
   threads:
     virtual:
       enabled: true
@@ -37,8 +42,10 @@ spring:
 server:
   address: 127.0.0.1
   port: 8080
-  http2:
-    enabled: true
+  jetty:
+    threads:
+      # Default 200 queues under high-RPS load on multi-core hosts.
+      max: 512
   ssl:
     enabled: false
     # Uncomment and configure to enable TLS:
