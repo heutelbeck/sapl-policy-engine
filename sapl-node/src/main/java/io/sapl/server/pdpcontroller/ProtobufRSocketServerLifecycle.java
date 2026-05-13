@@ -31,6 +31,7 @@ import io.netty.handler.ssl.SslContext;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
+import io.sapl.node.SaplStartupConfigurationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,12 @@ import reactor.netty.tcp.TcpServer;
 public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(2);
+
+    private static final String ERROR_PAYLOAD_SIZE  = "SAPL Node refused to start. sapl.pdp.rsocket.max-inbound-payload-size is %d, must be positive.";
+    private static final String ACTION_PAYLOAD_SIZE = """
+            Set sapl.pdp.rsocket.max-inbound-payload-size to at least 16777215,
+            the RSocket protocol per frame ceiling. Lower values are not legal
+            because a single decision frame can already reach that size.""";
 
     private final boolean                                  enabled;
     private final int                                      port;
@@ -78,23 +85,24 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
                 return;
             }
             if (maxInboundPayloadSize <= 0) {
-                throw new IllegalStateException("maxInboundPayloadSize must be positive, got " + maxInboundPayloadSize);
+                throw new SaplStartupConfigurationException(ERROR_PAYLOAD_SIZE.formatted(maxInboundPayloadSize),
+                        ACTION_PAYLOAD_SIZE);
             }
             if (authenticator != null) {
                 log.info("RSocket authentication enabled");
             } else {
                 log.warn("RSocket server has no authentication configured");
             }
-            log.info("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
+            log.debug("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
             val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
             val transport = createTransport();
             server  = RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
             running = true;
             val scheme = sslContext != null ? "tls" : "tcp";
             if (socketPath != null) {
-                log.info("Protobuf RSocket PDP server started on Unix socket {} ({})", socketPath, scheme);
+                log.debug("Protobuf RSocket PDP server started on Unix socket {} ({})", socketPath, scheme);
             } else {
-                log.info("Protobuf RSocket PDP server started on port {} ({})", port, scheme);
+                log.debug("Protobuf RSocket PDP server started on port {} ({})", port, scheme);
             }
             if (sslContext == null && socketPath == null) {
                 log.warn("RSocket server bound on port {} without TLS. Connection-setup credentials "
@@ -114,7 +122,6 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             if (!running) {
                 return;
             }
-            log.info("Shutting down Protobuf RSocket PDP server (graceful timeout {}s)", SHUTDOWN_TIMEOUT.toSeconds());
             val current = server;
             if (current != null) {
                 current.dispose();

@@ -117,7 +117,7 @@ class ProtobufRSocketServerLifecycleTests {
                     authenticator, null);
 
             assertThatThrownBy(sut::start).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("maxInboundPayloadSize");
+                    .hasMessageContaining("max-inbound-payload-size");
         }
 
         @Test

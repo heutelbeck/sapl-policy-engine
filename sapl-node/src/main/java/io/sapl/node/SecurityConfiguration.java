@@ -75,12 +75,55 @@ import lombok.val;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private static final String JWT_ISSUER_URI_PROPERTY         = "spring.security.oauth2.resourceserver.jwt.issuer-uri";
-    private static final String ERROR_JWT_ISSUER_REQUIRED       = "If JWT authentication is active, a token issuer must be supplied. Please set: '"
-            + JWT_ISSUER_URI_PROPERTY + "'.";
-    private static final String ERROR_NO_AUTH_MECHANISM_DEFINED = "No authentication mechanism for clients defined. Set up your local/container configuration. If the server should respond to unauthenticated requests, this has to be explicitly activated.";
-    private static final String ERROR_NO_BASIC_AUTH_USERS       = "Basic authentication is enabled but no users with Basic credentials are configured. Please add users under 'io.sapl.node.users' with 'basic' credentials.";
-    private static final String WARN_NO_API_KEYS                = "API key authentication is enabled but no users with API keys are configured. Please add users under 'io.sapl.node.users' with 'apiKey' credentials.";
+    private static final String JWT_ISSUER_URI_PROPERTY = "spring.security.oauth2.resourceserver.jwt.issuer-uri";
+
+    private static final String ERROR_NO_AUTH_MECHANISM  = "SAPL Node refused to start. No authentication mechanism is configured.";
+    private static final String ACTION_NO_AUTH_MECHANISM = """
+            This fail closed default protects production from accepting
+            unauthenticated traffic by accident.
+
+            Quickest unblock for local development:
+
+              sapl server --no-auth
+
+            Or enable a real auth method, in application.yml or as --property=value:
+
+              io.sapl.node.allow-basic-auth=true     plus users with basic credentials
+              io.sapl.node.allow-api-key-auth=true   plus users with api keys
+              io.sapl.node.allow-oauth2-auth=true    plus spring.security.oauth2.resourceserver.jwt.issuer-uri
+
+            See https://sapl.io/docs/latest/7_2_Configuration for details.""";
+
+    private static final String ERROR_NO_BASIC_AUTH_USERS  = "SAPL Node refused to start. Basic authentication is enabled but no users with basic credentials are configured.";
+    private static final String ACTION_NO_BASIC_AUTH_USERS = """
+            Add at least one user under io.sapl.node.users with a basic block,
+            for example:
+
+              io:
+                sapl:
+                  node:
+                    users:
+                      - id: alice
+                        pdp-id: default
+                        basic:
+                          username: alice
+                          secret: "{argon2id}<encoded password>"
+
+            Generate a credential with:
+
+              sapl generate basic --id alice""";
+
+    private static final String ERROR_JWT_ISSUER_REQUIRED  = "SAPL Node refused to start. OAuth2 is enabled but no JWT issuer URI is configured.";
+    private static final String ACTION_JWT_ISSUER_REQUIRED = """
+            Configure the JWT issuer URI for your identity provider:
+
+              spring.security.oauth2.resourceserver.jwt.issuer-uri=https://issuer.example.org/realms/sapl
+
+            The issuer URI is the value the IdP advertises as iss in the
+            tokens it signs. SAPL Node fetches the JWKS from this issuer on
+            the first decision call, then caches it.""";
+
+    private static final String WARN_NO_API_KEYS = "API key authentication is enabled but no users with API keys are configured. Add users under io.sapl.node.users with an apiKey field.";
 
     private final ApiKeyService      apiKeyService;
     private final SaplNodeProperties pdpProperties;
@@ -166,7 +209,7 @@ public class SecurityConfiguration {
                 .formLogin(AbstractHttpConfigurer::disable);
 
         if (noAuthenticationMechanismIsDefined()) {
-            throw new IllegalStateException(ERROR_NO_AUTH_MECHANISM_DEFINED);
+            throw new SaplStartupConfigurationException(ERROR_NO_AUTH_MECHANISM, ACTION_NO_AUTH_MECHANISM);
         }
 
         if (pdpProperties.isAllowNoAuth() && !pdpProperties.isAllowBasicAuth() && !pdpProperties.isAllowApiKeyAuth()
@@ -201,7 +244,7 @@ public class SecurityConfiguration {
         if (pdpProperties.isAllowBasicAuth()) {
             log.info("Basic authentication activated.");
             if (!hasBasicAuthUsers()) {
-                throw new IllegalStateException(ERROR_NO_BASIC_AUTH_USERS);
+                throw new SaplStartupConfigurationException(ERROR_NO_BASIC_AUTH_USERS, ACTION_NO_BASIC_AUTH_USERS);
             }
             http.httpBasic(withDefaults());
         } else {
@@ -211,7 +254,7 @@ public class SecurityConfiguration {
         if (pdpProperties.isAllowOauth2Auth()) {
             log.info("OAuth2 authentication activated. Accepting JWT tokens from issuer: {}", jwtIssuerURI);
             if (jwtIssuerURI == null) {
-                throw new IllegalStateException(ERROR_JWT_ISSUER_REQUIRED);
+                throw new SaplStartupConfigurationException(ERROR_JWT_ISSUER_REQUIRED, ACTION_JWT_ISSUER_REQUIRED);
             }
             val converter = new SaplJwtAuthenticationConverter(pdpProperties);
             http.oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(skipSaplApiKeyResolver())

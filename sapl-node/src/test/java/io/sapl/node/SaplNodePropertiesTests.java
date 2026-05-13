@@ -90,7 +90,7 @@ class SaplNodePropertiesTests {
             properties.setUsers(List.of(createUserEntry("user-1", null)));
 
             assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("user-1").hasMessageContaining("no pdpId configured");
+                    .hasMessageContaining("user-1").hasMessageContaining("no pdp-id configured");
         }
 
         @Test
@@ -112,7 +112,7 @@ class SaplNodePropertiesTests {
             properties.setRejectOnMissingPdpId(true);
 
             assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("user-1").hasMessageContaining("no pdpId configured");
+                    .hasMessageContaining("user-1").hasMessageContaining("no pdp-id configured");
         }
 
     }

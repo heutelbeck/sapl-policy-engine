@@ -40,9 +40,40 @@ public class SaplNodeProperties implements InitializingBean {
 
     public static final String DEFAULT_PDP_ID = "default";
 
-    private static final String ERROR_DUPLICATE_API_KEY_ID = "Duplicate api-key-id '%s' in user configuration. Each api-key-id must route to exactly one user.";
-    private static final String ERROR_MISSING_PDP_ID       = "User '%s' has no pdpId configured and rejectOnMissingPdpId is enabled.";
-    private static final String ERROR_SHORT_API_KEY        = "Detected short API key in configuration. API key must be at least %d characters long.";
+    private static final String ERROR_DUPLICATE_API_KEY_ID  = "SAPL Node refused to start. Duplicate api-key-id '%s' in user configuration.";
+    private static final String ACTION_DUPLICATE_API_KEY_ID = """
+            Each api-key-id under io.sapl.node.users must be unique. The
+            api-key-id is the middle segment of the wire token sapl_<id>_<secret>
+            and is used for O(1) routing.
+
+            Generate fresh credentials with:
+
+              sapl generate apikey --id <user-id>
+
+            then replace the duplicates.""";
+
+    private static final String ERROR_MISSING_PDP_ID  = "SAPL Node refused to start. User '%s' has no pdp-id configured and reject-on-missing-pdp-id is enabled.";
+    private static final String ACTION_MISSING_PDP_ID = """
+            Either set a pdp-id on the user entry:
+
+              io.sapl.node.users[N].pdp-id: <tenant-id>
+
+            or relax the requirement so missing values fall back to the
+            global default:
+
+              io.sapl.node.reject-on-missing-pdp-id=false
+
+            See the multi-tenant configuration reference at
+            https://sapl.io/docs/latest/7_2_Configuration for details.""";
+
+    private static final String ERROR_SHORT_API_KEY  = "SAPL Node refused to start. An apiKey in the user configuration is shorter than %d characters.";
+    private static final String ACTION_SHORT_API_KEY = """
+            API keys must be long enough to resist brute force. Generate a
+            fresh credential with:
+
+              sapl generate apikey --id <user-id>
+
+            and paste the encoded value into the user entry.""";
 
     // Authentication methods
     private boolean allowNoAuth     = false;
@@ -107,7 +138,8 @@ public class SaplNodeProperties implements InitializingBean {
             val apiKeyId = user.getApiKeyId();
             if (apiKeyId != null && !apiKeyId.isBlank()) {
                 if (nextIndex.putIfAbsent(apiKeyId, user) != null) {
-                    throw new IllegalStateException(ERROR_DUPLICATE_API_KEY_ID.formatted(apiKeyId));
+                    throw new SaplStartupConfigurationException(ERROR_DUPLICATE_API_KEY_ID.formatted(apiKeyId),
+                            ACTION_DUPLICATE_API_KEY_ID);
                 }
             }
         }
@@ -154,7 +186,8 @@ public class SaplNodeProperties implements InitializingBean {
     private void normalizeOrRejectPdpId(UserEntry user) {
         if (user.getPdpId() == null || user.getPdpId().isBlank()) {
             if (rejectOnMissingPdpId) {
-                throw new IllegalStateException(ERROR_MISSING_PDP_ID.formatted(user.getId()));
+                throw new SaplStartupConfigurationException(ERROR_MISSING_PDP_ID.formatted(user.getId()),
+                        ACTION_MISSING_PDP_ID);
             }
             user.setPdpId(defaultPdpId);
         }
@@ -162,7 +195,8 @@ public class SaplNodeProperties implements InitializingBean {
 
     private void assertIsValidApiKey(String key) {
         if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
-            throw new IllegalStateException(ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH));
+            throw new SaplStartupConfigurationException(
+                    ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH), ACTION_SHORT_API_KEY);
         }
     }
 

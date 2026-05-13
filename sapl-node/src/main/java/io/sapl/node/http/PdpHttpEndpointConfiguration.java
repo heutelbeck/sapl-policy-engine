@@ -44,6 +44,7 @@ import io.sapl.node.http.servlet.DecideStreamServlet;
 import io.sapl.node.http.servlet.MultiDecideAllOnceServlet;
 import io.sapl.node.http.servlet.MultiDecideAllServlet;
 import io.sapl.node.http.servlet.MultiDecideServlet;
+import io.sapl.node.http.servlet.SseConnectionRegistry;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
@@ -121,30 +122,33 @@ class PdpHttpEndpointConfiguration {
     @Bean
     ServletRegistrationBean<DecideStreamServlet> decideStreamServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor, @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
+            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
         return register(
                 new DecideStreamServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
                 "/api/pdp/decide", "saplDecideStreamServlet", true);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideServlet> multiDecideServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor, @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
+            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
         return register(
                 new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
                 "/api/pdp/multi-decide", "saplMultiDecideServlet", true);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideAllServlet> multiDecideAllServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor, @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
+            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
         return register(
                 new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                        sseKeepAliveScheduler, sseStreamPumpExecutor),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
                 "/api/pdp/multi-decide-all", "saplMultiDecideAllServlet", true);
     }
 

@@ -68,17 +68,20 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
     private final Duration                 keepAliveInterval;
     private final ScheduledExecutorService keepAliveScheduler;
     private final ExecutorService          pumpExecutor;
+    private final SseConnectionRegistry    connectionRegistry;
 
     protected SseStreamServlet(HttpAuthHandler authHandler,
             JsonMapper mapper,
             Duration keepAliveInterval,
             ScheduledExecutorService keepAliveScheduler,
-            ExecutorService pumpExecutor) {
+            ExecutorService pumpExecutor,
+            SseConnectionRegistry connectionRegistry) {
         this.authHandler        = authHandler;
         this.mapper             = mapper;
         this.keepAliveInterval  = keepAliveInterval;
         this.keepAliveScheduler = keepAliveScheduler;
         this.pumpExecutor       = pumpExecutor;
+        this.connectionRegistry = connectionRegistry;
     }
 
     /**
@@ -132,11 +135,13 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
 
         val asyncContext = request.startAsync();
         asyncContext.setTimeout(0);
+        connectionRegistry.register(asyncContext);
 
         try {
             pumpExecutor.submit(() -> pump(asyncContext, subscription, pdpId));
         } catch (RejectedExecutionException e) {
             log.warn("SSE pump rejected by executor for pdpId={}: {}", pdpId, e.getMessage());
+            connectionRegistry.unregister(asyncContext);
             asyncContext.complete();
         }
     }
@@ -194,6 +199,7 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
             if (keepAliveTask != null) {
                 keepAliveTask.cancel(false);
             }
+            connectionRegistry.unregister(asyncContext);
             asyncContext.complete();
         }
     }

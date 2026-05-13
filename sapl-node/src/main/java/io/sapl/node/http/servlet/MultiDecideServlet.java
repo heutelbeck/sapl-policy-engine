@@ -48,8 +48,9 @@ public final class MultiDecideServlet
             JsonMapper mapper,
             Duration keepAliveInterval,
             ScheduledExecutorService keepAliveScheduler,
-            ExecutorService pumpExecutor) {
-        super(authHandler, mapper, keepAliveInterval, keepAliveScheduler, pumpExecutor);
+            ExecutorService pumpExecutor,
+            SseConnectionRegistry connectionRegistry) {
+        super(authHandler, mapper, keepAliveInterval, keepAliveScheduler, pumpExecutor, connectionRegistry);
         this.pdp = pdp;
     }
 

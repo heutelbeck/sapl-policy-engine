@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.sapl.node.SaplStartupConfigurationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
@@ -60,9 +61,44 @@ import lombok.val;
 @Configuration
 public class ProtobufRSocketServerConfiguration {
 
-    private static final String ERROR_BUNDLE_BUILD       = "Failed to build Netty SslContext from SSL bundle '%s'.";
-    private static final String ERROR_BUNDLE_NOT_FOUND   = "SSL bundle '%s' referenced by sapl.pdp.rsocket.ssl.bundle is not configured under spring.ssl.bundle.*.";
-    private static final String ERROR_BUNDLE_NO_REGISTRY = "sapl.pdp.rsocket.ssl.bundle='%s' is set but no SslBundles bean is available. Configure spring.ssl.bundle.* or unset the property.";
+    private static final String ERROR_BUNDLE_BUILD  = "SAPL Node refused to start. The SSL bundle '%s' for RSocket TLS could not be loaded.";
+    private static final String ACTION_BUNDLE_BUILD = """
+            The bundle was found but the keystore behind it could not be
+            opened. Common causes:
+
+              keystore file missing or unreadable
+              wrong keystore password
+              wrong key alias
+              keystore type mismatch (PKCS12 vs JKS)
+
+            Cross check the spring.ssl.bundle.<jks|pem>.<name>.* properties
+            against the file on disk.""";
+
+    private static final String ERROR_BUNDLE_NOT_FOUND  = "SAPL Node refused to start. The SSL bundle '%s' referenced by sapl.pdp.rsocket.ssl.bundle is not configured.";
+    private static final String ACTION_BUNDLE_NOT_FOUND = """
+            Define the bundle under spring.ssl.bundle, for example:
+
+              spring:
+                ssl:
+                  bundle:
+                    jks:
+                      sapl-bundle:
+                        key:
+                          alias: sapl-node
+                          password: changeit
+                        keystore:
+                          location: file:/etc/sapl/keystore.p12
+                          password: changeit
+                          type: PKCS12
+
+            then reference it from sapl.pdp.rsocket.ssl.bundle and (if you
+            also want HTTPS) from server.ssl.bundle.""";
+
+    private static final String ERROR_BUNDLE_NO_REGISTRY  = "SAPL Node refused to start. sapl.pdp.rsocket.ssl.bundle='%s' is set but no SslBundles bean is available.";
+    private static final String ACTION_BUNDLE_NO_REGISTRY = """
+            Either define the bundle under spring.ssl.bundle.<jks|pem>.* in
+            application.yml, or unset sapl.pdp.rsocket.ssl.bundle if you do
+            not want TLS on the RSocket transport.""";
 
     @Bean
     ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:true}") boolean enabled,
@@ -83,15 +119,22 @@ public class ProtobufRSocketServerConfiguration {
             return null;
         }
         if (sslBundles == null) {
-            throw new IllegalStateException(ERROR_BUNDLE_NO_REGISTRY.formatted(bundleName));
+            throw new SaplStartupConfigurationException(ERROR_BUNDLE_NO_REGISTRY.formatted(bundleName),
+                    ACTION_BUNDLE_NO_REGISTRY);
         }
         try {
             val bundle = sslBundles.getBundle(bundleName);
             return SslContextBuilder.forServer(bundle.getManagers().getKeyManagerFactory()).build();
         } catch (NoSuchSslBundleException e) {
-            throw new IllegalStateException(ERROR_BUNDLE_NOT_FOUND.formatted(bundleName), e);
+            val ex = new SaplStartupConfigurationException(ERROR_BUNDLE_NOT_FOUND.formatted(bundleName),
+                    ACTION_BUNDLE_NOT_FOUND);
+            ex.initCause(e);
+            throw ex;
         } catch (SSLException e) {
-            throw new IllegalStateException(ERROR_BUNDLE_BUILD.formatted(bundleName), e);
+            val ex = new SaplStartupConfigurationException(ERROR_BUNDLE_BUILD.formatted(bundleName),
+                    ACTION_BUNDLE_BUILD);
+            ex.initCause(e);
+            throw ex;
         }
     }
 

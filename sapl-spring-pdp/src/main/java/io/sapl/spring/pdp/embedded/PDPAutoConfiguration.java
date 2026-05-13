@@ -215,7 +215,7 @@ public class PDPAutoConfiguration {
             log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
                     lifecycleListeners.size());
         }
-        log.info("Deploying embedded Policy Decision Point.");
+        log.debug("Deploying embedded Policy Decision Point.");
         return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, decisionInterceptors,
                 lifecycleListeners);
     }

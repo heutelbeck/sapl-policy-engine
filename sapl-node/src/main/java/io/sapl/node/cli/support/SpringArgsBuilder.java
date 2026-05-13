@@ -31,6 +31,10 @@ public class SpringArgsBuilder {
         args.add("--io.sapl.pdp.embedded.pdp-config-type=" + resolved.configType());
         args.add("--io.sapl.pdp.embedded.config-path=" + resolved.path());
         args.add("--io.sapl.pdp.embedded.policies-path=" + resolved.path());
+        // CLI commands boot the PDP for one-shot evaluation. No remote clients,
+        // so the RSocket server has no purpose and binding port 7000 just
+        // collides with parallel CLI invocations.
+        args.add("--sapl.pdp.rsocket.enabled=false");
 
         if (resolved.publicKeyPath() != null) {
             args.add("--io.sapl.pdp.embedded.bundle-security.public-key-path=" + resolved.publicKeyPath());

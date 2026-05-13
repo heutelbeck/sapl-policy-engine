@@ -17,6 +17,7 @@
  */
 package io.sapl.node;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -56,7 +57,9 @@ import picocli.CommandLine;
         "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
 public class SaplNodeApplication {
 
-    private static final String SERVER_COMMAND = "server";
+    private static final String SERVER_COMMAND   = "server";
+    private static final String NO_AUTH_FLAG     = "--no-auth";
+    private static final String NO_AUTH_PROPERTY = "--io.sapl.node.allow-no-auth=true";
 
     private static final Set<String> HELP_FLAGS = Set.of("--help", "-h", "--version", "-V");
 
@@ -72,9 +75,10 @@ public class SaplNodeApplication {
      */
     static int run(String[] args) {
         if (isServerMode(args)) {
-            val springArgs = args.length > 0 && SERVER_COMMAND.equals(args[0])
+            val stripped   = args.length > 0 && SERVER_COMMAND.equals(args[0])
                     ? Arrays.copyOfRange(args, 1, args.length)
                     : args;
+            val springArgs = expandNoAuthShortcut(stripped);
             SpringApplication.run(SaplNodeApplication.class, springArgs);
             return 0;
         }
@@ -120,6 +124,20 @@ public class SaplNodeApplication {
         val root = context.getLogger(ROOT_LOGGER_NAME);
         root.setLevel(Level.ERROR);
         root.addAppender(appender);
+    }
+
+    private static String[] expandNoAuthShortcut(String[] args) {
+        val     out      = new ArrayList<String>(args.length + 1);
+        boolean expanded = false;
+        for (val arg : args) {
+            if (NO_AUTH_FLAG.equals(arg) && !expanded) {
+                out.add(NO_AUTH_PROPERTY);
+                expanded = true;
+            } else {
+                out.add(arg);
+            }
+        }
+        return out.toArray(new String[0]);
     }
 
     private static boolean isServerMode(String[] args) {

@@ -36,16 +36,24 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 class PdpSourceValidation {
 
-    static final String ERROR_RESOURCES_NOT_SUPPORTED = "SAPL Node does not support RESOURCES as PDP configuration source. "
-            + "Use DIRECTORY, MULTI_DIRECTORY, or BUNDLES instead. "
-            + "Set 'io.sapl.pdp.embedded.pdp-config-type' to a supported value.";
+    static final String ERROR_RESOURCES_NOT_SUPPORTED  = "SAPL Node refused to start. The RESOURCES policy source is not supported.";
+    static final String ACTION_RESOURCES_NOT_SUPPORTED = """
+            RESOURCES requires classpath scanning, which the SAPL Node binary
+            does not ship. Use one of:
+
+              io.sapl.pdp.embedded.pdp-config-type=DIRECTORY        single-directory layout
+              io.sapl.pdp.embedded.pdp-config-type=MULTI_DIRECTORY  one subdirectory per tenant
+              io.sapl.pdp.embedded.pdp-config-type=BUNDLES          signed bundle files
+
+            See https://sapl.io/docs/latest/7_2_Configuration for the full
+            policy source reference.""";
 
     private final EmbeddedPDPProperties properties;
 
     @PostConstruct
     void validatePdpConfigType() {
         if (properties.getPdpConfigType() == PDPDataSource.RESOURCES) {
-            throw new IllegalStateException(ERROR_RESOURCES_NOT_SUPPORTED);
+            throw new SaplStartupConfigurationException(ERROR_RESOURCES_NOT_SUPPORTED, ACTION_RESOURCES_NOT_SUPPORTED);
         }
     }
 
