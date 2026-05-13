@@ -73,13 +73,13 @@ import java.util.concurrent.Callable;
     footerHeading = "%nExamples:%n",
     footer = { """
           # HTTP load test against a running server
-          sapl loadtest --url http://localhost:8443 -s '{"role":"admin"}' -a '"read"' -r '"doc"'
+          sapl loadtest --url http://localhost:8080 -s '{"role":"admin"}' -a '"read"' -r '"doc"'
 
           # RSocket load test
           sapl loadtest --rsocket --host localhost --port 7000 -s '{"role":"admin"}' -a '"read"' -r '"doc"'
 
           # With custom concurrency and output
-          sapl loadtest --url http://localhost:8443 --concurrency 128 --measurement-seconds 30 -o ./results -s '"alice"' -a '"read"' -r '"doc"'
+          sapl loadtest --url http://localhost:8080 --concurrency 128 --measurement-seconds 30 -o ./results -s '"alice"' -a '"read"' -r '"doc"'
 
           # RSocket with connection tuning
           sapl loadtest --rsocket --connections 8 --vt-per-connection 512 -s '"alice"' -a '"read"' -r '"doc"'
@@ -98,7 +98,7 @@ public class LoadtestCommand implements Callable<Integer> {
     @Spec
     CommandSpec spec;
 
-    @Option(names = "--url", defaultValue = "http://localhost:8443", description = "HTTP server URL (default: ${DEFAULT-VALUE})")
+    @Option(names = "--url", defaultValue = "http://localhost:8080", description = "HTTP server URL (default: ${DEFAULT-VALUE})")
     String url;
 
     @Option(names = "--rsocket", description = "Use RSocket/protobuf transport instead of HTTP")

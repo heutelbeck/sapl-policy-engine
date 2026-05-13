@@ -17,14 +17,21 @@
  */
 package io.sapl.server.pdpcontroller;
 
+import javax.net.ssl.SSLException;
+
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ssl.NoSuchSslBundleException;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import lombok.val;
 
 /**
  * Configuration for the protobuf-based RSocket PDP server.
@@ -42,21 +49,50 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
  * are authenticated via the RSocket setup frame. Otherwise, all connections
  * are accepted without authentication.
  * <p>
+ * TLS is opt-in via {@code sapl.pdp.rsocket.ssl.bundle=<name>}, which
+ * resolves a Spring Boot {@link SslBundles SSL bundle} configured under
+ * {@code spring.ssl.bundle.*}. The same bundle definition can be shared
+ * with the HTTP server, so a single keystore covers both transports.
+ * <p>
  * The server lifecycle is managed by {@link ProtobufRSocketServerLifecycle}
  * via Spring's {@link org.springframework.context.SmartLifecycle} interface.
  */
 @Configuration
 public class ProtobufRSocketServerConfiguration {
 
+    private static final String ERROR_BUNDLE_BUILD       = "Failed to build Netty SslContext from SSL bundle '%s'.";
+    private static final String ERROR_BUNDLE_NOT_FOUND   = "SSL bundle '%s' referenced by sapl.pdp.rsocket.ssl.bundle is not configured under spring.ssl.bundle.*.";
+    private static final String ERROR_BUNDLE_NO_REGISTRY = "sapl.pdp.rsocket.ssl.bundle='%s' is set but no SslBundles bean is available. Configure spring.ssl.bundle.* or unset the property.";
+
     @Bean
     ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:true}") boolean enabled,
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
             @Value("${sapl.pdp.rsocket.max-inbound-payload-size:16777215}") int maxInboundPayloadSize,
+            @Value("${sapl.pdp.rsocket.ssl.bundle:#{null}}") @Nullable String sslBundleName,
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
-            ObjectProvider<RSocketConnectionAuthenticator> authenticator) {
+            ObjectProvider<RSocketConnectionAuthenticator> authenticator, ObjectProvider<SslBundles> sslBundles) {
+        val sslContext = resolveSslContext(sslBundleName, sslBundles.getIfAvailable());
         return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxInboundPayloadSize, blockingPdp, pdp,
-                authenticator.getIfAvailable());
+                authenticator.getIfAvailable(), sslContext);
+    }
+
+    private static @Nullable SslContext resolveSslContext(@Nullable String bundleName,
+            @Nullable SslBundles sslBundles) {
+        if (bundleName == null || bundleName.isBlank()) {
+            return null;
+        }
+        if (sslBundles == null) {
+            throw new IllegalStateException(ERROR_BUNDLE_NO_REGISTRY.formatted(bundleName));
+        }
+        try {
+            val bundle = sslBundles.getBundle(bundleName);
+            return SslContextBuilder.forServer(bundle.getManagers().getKeyManagerFactory()).build();
+        } catch (NoSuchSslBundleException e) {
+            throw new IllegalStateException(ERROR_BUNDLE_NOT_FOUND.formatted(bundleName), e);
+        } catch (SSLException e) {
+            throw new IllegalStateException(ERROR_BUNDLE_BUILD.formatted(bundleName), e);
+        }
     }
 
 }

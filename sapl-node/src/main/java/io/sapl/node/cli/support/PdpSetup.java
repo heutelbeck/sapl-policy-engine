@@ -90,7 +90,7 @@ public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, Confi
     }
 
     private static PdpSetup openHttp(RemoteConnectionOptions remote) throws SSLException {
-        val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8443");
+        val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8080");
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
             builder.withUnsecureSSL();
@@ -101,9 +101,14 @@ public record PdpSetup(ReactivePolicyDecisionPoint pdp, JsonMapper mapper, Confi
         return new PdpSetup(pdp, mapper, null);
     }
 
-    private static PdpSetup openRsocket(RemoteConnectionOptions remote) {
+    private static PdpSetup openRsocket(RemoteConnectionOptions remote) throws SSLException {
         val builder = ProtobufRemoteReactivePolicyDecisionPoint.builder().host(remote.rsocketHost)
                 .port(remote.rsocketPort);
+        if (remote.rsocketTls && remote.insecure) {
+            builder.withUnsecureSSL();
+        } else if (remote.rsocketTls) {
+            builder.secure();
+        }
         configureRsocketAuth(builder, remote.auth);
         val pdp    = builder.build();
         val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();

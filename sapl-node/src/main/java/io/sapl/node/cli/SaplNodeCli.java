@@ -56,7 +56,7 @@ import picocli.CommandLine.IVersionProvider;
     versionProvider = SaplNodeCli.VersionProvider.class,
     header = "SAPL Node PDP server and policy CLI.",
     description = { """
-        Without a subcommand, starts the PDP server on localhost:8443.
+        Without a subcommand, starts the PDP server on localhost:8080.
         Use subcommands to evaluate policies, manage bundles, and
         generate credentials without starting the server.
 

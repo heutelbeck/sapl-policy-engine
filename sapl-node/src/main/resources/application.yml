@@ -2,7 +2,7 @@
 # SAPL Node Configuration
 #
 # This file configures the SAPL Node with safe, functional defaults.
-# The node starts on localhost:8443 without TLS and without authentication,
+# The node starts on localhost:8080 without TLS and without authentication,
 # serving deny-by-default decisions. Drop .sapl files in the current
 # directory to start making authorization decisions.
 #
@@ -36,7 +36,7 @@ spring:
 
 server:
   address: 127.0.0.1
-  port: 8443
+  port: 8080
   http2:
     enabled: true
   ssl:

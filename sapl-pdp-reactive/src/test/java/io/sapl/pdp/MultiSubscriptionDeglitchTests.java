@@ -47,6 +47,7 @@ import static io.sapl.pdp.PdpTestHelper.configuration;
 import static io.sapl.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatObject;
 
 /**
  * Locks the de-glitching invariants of the multi-subscription paths
@@ -112,9 +113,10 @@ class MultiSubscriptionDeglitchTests {
 
     private static void assertBundleDecisions(MultiAuthorizationDecision bundle, Decision aliceExpected,
             Decision bobExpected) {
-        assertThat(bundle).isNotNull();
-        assertThat(bundle.getDecision("alice-sub").decision()).as("alice-sub decision").isEqualTo(aliceExpected);
-        assertThat(bundle.getDecision("bob-sub").decision()).as("bob-sub decision").isEqualTo(bobExpected);
+        assertThatObject(bundle).isNotNull().satisfies(b -> {
+            assertThat(b.getDecision("alice-sub").decision()).as("alice-sub decision").isEqualTo(aliceExpected);
+            assertThat(b.getDecision("bob-sub").decision()).as("bob-sub decision").isEqualTo(bobExpected);
+        });
     }
 
     @Nested
@@ -168,25 +170,20 @@ class MultiSubscriptionDeglitchTests {
                 val flippedIds = new CopyOnWriteArrayList<String>();
 
                 StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decide(twoSubs()))
-                        .assertNext(change -> recordInitialDeny(change, initialIds))
-                        .assertNext(change -> recordInitialDeny(change, initialIds))
+                        .assertNext(change -> recordWithExpected(change, initialIds, Decision.DENY))
+                        .assertNext(change -> recordWithExpected(change, initialIds, Decision.DENY))
                         .then(() -> flagPip.publish(Value.of(true)))
-                        .assertNext(change -> recordFlippedPermit(change, flippedIds))
-                        .assertNext(change -> recordFlippedPermit(change, flippedIds)).expectNoEvent(QUIET_WINDOW)
-                        .thenCancel().verify(Duration.ofSeconds(5));
+                        .assertNext(change -> recordWithExpected(change, flippedIds, Decision.PERMIT))
+                        .assertNext(change -> recordWithExpected(change, flippedIds, Decision.PERMIT))
+                        .expectNoEvent(QUIET_WINDOW).thenCancel().verify(Duration.ofSeconds(5));
 
                 assertThat(initialIds).containsExactlyInAnyOrder("alice-sub", "bob-sub");
                 assertThat(flippedIds).containsExactlyInAnyOrder("alice-sub", "bob-sub");
             }
         }
 
-        private void recordInitialDeny(IdentifiableAuthorizationDecision change, List<String> ids) {
-            assertThat(change.decision().decision()).isEqualTo(Decision.DENY);
-            ids.add(change.subscriptionId());
-        }
-
-        private void recordFlippedPermit(IdentifiableAuthorizationDecision change, List<String> ids) {
-            assertThat(change.decision().decision()).isEqualTo(Decision.PERMIT);
+        private void recordWithExpected(IdentifiableAuthorizationDecision change, List<String> ids, Decision expected) {
+            assertThat(change.decision().decision()).isEqualTo(expected);
             ids.add(change.subscriptionId());
         }
     }
@@ -311,7 +308,7 @@ class MultiSubscriptionDeglitchTests {
             return stream;
         }
 
-        public void publish(Value v) {
+        void publish(Value v) {
             current = v;
             for (val s : openStreams) {
                 s.put(v);

@@ -83,6 +83,7 @@ All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is
 | `port` | `int` | `7000` | TCP port for RSocket connections. Ignored when `socket-path` is set. |
 | `socket-path` | `String` | | Unix domain socket path. When set, the server binds to this socket instead of TCP. Requires platform support (Linux epoll or macOS kqueue). |
 | `max-inbound-payload-size` | `int` | `16777215` | Maximum size in bytes of an inbound RSocket payload. The RSocket protocol fixes the per-frame ceiling at 16 MB; the configured value must be at least that, since any single frame must fit. Per-IP and per-account caps belong at an upstream load balancer or firewall. |
+| `ssl.bundle` | `String` | | Name of a Spring Boot SSL bundle (configured under `spring.ssl.bundle.*`) used to terminate TLS on the RSocket transport. When unset, the server speaks plain TCP. The same bundle definition can be shared with the HTTP server, so a single keystore covers both transports. |
 
 Connection lifetime is soft. JWT credentials are validated at every decision call; expired tokens are then rejected, and the client is expected to reconnect with a refreshed credential. The server does not maintain a separate hard-disconnect timer.
 
@@ -107,6 +108,37 @@ sapl:
       enabled: true
       socket-path: /var/run/sapl.sock
 ```
+
+TLS via a shared SSL bundle (same bundle as the HTTP server):
+
+```yaml
+spring:
+  ssl:
+    bundle:
+      jks:
+        sapl-bundle:
+          key:
+            alias: sapl-node
+            password: changeit
+          keystore:
+            location: file:/etc/sapl/keystore.p12
+            password: changeit
+            type: PKCS12
+
+server:
+  ssl:
+    enabled: true
+    bundle: sapl-bundle
+
+sapl:
+  pdp:
+    rsocket:
+      enabled: true
+      ssl:
+        bundle: sapl-bundle
+```
+
+CLI clients connect with `--rsocket --rsocket-tls` (and `--insecure` to skip certificate verification against self-signed dev certificates).
 
 The RSocket endpoint shares the same authentication configuration as the HTTP endpoints (`io.sapl.node.users`, `allow-basic-auth`, `allow-api-key-auth`, `allow-oauth2-auth`). Authentication occurs once at connection setup. See [RSocket API](../6_1_HTTPApi/#rsocket-api) for the wire protocol specification.
 

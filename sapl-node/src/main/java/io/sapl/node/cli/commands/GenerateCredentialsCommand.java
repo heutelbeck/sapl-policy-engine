@@ -124,10 +124,9 @@ public class GenerateCredentialsCommand {
                         Usage (curl):%n\
                         -------------%n\
                         curl -u '%s:%s' \\%n\
-                          -X POST https://localhost:8443/api/pdp/decide-once \\%n\
+                          -X POST http://localhost:8080/api/pdp/decide-once \\%n\
                           -H 'Content-Type: application/json' \\%n\
-                          -d '{"subject":"alice","action":"read","resource":"document"}' \\%n\
-                          --cacert server.crt%n\
+                          -d '{"subject":"alice","action":"read","resource":"document"}'%n\
                         %n\
                         IMPORTANT: Store the password securely. Use the encoded value in%n\
                         server configuration; use the plaintext password in clients.%n\
@@ -221,10 +220,9 @@ public class GenerateCredentialsCommand {
                         Usage (curl):%n\
                         -------------%n\
                         curl -H 'Authorization: Bearer %s' \\%n\
-                          -X POST https://localhost:8443/api/pdp/decide-once \\%n\
+                          -X POST http://localhost:8080/api/pdp/decide-once \\%n\
                           -H 'Content-Type: application/json' \\%n\
-                          -d '{"subject":"alice","action":"read","resource":"document"}' \\%n\
-                          --cacert server.crt%n\
+                          -d '{"subject":"alice","action":"read","resource":"document"}'%n\
                         %n\
                         IMPORTANT: This key grants full PDP access. Store securely and%n\
                         rotate periodically. Multiple users with API keys can be configured.%n\

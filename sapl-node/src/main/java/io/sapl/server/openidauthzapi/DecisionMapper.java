@@ -72,7 +72,7 @@ class DecisionMapper {
     static final String SAPL_DECISION_KEY                  = "decision";
     static final String SAPL_KEY                           = "sapl";
 
-    public static OpenIdEvaluationResponse map(AuthorizationDecision sapl, ObjectMapper mapper) {
+    static OpenIdEvaluationResponse map(AuthorizationDecision sapl, ObjectMapper mapper) {
         final boolean             permitted = isUnambiguouslyPermitted(sapl);
         final Map<String, Object> ctx       = buildContext(sapl, permitted, mapper);
         return new OpenIdEvaluationResponse(permitted, ctx);

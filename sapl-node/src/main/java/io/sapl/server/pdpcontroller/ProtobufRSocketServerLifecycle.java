@@ -23,15 +23,16 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.locks.ReentrantLock;
 
-import io.sapl.pdp.BlockingPolicyDecisionPoint;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.SmartLifecycle;
 
 import io.netty.channel.unix.DomainSocketAddress;
+import io.netty.handler.ssl.SslContext;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -58,6 +59,10 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     private final BlockingPolicyDecisionPoint              blockingPdp;
     private final ReactivePolicyDecisionPoint              pdp;
     private final @Nullable RSocketConnectionAuthenticator authenticator;
+    // Optional TLS context. When set, the TCP server is wrapped in TLS via
+    // Reactor Netty's secure() before being handed to TcpServerTransport.
+    // Resolution from a Spring Boot SslBundle happens in the @Configuration.
+    private final @Nullable SslContext sslContext;
 
     // ReentrantLock instead of synchronized to avoid carrier-thread pinning if
     // start()/stop() ever runs on a virtual thread under JDK 21.
@@ -82,13 +87,14 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             }
             log.info("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
             val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
-            val transport = socketPath != null ? createUnixTransport(socketPath) : TcpServerTransport.create(port);
+            val transport = createTransport();
             server  = RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
             running = true;
+            val scheme = sslContext != null ? "tls" : "tcp";
             if (socketPath != null) {
-                log.info("Protobuf RSocket PDP server started on Unix socket {}", socketPath);
+                log.info("Protobuf RSocket PDP server started on Unix socket {} ({})", socketPath, scheme);
             } else {
-                log.info("Protobuf RSocket PDP server started on port {}", port);
+                log.info("Protobuf RSocket PDP server started on port {} ({})", port, scheme);
             }
         } finally {
             lifecycleLock.unlock();
@@ -123,14 +129,24 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         }
     }
 
-    private static TcpServerTransport createUnixTransport(String path) {
-        if (Files.exists(Path.of(path))) {
-            log.warn("Unix socket file {} already exists. Removing it before binding. "
-                    + "If another SAPL Node instance is bound to this path it will be displaced; "
-                    + "verify your deployment if this is unexpected.", path);
+    private TcpServerTransport createTransport() {
+        TcpServer tcpServer;
+        if (socketPath != null) {
+            if (Files.exists(Path.of(socketPath))) {
+                log.warn("Unix socket file {} already exists. Removing it before binding. "
+                        + "If another SAPL Node instance is bound to this path it will be displaced; "
+                        + "verify your deployment if this is unexpected.", socketPath);
+            }
+            deleteSocketFile(socketPath);
+            val path = socketPath;
+            tcpServer = TcpServer.create().bindAddress(() -> new DomainSocketAddress(path));
+        } else {
+            tcpServer = TcpServer.create().port(port);
         }
-        deleteSocketFile(path);
-        return TcpServerTransport.create(TcpServer.create().bindAddress(() -> new DomainSocketAddress(path)));
+        if (sslContext != null) {
+            tcpServer = tcpServer.secure(spec -> spec.sslContext(sslContext));
+        }
+        return TcpServerTransport.create(tcpServer);
     }
 
     /**
