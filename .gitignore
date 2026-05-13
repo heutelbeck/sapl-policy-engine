@@ -45,3 +45,4 @@ sapl-benchmark/bin/
 # Python bytecode
 **/__pycache__/
 **/*.pyc
+*.lock
