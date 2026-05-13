@@ -44,13 +44,16 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @EnableCaching
+@ComponentScan({ "io.sapl.node", "io.sapl.server" })
+@EnableConfigurationProperties(SaplNodeProperties.class)
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
+// Transaction + persistence autoconfigure classes live in transitive Spring Boot
+// jars not on this module's compile classpath. excludeName by string is the
+// only way to reference them without forcing a transitive-to-compile bump.
 @SpringBootApplication(excludeName = {
         "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration",
         "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
-@ComponentScan({ "io.sapl.node", "io.sapl.server" })
-@EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
     private static final String SERVER_COMMAND = "server";
@@ -89,6 +92,14 @@ public class SaplNodeApplication {
      * Configures logback to route all log output to stderr at ERROR level.
      * This prevents CLI commands from polluting stdout, which is reserved
      * for command output (JSON decisions, bundle info, etc.).
+     * <p>
+     * Called after {@link #isServerMode} but before any subcommand runs. Any
+     * log statement emitted between {@link #main} entry and this call uses
+     * Logback's bootstrap defaults (root INFO to stdout) and is therefore
+     * not subject to the stderr routing above. In practice nothing in
+     * {@link #isServerMode} or {@link #run} logs before this method, so the
+     * gap is empty; callers adding new code in that window should keep it
+     * silent or expect those messages to escape the stderr discipline.
      */
     static void configureCliLogging() {
         val context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -124,6 +135,14 @@ public class SaplNodeApplication {
         return !new CommandLine(new SaplNodeCli()).getSubcommands().containsKey(args[0]);
     }
 
+    /**
+     * GraalVM native-image hints for resources, reflection, and serialization
+     * that Spring Boot's AOT processor cannot infer automatically. Covers
+     * version banner, Logback version probes, the Scalar configuration types
+     * accessed reflectively, the Jetty servlet stack components Boot
+     * instantiates by name, and the springdoc actuator handler whose private
+     * field it reads via reflection.
+     */
     static class NativeResourceHints implements RuntimeHintsRegistrar {
 
         @Override

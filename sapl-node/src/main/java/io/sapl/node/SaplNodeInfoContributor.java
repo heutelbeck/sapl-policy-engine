@@ -17,7 +17,7 @@
  */
 package io.sapl.node;
 
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.actuate.info.InfoContributor;
@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 
 /**
  * Contributes SAPL PDP configuration details to the {@code /actuator/info}
@@ -38,8 +39,14 @@ class SaplNodeInfoContributor implements InfoContributor {
 
     @Override
     public void contribute(Info.Builder builder) {
-        builder.withDetail("sapl", Map.of("configType", pdpProperties.getPdpConfigType().name(), "configPath",
-                pdpProperties.getConfigPath(), "policiesPath", pdpProperties.getPoliciesPath()));
+        // Use LinkedHashMap rather than Map.of: getConfigPath() / getPoliciesPath()
+        // are null in REMOTE_BUNDLES mode, and Map.of rejects null values with NPE,
+        // which would crash the actuator info endpoint.
+        val details = new LinkedHashMap<String, Object>();
+        details.put("configType", pdpProperties.getPdpConfigType().name());
+        details.put("configPath", pdpProperties.getConfigPath());
+        details.put("policiesPath", pdpProperties.getPoliciesPath());
+        builder.withDetail("sapl", details);
     }
 
 }

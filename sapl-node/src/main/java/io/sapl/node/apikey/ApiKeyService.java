@@ -17,6 +17,10 @@
  */
 package io.sapl.node.apikey;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.Optional;
 
 import org.springframework.cache.Cache;
@@ -52,9 +56,10 @@ public class ApiKeyService {
     private final CacheManager      cacheManager;
 
     private Authentication checkApiKey(String apiKey) {
-        val cache = cacheManager.getCache(API_KEY_CACHE);
+        val cache    = cacheManager.getCache(API_KEY_CACHE);
+        val cacheKey = cache != null ? sha256(apiKey) : null;
         if (cache != null) {
-            val cachedUser = getCachedUser(cache, apiKey);
+            val cachedUser = getCachedUser(cache, cacheKey);
             if (cachedUser != null) {
                 return new SaplAuthenticationToken(cachedUser);
             }
@@ -63,7 +68,7 @@ public class ApiKeyService {
         if (userEntryOpt.isPresent()) {
             val saplUser = userLookupService.toSaplUser(userEntryOpt.get());
             if (cache != null) {
-                cache.put(apiKey, saplUser);
+                cache.put(cacheKey, saplUser);
             }
             return new SaplAuthenticationToken(saplUser);
         }
@@ -71,12 +76,23 @@ public class ApiKeyService {
         throw new ApiKeyAuthenticationException(ERROR_API_KEY_NOT_AUTHORIZED);
     }
 
-    private SaplUser getCachedUser(Cache cache, String apiKey) {
-        val cacheEntry = cache.get(apiKey);
+    private SaplUser getCachedUser(Cache cache, String cacheKey) {
+        val cacheEntry = cache.get(cacheKey);
         if (cacheEntry != null && cacheEntry.get() instanceof SaplUser saplUser) {
             return saplUser;
         }
         return null;
+    }
+
+    // SHA-256 of the raw key as cache key so heap dumps don't expose
+    // the plaintext credential. Mirrors CachingHttpAuthHandler.
+    private static String sha256(String apiKey) {
+        try {
+            val digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(apiKey.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     /**

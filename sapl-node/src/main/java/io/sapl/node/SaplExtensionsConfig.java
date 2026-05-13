@@ -17,7 +17,14 @@
  */
 package io.sapl.node;
 
-import tools.jackson.databind.json.JsonMapper;
+import java.net.http.HttpClient;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.api.stream.BlockingWebClient;
 import io.sapl.api.stream.RealTimeScheduler;
@@ -28,12 +35,8 @@ import io.sapl.extensions.mqtt.SaplMqttClient;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.net.http.HttpClient;
-import java.time.Clock;
-import java.util.List;
+import lombok.val;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Configuration for SAPL extensions including function libraries and policy
@@ -45,6 +48,11 @@ import java.util.List;
 @Configuration
 class SaplExtensionsConfig {
 
+    // 5 second TCP connect cap so a stalled remote PIP host does not hang the
+    // calling decision indefinitely. Per-request read timeouts are applied at
+    // the HttpRequest level inside the PIPs themselves.
+    private static final Duration HTTP_CONNECT_TIMEOUT = Duration.ofSeconds(5);
+
     @Bean
     TimeScheduler timeScheduler(Clock clock) {
         return new RealTimeScheduler(clock);
@@ -52,7 +60,8 @@ class SaplExtensionsConfig {
 
     @Bean
     BlockingWebClient blockingWebClient(JsonMapper mapper, Clock clock, TimeScheduler scheduler) {
-        return new BlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
+        val httpClient = HttpClient.newBuilder().connectTimeout(HTTP_CONNECT_TIMEOUT).build();
+        return new BlockingWebClient(mapper, httpClient, clock, scheduler);
     }
 
     @Bean

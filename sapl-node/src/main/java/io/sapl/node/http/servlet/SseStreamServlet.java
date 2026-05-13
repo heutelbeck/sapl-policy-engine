@@ -170,7 +170,9 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
                     if (decision == null) {
                         return;
                     }
-                    writeEvent(writer, decision);
+                    if (!writeEvent(writer, decision)) {
+                        return;
+                    }
                     if (writer.checkError()) {
                         log.debug("SSE stream client disconnected for pdpId={}", pdpId);
                         return;
@@ -210,7 +212,12 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
         }, periodMillis, periodMillis, TimeUnit.MILLISECONDS);
     }
 
-    private void writeEvent(PrintWriter writer, D value) {
+    /**
+     * Returns true on success, false on persistent failure (Jackson serialization
+     * error). The pump uses the return value to break out of the loop instead of
+     * re-attempting to write subsequent events to a doomed stream.
+     */
+    private boolean writeEvent(PrintWriter writer, D value) {
         try {
             val json = mapper.writeValueAsString(value);
             synchronized (writer) {
@@ -219,8 +226,10 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
                 writer.write("\n\n");
                 writer.flush();
             }
-        } catch (Exception e) {
-            log.debug("Failed to write SSE event: {}", e.getMessage());
+            return true;
+        } catch (JacksonException e) {
+            log.debug("Failed to serialize SSE event: {}", e.getMessage());
+            return false;
         }
     }
 }

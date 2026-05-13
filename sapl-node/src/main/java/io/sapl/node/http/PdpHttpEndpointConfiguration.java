@@ -25,12 +25,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+
+import jakarta.servlet.http.HttpServlet;
 
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.auth.UserLookupService;
@@ -58,6 +61,19 @@ import tools.jackson.databind.json.JsonMapper;
 class PdpHttpEndpointConfiguration {
 
     @Bean
+    FilterRegistrationBean<RequestBodySizeLimitFilter> requestBodySizeLimitFilter(
+            @Value("${io.sapl.node.http.max-request-body-bytes:65536}") long maxRequestBodyBytes) {
+        // Global cap against oversized POST bodies on the SAPL HTTP surface.
+        // 64 KiB default is generous for typical authorization subscriptions
+        // (subject + action + resource + small context); operators with very
+        // large multi-decide payloads or rich environment maps can raise it.
+        val registration = new FilterRegistrationBean<>(new RequestBodySizeLimitFilter(maxRequestBodyBytes));
+        registration.addUrlPatterns("/api/pdp/*", "/access/v1/*");
+        registration.setName("requestBodySizeLimitFilter");
+        return registration;
+    }
+
+    @Bean
     HttpAuthHandler httpAuthHandler(SaplNodeProperties properties, UserLookupService userLookupService,
             PasswordEncoder passwordEncoder, @Nullable JwtDecoder jwtDecoder,
             @Value("${io.sapl.node.http.auth-cache.positive-ttl:5m}") Duration positiveTtl,
@@ -80,7 +96,10 @@ class PdpHttpEndpointConfiguration {
         });
     }
 
-    @Bean(destroyMethod = "shutdown")
+    // shutdownNow (not shutdown) so pumps blocked in awaitNext() are
+    // interrupted at context destroy. Without this, long-lived SSE
+    // streams hold the JVM open past Spring's normal shutdown window.
+    @Bean(destroyMethod = "shutdownNow")
     ExecutorService sseStreamPumpExecutor() {
         return Executors.newVirtualThreadPerTaskExecutor();
     }
@@ -88,62 +107,55 @@ class PdpHttpEndpointConfiguration {
     @Bean
     ServletRegistrationBean<DecideOnceServlet> decideOnceServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper) {
-        val servlet      = new DecideOnceServlet(pdp, authHandler, mapper);
-        val registration = new ServletRegistrationBean<>(servlet, "/api/pdp/decide-once");
-        registration.setName("saplDecideOnceServlet");
-        registration.setLoadOnStartup(1);
-        return registration;
+        return register(new DecideOnceServlet(pdp, authHandler, mapper), "/api/pdp/decide-once",
+                "saplDecideOnceServlet", false);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideAllOnceServlet> multiDecideAllOnceServletRegistration(
             BlockingPolicyDecisionPoint pdp, HttpAuthHandler authHandler, JsonMapper mapper) {
-        val servlet      = new MultiDecideAllOnceServlet(pdp, authHandler, mapper);
-        val registration = new ServletRegistrationBean<>(servlet, "/api/pdp/multi-decide-all-once");
-        registration.setName("saplMultiDecideAllOnceServlet");
-        registration.setLoadOnStartup(1);
-        return registration;
+        return register(new MultiDecideAllOnceServlet(pdp, authHandler, mapper), "/api/pdp/multi-decide-all-once",
+                "saplMultiDecideAllOnceServlet", false);
     }
 
     @Bean
     ServletRegistrationBean<DecideStreamServlet> decideStreamServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor,
-            @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}") long keepAliveSeconds) {
-        val servlet      = new DecideStreamServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                sseKeepAliveScheduler, sseStreamPumpExecutor);
-        val registration = new ServletRegistrationBean<>(servlet, "/api/pdp/decide");
-        registration.setName("saplDecideStreamServlet");
-        registration.setLoadOnStartup(1);
-        registration.setAsyncSupported(true);
-        return registration;
+            ExecutorService sseStreamPumpExecutor, @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+        return register(
+                new DecideStreamServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor),
+                "/api/pdp/decide", "saplDecideStreamServlet", true);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideServlet> multiDecideServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor,
-            @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}") long keepAliveSeconds) {
-        val servlet      = new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                sseKeepAliveScheduler, sseStreamPumpExecutor);
-        val registration = new ServletRegistrationBean<>(servlet, "/api/pdp/multi-decide");
-        registration.setName("saplMultiDecideServlet");
-        registration.setLoadOnStartup(1);
-        registration.setAsyncSupported(true);
-        return registration;
+            ExecutorService sseStreamPumpExecutor, @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+        return register(
+                new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor),
+                "/api/pdp/multi-decide", "saplMultiDecideServlet", true);
     }
 
     @Bean
     ServletRegistrationBean<MultiDecideAllServlet> multiDecideAllServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
-            ExecutorService sseStreamPumpExecutor,
-            @Value("#{'${io.sapl.server.keep-alive:${io.sapl.node.keep-alive:0}}'}") long keepAliveSeconds) {
-        val servlet      = new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
-                sseKeepAliveScheduler, sseStreamPumpExecutor);
-        val registration = new ServletRegistrationBean<>(servlet, "/api/pdp/multi-decide-all");
-        registration.setName("saplMultiDecideAllServlet");
+            ExecutorService sseStreamPumpExecutor, @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+        return register(
+                new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
+                        sseKeepAliveScheduler, sseStreamPumpExecutor),
+                "/api/pdp/multi-decide-all", "saplMultiDecideAllServlet", true);
+    }
+
+    private static <T extends HttpServlet> ServletRegistrationBean<T> register(T servlet, String urlPattern,
+            String beanName, boolean asyncSupported) {
+        val registration = new ServletRegistrationBean<>(servlet, urlPattern);
+        registration.setName(beanName);
         registration.setLoadOnStartup(1);
-        registration.setAsyncSupported(true);
+        if (asyncSupported) {
+            registration.setAsyncSupported(true);
+        }
         return registration;
     }
 }

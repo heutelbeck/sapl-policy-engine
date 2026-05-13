@@ -130,6 +130,13 @@ io.sapl:
     #     api-key-id: "<10-char-id-from-generator>"
     #     api-key: "$argon2id$..."
 
+    # --- Keep-Alive ---
+    #
+    # Interval in seconds between keep-alive comment frames on idle SSE
+    # streams. Prevents firewalls and proxies from dropping inactive TCP
+    # connections. Set to 0 to disable.
+    keep-alive: 15
+
   # --- PDP Policy Source ---
   #
   # pdp-config-type options:
@@ -239,14 +246,6 @@ scalar:
 #   enabled: true
 #   port: 7000
 
-# --- Keep-Alive ---
-#
-# Interval in seconds between keep-alive comment frames on idle SSE
-# streams. Prevents firewalls and proxies from dropping inactive TCP
-# connections. Set to 0 to disable.
-
-io.sapl.node.keep-alive: 15
-
 # --- Rate Limiting ---
 
 bucket4j:
@@ -288,5 +287,10 @@ management:
 logging.level:
   "[io.sapl]": INFO
   "[org.springframework]": INFO
-  # Suppress unavoidable warning in GraalVM native images (no-op on HotSpot)
+  # GraalVM native image emits a one-shot WARN from this binder about
+  # unavailable GC notification listeners. Set to ERROR here so the
+  # native build is quiet. Verified no-op on HotSpot (this binder does
+  # not log at INFO/WARN there today). If a future micrometer version
+  # starts logging meaningful WARN/INFO from this binder on JVM, lift
+  # this filter or move it under a native-only profile.
   "[io.micrometer.core.instrument.binder.jvm.JvmGcMetrics]": ERROR

@@ -88,6 +88,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final ByteBuf ROUTE_MULTI_DECIDE_ALL_BUF      = preEncode(ROUTE_MULTI_DECIDE_ALL);
     private static final ByteBuf ROUTE_MULTI_DECIDE_ALL_ONCE_BUF = preEncode(ROUTE_MULTI_DECIDE_ALL_ONCE);
 
+    private static final String ERROR_AUTH_FAILED                         = "Authentication failed";
     private static final String ERROR_BAD_REQUEST                         = "Bad request";
     private static final String ERROR_ENCODE_DECISION_FAILED              = "Failed to encode decision: {}";
     private static final String ERROR_ENCODE_IDENTIFIABLE_DECISION_FAILED = "Failed to encode identifiable decision: {}";
@@ -98,8 +99,9 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     private static final String ERROR_UNKNOWN_ROUTE                       = "Unknown RSocket route: {}";
     private static final String WARN_MULTI_DECIDE_ALL_ONCE_NULL           = "decideAll for pdpId={} produced no value before stream completion; returning INDETERMINATE for the entire batch. This indicates a server-side defect.";
 
-    // Virtual thread executor creates threads on demand with no pool to shut down.
-    // Static is safe here, no resource leak on application shutdown.
+    // Static is intentional: virtual-thread-per-task holds no platform
+    // threads or pooled resources when idle, so dispose() at shutdown
+    // would buy nothing.
     private static final Scheduler VIRTUAL_THREAD_SCHEDULER = Schedulers
             .fromExecutorService(Executors.newVirtualThreadPerTaskExecutor());
 
@@ -141,8 +143,10 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
             return Mono.just(new ProtobufRSocket(blockingPdp, pdp, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
         }
         return authenticator.authenticate(setup)
-                .<RSocket>map(result -> new ProtobufRSocket(blockingPdp, pdp, result.pdpId()))
-                .onErrorMap(e -> new RejectedSetupException("Authentication failed: " + e.getMessage()));
+                .<RSocket>map(result -> new ProtobufRSocket(blockingPdp, pdp, result.pdpId())).onErrorMap(e -> {
+                    log.debug("RSocket setup authentication failed: {}", e.getMessage());
+                    return new RejectedSetupException(ERROR_AUTH_FAILED);
+                });
     }
 
     private static ByteBuf preEncode(String route) {

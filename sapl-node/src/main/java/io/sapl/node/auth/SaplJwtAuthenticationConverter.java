@@ -17,11 +17,10 @@
  */
 package io.sapl.node.auth;
 
-import java.util.List;
+import static io.sapl.node.auth.SaplRoles.PDP_CLIENT_AUTHORITIES;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 
@@ -36,9 +35,7 @@ import lombok.val;
 @RequiredArgsConstructor
 public class SaplJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private static final String                       ERROR_MISSING_PDP_ID_CLAIM = "JWT token missing required claim: %s.";
-    private static final List<SimpleGrantedAuthority> PDP_CLIENT_AUTHORITIES     = List
-            .of(new SimpleGrantedAuthority("ROLE_PDP_CLIENT"));
+    private static final String ERROR_MISSING_PDP_ID_CLAIM = "JWT token missing required claim: %s.";
 
     private final SaplNodeProperties properties;
 

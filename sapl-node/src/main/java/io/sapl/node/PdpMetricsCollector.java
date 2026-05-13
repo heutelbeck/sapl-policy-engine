@@ -18,6 +18,7 @@
 package io.sapl.node;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -63,7 +64,7 @@ class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleL
     private final AtomicInteger activeSubscriptions;
 
     private final ConcurrentHashMap<String, Timer.Sample> subscriptionTimers     = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Boolean>      firstDecisionDelivered = new ConcurrentHashMap<>();
+    private final Set<String>                             firstDecisionDelivered = ConcurrentHashMap.newKeySet();
 
     PdpMetricsCollector(boolean enabled, MeterRegistry meterRegistry) {
         this.enabled             = enabled;
@@ -90,7 +91,7 @@ class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleL
         val outcome = decision.authorizationDecision().decision();
         meterRegistry.counter(METRIC_DECISIONS, TAG_DECISION, outcome.name()).increment();
 
-        if (firstDecisionDelivered.putIfAbsent(subscriptionId, Boolean.TRUE) == null) {
+        if (firstDecisionDelivered.add(subscriptionId)) {
             val sample = subscriptionTimers.get(subscriptionId);
             if (sample != null) {
                 sample.stop(meterRegistry.timer(METRIC_FIRST_DECISION_LATENCY));

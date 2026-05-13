@@ -43,6 +43,9 @@ import lombok.val;
  * {@code spring-boot-maven-plugin:repackage}); commit comes from the
  * {@code git.properties} resource (shipped by {@code sapl-pdp} via the
  * git-commit-id plugin and auto-bound to {@code git.commit.id.abbrev}).
+ * <p>
+ * Server-mode only: gated by {@code @Profile("!cli")} so CLI invocations
+ * (which run a no-Spring picocli process) do not instantiate this bean.
  */
 @Profile("!cli")
 @RestController
@@ -62,6 +65,13 @@ class RootIndexController {
         this.version = pkgVersion == null ? "" : pkgVersion;
     }
 
+    /**
+     * Browsers send {@code Accept: text/html,...} and land on the rendered
+     * HTML card. Programmatic clients should send
+     * {@code Accept: application/json} to receive the JSON descriptor below.
+     * For ambiguous wildcard Accept (curl with no header), Spring picks the
+     * first declared matcher, which is this one.
+     */
     @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
     ModelAndView indexHtml() {
         val status = healthStatus();

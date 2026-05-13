@@ -26,6 +26,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -59,6 +63,10 @@ class ApiKeyServiceTests {
     private static final String VALID_KEY     = "sapl_kid123_secretpart";
     private static final String BEARER_VALID  = "Bearer " + VALID_KEY;
     private static final String AUTHORIZATION = "Authorization";
+    // Cache key is the SHA-256 hex of the raw key so heap dumps cannot expose
+    // the plaintext credential. Pre-computed here to keep the test stubs
+    // explicit about what the production code stores under.
+    private static final String CACHE_KEY = sha256Hex(VALID_KEY);
 
     @Mock
     private UserLookupService userLookupService;
@@ -128,7 +136,7 @@ class ApiKeyServiceTests {
         void whenValidKeyMatchesUserThenAuthenticatedTokenBoundToUser() {
             when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_VALID);
             when(cacheManager.getCache(ApiKeyService.API_KEY_CACHE)).thenReturn(cache);
-            when(cache.get(VALID_KEY)).thenReturn(null);
+            when(cache.get(CACHE_KEY)).thenReturn(null);
             val userEntry = userEntryWith("alice", "tenant-a");
             val saplUser  = new SaplUser("alice", "tenant-a");
             when(userLookupService.findByApiKey(VALID_KEY)).thenReturn(Optional.of(userEntry));
@@ -139,7 +147,7 @@ class ApiKeyServiceTests {
 
             assertThat(authentication).isInstanceOfSatisfying(SaplAuthenticationToken.class,
                     t -> assertThat(t.getPrincipal()).isEqualTo(saplUser));
-            verify(cache).put(VALID_KEY, saplUser);
+            verify(cache).put(CACHE_KEY, saplUser);
         }
 
         @Test
@@ -147,7 +155,7 @@ class ApiKeyServiceTests {
         void whenUnknownKeyThenApiKeyAuthenticationException() {
             when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_VALID);
             when(cacheManager.getCache(ApiKeyService.API_KEY_CACHE)).thenReturn(cache);
-            when(cache.get(VALID_KEY)).thenReturn(null);
+            when(cache.get(CACHE_KEY)).thenReturn(null);
             when(userLookupService.findByApiKey(VALID_KEY)).thenReturn(Optional.empty());
             val service   = new ApiKeyService(userLookupService, cacheManager);
             val converter = service.getHttpApiKeyAuthenticationConverter();
@@ -162,7 +170,7 @@ class ApiKeyServiceTests {
             when(cacheManager.getCache(ApiKeyService.API_KEY_CACHE)).thenReturn(cache);
             val cachedUser = new SaplUser("bob", "tenant-b");
             val cacheValue = new SimpleValueWrapper(cachedUser);
-            when(cache.get(VALID_KEY)).thenReturn(cacheValue);
+            when(cache.get(CACHE_KEY)).thenReturn(cacheValue);
             val service = new ApiKeyService(userLookupService, cacheManager);
 
             val authentication = service.getHttpApiKeyAuthenticationConverter().convert(request);
@@ -195,7 +203,7 @@ class ApiKeyServiceTests {
         void whenCacheEntryIsNotSaplUserThenFallbackToLookup() {
             when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_VALID);
             when(cacheManager.getCache(ApiKeyService.API_KEY_CACHE)).thenReturn(cache);
-            when(cache.get(VALID_KEY)).thenReturn(new SimpleValueWrapper("not-a-sapl-user"));
+            when(cache.get(CACHE_KEY)).thenReturn(new SimpleValueWrapper("not-a-sapl-user"));
             val userEntry = userEntryWith("dave", "tenant-d");
             val saplUser  = new SaplUser("dave", "tenant-d");
             when(userLookupService.findByApiKey(VALID_KEY)).thenReturn(Optional.of(userEntry));
@@ -206,7 +214,7 @@ class ApiKeyServiceTests {
 
             assertThat(authentication).isInstanceOfSatisfying(SaplAuthenticationToken.class,
                     t -> assertThat(t.getPrincipal()).isEqualTo(saplUser));
-            verify(cache).put(eq(VALID_KEY), eq(saplUser));
+            verify(cache).put(eq(CACHE_KEY), eq(saplUser));
         }
     }
 
@@ -215,6 +223,15 @@ class ApiKeyServiceTests {
         userEntry.setId(id);
         userEntry.setPdpId(pdpId);
         return userEntry;
+    }
+
+    private static String sha256Hex(String value) {
+        try {
+            val digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static final class SimpleValueWrapper implements Cache.ValueWrapper {

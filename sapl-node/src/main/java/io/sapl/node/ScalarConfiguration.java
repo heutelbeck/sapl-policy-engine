@@ -34,6 +34,7 @@ import com.scalar.maven.webmvc.ScalarWebMvcController;
 import com.scalar.maven.webmvc.SpringBootScalarProperties;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
@@ -48,6 +49,7 @@ import lombok.val;
  * injected as the rendered page's {@code customCss}, so the Scalar
  * reference UI matches the sapl.io palette.
  */
+@Slf4j
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SpringBootScalarProperties.class)
 class ScalarConfiguration {
@@ -72,6 +74,8 @@ class ScalarConfiguration {
         try (InputStream in = new ClassPathResource(SAPL_SCALAR_THEME_CSS).getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
+            log.warn("Could not load Scalar theme CSS from classpath:{} ({}); falling back to default Scalar theme.",
+                    SAPL_SCALAR_THEME_CSS, e.getMessage());
             return null;
         }
     }

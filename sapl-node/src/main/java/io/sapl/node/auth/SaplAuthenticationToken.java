@@ -17,13 +17,13 @@
  */
 package io.sapl.node.auth;
 
+import static io.sapl.node.auth.SaplRoles.PDP_CLIENT_AUTHORITIES;
+
 import java.io.Serial;
-import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import io.sapl.api.SaplVersion;
 
@@ -34,8 +34,6 @@ public class SaplAuthenticationToken extends AbstractAuthenticationToken {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
-
-    private static final SimpleGrantedAuthority PDP_CLIENT_AUTHORITY = new SimpleGrantedAuthority("ROLE_PDP_CLIENT");
 
     private final SaplUser saplUser;
     private Object         credentials;
@@ -48,7 +46,7 @@ public class SaplAuthenticationToken extends AbstractAuthenticationToken {
      * authentication)
      */
     public SaplAuthenticationToken(SaplUser saplUser, Object credentials) {
-        super(List.of(PDP_CLIENT_AUTHORITY));
+        super(PDP_CLIENT_AUTHORITIES);
         this.saplUser    = Objects.requireNonNull(saplUser, "SaplUser must not be null");
         this.credentials = credentials;
         setAuthenticated(true);

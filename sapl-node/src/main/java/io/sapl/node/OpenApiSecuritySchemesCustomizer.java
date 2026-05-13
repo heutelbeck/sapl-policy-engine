@@ -17,6 +17,7 @@
  */
 package io.sapl.node;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -82,8 +83,8 @@ class OpenApiSecuritySchemesCustomizer {
     private static final String SCHEME_API_KEY = "saplApiKey";
     private static final String SCHEME_OAUTH2  = "oauth2";
 
-    private static final String OIDC_DISCOVERY_PATH = "/.well-known/openid-configuration";
-    private static final String DEFAULT_REDIRECT    = "/scalar";
+    private static final String       OIDC_DISCOVERY_PATH = "/.well-known/openid-configuration";
+    private static final ObjectMapper DISCOVERY_MAPPER    = new ObjectMapper();
 
     private final SaplNodeProperties saplNodeProperties;
 
@@ -95,7 +96,7 @@ class OpenApiSecuritySchemesCustomizer {
     @Nullable
     private String scalarOauthClientId;
 
-    @Value("${io.sapl.node.scalar.oauth-redirect-uri:" + DEFAULT_REDIRECT + "}")
+    @Value("${io.sapl.node.scalar.oauth-redirect-uri:/scalar}")
     private String scalarOauthRedirectUri;
 
     private final AtomicReference<SecurityScheme> cachedOauth2Scheme = new AtomicReference<>();
@@ -202,8 +203,12 @@ class OpenApiSecuritySchemesCustomizer {
                 log.warn("OIDC discovery {} returned HTTP {}", url, response.statusCode());
                 return null;
             }
-            return new ObjectMapper().readTree(response.body());
-        } catch (Exception e) {
+            return DISCOVERY_MAPPER.readTree(response.body());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("OIDC discovery {} interrupted", url);
+            return null;
+        } catch (IOException e) {
             log.warn("OIDC discovery {} failed: {}", url, e.getMessage());
             return null;
         }

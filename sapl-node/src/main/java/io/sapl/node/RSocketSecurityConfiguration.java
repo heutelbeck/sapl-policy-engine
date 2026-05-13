@@ -62,6 +62,8 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class RSocketSecurityConfiguration {
 
+    private static final String SAPL_API_KEY_PREFIX = "sapl_";
+
     private static final String ERROR_AUTH_FAILED       = "Authentication failed.";
     private static final String ERROR_INVALID_BEARER    = "Invalid bearer token.";
     private static final String ERROR_MISSING_PDP_CLAIM = "JWT missing required claim: %s.";
@@ -123,11 +125,15 @@ public class RSocketSecurityConfiguration {
         val tokenChars = AuthMetadataCodec.readBearerTokenAsCharArray(metadata);
         val token      = new String(tokenChars);
 
-        if (jwtDecoder != null && properties.isAllowOauth2Auth()) {
-            return Mono.fromCallable(() -> jwtDecoder.decode(token)).flatMap(this::extractPdpIdFromJwt)
-                    .onErrorResume(e -> authenticateApiKey(token));
+        // Route by prefix: sapl_ marks API keys, JWTs lack it. Prevents
+        // a JWT signature failure from silently retrying as an API key.
+        if (token.startsWith(SAPL_API_KEY_PREFIX)) {
+            return authenticateApiKey(token);
         }
-        return authenticateApiKey(token);
+        if (jwtDecoder != null && properties.isAllowOauth2Auth()) {
+            return Mono.fromCallable(() -> jwtDecoder.decode(token)).flatMap(this::extractPdpIdFromJwt);
+        }
+        return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
     }
 
     private Mono<AuthenticationResult> extractPdpIdFromJwt(Jwt jwt) {

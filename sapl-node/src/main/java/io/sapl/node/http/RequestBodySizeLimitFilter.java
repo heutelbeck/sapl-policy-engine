@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.server.openidauthzapi;
+package io.sapl.node.http;
 
 import java.io.IOException;
 
@@ -30,22 +30,20 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
 
 /**
- * Caps the request body size on the OpenID Authorization API path. Mirrors
- * the {@code sapl.pdp.rsocket.max-inbound-payload-size} guard on the RSocket
- * transport: rejects requests whose declared {@code Content-Length} exceeds
- * the configured limit before any body bytes are read.
+ * Caps inbound HTTP request body size by rejecting requests whose declared
+ * {@code Content-Length} exceeds the configured limit before any body bytes
+ * are read. Mirrors the {@code sapl.pdp.rsocket.max-inbound-payload-size}
+ * guard on the RSocket transport.
  * <p>
- * Requests sent with chunked transfer encoding (no Content-Length) are
- * passed through to the handler, which then reads at most
- * {@code maxRequestBodyBytes} bytes from the input stream before throwing.
- * Jackson allocates per JSON token, so the up-front Content-Length check
- * keeps the obvious oversized-payload vector cheap.
+ * Requests sent with chunked transfer encoding (no {@code Content-Length})
+ * are passed through to the handler. Path scoping is the responsibility of
+ * the registration.
  */
-final class OpenIdRequestSizeLimitFilter extends OncePerRequestFilter {
+public final class RequestBodySizeLimitFilter extends OncePerRequestFilter {
 
     private final long maxRequestBodyBytes;
 
-    OpenIdRequestSizeLimitFilter(long maxRequestBodyBytes) {
+    public RequestBodySizeLimitFilter(long maxRequestBodyBytes) {
         if (maxRequestBodyBytes <= 0L) {
             throw new IllegalArgumentException("maxRequestBodyBytes must be positive, got " + maxRequestBodyBytes);
         }
@@ -62,10 +60,5 @@ final class OpenIdRequestSizeLimitFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
-    }
-
-    @Override
-    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/access/v1");
     }
 }

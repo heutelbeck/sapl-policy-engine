@@ -50,6 +50,7 @@ import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -776,7 +777,9 @@ public class PolicyDecisionPointBuilder {
         val scheduler = new RealTimeScheduler(clock);
 
         if (includeDefaults) {
-            val httpClient  = HttpClient.newHttpClient();
+            // 5 second TCP connect cap so a stalled remote PIP host does not
+            // hang the calling decision indefinitely.
+            val httpClient  = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
             val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
             val keyProvider = new JWTKeyProvider(httpClient, clock);
 

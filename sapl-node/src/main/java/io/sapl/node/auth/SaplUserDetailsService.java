@@ -17,6 +17,8 @@
  */
 package io.sapl.node.auth;
 
+import static io.sapl.node.auth.SaplRoles.PDP_CLIENT;
+
 import java.util.Optional;
 
 import org.jspecify.annotations.NonNull;
@@ -40,7 +42,6 @@ import lombok.val;
 public class SaplUserDetailsService implements UserDetailsService {
 
     static final String ERROR_USER_NOT_FOUND = "User not found: %s";
-    static final String ROLE_PDP_CLIENT      = "PDP_CLIENT";
 
     private final UserLookupService userLookupService;
 
@@ -51,7 +52,7 @@ public class SaplUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException(ERROR_USER_NOT_FOUND.formatted(username));
         }
         val basic = userEntryOpt.get().getBasic();
-        return User.builder().username(basic.getUsername()).password(basic.getSecret()).roles(ROLE_PDP_CLIENT).build();
+        return User.builder().username(basic.getUsername()).password(basic.getSecret()).roles(PDP_CLIENT).build();
     }
 
     /**
