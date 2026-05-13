@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.node.http.servlet;
+package io.sapl.node.http.pdp;
 
 import java.io.IOException;
 import java.io.Serial;
@@ -26,8 +26,8 @@ import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.Stream;
-import io.sapl.node.http.auth.HttpAuthHandler;
-import io.sapl.node.http.auth.HttpAuthenticationException;
+import io.sapl.node.auth.http.HttpAuthHandler;
+import io.sapl.node.auth.http.HttpAuthenticationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;

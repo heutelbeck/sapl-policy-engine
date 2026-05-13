@@ -37,8 +37,8 @@ import jakarta.servlet.http.HttpServlet;
 
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.auth.UserLookupService;
-import io.sapl.node.http.auth.CachingHttpAuthHandler;
-import io.sapl.node.http.auth.HttpAuthHandler;
+import io.sapl.node.auth.http.CachingHttpAuthHandler;
+import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.http.pdp.DecideOnceServlet;
 import io.sapl.node.http.pdp.DecideStreamServlet;
 import io.sapl.node.http.pdp.MultiDecideAllOnceServlet;

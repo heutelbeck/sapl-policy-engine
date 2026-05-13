@@ -32,8 +32,8 @@ import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.SaplVersion;
 import io.sapl.api.stream.Stream;
-import io.sapl.node.http.auth.HttpAuthHandler;
-import io.sapl.node.http.auth.HttpAuthenticationException;
+import io.sapl.node.auth.http.HttpAuthHandler;
+import io.sapl.node.auth.http.HttpAuthenticationException;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;

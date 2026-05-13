@@ -25,10 +25,10 @@ import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
 
-import static io.sapl.node.SecretGenerator.encodeWithArgon2;
-import static io.sapl.node.SecretGenerator.newApiKey;
-import static io.sapl.node.SecretGenerator.newKey;
-import static io.sapl.node.SecretGenerator.newSecret;
+import static io.sapl.node.auth.SecretGenerator.encodeWithArgon2;
+import static io.sapl.node.auth.SecretGenerator.newApiKey;
+import static io.sapl.node.auth.SecretGenerator.newKey;
+import static io.sapl.node.auth.SecretGenerator.newSecret;
 
 /**
  * Commands for generating authentication credentials.

@@ -40,9 +40,9 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import io.sapl.node.SaplNodeProperties.UserEntry;
-import io.sapl.node.apikey.ApiKeyAuthenticationException;
-import io.sapl.node.apikey.ApiKeyAuthenticationManager;
-import io.sapl.node.apikey.ApiKeyService;
+import io.sapl.node.auth.apikey.ApiKeyAuthenticationException;
+import io.sapl.node.auth.apikey.ApiKeyAuthenticationManager;
+import io.sapl.node.auth.apikey.ApiKeyService;
 import io.sapl.node.auth.SaplAuthenticationToken;
 import io.sapl.node.auth.SaplUser;
 import io.sapl.node.auth.UserLookupService;

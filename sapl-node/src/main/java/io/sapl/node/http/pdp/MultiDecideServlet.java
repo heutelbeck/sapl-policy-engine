@@ -26,7 +26,7 @@ import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.Stream;
-import io.sapl.node.http.auth.HttpAuthHandler;
+import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import tools.jackson.databind.json.JsonMapper;
 

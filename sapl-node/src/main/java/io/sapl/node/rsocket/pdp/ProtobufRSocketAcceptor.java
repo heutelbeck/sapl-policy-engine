@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.server.pdpcontroller;
+package io.sapl.node.rsocket.pdp;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

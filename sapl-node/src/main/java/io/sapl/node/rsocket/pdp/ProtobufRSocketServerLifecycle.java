@@ -31,7 +31,7 @@ import io.netty.handler.ssl.SslContext;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
-import io.sapl.node.SaplStartupConfigurationException;
+import io.sapl.node.boot.SaplStartupConfigurationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;

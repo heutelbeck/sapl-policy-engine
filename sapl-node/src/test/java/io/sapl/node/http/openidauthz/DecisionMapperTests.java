@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.server.openidauthzapi;
+package io.sapl.node.http.openidauthz;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;

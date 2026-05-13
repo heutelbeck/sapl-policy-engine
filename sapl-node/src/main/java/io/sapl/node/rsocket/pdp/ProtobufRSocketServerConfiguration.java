@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.sapl.node.SaplStartupConfigurationException;
+import io.sapl.node.boot.SaplStartupConfigurationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
