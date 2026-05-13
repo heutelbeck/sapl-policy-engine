@@ -30,6 +30,8 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
+import org.jspecify.annotations.Nullable;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
 import lombok.val;
@@ -111,6 +113,10 @@ class MultiSubscriptionDeglitchTests {
                 new ThreadLocalRandomIdFactory());
     }
 
+    private static ReactivePolicyDecisionPoint reactivePdp(PDPComponents components) {
+        return ReactivePolicyDecisionPointBuilder.from(components).pdp();
+    }
+
     private static void assertBundleDecisions(MultiAuthorizationDecision bundle, Decision aliceExpected,
             Decision bobExpected) {
         assertThatObject(bundle).isNotNull().satisfies(b -> {
@@ -131,7 +137,8 @@ class MultiSubscriptionDeglitchTests {
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
                 flagPip.publish(Value.of(false));
 
-                StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decideAll(twoSubs()))
+                val pdp = reactivePdp(components);
+                StepVerifier.create(pdp.decideAll(twoSubs()))
                         .assertNext(initial -> assertBundleDecisions(initial, Decision.DENY, Decision.DENY))
                         .then(() -> flagPip.publish(Value.of(true)))
                         .assertNext(flipped -> assertBundleDecisions(flipped, Decision.PERMIT, Decision.PERMIT))
@@ -147,11 +154,10 @@ class MultiSubscriptionDeglitchTests {
                     SHARED_ATTRIBUTE_POLICY_BOB)) {
                 flagPip.publish(Value.of(true));
 
-                StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decideAll(twoSubs()))
-                        .assertNext(initial -> assertThat(initial.getDecision("alice-sub").decision())
-                                .isEqualTo(Decision.PERMIT))
+                val pdp = reactivePdp(components);
+                StepVerifier.create(pdp.decideAll(twoSubs()))
+                        .assertNext(initial -> assertBundleDecisions(initial, Decision.PERMIT, Decision.PERMIT))
                         .then(() -> {
-                            flagPip.publish(Value.of(true));
                             flagPip.publish(Value.of(true));
                             flagPip.publish(Value.of(true));
                         }).expectNoEvent(QUIET_WINDOW).thenCancel().verify(Duration.ofSeconds(5));
@@ -169,7 +175,8 @@ class MultiSubscriptionDeglitchTests {
                 val initialIds = new CopyOnWriteArrayList<String>();
                 val flippedIds = new CopyOnWriteArrayList<String>();
 
-                StepVerifier.create(ReactivePolicyDecisionPointBuilder.from(components).pdp().decide(twoSubs()))
+                val pdp = reactivePdp(components);
+                StepVerifier.create(pdp.decide(twoSubs()))
                         .assertNext(change -> recordWithExpected(change, initialIds, Decision.DENY))
                         .assertNext(change -> recordWithExpected(change, initialIds, Decision.DENY))
                         .then(() -> flagPip.publish(Value.of(true)))
@@ -222,8 +229,7 @@ class MultiSubscriptionDeglitchTests {
                 flagPip.publish(Value.of(true));
 
                 try (val stream = blocking.decideAll(twoSubs())) {
-                    val initial = stream.awaitNext();
-                    assertThat(initial.getDecision("alice-sub").decision()).isEqualTo(Decision.PERMIT);
+                    assertBundleDecisions(stream.awaitNext(), Decision.PERMIT, Decision.PERMIT);
 
                     flagPip.publish(Value.of(true));
                     flagPip.publish(Value.of(true));
@@ -293,7 +299,7 @@ class MultiSubscriptionDeglitchTests {
     @PolicyInformationPoint(name = "flag")
     public static class FlagPip {
 
-        private volatile Value                      current     = null;
+        private volatile @Nullable Value            current;
         private final List<LatestSlotStream<Value>> openStreams = new CopyOnWriteArrayList<>();
 
         @EnvironmentAttribute

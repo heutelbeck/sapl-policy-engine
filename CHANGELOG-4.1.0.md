@@ -228,3 +228,36 @@ contract. Most callers ignore the return value.
 The legacy `io.sapl.spring.data` subtree (old `@QueryEnforce`-based
 query rewriting). Spring Data query manipulation now goes through
 `@PreEnforce` plus a query manipulation obligation.
+
+## SAPL Node
+
+The runnable PDP distribution (`sapl-node`) gains a number of
+operator-facing improvements in 4.1.
+
+- **Higher HTTP throughput.** The PDP HTTP path is served by Spring MVC
+  on Jetty with virtual threads, bypassing the reactive request pipeline
+  on the hot path. The RSocket transport (already in 4.0) remains the
+  top-throughput option.
+- **OpenID Authorization API endpoint.** The node ships an OpenID-style
+  authorization API alongside the native SAPL HTTP API, simplifying
+  integration for ecosystems that speak the OpenID shape.
+- **Scalar OpenAPI UI.** A live API explorer is mounted at `/scalar`,
+  generated from the OpenAPI definition exposed by the node.
+- **Status page.** A root index page reports node version, build
+  metadata, and health at `/`.
+- **Friendly startup failures.** Configuration errors (missing
+  auth mechanism, JWT issuer not configured, payload size out of range,
+  duplicate api-key-id, etc.) surface as readable messages with concrete
+  remediation advice instead of Spring stack traces, via Spring Boot's
+  FailureAnalyzer mechanism.
+- **`--no-auth` CLI shortcut.** First-run development unblocked with a
+  single flag.
+- **Clean boot logging.** Framework noise suppressed via
+  `logback-spring.xml`; the ready banner reports endpoints, ports, and
+  active authentication methods at a glance.
+- **Active SSE drain on shutdown.** Open streaming subscriptions receive
+  a server-initiated `event: shutdown` and are cleanly completed before
+  the HTTP listener disposes.
+- **Internal package layout cleaned up** under `io.sapl.node.*`
+  (`auth/`, `boot/`, `observability/`, `http/openapi/`,
+  `rsocket/pdp/`). No supported public API affected.
