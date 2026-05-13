@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.server;
+package io.sapl.node.rsocket.pdp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,8 +45,8 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.proto.SaplProtobufCodec;
-import io.sapl.server.pdpcontroller.ProtobufRSocketAcceptor;
-import io.sapl.server.pdpcontroller.RSocketConnectionAuthenticator.AuthenticationResult;
+import io.sapl.node.rsocket.pdp.ProtobufRSocketAcceptor;
+import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator.AuthenticationResult;
 import lombok.val;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -236,6 +236,14 @@ class ProtobufRSocketAcceptorTests {
     private static Payload createDecideOncePayload(AuthorizationSubscription sub) throws IOException {
         val data = SaplProtobufCodec.writeAuthorizationSubscription(sub);
         return DefaultPayload.create(data, "decide-once".getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Payload createDecideOncePayloadUnchecked(AuthorizationSubscription sub) {
+        try {
+            return createDecideOncePayload(sub);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static Payload createDecidePayload(AuthorizationSubscription sub) throws IOException {

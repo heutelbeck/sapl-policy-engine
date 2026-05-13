@@ -16,6 +16,6 @@
  * limitations under the License.
  */
 @NullMarked
-package io.sapl.server.openidauthzapi;
+package io.sapl.node.http.openidauthz;
 
 import org.jspecify.annotations.NullMarked;

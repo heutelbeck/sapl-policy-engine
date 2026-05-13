@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.node.http.servlet;
+package io.sapl.node.http.pdp;
 
 import java.io.Serial;
 import java.time.Duration;
@@ -23,27 +23,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
-import io.sapl.api.pdp.MultiAuthorizationSubscription;
+import io.sapl.api.pdp.AuthorizationDecision;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.http.auth.HttpAuthHandler;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Bypass-Spring servlet for {@code POST /api/pdp/multi-decide}:
- * server-sent-event stream of per-subscription
- * {@link IdentifiableAuthorizationDecision} values.
+ * Bypass-Spring servlet for {@code POST /api/pdp/decide}: server-sent-event
+ * stream of {@link AuthorizationDecision} values for a single subscription.
  */
-public final class MultiDecideServlet
-        extends SseStreamServlet<MultiAuthorizationSubscription, IdentifiableAuthorizationDecision> {
+public final class DecideStreamServlet extends SseStreamServlet<AuthorizationSubscription, AuthorizationDecision> {
 
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final BlockingPolicyDecisionPoint pdp;
 
-    public MultiDecideServlet(BlockingPolicyDecisionPoint pdp,
+    public DecideStreamServlet(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler,
             JsonMapper mapper,
             Duration keepAliveInterval,
@@ -55,18 +53,17 @@ public final class MultiDecideServlet
     }
 
     @Override
-    protected Class<MultiAuthorizationSubscription> subscriptionType() {
-        return MultiAuthorizationSubscription.class;
+    protected Class<AuthorizationSubscription> subscriptionType() {
+        return AuthorizationSubscription.class;
     }
 
     @Override
-    protected Stream<IdentifiableAuthorizationDecision> openStream(MultiAuthorizationSubscription subscription,
-            String pdpId) {
+    protected Stream<AuthorizationDecision> openStream(AuthorizationSubscription subscription, String pdpId) {
         return pdp.decide(subscription, pdpId);
     }
 
     @Override
-    protected IdentifiableAuthorizationDecision indeterminate() {
-        return IdentifiableAuthorizationDecision.INDETERMINATE;
+    protected AuthorizationDecision indeterminate() {
+        return AuthorizationDecision.INDETERMINATE;
     }
 }

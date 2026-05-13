@@ -16,6 +16,6 @@
  * limitations under the License.
  */
 @NullMarked
-package io.sapl.node.http.servlet;
+package io.sapl.node.rsocket.pdp;
 
 import org.jspecify.annotations.NullMarked;

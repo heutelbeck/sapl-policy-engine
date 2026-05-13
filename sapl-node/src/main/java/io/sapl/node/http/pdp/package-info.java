@@ -16,6 +16,6 @@
  * limitations under the License.
  */
 @NullMarked
-package io.sapl.server.pdpcontroller;
+package io.sapl.node.http.pdp;
 
 import org.jspecify.annotations.NullMarked;
