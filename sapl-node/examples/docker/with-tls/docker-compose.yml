@@ -1,0 +1,79 @@
+#
+# Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Demonstrates TLS termination on both transports (HTTP + RSocket) using a
+# single shared Spring Boot SSL bundle. Run ./generate-keystore.sh first to
+# create the self-signed development keystore at ./tls/keystore.p12.
+
+services:
+  sapl-node:
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
+    container_name: sapl-node-tls
+    ports:
+      - "8443:8443"
+      - "7000:7000"
+    volumes:
+      - ./policies:/pdp/data:ro
+      - ./tls:/pdp/tls:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      # Authentication: no-auth so the demo focuses on the TLS plumbing
+      - IO_SAPL_NODE_ALLOWNOAUTH=true
+      - IO_SAPL_NODE_ALLOWBASICAUTH=false
+      - IO_SAPL_NODE_ALLOWAPIKEYAUTH=false
+      - IO_SAPL_NODE_ALLOWOAUTH2AUTH=false
+
+      # Policy source
+      - IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY
+      - IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data
+
+      # Spring Boot SSL bundle definition. The same `sapl-bundle` name is
+      # referenced by both the HTTP server and the RSocket server below, so
+      # one keystore covers both transports.
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_ALIAS=sapl-node
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEY_PASSWORD=changeit
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_LOCATION=file:/pdp/tls/keystore.p12
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_PASSWORD=changeit
+      - SPRING_SSL_BUNDLE_JKS_SAPL-BUNDLE_KEYSTORE_TYPE=PKCS12
+
+      # HTTPS on 8443 using the bundle
+      - SERVER_PORT=8443
+      - SERVER_SSL_ENABLED=true
+      - SERVER_SSL_BUNDLE=sapl-bundle
+      # The bundled keystore lacks an ALPN-capable Jetty dependency, so
+      # disable HTTP/2 to fall back to HTTP/1.1 for this demo.
+      - SERVER_HTTP2_ENABLED=false
+
+      # RSocket TLS on 7000 using the same bundle
+      - SAPL_PDP_RSOCKET_ENABLED=true
+      - SAPL_PDP_RSOCKET_PORT=7000
+      - SAPL_PDP_RSOCKET_SSL_BUNDLE=sapl-bundle
+
+      # Bind to 0.0.0.0 so the docker port mapping works
+      - SERVER_ADDRESS=0.0.0.0
+      # Paketo default MaxDirectMemorySize=10M is too low for Netty
+      - JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M
+
+      - IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT=true
+    restart: unless-stopped

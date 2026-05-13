@@ -7,7 +7,7 @@
   {
     "name": "io.sapl.pdp.remote.host",
     "type": "java.lang.String",
-    "description": "Host of the PDP server. E.g.: https://pdp.example.org:8443 ."
+    "description": "Host of the PDP server. E.g.: http://pdp.example.org:8080 (or https with explicit TLS configuration)."
   },
   {
     "name": "io.sapl.pdp.remote.key",

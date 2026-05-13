@@ -21,6 +21,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLException;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -323,6 +325,59 @@ class RSocketTransportIT extends BaseIntegrationTest {
                         AuthorizationDecision.DENY);
                 expectDecision(connectBasic(container, "stagingUser", BASIC_SECRET), subscription,
                         AuthorizationDecision.PERMIT);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("TLS Termination (SSL Bundle)")
+    class TlsTests {
+
+        private GenericContainer<?> createRSocketTlsContainer() {
+            return createSaplNodeContainerWithoutTls(POLICIES_PATH).withExposedPorts(SAPL_SERVER_PORT, RSOCKET_PORT)
+                    .withEnv("SAPL_PDP_RSOCKET_ENABLED", "true")
+                    .withEnv("SAPL_PDP_RSOCKET_PORT", String.valueOf(RSOCKET_PORT))
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEY_ALIAS", "netty")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEY_PASSWORD", "changeme")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEYSTORE_LOCATION", "file:/pdp/data/keystore.p12")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEYSTORE_PASSWORD", "changeme")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEYSTORE_TYPE", "PKCS12")
+                    .withEnv("SAPL_PDP_RSOCKET_SSL_BUNDLE", "saplbundle").withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true");
+        }
+
+        private ReactivePolicyDecisionPoint connectRsocketTls(GenericContainer<?> container) {
+            try {
+                return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                        .port(container.getMappedPort(RSOCKET_PORT)).withUnsecureSSL().build();
+            } catch (SSLException e) {
+                throw new IllegalStateException("Failed to build insecure SSL context for RSocket TLS test", e);
+            }
+        }
+
+        @Test
+        @DisplayName("returns PERMIT when policy matches over RSocket TLS via shared SSL bundle")
+        void whenRsocketTlsAndPolicyMatchesThenPermit() {
+            try (val container = createRSocketTlsContainer()) {
+                container.start();
+                expectDecision(connectRsocketTls(container), PERMIT_SUBSCRIPTION, AuthorizationDecision.PERMIT);
+            }
+        }
+
+        @Test
+        @DisplayName("returns DENY when policy does not match over RSocket TLS")
+        void whenRsocketTlsAndPolicyDoesNotMatchThenDeny() {
+            try (val container = createRSocketTlsContainer()) {
+                container.start();
+                expectDecision(connectRsocketTls(container), DENY_SUBSCRIPTION, AuthorizationDecision.DENY);
+            }
+        }
+
+        @Test
+        @DisplayName("rejects plain-TCP connection when RSocket server requires TLS")
+        void whenPlainConnectionAgainstTlsServerThenIndeterminate() {
+            try (val container = createRSocketTlsContainer()) {
+                container.start();
+                expectDecision(connectNoAuth(container), PERMIT_SUBSCRIPTION, AuthorizationDecision.INDETERMINATE);
             }
         }
     }

@@ -96,6 +96,12 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             } else {
                 log.info("Protobuf RSocket PDP server started on port {} ({})", port, scheme);
             }
+            if (sslContext == null && socketPath == null) {
+                log.warn("RSocket server bound on port {} without TLS. Connection-setup credentials "
+                        + "(basic auth, API key, JWT) and decision payloads traverse the network in cleartext. "
+                        + "Configure sapl.pdp.rsocket.ssl.bundle, or terminate TLS at an upstream load balancer.",
+                        port);
+            }
         } finally {
             lifecycleLock.unlock();
         }

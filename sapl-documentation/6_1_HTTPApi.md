@@ -156,7 +156,7 @@ data: {"decision":"DENY","obligations":[{"type":"log_access","reason":"policy ch
 **Example with curl:**
 
 ```shell
-curl -N -X POST https://localhost:8443/api/pdp/decide \
+curl -N -X POST http://localhost:8080/api/pdp/decide \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer sapl_..." \
   -d '{"subject":"alice","action":"read","resource":"document"}'
@@ -165,7 +165,7 @@ curl -N -X POST https://localhost:8443/api/pdp/decide \
 **Example with the SAPL CLI** (streams decisions as NDJSON):
 
 ```shell
-sapl decide --remote --url https://localhost:8443 --token sapl_... \
+sapl decide --remote --url http://localhost:8080 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"'
 ```
 
@@ -206,14 +206,14 @@ Returns a single authorization decision and closes the connection. Use this for 
 **Example with the SAPL CLI:**
 
 ```shell
-sapl decide-once --remote --url https://localhost:8443 --token sapl_... \
+sapl decide-once --remote --url http://localhost:8080 --token sapl_... \
   -s '{"username":"alice","role":"doctor"}' -a '"read"' -r '{"type":"patient_record","patientId":123}'
 ```
 
 The `sapl check` command returns an exit code instead of JSON output, making it suitable for shell scripts and CI/CD pipelines:
 
 ```shell
-sapl check --remote --url https://localhost:8443 --token sapl_... \
+sapl check --remote --url http://localhost:8080 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"' && echo "PERMIT"
 ```
 
@@ -365,7 +365,7 @@ Set the proxy read timeout above this interval (e.g., 60 seconds). See [Configur
 
 ```nginx
 location /api/pdp/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
     proxy_buffering off;
     proxy_cache off;
     proxy_read_timeout 3600s;
@@ -375,7 +375,7 @@ location /api/pdp/ {
 }
 
 location /actuator/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
 }
 ```
 
@@ -384,14 +384,14 @@ location /actuator/ {
 Enable `mod_proxy` and `mod_proxy_http`. Disable response buffering for the PDP path:
 
 ```apache
-ProxyPass /api/pdp/ http://127.0.0.1:8443/api/pdp/
-ProxyPassReverse /api/pdp/ http://127.0.0.1:8443/api/pdp/
+ProxyPass /api/pdp/ http://127.0.0.1:8080/api/pdp/
+ProxyPassReverse /api/pdp/ http://127.0.0.1:8080/api/pdp/
 SetEnv proxy-sendchunked 1
 SetEnv proxy-sendcl 0
 ProxyTimeout 3600
 
-ProxyPass /actuator/ http://127.0.0.1:8443/actuator/
-ProxyPassReverse /actuator/ http://127.0.0.1:8443/actuator/
+ProxyPass /actuator/ http://127.0.0.1:8080/actuator/
+ProxyPassReverse /actuator/ http://127.0.0.1:8080/actuator/
 ```
 
 The one-shot endpoints (`/api/pdp/decide-once`, `/api/pdp/multi-decide-all-once`) and actuator endpoints work with default proxy settings.

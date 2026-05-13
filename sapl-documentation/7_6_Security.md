@@ -144,7 +144,7 @@ For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oau
 
 ### TLS
 
-TLS is disabled by default so the node starts without a certificate. To enable TLS, configure a keystore:
+TLS is disabled by default so the node starts without a certificate. The HTTP server ships on port 8080 (plain HTTP); enable TLS by configuring a keystore and binding to the HTTPS-conventional port 8443:
 
 ```yaml
 server:
@@ -155,6 +155,40 @@ server:
     key-store-password: "${KEYSTORE_PASSWORD}"
     key-store-type: PKCS12
 ```
+
+#### Sharing TLS material across HTTP and RSocket via SSL bundles
+
+Spring Boot SSL bundles centralise keystore configuration so HTTP and RSocket can terminate TLS using the same material. Define the bundle once under `spring.ssl.bundle.*`, then reference it by name from each transport:
+
+```yaml
+spring:
+  ssl:
+    bundle:
+      jks:
+        sapl-bundle:
+          key:
+            alias: sapl-node
+            password: "${KEYSTORE_PASSWORD}"
+          keystore:
+            location: file:/opt/sapl/tls/keystore.p12
+            password: "${KEYSTORE_PASSWORD}"
+            type: PKCS12
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    bundle: sapl-bundle
+
+sapl:
+  pdp:
+    rsocket:
+      enabled: true
+      ssl:
+        bundle: sapl-bundle
+```
+
+CLI clients connect with `--rsocket --rsocket-tls`; the `--insecure` flag skips certificate verification against self-signed development certificates. See [Configuration](../7_2_Configuration/#rsocket-properties) for the full RSocket property reference.
 
 The default configuration restricts connections to modern cipher suites and protocol versions:
 
@@ -289,7 +323,7 @@ This sends a keep-alive frame every 15 seconds. Set the proxy read timeout to a 
 
 ```nginx
 location /api/pdp/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
     proxy_buffering off;
     proxy_cache off;
     proxy_read_timeout 3600s;
@@ -299,7 +333,7 @@ location /api/pdp/ {
 }
 
 location /actuator/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
 }
 ```
 
@@ -308,14 +342,14 @@ location /actuator/ {
 Enable `mod_proxy` and `mod_proxy_http`. Disable response buffering for the PDP path:
 
 ```apache
-ProxyPass /api/pdp/ http://127.0.0.1:8443/api/pdp/
-ProxyPassReverse /api/pdp/ http://127.0.0.1:8443/api/pdp/
+ProxyPass /api/pdp/ http://127.0.0.1:8080/api/pdp/
+ProxyPassReverse /api/pdp/ http://127.0.0.1:8080/api/pdp/
 SetEnv proxy-sendchunked 1
 SetEnv proxy-sendcl 0
 ProxyTimeout 3600
 
-ProxyPass /actuator/ http://127.0.0.1:8443/actuator/
-ProxyPassReverse /actuator/ http://127.0.0.1:8443/actuator/
+ProxyPass /actuator/ http://127.0.0.1:8080/actuator/
+ProxyPassReverse /actuator/ http://127.0.0.1:8080/actuator/
 ```
 
 The non-streaming endpoints (`/api/pdp/decide-once`, `/api/pdp/multi-decide-all-once`) and actuator endpoints work with default proxy settings and do not require special configuration.
