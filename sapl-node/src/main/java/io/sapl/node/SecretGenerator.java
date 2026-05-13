@@ -17,14 +17,17 @@
  */
 package io.sapl.node;
 
-import lombok.experimental.UtilityClass;
-import lombok.val;
+import java.security.SecureRandom;
+
 import org.passay.CharacterData;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
 import org.passay.Rule;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+
+import lombok.experimental.UtilityClass;
+import lombok.val;
 
 @UtilityClass
 public class SecretGenerator {
@@ -76,8 +79,14 @@ public class SecretGenerator {
                 new CharacterRule(EnglishCharacterData.Digit, 2) };
     }
 
+    // Explicit non-blocking SecureRandom: Passay's default constructor calls
+    // SecureRandom.getInstance(...), which can resolve to NativePRNGBlocking
+    // and stall on /dev/random in GraalVM native images at startup.
+    // new SecureRandom() uses /dev/urandom on Linux and is non-blocking.
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private static String generateKey(int length) {
-        return new PasswordGenerator().generatePassword(length, baseRules());
+        return new PasswordGenerator(SECURE_RANDOM).generatePassword(length, baseRules());
     }
 
     private static String generatePassword(int length) {
@@ -85,6 +94,6 @@ public class SecretGenerator {
         val rules = new Rule[base.length + 1];
         rules[0] = new CharacterRule(SPECIAL_CHARACTERS, 2);
         System.arraycopy(base, 0, rules, 1, base.length);
-        return new PasswordGenerator().generatePassword(length, rules);
+        return new PasswordGenerator(SECURE_RANDOM).generatePassword(length, rules);
     }
 }

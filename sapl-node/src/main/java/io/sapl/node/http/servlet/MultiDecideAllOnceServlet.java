@@ -91,10 +91,15 @@ public class MultiDecideAllOnceServlet extends HttpServlet {
             decision = MultiAuthorizationDecision.indeterminate();
         }
 
+        // Serialize first so the status code reflects the actual outcome.
+        // Writing 200 then mapper.writeValue would leave the client with
+        // "200 OK" plus a truncated body on a Jackson failure mid-write.
+        val body = mapper.writeValueAsBytes(decision);
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(CONTENT_TYPE_JSON);
+        response.setContentLength(body.length);
         try (val out = response.getOutputStream()) {
-            mapper.writeValue(out, decision);
+            out.write(body);
         }
     }
 }

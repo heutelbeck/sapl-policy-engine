@@ -91,16 +91,26 @@ public class RSocketSecurityConfiguration {
             if (metadata.readableBytes() == 0) {
                 return Mono.error(new BadCredentialsException(ERROR_NO_CREDENTIALS));
             }
+            // wrappedBuffer over a nio ByteBuffer creates an UnpooledUnsafeDirectByteBuf
+            // with doNotFree=true: deallocate is a no-op for the underlying memory
+            // (the original ByteBuffer's Cleaner reclaims it). The release() call
+            // here costs nothing real but silences the Netty leak detector.
             val metadataBuf = Unpooled.wrappedBuffer(metadata.nioBuffer());
             try {
                 val authType = AuthMetadataCodec.readWellKnownAuthType(metadataBuf);
+                // authenticateBasic/Bearer consume the buffer synchronously and
+                // capture String/byte[] copies into the returned Mono, so it is
+                // safe to release before the Mono is subscribed.
                 return switch (authType) {
                 case SIMPLE -> authenticateBasic(metadataBuf);
                 case BEARER -> authenticateBearer(metadataBuf);
                 default     -> Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
                 };
             } catch (Exception e) {
+                log.debug("RSocket setup auth failed: {}", e.getMessage());
                 return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED, e));
+            } finally {
+                metadataBuf.release();
             }
         });
     }

@@ -202,6 +202,16 @@ public class SaplNodeApplication {
             hints.reflection().registerTypeIfPresent(classLoader,
                     "org.springframework.boot.webmvc.actuate.endpoint.web.AbstractWebMvcEndpointHandlerMapping$OperationHandler",
                     MemberCategory.ACCESS_DECLARED_FIELDS);
+
+            // Passay reflects on its CharacterData / CharacterRule types when
+            // building generators. SAPL's `generate basic`/`generate apikey`
+            // CLI commands depend on this; without the hints the native
+            // binary fails at first credential generation.
+            for (val passayClass : new String[] { "org.passay.PasswordGenerator", "org.passay.CharacterRule",
+                    "org.passay.EnglishCharacterData" }) {
+                hints.reflection().registerTypeIfPresent(classLoader, passayClass,
+                        MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_DECLARED_METHODS);
+            }
         }
 
     }

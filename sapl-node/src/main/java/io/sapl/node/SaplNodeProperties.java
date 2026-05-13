@@ -23,17 +23,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
  * Configuration properties for SAPL Node authentication and user management.
  */
+@Slf4j
 @Data
 @ConfigurationProperties(prefix = "io.sapl.node")
-public class SaplNodeProperties {
+public class SaplNodeProperties implements InitializingBean {
 
     public static final String DEFAULT_PDP_ID = "default";
 
@@ -47,11 +50,14 @@ public class SaplNodeProperties {
     private boolean allowApiKeyAuth = false;
     private boolean allowOauth2Auth = false;
 
-    // Global PDP ID settings (applies to all auth methods)
+    // Global PDP ID settings (applies to all auth methods).
+    // All boot-time validation runs in afterPropertiesSet() once Spring
+    // has called every setter, so the binder's setter ordering does not
+    // affect the outcome.
     private boolean rejectOnMissingPdpId = false;
     private String  defaultPdpId         = DEFAULT_PDP_ID;
 
-    // User entries with unified credentials
+    // User entries with unified credentials.
     private List<UserEntry> users = new ArrayList<>();
 
     // O(1) lookup index for API key authentication, rebuilt on every setUsers().
@@ -72,18 +78,30 @@ public class SaplNodeProperties {
     }
 
     /**
-     * Sets the user entries, validating and normalizing pdpId.
-     * <p>
-     * If a user has no pdpId and rejectOnMissingPdpId is enabled, startup fails.
-     * Otherwise, missing pdpId is normalized to defaultPdpId.
+     * Stores the user entries. Validation, pdpId normalisation and
+     * apiKeyIdIndex construction happen in {@link #afterPropertiesSet()}
+     * once Spring has bound every setter, so binder ordering between
+     * {@code setUsers}, {@code setRejectOnMissingPdpId} and
+     * {@code setDefaultPdpId} does not affect the outcome.
      *
      * @param users the user entries to set
      */
     public void setUsers(List<UserEntry> users) {
+        this.users = new ArrayList<>(users);
+    }
+
+    /**
+     * Final boot-time validation: enforces apiKey constraints, normalises
+     * or rejects missing pdpId per {@link #rejectOnMissingPdpId}, and
+     * builds the api-key-id O(1) lookup index.
+     */
+    @Override
+    public void afterPropertiesSet() {
         val nextIndex = new HashMap<String, UserEntry>();
         for (UserEntry user : users) {
             if (user.getApiKey() != null) {
                 assertIsValidApiKey(user.getApiKey());
+                warnIfApiKeyLooksPlaintext(user);
             }
             normalizeOrRejectPdpId(user);
             val apiKeyId = user.getApiKeyId();
@@ -93,8 +111,22 @@ public class SaplNodeProperties {
                 }
             }
         }
-        this.users         = new ArrayList<>(users);
         this.apiKeyIdIndex = Map.copyOf(nextIndex);
+    }
+
+    private void warnIfApiKeyLooksPlaintext(UserEntry user) {
+        // Spring's PasswordEncoder marks encoded values with an {algo} prefix
+        // (e.g. {argon2id$...}). A configured apiKey lacking that prefix is
+        // almost certainly the plaintext from `sapl generate apikey` instead
+        // of the encoded line; matching will silently fail at every request
+        // because passwordEncoder.matches expects the encoded form.
+        val key = user.getApiKey();
+        if (!key.startsWith("{")) {
+            log.warn("User '{}' has an apiKey that does not look encoded "
+                    + "(no {{algo}} prefix). The matcher requires the encoded "
+                    + "form; configure the {{argon2id$...}} value from the "
+                    + "generator output, not the plaintext key.", user.getId());
+        }
     }
 
     /**
@@ -110,15 +142,13 @@ public class SaplNodeProperties {
     }
 
     /**
-     * Sets the rejectOnMissingPdpId flag and re-validates existing users.
+     * Stores the flag. Per-user validation runs once in
+     * {@link #afterPropertiesSet()} so binder ordering does not matter.
      *
      * @param rejectOnMissingPdpId true to reject users without pdpId at startup
      */
     public void setRejectOnMissingPdpId(boolean rejectOnMissingPdpId) {
         this.rejectOnMissingPdpId = rejectOnMissingPdpId;
-        for (UserEntry user : users) {
-            normalizeOrRejectPdpId(user);
-        }
     }
 
     private void normalizeOrRejectPdpId(UserEntry user) {

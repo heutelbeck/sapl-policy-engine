@@ -130,6 +130,12 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
     }
 
     private HttpAuthResult verifyApiKey(String apiKey) {
+        // Defense in depth: the call site already gates on the sapl_ prefix,
+        // but enforce it here too so a future caller can't accidentally route
+        // a non-prefixed token through the API-key path.
+        if (!apiKey.startsWith(SAPL_PREFIX)) {
+            throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
+        }
         val userOpt = userLookupService.findByApiKey(apiKey);
         if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
