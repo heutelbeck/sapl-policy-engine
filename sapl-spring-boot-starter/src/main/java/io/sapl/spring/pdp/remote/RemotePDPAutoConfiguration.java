@@ -19,7 +19,6 @@ package io.sapl.spring.pdp.remote;
 
 import javax.net.ssl.SSLException;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -27,8 +26,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
+import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,36 +43,80 @@ public class RemotePDPAutoConfiguration {
 
     private static final String ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE = "Unsupported remote PDP connection type: %s";
 
+    private static final String TYPE_HTTP    = "http";
+    private static final String TYPE_RSOCKET = "rsocket";
+
     private final RemotePDPProperties configuration;
 
     @Bean
     @ConditionalOnMissingBean
     ReactivePolicyDecisionPoint policyDecisionPoint() throws SSLException {
-        if ("http".equals(configuration.getType())) {
-            log.info("Binding to http remote PDP server: {}", configuration.getHost());
-            final var builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
-            if (configuration.isTokenRelay()) {
-                log.info("Connecting with token relay (forwarding user credential per request)");
-                builder.tokenRelay(RemotePDPAutoConfiguration::extractCurrentToken);
-            } else if (!configuration.getKey().isEmpty()) {
-                log.info("Connecting with basic authentication");
-                builder.basicAuth(configuration.getKey(), configuration.getSecret());
-            } else if (!configuration.getApiKey().isEmpty()) {
-                log.info("Connecting with apiKey authentication");
-                builder.apiKey(configuration.getApiKey());
-            }
-            if (configuration.isIgnoreCertificates()) {
-                builder.withUnsecureSSL();
-            }
-            return builder.build();
+        return switch (configuration.getType()) {
+        case TYPE_HTTP    -> buildHttpPdp();
+        case TYPE_RSOCKET -> buildRSocketPdp();
+        default           -> throw new IllegalStateException(
+                ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE.formatted(configuration.getType()));
+        };
+    }
+
+    private ReactivePolicyDecisionPoint buildHttpPdp() throws SSLException {
+        log.info("Binding to http remote PDP server: {}", configuration.getHost());
+        val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
+        applyHttpAuthentication(builder);
+        if (configuration.isIgnoreCertificates()) {
+            builder.withUnsecureSSL();
+        }
+        return builder.build();
+    }
+
+    private void applyHttpAuthentication(RemoteHttpPolicyDecisionPointBuilder builder) {
+        if (configuration.isTokenRelay()) {
+            log.info("Connecting with token relay (forwarding user credential per request)");
+            builder.tokenRelay(RemotePDPAutoConfiguration::extractCurrentToken);
+        } else if (!configuration.getKey().isEmpty()) {
+            log.info("Connecting with basic authentication");
+            builder.basicAuth(configuration.getKey(), configuration.getSecret());
+        } else if (!configuration.getApiKey().isEmpty()) {
+            log.info("Connecting with apiKey authentication");
+            builder.apiKey(configuration.getApiKey());
+        }
+    }
+
+    private ReactivePolicyDecisionPoint buildRSocketPdp() throws SSLException {
+        val builder = RemotePolicyDecisionPoint.builder().rsocket();
+        if (configuration.getSocketPath().isEmpty()) {
+            log.info("Binding to rsocket remote PDP server: {}:{}", configuration.getHost(), configuration.getPort());
+            builder.host(configuration.getHost()).port(configuration.getPort());
         } else {
-            throw new IllegalStateException(
-                    ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE.formatted(configuration.getType()));
+            log.info("Binding to rsocket remote PDP server via unix domain socket: {}", configuration.getSocketPath());
+            builder.socketPath(configuration.getSocketPath());
+        }
+        builder.keepAlive(configuration.getKeepAlive(), configuration.getMaxLifeTime());
+        applyRSocketAuthentication(builder);
+        applyRSocketTls(builder);
+        return builder.build();
+    }
+
+    private void applyRSocketAuthentication(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder) {
+        if (!configuration.getKey().isEmpty()) {
+            log.info("Connecting with basic authentication");
+            builder.basicAuth(configuration.getKey(), configuration.getSecret());
+        } else if (!configuration.getApiKey().isEmpty()) {
+            log.info("Connecting with apiKey authentication");
+            builder.apiKey(configuration.getApiKey());
+        }
+    }
+
+    private void applyRSocketTls(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder) throws SSLException {
+        if (configuration.isIgnoreCertificates()) {
+            builder.withUnsecureSSL();
+        } else if (configuration.isTls()) {
+            builder.secure();
         }
     }
 
     private static String extractCurrentToken() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
+        val auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getCredentials() instanceof String token) {
             return token;
         }

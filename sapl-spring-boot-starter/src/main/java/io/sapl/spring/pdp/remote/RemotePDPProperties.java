@@ -17,39 +17,51 @@
  */
 package io.sapl.spring.pdp.remote;
 
-import jakarta.validation.constraints.NotEmpty;
-import lombok.Data;
-import org.hibernate.validator.constraints.URL;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.time.Duration;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 import org.springframework.validation.Validator;
 import org.springframework.validation.annotation.Validated;
 
+import jakarta.validation.constraints.NotEmpty;
+import lombok.Data;
+import lombok.val;
+
 @Data
 @Validated
 @ConfigurationProperties(prefix = "io.sapl.pdp.remote")
 public class RemotePDPProperties implements Validator {
 
+    private static final String TYPE_HTTP    = "http";
+    private static final String TYPE_RSOCKET = "rsocket";
+
     private boolean enabled = false;
 
-    // general connection settings
     @NotEmpty
-    private String  type               = "http";
+    private String  type               = TYPE_HTTP;
     private boolean ignoreCertificates = false;
 
-    // http
-    @URL
     private String host = "";
 
-    // basic authentication
+    private int port = 7000;
+
+    private String socketPath = "";
+
+    private boolean tls = false;
+
+    private Duration keepAlive   = Duration.ofSeconds(20);
+    private Duration maxLifeTime = Duration.ofSeconds(90);
+
     private String key    = "";
     private String secret = "";
 
-    // api_key authentication
     private String apiKey = "";
 
-    // token relay (forward current user's JWT per request)
     private boolean tokenRelay = false;
 
     @Override
@@ -59,28 +71,59 @@ public class RemotePDPProperties implements Validator {
 
     @Override
     public void validate(Object target, Errors errors) {
-        RemotePDPProperties properties = (RemotePDPProperties) target;
-        if ("http".equals(properties.type)) {
-            ValidationUtils.rejectIfEmpty(errors, "host", "requires-host", "host containing http url is required");
+        val properties = (RemotePDPProperties) target;
+        if (TYPE_HTTP.equals(properties.type)) {
+            validateHttpHost(properties.host, errors);
+        } else if (TYPE_RSOCKET.equals(properties.type)) {
+            validateRSocketEndpoint(properties, errors);
         } else {
             errors.rejectValue("type", "type-invalid", new String[] { properties.type },
-                    "Invalid type specified, valid value is \"http\"");
+                    "Invalid type specified, valid values are \"http\" and \"rsocket\"");
         }
+        validateAuthentication(properties, errors);
+    }
 
-        // ensure that exactly one authentication mechanism is specified
+    private void validateHttpHost(String hostValue, Errors errors) {
+        ValidationUtils.rejectIfEmpty(errors, "host", "requires-host", "host containing http url is required");
+        if (!hostValue.isEmpty()) {
+            try {
+                new URI(hostValue).toURL();
+            } catch (MalformedURLException | URISyntaxException | IllegalArgumentException ex) {
+                errors.rejectValue("host", "host-invalid", new String[] { hostValue }, "host is not a valid URL");
+            }
+        }
+    }
+
+    private void validateRSocketEndpoint(RemotePDPProperties properties, Errors errors) {
+        if (properties.socketPath.isEmpty()) {
+            ValidationUtils.rejectIfEmpty(errors, "host", "requires-host",
+                    "host (hostname) is required for rsocket transport unless socketPath is set");
+            if (properties.port <= 0 || properties.port > 65535) {
+                errors.rejectValue("port", "port-invalid", new String[] { String.valueOf(properties.port) },
+                        "port must be between 1 and 65535 for rsocket transport");
+            }
+        }
         if (properties.tokenRelay) {
-            if (!key.isEmpty() || !apiKey.isEmpty()) {
+            errors.rejectValue("tokenRelay", "token-relay-rsocket",
+                    "tokenRelay is not supported on the rsocket transport. "
+                            + "RSocket authenticates once at connection setup. "
+                            + "Use type=http if per-request user credential forwarding is required.");
+        }
+    }
+
+    private void validateAuthentication(RemotePDPProperties properties, Errors errors) {
+        if (properties.tokenRelay) {
+            if (!properties.key.isEmpty() || !properties.apiKey.isEmpty()) {
                 errors.rejectValue("tokenRelay", "token-relay-conflict",
                         "token-relay cannot be combined with key/secret or api-key authentication");
             }
-        } else if (apiKey.isEmpty() ^ key.isEmpty()) {
-            if (!key.isEmpty()) {
+        } else if (properties.apiKey.isEmpty() ^ properties.key.isEmpty()) {
+            if (!properties.key.isEmpty()) {
                 ValidationUtils.rejectIfEmpty(errors, "secret", "requires-secret", "\"secret\" must not be empty");
             }
         } else {
             errors.rejectValue("key", "key-invalid", new String[] { properties.key },
                     "At least one authentication mechanism needed: \"key\" and \"secret\", \"api-key\", or \"token-relay\"");
         }
-
     }
 }

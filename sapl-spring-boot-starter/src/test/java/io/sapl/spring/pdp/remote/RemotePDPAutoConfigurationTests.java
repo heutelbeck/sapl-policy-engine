@@ -17,12 +17,14 @@
  */
 package io.sapl.spring.pdp.remote;
 
-import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
+import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint;
 
 class RemotePDPAutoConfigurationTests {
 
@@ -59,6 +61,48 @@ class RemotePDPAutoConfigurationTests {
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidRSocketApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                "io.sapl.pdp.remote.apiKey=anApiKey").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidRSocketBasicPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000", "io.sapl.pdp.remote.key=aKey",
+                "io.sapl.pdp.remote.secret=aSecret").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidRSocketTlsPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                "io.sapl.pdp.remote.apiKey=anApiKey", "io.sapl.pdp.remote.tls=true").run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenValidRSocketIgnoreCertificatesPropertiesArePresent_thenTheRemotePdpIsPresent() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                        "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                        "io.sapl.pdp.remote.apiKey=anApiKey", "io.sapl.pdp.remote.ignoreCertificates=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
     }
 

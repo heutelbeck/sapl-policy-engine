@@ -52,11 +52,14 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.reactivestreams.Subscription;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
+import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Operators;
+import reactor.core.publisher.SynchronousSink;
 import reactor.util.context.ContextView;
 
 /**
@@ -104,7 +107,9 @@ public final class StreamingPipeline {
     private FluxSink<ProtectedPayload<Object>> sink;
     private ContextView                        subscriberContext;
     private State                              state;
-    private @Nullable Disposable               rapSubscription;
+    private @Nullable BaseSubscriber<Object>   rapSubscription;
+    private boolean                            rapReady;
+    private long                               subscriberDemand;
 
     /**
      * Creates a cold {@link Flux} that, on subscription, drives the
@@ -144,7 +149,22 @@ public final class StreamingPipeline {
             Supplier<? extends Flux<?>> rapSupplier, boolean signalTransitions) {
         val pipeline = new StreamingPipeline(terminateOnItemEnforcementFailure, pauseRapDuringSuspend, decisions,
                 planner, rapSupplier, signalTransitions);
-        return Flux.<ProtectedPayload<Object>>create(pipeline::initialize).flatMap(ProtectedPayload::unwrap);
+        // handle is used instead of flatMap so downstream request signals
+        // pass through to the create-sink without an intervening prefetch
+        // buffer. Errors raised via sink.error inside the handler remain
+        // eligible for onErrorContinue, which is what surfaces boundary
+        // signals as non-terminal events.
+        return Flux.<ProtectedPayload<Object>>create(pipeline::initialize).handle(StreamingPipeline::unpackPayload);
+    }
+
+    private static void unpackPayload(ProtectedPayload<Object> payload, SynchronousSink<Object> sink) {
+        if (payload.error() != null) {
+            sink.error(payload.error());
+            return;
+        }
+        if (payload.value() != null) {
+            sink.next(payload.value());
+        }
     }
 
     private void initialize(FluxSink<ProtectedPayload<Object>> fluxSink) {
@@ -155,7 +175,47 @@ public final class StreamingPipeline {
         }
         fluxSink.onCancel(this::onCancel);
         fluxSink.onDispose(subscriptions::dispose);
+        fluxSink.onRequest(this::onDownstreamRequest);
         startPdpSubscription();
+    }
+
+    /**
+     * Records {@code n} additional units of subscriber demand and, if the
+     * upstream subscription has finished setup, forwards exactly those
+     * {@code n} units to it. When the upstream is not yet ready (no
+     * permit decision yet, or paused during suspend), the demand is held
+     * in {@link #subscriberDemand} and replayed on the next
+     * {@code hookOnSubscribe}.
+     */
+    private void onDownstreamRequest(long n) {
+        BaseSubscriber<Object> sub = null;
+        synchronized (lock) {
+            subscriberDemand = Operators.addCap(subscriberDemand, n);
+            if (rapReady && rapSubscription != null) {
+                sub = rapSubscription;
+            }
+        }
+        if (sub != null) {
+            sub.request(n);
+        }
+    }
+
+    /**
+     * Requests one additional item from the upstream to compensate for
+     * an item that was dropped by the gate. Does not change the
+     * outstanding subscriber demand: the subscriber did not receive an
+     * item, so the demand is satisfied by the next permitted item.
+     */
+    private void requestOneMoreFromUpstream() {
+        BaseSubscriber<Object> sub = null;
+        synchronized (lock) {
+            if (rapReady && rapSubscription != null) {
+                sub = rapSubscription;
+            }
+        }
+        if (sub != null) {
+            sub.request(1L);
+        }
     }
 
     private void startPdpSubscription() {
@@ -204,15 +264,48 @@ public final class StreamingPipeline {
     }
 
     private void ensureRapSubscribed() {
+        BaseSubscriber<Object> subscriber;
         synchronized (lock) {
             if (rapSubscription != null || state instanceof Terminated) {
                 return;
             }
-            val rapSub = rapSupplier.get().contextWrite(subscriberContext).subscribe(this::onRapItem, this::onRapError,
-                    this::onRapComplete);
-            rapSubscription = rapSub;
-            subscriptions.add(rapSub);
+            subscriber      = createRapSubscriber();
+            rapSubscription = subscriber;
+            rapReady        = false;
+            subscriptions.add(subscriber);
         }
+        rapSupplier.get().contextWrite(subscriberContext).subscribe(subscriber);
+    }
+
+    private BaseSubscriber<Object> createRapSubscriber() {
+        return new BaseSubscriber<Object>() {
+            @Override
+            protected void hookOnSubscribe(Subscription s) {
+                long toForward;
+                synchronized (lock) {
+                    rapReady  = true;
+                    toForward = subscriberDemand;
+                }
+                if (toForward > 0) {
+                    s.request(toForward);
+                }
+            }
+
+            @Override
+            protected void hookOnNext(Object value) {
+                onRapItem(value);
+            }
+
+            @Override
+            protected void hookOnError(Throwable throwable) {
+                onRapError(throwable);
+            }
+
+            @Override
+            protected void hookOnComplete() {
+                onRapComplete();
+            }
+        };
     }
 
     private void disposeRap() {
@@ -222,6 +315,7 @@ public final class StreamingPipeline {
             }
             val sub = rapSubscription;
             rapSubscription = null;
+            rapReady        = false;
             sub.dispose();
             subscriptions.remove(sub);
         }
@@ -258,8 +352,9 @@ public final class StreamingPipeline {
     }
 
     private void process(Event event) {
-        State priorState;
-        State nextState;
+        State   priorState;
+        State   nextState;
+        boolean rapItemGated = false;
         synchronized (lock) {
             if (state instanceof Terminated) {
                 return;
@@ -268,18 +363,32 @@ public final class StreamingPipeline {
             val transition = MealyMachine.step(state, event);
             state     = transition.newState();
             nextState = state;
+            boolean anyDataEmitted = false;
             for (val emission : transition.emissions()) {
                 renderEmission(emission);
+                if (emission instanceof Emit) {
+                    anyDataEmitted = true;
+                    if (subscriberDemand > 0) {
+                        subscriberDemand--;
+                    }
+                }
+            }
+            if (event instanceof RapItem && !anyDataEmitted) {
+                rapItemGated = true;
             }
             if (transition.isTerminal()) {
                 subscriptions.dispose();
                 rapSubscription = null;
+                rapReady        = false;
                 return;
             }
         }
         manageRapSubscription(priorState, nextState);
         if (nextState instanceof Permitting) {
             ensureRapSubscribed();
+        }
+        if (rapItemGated) {
+            requestOneMoreFromUpstream();
         }
     }
 
@@ -333,15 +442,14 @@ public final class StreamingPipeline {
     /**
      * Carries either a data value or a non-terminal error through the
      * single {@code Flux.create} sink. The chain terminates with
-     * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the
-     * value via {@link Mono#just} or raises the error via
-     * {@link Mono#error}. The {@code flatMap}-with-{@code Mono.error}
-     * pattern is what makes the subscriber's {@code onErrorContinue}
-     * actually catch boundary signals and continue the subscription.
-     * Errors raised directly from the upstream sink (e.g.,
-     * {@code FluxSink.error}) are terminal and not recoverable; only
-     * errors raised inside an operator's per-item processing are
-     * eligible for {@code onErrorContinue}.
+     * {@code .handle(unpackPayload)} which re-emits the value via
+     * {@link SynchronousSink#next} or raises the error via
+     * {@link SynchronousSink#error}. Raising the error from inside a
+     * handle invocation keeps the error eligible for downstream
+     * {@code onErrorContinue}. Errors raised directly from the upstream
+     * sink (e.g., {@code FluxSink.error}) are terminal and not
+     * recoverable; only errors raised inside an operator's per-item
+     * processing are eligible for {@code onErrorContinue}.
      */
     private record ProtectedPayload<T>(@Nullable T value, @Nullable Throwable error) {
 
@@ -351,13 +459,6 @@ public final class StreamingPipeline {
 
         static <T> ProtectedPayload<T> ofError(Throwable error) {
             return new ProtectedPayload<>(null, error);
-        }
-
-        Mono<T> unwrap() {
-            if (error != null) {
-                return Mono.error(error);
-            }
-            return Mono.justOrEmpty(value);
         }
     }
 }

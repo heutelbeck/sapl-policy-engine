@@ -319,6 +319,10 @@ A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP 
 
 **`pauseRapDuringSuspend`**. Controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
 
+#### Backpressure Transparency
+
+`@StreamEnforce` does not change the backpressure characteristics of the protected stream. The subscriber's `request(N)` propagates through the wrapper to the protected `Flux`. A demand-respecting source (database cursor, paginated feed, iterable adapter) sees real demand and backpressures upstream accordingly. An unbounded source remains unbounded. The wrapper carries no hidden buffer. Items that are silently dropped under `SUSPEND` are accounted for by an extra single-item request to the upstream, so `request(N)` continues to mean "up to N delivered items" regardless of how many items the gate drops along the way. When `pauseRapDuringSuspend = true`, outstanding subscriber demand is replayed to the fresh upstream subscription on resume.
+
 #### Three Common Patterns
 
 The flag combinations encode the three behavioural patterns most streaming endpoints want.
@@ -1167,7 +1171,7 @@ When `pdp-config-type=REMOTE_BUNDLES`, bundles are fetched from a remote HTTP se
 
 ### Remote PDP
 
-The remote PDP connects to an external PDP server (such as SAPL Node). Use this when policies are managed centrally or when multiple applications share the same policies.
+The remote PDP connects to an external PDP server (such as SAPL Node). Use this when policies are managed centrally or when multiple applications share the same policies. Two transports are supported, `http` and `rsocket`. The HTTP transport is the broadest fit. The RSocket transport uses protobuf framing over a long-lived TCP connection and trades per-request flexibility (no token relay) for substantially higher per-call throughput.
 
 ```properties
 io.sapl.pdp.remote.enabled=true
@@ -1185,18 +1189,39 @@ io.sapl.pdp.remote.api-key=your-api-key
 io.sapl.pdp.remote.token-relay=true
 ```
 
+For the RSocket transport, configure the hostname and port directly. TLS is opt-in via the `tls` property (or `ignore-certificates` for development with self-signed certificates).
+
+```properties
+io.sapl.pdp.remote.enabled=true
+io.sapl.pdp.remote.type=rsocket
+io.sapl.pdp.remote.host=pdp.example.org
+io.sapl.pdp.remote.port=7000
+io.sapl.pdp.remote.api-key=your-api-key
+
+# Enable TLS against a properly trusted certificate
+io.sapl.pdp.remote.tls=true
+
+# Or connect via a Unix domain socket (host and port are ignored when set)
+io.sapl.pdp.remote.socket-path=/var/run/sapl-pdp.sock
+```
+
 | Property | Default | Description |
 |---|---|---|
 | `io.sapl.pdp.remote.enabled` | `false` | Enable or disable the remote PDP. |
-| `io.sapl.pdp.remote.type` | `http` | Connection type. Only `http` is supported today. |
-| `io.sapl.pdp.remote.host` | empty | HTTP URL of the PDP server. |
+| `io.sapl.pdp.remote.type` | `http` | Connection type. Either `http` or `rsocket`. |
+| `io.sapl.pdp.remote.host` | empty | HTTP URL when `type=http`. Hostname when `type=rsocket`. |
+| `io.sapl.pdp.remote.port` | `7000` | TCP port. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.socket-path` | empty | Unix domain socket path. When set, `host` and `port` are ignored. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.tls` | `false` | Enable TLS for the connection. Used only when `type=rsocket`. The HTTP transport selects TLS via the `https://` scheme on `host`. |
+| `io.sapl.pdp.remote.keep-alive` | `20s` | RSocket KEEPALIVE frame interval. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.max-life-time` | `90s` | Maximum time without an inbound KEEPALIVE before the connection is considered dead. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.key` | empty | Username for basic authentication. |
 | `io.sapl.pdp.remote.secret` | empty | Password for basic authentication. |
 | `io.sapl.pdp.remote.api-key` | empty | API key for token authentication. |
-| `io.sapl.pdp.remote.token-relay` | `false` | Forward the caller's JWT on each PDP request. Mutually exclusive with `key`/`secret` and `api-key`. |
+| `io.sapl.pdp.remote.token-relay` | `false` | Forward the caller's JWT on each PDP request. Mutually exclusive with `key`/`secret` and `api-key`. Supported only on the HTTP transport. RSocket authenticates once at connection setup and cannot relay per-request user credentials. |
 | `io.sapl.pdp.remote.ignore-certificates` | `false` | Skip TLS certificate validation. Not for production. |
 
-You must configure exactly one authentication mechanism. Either `key` and `secret` together, or `api-key` alone, or `token-relay` alone. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies.
+You must configure exactly one authentication mechanism. Either `key` and `secret` together, or `api-key` alone, or (HTTP only) `token-relay` alone. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime.
 
 ### Method Security Properties
 
