@@ -28,7 +28,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -68,18 +68,18 @@ class SaplHttpServletConfigurerOverrideTests {
     MockMvc mockMvc;
 
     @MockitoBean
-    ReactivePolicyDecisionPoint pdp;
+    StreamingPolicyDecisionPoint pdp;
 
     @Test
     @DisplayName("Configurer subscriptionFactory(...) shapes the subscription that reaches the PDP")
     @WithMockUser(username = "alice")
     void configurerOverridePropagatesToPdp() throws Exception {
-        when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
+        when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
         mockMvc.perform(get("/hello")).andExpect(status().isOk());
 
         var captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp, atLeastOnce()).decideOnceBlocking(captor.capture(), anyString());
+        verify(pdp, atLeastOnce()).decideOnce(captor.capture(), anyString());
 
         assertThat(captor.getAllValues()).allSatisfy(captured -> {
             assertThat(captured.subject()).isEqualTo(Value.of("alice"));

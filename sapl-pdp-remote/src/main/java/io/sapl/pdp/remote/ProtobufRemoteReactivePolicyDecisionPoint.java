@@ -147,12 +147,6 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     }
 
     @Override
-    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authzSubscription, String pdpId) {
-        val decision = decideOnce(authzSubscription, pdpId).block();
-        return decision == null ? AuthorizationDecision.INDETERMINATE : decision;
-    }
-
-    @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiAuthzSubscription,
             String pdpId) {
         // The pdpId argument is intentionally unused. The remote SAPL server

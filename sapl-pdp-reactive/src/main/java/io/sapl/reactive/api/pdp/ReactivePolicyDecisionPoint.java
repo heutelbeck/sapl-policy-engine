@@ -69,17 +69,6 @@ public interface ReactivePolicyDecisionPoint {
     Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId);
 
     /**
-     * Synchronous, blocking authorization decision for a specific tenant.
-     * Returns {@link AuthorizationDecision#INDETERMINATE} for an empty
-     * stream (never {@code null}).
-     *
-     * @param authorizationSubscription the authorization subscription
-     * @param pdpId the tenant's PDP identifier
-     * @return the authorization decision
-     */
-    AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription, String pdpId);
-
-    /**
      * Evaluates multiple authorization subscriptions against the tenant's
      * policies and returns decisions as they become available.
      *
@@ -115,16 +104,6 @@ public interface ReactivePolicyDecisionPoint {
      */
     default Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription) {
         return decideOnce(authorizationSubscription, DEFAULT_PDP_ID);
-    }
-
-    /**
-     * Convenience overload for single-tenant or context-free callers.
-     * Delegates to
-     * {@link #decideOnceBlocking(AuthorizationSubscription, String)} with
-     * {@link #DEFAULT_PDP_ID}.
-     */
-    default AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription) {
-        return decideOnceBlocking(authorizationSubscription, DEFAULT_PDP_ID);
     }
 
     /**

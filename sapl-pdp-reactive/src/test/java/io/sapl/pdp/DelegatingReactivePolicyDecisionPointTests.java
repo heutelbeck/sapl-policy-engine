@@ -25,8 +25,6 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
@@ -426,27 +424,6 @@ class DelegatingReactivePolicyDecisionPointTests {
 
         assertThat(subscribedIds).hasSize(1);
         assertThat(unsubscribedIds).hasSize(1).first().isEqualTo(subscribedIds.getFirst());
-    }
-
-    @Test
-    @DisplayName("explicit PDP ID routes to correct tenant configuration")
-    void whenExplicitPdpIdThenVoteOnceUsesCorrectTenant() {
-        val tenantPdpId = "tenant-a";
-        val components  = PolicyDecisionPointBuilder.withoutDefaults().build();
-        val tenantPdp   = ReactivePolicyDecisionPointBuilder.from(components).pdp();
-        val voterSource = components.pdpVoterSource();
-
-        val tenantConfig = new PDPConfiguration(tenantPdpId, "test-config-" + System.currentTimeMillis(),
-                DENY_UNLESS_PERMIT, List.of("""
-                        policy "tenant-a permit"
-                        permit
-                        """), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-        voterSource.loadConfiguration(tenantConfig, false);
-
-        val subscription = subscription("user", "read", "data");
-        val decision     = tenantPdp.decideOnceBlocking(subscription, tenantPdpId);
-
-        assertThat(decision.decision()).isEqualTo(Decision.PERMIT);
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {

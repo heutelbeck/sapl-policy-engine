@@ -108,7 +108,7 @@ public class CheckCommand implements Callable<Integer> {
             if (setup == null)
                 return 1;
             val sub      = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
-            val decision = setup.pdp().decideOnceBlocking(sub);
+            val decision = setup.blocking().decideOnce(sub);
             return toExitCode(decision);
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());

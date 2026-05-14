@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -105,6 +106,9 @@ class PostEnforcePolicyEnforcementPointTests {
 
     @MockitoBean
     ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @Autowired
     ArchivistJournal journal;

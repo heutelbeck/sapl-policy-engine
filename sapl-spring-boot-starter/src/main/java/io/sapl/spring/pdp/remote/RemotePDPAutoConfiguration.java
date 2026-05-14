@@ -26,6 +26,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.pdp.remote.DelegatingBlockingPolicyDecisionPoint;
 import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
 import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
@@ -57,6 +59,12 @@ public class RemotePDPAutoConfiguration {
         default           -> throw new IllegalStateException(
                 ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE.formatted(configuration.getType()));
         };
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    StreamingPolicyDecisionPoint blockingPolicyDecisionPoint(ReactivePolicyDecisionPoint reactivePdp) {
+        return new DelegatingBlockingPolicyDecisionPoint(reactivePdp);
     }
 
     private ReactivePolicyDecisionPoint buildHttpPdp() throws SSLException {

@@ -19,7 +19,7 @@ package io.sapl.spring.pep.method.blocking;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
@@ -54,9 +54,8 @@ import java.util.Set;
 public final class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PostEnforce PEP. The PDP decision was %s, not PERMIT.";
-    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED   = "Access Denied by @PostEnforce PEP. A post-invocation obligation handler failed after the protected method had already executed. Side effects of the invocation may have occurred.";
 
-    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
+    private final ObjectProvider<StreamingPolicyDecisionPoint>            policyDecisionPointProvider;
     private final ObjectProvider<BlockingTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
@@ -107,7 +106,7 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
                 .constructAuthorizationSubscriptionWithReturnObject(BlockingAuthentication.current(), methodInvocation,
                         attribute, returnedObject);
         val pdpId             = tenantResolverProvider.getObject().resolve();
-        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription, pdpId);
+        return policyDecisionPointProvider.getObject().decideOnce(authzSubscription, pdpId);
     }
 
 }

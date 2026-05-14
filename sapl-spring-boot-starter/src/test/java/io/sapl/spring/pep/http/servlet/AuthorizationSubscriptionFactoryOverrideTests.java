@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,12 +60,12 @@ class AuthorizationSubscriptionFactoryOverrideTests {
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule())
             .addModule(new SaplServletJacksonModule()).build();
 
-    private ReactivePolicyDecisionPoint pdp;
+    private StreamingPolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(ReactivePolicyDecisionPoint.class);
-        when(pdp.decideOnceBlocking(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
+        pdp = mock(StreamingPolicyDecisionPoint.class);
+        when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
     }
 
     @Test
@@ -119,13 +119,13 @@ class AuthorizationSubscriptionFactoryOverrideTests {
         subscribeAndCapture(counter);
 
         assertThat(invocations[0]).isEqualTo(1);
-        verify(pdp).decideOnceBlocking(any(), anyString());
+        verify(pdp).decideOnce(any(), anyString());
         verify(pdp, never()).decide(any(AuthorizationSubscription.class), anyString());
     }
 
     private AuthorizationSubscription subscribeAndCapture(AuthorizationSubscriptionFactory factory) {
         val planner = new EnforcementPlanner(java.util.List.of(), MAPPER);
-        val manager = new SaplAuthorizationManager(pdp, () -> ReactivePolicyDecisionPoint.DEFAULT_PDP_ID, planner,
+        val manager = new SaplAuthorizationManager(pdp, () -> StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, planner,
                 factory);
         val request = new MockHttpServletRequest("GET", "/orders/42");
         val auth    = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",
@@ -134,7 +134,7 @@ class AuthorizationSubscriptionFactoryOverrideTests {
         manager.authorize(() -> auth, new RequestAuthorizationContext(request));
 
         val captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp).decideOnceBlocking(captor.capture(), anyString());
+        verify(pdp).decideOnce(captor.capture(), anyString());
         return captor.getValue();
     }
 }

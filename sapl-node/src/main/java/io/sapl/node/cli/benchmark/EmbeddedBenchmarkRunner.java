@@ -36,12 +36,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.HdrHistogram.Histogram;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.reactive.pdp.ReactivePolicyDecisionPointBuilder;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -81,8 +80,8 @@ public class EmbeddedBenchmarkRunner {
         try (val components = ctx.buildEmbeddedPdp()) {
             val mapper        = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscriptions = loadSubscriptions(ctx, mapper);
-            val reactivePdp   = ReactivePolicyDecisionPointBuilder.from(components).pdp();
-            val methods       = resolveMethods(reactivePdp, subscriptions, cfg.benchmarks());
+            val pdp           = components.pdp();
+            val methods       = resolveMethods(pdp, subscriptions, cfg.benchmarks());
 
             val results = cfg.machineReadable() ? measureMachineReadable(methods, cfg, threads, out, err)
                     : measureInteractive(methods, cfg, threads, out, err);
@@ -255,14 +254,21 @@ public class EmbeddedBenchmarkRunner {
                 mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class) };
     }
 
-    private static Map<String, BenchmarkMethod> resolveMethods(ReactivePolicyDecisionPoint pdp,
+    private static Map<String, BenchmarkMethod> resolveMethods(BlockingPolicyDecisionPoint pdp,
             AuthorizationSubscription[] subscriptions, List<String> filter) {
         val                                 index   = new AtomicInteger(0);
         Supplier<AuthorizationSubscription> nextSub = () -> subscriptions[Integer
                 .remainderUnsigned(index.getAndIncrement(), subscriptions.length)];
         val                                 all     = new LinkedHashMap<String, BenchmarkMethod>();
-        all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnceBlocking(nextSub.get()), 1));
-        all.put("decideStreamFirst", new BenchmarkMethod(() -> pdp.decide(nextSub.get()).blockFirst(), 1));
+        all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnce(nextSub.get()), 1));
+        all.put("decideStreamFirst", new BenchmarkMethod(() -> {
+            try (val stream = pdp.decide(nextSub.get())) {
+                return stream.awaitNext();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        }, 1));
 
         if (filter == null || filter.isEmpty()) {
             return all;

@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -94,6 +95,9 @@ class ReactiveTransactionalEnforcementTests {
 
     @MockitoBean
     ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @BeforeEach
     void resetSchema() {

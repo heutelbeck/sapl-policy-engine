@@ -52,7 +52,6 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>sapl-spring-pdp</artifactId>
 			<version>${project.version}</version>
-			<scope>test</scope>
 		</dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

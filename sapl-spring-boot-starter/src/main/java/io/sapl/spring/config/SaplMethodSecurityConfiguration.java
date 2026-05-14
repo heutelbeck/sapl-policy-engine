@@ -19,7 +19,7 @@ package io.sapl.spring.config;
 
 import java.util.List;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -51,7 +51,7 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<ReactivePolicyDecisionPoint> policyDecisionPointProvider,
+    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<StreamingPolicyDecisionPoint> policyDecisionPointProvider,
             ObjectProvider<BlockingTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
@@ -66,7 +66,7 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<ReactivePolicyDecisionPoint> policyDecisionPointProvider,
+    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<StreamingPolicyDecisionPoint> policyDecisionPointProvider,
             ObjectProvider<BlockingTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,

@@ -20,7 +20,7 @@ package io.sapl.spring.pep.http.servlet;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -79,7 +79,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
             HttpRequestSignal.SIGNAL_TYPE, HttpRequestMutationSignal.SIGNAL_TYPE, HttpResponseSignal.SIGNAL_TYPE,
             HttpDenialSignal.SIGNAL_TYPE);
 
-    private final ReactivePolicyDecisionPoint      pdp;
+    private final StreamingPolicyDecisionPoint     pdp;
     private final BlockingTenantResolver           tenantResolver;
     private final EnforcementPlanner               enforcementPlanner;
     private final AuthorizationSubscriptionFactory subscriptionFactory;
@@ -91,7 +91,7 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         val rawAuth        = authenticationSupplier.get();
         val authentication = rawAuth != null ? rawAuth : ANONYMOUS;
         val subscription   = subscriptionFactory.build(authentication, servletRequest);
-        val authzDecision  = pdp.decideOnceBlocking(subscription, tenantResolver.resolve());
+        val authzDecision  = pdp.decideOnce(subscription, tenantResolver.resolve());
 
         val plan = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);
         servletRequest.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);

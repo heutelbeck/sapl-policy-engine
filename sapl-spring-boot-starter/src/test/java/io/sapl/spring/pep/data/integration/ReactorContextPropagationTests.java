@@ -48,6 +48,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
@@ -87,6 +88,9 @@ class ReactorContextPropagationTests {
 
     @MockitoBean
     ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @BeforeEach
     void resetSchema() {

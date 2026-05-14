@@ -92,7 +92,7 @@ public class DecideOnceCommand implements Callable<Integer> {
             if (setup == null)
                 return 1;
             val subscription = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
-            val decision     = setup.pdp().decideOnceBlocking(subscription);
+            val decision     = setup.blocking().decideOnce(subscription);
             out.println(setup.mapper().writeValueAsString(decision));
             return 0;
         } catch (IllegalArgumentException e) {

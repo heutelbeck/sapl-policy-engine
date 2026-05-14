@@ -17,6 +17,7 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -81,7 +82,7 @@ public final class AuthorizationManagerConfiguration {
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        SaplAuthorizationManager saplAuthorizationManager(ReactivePolicyDecisionPoint pdp,
+        SaplAuthorizationManager saplAuthorizationManager(StreamingPolicyDecisionPoint pdp,
                 BlockingTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
                 AuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");

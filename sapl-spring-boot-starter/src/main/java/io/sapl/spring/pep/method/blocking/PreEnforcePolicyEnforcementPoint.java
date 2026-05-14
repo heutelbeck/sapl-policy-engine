@@ -19,7 +19,7 @@ package io.sapl.spring.pep.method.blocking;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
@@ -63,7 +63,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final String ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED = "Access Denied by @PreEnforce PEP. A post-invocation obligation handler failed after the protected method had already executed. Side effects of the invocation may have occurred.";
     private static final String ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED  = "Access Denied by @PreEnforce PEP. A pre-invocation obligation handler failed. The protected method was not invoked.";
 
-    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
+    private final ObjectProvider<StreamingPolicyDecisionPoint>            policyDecisionPointProvider;
     private final ObjectProvider<BlockingTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
@@ -147,7 +147,7 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(BlockingAuthentication.current(), methodInvocation, attribute);
         val pdpId             = tenantResolverProvider.getObject().resolve();
-        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription, pdpId);
+        return policyDecisionPointProvider.getObject().decideOnce(authzSubscription, pdpId);
     }
 
 }

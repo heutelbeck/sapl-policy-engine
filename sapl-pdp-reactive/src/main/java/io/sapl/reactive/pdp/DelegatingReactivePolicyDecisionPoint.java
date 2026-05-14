@@ -69,11 +69,6 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
     }
 
     @Override
-    public AuthorizationDecision decideOnceBlocking(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        return blocking.decideOnce(authorizationSubscription, pdpId);
-    }
-
-    @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
             String pdpId) {
         return adapt(() -> blocking.decide(multiSubscription, pdpId));

@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.pep.http.servlet;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -117,7 +117,7 @@ public final class SaplHttpSecurityConfigurer extends AbstractHttpConfigurer<Sap
             return authorizationManager;
         }
         if (subscriptionFactory != null) {
-            return new SaplAuthorizationManager(context.getBean(ReactivePolicyDecisionPoint.class),
+            return new SaplAuthorizationManager(context.getBean(StreamingPolicyDecisionPoint.class),
                     context.getBean(BlockingTenantResolver.class), context.getBean(EnforcementPlanner.class),
                     subscriptionFactory);
         }

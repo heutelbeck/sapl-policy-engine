@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,6 +115,9 @@ class PreEnforcePolicyEnforcementPointTests {
 
     @MockitoBean
     ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @Autowired
     PatricianLogbook logbook;

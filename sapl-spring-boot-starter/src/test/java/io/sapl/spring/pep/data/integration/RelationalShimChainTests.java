@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -94,6 +95,9 @@ class RelationalShimChainTests {
 
     @MockitoBean
     ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @BeforeEach
     void resetSchema() {

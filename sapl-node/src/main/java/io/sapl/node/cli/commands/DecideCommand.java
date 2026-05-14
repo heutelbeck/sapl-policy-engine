@@ -28,7 +28,6 @@ import picocli.CommandLine.Spec;
 
 import javax.net.ssl.SSLException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 
 import static io.sapl.node.cli.support.PdpSetup.ERROR_EVALUATION_FAILED;
 import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
@@ -92,26 +91,20 @@ public class DecideCommand implements Callable<Integer> {
             setup = PdpSetup.open(pdpOptions, err);
             if (setup == null)
                 return 1;
-            val pdp    = setup.pdp();
+            val pdp    = setup.blocking();
             val mapper = setup.mapper();
             val sub    = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, mapper);
-            val latch  = new CountDownLatch(1);
 
-            pdp.decide(sub).doOnNext(decision -> {
-                try {
+            try (val stream = pdp.decide(sub)) {
+                while (true) {
+                    val decision = stream.awaitNext();
+                    if (decision == null) {
+                        return 0;
+                    }
                     out.println(mapper.writeValueAsString(decision));
                     out.flush();
-                } catch (Exception serializationFailure) {
-                    err.println(ERROR_EVALUATION_FAILED.formatted(serializationFailure.getMessage()));
-                    latch.countDown();
                 }
-            }).doOnError(e -> {
-                err.println(ERROR_EVALUATION_FAILED.formatted(e.getMessage()));
-                latch.countDown();
-            }).doOnComplete(latch::countDown).subscribe();
-
-            latch.await();
-            return 0;
+            }
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;
