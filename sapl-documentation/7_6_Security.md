@@ -119,6 +119,14 @@ spring.security.oauth2:
 
 The node fetches the JWKS endpoint from the issuer URI and validates token signatures automatically. The `pdp-id-claim` property specifies which JWT claim contains the PDP identifier for tenant routing. If the claim is absent, the `default-pdp-id` is used.
 
+### CSRF Posture
+
+The SAPL Node disables Spring's CSRF token mechanism. The API is stateless, no session cookies are issued, and the CSRF safety invariant is **Bearer-only authentication** (API key, OAuth2 JWT). Browsers do not auto-attach `Authorization: Bearer` headers, and cross-origin JavaScript cannot set them without CORS approval, so an attacker page cannot issue a credentialed request to the node.
+
+Basic authentication is the exception. Browsers cache Basic credentials for the duration of the session and re-send them on every request to the origin, which reintroduces a CSRF surface. The current PDP endpoints are decision-only, do not mutate state, and the response body is not readable cross-origin under Same-Origin Policy, so the practical payoff for an attacker is limited to triggering work on the node. The node logs a WARN at startup whenever Basic auth is enabled.
+
+For production deployments prefer API key or OAuth2 JWT. If you add state-mutating endpoints, disable Basic auth on those routes or pair them with an explicit CSRF defense.
+
 ### Multi Tenant Routing
 
 Every credential entry includes a `pdp-id` that routes the client to a specific tenant's policies. For `MULTI_DIRECTORY` sources, the `pdp-id` maps to a subdirectory name. For `BUNDLES` sources, it maps to a bundle filename without the `.saplbundle` extension.
