@@ -36,6 +36,7 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -56,6 +57,7 @@ import java.util.Set;
  *
  * @since 4.1.0
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
@@ -147,7 +149,10 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(BlockingAuthentication.current(), methodInvocation, attribute);
         val pdpId             = tenantResolverProvider.getObject().resolve();
-        return policyDecisionPointProvider.getObject().decideOnce(authzSubscription, pdpId);
+        log.trace("@PreEnforce subscription: {}", authzSubscription);
+        val decision = policyDecisionPointProvider.getObject().decideOnce(authzSubscription, pdpId);
+        log.debug("@PreEnforce decision: {}", decision);
+        return decision;
     }
 
 }

@@ -41,6 +41,7 @@ import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Mono;
 
@@ -57,6 +58,7 @@ import reactor.core.publisher.Mono;
  * fire additional signals against the same plan, and translates the
  * outcome to allow/deny.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationManager<AuthorizationContext> {
 
@@ -76,13 +78,16 @@ public class ReactiveSaplAuthorizationManager implements ReactiveAuthorizationMa
     public Mono<AuthorizationResult> authorize(Mono<Authentication> authentication, AuthorizationContext context) {
         val exchange = context.getExchange();
         return authentication.defaultIfEmpty(ANONYMOUS).flatMap(authn -> subscriptionFactory.build(authn, exchange))
+                .doOnNext(subscription -> log.trace("Reactive HTTP PEP subscription: {}", subscription))
                 .flatMap(subscription -> enforce(subscription, exchange))
                 .map(org.springframework.security.authorization.AuthorizationDecision::new);
     }
 
     private Mono<Boolean> enforce(AuthorizationSubscription subscription, ServerWebExchange exchange) {
         return tenantResolver.resolve().flatMapMany(pdpId -> pdp.decide(subscription, pdpId)).next()
-                .defaultIfEmpty(AuthorizationDecision.DENY).map(decision -> enforceDecision(decision, exchange));
+                .defaultIfEmpty(AuthorizationDecision.DENY)
+                .doOnNext(decision -> log.debug("Reactive HTTP PEP decision: {}", decision))
+                .map(decision -> enforceDecision(decision, exchange));
     }
 
     private boolean enforceDecision(AuthorizationDecision authzDecision, ServerWebExchange exchange) {

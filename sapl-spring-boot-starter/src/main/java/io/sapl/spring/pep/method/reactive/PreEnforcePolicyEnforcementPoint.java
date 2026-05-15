@@ -41,6 +41,7 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -66,6 +67,7 @@ import java.util.Set;
  *
  * @since 4.1.0
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
@@ -106,7 +108,9 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute);
         val pdp               = policyDecisionPointProvider.getObject();
         val tenantResolver    = tenantResolverProvider.getObject();
-        return authzSubscription.flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)));
+        return authzSubscription.doOnNext(sub -> log.trace("reactive @PreEnforce subscription: {}", sub))
+                .flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)))
+                .doOnNext(decision -> log.debug("reactive @PreEnforce decision: {}", decision));
     }
 
     private Mono<Object> enforceDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {

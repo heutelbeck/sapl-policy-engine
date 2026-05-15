@@ -39,6 +39,7 @@ import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Mono;
 
@@ -61,6 +62,7 @@ import reactor.core.publisher.Mono;
  *
  * @since 4.1.0
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
@@ -116,7 +118,9 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute, returnedObject);
         val pdp               = policyDecisionPointProvider.getObject();
         val tenantResolver    = tenantResolverProvider.getObject();
-        return authzSubscription.flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)))
+        return authzSubscription.doOnNext(sub -> log.trace("reactive @PostEnforce subscription: {}", sub))
+                .flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)))
+                .doOnNext(decision -> log.debug("reactive @PostEnforce decision: {}", decision))
                 .flatMap(decision -> applyDecision(methodInvocation, decision, returnedObject));
     }
 

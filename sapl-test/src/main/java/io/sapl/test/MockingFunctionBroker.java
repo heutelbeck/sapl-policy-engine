@@ -98,7 +98,7 @@ public final class MockingFunctionBroker implements FunctionBroker {
         recordInvocation(invocation);
         return findMostSpecificMatch(invocation).map(FunctionMock::getReturnValue).orElseGet(() -> {
             if (delegate == null) {
-                throw new IllegalStateException(ERROR_NO_MOCK_MATCHED_NO_DELEGATE.formatted(invocation.functionName()));
+                return Value.error(ERROR_NO_MOCK_MATCHED_NO_DELEGATE, invocation.functionName());
             }
             return delegate.evaluateFunction(invocation);
         });

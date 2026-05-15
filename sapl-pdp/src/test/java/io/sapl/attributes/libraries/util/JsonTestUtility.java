@@ -142,7 +142,7 @@ public class JsonTestUtility {
         val valueNode = MAPPER.createObjectNode();
 
         if (null != server) {
-            valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{id}");
+            valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{kid}");
         }
         if (null != method && !method.isEmpty()) {
             if ("NONETEXT".equals(method)) {

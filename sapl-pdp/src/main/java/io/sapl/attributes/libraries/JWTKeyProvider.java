@@ -48,8 +48,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class JWTKeyProvider {
 
     private static final String ERROR_JWT_KEY_CACHING_CONFIGURATION = "The provided caching configuration was not understood: ";
-    private static final String ERROR_JWT_KEY_SERVER_HTTP           = "Error trying to retrieve a public key: HTTP {}";
-    private static final String ERROR_JWT_KEY_SERVER_IO             = "I/O error retrieving a public key: {}";
+    private static final String WARN_JWT_KEY_SERVER_HTTP            = "JWT public-key server returned HTTP {} for kid '{}' at '{}'. Token signatures cannot be verified.";
+    private static final String WARN_JWT_KEY_SERVER_IO              = "JWT public-key fetch failed for kid '{}' at '{}': {}. Token signatures cannot be verified.";
 
     public static final String    PUBLIC_KEY_URI_KEY     = "uri";
     public static final String    PUBLIC_KEY_METHOD_KEY  = "method";
@@ -165,7 +165,7 @@ public class JWTKeyProvider {
             return Optional.of(keyCache.get(kid));
         }
 
-        val               resolvedUri = publicKeyUri.replace("{id}", kid);
+        val               resolvedUri = publicKeyUri.replace("{kid}", kid);
         val               builder     = HttpRequest.newBuilder().uri(URI.create(resolvedUri))
                 .timeout(HTTP_REQUEST_TIMEOUT);
         final HttpRequest request;
@@ -178,12 +178,17 @@ public class JWTKeyProvider {
         try {
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 400) {
-                log.trace(ERROR_JWT_KEY_SERVER_HTTP, response.statusCode());
+                log.warn(WARN_JWT_KEY_SERVER_HTTP, response.statusCode(), kid, resolvedUri);
                 return Optional.empty();
             }
-            return JWTEncodingDecodingUtils.encodedX509ToPublicKey(response.body());
+            val key = JWTEncodingDecodingUtils.encodedX509ToPublicKey(response.body());
+            if (key.isEmpty()) {
+                log.warn("JWT public-key response for kid '{}' from '{}' could not be decoded as an X509 public key.",
+                        kid, resolvedUri);
+            }
+            return key;
         } catch (IOException e) {
-            log.trace(ERROR_JWT_KEY_SERVER_IO, e.getMessage());
+            log.warn(WARN_JWT_KEY_SERVER_IO, kid, resolvedUri, e.getMessage());
             return Optional.empty();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

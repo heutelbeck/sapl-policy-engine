@@ -821,16 +821,10 @@ public class SaplTestFixture {
 
     private void configureFunctionBroker() {
         var functionBrokerDelegate = customFunctionBroker;
-        if (functionBrokerDelegate == null && hasFunctionLibraries()) {
+        if (functionBrokerDelegate == null) {
             functionBrokerDelegate = buildDefaultFunctionBroker();
         }
-        if (functionBrokerDelegate != null) {
-            mockingFunctionBroker.setDelegate(functionBrokerDelegate);
-        }
-    }
-
-    private boolean hasFunctionLibraries() {
-        return !functionLibraries.isEmpty();
+        mockingFunctionBroker.setDelegate(functionBrokerDelegate);
     }
 
     private DefaultFunctionBroker buildDefaultFunctionBroker() {

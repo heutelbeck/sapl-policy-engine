@@ -128,7 +128,7 @@ public class JWTPolicyInformationPoint {
                   "secretsKey": "jwt",
                   "clockSkewSeconds": 60,
                   "publicKeyServer": {
-                    "uri": "http://authz-server:9000/public-key/{id}",
+                    "uri": "http://authz-server:9000/public-key/{kid}",
                     "method": "GET",
                     "keyCachingTtlMillis": 300000
                   },
