@@ -45,8 +45,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
-import static io.sapl.pdp.PdpTestHelper.createBundle;
-import static io.sapl.pdp.PdpTestHelper.subscription;
+import static io.sapl.api.test.pdp.PdpTestHelper.createBundle;
+import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;

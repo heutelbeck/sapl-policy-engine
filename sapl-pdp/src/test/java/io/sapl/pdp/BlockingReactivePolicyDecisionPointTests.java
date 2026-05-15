@@ -36,8 +36,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.pdp.PdpTestHelper.configuration;
-import static io.sapl.pdp.PdpTestHelper.subscription;
+import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
+import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

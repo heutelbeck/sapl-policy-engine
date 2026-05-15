@@ -45,8 +45,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeoutException;
 
-import static io.sapl.pdp.PdpTestHelper.configuration;
-import static io.sapl.pdp.PdpTestHelper.subscription;
+import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
+import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatObject;

@@ -42,8 +42,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
-import static io.sapl.pdp.PdpTestHelper.configuration;
-import static io.sapl.pdp.PdpTestHelper.subscription;
+import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
+import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
