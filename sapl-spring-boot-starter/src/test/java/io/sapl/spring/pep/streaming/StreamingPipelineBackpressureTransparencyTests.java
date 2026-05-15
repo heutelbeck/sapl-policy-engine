@@ -22,13 +22,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
+import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
@@ -47,26 +50,34 @@ class StreamingPipelineBackpressureTransparencyTests {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
 
-    /** Harness with a demand-tracking RAP source. */
+    /**
+     * Harness with a demand-tracking RAP source and a delivery-tracking PDP source.
+     */
     private static final class TrackingHarness {
         Sinks.Many<AuthorizationDecision> pdp                 = Sinks.many().unicast().onBackpressureBuffer();
         Sinks.Many<Object>                rap                 = Sinks.many().unicast().onBackpressureBuffer();
         EnforcementPlan                   plan                = new EnforcementPlan(java.util.Map.of());
         AtomicLong                        upstreamRequested   = new AtomicLong();
         AtomicInteger                     supplierInvocations = new AtomicInteger();
+        AtomicInteger                     pdpEvents           = new AtomicInteger();
         boolean                           pauseRapDuringSuspend;
 
         Flux<Object> create() {
             Supplier<Flux<Object>> supplier = () -> {
-                supplierInvocations.incrementAndGet();
-                return rap.asFlux().doOnRequest(upstreamRequested::addAndGet);
-            };
-            return StreamingPipeline.create(false, pauseRapDuringSuspend, pdp.asFlux(), d -> plan, supplier, false);
+                                                supplierInvocations.incrementAndGet();
+                                                return rap.asFlux().doOnRequest(upstreamRequested::addAndGet);
+                                            };
+            val                    pdpFlux  = pdp.asFlux().doOnNext(ignored -> pdpEvents.incrementAndGet());
+            return StreamingPipeline.create(false, pauseRapDuringSuspend, pdpFlux, d -> plan, supplier, false);
         }
 
         void resetUpstreamSink() {
             this.rap = Sinks.many().unicast().onBackpressureBuffer();
         }
+    }
+
+    private static void awaitUntil(BooleanSupplier condition) {
+        Awaitility.await().atMost(TIMEOUT).until(condition::getAsBoolean);
     }
 
     @Test
@@ -76,9 +87,10 @@ class StreamingPipelineBackpressureTransparencyTests {
         Flux<Object>    out = h.create();
 
         StepVerifier.create(out, 0L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
-                .then(() -> sleep(Duration.ofMillis(50))).thenRequest(3L).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.rap.tryEmitNext("a")).expectNext("a").then(() -> h.rap.tryEmitNext("b")).expectNext("b")
-                .then(() -> h.rap.tryEmitNext("c")).expectNext("c").thenCancel().verify(TIMEOUT);
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1)).thenRequest(3L)
+                .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 3L)).then(() -> h.rap.tryEmitNext("a"))
+                .expectNext("a").then(() -> h.rap.tryEmitNext("b")).expectNext("b").then(() -> h.rap.tryEmitNext("c"))
+                .expectNext("c").thenCancel().verify(TIMEOUT);
 
         assertThat(h.upstreamRequested.get()).isEqualTo(3L);
     }
@@ -90,8 +102,9 @@ class StreamingPipelineBackpressureTransparencyTests {
         Flux<Object>    out = h.create();
 
         StepVerifier.create(out, 0L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
-                .then(() -> sleep(Duration.ofMillis(50))).thenRequest(1L).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.rap.tryEmitNext("a")).expectNext("a").thenCancel().verify(TIMEOUT);
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1)).thenRequest(1L)
+                .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 1L)).then(() -> h.rap.tryEmitNext("a"))
+                .expectNext("a").thenCancel().verify(TIMEOUT);
 
         assertThat(h.upstreamRequested.get()).isEqualTo(1L);
     }
@@ -102,8 +115,8 @@ class StreamingPipelineBackpressureTransparencyTests {
         TrackingHarness h   = new TrackingHarness();
         Flux<Object>    out = h.create();
 
-        StepVerifier.create(out, 0L).thenRequest(2L).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT)).then(() -> sleep(Duration.ofMillis(50)))
+        StepVerifier.create(out, 0L).thenRequest(2L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1 && h.upstreamRequested.get() >= 2L))
                 .then(() -> h.rap.tryEmitNext("a")).expectNext("a").then(() -> h.rap.tryEmitNext("b")).expectNext("b")
                 .thenCancel().verify(TIMEOUT);
 
@@ -117,12 +130,14 @@ class StreamingPipelineBackpressureTransparencyTests {
         Flux<Object>    out = h.create();
 
         StepVerifier.create(out, 0L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
-                .then(() -> sleep(Duration.ofMillis(50))).thenRequest(5L).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.rap.tryEmitNext("a")).expectNext("a")
-                .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.SUSPEND)).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.rap.tryEmitNext("dropped")).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT)).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.rap.tryEmitNext("b")).expectNext("b").thenCancel().verify(TIMEOUT);
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1)).thenRequest(5L)
+                .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 5L)).then(() -> h.rap.tryEmitNext("a"))
+                .expectNext("a").then(() -> h.pdp.tryEmitNext(AuthorizationDecision.SUSPEND))
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 2)).then(() -> h.rap.tryEmitNext("dropped"))
+                .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 6L))
+                .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 3)).then(() -> h.rap.tryEmitNext("b")).expectNext("b")
+                .thenCancel().verify(TIMEOUT);
 
         assertThat(h.upstreamRequested.get()).isEqualTo(6L);
     }
@@ -135,12 +150,13 @@ class StreamingPipelineBackpressureTransparencyTests {
         Flux<Object> out = h.create();
 
         StepVerifier.create(out, 0L).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
-                .then(() -> sleep(Duration.ofMillis(50))).thenRequest(4L).then(() -> sleep(Duration.ofMillis(50)))
-                .then(() -> h.rap.tryEmitNext("a")).expectNext("a")
-                .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.SUSPEND)).then(() -> sleep(Duration.ofMillis(50)))
-                .then(h::resetUpstreamSink).then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
-                .then(() -> sleep(Duration.ofMillis(50))).then(() -> h.rap.tryEmitNext("b")).expectNext("b")
-                .thenCancel().verify(TIMEOUT);
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 1)).thenRequest(4L)
+                .then(() -> awaitUntil(() -> h.upstreamRequested.get() >= 4L)).then(() -> h.rap.tryEmitNext("a"))
+                .expectNext("a").then(() -> h.pdp.tryEmitNext(AuthorizationDecision.SUSPEND))
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 2)).then(h::resetUpstreamSink)
+                .then(() -> h.pdp.tryEmitNext(AuthorizationDecision.PERMIT))
+                .then(() -> awaitUntil(() -> h.pdpEvents.get() >= 3 && h.supplierInvocations.get() >= 2))
+                .then(() -> h.rap.tryEmitNext("b")).expectNext("b").thenCancel().verify(TIMEOUT);
 
         assertThat(h.supplierInvocations.get()).isEqualTo(2);
         assertThat(h.upstreamRequested.get()).isGreaterThanOrEqualTo(3L);
@@ -160,11 +176,4 @@ class StreamingPipelineBackpressureTransparencyTests {
         assertThat(h.rap.currentSubscriberCount()).isZero();
     }
 
-    private static void sleep(Duration d) {
-        try {
-            Thread.sleep(d.toMillis());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
 }

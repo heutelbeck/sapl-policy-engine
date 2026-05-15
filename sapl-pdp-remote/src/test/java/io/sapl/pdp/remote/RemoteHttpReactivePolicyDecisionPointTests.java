@@ -200,8 +200,9 @@ class RemoteHttpReactivePolicyDecisionPointTests {
         @Test
         @DisplayName("Builder rejects both basic and API key authentication (REQ-AUTH-4)")
         void whenDualAuthConfiguredThenThrows() {
-            assertThatThrownBy(() -> RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                    .basicAuth("secret", "key").apiKey("my-api-key").build()).isInstanceOf(IllegalStateException.class)
+            val builder = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost").basicAuth("secret",
+                    "key");
+            assertThatThrownBy(() -> builder.apiKey("my-api-key")).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("authentication method already defined");
         }
     }

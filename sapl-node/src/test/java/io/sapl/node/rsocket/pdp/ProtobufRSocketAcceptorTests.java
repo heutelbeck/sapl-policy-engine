@@ -238,14 +238,6 @@ class ProtobufRSocketAcceptorTests {
         return DefaultPayload.create(data, "decide-once".getBytes(StandardCharsets.UTF_8));
     }
 
-    private static Payload createDecideOncePayloadUnchecked(AuthorizationSubscription sub) {
-        try {
-            return createDecideOncePayload(sub);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private static Payload createDecidePayload(AuthorizationSubscription sub) throws IOException {
         val data = SaplProtobufCodec.writeAuthorizationSubscription(sub);
         return DefaultPayload.create(data, "decide".getBytes(StandardCharsets.UTF_8));

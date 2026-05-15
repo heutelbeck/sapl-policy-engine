@@ -97,7 +97,7 @@ class RemotePDPRSocketIT {
                 .withEnv("SAPL_PDP_RSOCKET_SSL_BUNDLE", "saplbundle");
     }
 
-    private void runWithPdp(GenericContainer<?> container, String[] properties, AuthorizationDecision expected) {
+    private void runWithPdp(String[] properties, AuthorizationDecision expected) {
         contextRunner.withPropertyValues(properties).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
@@ -119,7 +119,7 @@ class RemotePDPRSocketIT {
                         "io.sapl.pdp.remote.host=" + container.getHost(),
                         "io.sapl.pdp.remote.port=" + container.getMappedPort(RSOCKET_PORT),
                         "io.sapl.pdp.remote.api-key=" + API_KEY };
-                runWithPdp(container, properties, AuthorizationDecision.PERMIT);
+                runWithPdp(properties, AuthorizationDecision.PERMIT);
             }
         }
     }
@@ -137,7 +137,7 @@ class RemotePDPRSocketIT {
                         "io.sapl.pdp.remote.host=" + container.getHost(),
                         "io.sapl.pdp.remote.port=" + container.getMappedPort(RSOCKET_PORT),
                         "io.sapl.pdp.remote.api-key=" + API_KEY, "io.sapl.pdp.remote.ignoreCertificates=true" };
-                runWithPdp(container, properties, AuthorizationDecision.PERMIT);
+                runWithPdp(properties, AuthorizationDecision.PERMIT);
             }
         }
     }

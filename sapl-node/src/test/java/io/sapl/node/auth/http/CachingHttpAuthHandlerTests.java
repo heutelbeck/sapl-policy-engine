@@ -37,6 +37,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -415,14 +417,14 @@ class CachingHttpAuthHandlerTests {
     @DisplayName("constructor")
     class ConstructorTests {
 
-        @Test
+        @ParameterizedTest
+        @ValueSource(longs = { 0L, -1L })
         @DisplayName("rejects non-positive maxSize")
-        void whenMaxSizeNotPositiveThenThrows() {
+        void whenMaxSizeNotPositiveThenThrows(long maxSize) {
+            val positiveTtl = Duration.ofMinutes(5);
+            val negativeTtl = Duration.ofSeconds(5);
             assertThatThrownBy(() -> new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, null,
-                    Duration.ofMinutes(5), Duration.ofSeconds(5), 0L)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("maxSize");
-            assertThatThrownBy(() -> new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, null,
-                    Duration.ofMinutes(5), Duration.ofSeconds(5), -1L)).isInstanceOf(IllegalArgumentException.class)
+                    positiveTtl, negativeTtl, maxSize)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("maxSize");
         }
 

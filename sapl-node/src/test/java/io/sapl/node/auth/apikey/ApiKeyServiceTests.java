@@ -19,8 +19,8 @@ package io.sapl.node.auth.apikey;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,11 +31,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
@@ -92,28 +96,20 @@ class ApiKeyServiceTests {
             assertThat(ApiKeyService.getApiKeyToken(request)).contains(VALID_KEY);
         }
 
-        @Test
-        @DisplayName("Bearer without sapl_ prefix (e.g. an OAuth2 JWT) is not recognised as an API key")
-        void whenBearerWithoutSaplPrefixThenEmpty() {
-            when(request.getHeader(AUTHORIZATION)).thenReturn("Bearer eyJhbGciOiJSUzI1NiJ9.signed.jwt");
+        @ParameterizedTest(name = "[{index}] {0}")
+        @MethodSource("nonApiKeyHeaders")
+        @DisplayName("non-SAPL credentials are not recognised as an API key")
+        void whenHeaderIsNotSaplApiKeyThenEmpty(String label, String headerValue) {
+            when(request.getHeader(AUTHORIZATION)).thenReturn(headerValue);
 
             assertThat(ApiKeyService.getApiKeyToken(request)).isEmpty();
         }
 
-        @Test
-        @DisplayName("Basic credentials are not recognised as an API key")
-        void whenBasicCredentialThenEmpty() {
-            when(request.getHeader(AUTHORIZATION)).thenReturn("Basic dXNlcjpwYXNz");
-
-            assertThat(ApiKeyService.getApiKeyToken(request)).isEmpty();
-        }
-
-        @Test
-        @DisplayName("missing Authorization header yields no token (no NPE)")
-        void whenNoAuthorizationHeaderThenEmpty() {
-            when(request.getHeader(AUTHORIZATION)).thenReturn(null);
-
-            assertThat(ApiKeyService.getApiKeyToken(request)).isEmpty();
+        static Stream<Arguments> nonApiKeyHeaders() {
+            return Stream.of(
+                    arguments("Bearer JWT (OAuth2) is not an API key", "Bearer eyJhbGciOiJSUzI1NiJ9.signed.jwt"),
+                    arguments("Basic credentials are not an API key", "Basic dXNlcjpwYXNz"),
+                    arguments("missing Authorization header (no NPE)", null));
         }
     }
 
@@ -214,7 +210,7 @@ class ApiKeyServiceTests {
 
             assertThat(authentication).isInstanceOfSatisfying(SaplAuthenticationToken.class,
                     t -> assertThat(t.getPrincipal()).isEqualTo(saplUser));
-            verify(cache).put(eq(CACHE_KEY), eq(saplUser));
+            verify(cache).put(CACHE_KEY, saplUser);
         }
     }
 
