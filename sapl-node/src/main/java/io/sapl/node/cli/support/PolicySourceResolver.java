@@ -91,7 +91,11 @@ public class PolicySourceResolver {
             boolean hasSaplFiles   = false;
             boolean hasBundleFiles = false;
             for (val path : (Iterable<Path>) stream::iterator) {
-                val name = path.getFileName().toString();
+                val fileName = path.getFileName();
+                if (fileName == null) {
+                    continue;
+                }
+                val name = fileName.toString();
                 if (name.endsWith(".sapl")) {
                     hasSaplFiles = true;
                 } else if (name.endsWith(".saplbundle")) {

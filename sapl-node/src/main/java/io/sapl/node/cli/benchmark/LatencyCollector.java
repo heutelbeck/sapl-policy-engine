@@ -30,7 +30,7 @@ import lombok.val;
  * samples are overwritten. Thread-safe for concurrent writers via atomic
  * index.
  */
-class LatencyCollector {
+final class LatencyCollector {
 
     private final long[]     samples;
     private final AtomicLong index = new AtomicLong(0);
@@ -63,7 +63,7 @@ class LatencyCollector {
      * @return sample count
      */
     int count() {
-        return (int) Math.min(index.get(), (long) samples.length);
+        return (int) Math.min(index.get(), samples.length);
     }
 
     /**

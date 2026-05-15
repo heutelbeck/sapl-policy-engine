@@ -158,12 +158,14 @@ public final class StreamingPipeline {
     }
 
     private static void unpackPayload(ProtectedPayload<Object> payload, SynchronousSink<Object> sink) {
-        if (payload.error() != null) {
-            sink.error(payload.error());
+        val error = payload.error();
+        if (error != null) {
+            sink.error(error);
             return;
         }
-        if (payload.value() != null) {
-            sink.next(payload.value());
+        val value = payload.value();
+        if (value != null) {
+            sink.next(value);
         }
     }
 

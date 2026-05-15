@@ -277,7 +277,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
                 return SaplProtobufCodec.readAuthorizationSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_SUBSCRIPTION_FAILED, e.getMessage());
-                throw new InvalidException(ERROR_BAD_REQUEST);
+                throw new InvalidException(ERROR_BAD_REQUEST, e);
             }
         }
 
@@ -287,7 +287,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
                 return SaplProtobufCodec.readMultiAuthorizationSubscription(data);
             } catch (IOException e) {
                 log.debug(ERROR_PARSE_MULTI_SUBSCRIPTION_FAILED, e.getMessage());
-                throw new InvalidException(ERROR_BAD_REQUEST);
+                throw new InvalidException(ERROR_BAD_REQUEST, e);
             }
         }
 

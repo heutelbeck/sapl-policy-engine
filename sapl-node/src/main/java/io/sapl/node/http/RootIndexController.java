@@ -53,6 +53,7 @@ import lombok.val;
 class RootIndexController {
 
     private static final String STATUS_UNKNOWN = "UNKNOWN";
+    private static final String KEY_HEALTH     = "health";
 
     private final ObjectProvider<HealthEndpoint> healthEndpoint;
     private final String                         commit;
@@ -80,7 +81,7 @@ class RootIndexController {
         val model  = new LinkedHashMap<String, Object>();
         model.put("version", version);
         model.put("commit", commit);
-        model.put("health", status);
+        model.put(KEY_HEALTH, status);
         model.put("healthUp", up);
         model.put("healthDown", !up);
         return new ModelAndView("index", model);
@@ -89,8 +90,8 @@ class RootIndexController {
     @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
     Map<String, Object> indexJson() {
         return Map.of("name", "SAPL Node", "description", "Streaming policy decision point.", "version", version,
-                "commit", commit, "health", healthStatus(), "links",
-                Map.of("docs", "/scalar", "openapi", "/v3/api-docs", "health", "/actuator/health", "info",
+                "commit", commit, KEY_HEALTH, healthStatus(), "links",
+                Map.of("docs", "/scalar", "openapi", "/v3/api-docs", KEY_HEALTH, "/actuator/health", "info",
                         "/actuator/info", "website", "https://sapl.io"));
     }
 

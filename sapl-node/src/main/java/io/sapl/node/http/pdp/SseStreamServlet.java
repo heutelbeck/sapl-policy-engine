@@ -160,28 +160,13 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
      */
     private void pump(AsyncContext asyncContext, S subscription, String pdpId) {
         val                response      = (HttpServletResponse) asyncContext.getResponse();
+        val                writerLock    = new Object();
         ScheduledFuture<?> keepAliveTask = null;
         try (PrintWriter writer = response.getWriter(); Stream<D> stream = openStream(subscription, pdpId)) {
-            keepAliveTask = scheduleKeepAlive(writer);
+            keepAliveTask = scheduleKeepAlive(writer, writerLock);
             try {
-                while (!Thread.currentThread().isInterrupted()) {
-                    D decision;
-                    try {
-                        decision = stream.awaitNext();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
-                    if (decision == null) {
-                        return;
-                    }
-                    if (!writeEvent(writer, decision)) {
-                        return;
-                    }
-                    if (writer.checkError()) {
-                        log.debug("SSE stream client disconnected for pdpId={}", pdpId);
-                        return;
-                    }
+                while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, writer, writerLock, pdpId)) {
+                    // loop body intentionally empty; processNextEvent drives one iteration
                 }
             } catch (Exception e) {
                 log.debug("SSE stream terminated for pdpId={}: {}", pdpId, e.getMessage());
@@ -190,7 +175,7 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
                     keepAliveTask = null;
                 }
                 if (!writer.checkError()) {
-                    writeEvent(writer, indeterminate());
+                    writeEvent(writer, indeterminate(), writerLock);
                 }
             }
         } catch (Exception e) {
@@ -204,14 +189,40 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
         }
     }
 
+    /**
+     * One iteration of the pump loop. Returns true when the loop should
+     * continue, false when the stream has ended, the client has disconnected,
+     * the pump was interrupted, or serialisation failed irrecoverably.
+     */
+    private boolean processNextEvent(Stream<D> stream, PrintWriter writer, Object writerLock, String pdpId) {
+        D decision;
+        try {
+            decision = stream.awaitNext();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+        if (decision == null) {
+            return false;
+        }
+        if (!writeEvent(writer, decision, writerLock)) {
+            return false;
+        }
+        if (writer.checkError()) {
+            log.debug("SSE stream client disconnected for pdpId={}", pdpId);
+            return false;
+        }
+        return true;
+    }
+
     @Nullable
-    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer) {
+    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer, Object writerLock) {
         if (keepAliveInterval.isZero() || keepAliveInterval.isNegative() || keepAliveScheduler == null) {
             return null;
         }
         val periodMillis = keepAliveInterval.toMillis();
         return keepAliveScheduler.scheduleAtFixedRate(() -> {
-            synchronized (writer) {
+            synchronized (writerLock) {
                 writer.write(KEEP_ALIVE_FRAME);
                 writer.flush();
             }
@@ -223,10 +234,10 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
      * error). The pump uses the return value to break out of the loop instead of
      * re-attempting to write subsequent events to a doomed stream.
      */
-    private boolean writeEvent(PrintWriter writer, D value) {
+    private boolean writeEvent(PrintWriter writer, D value, Object writerLock) {
         try {
             val json = mapper.writeValueAsString(value);
-            synchronized (writer) {
+            synchronized (writerLock) {
                 writer.write("data:");
                 writer.write(json);
                 writer.write("\n\n");

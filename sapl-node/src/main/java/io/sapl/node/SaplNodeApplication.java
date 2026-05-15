@@ -19,6 +19,7 @@ package io.sapl.node;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
@@ -130,7 +131,7 @@ public class SaplNodeApplication {
         val     out      = new ArrayList<String>(args.length + 1);
         boolean expanded = false;
         for (val arg : args) {
-            if (NO_AUTH_FLAG.equals(arg) && !expanded) {
+            if (!expanded && NO_AUTH_FLAG.equals(arg)) {
                 out.add(NO_AUTH_PROPERTY);
                 expanded = true;
             } else {
@@ -176,7 +177,7 @@ public class SaplNodeApplication {
 
         private static void registerScalarReflection(RuntimeHints hints, ClassLoader classLoader) {
             val binder = new BindingReflectionHintsRegistrar();
-            for (val className : new String[] { "com.scalar.maven.core.internal.ScalarConfiguration",
+            for (val className : List.of("com.scalar.maven.core.internal.ScalarConfiguration",
                     "com.scalar.maven.core.ScalarProperties", "com.scalar.maven.webmvc.SpringBootScalarProperties",
                     "com.scalar.maven.core.config.ScalarSource", "com.scalar.maven.core.config.ScalarServer",
                     "com.scalar.maven.core.config.ScalarServerVariable",
@@ -197,7 +198,7 @@ public class SaplNodeApplication {
                     "com.scalar.maven.core.enums.DeveloperToolsVisibility",
                     "com.scalar.maven.core.enums.DocumentDownloadType", "com.scalar.maven.core.enums.Layout",
                     "com.scalar.maven.core.enums.OperationSorter", "com.scalar.maven.core.enums.OperationTitleSource",
-                    "com.scalar.maven.core.enums.SchemaPropertyOrder", "com.scalar.maven.core.enums.TagSorter" }) {
+                    "com.scalar.maven.core.enums.SchemaPropertyOrder", "com.scalar.maven.core.enums.TagSorter")) {
                 try {
                     binder.registerReflectionHints(hints.reflection(), Class.forName(className, false, classLoader));
                 } catch (ClassNotFoundException ignored) {
@@ -225,8 +226,8 @@ public class SaplNodeApplication {
             // building generators. SAPL's `generate basic`/`generate apikey`
             // CLI commands depend on this; without the hints the native
             // binary fails at first credential generation.
-            for (val passayClass : new String[] { "org.passay.PasswordGenerator", "org.passay.CharacterRule",
-                    "org.passay.EnglishCharacterData" }) {
+            for (val passayClass : List.of("org.passay.PasswordGenerator", "org.passay.CharacterRule",
+                    "org.passay.EnglishCharacterData")) {
                 hints.reflection().registerTypeIfPresent(classLoader, passayClass,
                         MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_DECLARED_METHODS);
             }

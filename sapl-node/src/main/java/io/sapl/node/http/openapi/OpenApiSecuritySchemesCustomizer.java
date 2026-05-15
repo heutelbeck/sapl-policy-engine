@@ -155,7 +155,7 @@ class OpenApiSecuritySchemesCustomizer {
     }
 
     private static SecurityScheme basicAuthScheme() {
-        return new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("basic")
+        return new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme(SCHEME_BASIC)
                 .description("HTTP Basic with credentials configured under io.sapl.node.users[].basic.");
     }
 

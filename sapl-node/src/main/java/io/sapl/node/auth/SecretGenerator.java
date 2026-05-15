@@ -18,12 +18,13 @@
 package io.sapl.node.auth;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.passay.CharacterData;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.PasswordGenerator;
-import org.passay.Rule;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
 import lombok.experimental.UtilityClass;
@@ -73,10 +74,9 @@ public class SecretGenerator {
         }
     };
 
-    private static Rule[] baseRules() {
-        return new Rule[] { new CharacterRule(EnglishCharacterData.LowerCase, 2),
-                new CharacterRule(EnglishCharacterData.UpperCase, 2),
-                new CharacterRule(EnglishCharacterData.Digit, 2) };
+    private static List<CharacterRule> baseRules() {
+        return List.of(new CharacterRule(EnglishCharacterData.LowerCase, 2),
+                new CharacterRule(EnglishCharacterData.UpperCase, 2), new CharacterRule(EnglishCharacterData.Digit, 2));
     }
 
     // Explicit non-blocking SecureRandom: Passay's default constructor calls
@@ -90,10 +90,9 @@ public class SecretGenerator {
     }
 
     private static String generatePassword(int length) {
-        val base  = baseRules();
-        val rules = new Rule[base.length + 1];
-        rules[0] = new CharacterRule(SPECIAL_CHARACTERS, 2);
-        System.arraycopy(base, 0, rules, 1, base.length);
+        val rules = new ArrayList<CharacterRule>();
+        rules.add(new CharacterRule(SPECIAL_CHARACTERS, 2));
+        rules.addAll(baseRules());
         return new PasswordGenerator(SECURE_RANDOM).generatePassword(length, rules);
     }
 }

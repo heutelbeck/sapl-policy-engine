@@ -56,7 +56,7 @@ import lombok.val;
  * giving an attacker an Argon2 oracle for every brute-force probe.
  */
 @Slf4j
-public class CachingHttpAuthHandler implements HttpAuthHandler {
+public final class CachingHttpAuthHandler implements HttpAuthHandler {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String BASIC_PREFIX  = "Basic ";
@@ -103,8 +103,8 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
         val key     = sha256(header);
         val outcome = cache.get(key, k -> resolveOutcome(header));
         return switch (outcome) {
-        case Outcome.Success success -> success.result;
-        case Outcome.Failure failure -> throw new HttpAuthenticationException(failure.message);
+        case Outcome.Success(var result, var ignored) -> result;
+        case Outcome.Failure(var message)             -> throw new HttpAuthenticationException(message);
         };
     }
 
@@ -241,7 +241,7 @@ public class CachingHttpAuthHandler implements HttpAuthHandler {
             return switch (value) {
             case Outcome.Failure ignored                               -> negativeNanos;
             case Outcome.Success(var result, var exp) when exp != null ->
-                Math.max(0L, Math.min(positiveNanos, Duration.between(Instant.now(), exp).toNanos()));
+                Math.clamp(Duration.between(Instant.now(), exp).toNanos(), 0L, positiveNanos);
             case Outcome.Success ignored                               -> positiveNanos;
             };
         }

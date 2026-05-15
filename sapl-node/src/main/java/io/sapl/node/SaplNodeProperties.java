@@ -138,11 +138,9 @@ public class SaplNodeProperties implements InitializingBean {
             }
             normalizeOrRejectPdpId(user);
             val apiKeyId = user.getApiKeyId();
-            if (apiKeyId != null && !apiKeyId.isBlank()) {
-                if (nextIndex.putIfAbsent(apiKeyId, user) != null) {
-                    throw new SaplStartupConfigurationException(ERROR_DUPLICATE_API_KEY_ID.formatted(apiKeyId),
-                            ACTION_DUPLICATE_API_KEY_ID);
-                }
+            if (apiKeyId != null && !apiKeyId.isBlank() && nextIndex.putIfAbsent(apiKeyId, user) != null) {
+                throw new SaplStartupConfigurationException(ERROR_DUPLICATE_API_KEY_ID.formatted(apiKeyId),
+                        ACTION_DUPLICATE_API_KEY_ID);
             }
         }
         this.apiKeyIdIndex = Map.copyOf(nextIndex);
