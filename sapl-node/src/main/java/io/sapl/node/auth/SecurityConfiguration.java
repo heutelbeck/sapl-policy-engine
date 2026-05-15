@@ -125,6 +125,8 @@ public class SecurityConfiguration {
             tokens it signs. SAPL Node fetches the JWKS from this issuer on
             the first decision call, then caches it.""";
 
+    private static final String WARN_BASIC_AUTH_CSRF = "Basic authentication is enabled. Browsers auto-attach Basic credentials, which exposes a CSRF surface that API key and OAuth2 JWT do not. Prefer Bearer auth for production. See https://sapl.io/docs/latest/7_6_Security.";
+
     private static final String WARN_NO_API_KEYS = "API key authentication is enabled but no users with API keys are configured. Add users under io.sapl.node.users with an apiKey field.";
 
     private final ApiKeyService      apiKeyService;
@@ -206,6 +208,8 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // CSRF disabled. Stateless API, Bearer auth headers are not
+        // browser-auto-attached. Basic is the exception and emits a WARN.
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable);
@@ -245,6 +249,7 @@ public class SecurityConfiguration {
 
         if (pdpProperties.isAllowBasicAuth()) {
             log.info("Basic authentication activated.");
+            log.warn(WARN_BASIC_AUTH_CSRF);
             if (!hasBasicAuthUsers()) {
                 throw new SaplStartupConfigurationException(ERROR_NO_BASIC_AUTH_USERS, ACTION_NO_BASIC_AUTH_USERS);
             }

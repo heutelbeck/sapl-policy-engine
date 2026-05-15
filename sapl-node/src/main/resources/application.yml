@@ -301,3 +301,4 @@ logging.level:
   # starts logging meaningful WARN/INFO from this binder on JVM, lift
   # this filter or move it under a native-only profile.
   "[io.micrometer.core.instrument.binder.jvm.JvmGcMetrics]": ERROR
+  "[org.springdoc.core.service.AbstractOpenApiResource]": WARN
