@@ -744,7 +744,7 @@ public class TimePolicyInformationPoint {
     }
 
     private Stream<Value> boolAtZonedBoundary(Value value, LocalTime to, ZoneId zone) {
-        val today         = LocalDate.now(clock);
+        val today         = zonedNow(zone).toLocalDate();
         val zonedTo       = to.atDate(today).atZone(zone);
         val targetInstant = zonedTo.toInstant();
         return Streams.scheduledAt(value, targetInstant, scheduler);

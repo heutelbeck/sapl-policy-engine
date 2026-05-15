@@ -97,11 +97,9 @@ class TimePolicyInformationPointTests {
             val f = fixtureAt("2021-11-08T13:00:00Z");
             try (val stream = f.sut.now()) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.of("2021-11-08T13:00:00Z"));
-                f.clock.setInstant(Instant.parse("2021-11-08T13:00:01Z"));
-                f.scheduler.advanceTo(Instant.parse("2021-11-08T13:00:01Z"));
+                f.advanceTo(Instant.parse("2021-11-08T13:00:01Z"));
                 StreamAssertions.assertThat(stream).awaitsNext(Value.of("2021-11-08T13:00:01Z"));
-                f.clock.setInstant(Instant.parse("2021-11-08T13:00:02Z"));
-                f.scheduler.advanceTo(Instant.parse("2021-11-08T13:00:02Z"));
+                f.advanceTo(Instant.parse("2021-11-08T13:00:02Z"));
                 StreamAssertions.assertThat(stream).awaitsNext(Value.of("2021-11-08T13:00:02Z"));
             }
         }
@@ -166,7 +164,7 @@ class TimePolicyInformationPointTests {
             val checkpoint = Instant.parse("2021-11-08T14:30:00Z");
             try (val stream = f.sut.nowIsAfter(Value.of(checkpoint.toString()))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                f.scheduler.advanceTo(checkpoint);
+                f.advanceTo(checkpoint);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
             }
         }
@@ -201,7 +199,7 @@ class TimePolicyInformationPointTests {
             val checkpoint = Instant.parse("2021-11-08T14:30:00Z");
             try (val stream = f.sut.nowIsBefore(Value.of(checkpoint.toString()))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(checkpoint);
+                f.advanceTo(checkpoint);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
             }
         }
@@ -236,7 +234,7 @@ class TimePolicyInformationPointTests {
             val end = Instant.parse("2021-11-08T13:00:10Z");
             try (val stream = f.sut.nowIsBetween(Value.of("2021-11-08T13:00:00Z"), Value.of(end.toString()))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(end);
+                f.advanceTo(end);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
             }
         }
@@ -249,9 +247,9 @@ class TimePolicyInformationPointTests {
             val end   = Instant.parse("2021-11-08T13:00:10Z");
             try (val stream = f.sut.nowIsBetween(Value.of(start.toString()), Value.of(end.toString()))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                f.scheduler.advanceTo(start);
+                f.advanceTo(start);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(end);
+                f.advanceTo(end);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
             }
         }
@@ -286,7 +284,7 @@ class TimePolicyInformationPointTests {
             val midnight = Instant.parse("2021-11-09T00:00:00Z").minusNanos(1);
             try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(midnight);
+                f.advanceTo(midnight);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
         }
@@ -298,7 +296,7 @@ class TimePolicyInformationPointTests {
             val checkpoint = Instant.parse("2021-11-08T12:00:00Z");
             try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                f.scheduler.advanceTo(checkpoint);
+                f.advanceTo(checkpoint);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
             }
         }
@@ -337,7 +335,7 @@ class TimePolicyInformationPointTests {
             val checkpoint = Instant.parse("2021-11-08T12:00:00Z");
             try (val stream = f.sut.localTimeIsBefore(Value.of("12:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(checkpoint);
+                f.advanceTo(checkpoint);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
         }
@@ -406,9 +404,9 @@ class TimePolicyInformationPointTests {
             val end   = Instant.parse("2021-11-08T15:00:00Z");
             try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("15:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                f.scheduler.advanceTo(start);
+                f.advanceTo(start);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(end);
+                f.advanceTo(end);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
         }
@@ -420,7 +418,7 @@ class TimePolicyInformationPointTests {
             val end = Instant.parse("2021-11-08T16:00:00Z");
             try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                f.scheduler.advanceTo(end);
+                f.advanceTo(end);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
         }
@@ -432,7 +430,7 @@ class TimePolicyInformationPointTests {
             val nextStart = Instant.parse("2021-11-09T14:00:00Z");
             try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                f.scheduler.advanceTo(nextStart);
+                f.advanceTo(nextStart);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
             }
         }
@@ -744,8 +742,10 @@ class TimePolicyInformationPointTests {
             val sut        = new TimePolicyInformationPoint(clock, scheduler);
             try (val stream = sut.toggle(Value.of(5_000L), Value.of(1_000L))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                clock.setInstant(firstFalse);
                 scheduler.advanceTo(firstFalse);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                clock.setInstant(nextTrue);
                 scheduler.advanceTo(nextTrue);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
             }

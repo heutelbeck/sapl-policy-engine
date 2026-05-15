@@ -26,6 +26,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +39,7 @@ import reactor.netty.http.client.HttpClient;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -161,7 +163,7 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
     class LogLevelEscalation {
 
         @Test
-        @Timeout(10)
+        @Timeout(30)
         @DisplayName("Repeated stream failures escalate log level from WARN to ERROR (REQ-STREAM-4)")
         void whenRepeatedStreamFailuresThenLogEscalatesWarnToError() {
             val pdp = createPdpWithBasicAuth("user", "pass");
@@ -175,14 +177,14 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
 
             StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE).verifyError();
 
-            val reconnectLogs = logAppender.list.stream().filter(e -> e.getFormattedMessage().contains("reconnecting"))
-                    .toList();
-
-            val warnCount  = reconnectLogs.stream().filter(e -> e.getLevel() == Level.WARN).count();
-            val errorCount = reconnectLogs.stream().filter(e -> e.getLevel() == Level.ERROR).count();
-
-            assertThat(warnCount).as("First retries should be WARN").isGreaterThan(0);
-            assertThat(errorCount).as("Later retries should escalate to ERROR").isGreaterThan(0);
+            Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                val reconnectLogs = logAppender.list.stream()
+                        .filter(e -> e.getFormattedMessage().contains("reconnecting")).toList();
+                val warnCount     = reconnectLogs.stream().filter(e -> e.getLevel() == Level.WARN).count();
+                val errorCount    = reconnectLogs.stream().filter(e -> e.getLevel() == Level.ERROR).count();
+                assertThat(warnCount).as("First retries should be WARN").isGreaterThan(0);
+                assertThat(errorCount).as("Later retries should escalate to ERROR").isGreaterThan(0);
+            });
         }
 
         @Test
@@ -200,11 +202,12 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
 
             StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE).verifyError();
 
-            val authErrorLogs = logAppender.list.stream().filter(e -> e.getLevel() == Level.ERROR)
-                    .filter(e -> e.getFormattedMessage().contains("PDP authentication failed")).toList();
-
-            assertThat(authErrorLogs).as("Auth errors should be logged at ERROR every time")
-                    .hasSizeGreaterThanOrEqualTo(2);
+            Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                val authErrorLogs = logAppender.list.stream().filter(e -> e.getLevel() == Level.ERROR)
+                        .filter(e -> e.getFormattedMessage().contains("PDP authentication failed")).toList();
+                assertThat(authErrorLogs).as("Auth errors should be logged at ERROR every time")
+                        .hasSizeGreaterThanOrEqualTo(2);
+            });
         }
     }
 

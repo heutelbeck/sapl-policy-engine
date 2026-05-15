@@ -39,9 +39,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
+
+import org.awaitility.Awaitility;
 
 import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
 import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
@@ -391,8 +395,8 @@ class DelegatingReactivePolicyDecisionPointTests {
     @Test
     @DisplayName("lifecycle callbacks fire on subscribe and unsubscribe")
     void whenStreamSubscribedAndCancelledThenLifecycleCallbacksFire() {
-        val subscribedIds   = new ArrayList<String>();
-        val unsubscribedIds = new ArrayList<String>();
+        val subscribedIds   = new CopyOnWriteArrayList<String>();
+        val unsubscribedIds = new CopyOnWriteArrayList<String>();
 
         val lifecycleListener = new SubscriptionLifecycleListener() {
             @Override
@@ -422,8 +426,10 @@ class DelegatingReactivePolicyDecisionPointTests {
         StepVerifier.create(interceptedPdp.decide(subscription).take(1))
                 .assertNext(decision -> assertThat(decision.decision()).isEqualTo(Decision.PERMIT)).verifyComplete();
 
-        assertThat(subscribedIds).hasSize(1);
-        assertThat(unsubscribedIds).hasSize(1).first().isEqualTo(subscribedIds.getFirst());
+        Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            assertThat(subscribedIds).hasSize(1);
+            assertThat(unsubscribedIds).hasSize(1).first().isEqualTo(subscribedIds.getFirst());
+        });
     }
 
     private void loadConfiguration(CombiningAlgorithm algorithm, String... policies) {
