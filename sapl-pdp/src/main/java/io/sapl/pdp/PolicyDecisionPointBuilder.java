@@ -33,14 +33,17 @@ import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.attributes.store.InMemoryAttributeStore;
 import io.sapl.attributes.store.PipLoadException;
-import io.sapl.functions.DefaultFunctionBroker;
-import io.sapl.functions.DefaultLibraries;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.functions.DefaultFunctionBroker;
+import io.sapl.functions.DefaultLibraries;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.source.*;
+import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSource;
+import io.sapl.pdp.plugins.StaticPluginsSource;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -110,6 +113,7 @@ public class PolicyDecisionPointBuilder {
 
     private int            functionCacheSize = -1;
     private FunctionBroker externalFunctionBroker;
+    private PluginsSource  externalPluginsSource;
     private AttributeStore externalAttributeStore;
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
@@ -268,6 +272,21 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withFunctionBroker(FunctionBroker functionBroker) {
         this.externalFunctionBroker = functionBroker;
+        return this;
+    }
+
+    /**
+     * Sets a {@link PluginsSource}. When set the source overrides every
+     * other plugin-side configuration on the builder (function libraries,
+     * decision interceptors, lifecycle listeners). The voter source
+     * subscribes to it for snapshots. Emissions after build time trigger
+     * recompile of every retained PDP configuration.
+     *
+     * @param source the plugins source
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withPluginsSource(PluginsSource source) {
+        this.externalPluginsSource = source;
         return this;
     }
 
@@ -677,14 +696,11 @@ public class PolicyDecisionPointBuilder {
      * fails
      */
     public PDPComponents build() {
-        val functionBroker        = resolveFunctionBroker();
-        val attributeStore        = resolveAttributeStore();
-        val configurationRegister = new PdpVoterSource(functionBroker, clock);
-        val timestampClock        = new LazyFastClock();
-        val decisionPipeline      = List.copyOf(decisionInterceptors);
-        val lifecyclePipeline     = List.copyOf(lifecycleListeners);
-        val blockingPdp           = new BlockingPolicyDecisionPoint(configurationRegister, attributeStore,
-                resolveIdFactory(), clock, decisionPipeline, lifecyclePipeline);
+        val attributeStore = resolveAttributeStore();
+        val pluginsSource  = resolvePluginsSource();
+        val voterSource    = new PdpVoterSource(pluginsSource, clock);
+        val timestampClock = new LazyFastClock();
+        val blockingPdp    = new BlockingPolicyDecisionPoint(voterSource, attributeStore, resolveIdFactory(), clock);
 
         // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {
@@ -697,22 +713,28 @@ public class PolicyDecisionPointBuilder {
         // Load initial configurations: false signals fail-fast on compile error,
         // propagating PDPConfigurationException to the build() caller.
         for (val config : initialConfigurations) {
-            configurationRegister.loadConfiguration(config, false);
+            voterSource.loadConfiguration(config, false);
         }
 
         if (configurationSource != null) {
             // Subscribe propagates source-side compile errors via the same
             // fail-fast path when the source emits Load with keepOldOnError=false.
-            configurationSource.subscribe(configurationRegister::handle);
+            configurationSource.subscribe(voterSource::handle);
         }
 
-        return new PDPComponents(blockingPdp, configurationRegister, functionBroker, attributeStore,
-                configurationSource, timestampClock, decisionPipeline, lifecyclePipeline);
+        val plugins = voterSource.getPlugins();
+        return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeStore,
+                configurationSource, timestampClock, plugins.decisionInterceptors(), plugins.lifecycleListeners());
     }
 
-    private FunctionBroker resolveFunctionBroker() {
-        return Objects.requireNonNullElseGet(externalFunctionBroker,
-                () -> buildFunctionBroker(functionCacheSize, includeDefaultFunctionLibraries, functionLibraries));
+    private PluginsSource resolvePluginsSource() {
+        if (externalPluginsSource != null) {
+            return externalPluginsSource;
+        }
+        val broker = externalFunctionBroker != null ? externalFunctionBroker
+                : buildFunctionBroker(functionCacheSize, includeDefaultFunctionLibraries, functionLibraries);
+        val bundle = new PluginsBundle(broker, List.copyOf(decisionInterceptors), List.copyOf(lifecycleListeners));
+        return new StaticPluginsSource(bundle);
     }
 
     /**

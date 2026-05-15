@@ -20,6 +20,7 @@ package io.sapl.compiler.pdp;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.ast.Outcome;
 import io.sapl.compiler.combining.PriorityVoteCompiler;
@@ -58,13 +59,14 @@ public class PdpCompiler {
      * @param exception the compilation exception
      * @return a compiled voter that always returns INDETERMINATE
      */
-    public static CompiledPdp createErrorVoter(PDPConfiguration pdpConfiguration, SaplCompilerException exception) {
+    public static CompiledPdp createErrorVoter(PDPConfiguration pdpConfiguration, SaplCompilerException exception,
+            PluginsBundle plugins) {
         val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
                 pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
         val error         = Value.error(exception.getMessage());
         val errorVote     = Vote.error(error, voterMetadata);
         val coverageVoter = new ErrorPdpCoverageVoter(voterMetadata, errorVote);
-        return new CompiledPdp(voterMetadata, errorVote, coverageVoter);
+        return new CompiledPdp(voterMetadata, errorVote, coverageVoter, plugins);
     }
 
     /**
@@ -93,6 +95,11 @@ public class PdpCompiler {
      * names collide, or the FIRST combining algorithm is used at PDP level
      */
     public static CompiledPdp compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx) {
+        return compilePDPConfiguration(pdpConfiguration, ctx, new PluginsBundle(ctx.getFunctionBroker()));
+    }
+
+    public static CompiledPdp compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx,
+            PluginsBundle plugins) {
         val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
                 pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
 
@@ -144,7 +151,7 @@ public class PdpCompiler {
                 defaultDecision, errorHandling);
         };
 
-        return new CompiledPdp(voterMetadata, voter, coverageVoter);
+        return new CompiledPdp(voterMetadata, voter, coverageVoter, plugins);
     }
 
     private static String findNameCollision(List<? extends CompiledDocument> compiledDocuments) {

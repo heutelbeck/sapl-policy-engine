@@ -127,7 +127,7 @@ public class PlaygroundConfigurationSource {
      */
     public Optional<SaplCompilerException> tryCompile(String source) {
         val compilationContext = new CompilationContext(PDP_ID, "validation", buildPdpData(),
-                pdpVoterSource.getFunctionBroker());
+                pdpVoterSource.getPlugins().functionBroker());
         val configuration      = new PDPConfiguration(PDP_ID, "validation", currentAlgorithm.get(), List.of(source),
                 buildPdpData());
         try {

@@ -22,12 +22,14 @@ import io.sapl.api.functions.FunctionBroker;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.pdp.plugins.StaticPluginsSource;
 import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -67,7 +69,8 @@ public class PlaygroundPolicyDecisionPoint {
      * broker providing function libraries for policy evaluation
      */
     public PlaygroundPolicyDecisionPoint(AttributeStore attributeStore, FunctionBroker functionBroker) {
-        val pdpVoterSource = new PdpVoterSource(functionBroker, Clock.systemUTC());
+        val pluginsSource  = new StaticPluginsSource(new PluginsBundle(functionBroker));
+        val pdpVoterSource = new PdpVoterSource(pluginsSource, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
         val blockingPdp = new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore,
                 new ThreadLocalRandomIdFactory());

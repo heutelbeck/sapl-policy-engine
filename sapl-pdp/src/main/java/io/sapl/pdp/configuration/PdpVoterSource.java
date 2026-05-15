@@ -17,7 +17,8 @@
  */
 package io.sapl.pdp.configuration;
 
-import io.sapl.api.functions.FunctionBroker;
+import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -25,73 +26,65 @@ import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpCompiler;
 import io.sapl.compiler.util.CompilationErrorFormatter;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
  * Holds the latest compiled PDP configuration per pdpId and notifies
  * registered listeners when the configuration changes.
  * <p>
- * Two access patterns are supported:
- * <ul>
- * <li><b>Snapshot read</b> via {@link #getCurrentConfiguration(String)}.
- * Performs a lock-free volatile read of the current compiled voter
- * from a per-pdpId {@link AtomicReference} cache. This is the fast
- * path for one-shot evaluations.</li>
- * <li><b>Change notification</b> via
- * {@link #subscribeToUpdates(String, Consumer)}. Registers a callback
- * invoked synchronously on the loader thread whenever the configuration
- * for a pdpId is replaced or removed. Callers that need a reactive
- * stream compose snapshot + notifications themselves; this class stays
- * reactor-free.</li>
- * </ul>
+ * Two event streams drive recompiling: configuration changes from
+ * {@link io.sapl.pdp.configuration.source.PDPConfigurationSource} and
+ * plugin snapshots from {@link PluginsSource}. Both go through a
+ * single {@link ReentrantLock}; concurrent producer events serialize
+ * deterministically. No configuration is published until the plugins
+ * source has delivered at least one snapshot.
  * <p>
- * Listener invocation is synchronous and best-effort: an exception
- * thrown by one listener is logged and does not prevent the others from
- * running. Configuration updates are rare (driven by file changes or
- * remote bundle polls), so the simple iterate-and-call pattern is
- * sufficient.
- * <p>
- * Thread-safe. The configuration cache uses {@link AtomicReference} for
- * lock-free reads; the listener registry uses {@link ConcurrentHashMap}
- * with concurrent key sets.
+ * Snapshot reads on {@link #getCurrentConfiguration(String)} stay
+ * lock-free via per-pdpId {@link AtomicReference} caches.
  */
 @Slf4j
-@RequiredArgsConstructor
 public class PdpVoterSource implements AutoCloseable {
 
     private static final String WARN_CONFIGURATION_REJECTED = "Configuration rejected:\n{}";
+    private static final String WARN_DEFERRED_CONFIGURATION = "Configuration for pdpId '{}' arrived before plugins source delivered an initial snapshot. Retained and will compile when plugins are available.";
     private static final String WARN_LISTENER_THREW         = "Update listener for pdpId '{}' threw: {}";
 
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Clock         clock;
+    private final PluginsSource pluginsSource;
 
-    @Getter
-    private final FunctionBroker functionBroker;
-    private final Clock          clock;
+    private final ReentrantLock           stateLock      = new ReentrantLock();
+    private final Consumer<PluginsBundle> pluginListener = this::onPluginsSnapshot;
+    private volatile PluginsBundle        currentPlugins;
+    private volatile boolean              closed         = false;
+
+    /**
+     * Per-pdpId retained source configuration. Recompile triggered by a
+     * plugins snapshot reuses the last successfully-loaded
+     * {@link PDPConfiguration} for the affected pdpId. Removed when the
+     * configuration source emits a {@link ConfigurationEvent.Remove}.
+     * Mutated only under {@link #stateLock}.
+     */
+    private final Map<String, PDPConfiguration> retainedConfigurations = new HashMap<>();
 
     /**
      * Per-PDP configuration cache. Lock-free volatile reads via
-     * {@link AtomicReference} provide better performance than
-     * {@link ConcurrentHashMap} for single-value access patterns where the
-     * key is known.
+     * {@link AtomicReference} for snapshot consumers.
      */
     private final Map<String, AtomicReference<Optional<CompiledPdp>>> configCache = new ConcurrentHashMap<>();
 
     /**
-     * Per-PDP update listeners. Each set is invoked synchronously on the
-     * loader thread when a configuration is loaded or removed for the
-     * corresponding pdpId.
+     * Per-PDP update listeners.
      */
     private final Map<String, Set<Consumer<PdpUpdateEvent>>> updateListeners = new ConcurrentHashMap<>();
 
@@ -99,6 +92,36 @@ public class PdpVoterSource implements AutoCloseable {
      * Per-PDP status tracking for health reporting.
      */
     private final Map<String, AtomicReference<PdpStatus>> statusCache = new ConcurrentHashMap<>();
+
+    public PdpVoterSource(PluginsSource pluginsSource, Clock clock) {
+        this.clock         = clock;
+        this.pluginsSource = pluginsSource;
+        pluginsSource.subscribe(pluginListener);
+    }
+
+    /**
+     * @return the plugins bundle currently in effect, or {@code null}
+     * if the plugins source has not delivered a snapshot yet
+     */
+    public PluginsBundle getPlugins() {
+        return currentPlugins;
+    }
+
+    private void onPluginsSnapshot(PluginsBundle newPlugins) {
+        stateLock.lock();
+        try {
+            currentPlugins = newPlugins;
+            for (val entry : retainedConfigurations.entrySet()) {
+                try {
+                    loadConfigurationLocked(entry.getValue(), true, newPlugins);
+                } catch (Exception e) {
+                    log.warn("Recompile of pdpId '{}' after plugins push threw: {}", entry.getKey(), e.getMessage());
+                }
+            }
+        } finally {
+            stateLock.unlock();
+        }
+    }
 
     /**
      * Loads a new configuration for a PDP, compiling all SAPL documents and
@@ -115,20 +138,47 @@ public class PdpVoterSource implements AutoCloseable {
      * No state is changed.</li>
      * </ul>
      *
+     * If the plugins source has not yet delivered an initial snapshot,
+     * the configuration is retained and a warning is logged. It will
+     * compile automatically when the plugins source delivers its first
+     * snapshot. In this deferred case, {@code keepOldConfigOnError} is
+     * implicitly treated as {@code true} because synchronous validation
+     * is impossible without a broker.
+     *
      * @param pdpConfiguration the configuration to load
      * @param keepOldConfigOnError if true, retains existing configuration
      * on compilation errors and does not throw; if false, propagates the
      * compilation error to the caller
      * @throws PDPConfigurationException if {@code keepOldConfigOnError}
-     * is false and compilation fails
+     * is false and synchronous compilation fails
      */
     public void loadConfiguration(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError) {
+        stateLock.lock();
+        try {
+            val plugins = currentPlugins;
+            if (plugins == null) {
+                retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
+                getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.AWAITING_PLUGINS,
+                        pdpConfiguration.configurationId(), pdpConfiguration.combiningAlgorithm(),
+                        pdpConfiguration.saplDocuments().size(), null, null, null));
+                log.warn(WARN_DEFERRED_CONFIGURATION, pdpConfiguration.pdpId());
+                return;
+            }
+            loadConfigurationLocked(pdpConfiguration, keepOldConfigOnError, plugins);
+        } finally {
+            stateLock.unlock();
+        }
+    }
+
+    private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError,
+            PluginsBundle plugins) {
+        retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
-                pdpConfiguration.data(), functionBroker);
+                pdpConfiguration.data(), plugins.functionBroker());
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
         CompiledPdp newConfiguration;
         try {
-            newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext);
+            newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext, plugins);
         } catch (SaplCompilerException compilerException) {
             val formattedError = CompilationErrorFormatter.format(compilerException);
             if (!keepOldConfigOnError) {
@@ -141,7 +191,7 @@ public class PdpVoterSource implements AutoCloseable {
                         current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
                         current.lastSuccessfulLoad(), now, formattedError));
             } else {
-                val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException);
+                val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, plugins);
                 getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(errorVoter));
                 notifyListeners(pdpConfiguration.pdpId(),
                         new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), errorVoter));
@@ -163,19 +213,9 @@ public class PdpVoterSource implements AutoCloseable {
     /**
      * Dispatches a
      * {@link io.sapl.pdp.configuration.source.PDPConfigurationSource.ConfigurationEvent}
-     * to the appropriate operation: {@link ConfigurationEvent.Load} maps
-     * to {@link #loadConfiguration(PDPConfiguration, boolean)},
-     * {@link ConfigurationEvent.Remove} maps to
-     * {@link #removeConfigurationForPdp(String)}.
-     * <p>
-     * Used as the subscribe-callback bridge between
-     * {@link io.sapl.pdp.configuration.source.PDPConfigurationSource}
-     * producers and this voter source.
+     * to the appropriate operation.
      *
      * @param event the configuration event to dispatch
-     * @throws PDPConfigurationException if the event is a
-     * {@link ConfigurationEvent.Load} with {@code keepOldOnError == false}
-     * and the configuration fails to compile
      */
     public void handle(ConfigurationEvent event) {
         switch (event) {
@@ -186,16 +226,20 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     /**
-     * Removes the configuration for a PDP, dispatching a
-     * {@link PdpUpdateEvent.Removed} to all listeners and removing the
-     * status entry.
+     * Removes the configuration for a PDP.
      *
      * @param pdpId the PDP identifier
      */
     public void removeConfigurationForPdp(String pdpId) {
-        getConfigRef(pdpId).set(Optional.empty());
-        notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
-        statusCache.remove(pdpId);
+        stateLock.lock();
+        try {
+            retainedConfigurations.remove(pdpId);
+            getConfigRef(pdpId).set(Optional.empty());
+            notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
+            statusCache.remove(pdpId);
+        } finally {
+            stateLock.unlock();
+        }
     }
 
     /**
@@ -211,35 +255,20 @@ public class PdpVoterSource implements AutoCloseable {
 
     /**
      * Registers a listener that is invoked synchronously whenever the
-     * configuration for the given pdpId changes. The listener receives a
-     * {@link PdpUpdateEvent.Voter} for loads (including error voters when
-     * {@code keepOldConfigOnError} was set) and a
-     * {@link PdpUpdateEvent.Removed} when the configuration is removed.
-     * <p>
-     * The listener is <b>not</b> invoked with the current value at the
-     * time of subscription. Callers that want the current snapshot should
-     * call {@link #getCurrentConfiguration(String)} themselves; combining
-     * the two gives "snapshot plus updates" semantics. Subscribing before
-     * reading the snapshot is the safer order: it cannot lose an update
-     * emitted between the two calls.
-     * <p>
-     * Multiple subscriptions of the same listener instance are
-     * deduplicated. Subscribing to a closed voter source is a no-op.
+     * configuration for the given pdpId changes.
      *
      * @param pdpId the PDP identifier
      * @param listener the callback to invoke on configuration change
      */
     public void subscribeToUpdates(String pdpId, Consumer<PdpUpdateEvent> listener) {
-        if (closed.get()) {
+        if (closed) {
             return;
         }
         updateListeners.computeIfAbsent(pdpId, id -> ConcurrentHashMap.newKeySet()).add(listener);
     }
 
     /**
-     * Removes a listener previously registered via
-     * {@link #subscribeToUpdates(String, Consumer)}. Calls for an unknown
-     * pdpId or unknown listener are silently ignored.
+     * Removes a previously registered listener.
      *
      * @param pdpId the PDP identifier
      * @param listener the previously registered callback
@@ -276,18 +305,24 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     /**
-     * Releases all resources: clears all listeners and the per-PDP caches.
-     * Idempotent. Safe to call from container shutdown hooks even if
-     * {@link AutoCloseable#close()} has already been invoked.
+     * Releases all resources.
      */
     @Override
     public void close() {
-        if (!closed.compareAndSet(false, true)) {
-            return;
+        stateLock.lock();
+        try {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            pluginsSource.unsubscribe(pluginListener);
+            updateListeners.clear();
+            configCache.clear();
+            statusCache.clear();
+            retainedConfigurations.clear();
+        } finally {
+            stateLock.unlock();
         }
-        updateListeners.clear();
-        configCache.clear();
-        statusCache.clear();
     }
 
     private void notifyListeners(String pdpId, PdpUpdateEvent event) {

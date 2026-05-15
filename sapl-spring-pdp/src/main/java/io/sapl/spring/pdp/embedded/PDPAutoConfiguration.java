@@ -25,13 +25,11 @@ import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryProvider;
-import io.sapl.attributes.store.AttributeStore;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.functions.libraries.crypto.PemUtils;
-import io.sapl.pdp.BlockingPolicyDecisionPoint;
-import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.attributes.store.AttributeStore;
+import io.sapl.functions.libraries.crypto.PemUtils;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import io.sapl.pdp.configuration.PdpVoterSource;
@@ -44,6 +42,11 @@ import io.sapl.pdp.configuration.source.PdpIdValidator;
 import io.sapl.pdp.configuration.source.RemoteBundlePDPConfigurationSource;
 import io.sapl.pdp.configuration.source.RemoteBundleSourceConfig;
 import io.sapl.pdp.configuration.source.ResourcesPDPConfigurationSource;
+import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSource;
+import io.sapl.pdp.plugins.StaticPluginsSource;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.BundleSecurityProperties;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -192,9 +195,24 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    PdpVoterSource pdpVoterSource(FunctionBroker functionBroker, Clock clock,
+    PluginsSource pluginsSource(FunctionBroker functionBroker,
+            ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
+            ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
+        val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
+        val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
+        if (!decisionInterceptors.isEmpty() || !lifecycleListeners.isEmpty()) {
+            log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
+                    lifecycleListeners.size());
+        }
+        return new StaticPluginsSource(new PluginsBundle(functionBroker, decisionInterceptors, lifecycleListeners));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    PdpVoterSource pdpVoterSource(PluginsSource pluginsSource, Clock clock,
             ObjectProvider<PDPConfigurationSource> sourceProvider) {
-        val voterSource = new PdpVoterSource(functionBroker, clock);
+        val voterSource = new PdpVoterSource(pluginsSource, clock);
         val source      = sourceProvider.getIfAvailable();
         if (source != null) {
             source.subscribe(voterSource::handle);
@@ -206,18 +224,9 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     BlockingPolicyDecisionPoint blockingPolicyDecisionPoint(PdpVoterSource pdpVoterSource,
-            AttributeStore attributeStore, IdFactory idFactory,
-            ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
-            ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
-        val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
-        val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
-        if (!decisionInterceptors.isEmpty() || !lifecycleListeners.isEmpty()) {
-            log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
-                    lifecycleListeners.size());
-        }
+            AttributeStore attributeStore, IdFactory idFactory) {
         log.debug("Deploying embedded Policy Decision Point.");
-        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory, decisionInterceptors,
-                lifecycleListeners);
+        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory);
     }
 
     /**
