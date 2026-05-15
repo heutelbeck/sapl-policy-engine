@@ -281,7 +281,7 @@ class TimePolicyInformationPointTests {
         @DisplayName("emits TRUE when starting after checkpoint, transitions FALSE at midnight")
         void whenStartingAfterCheckpointThenEmitsTrueThenFalseAtMidnight() {
             val f        = fixtureAt("2021-11-08T13:00:00Z");
-            val midnight = Instant.parse("2021-11-09T00:00:00Z").minusNanos(1);
+            val midnight = Instant.parse("2021-11-09T00:00:00Z");
             try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
                 f.advanceTo(midnight);
