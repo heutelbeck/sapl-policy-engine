@@ -17,12 +17,10 @@
  */
 package io.sapl.node.http.pdp;
 
-import java.io.Serial;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.Stream;
@@ -37,9 +35,6 @@ import tools.jackson.databind.json.JsonMapper;
  */
 public final class MultiDecideAllServlet
         extends SseStreamServlet<MultiAuthorizationSubscription, MultiAuthorizationDecision> {
-
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final BlockingPolicyDecisionPoint pdp;
 

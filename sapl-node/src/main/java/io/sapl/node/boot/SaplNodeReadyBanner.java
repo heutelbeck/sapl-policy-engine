@@ -67,8 +67,8 @@ class SaplNodeReadyBanner {
     @Value("${sapl.pdp.rsocket.ssl.bundle:#{null}}")
     private String rsocketSslBundle;
 
-    private int  httpPort     = -1;
-    private long readyAtNanos = 0L;
+    private volatile int  httpPort     = -1;
+    private volatile long readyAtNanos = 0L;
 
     @EventListener
     void onWebServerInitialized(WebServerInitializedEvent event) {

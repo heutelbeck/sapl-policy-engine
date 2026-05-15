@@ -17,12 +17,10 @@
  */
 package io.sapl.node.http.pdp;
 
-import java.io.Serial;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.stream.Stream;
@@ -35,9 +33,6 @@ import tools.jackson.databind.json.JsonMapper;
  * stream of {@link AuthorizationDecision} values for a single subscription.
  */
 public final class DecideStreamServlet extends SseStreamServlet<AuthorizationSubscription, AuthorizationDecision> {
-
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     private final BlockingPolicyDecisionPoint pdp;
 

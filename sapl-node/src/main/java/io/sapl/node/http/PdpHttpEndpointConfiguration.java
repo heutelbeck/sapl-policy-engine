@@ -33,7 +33,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
-import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.Servlet;
 
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.auth.UserLookupService;
@@ -152,7 +152,7 @@ class PdpHttpEndpointConfiguration {
                 "/api/pdp/multi-decide-all", "saplMultiDecideAllServlet", true);
     }
 
-    private static <T extends HttpServlet> ServletRegistrationBean<T> register(T servlet, String urlPattern,
+    private static <T extends Servlet> ServletRegistrationBean<T> register(T servlet, String urlPattern,
             String beanName, boolean asyncSupported) {
         val registration = new ServletRegistrationBean<>(servlet, urlPattern);
         registration.setName(beanName);

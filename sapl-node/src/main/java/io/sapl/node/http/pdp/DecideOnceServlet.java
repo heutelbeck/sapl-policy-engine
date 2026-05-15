@@ -18,20 +18,17 @@
 package io.sapl.node.http.pdp;
 
 import java.io.IOException;
-import java.io.Serial;
 
 import org.jspecify.annotations.NonNull;
 
 import tools.jackson.core.JacksonException;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthenticationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -47,10 +44,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class DecideOnceServlet extends HttpServlet {
-
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+public class DecideOnceServlet extends AbstractBypassServlet {
 
     private static final String CONTENT_TYPE_JSON = "application/json";
 
@@ -59,7 +53,7 @@ public class DecideOnceServlet extends HttpServlet {
     private final JsonMapper                  mapper;
 
     @Override
-    protected void doPost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
+    protected void handlePost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
             throws ServletException, IOException {
         String pdpId;
         try {

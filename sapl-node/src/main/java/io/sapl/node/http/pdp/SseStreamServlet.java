@@ -19,7 +19,6 @@ package io.sapl.node.http.pdp;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.Serial;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -30,13 +29,11 @@ import java.util.concurrent.TimeUnit;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.api.SaplVersion;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthenticationException;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -55,10 +52,7 @@ import tools.jackson.databind.json.JsonMapper;
  * @param <D> the decision type emitted by the stream
  */
 @Slf4j
-public abstract class SseStreamServlet<S, D> extends HttpServlet {
-
-    @Serial
-    private static final long serialVersionUID = SaplVersion.VERSION_UID;
+public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
 
     private static final String CONTENT_TYPE_SSE = "text/event-stream;charset=UTF-8";
     private static final String KEEP_ALIVE_FRAME = ": keep-alive\n\n";
@@ -108,7 +102,7 @@ public abstract class SseStreamServlet<S, D> extends HttpServlet {
     protected abstract D indeterminate();
 
     @Override
-    protected void doPost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
+    protected void handlePost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
             throws ServletException, IOException {
         String pdpId;
         try {
