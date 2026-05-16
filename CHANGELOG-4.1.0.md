@@ -148,9 +148,15 @@ The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query re
 
 `Flux.combineLatest` is gone from main src across the engine. The previous combiner produced intermediate tuples during cascading updates, pairing one input's new value with stale previous values from the others before the correct tuple appeared. Multi-subscription evaluation now uses a snapshot-driven evaluator that delivers consistent tuples on every emission. `MultiSubscriptionDeglitchTests` lock the invariant for both the reactive and blocking PDPs.
 
-### AttributeStore
+### AttributeBroker
 
-`AttributeStore` replaces `AttributeBroker`. Custom PIPs register against the store directly. The change is transparent to policy authors. Extension authors who built broker-style abstractions against 4.0 need to switch to the new interface.
+- Consumer interface: `AttributeBroker` in `io.sapl.attributes.broker`.
+- Writer interface: `AttributeRepository` with `publish(key, value)`, `publish(key, value, ttl)`, `remove(key)`.
+- Default top-level: `LayeredAttributeBroker(PolicyInformationPointAttributeBroker, InMemoryAttributeRepository)`. PIPs win; repository fills gaps; UNDEFINED if neither has a value.
+- PIP author API in `sapl-api` unchanged. PIPs register via `load(pipInstance)` returning a `PipHandle`; `swap`, `unload` available.
+- Builder: `withAttributeBroker(...)` for full override; `withRepository(...)` for the repository half only.
+- Spring beans: `policyInformationPointAttributeBroker`, `inMemoryAttributeRepository`, `attributeRepository`, `attributeBroker` (`@Primary`).
+- v4.0 extension authors: new package `io.sapl.attributes.broker.*`; new callback-driven contract `open(id, deps, onUpdate) → Subscription`; no Reactor at the boundary.
 
 ### Plugins source
 
