@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
@@ -28,7 +28,7 @@ import static io.sapl.api.shared.NameValidator.requireValidName;
 
 /**
  * Metadata describing a {@link StreamAttributeFinder}'s signature
- * and implementation. The store uses this record to detect spec
+ * and implementation. The broker uses this record to detect spec
  * collisions at load time ({@link #collidesWith}) and to match
  * incoming invocations to a serving spec ({@link #matches}).
  *

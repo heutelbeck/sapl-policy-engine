@@ -22,7 +22,7 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import lombok.val;
@@ -46,8 +46,8 @@ import static io.sapl.test.Matchers.eq;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("MockingAttributeStore")
-class MockingAttributeStoreTests {
+@DisplayName("MockingAttributeBroker")
+class MockingAttributeBrokerTests {
 
     private static final String                 CONFIG_ID       = "test-config";
     private static final Duration               DEFAULT_TIMEOUT = Duration.ofSeconds(10);
@@ -58,16 +58,16 @@ class MockingAttributeStoreTests {
     private static final AttributeAccessContext EMPTY_CTX       = new AttributeAccessContext(Value.EMPTY_OBJECT,
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
-    private MockingAttributeStore store;
+    private MockingAttributeBroker broker;
 
     @BeforeEach
     void setUp() {
-        store = new MockingAttributeStore();
+        broker = new MockingAttributeBroker();
     }
 
     @AfterEach
     void tearDown() {
-        store.close();
+        broker.close();
     }
 
     private static SubscriptionKey envKey(String name, Value... arguments) {
@@ -110,17 +110,17 @@ class MockingAttributeStoreTests {
         void blankMockIdRejected() {
             val params = args();
 
-            assertThatThrownBy(() -> store.mockEnvironmentAttribute("", "time.now", params))
+            assertThatThrownBy(() -> broker.mockEnvironmentAttribute("", "time.now", params))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("blank");
         }
 
         @Test
         @DisplayName("duplicate mockId is rejected")
         void duplicateMockIdRejected() {
-            store.mockEnvironmentAttribute("mock1", "time.now", args());
+            broker.mockEnvironmentAttribute("mock1", "time.now", args());
             val params = args();
 
-            assertThatThrownBy(() -> store.mockEnvironmentAttribute("mock1", "other.attr", params))
+            assertThatThrownBy(() -> broker.mockEnvironmentAttribute("mock1", "other.attr", params))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already registered");
         }
 
@@ -128,26 +128,26 @@ class MockingAttributeStoreTests {
         @DisplayName("non-args() arguments rejected")
         void nonArgsArgumentsRejected() {
             val badParams = (SaplTestFixture.Parameters) new SaplTestFixture.Parameters() {};
-            assertThatThrownBy(() -> store.mockEnvironmentAttribute("mock1", "time.now", badParams))
+            assertThatThrownBy(() -> broker.mockEnvironmentAttribute("mock1", "time.now", badParams))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("args()");
         }
 
         @Test
         @DisplayName("hasMock returns true after registration; false otherwise")
         void hasMockReflectsRegistration() {
-            assertThat(store.hasMock("mock1")).isFalse();
-            store.mockEnvironmentAttribute("mock1", "time.now", args());
-            assertThat(store.hasMock("mock1")).isTrue();
-            assertThat(store.hasMock("other")).isFalse();
+            assertThat(broker.hasMock("mock1")).isFalse();
+            broker.mockEnvironmentAttribute("mock1", "time.now", args());
+            assertThat(broker.hasMock("mock1")).isTrue();
+            assertThat(broker.hasMock("other")).isFalse();
         }
 
         @Test
         @DisplayName("hasMockForAttribute returns true when any mock for that name exists")
         void hasMockForAttributeReflectsRegistration() {
-            assertThat(store.hasMockForAttribute("time.now")).isFalse();
-            store.mockEnvironmentAttribute("mock1", "time.now", args());
-            assertThat(store.hasMockForAttribute("time.now")).isTrue();
-            assertThat(store.hasMockForAttribute("other")).isFalse();
+            assertThat(broker.hasMockForAttribute("time.now")).isFalse();
+            broker.mockEnvironmentAttribute("mock1", "time.now", args());
+            assertThat(broker.hasMockForAttribute("time.now")).isTrue();
+            assertThat(broker.hasMockForAttribute("other")).isFalse();
         }
     }
 
@@ -158,21 +158,21 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("blank subscriptionId rejected")
         void blankSubscriptionIdRejected() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("x"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("x"));
             val deps = Set.of(envKey("time.now"));
             val cb   = new RecordingCallback(deps);
-            assertThatThrownBy(() -> store.open("", deps, cb::apply)).isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> broker.open("", deps, cb::apply)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("subscriptionId");
         }
 
         @Test
         @DisplayName("duplicate subscriptionId rejected")
         void duplicateSubscriptionIdRejected() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("x"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("x"));
             val deps = Set.of(envKey("time.now"));
-            store.open("sub-1", deps, snap -> deps);
+            broker.open("sub-1", deps, snap -> deps);
             val cb = new RecordingCallback(deps);
-            assertThatThrownBy(() -> store.open("sub-1", deps, cb::apply)).isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> broker.open("sub-1", deps, cb::apply)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("already open");
         }
 
@@ -181,8 +181,8 @@ class MockingAttributeStoreTests {
         void emptyInitialDepsRejected() {
             val empty = Set.<SubscriptionKey>of();
             val cb    = new RecordingCallback(empty);
-            assertThatThrownBy(() -> store.open("sub-1", empty, cb::apply)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("initialDependencies");
+            assertThatThrownBy(() -> broker.open("sub-1", empty, cb::apply))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("initialDependencies");
         }
     }
 
@@ -193,10 +193,10 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("matched mock with initial value fires callback synchronously on subscribe")
         void initialValueFiresImmediately() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("initial"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("initial"));
             val deps = Set.of(envKey("time.now"));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(1);
             assertThat(cb.last.get()).hasSize(1)
                     .allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("initial")));
@@ -205,13 +205,13 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("matched mock without initial value waits for emit")
         void noInitialValueWaitsForEmit() {
-            store.mockEnvironmentAttribute("m1", "time.now", args());
+            broker.mockEnvironmentAttribute("m1", "time.now", args());
             val deps = Set.of(envKey("time.now"));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(0);
 
-            store.emit("m1", Value.of("emitted"));
+            broker.emit("m1", Value.of("emitted"));
             assertThat(cb.count).hasValue(1);
             assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("emitted")));
         }
@@ -221,7 +221,7 @@ class MockingAttributeStoreTests {
         void unmatchedKeyAutoUndefined() {
             val deps = Set.of(envKey("never.mocked"));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(1);
             assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.UNDEFINED));
         }
@@ -229,10 +229,10 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("mixed deps: matched + unmatched both populate snapshot, gate opens immediately")
         void mixedMatchedAndUnmatched() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v1"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v1"));
             val deps = Set.of(envKey("time.now"), envKey("never.mocked"));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(1);
             assertThat(cb.last.get()).hasSize(2);
         }
@@ -240,13 +240,13 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("emit before subscribe caches latest value (subscribe sees it)")
         void emitBeforeSubscribeCaches() {
-            store.mockEnvironmentAttribute("m1", "time.now", args());
-            store.emit("m1", Value.of("pre1"));
-            store.emit("m1", Value.of("pre2"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args());
+            broker.emit("m1", Value.of("pre1"));
+            broker.emit("m1", Value.of("pre2"));
 
             val deps = Set.of(envKey("time.now"));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(1);
             assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("pre2")));
         }
@@ -261,24 +261,24 @@ class MockingAttributeStoreTests {
         void emitUnknownThrows() {
             val payload = Value.of("x");
 
-            assertThatThrownBy(() -> store.emit("nope", payload)).isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> broker.emit("nope", payload)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("nope");
         }
 
         @Test
         @DisplayName("emit fires callback for all subscribed keys bound to mockId")
         void emitFiresForAllBound() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("init"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("init"));
             val deps1 = Set.of(envKey("time.now"));
             val deps2 = Set.of(envKey("time.now"));
             val cb1   = new RecordingCallback(deps1);
             val cb2   = new RecordingCallback(deps2);
-            store.open("sub-1", deps1, cb1::apply);
-            store.open("sub-2", deps2, cb2::apply);
+            broker.open("sub-1", deps1, cb1::apply);
+            broker.open("sub-2", deps2, cb2::apply);
             assertThat(cb1.count).hasValue(1);
             assertThat(cb2.count).hasValue(1);
 
-            store.emit("m1", Value.of("update"));
+            broker.emit("m1", Value.of("update"));
             assertThat(cb1.count).hasValue(2);
             assertThat(cb2.count).hasValue(2);
             assertThat(cb1.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("update")));
@@ -288,13 +288,13 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("multiple emits coalesce: pre-subscribe emits leave only the last value visible")
         void multipleEmitsCoalesceBeforeSubscribe() {
-            store.mockEnvironmentAttribute("m1", "time.now", args());
-            store.emit("m1", Value.of("v1"));
-            store.emit("m1", Value.of("v2"));
-            store.emit("m1", Value.of("v3"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args());
+            broker.emit("m1", Value.of("v1"));
+            broker.emit("m1", Value.of("v2"));
+            broker.emit("m1", Value.of("v3"));
             val deps = Set.of(envKey("time.now"));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("v3")));
         }
     }
@@ -306,28 +306,28 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("Exact matcher wins over Any matcher")
         void exactBeatsAny() {
-            store.mockEnvironmentAttribute("anyMock", "time.day", args(any()), Value.of("any-result"));
-            store.mockEnvironmentAttribute("exactMock", "time.day", args(eq(Value.of("monday"))),
+            broker.mockEnvironmentAttribute("anyMock", "time.day", args(any()), Value.of("any-result"));
+            broker.mockEnvironmentAttribute("exactMock", "time.day", args(eq(Value.of("monday"))),
                     Value.of("exact-result"));
             val deps = Set.of(envKey("time.day", Value.of("monday")));
             val cb   = new RecordingCallback(deps);
-            store.open("sub-1", deps, cb::apply);
+            broker.open("sub-1", deps, cb::apply);
             assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("exact-result")));
         }
 
         @Test
         @DisplayName("environment vs entity dispatch keyed by null-entity")
         void environmentVsEntityDispatch() {
-            store.mockEnvironmentAttribute("envMock", "shared.attr", args(), Value.of("env"));
-            store.mockAttribute("entMock", "shared.attr", any(), args(), Value.of("ent"));
+            broker.mockEnvironmentAttribute("envMock", "shared.attr", args(), Value.of("env"));
+            broker.mockAttribute("entMock", "shared.attr", any(), args(), Value.of("ent"));
             val envDeps = Set.of(envKey("shared.attr"));
             val cbEnv   = new RecordingCallback(envDeps);
-            store.open("env-sub", envDeps, cbEnv::apply);
+            broker.open("env-sub", envDeps, cbEnv::apply);
             assertThat(cbEnv.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("env")));
 
             val entDeps = Set.of(entityKey("shared.attr", Value.of("alice")));
             val cbEnt   = new RecordingCallback(entDeps);
-            store.open("ent-sub", entDeps, cbEnt::apply);
+            broker.open("ent-sub", entDeps, cbEnt::apply);
             assertThat(cbEnt.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("ent")));
         }
     }
@@ -339,45 +339,45 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("subscribe records one invocation per key")
         void subscribeRecordsInvocations() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             val deps = Set.of(envKey("time.now"));
-            store.open("sub-1", deps, snap -> deps);
-            assertThat(store.getInvocations()).hasSize(1);
-            assertThat(store.getInvocations("time.now")).hasSize(1);
-            assertThat(store.getInvocations("other")).isEmpty();
+            broker.open("sub-1", deps, snap -> deps);
+            assertThat(broker.getInvocations()).hasSize(1);
+            assertThat(broker.getInvocations("time.now")).hasSize(1);
+            assertThat(broker.getInvocations("other")).isEmpty();
         }
 
         @Test
         @DisplayName("sequence numbers are strictly increasing across recordings")
         void sequenceNumbersIncreasing() {
-            store.mockEnvironmentAttribute("m1", "a.attr", args(), Value.of("x"));
-            store.mockEnvironmentAttribute("m2", "b.attr", args(), Value.of("y"));
-            store.open("sub-1", Set.of(envKey("a.attr")), snap -> Set.of(envKey("a.attr")));
-            store.open("sub-2", Set.of(envKey("b.attr")), snap -> Set.of(envKey("b.attr")));
-            val seqs = store.getInvocations().stream().mapToLong(r -> r.sequenceNumber()).toArray();
+            broker.mockEnvironmentAttribute("m1", "a.attr", args(), Value.of("x"));
+            broker.mockEnvironmentAttribute("m2", "b.attr", args(), Value.of("y"));
+            broker.open("sub-1", Set.of(envKey("a.attr")), snap -> Set.of(envKey("a.attr")));
+            broker.open("sub-2", Set.of(envKey("b.attr")), snap -> Set.of(envKey("b.attr")));
+            val seqs = broker.getInvocations().stream().mapToLong(r -> r.sequenceNumber()).toArray();
             assertThat(seqs[1]).isGreaterThan(seqs[0]);
         }
 
         @Test
         @DisplayName("clearInvocations resets records but keeps mocks")
         void clearInvocationsKeepsMocks() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
-            store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
-            assertThat(store.getInvocations()).hasSize(1);
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            assertThat(broker.getInvocations()).hasSize(1);
 
-            store.clearInvocations();
-            assertThat(store.getInvocations()).isEmpty();
-            assertThat(store.hasMock("m1")).isTrue();
+            broker.clearInvocations();
+            assertThat(broker.getInvocations()).isEmpty();
+            assertThat(broker.hasMock("m1")).isTrue();
         }
 
         @Test
         @DisplayName("clearAllMocks resets mocks and invocations")
         void clearAllMocksResetsBoth() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
-            store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
-            store.clearAllMocks();
-            assertThat(store.hasMock("m1")).isFalse();
-            assertThat(store.getInvocations()).isEmpty();
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            broker.clearAllMocks();
+            assertThat(broker.hasMock("m1")).isFalse();
+            assertThat(broker.getInvocations()).isEmpty();
         }
     }
 
@@ -388,47 +388,47 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("verifyEnvironmentAttributeCalled passes when invoked")
         void verifyCalledPasses() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
-            store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
-            store.verifyEnvironmentAttributeCalled("time.now", args());
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            broker.verifyEnvironmentAttributeCalled("time.now", args());
         }
 
         @Test
         @DisplayName("verifyEnvironmentAttribute Times.never passes when not invoked")
         void verifyNeverPassesWhenNotInvoked() {
-            store.verifyEnvironmentAttribute("time.now", args(), Times.never());
+            broker.verifyEnvironmentAttribute("time.now", args(), Times.never());
         }
 
         @Test
         @DisplayName("verifyEnvironmentAttribute Times.never fails when invoked, with message")
         void verifyNeverFailsWhenInvoked() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
-            store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
             val params = args();
             val never  = Times.never();
 
-            assertThatThrownBy(() -> store.verifyEnvironmentAttribute("time.now", params, never))
+            assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("time.now", params, never))
                     .isInstanceOf(MockVerificationError.class).hasMessageContaining("time.now");
         }
 
         @Test
         @DisplayName("verifyAttribute matches entity matcher")
         void verifyAttributeWithEntityMatcher() {
-            store.mockAttribute("m1", "user.role", any(), args(), Value.of("admin"));
-            store.open("sub-1", Set.of(entityKey("user.role", Value.of("alice"))),
+            broker.mockAttribute("m1", "user.role", any(), args(), Value.of("admin"));
+            broker.open("sub-1", Set.of(entityKey("user.role", Value.of("alice"))),
                     snap -> Set.of(entityKey("user.role", Value.of("alice"))));
-            store.verifyAttribute("user.role", eq(Value.of("alice")), args(), Times.once());
+            broker.verifyAttribute("user.role", eq(Value.of("alice")), args(), Times.once());
         }
 
         @Test
         @DisplayName("verification error message includes recorded invocations")
         void verificationErrorIncludesRecorded() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
-            store.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.open("sub-1", Set.of(envKey("time.now")), snap -> Set.of(envKey("time.now")));
             val params = args();
             val twice  = Times.times(2);
 
-            assertThatThrownBy(() -> store.verifyEnvironmentAttribute("time.now", params, twice))
+            assertThatThrownBy(() -> broker.verifyEnvironmentAttribute("time.now", params, twice))
                     .isInstanceOf(MockVerificationError.class).hasMessageContaining("Recorded invocations");
         }
     }
@@ -440,30 +440,30 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("callback returning empty set throws IllegalStateException")
         void emptyReturnedDepsThrows() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             val initialDeps = Set.of(envKey("time.now"));
-            assertThatThrownBy(() -> store.open("sub-1", initialDeps, snap -> Set.<SubscriptionKey>of()))
+            assertThatThrownBy(() -> broker.open("sub-1", initialDeps, snap -> Set.<SubscriptionKey>of()))
                     .isInstanceOf(IllegalStateException.class).hasMessageContaining("sub-1");
         }
 
         @Test
         @DisplayName("callback returning null throws IllegalStateException")
         void nullReturnedDepsThrows() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             val initialDeps = Set.of(envKey("time.now"));
-            assertThatThrownBy(() -> store.open("sub-1", initialDeps, snap -> null))
+            assertThatThrownBy(() -> broker.open("sub-1", initialDeps, snap -> null))
                     .isInstanceOf(IllegalStateException.class);
         }
 
         @Test
         @DisplayName("callback returning new key (mocked) re-evaluates and includes it on next emit")
         void newKeyAddedViaCallback() {
-            store.mockEnvironmentAttribute("m1", "first.attr", args(), Value.of("v1"));
-            store.mockEnvironmentAttribute("m2", "second.attr", args(), Value.of("v2"));
+            broker.mockEnvironmentAttribute("m1", "first.attr", args(), Value.of("v1"));
+            broker.mockEnvironmentAttribute("m2", "second.attr", args(), Value.of("v2"));
             val initialDeps   = Set.of(envKey("first.attr"));
             val expandedDeps  = Set.of(envKey("first.attr"), envKey("second.attr"));
             val firstCallSeen = new AtomicReference<Set<SubscriptionKey>>();
-            store.open("sub-1", initialDeps, snap -> {
+            broker.open("sub-1", initialDeps, snap -> {
                 if (firstCallSeen.compareAndSet(null, snap.keySet())) {
                     return expandedDeps;
                 }
@@ -480,44 +480,44 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("Subscription.close stops further callbacks for that subscription")
         void subscriptionCloseStopsCallbacks() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             val deps = Set.of(envKey("time.now"));
             val cb   = new RecordingCallback(deps);
-            val sub  = store.open("sub-1", deps, cb::apply);
+            val sub  = broker.open("sub-1", deps, cb::apply);
             assertThat(cb.count).hasValue(1);
 
             sub.close();
-            store.emit("m1", Value.of("after-close"));
+            broker.emit("m1", Value.of("after-close"));
             assertThat(cb.count).hasValue(1);
         }
 
         @Test
-        @DisplayName("Store.close drops all subscriptions and prevents callbacks")
+        @DisplayName("Broker.close drops all subscriptions and prevents callbacks")
         void storeCloseDropsAllSubs() {
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             val cb1 = new RecordingCallback(Set.of(envKey("time.now")));
             val cb2 = new RecordingCallback(Set.of(envKey("time.now")));
-            store.open("sub-1", Set.of(envKey("time.now")), cb1::apply);
-            store.open("sub-2", Set.of(envKey("time.now")), cb2::apply);
+            broker.open("sub-1", Set.of(envKey("time.now")), cb1::apply);
+            broker.open("sub-2", Set.of(envKey("time.now")), cb2::apply);
 
-            store.close();
-            store = new MockingAttributeStore();
-            store.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
+            broker.close();
+            broker = new MockingAttributeBroker();
+            broker.mockEnvironmentAttribute("m1", "time.now", args(), Value.of("v"));
             val initial1 = cb1.count.get();
             val initial2 = cb2.count.get();
-            store.emit("m1", Value.of("post-close-emit"));
+            broker.emit("m1", Value.of("post-close-emit"));
             assertThat(cb1.count.get()).isEqualTo(initial1);
             assertThat(cb2.count.get()).isEqualTo(initial2);
         }
     }
 
     /**
-     * Minimal in-memory {@link AttributeStore} test fake for delegate
+     * Minimal in-memory {@link AttributeBroker} test fake for delegate
      * forwarding tests. Tracks subscriptions, exposes a publish hook,
      * fires the appropriate callback when the published key is in the
      * subscription's deps.
      */
-    private static final class FakeDelegateStore implements AttributeStore {
+    private static final class FakeDelegateBroker implements AttributeBroker {
 
         private final Map<SubscriptionKey, AttributeSnapshot> mailbox    = new java.util.HashMap<>();
         private final Map<String, FakeSubscription>           subs       = new java.util.HashMap<>();
@@ -577,7 +577,7 @@ class MockingAttributeStoreTests {
 
             @Override
             public void close() {
-                synchronized (FakeDelegateStore.this) {
+                synchronized (FakeDelegateBroker.this) {
                     closeCount.incrementAndGet();
                     subs.remove(id);
                 }
@@ -592,13 +592,13 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("with delegate set, unmatched key opens a forwarding subscription against delegate")
         void unmatchedRoutesToDelegate() {
-            val delegate = new FakeDelegateStore();
-            store.setDelegate(delegate);
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
             val key = envKey("other.attr");
             delegate.publish(key, Value.of("from-delegate"));
 
             val cb = new RecordingCallback(Set.of(key));
-            store.open("sub-1", Set.of(key), cb::apply);
+            broker.open("sub-1", Set.of(key), cb::apply);
             assertThat(delegate.openCount).hasValue(1);
             assertThat(cb.count).hasValue(1);
             assertThat(cb.last.get()).allSatisfy((k, v) -> assertThat(v.value()).isEqualTo(Value.of("from-delegate")));
@@ -607,14 +607,14 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("delegate publish after subscribe propagates to consumer callback")
         void delegatePublishPropagatesAsync() {
-            val delegate = new FakeDelegateStore();
-            store.setDelegate(delegate);
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
             val key = envKey("other.attr");
             // Pre-publish so the gate opens immediately on subscribe
             delegate.publish(key, Value.of("first"));
 
             val cb = new RecordingCallback(Set.of(key));
-            store.open("sub-1", Set.of(key), cb::apply);
+            broker.open("sub-1", Set.of(key), cb::apply);
             assertThat(cb.count).hasValue(1);
 
             delegate.publish(key, Value.of("second"));
@@ -625,26 +625,26 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("multiple consumers sharing a delegated key share one delegate subscription")
         void sharedDelegateSubscription() {
-            val delegate = new FakeDelegateStore();
-            store.setDelegate(delegate);
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
             val key = envKey("other.attr");
             delegate.publish(key, Value.of("v"));
 
-            store.open("sub-1", Set.of(key), snap -> Set.of(key));
-            store.open("sub-2", Set.of(key), snap -> Set.of(key));
+            broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+            broker.open("sub-2", Set.of(key), snap -> Set.of(key));
             assertThat(delegate.openCount).hasValue(1);
         }
 
         @Test
         @DisplayName("closing one consumer keeps the delegate sub open while others still need it")
         void delegateSubKeptAliveByRefcount() {
-            val delegate = new FakeDelegateStore();
-            store.setDelegate(delegate);
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
             val key = envKey("other.attr");
             delegate.publish(key, Value.of("v"));
 
-            val sub1 = store.open("sub-1", Set.of(key), snap -> Set.of(key));
-            store.open("sub-2", Set.of(key), snap -> Set.of(key));
+            val sub1 = broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+            broker.open("sub-2", Set.of(key), snap -> Set.of(key));
             sub1.close();
             assertThat(delegate.closeCount).hasValue(0);
         }
@@ -652,32 +652,32 @@ class MockingAttributeStoreTests {
         @Test
         @DisplayName("closing all consumers releases the delegate sub")
         void delegateSubReleasedWhenLastConsumerCloses() {
-            val delegate = new FakeDelegateStore();
-            store.setDelegate(delegate);
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
             val key = envKey("other.attr");
             delegate.publish(key, Value.of("v"));
 
-            val sub1 = store.open("sub-1", Set.of(key), snap -> Set.of(key));
-            val sub2 = store.open("sub-2", Set.of(key), snap -> Set.of(key));
+            val sub1 = broker.open("sub-1", Set.of(key), snap -> Set.of(key));
+            val sub2 = broker.open("sub-2", Set.of(key), snap -> Set.of(key));
             sub1.close();
             sub2.close();
             assertThat(delegate.closeCount).hasValue(1);
         }
 
         @Test
-        @DisplayName("store close cascades closure to delegate forwards")
+        @DisplayName("broker close cascades closure to delegate forwards")
         void storeCloseCascadesToDelegate() {
-            val delegate = new FakeDelegateStore();
-            store.setDelegate(delegate);
+            val delegate = new FakeDelegateBroker();
+            broker.setDelegate(delegate);
             val key = envKey("other.attr");
             delegate.publish(key, Value.of("v"));
-            store.open("sub-1", Set.of(key), snap -> Set.of(key));
+            broker.open("sub-1", Set.of(key), snap -> Set.of(key));
 
-            store.close();
+            broker.close();
             assertThat(delegate.closeCount).hasValue(1);
 
-            // Recreate store for @AfterEach safety.
-            store = new MockingAttributeStore();
+            // Recreate broker for @AfterEach safety.
+            broker = new MockingAttributeBroker();
         }
     }
 }

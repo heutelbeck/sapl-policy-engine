@@ -27,7 +27,7 @@ import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.api.test.stream.TestTimeScheduler;
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -463,23 +463,23 @@ class HttpPolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("store registration")
+    @DisplayName("broker registration")
     class StoreRegistration {
 
         @Test
         @DisplayName("loads under the http namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderHttpNamespace() {
-            try (val store = new InMemoryAttributeStore()) {
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
                 val mapper    = JsonMapper.builder().build();
                 val now       = Instant.parse("2025-06-15T12:00:00Z");
                 val clock     = new MutableClock(now);
                 val scheduler = new TestTimeScheduler(now);
                 val webClient = new BlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
-                val handle    = store.load(new HttpPolicyInformationPoint(webClient));
+                val handle    = broker.load(new HttpPolicyInformationPoint(webClient));
 
                 assertThat(handle.pipName()).isEqualTo("http");
                 assertThat(handle.isLoaded()).isTrue();
-                assertThat(store.catalog()).containsExactly(handle);
+                assertThat(broker.catalog()).containsExactly(handle);
             }
         }
     }

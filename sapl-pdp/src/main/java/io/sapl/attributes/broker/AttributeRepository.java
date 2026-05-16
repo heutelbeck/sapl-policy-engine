@@ -15,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker;
 
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.NonNull;
 
 import java.time.Duration;
 
 /**
- * Writer-side surface for a value-store that complements the
- * catalog-backed {@link AttributeStore}. Producers push values into a
+ * Writer-side surface for a value-broker that complements the
+ * catalog-backed {@link AttributeBroker}. Producers push values into a
  * repository keyed by {@link RepositoryKey}; readers see those values
- * through the same {@link AttributeStore} surface the catalog-backed
- * store exposes.
+ * through the same {@link AttributeBroker} surface the catalog-backed
+ * broker exposes.
  * <p>
  * Three methods. {@code void} returns: the writer learns nothing about
  * prior state. A producer that needs to read or compare prior values

@@ -22,7 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.api.test.stream.TestTimeScheduler;
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -225,19 +225,19 @@ class X509PolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("store registration")
+    @DisplayName("broker registration")
     class StoreRegistration {
 
         @Test
         @DisplayName("loads under the x509 namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderX509Namespace() {
-            try (val store = new InMemoryAttributeStore()) {
-                val handle = store
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
+                val handle = broker
                         .load(new X509PolicyInformationPoint(new MutableClock(NOW), new TestTimeScheduler(NOW)));
 
                 assertThat(handle.pipName()).isEqualTo(X509PolicyInformationPoint.NAME);
                 assertThat(handle.isLoaded()).isTrue();
-                assertThat(store.catalog()).containsExactly(handle);
+                assertThat(broker.catalog()).containsExactly(handle);
             }
         }
     }

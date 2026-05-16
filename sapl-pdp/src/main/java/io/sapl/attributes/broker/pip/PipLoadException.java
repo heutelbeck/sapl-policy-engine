@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.SaplVersion;
 
 import java.io.Serial;
 
 /**
- * Thrown when {@link InMemoryAttributeStore#load} or
- * {@link InMemoryAttributeStore#swap} cannot register a Policy
+ * Thrown when {@link PolicyInformationPointAttributeBroker#load} or
+ * {@link PolicyInformationPointAttributeBroker#swap} cannot register a Policy
  * Information Point: missing annotation, invalid attribute method
  * signature, or a spec collision against the existing catalog.
  * Catalog state is unchanged whenever this exception is raised.

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
@@ -53,7 +53,7 @@ import java.util.Objects;
  * spec returns the stream as the PIP produces it.</li>
  * <li>{@link Value} (or any subtype) for one-shot attributes; the
  * spec wraps the returned value in {@link Streams#just(Value)} so
- * the store always sees a {@code Stream<Value>}.</li>
+ * the broker always sees a {@code Stream<Value>}.</li>
  * </ul>
  * Any other return type causes registration to fail with
  * {@link IllegalStateException}.

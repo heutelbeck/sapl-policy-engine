@@ -34,7 +34,7 @@ import org.jspecify.annotations.Nullable;
  * <li>{@code dependencies}. The <strong>complete</strong> map of
  * attribute subscriptions this evaluation pass needed or touched,
  * keyed by {@link SubscriptionKey} (the natural deduplication key
- * on the attribute store side, combining the
+ * on the attribute broker side, combining the
  * {@link io.sapl.api.attributes.AttributeFinderInvocation} with the
  * head flag). The list of {@link Occurrence}s per key captures every
  * call site that depends on this subscription, with its source

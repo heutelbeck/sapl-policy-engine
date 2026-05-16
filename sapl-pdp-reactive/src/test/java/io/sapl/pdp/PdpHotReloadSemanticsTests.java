@@ -105,7 +105,7 @@ class PdpHotReloadSemanticsTests {
 
         private DelegatingReactivePolicyDecisionPoint delegating(PDPComponents components) {
             return new DelegatingReactivePolicyDecisionPoint(new BlockingPolicyDecisionPoint(
-                    components.pdpVoterSource(), components.attributeStore(), new ThreadLocalRandomIdFactory()));
+                    components.pdpVoterSource(), components.attributeBroker(), new ThreadLocalRandomIdFactory()));
         }
 
         @Test
@@ -200,8 +200,8 @@ class PdpHotReloadSemanticsTests {
         void whenStaticPolicyEvaluatedThenStreamStaysAliveWithoutSyntheticClose() throws Exception {
             val flagPip = new FlagPip();
             try (val components = emptyComponents(flagPip)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                        components.attributeBroker(), new ThreadLocalRandomIdFactory());
                 load(components, DENY_ALL);
 
                 try (val stream = blocking.decide(subscription("alice", "read", "doc"))) {
@@ -216,8 +216,8 @@ class PdpHotReloadSemanticsTests {
         void whenConfigurationReloadedThenStreamEmitsTheNewDecision() throws Exception {
             val flagPip = new FlagPip();
             try (val components = emptyComponents(flagPip)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                        components.attributeBroker(), new ThreadLocalRandomIdFactory());
                 load(components, DENY_ALL);
 
                 try (val stream = blocking.decide(subscription("alice", "read", "doc"))) {
@@ -236,8 +236,8 @@ class PdpHotReloadSemanticsTests {
         void whenVoterTypeChangesThenSubscriptionContinuesAcrossTheTransition() throws Exception {
             val flagPip = new FlagPip();
             try (val components = emptyComponents(flagPip)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                        components.attributeBroker(), new ThreadLocalRandomIdFactory());
                 flagPip.publish(Value.of(true));
                 load(components, PERMIT_ALL);
 
@@ -264,8 +264,8 @@ class PdpHotReloadSemanticsTests {
         void whenConfigurationRemovedThenIndeterminateAndStreamStaysAliveForReLoad() throws Exception {
             val flagPip = new FlagPip();
             try (val components = emptyComponents(flagPip)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                        components.attributeBroker(), new ThreadLocalRandomIdFactory());
                 load(components, PERMIT_ALL);
 
                 try (val stream = blocking.decide(subscription("alice", "read", "doc"))) {
@@ -287,8 +287,8 @@ class PdpHotReloadSemanticsTests {
         void whenConfigurationReloadedThenDecideAllReevaluatesEveryBundle() throws Exception {
             val flagPip = new FlagPip();
             try (val components = emptyComponents(flagPip)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                        components.attributeBroker(), new ThreadLocalRandomIdFactory());
                 load(components, DENY_ALL);
 
                 try (val stream = blocking.decideAll(twoSubs())) {
@@ -312,8 +312,8 @@ class PdpHotReloadSemanticsTests {
         void whenConfigurationReloadedThenDecideWithCoverageEmitsTheNewVote() throws Exception {
             val flagPip = new FlagPip();
             try (val components = emptyComponents(flagPip)) {
-                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
-                        new ThreadLocalRandomIdFactory());
+                val blocking = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                        components.attributeBroker(), new ThreadLocalRandomIdFactory());
                 load(components, DENY_ALL);
 
                 try (val stream = blocking.decideWithCoverage(subscription("alice", "read", "doc"))) {

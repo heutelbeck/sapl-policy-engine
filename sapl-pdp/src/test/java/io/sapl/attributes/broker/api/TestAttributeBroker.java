@@ -15,11 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.api;
 
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeBroker;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
@@ -33,9 +34,9 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * In-memory {@link AttributeStore} for tests, modelled on the
+ * In-memory {@link AttributeBroker} for tests, modelled on the
  * production PIP-based attribute lifecycle. Attribute names are either
- * registered (a PIP exists; the store waits patiently for values via
+ * registered (a PIP exists; the broker waits patiently for values via
  * {@link #publish}) or unregistered (no PIP; an unbound key materialises
  * immediately as {@link Value#UNDEFINED}). This mirrors the eventual
  * production behaviour where the attribute repository falls back to
@@ -55,12 +56,12 @@ import java.util.function.Function;
  * the new deps include PIP-registered keys that have no value yet, the
  * gate closes and no fire happens until a publish completes the set.
  * <p>
- * State mutations and reads on the store and its subscriptions are
- * guarded by an intrinsic lock on the store. Callbacks fire outside
+ * State mutations and reads on the broker and its subscriptions are
+ * guarded by an intrinsic lock on the broker. Callbacks fire outside
  * the lock so they may freely close their subscription or invoke other
- * store-touching operations without re-entrance hazard.
+ * broker-touching operations without re-entrance hazard.
  */
-public final class TestAttributeStore implements AttributeStore {
+public final class TestAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_INITIAL_DEPS_EMPTY     = "initialDependencies must not be empty";
     private static final String ERROR_RETURNED_DEPS_EMPTY    = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
@@ -167,7 +168,7 @@ public final class TestAttributeStore implements AttributeStore {
      * Test hook: simulate a value arrival for a SubscriptionKey. Updates
      * the mailbox (single slot, latest wins), opens the gate for any
      * subscription whose deps are now all fulfilled, and fires callbacks
-     * outside the store lock.
+     * outside the broker lock.
      */
     public void publish(SubscriptionKey key, Value value) {
         List<SubscriptionImpl> toFire;
@@ -246,7 +247,7 @@ public final class TestAttributeStore implements AttributeStore {
 
         @Override
         public void close() {
-            synchronized (TestAttributeStore.this) {
+            synchronized (TestAttributeBroker.this) {
                 closed = true;
                 subs.remove(id);
                 gcOrphanedMailboxEntries();
@@ -276,7 +277,7 @@ public final class TestAttributeStore implements AttributeStore {
         void fireCallback() {
             Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
             Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> cb;
-            synchronized (TestAttributeStore.this) {
+            synchronized (TestAttributeBroker.this) {
                 if (closed) {
                     return;
                 }
@@ -288,7 +289,7 @@ public final class TestAttributeStore implements AttributeStore {
                 throw new IllegalStateException(ERROR_RETURNED_DEPS_EMPTY.formatted(id));
             }
             boolean refire;
-            synchronized (TestAttributeStore.this) {
+            synchronized (TestAttributeBroker.this) {
                 if (closed) {
                     return;
                 }

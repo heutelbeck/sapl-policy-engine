@@ -15,13 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.layered;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
+import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -40,18 +43,18 @@ import java.util.function.Function;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-@DisplayName("LayeredAttributeStore")
-class LayeredAttributeStoreTests {
+@DisplayName("LayeredAttributeBroker")
+class LayeredAttributeBrokerTests {
 
-    private VolatileAttributeStore primary;
-    private VolatileAttributeStore fallback;
-    private LayeredAttributeStore  layered;
+    private InMemoryAttributeRepository primary;
+    private InMemoryAttributeRepository fallback;
+    private LayeredAttributeBroker      layered;
 
     @BeforeEach
     void setUp() {
-        primary  = new VolatileAttributeStore();
-        fallback = new VolatileAttributeStore();
-        layered  = new LayeredAttributeStore(primary, fallback);
+        primary  = new InMemoryAttributeRepository();
+        fallback = new InMemoryAttributeRepository();
+        layered  = new LayeredAttributeBroker(primary, fallback);
     }
 
     @AfterEach
@@ -132,7 +135,7 @@ class LayeredAttributeStoreTests {
     }
 
     @Nested
-    @DisplayName("when neither store serves the key")
+    @DisplayName("when neither broker serves the key")
     class WhenNeitherStoreServesTheKey {
 
         @Test
@@ -251,7 +254,7 @@ class LayeredAttributeStoreTests {
     class WhenTheConsumerIsClosed {
 
         @Test
-        @DisplayName("then no further callbacks fire on inner-store updates")
+        @DisplayName("then no further callbacks fire on inner-broker updates")
         void thenNoFurtherCallbacksFireOnInnerStoreUpdates() {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
@@ -270,7 +273,7 @@ class LayeredAttributeStoreTests {
     }
 
     @Nested
-    @DisplayName("when the layered store is closed")
+    @DisplayName("when the layered broker is closed")
     class WhenTheLayeredStoreIsClosed {
 
         @Test

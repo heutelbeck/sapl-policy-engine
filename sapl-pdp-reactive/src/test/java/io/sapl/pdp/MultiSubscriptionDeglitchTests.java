@@ -109,7 +109,7 @@ class MultiSubscriptionDeglitchTests {
     }
 
     private static BlockingPolicyDecisionPoint blockingPdp(PDPComponents components) {
-        return new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeStore(),
+        return new BlockingPolicyDecisionPoint(components.pdpVoterSource(), components.attributeBroker(),
                 new ThreadLocalRandomIdFactory());
     }
 

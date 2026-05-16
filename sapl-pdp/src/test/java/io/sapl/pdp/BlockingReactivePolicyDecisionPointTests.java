@@ -68,7 +68,7 @@ class BlockingReactivePolicyDecisionPointTests {
     void setUp() {
         val components = PolicyDecisionPointBuilder.withoutDefaults().build();
         pdpVoterSource = components.pdpVoterSource();
-        pdp            = new BlockingPolicyDecisionPoint(pdpVoterSource, components.attributeStore(),
+        pdp            = new BlockingPolicyDecisionPoint(pdpVoterSource, components.attributeBroker(),
                 new ThreadLocalRandomIdFactory());
     }
 

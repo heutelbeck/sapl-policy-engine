@@ -15,11 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.layered;
 
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeBroker;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -36,10 +37,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 /**
- * {@link AttributeStore} that composes a {@code primary} store and a
- * {@code fallback} store with strict priority. For each consumer key
- * the layered store maintains two value slots, one fed by each inner
- * store, and emits the highest-priority non-{@link Value#UNDEFINED}
+ * {@link AttributeBroker} that composes a {@code primary} broker and a
+ * {@code fallback} broker with strict priority. For each consumer key
+ * the layered broker maintains two value slots, one fed by each inner
+ * broker, and emits the highest-priority non-{@link Value#UNDEFINED}
  * value to the consumer. When the primary slot is
  * {@code UNDEFINED}, the fallback's value wins. When both are
  * {@code UNDEFINED}, the consumer sees {@code UNDEFINED}.
@@ -50,36 +51,36 @@ import java.util.function.Function;
  * recomputes the resolved snapshot and fires the consumer's callback
  * when the snapshot changes (and the all-deps gate is open).
  * <p>
- * The layered store's gate opens for a consumer when every dependency
+ * The layered broker's gate opens for a consumer when every dependency
  * key has emitted at least once from both inner stores. Adding a key
  * via the consumer's dependency diff temporarily reopens the gate as
  * a new slot fills; emissions for the new key drive the gate closed
  * again immediately.
  * <p>
- * Close behaviour is cascading: closing the layered store closes both
- * inner stores. {@link AttributeStore#close} on the inner stores is
+ * Close behaviour is cascading: closing the layered broker closes both
+ * inner stores. {@link AttributeBroker#close} on the inner stores is
  * idempotent, so subsequent owner-driven closes are no-ops.
  *
  * @since 4.1.0
  */
 @Slf4j
-public final class LayeredAttributeStore implements AttributeStore {
+public final class LayeredAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_DEPS_EMPTY             = "initialDependencies must not be empty";
     private static final String ERROR_RETURNED_DEPS_INVALID  = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
     private static final String WARN_CALLBACK_THREW          = "Consumer {} onUpdate threw: {}";
-    private static final String WARN_INNER_CLOSE_THREW       = "Inner store close threw: {}";
+    private static final String WARN_INNER_CLOSE_THREW       = "Inner broker close threw: {}";
 
-    private final AttributeStore primary;
-    private final AttributeStore fallback;
+    private final AttributeBroker primary;
+    private final AttributeBroker fallback;
 
     private final Object                           lock      = new Object();
     private final Map<String, LayeredSubscription> consumers = new HashMap<>();
     private boolean                                closed    = false;
 
-    public LayeredAttributeStore(@NonNull AttributeStore primary, @NonNull AttributeStore fallback) {
+    public LayeredAttributeBroker(@NonNull AttributeBroker primary, @NonNull AttributeBroker fallback) {
         this.primary  = primary;
         this.fallback = fallback;
     }
@@ -124,9 +125,9 @@ public final class LayeredAttributeStore implements AttributeStore {
         safeClose(fallback);
     }
 
-    private static void safeClose(AttributeStore store) {
+    private static void safeClose(AttributeBroker broker) {
         try {
-            store.close();
+            broker.close();
         } catch (RuntimeException e) {
             log.warn(WARN_INNER_CLOSE_THREW, e.getMessage(), e);
         }
@@ -135,7 +136,7 @@ public final class LayeredAttributeStore implements AttributeStore {
     /**
      * Per-key value slots. The primary and fallback shallow
      * subscription handles, and the latest snapshot received from
-     * each inner store. {@code null} snapshots indicate "no emission
+     * each inner broker. {@code null} snapshots indicate "no emission
      * yet"; the gate stays closed until both are non-null.
      */
     private static final class Slot {
@@ -169,10 +170,10 @@ public final class LayeredAttributeStore implements AttributeStore {
 
         /**
          * Opens shallow subs for every initial dep on both inner
-         * stores. Either inner store may fire its shallow callback
+         * stores. Either inner broker may fire its shallow callback
          * synchronously during open; in that case the gate may open
          * and the consumer callback may fire before this method
-         * returns, fulfilling the {@code AttributeStore.open} contract.
+         * returns, fulfilling the {@code AttributeBroker.open} contract.
          */
         void start() {
             List<SubscriptionKey> initialKeys;

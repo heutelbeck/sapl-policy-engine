@@ -20,7 +20,7 @@ package io.sapl.pdp;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
-import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * Bundle of components produced by {@link PolicyDecisionPointBuilder}.
- * Holds the blocking-engine PDP plus the broker, attribute store,
+ * Holds the blocking-engine PDP plus the broker, attribute broker,
  * voter source, and any configured interceptors/listeners.
  * <p>
  * Reactor-free by design: this record is the foundation for
@@ -50,7 +50,7 @@ public record PDPComponents(
         BlockingPolicyDecisionPoint pdp,
         PdpVoterSource pdpVoterSource,
         FunctionBroker functionBroker,
-        AttributeStore attributeStore,
+        AttributeBroker attributeBroker,
         @Nullable PDPConfigurationSource source,
         LazyFastClock timestampClock,
         List<DecisionInterceptor> decisionInterceptors,
@@ -66,7 +66,7 @@ public record PDPComponents(
      */
     @Override
     public void close() {
-        closeAll(timestampClock, source, pdpVoterSource, attributeStore, functionBroker, decisionInterceptors,
+        closeAll(timestampClock, source, pdpVoterSource, attributeBroker, functionBroker, decisionInterceptors,
                 lifecycleListeners);
     }
 

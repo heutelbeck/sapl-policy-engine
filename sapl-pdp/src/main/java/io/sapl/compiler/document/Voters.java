@@ -19,7 +19,7 @@ package io.sapl.compiler.document;
 
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
-import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -38,27 +38,27 @@ import java.util.function.Function;
 public class Voters {
 
     /**
-     * Bridges the callback-driven {@link AttributeStore} to a synchronous
+     * Bridges the callback-driven {@link AttributeBroker} to a synchronous
      * single-vote pickup. Subscribes to {@code initialDependencies},
      * runs {@code evaluator} on each fulfilled snapshot, and returns the
-     * first non-null vote produced. The store handle is released before
+     * first non-null vote produced. The broker handle is released before
      * this method returns, regardless of outcome.
      *
-     * @param store the attribute store to subscribe through
-     * @param subscriptionId per-evaluation id for the store
+     * @param broker the attribute broker to subscribe through
+     * @param subscriptionId per-evaluation id for the broker
      * @param initialDependencies the keys to subscribe to initially
      * @param evaluator a callback that evaluates against a snapshot and
      * returns a fresh {@link VoteResult}; the next dependency set fed
-     * back to the store is taken from {@link VoteResult#dependencies()}
+     * back to the broker is taken from {@link VoteResult#dependencies()}
      * @return the first non-null vote produced by the evaluator
      * @throws InterruptedException if the calling thread is interrupted
      * while waiting for the first complete snapshot
      */
-    public static Vote awaitFirstVote(AttributeStore store, String subscriptionId,
+    public static Vote awaitFirstVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) throws InterruptedException {
         val future = new CompletableFuture<Vote>();
-        try (val ignored = store.open(subscriptionId, initialDependencies, snapshot -> {
+        try (val ignored = broker.open(subscriptionId, initialDependencies, snapshot -> {
             val r = evaluator.apply(snapshot);
             if (r.vote() != null) {
                 future.complete(r.vote());
@@ -78,12 +78,12 @@ public class Voters {
      * wrapped as a {@link TracedVote} carrying the emit timestamp
      * (read from {@code clock}) and the dependency-filtered snapshot.
      */
-    public static TracedVote awaitFirstTracedVote(AttributeStore store, String subscriptionId,
+    public static TracedVote awaitFirstTracedVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, Clock clock)
             throws InterruptedException {
         val future = new CompletableFuture<TracedVote>();
-        try (val ignored = store.open(subscriptionId, initialDependencies, snapshot -> {
+        try (val ignored = broker.open(subscriptionId, initialDependencies, snapshot -> {
             val r = evaluator.apply(snapshot);
             if (r.vote() != null) {
                 future.complete(new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, snapshot)));
@@ -104,12 +104,12 @@ public class Voters {
      * {@link VoteResult#vote()} is non-null, packaged as a
      * {@link VoteWithCoverage}.
      */
-    public static VoteWithCoverage awaitFirstVoteWithCoverage(AttributeStore store, String subscriptionId,
+    public static VoteWithCoverage awaitFirstVoteWithCoverage(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResultWithCoverage> evaluator)
             throws InterruptedException {
         val future = new CompletableFuture<VoteWithCoverage>();
-        try (val ignored = store.open(subscriptionId, initialDependencies, snapshot -> {
+        try (val ignored = broker.open(subscriptionId, initialDependencies, snapshot -> {
             val r = evaluator.apply(snapshot);
             if (r.voteResult().vote() != null) {
                 future.complete(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));

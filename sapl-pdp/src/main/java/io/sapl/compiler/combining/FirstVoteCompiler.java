@@ -205,7 +205,7 @@ public class FirstVoteCompiler {
      * at the first non-NOT_APPLICABLE child vote. Tail policies are not
      * subscribed when an earlier policy resolves applicability; their deps
      * only enter the dependency set if the snapshot round actually reaches
-     * them. The store re-fires this voter when its current dep set changes.
+     * them. The broker re-fires this voter when its current dep set changes.
      *
      * @param contributingVotes leading static NOT_APPLICABLE decisions
      * @param policies remaining policies requiring runtime evaluation

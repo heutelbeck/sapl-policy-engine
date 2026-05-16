@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
@@ -55,18 +55,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * End-to-end story for the {@link InMemoryAttributeStore},
+ * End-to-end story for the {@link PolicyInformationPointAttributeBroker},
  * structured to read top-to-bottom as documentation: how an
  * application loads PIPs, opens consumer subscriptions, observes
  * snapshot updates, hot-swaps a PIP for a new version without
  * publishing a transient ErrorValue, and finally unloads.
  * <p>
  * Use this file as the canonical entry point when explaining the
- * store to someone new; the focused {@code InMemoryAttributeStoreTests}
+ * broker to someone new; the focused
+ * {@code PolicyInformationPointAttributeBrokerTests}
  * unit suite covers the edge cases.
  */
-@DisplayName("AttributeStore end-to-end demo")
-class AttributeStoreDemoTest {
+@DisplayName("AttributeBroker end-to-end demo")
+class AttributeBrokerDemoTest {
 
     private static final boolean PRINT_OUTPUT = false;
 
@@ -80,18 +81,18 @@ class AttributeStoreDemoTest {
         if (!PRINT_OUTPUT) {
             return;
         }
-        // The store emits DEBUG/TRACE around load/swap/unload (cold-path
+        // The broker emits DEBUG/TRACE around load/swap/unload (cold-path
         // events). slf4j-test captures them silently; surface them here so the
         // demo trace is actually visible when this test runs. Filter to events
-        // from io.sapl.attributes.store so the noise from unrelated loggers
+        // from io.sapl.attributes.broker so the noise from unrelated loggers
         // does not bury the narrative.
         val events = TestLoggerFactory.getLoggingEvents().stream()
-                .filter(e -> e.getCreatingLogger().getName().startsWith("io.sapl.attributes.store")).toList();
+                .filter(e -> e.getCreatingLogger().getName().startsWith("io.sapl.attributes.broker")).toList();
         if (events.isEmpty()) {
             return;
         }
         System.out.println();
-        System.out.println("---- Captured store events (" + events.size() + ") ----");
+        System.out.println("---- Captured broker events (" + events.size() + ") ----");
         for (LoggingEvent e : events) {
             System.out.printf("  [%-5s] %-30s %s%n", e.getLevel(), shortenLoggerName(e.getCreatingLogger().getName()),
                     e.getFormattedMessage());
@@ -108,34 +109,34 @@ class AttributeStoreDemoTest {
     @DisplayName("load a PIP, observe a value, hot-swap to a new version, observe the new value, unload")
     void endToEndDemo() {
         // ----------------------------------------------------------------
-        // 1) Construct the store. No external broker, no PDP scope, no
-        // config. The store IS the catalog. Plug-in engines call
+        // 1) Construct the broker. No external broker, no PDP scope, no
+        // config. The broker IS the catalog. Plug-in engines call
         // load/swap/unload on this object; evaluators call open/close.
         // ----------------------------------------------------------------
-        try (val store = new InMemoryAttributeStore()) {
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
             // ------------------------------------------------------------
-            // 2) Load the v1 PIP. The store extracts every annotated
+            // 2) Load the v1 PIP. The broker extracts every annotated
             // method into a StreamAttributeFinderSpecification, checks
             // for collisions against any already-loaded PIPs, and
             // registers them. Returns a handle the plug-in engine can
             // later use to swap or unload.
             // ------------------------------------------------------------
-            val v1Handle = store.load(new GreetingPipV1());
+            val v1Handle = broker.load(new GreetingPipV1());
             assertThat(v1Handle.pipName()).isEqualTo("greeting");
             assertThat(v1Handle.isLoaded()).isTrue();
-            assertThat(store.catalog()).containsExactly(v1Handle);
+            assertThat(broker.catalog()).containsExactly(v1Handle);
 
             // ------------------------------------------------------------
             // 3) Open a consumer subscription. The consumer hands the
-            // store a Set<SubscriptionKey> (its initial dependencies)
-            // and a callback. The store wires the dependencies to
+            // broker a Set<SubscriptionKey> (its initial dependencies)
+            // and a callback. The broker wires the dependencies to
             // backing subscriptions, opens the underlying PIP streams,
             // and fires the callback once every dep has a value.
             // ------------------------------------------------------------
             val helloKey  = key("greeting.hello");
             val snapshots = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
 
-            val consumerSub = store.open("demo-subscription", Set.of(helloKey), snapshot -> {
+            val consumerSub = broker.open("demo-subscription", Set.of(helloKey), snapshot -> {
                 snapshots.add(snapshot);
                 // The callback returns the next dep set. A consumer that wants to
                 // keep observing the same deps simply returns its current set.
@@ -148,13 +149,13 @@ class AttributeStoreDemoTest {
             assertThat(snapshots.get(0).get(helloKey).value()).isEqualTo(Value.of("hello from v1"));
 
             // ------------------------------------------------------------
-            // 4) Hot-swap to v2. The store atomically replaces v1's
+            // 4) Hot-swap to v2. The broker atomically replaces v1's
             // specs with v2's specs. The active backing subscription
             // rebinds to the v2 stream WITHOUT publishing a transient
             // ErrorValue: the consumer's mailbox keeps its current
             // value and transitions to v2's value when v2 emits.
             // ------------------------------------------------------------
-            val v2Handle = store.swap(v1Handle, new GreetingPipV2());
+            val v2Handle = broker.swap(v1Handle, new GreetingPipV2());
             assertThat(v1Handle.isLoaded()).isFalse();
             assertThat(v2Handle.isLoaded()).isTrue();
 
@@ -173,14 +174,14 @@ class AttributeStoreDemoTest {
             // ------------------------------------------------------------
             // 5) Unload the PIP. Active backing subscriptions for it
             // publish UNDEFINED (absence at this layer) and tear down
-            // their source. A LayeredAttributeStore composing this
-            // store with a repository would fall through to the
+            // their source. A LayeredAttributeBroker composing this
+            // broker with a repository would fall through to the
             // repository at this point; standalone, the consumer
             // observes UNDEFINED.
             // ------------------------------------------------------------
             v2Handle.unload();
             assertThat(v2Handle.isLoaded()).isFalse();
-            assertThat(store.catalog()).isEmpty();
+            assertThat(broker.catalog()).isEmpty();
 
             Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
                 val last = snapshots.get(snapshots.size() - 1).get(helloKey).value();
@@ -188,12 +189,12 @@ class AttributeStoreDemoTest {
             });
 
             // ------------------------------------------------------------
-            // 6) Close the consumer subscription. The store releases the
+            // 6) Close the consumer subscription. The broker releases the
             // subscription's routing entries; backing subscriptions
             // whose refcount drops to zero are torn down.
             // ------------------------------------------------------------
             // ------------------------------------------------------------
-            // 7) Closing the store (here via try-with-resources) releases
+            // 7) Closing the broker (here via try-with-resources) releases
             // any remaining subscriptions and backing subscriptions.
             // ------------------------------------------------------------
             consumerSub.close();
@@ -208,7 +209,7 @@ class AttributeStoreDemoTest {
     }
 
     @Test
-    @DisplayName("loads every real PIP shipped in sapl-pdp into a single store without collisions")
+    @DisplayName("loads every real PIP shipped in sapl-pdp into a single broker without collisions")
     void loadsAllRealSaplPdpPips() {
         // ----------------------------------------------------------------
         // Wire the minimal infrastructure each PIP needs: a clock, a
@@ -224,13 +225,13 @@ class AttributeStoreDemoTest {
         val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
         val keyProvider = new JWTKeyProvider(httpClient, clock);
 
-        try (val store = new InMemoryAttributeStore()) {
-            val timeHandle = store.load(new TimePolicyInformationPoint(clock, scheduler));
-            val x509Handle = store.load(new X509PolicyInformationPoint(clock, scheduler));
-            val httpHandle = store.load(new HttpPolicyInformationPoint(webClient));
-            val jwtHandle  = store.load(new JWTPolicyInformationPoint(keyProvider, clock, scheduler));
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
+            val timeHandle = broker.load(new TimePolicyInformationPoint(clock, scheduler));
+            val x509Handle = broker.load(new X509PolicyInformationPoint(clock, scheduler));
+            val httpHandle = broker.load(new HttpPolicyInformationPoint(webClient));
+            val jwtHandle  = broker.load(new JWTPolicyInformationPoint(keyProvider, clock, scheduler));
 
-            assertThat(store.catalog()).containsExactlyInAnyOrder(timeHandle, x509Handle, httpHandle, jwtHandle);
+            assertThat(broker.catalog()).containsExactlyInAnyOrder(timeHandle, x509Handle, httpHandle, jwtHandle);
             assertThat(timeHandle.pipName()).isEqualTo("time");
             assertThat(x509Handle.pipName()).isEqualTo("x509");
             assertThat(httpHandle.pipName()).isEqualTo("http");
@@ -244,7 +245,7 @@ class AttributeStoreDemoTest {
             val timeNow = new AttributeFinderInvocation("default", "time.now", List.of(), Duration.ofSeconds(1),
                     Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                     new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-            assertThat(store.resolve(timeNow)).isPresent();
+            assertThat(broker.resolve(timeNow)).isPresent();
 
             // Unload them all; catalog ends empty and every handle reports unloaded.
             timeHandle.unload();
@@ -252,7 +253,7 @@ class AttributeStoreDemoTest {
             httpHandle.unload();
             jwtHandle.unload();
 
-            assertThat(store.catalog()).isEmpty();
+            assertThat(broker.catalog()).isEmpty();
             assertThat(timeHandle.isLoaded()).isFalse();
             assertThat(x509Handle.isLoaded()).isFalse();
             assertThat(httpHandle.isLoaded()).isFalse();

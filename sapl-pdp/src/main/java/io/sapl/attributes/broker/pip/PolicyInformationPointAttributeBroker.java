@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeFinderInvocation;
@@ -28,6 +28,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -49,8 +50,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 /**
- * In-memory {@link AttributeStore} that also owns the catalog of
- * loaded Policy Information Points. The {@link AttributeStore}
+ * In-memory {@link AttributeBroker} that also owns the catalog of
+ * loaded Policy Information Points. The {@link AttributeBroker}
  * interface defines the consumer contract (subscription open/close,
  * snapshot callbacks); the public methods on this concrete class
  * ({@link #load}, {@link #swap}, {@link #catalog}) are the runtime
@@ -68,13 +69,13 @@ import java.util.function.Function;
  * value when the new stream emits. Specs evicted by a swap (no shape
  * match in the replacement) or by an unload publish
  * {@link Value#UNDEFINED} to their backings: absence at this layer,
- * which a {@code LayeredAttributeStore} can fall through to a
+ * which a {@code LayeredAttributeBroker} can fall through to a
  * repository.
  *
  * @since 4.1.0
  */
 @Slf4j
-public final class InMemoryAttributeStore implements AttributeStore {
+public final class PolicyInformationPointAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_ANNOTATION_MISSING     = "PIP class %s is not annotated with @PolicyInformationPoint.";
     private static final String ERROR_DEPS_EMPTY             = "initialDependencies must not be empty";
@@ -146,7 +147,7 @@ public final class InMemoryAttributeStore implements AttributeStore {
      * loaded
      */
     public PipHandle swap(@NonNull PipHandle oldHandle, @NonNull Object newInstance) {
-        if (!(oldHandle instanceof PipHandleImpl old) || old.store() != this) {
+        if (!(oldHandle instanceof PipHandleImpl old) || old.broker() != this) {
             throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(oldHandle.pipName()));
         }
         val newNamespace = readNamespace(newInstance);
@@ -386,7 +387,7 @@ public final class InMemoryAttributeStore implements AttributeStore {
     }
 
     /**
-     * Caller holds the store lock.
+     * Caller holds the broker lock.
      */
     private void checkCollisions(String namespace, List<StreamAttributeFinderSpecification> newSpecs,
             List<StreamAttributeFinderSpecification> excludeFromCheck) {
@@ -430,7 +431,7 @@ public final class InMemoryAttributeStore implements AttributeStore {
 
     /**
      * Resolves a SubscriptionKey to its backing subscription. Caller
-     * holds the store lock.
+     * holds the broker lock.
      */
     private BackingSubscription resolveBackingForKey(SubscriptionKey key) {
         val invocation = key.invocation();
@@ -454,7 +455,7 @@ public final class InMemoryAttributeStore implements AttributeStore {
      * {@link Stream}. If no PIP matches, the backing is terminal with
      * the mailbox preloaded to {@link Value#UNDEFINED}. A later catalog
      * mutation (load/swap) can rebind such a terminal backing to a
-     * newly-matching PIP. Caller holds the store lock.
+     * newly-matching PIP. Caller holds the broker lock.
      */
     private BackingSubscription openBacking(AttributeFinderInvocation invocation, boolean shared) {
         val holder  = new BackingSubscription[1];
@@ -724,7 +725,7 @@ public final class InMemoryAttributeStore implements AttributeStore {
     }
 
     /**
-     * Internal handle implementation. Tied to its enclosing store
+     * Internal handle implementation. Tied to its enclosing broker
      * instance so that {@code unload()} routes back to the correct
      * catalog and so that {@code swap()} can reject foreign handles.
      */
@@ -759,8 +760,8 @@ public final class InMemoryAttributeStore implements AttributeStore {
             unloadHandle(this);
         }
 
-        InMemoryAttributeStore store() {
-            return InMemoryAttributeStore.this;
+        PolicyInformationPointAttributeBroker broker() {
+            return PolicyInformationPointAttributeBroker.this;
         }
 
         @Override

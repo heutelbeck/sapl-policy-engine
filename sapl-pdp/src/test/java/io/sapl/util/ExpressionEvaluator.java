@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.util;
 
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.Occurrence;
@@ -25,7 +25,7 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
-import io.sapl.util.SaplTesting;
+import io.sapl.attributes.broker.AttributeBroker;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -35,7 +35,7 @@ import java.util.UUID;
 
 /**
  * Compiles an expression string and exposes its evaluation as a
- * {@link Stream} of {@link Value} backed by an {@link AttributeStore}.
+ * {@link Stream} of {@link Value} backed by an {@link AttributeBroker}.
  * Pure expressions deliver one value then complete. Streaming
  * expressions deliver the latest value per fulfilled trigger; the
  * consumer blocks on {@link Stream#awaitNext()} until the next value
@@ -46,13 +46,13 @@ import java.util.UUID;
  * value. Intermediate values are dropped.
  */
 @UtilityClass
-public class VTExpressionEvaluator {
+public class ExpressionEvaluator {
 
-    public static Stream<Value> evaluate(String expression, AttributeStore store) {
-        return evaluate(SaplTesting.compileExpression(expression), store);
+    public static Stream<Value> evaluate(String expression, AttributeBroker broker) {
+        return evaluate(SaplTesting.compileExpression(expression), broker);
     }
 
-    public static Stream<Value> evaluate(CompiledExpression expr, AttributeStore store) {
+    public static Stream<Value> evaluate(CompiledExpression expr, AttributeBroker broker) {
         val baseCtx = SaplTesting.evaluationContext();
         val stream  = new LatestSlotStream<Value>();
 
@@ -83,7 +83,7 @@ public class VTExpressionEvaluator {
             return stream;
         }
 
-        val sub = store.open("vt-eval-" + UUID.randomUUID(), initialDeps.keySet(), snap -> {
+        val sub = broker.open("vt-eval-" + UUID.randomUUID(), initialDeps.keySet(), snap -> {
             val r = streamOp.evaluate(baseCtx.withSnapshot(snap));
             if (r.result() != null) {
                 stream.put(r.result());

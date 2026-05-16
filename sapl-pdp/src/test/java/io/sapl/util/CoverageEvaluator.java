@@ -15,38 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.util;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.stream.QueueStream;
 import io.sapl.api.stream.Stream;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.policy.CoverageVoter;
-import io.sapl.util.SaplTesting;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.UUID;
 
 /**
- * Evaluates a {@link CoverageVoter} against an {@link AttributeStore}
+ * Evaluates a {@link CoverageVoter} against an {@link AttributeBroker}
  * and exposes per-round results as an ordered, full-fidelity
  * {@link Stream} of {@link VoteResultWithCoverage}. Every round whose
  * vote resolves is delivered to the consumer; intermediate rounds
  * are not dropped. If the initial evaluation returns no dependencies
  * (pure policy body), the stream delivers one result and completes.
- * Otherwise it opens a subscription on the store and re-evaluates
+ * Otherwise it opens a subscription on the broker and re-evaluates
  * the voter on every callback.
  */
 @UtilityClass
-public class VTCoverageEvaluator {
+public class CoverageEvaluator {
 
-    public static Stream<VoteResultWithCoverage> evaluate(CoverageVoter voter, AttributeStore store) {
-        return evaluate(voter, SaplTesting.evaluationContext(), store);
+    public static Stream<VoteResultWithCoverage> evaluate(CoverageVoter voter, AttributeBroker broker) {
+        return evaluate(voter, SaplTesting.evaluationContext(), broker);
     }
 
     public static Stream<VoteResultWithCoverage> evaluate(CoverageVoter voter, EvaluationContext baseCtx,
-            AttributeStore store) {
+            AttributeBroker broker) {
         val stream = new QueueStream<VoteResultWithCoverage>();
 
         val initial = voter.evaluate(baseCtx);
@@ -56,7 +56,7 @@ public class VTCoverageEvaluator {
             return stream;
         }
 
-        val sub = store.open("vt-cov-" + UUID.randomUUID(), initial.voteResult().dependencies().keySet(), snap -> {
+        val sub = broker.open("vt-cov-" + UUID.randomUUID(), initial.voteResult().dependencies().keySet(), snap -> {
             val r = voter.evaluate(baseCtx.withSnapshot(snap));
             // Skip on incomplete: a null vote means the body did not resolve
             // (some dep still missing); do not surface a partial coverage

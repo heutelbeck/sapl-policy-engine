@@ -22,7 +22,7 @@ import lombok.NonNull;
 
 /**
  * Consumer-facing subscription identity for the snapshot-driven attribute
- * store. Two reads of the same {@link AttributeFinderInvocation} with
+ * broker. Two reads of the same {@link AttributeFinderInvocation} with
  * different {@code head} flags are genuinely different consumer views:
  * the {@code head=true} view is frozen at the first emitted value,
  * the {@code head=false} view follows updates. The PIP-facing

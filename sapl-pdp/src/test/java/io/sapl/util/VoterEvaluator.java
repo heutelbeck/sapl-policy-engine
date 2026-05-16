@@ -15,38 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.util;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.Voter;
-import io.sapl.util.SaplTesting;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.util.UUID;
 
 /**
- * Evaluates a {@link Voter} against an {@link AttributeStore} and
+ * Evaluates a {@link Voter} against an {@link AttributeBroker} and
  * exposes per-round votes as a {@link Stream}. A {@link Vote}
  * terminal voter or a {@link PureVoter} delivers one vote and
- * completes. A {@link StreamVoter} opens a subscription on the store,
+ * completes. A {@link StreamVoter} opens a subscription on the broker,
  * re-evaluates on every callback, and pushes the resulting vote into
  * the slot when the result is non-null. Incomplete rounds (vote ==
  * null because some dep was not yet bound) are skipped.
  */
 @UtilityClass
-public class VTVoterEvaluator {
+public class VoterEvaluator {
 
-    public static Stream<Vote> evaluate(Voter voter, AttributeStore store) {
-        return evaluate(voter, SaplTesting.evaluationContext(), store);
+    public static Stream<Vote> evaluate(Voter voter, AttributeBroker broker) {
+        return evaluate(voter, SaplTesting.evaluationContext(), broker);
     }
 
-    public static Stream<Vote> evaluate(Voter voter, EvaluationContext baseCtx, AttributeStore store) {
+    public static Stream<Vote> evaluate(Voter voter, EvaluationContext baseCtx, AttributeBroker broker) {
         val stream = new LatestSlotStream<Vote>();
 
         if (voter instanceof Vote v) {
@@ -72,7 +72,7 @@ public class VTVoterEvaluator {
             return stream;
         }
 
-        val sub = store.open("vt-voter-" + UUID.randomUUID(), initial.dependencies().keySet(), snap -> {
+        val sub = broker.open("vt-voter-" + UUID.randomUUID(), initial.dependencies().keySet(), snap -> {
             val r = streamVoter.evaluate(baseCtx.withSnapshot(snap));
             if (r.vote() != null) {
                 stream.put(r.vote());

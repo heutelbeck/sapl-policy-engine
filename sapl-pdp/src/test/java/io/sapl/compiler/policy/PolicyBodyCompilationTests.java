@@ -23,13 +23,13 @@ import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicyBody;
 import io.sapl.ast.Statement;
 import io.sapl.ast.VoterMetadata;
-import io.sapl.attributes.store.TestAttributeStore;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteResultWithCoverage;
-import io.sapl.attributes.store.VTCoverageEvaluator;
-import io.sapl.attributes.store.VTExpressionEvaluator;
+import io.sapl.util.CoverageEvaluator;
+import io.sapl.util.ExpressionEvaluator;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
@@ -127,7 +127,7 @@ class PolicyBodyCompilationTests {
 
     /**
      * Script step driving the parallel-evaluator stream re-emission tests.
-     * {@link Publish} pushes a value to the shared store; {@link ExpectValue},
+     * {@link Publish} pushes a value to the shared broker; {@link ExpectValue},
      * {@link ExpectError}, and {@link ExpectNoValue} assert what both
      * evaluator streams emit at that point.
      */
@@ -194,14 +194,14 @@ class PolicyBodyCompilationTests {
 
         val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(STUB_METADATA), STUB_METADATA);
 
-        try (val store = new TestAttributeStore()) {
+        try (val broker = new TestAttributeBroker()) {
             // Prime every attribute the test case declares so the gate fires
             // immediately on open with the bound value already in the snapshot.
             for (val entry : tc.attributes().entrySet()) {
-                store.register(entry.getKey(), entry.getValue());
+                broker.register(entry.getKey(), entry.getValue());
             }
-            try (val expr = VTExpressionEvaluator.evaluate(streamSection, store);
-                    val coverage = VTCoverageEvaluator.evaluate(coverageVoter, store)) {
+            try (val expr = ExpressionEvaluator.evaluate(streamSection, broker);
+                    val coverage = CoverageEvaluator.evaluate(coverageVoter, broker)) {
                 val streamValue = expr.awaitNext();
                 assertThat(streamValue).as("streaming section value").isEqualTo(tc.expectedStreamValue());
 
@@ -304,12 +304,12 @@ class PolicyBodyCompilationTests {
 
             val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(STUB_METADATA), STUB_METADATA);
 
-            try (val store = new TestAttributeStore()) {
+            try (val broker = new TestAttributeBroker()) {
                 if (tc.attrName() != null) {
-                    store.register(tc.attrName(), Value.error(tc.attrError()));
+                    broker.register(tc.attrName(), Value.error(tc.attrError()));
                 }
-                try (val expr = VTExpressionEvaluator.evaluate(streamSection, store);
-                        val coverage = VTCoverageEvaluator.evaluate(coverageVoter, store)) {
+                try (val expr = ExpressionEvaluator.evaluate(streamSection, broker);
+                        val coverage = CoverageEvaluator.evaluate(coverageVoter, broker)) {
                     if (!tc.errorInPureSection()) {
                         val streamValue = expr.awaitNext();
                         assertThat(streamValue).isInstanceOf(ErrorValue.class)
@@ -369,17 +369,17 @@ class PolicyBodyCompilationTests {
 
             val coverageVoter = new CoverageVoter.Lazy(conditions, Vote.abstain(STUB_METADATA), STUB_METADATA);
 
-            try (val store = new TestAttributeStore()) {
+            try (val broker = new TestAttributeBroker()) {
                 // Register a PIP for every attribute the script publishes to so the
-                // store waits for values rather than auto-firing UNDEFINED on open.
+                // broker waits for values rather than auto-firing UNDEFINED on open.
                 for (val step : tc.script()) {
                     if (step instanceof Step.Publish(var name, var ignored)) {
-                        store.register(name);
+                        broker.register(name);
                     }
                 }
-                try (val expr = VTExpressionEvaluator.evaluate(streamSection, store);
-                        val coverage = VTCoverageEvaluator.evaluate(coverageVoter, store)) {
-                    runScript(tc, store, expr, coverage);
+                try (val expr = ExpressionEvaluator.evaluate(streamSection, broker);
+                        val coverage = CoverageEvaluator.evaluate(coverageVoter, broker)) {
+                    runScript(tc, broker, expr, coverage);
                 }
             }
         }
@@ -431,7 +431,7 @@ class PolicyBodyCompilationTests {
 
     /**
      * Walks the script of a {@link StreamTestCase}, dispatching each
-     * {@link Step.Publish} to the shared store and asserting the
+     * {@link Step.Publish} to the shared broker and asserting the
      * corresponding observation against both the streaming-section and
      * coverage-pathway streams. {@link Step.ExpectValue} and
      * {@link Step.ExpectError} consume one emission from each stream;
@@ -439,13 +439,13 @@ class PolicyBodyCompilationTests {
      * Body value of the coverage result is the last condition hit
      * (or {@link Value#TRUE} when the body has no hits).
      */
-    private static void runScript(StreamTestCase tc, TestAttributeStore store, Stream<Value> expr,
+    private static void runScript(StreamTestCase tc, TestAttributeBroker broker, Stream<Value> expr,
             Stream<VoteResultWithCoverage> coverage) throws InterruptedException {
         int idx = 0;
         for (val step : tc.script()) {
             val pos = "step " + idx + " (" + step + ")";
             switch (step) {
-            case Step.Publish(var name, var value) -> store.publishByName(name, value);
+            case Step.Publish(var name, var value) -> broker.publishByName(name, value);
             case Step.ExpectValue(var expected)    -> {
                 assertThat(expr.awaitNext()).as("expr at " + pos).isEqualTo(expected);
                 assertThat(coverageBodyValue(coverage.awaitNext())).as("coverage at " + pos).isEqualTo(expected);

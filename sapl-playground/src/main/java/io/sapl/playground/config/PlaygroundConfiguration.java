@@ -36,11 +36,11 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
-import io.sapl.attributes.store.AttributeRepository;
-import io.sapl.attributes.store.AttributeStore;
-import io.sapl.attributes.store.InMemoryAttributeStore;
-import io.sapl.attributes.store.LayeredAttributeStore;
-import io.sapl.attributes.store.VolatileAttributeStore;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
@@ -85,37 +85,38 @@ public class PlaygroundConfiguration {
     }
 
     @Bean
-    InMemoryAttributeStore catalogStore(JsonMapper mapper) {
+    PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper) {
         var clock     = Clock.systemUTC();
         var scheduler = new RealTimeScheduler(clock);
         var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
         var mqtt      = new DummySaplMqttClient(clock, scheduler);
         var keys      = new DummyJWTKeyProvider(clock);
 
-        var store = new InMemoryAttributeStore();
-        store.load(new TimePolicyInformationPoint(clock, scheduler));
-        store.load(new HttpPolicyInformationPoint(webClient));
-        store.load(new TraccarPolicyInformationPoint(webClient));
-        store.load(new JWTPolicyInformationPoint(keys, clock, scheduler));
-        store.load(new MqttPolicyInformationPoint(mqtt));
-        store.load(new X509PolicyInformationPoint(clock, scheduler));
-        return store;
+        var broker = new PolicyInformationPointAttributeBroker();
+        broker.load(new TimePolicyInformationPoint(clock, scheduler));
+        broker.load(new HttpPolicyInformationPoint(webClient));
+        broker.load(new TraccarPolicyInformationPoint(webClient));
+        broker.load(new JWTPolicyInformationPoint(keys, clock, scheduler));
+        broker.load(new MqttPolicyInformationPoint(mqtt));
+        broker.load(new X509PolicyInformationPoint(clock, scheduler));
+        return broker;
     }
 
     @Bean
-    VolatileAttributeStore volatileAttributeStore() {
-        return new VolatileAttributeStore();
+    InMemoryAttributeRepository inMemoryAttributeRepository() {
+        return new InMemoryAttributeRepository();
     }
 
     @Bean
-    AttributeRepository attributeRepository(VolatileAttributeStore volatileAttributeStore) {
-        return volatileAttributeStore;
+    AttributeRepository attributeRepository(InMemoryAttributeRepository inMemoryAttributeRepository) {
+        return inMemoryAttributeRepository;
     }
 
     @Bean
     @Primary
-    AttributeStore attributeStore(InMemoryAttributeStore catalogStore, VolatileAttributeStore volatileAttributeStore) {
-        return new LayeredAttributeStore(catalogStore, volatileAttributeStore);
+    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker,
+            InMemoryAttributeRepository inMemoryAttributeRepository) {
+        return new LayeredAttributeBroker(policyInformationPointAttributeBroker, inMemoryAttributeRepository);
     }
 
     @Bean

@@ -76,7 +76,7 @@ class SaplTestFixtureTests {
         var fixture = SaplTestFixture.createSingleTest();
 
         assertThat(fixture.getMockingFunctionBroker()).isNotNull();
-        assertThat(fixture.getMockingAttributeStore()).isNotNull();
+        assertThat(fixture.getMockingAttributeBroker()).isNotNull();
     }
 
     @Test
@@ -172,14 +172,14 @@ class SaplTestFixtureTests {
         var fixture = SaplTestFixture.createSingleTest().givenEnvironmentAttribute("timeMock", "time.now", args(),
                 Value.of("2025-01-06T10:00:00Z"));
 
-        assertThat(fixture.getMockingAttributeStore().hasMock("timeMock")).isTrue();
+        assertThat(fixture.getMockingAttributeBroker().hasMock("timeMock")).isTrue();
     }
 
     @Test
     void whenMockingEnvironmentAttributeWithoutInitialValue_thenMockIsRegistered() {
         var fixture = SaplTestFixture.createSingleTest().givenEnvironmentAttribute("timeMock", "time.now", args());
 
-        assertThat(fixture.getMockingAttributeStore().hasMock("timeMock")).isTrue();
+        assertThat(fixture.getMockingAttributeBroker().hasMock("timeMock")).isTrue();
     }
 
     @Test
@@ -187,14 +187,14 @@ class SaplTestFixtureTests {
         var fixture = SaplTestFixture.createSingleTest().givenAttribute("userRoleMock", "user.role", any(), args(),
                 Value.of("admin"));
 
-        assertThat(fixture.getMockingAttributeStore().hasMock("userRoleMock")).isTrue();
+        assertThat(fixture.getMockingAttributeBroker().hasMock("userRoleMock")).isTrue();
     }
 
     @Test
     void whenMockingAttributeWithoutInitialValue_thenMockIsRegistered() {
         var fixture = SaplTestFixture.createSingleTest().givenAttribute("userRoleMock", "user.role", any(), args());
 
-        assertThat(fixture.getMockingAttributeStore().hasMock("userRoleMock")).isTrue();
+        assertThat(fixture.getMockingAttributeBroker().hasMock("userRoleMock")).isTrue();
     }
 
     @Test
@@ -205,7 +205,7 @@ class SaplTestFixtureTests {
                 .givenEnvironmentAttribute("currentTemp", "env.temperature", args(), Value.of(25));
 
         assertThat(fixture.getMockingFunctionBroker().hasMock("time.dayOfWeek")).isTrue();
-        assertThat(fixture.getMockingAttributeStore().hasMock("currentTemp")).isTrue();
+        assertThat(fixture.getMockingAttributeBroker().hasMock("currentTemp")).isTrue();
     }
 
     @Test
@@ -320,7 +320,7 @@ class SaplTestFixtureTests {
     @Test
     void whenSettingCustomBrokers_thenReturnsFixtureForChaining() {
         var fixture = SaplTestFixture.createSingleTest().withFunctionBroker(new MockingFunctionBroker())
-                .withAttributeStore(new MockingAttributeBroker()).withPolicy(PERMIT_ALL_POLICY);
+                .withAttributeBroker(new MockingAttributeBroker()).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }

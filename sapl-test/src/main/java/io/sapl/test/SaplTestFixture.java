@@ -34,8 +34,8 @@ import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.UNIQUE
 
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
-import io.sapl.attributes.store.AttributeStore;
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
@@ -157,10 +157,10 @@ public class SaplTestFixture {
     private final Map<String, Value>  secrets         = new HashMap<>();
     private PDPConfiguration          loadedConfiguration;
 
-    private FunctionBroker customFunctionBroker;
-    private AttributeStore customAttributeStore;
-    private JsonMapper     jsonMapper;
-    private Clock          clock;
+    private FunctionBroker  customFunctionBroker;
+    private AttributeBroker customAttributeBroker;
+    private JsonMapper      jsonMapper;
+    private Clock           clock;
 
     private final List<Object> functionLibraries       = new ArrayList<>();
     private final List<Object> policyInformationPoints = new ArrayList<>();
@@ -169,7 +169,7 @@ public class SaplTestFixture {
     private final MockingFunctionBroker mockingFunctionBroker = new MockingFunctionBroker();
 
     @Getter
-    private final MockingAttributeStore mockingAttributeStore = new MockingAttributeStore();
+    private final MockingAttributeBroker mockingAttributeBroker = new MockingAttributeBroker();
 
     // Coverage configuration
     private String  testIdentifier;
@@ -509,16 +509,16 @@ public class SaplTestFixture {
     }
 
     /**
-     * Sets a custom attribute store.
+     * Sets a custom attribute broker.
      * <p>
-     * The mocking store will wrap this store, so unmocked attributes delegate to
+     * The mocking broker will wrap this broker, so unmocked attributes delegate to
      * it.
      *
-     * @param attributeStore the attribute store to use
+     * @param attributeBroker the attribute broker to use
      * @return this fixture for chaining
      */
-    public SaplTestFixture withAttributeStore(@NonNull AttributeStore attributeStore) {
-        this.customAttributeStore = attributeStore;
+    public SaplTestFixture withAttributeBroker(@NonNull AttributeBroker attributeBroker) {
+        this.customAttributeBroker = attributeBroker;
         return this;
     }
 
@@ -689,7 +689,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture givenEnvironmentAttribute(@NonNull String mockId, @NonNull String attributeName,
             @NonNull Parameters arguments, @NonNull Value initialValue) {
-        mockingAttributeStore.mockEnvironmentAttribute(mockId, attributeName, arguments, initialValue);
+        mockingAttributeBroker.mockEnvironmentAttribute(mockId, attributeName, arguments, initialValue);
         return this;
     }
 
@@ -707,7 +707,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture givenEnvironmentAttribute(@NonNull String mockId, @NonNull String attributeName,
             @NonNull Parameters arguments) {
-        mockingAttributeStore.mockEnvironmentAttribute(mockId, attributeName, arguments);
+        mockingAttributeBroker.mockEnvironmentAttribute(mockId, attributeName, arguments);
         return this;
     }
 
@@ -723,7 +723,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture givenAttribute(@NonNull String mockId, @NonNull String attributeName,
             @NonNull ArgumentMatcher entityMatcher, @NonNull Parameters arguments, @NonNull Value initialValue) {
-        mockingAttributeStore.mockAttribute(mockId, attributeName, entityMatcher, arguments, initialValue);
+        mockingAttributeBroker.mockAttribute(mockId, attributeName, entityMatcher, arguments, initialValue);
         return this;
     }
 
@@ -738,7 +738,7 @@ public class SaplTestFixture {
      */
     public SaplTestFixture givenAttribute(@NonNull String mockId, @NonNull String attributeName,
             @NonNull ArgumentMatcher entityMatcher, @NonNull Parameters arguments) {
-        mockingAttributeStore.mockAttribute(mockId, attributeName, entityMatcher, arguments);
+        mockingAttributeBroker.mockAttribute(mockId, attributeName, entityMatcher, arguments);
         return this;
     }
 
@@ -836,19 +836,19 @@ public class SaplTestFixture {
     }
 
     private void configureAttributeStore() {
-        if (customAttributeStore != null) {
-            mockingAttributeStore.setDelegate(customAttributeStore);
+        if (customAttributeBroker != null) {
+            mockingAttributeBroker.setDelegate(customAttributeBroker);
         } else if (!policyInformationPoints.isEmpty()) {
-            mockingAttributeStore.setDelegate(buildAttributeStoreFromPips());
+            mockingAttributeBroker.setDelegate(buildAttributeStoreFromPips());
         }
     }
 
-    private InMemoryAttributeStore buildAttributeStoreFromPips() {
-        var attributeStore = new InMemoryAttributeStore();
+    private PolicyInformationPointAttributeBroker buildAttributeStoreFromPips() {
+        var attributeBroker = new PolicyInformationPointAttributeBroker();
         for (var pip : policyInformationPoints) {
-            attributeStore.load(pip);
+            attributeBroker.load(pip);
         }
-        return attributeStore;
+        return attributeBroker;
     }
 
     private PDPComponents buildPdpComponents(PolicyDecisionPointBuilder pdpBuilder, List<String> effectivePolicies) {
@@ -861,7 +861,7 @@ public class SaplTestFixture {
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
                 effectiveAlgorithm, compilerOptions, effectivePolicies, pdpData);
 
-        return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeStore(mockingAttributeStore)
+        return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
                 .withConfiguration(configuration).build();
     }
 
@@ -891,10 +891,10 @@ public class SaplTestFixture {
     private DecisionResult createDecisionResult(AuthorizationSubscription subscription, PDPComponents components,
             CoverageContext coverageContext) {
         val blockingPdp            = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
-                components.attributeStore(), new ThreadLocalRandomIdFactory());
+                components.attributeBroker(), new ThreadLocalRandomIdFactory());
         val voteWithCoverageStream = blockingPdp.decideWithCoverage(subscription, "default");
 
-        return new DecisionResult(voteWithCoverageStream, mockingAttributeStore, components,
+        return new DecisionResult(voteWithCoverageStream, mockingAttributeBroker, components,
                 coverageContext.accumulator(), coverageContext.writer(), coverageFileWriteEnabled);
     }
 
@@ -1139,7 +1139,7 @@ public class SaplTestFixture {
      * Each expect/then method adds an action to a queue; terminal
      * {@link #verify()} drives the underlying {@link Stream} of
      * coverage-instrumented decisions, executing each action in order
-     * against the next emission or against the mock attribute store.
+     * against the next emission or against the mock attribute broker.
      *
      * <pre>{@code
      * fixture.whenDecide(subscription).expectPermit().thenEmit("timeMock", newValue).expectDeny().verify();
@@ -1154,7 +1154,7 @@ public class SaplTestFixture {
 
         private final Stream<VoteWithCoverage>    voteWithCoverageStream;
         private final List<Action>                actions        = new ArrayList<>();
-        private final MockingAttributeStore       attributeStore;
+        private final MockingAttributeBroker      attributeBroker;
         private final PDPComponents               components;
         private final CoverageAccumulator         coverageAccumulator;
         private final CoverageWriter              coverageWriter;
@@ -1162,13 +1162,13 @@ public class SaplTestFixture {
         private final AtomicReference<TracedVote> lastTracedVote = new AtomicReference<>();
 
         DecisionResult(Stream<VoteWithCoverage> voteWithCoverageStream,
-                MockingAttributeStore attributeStore,
+                MockingAttributeBroker attributeBroker,
                 PDPComponents components,
                 CoverageAccumulator coverageAccumulator,
                 CoverageWriter coverageWriter,
                 boolean coverageFileWriteEnabled) {
             this.voteWithCoverageStream   = voteWithCoverageStream;
-            this.attributeStore           = attributeStore;
+            this.attributeBroker          = attributeBroker;
             this.components               = components;
             this.coverageAccumulator      = coverageAccumulator;
             this.coverageWriter           = coverageWriter;
@@ -1354,7 +1354,7 @@ public class SaplTestFixture {
         private record Emit(String mockId, Value value) implements Action {
             @Override
             public void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos) {
-                ctx.attributeStore.emit(mockId, value);
+                ctx.attributeBroker.emit(mockId, value);
             }
         }
 

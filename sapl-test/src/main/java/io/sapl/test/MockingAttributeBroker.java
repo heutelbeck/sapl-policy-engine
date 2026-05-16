@@ -21,7 +21,7 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
 import io.sapl.test.verification.AttributeInvocationRecord;
@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 /**
- * {@link AttributeStore} mocking facility for tests. Mocks are
+ * {@link AttributeBroker} mocking facility for tests. Mocks are
  * registered against attribute name + matchers + entity matcher;
  * values are emitted via {@link #emit(String, Value)} keyed by
  * mockId; invocations are recorded for after-the-fact verification.
@@ -65,11 +65,11 @@ import java.util.function.Function;
  * cause the callback to fire once more so the consumer observes the
  * new mailbox state, provided the gate is open after the new bindings.
  * <p>
- * State mutations and reads are guarded by the store's intrinsic lock.
+ * State mutations and reads are guarded by the broker's intrinsic lock.
  * Callbacks fire outside the lock so consumer-side close, evaluation,
- * or follow-on store operations don't re-enter under the lock.
+ * or follow-on broker operations don't re-enter under the lock.
  */
-public final class MockingAttributeStore implements AttributeStore {
+public final class MockingAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_ARGUMENTS_MUST_USE_ARGS     = "Arguments must be created via args().";
     private static final String ERROR_INITIAL_DEPS_EMPTY          = "initialDependencies must not be empty";
@@ -93,9 +93,9 @@ public final class MockingAttributeStore implements AttributeStore {
     private final Map<String, @Nullable Value>            registeredPips       = new HashMap<>();
     private final List<AttributeInvocationRecord>         invocations          = new CopyOnWriteArrayList<>();
     private final AtomicLong                              sequenceCounter      = new AtomicLong(0);
-    private AttributeStore                                delegate;
+    private AttributeBroker                               delegate;
 
-    public void setDelegate(AttributeStore delegate) {
+    public void setDelegate(AttributeBroker delegate) {
         this.delegate = delegate;
     }
 
@@ -167,7 +167,7 @@ public final class MockingAttributeStore implements AttributeStore {
     }
 
     @Override
-    public AttributeStore.Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
+    public AttributeBroker.Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
         if (subscriptionId == null || subscriptionId.isBlank()) {
             throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_BLANK);
@@ -304,7 +304,7 @@ public final class MockingAttributeStore implements AttributeStore {
     private boolean bindKey(SubscriptionKey key, Instant now) {
         if (keyToMockId.containsKey(key)) {
             // Mock-bound: shared across consumers, no refcount needed (mocks live for the
-            // store lifetime).
+            // broker lifetime).
             return false;
         }
         val existingForward = forwards.get(key);
@@ -371,7 +371,7 @@ public final class MockingAttributeStore implements AttributeStore {
 
     private void openDelegateForward(SubscriptionKey key) {
         val singleKeyDeps = Set.of(key);
-        val forwardId     = "mock-store-forward-" + UUID.randomUUID();
+        val forwardId     = "mock-broker-forward-" + UUID.randomUUID();
         val delegateSub   = delegate.open(forwardId, singleKeyDeps, snap -> {
                               onDelegateForwardUpdate(key, snap);
                               return singleKeyDeps;
@@ -478,10 +478,10 @@ public final class MockingAttributeStore implements AttributeStore {
     }
 
     private static final class ForwardEntry {
-        final AttributeStore.Subscription delegateSub;
-        int                               refcount;
+        final AttributeBroker.Subscription delegateSub;
+        int                                refcount;
 
-        ForwardEntry(AttributeStore.Subscription delegateSub, int refcount) {
+        ForwardEntry(AttributeBroker.Subscription delegateSub, int refcount) {
             this.delegateSub = delegateSub;
             this.refcount    = refcount;
         }
@@ -519,7 +519,7 @@ public final class MockingAttributeStore implements AttributeStore {
         }
     }
 
-    private final class SubscriptionImpl implements AttributeStore.Subscription {
+    private final class SubscriptionImpl implements AttributeBroker.Subscription {
         final String                                                                  id;
         final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
         Set<SubscriptionKey>                                                          deps;
@@ -536,12 +536,12 @@ public final class MockingAttributeStore implements AttributeStore {
 
         @Override
         public void close() {
-            synchronized (MockingAttributeStore.this) {
+            synchronized (MockingAttributeBroker.this) {
                 closed = true;
                 subs.remove(id);
                 releaseKeys(deps);
                 // Note: keyToMockId entries kept in case other subs share the key.
-                // Mocks live for the store lifetime; only delegate forwards are refcounted.
+                // Mocks live for the broker lifetime; only delegate forwards are refcounted.
             }
         }
 
@@ -568,7 +568,7 @@ public final class MockingAttributeStore implements AttributeStore {
         void fireCallback() {
             Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
             Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> cb;
-            synchronized (MockingAttributeStore.this) {
+            synchronized (MockingAttributeBroker.this) {
                 if (closed) {
                     return;
                 }
@@ -580,7 +580,7 @@ public final class MockingAttributeStore implements AttributeStore {
                 throw new IllegalStateException(ERROR_RETURNED_DEPS_EMPTY.formatted(id));
             }
             boolean refire;
-            synchronized (MockingAttributeStore.this) {
+            synchronized (MockingAttributeBroker.this) {
                 if (closed) {
                     return;
                 }

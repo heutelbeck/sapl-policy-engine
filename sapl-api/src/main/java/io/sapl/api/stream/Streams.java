@@ -49,7 +49,7 @@ import java.util.function.UnaryOperator;
  * <strong>must</strong> {@link Stream#close()} the returned stream
  * when finished, otherwise the producer thread is leaked.
  * <p>
- * In SAPL the {@code AttributeStore} owns each stream and closes
+ * In SAPL the {@code AttributeBroker} owns each stream and closes
  * it when the consuming subscription releases. Helpers used outside
  * that path (tests, ad-hoc code) need explicit try-with-resources or
  * a manual {@code close()}.

@@ -34,7 +34,7 @@ import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.attributes.libraries.util.TestMockServerDispatcher;
 import io.sapl.api.test.stream.TestTimeScheduler;
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
@@ -872,23 +872,24 @@ class JWTPolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("store registration")
+    @DisplayName("broker registration")
     class StoreRegistration {
 
         @Test
         @DisplayName("loads under the jwt namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderJwtNamespace() {
-            try (val store = new InMemoryAttributeStore()) {
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
                 val now            = Instant.parse("2025-06-15T12:00:00Z");
                 val localClock     = new MutableClock(now);
                 val localScheduler = new TestTimeScheduler(now);
                 val httpClient     = HttpClient.newHttpClient();
                 val keyProvider    = new JWTKeyProvider(httpClient, localClock);
-                val handle         = store.load(new JWTPolicyInformationPoint(keyProvider, localClock, localScheduler));
+                val handle         = broker
+                        .load(new JWTPolicyInformationPoint(keyProvider, localClock, localScheduler));
 
                 assertThat(handle.pipName()).isEqualTo(JWTPolicyInformationPoint.NAME);
                 assertThat(handle.isLoaded()).isTrue();
-                assertThat(store.catalog()).containsExactly(handle);
+                assertThat(broker.catalog()).containsExactly(handle);
             }
         }
     }

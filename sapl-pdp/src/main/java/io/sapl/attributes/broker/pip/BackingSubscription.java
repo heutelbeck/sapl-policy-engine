@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
- * Internal per-invocation value supply for the catalog-backed store.
+ * Internal per-invocation value supply for the catalog-backed broker.
  * Bridges a PIP-produced {@link Stream} into the mailbox that
  * consumers read. Owns one virtual-thread pump that drains the
  * source stream and republishes each value into the mailbox; tracks
@@ -55,17 +55,17 @@ final class BackingSubscription {
 
     /**
      * @param invocation the invocation this backing serves
-     * @param shared {@code true} when registered in the store's
+     * @param shared {@code true} when registered in the broker's
      * shared-dedup map; {@code false} when private to one consumer
      * (created via {@code fresh=true})
      * @param sourceStream the initial source stream; may be
      * {@code null} for terminal backings (no matching PIP)
      * @param sourceSpec the catalog spec that produced
      * {@code sourceStream}; {@code null} for terminal backings, used
-     * by the store on hot-swap to identify which backings serve which
+     * by the broker on hot-swap to identify which backings serve which
      * specs
      * @param onValue callback invoked on each new value emitted by
-     * the source stream; the store wires this to its dispatch path
+     * the source stream; the broker wires this to its dispatch path
      */
     BackingSubscription(AttributeFinderInvocation invocation,
             boolean shared,
@@ -192,7 +192,7 @@ final class BackingSubscription {
      * Idempotent. Releases the source stream and signals the pump
      * thread to exit. Mailbox state is retained for any consumer
      * still inspecting the snapshot, but the backing should be
-     * discarded by the store after this call.
+     * discarded by the broker after this call.
      */
     void close() {
         Stream<Value> toClose;

@@ -18,7 +18,7 @@
 package io.sapl.pip.geo.traccar;
 
 import io.sapl.api.stream.BlockingWebClient;
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,23 +28,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Lightweight registration test: confirms that the Traccar PIP can
- * be loaded into an {@link InMemoryAttributeStore} without errors.
+ * be loaded into an {@link PolicyInformationPointAttributeBroker} without
+ * errors.
  * The functional behaviour against a real Traccar server is covered
  * by {@link TraccarPolicyInformationPointIT}.
  */
-@DisplayName("TraccarPolicyInformationPoint store registration")
+@DisplayName("TraccarPolicyInformationPoint broker registration")
 class TraccarPolicyInformationPointStoreLoadTests {
 
     @Test
     @DisplayName("loads under the traccar namespace without errors")
     void whenLoadedIntoStoreThenRegistersUnderTraccarNamespace() {
-        try (val store = new InMemoryAttributeStore()) {
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
             val webClient = BlockingWebClient.withDefaults(JsonMapper.builder().build());
-            val handle    = store.load(new TraccarPolicyInformationPoint(webClient));
+            val handle    = broker.load(new TraccarPolicyInformationPoint(webClient));
 
             assertThat(handle.pipName()).isEqualTo(TraccarPolicyInformationPoint.NAME);
             assertThat(handle.isLoaded()).isTrue();
-            assertThat(store.catalog()).containsExactly(handle);
+            assertThat(broker.catalog()).containsExactly(handle);
         }
     }
 }

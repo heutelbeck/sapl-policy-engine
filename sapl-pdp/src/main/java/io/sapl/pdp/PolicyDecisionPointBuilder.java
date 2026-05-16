@@ -30,11 +30,11 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
-import io.sapl.attributes.store.AttributeStore;
-import io.sapl.attributes.store.InMemoryAttributeStore;
-import io.sapl.attributes.store.LayeredAttributeStore;
-import io.sapl.attributes.store.PipLoadException;
-import io.sapl.attributes.store.VolatileAttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
+import io.sapl.attributes.broker.pip.PipLoadException;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -111,11 +111,11 @@ public class PolicyDecisionPointBuilder {
 
     private IdFactory idFactory;
 
-    private int            functionCacheSize = -1;
-    private FunctionBroker externalFunctionBroker;
-    private PluginsSource  externalPluginsSource;
-    private AttributeStore externalAttributeStore;
-    private AttributeStore externalRepository;
+    private int             functionCacheSize = -1;
+    private FunctionBroker  externalFunctionBroker;
+    private PluginsSource   externalPluginsSource;
+    private AttributeBroker externalAttributeBroker;
+    private AttributeBroker externalRepository;
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
     private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
@@ -306,33 +306,33 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a custom {@link AttributeStore}. When set, this store is used
+     * Sets a custom {@link AttributeBroker}. When set, this broker is used
      * as-is and the builder's catalog, repository, and layered
-     * composition are bypassed. Use {@link #withRepository(AttributeStore)}
+     * composition are bypassed. Use {@link #withRepository(AttributeBroker)}
      * instead if the goal is only to swap the repository half of the
-     * default layered store.
+     * default layered broker.
      *
-     * @param attributeStore the pre-configured attribute store
+     * @param attributeBroker the pre-configured attribute broker
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withAttributeStore(AttributeStore attributeStore) {
-        this.externalAttributeStore = attributeStore;
+    public PolicyDecisionPointBuilder withAttributeBroker(AttributeBroker attributeBroker) {
+        this.externalAttributeBroker = attributeBroker;
         return this;
     }
 
     /**
-     * Sets the repository half of the default layered attribute store.
-     * The catalog half is the in-memory PIP-backed store built from
+     * Sets the repository half of the default layered attribute broker.
+     * The catalog half is the in-memory PIP-backed broker built from
      * the configured PIPs. If not set, a default
-     * {@link VolatileAttributeStore} is used.
+     * {@link InMemoryAttributeRepository} is used.
      * <p>
-     * This setter has no effect when {@link #withAttributeStore(AttributeStore)}
-     * supplies a fully custom top-level store.
+     * This setter has no effect when {@link #withAttributeBroker(AttributeBroker)}
+     * supplies a fully custom top-level broker.
      *
-     * @param repository the repository-side {@link AttributeStore}
+     * @param repository the repository-side {@link AttributeBroker}
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withRepository(AttributeStore repository) {
+    public PolicyDecisionPointBuilder withRepository(AttributeBroker repository) {
         this.externalRepository = repository;
         return this;
     }
@@ -710,15 +710,15 @@ public class PolicyDecisionPointBuilder {
      *
      * @return the PDP components including the PDP and configuration register
      * @throws IllegalStateException if function library initialization fails
-     * @throws PipLoadException if PIP loading into the attribute store
+     * @throws PipLoadException if PIP loading into the attribute broker
      * fails
      */
     public PDPComponents build() {
-        val attributeStore = resolveAttributeStore();
-        val pluginsSource  = resolvePluginsSource();
-        val voterSource    = new PdpVoterSource(pluginsSource, clock);
-        val timestampClock = new LazyFastClock();
-        val blockingPdp    = new BlockingPolicyDecisionPoint(voterSource, attributeStore, resolveIdFactory(), clock);
+        val attributeBroker = resolveAttributeBroker();
+        val pluginsSource   = resolvePluginsSource();
+        val voterSource     = new PdpVoterSource(pluginsSource, clock);
+        val timestampClock  = new LazyFastClock();
+        val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(), clock);
 
         // Create default configuration from collected policies
         if (!policyDocuments.isEmpty()) {
@@ -741,7 +741,7 @@ public class PolicyDecisionPointBuilder {
         }
 
         val plugins = voterSource.getPlugins();
-        return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeStore,
+        return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
                 configurationSource, timestampClock, plugins.decisionInterceptors(), plugins.lifecycleListeners());
     }
 
@@ -786,18 +786,18 @@ public class PolicyDecisionPointBuilder {
         return functionBroker;
     }
 
-    private AttributeStore resolveAttributeStore() {
-        if (externalAttributeStore != null) {
-            return externalAttributeStore;
+    private AttributeBroker resolveAttributeBroker() {
+        if (externalAttributeBroker != null) {
+            return externalAttributeBroker;
         }
-        val catalog    = buildAttributeStore(clock, mapper, includeDefaultPolicyInformationPoints,
-                policyInformationPoints);
-        val repository = externalRepository != null ? externalRepository : new VolatileAttributeStore(clock);
-        return new LayeredAttributeStore(catalog, repository);
+        val catalog    = buildPolicyInformationPointAttributeBroker(clock, mapper,
+                includeDefaultPolicyInformationPoints, policyInformationPoints);
+        val repository = externalRepository != null ? externalRepository : new InMemoryAttributeRepository(clock);
+        return new LayeredAttributeBroker(catalog, repository);
     }
 
     /**
-     * Builds an {@link InMemoryAttributeStore} configured with the
+     * Builds an {@link PolicyInformationPointAttributeBroker} configured with the
      * SAPL default PIPs (when {@code includeDefaults} is true) and any
      * additional PIPs passed in. Shared by this builder and external
      * assemblers (for example the Spring Boot auto-configuration) so
@@ -811,12 +811,12 @@ public class PolicyDecisionPointBuilder {
      * (HTTP, JWT, time, X.509)
      * @param additionalPips additional PIP instances to load on top of
      * the defaults
-     * @return a fully configured attribute store
+     * @return a fully configured attribute broker
      * @throws PipLoadException if a PIP fails to load
      */
-    public static InMemoryAttributeStore buildAttributeStore(Clock clock, JsonMapper mapper, boolean includeDefaults,
-            List<Object> additionalPips) {
-        val store     = new InMemoryAttributeStore();
+    public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
+            JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips) {
+        val broker    = new PolicyInformationPointAttributeBroker();
         val scheduler = new RealTimeScheduler(clock);
 
         if (includeDefaults) {
@@ -826,17 +826,17 @@ public class PolicyDecisionPointBuilder {
             val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
             val keyProvider = new JWTKeyProvider(httpClient, clock);
 
-            store.load(new TimePolicyInformationPoint(clock, scheduler));
-            store.load(new X509PolicyInformationPoint(clock, scheduler));
-            store.load(new HttpPolicyInformationPoint(webClient));
-            store.load(new JWTPolicyInformationPoint(keyProvider, clock, scheduler));
+            broker.load(new TimePolicyInformationPoint(clock, scheduler));
+            broker.load(new X509PolicyInformationPoint(clock, scheduler));
+            broker.load(new HttpPolicyInformationPoint(webClient));
+            broker.load(new JWTPolicyInformationPoint(keyProvider, clock, scheduler));
         }
 
         for (val pip : additionalPips) {
-            store.load(pip);
+            broker.load(pip);
         }
 
-        return store;
+        return broker;
     }
 
     private IdFactory resolveIdFactory() {

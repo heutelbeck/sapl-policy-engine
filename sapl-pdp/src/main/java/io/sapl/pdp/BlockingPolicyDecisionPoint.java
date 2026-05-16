@@ -37,7 +37,7 @@ import io.sapl.api.stream.QueueStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.ast.Outcome;
-import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.TracedVote;
@@ -70,7 +70,7 @@ import java.util.function.Function;
  * Reactor-free policy decision point implementing
  * {@link StreamingPolicyDecisionPoint}. Drives the compiled PDP voter
  * and the engine-internal coverage voter against a per-evaluation
- * {@link AttributeStore} subscription, exposing decisions through the
+ * {@link AttributeBroker} subscription, exposing decisions through the
  * SAPL {@link Stream} primitive. Consumers block on each
  * {@link Stream#awaitNext()} call.
  * <p>
@@ -85,23 +85,23 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private static final String ERROR_NO_PDP_CONFIGURATION       = "No PDP configuration found.";
     private static final String ERROR_VOTER_PRODUCED_NO_DECISION = "Voter produced no decision.";
 
-    private final PdpVoterSource pdpConfigurationSource;
-    private final AttributeStore attributeStore;
-    private final IdFactory      idFactory;
-    private final Clock          clock;
+    private final PdpVoterSource  pdpConfigurationSource;
+    private final AttributeBroker attributeBroker;
+    private final IdFactory       idFactory;
+    private final Clock           clock;
 
     public BlockingPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
-            AttributeStore attributeStore,
+            AttributeBroker attributeBroker,
             IdFactory idFactory) {
-        this(pdpConfigurationSource, attributeStore, idFactory, Clock.systemUTC());
+        this(pdpConfigurationSource, attributeBroker, idFactory, Clock.systemUTC());
     }
 
     public BlockingPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
-            AttributeStore attributeStore,
+            AttributeBroker attributeBroker,
             IdFactory idFactory,
             Clock clock) {
         this.pdpConfigurationSource = pdpConfigurationSource;
-        this.attributeStore         = attributeStore;
+        this.attributeBroker        = attributeBroker;
         this.idFactory              = idFactory;
         this.clock                  = clock;
     }
@@ -250,7 +250,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             if (initial.voteResult().vote() != null) {
                 return new VoteWithCoverage(initial.voteResult().vote(), initial.coverage());
             }
-            return Voters.awaitFirstVoteWithCoverage(attributeStore, subscriptionId,
+            return Voters.awaitFirstVoteWithCoverage(attributeBroker, subscriptionId,
                     initial.voteResult().dependencies().keySet(),
                     snapshot -> pdp.coverageVoter().evaluate(baseCtx.withSnapshot(snapshot)));
         } catch (InterruptedException ie) {
@@ -293,7 +293,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.voteResult().vote() != null) {
             out.put(new VoteWithCoverage(initial.voteResult().vote(), initial.coverage()));
         }
-        val handle = attributeStore.open(subscriptionId, initial.voteResult().dependencies().keySet(), snapshot -> {
+        val handle = attributeBroker.open(subscriptionId, initial.voteResult().dependencies().keySet(), snapshot -> {
             val r = pdp.coverageVoter().evaluate(baseCtx.withSnapshot(snapshot));
             if (r.voteResult().vote() != null) {
                 out.put(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));
@@ -363,7 +363,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             return initial.vote();
         }
         try {
-            return Voters.awaitFirstVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
+            return Voters.awaitFirstVote(attributeBroker, subscriptionId, initial.dependencies().keySet(),
                     snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)));
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -398,7 +398,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             return TracedVote.of(initial.vote(), clock.instant());
         }
         try {
-            return Voters.awaitFirstTracedVote(attributeStore, subscriptionId, initial.dependencies().keySet(),
+            return Voters.awaitFirstTracedVote(attributeBroker, subscriptionId, initial.dependencies().keySet(),
                     snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)), clock);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -522,7 +522,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.vote() != null) {
             out.put(initial.vote());
         }
-        val handle = attributeStore.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
+        val handle = attributeBroker.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
             val r = voter.evaluate(baseCtx.withSnapshot(snapshot));
             if (r.vote() != null) {
                 out.put(r.vote());
@@ -555,7 +555,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.vote() != null) {
             out.put(TracedVote.of(initial.vote(), clock.instant()));
         }
-        val handle = attributeStore.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
+        val handle = attributeBroker.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
             val r = voter.evaluate(baseCtx.withSnapshot(snapshot));
             if (r.vote() != null) {
                 out.put(buildTracedVote(r, snapshot, clock));
@@ -594,7 +594,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             out.complete();
             return out;
         }
-        val handle = attributeStore.open(subscriptionId, initialDeps, snapshot -> {
+        val handle = attributeBroker.open(subscriptionId, initialDeps, snapshot -> {
             val newDeps = new HashSet<SubscriptionKey>();
             val multi   = evaluateRound(items, pdp, subscriptionId, snapshot, newDeps);
             if (multi != null) {

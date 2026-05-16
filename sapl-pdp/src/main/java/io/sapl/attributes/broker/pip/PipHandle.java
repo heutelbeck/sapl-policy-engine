@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.documentation.LibraryDocumentation;
 
 /**
- * Handle returned by {@link InMemoryAttributeStore#load(Object)}
+ * Handle returned by {@link PolicyInformationPointAttributeBroker#load(Object)}
  * that identifies a loaded Policy Information Point. The plugin
  * engine holds the handle and uses it to unload the PIP or swap it
  * for another instance via
- * {@link InMemoryAttributeStore#swap(PipHandle, Object)}.
+ * {@link PolicyInformationPointAttributeBroker#swap(PipHandle, Object)}.
  */
 public interface PipHandle extends AutoCloseable {
 
@@ -36,7 +36,7 @@ public interface PipHandle extends AutoCloseable {
 
     /**
      * @return {@code true} until {@link #unload()} or a successful
-     * {@link InMemoryAttributeStore#swap(PipHandle, Object)} marks
+     * {@link PolicyInformationPointAttributeBroker#swap(PipHandle, Object)} marks
      * this handle inactive
      */
     boolean isLoaded();
@@ -49,11 +49,11 @@ public interface PipHandle extends AutoCloseable {
     LibraryDocumentation documentation();
 
     /**
-     * Removes this PIP from the store's catalog. Idempotent. Active
+     * Removes this PIP from the broker's catalog. Idempotent. Active
      * backing subscriptions served by this PIP receive
      * {@link io.sapl.api.model.Value#UNDEFINED} (absence) and are
-     * torn down. A {@code LayeredAttributeStore} composing this
-     * store with a repository falls through cleanly to the
+     * torn down. A {@code LayeredAttributeBroker} composing this
+     * broker with a repository falls through cleanly to the
      * repository when this happens.
      */
     void unload();

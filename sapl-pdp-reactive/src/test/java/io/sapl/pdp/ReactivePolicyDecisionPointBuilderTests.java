@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -78,7 +78,7 @@ class ReactivePolicyDecisionPointBuilderTests {
             assertThat(c.pdp()).isNotNull();
             assertThat(c.pdpVoterSource()).isNotNull();
             assertThat(c.functionBroker()).isNotNull();
-            assertThat(c.attributeStore()).isNotNull();
+            assertThat(c.attributeBroker()).isNotNull();
             assertThat(c.source()).isNull();
         });
 
@@ -278,11 +278,11 @@ class ReactivePolicyDecisionPointBuilderTests {
 
     @Test
     void whenBuildingWithExternalAttributeStoreThenStoreIsUsed() throws Exception {
-        val externalStore = mock(AttributeStore.class);
+        val externalStore = mock(AttributeBroker.class);
 
-        val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeStore(externalStore).build();
+        val components = PolicyDecisionPointBuilder.withoutDefaults().withAttributeBroker(externalStore).build();
 
-        assertThat(components.attributeStore()).isSameAs(externalStore);
+        assertThat(components.attributeBroker()).isSameAs(externalStore);
 
         closeSource(components);
     }

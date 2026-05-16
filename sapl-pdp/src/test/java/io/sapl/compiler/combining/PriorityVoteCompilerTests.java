@@ -20,12 +20,12 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.store.TestAttributeStore;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
-import io.sapl.attributes.store.VTCoverageEvaluator;
-import io.sapl.attributes.store.VTVoterEvaluator;
+import io.sapl.util.CoverageEvaluator;
+import io.sapl.util.VoterEvaluator;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetHit;
@@ -251,9 +251,9 @@ class PriorityVoteCompilerTests {
                 Decision expected) throws InterruptedException {
             val compiled = compilePolicySet(policySet);
             val ctx      = evaluationContext(parseSubscription(subscriptionJson));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(expected);
                 }
             }
@@ -304,9 +304,9 @@ class PriorityVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                 }
             }
@@ -325,10 +325,10 @@ class PriorityVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr1", Value.TRUE);
-                store.register("test.attr2", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr1", Value.TRUE);
+                broker.register("test.attr2", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.DENY);
                 }
             }
@@ -347,9 +347,9 @@ class PriorityVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.DENY);
                 }
             }
@@ -456,10 +456,10 @@ class PriorityVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr1", Value.TRUE);
-                store.register("test.attr2", Value.TRUE);
-                try (val cov = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr1", Value.TRUE);
+                broker.register("test.attr2", Value.TRUE);
+                try (val cov = CoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, broker)) {
                     val result = cov.awaitNext();
                     assertThat(result.voteResult().vote().authorizationDecision().decision())
                             .isEqualTo(Decision.PERMIT);
@@ -632,11 +632,11 @@ class PriorityVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr1", Value.TRUE);
-                store.register("test.attr2", Value.TRUE);
-                try (val production = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store);
-                        val coverage = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr1", Value.TRUE);
+                broker.register("test.attr2", Value.TRUE);
+                try (val production = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker);
+                        val coverage = CoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, broker)) {
                     val productionVote = production.awaitNext();
                     val coverageVote   = coverage.awaitNext().voteResult().vote();
                     assertThat(coverageVote.authorizationDecision().decision())
@@ -881,9 +881,9 @@ class PriorityVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
                 }
             }

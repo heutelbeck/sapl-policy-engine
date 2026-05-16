@@ -29,10 +29,8 @@ import io.sapl.ast.Expression;
 import io.sapl.ast.Policy;
 import io.sapl.ast.SaplDocument;
 import io.sapl.ast.Statement;
-import io.sapl.attributes.store.TestAttributeStore;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.compiler.document.*;
-import io.sapl.attributes.store.VTCoverageEvaluator;
-import io.sapl.attributes.store.VTVoterEvaluator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.index.SemanticHashing;
@@ -396,7 +394,7 @@ public class SaplTesting {
      * resulting {@link Vote}. The returned vote may be {@code null} when
      * the voter has unbound dependencies in this snapshot. Callers that
      * need multi-round streaming evaluation should drive the voter via a
-     * {@code TestAttributeStore}-backed {@code VTVoterEvaluator} instead.
+     * {@code TestAttributeBroker}-backed {@code VTVoterEvaluator} instead.
      */
     public static Vote evaluatePolicySet(CompiledPolicySet compiled, EvaluationContext ctx) {
         return compiled.applicabilityAndVote().evaluate(ctx).vote();
@@ -426,20 +424,20 @@ public class SaplTesting {
 
     /**
      * Drives a streaming policy set through both the production-side
-     * {@link VTVoterEvaluator} and the coverage-side
-     * {@link VTCoverageEvaluator} against a
-     * {@link io.sapl.attributes.store.TestAttributeStore} pre-armed with
+     * {@link VoterEvaluator} and the coverage-side
+     * {@link CoverageEvaluator} against a
+     * {@link TestAttributeBroker} pre-armed with
      * the supplied attribute initial values, then asserts both produce
      * the expected decision and agree with each other.
      */
     public static void assertStreamPathEquivalence(CompiledPolicySet compiled, Map<String, Value> attributes,
             EvaluationContext ctx, Decision expectedDecision) {
-        try (val store = new TestAttributeStore()) {
+        try (val broker = new TestAttributeBroker()) {
             for (val entry : attributes.entrySet()) {
-                store.register(entry.getKey(), entry.getValue());
+                broker.register(entry.getKey(), entry.getValue());
             }
-            try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store);
-                    val cov = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+            try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker);
+                    val cov = CoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, broker)) {
                 val productionVote = stream.awaitNext();
                 val coverageVote   = cov.awaitNext().voteResult().vote();
                 assertThat(productionVote).isNotNull();
@@ -466,7 +464,7 @@ public class SaplTesting {
 
     /**
      * Drives the production voter ({@code applicabilityAndVote}) and the
-     * coverage voter through the same {@link TestAttributeStore}, asserting
+     * coverage voter through the same {@link TestAttributeBroker}, asserting
      * that both produce equivalent emissions per round. Round 0 fires when
      * the gate opens with primed values; subsequent rounds publish the
      * next value for each attribute (sequences are consumed in order).
@@ -478,23 +476,23 @@ public class SaplTesting {
         val baseCtx      = evaluationContext(subscription);
         val rounds       = attributeSequences.values().stream().mapToInt(List::size).max().orElse(1);
 
-        try (val store = new TestAttributeStore()) {
+        try (val broker = new TestAttributeBroker()) {
             for (val entry : attributeSequences.entrySet()) {
                 val seq = entry.getValue();
                 if (seq.isEmpty()) {
-                    store.register(entry.getKey());
+                    broker.register(entry.getKey());
                 } else {
-                    store.register(entry.getKey(), seq.get(0));
+                    broker.register(entry.getKey(), seq.get(0));
                 }
             }
-            try (val production = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), baseCtx, store);
-                    val coverage = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), baseCtx, store)) {
+            try (val production = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), baseCtx, broker);
+                    val coverage = CoverageEvaluator.evaluate(compiled.coverageVoter(), baseCtx, broker)) {
                 for (int i = 0; i < rounds; i++) {
                     if (i > 0) {
                         for (val entry : attributeSequences.entrySet()) {
                             val seq = entry.getValue();
                             if (i < seq.size()) {
-                                store.publishByName(entry.getKey(), seq.get(i));
+                                broker.publishByName(entry.getKey(), seq.get(i));
                             }
                         }
                     }

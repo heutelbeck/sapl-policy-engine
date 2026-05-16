@@ -23,7 +23,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.api.test.stream.TestTimeScheduler;
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -753,20 +753,20 @@ class TimePolicyInformationPointTests {
     }
 
     @Nested
-    @DisplayName("store registration")
+    @DisplayName("broker registration")
     class StoreRegistration {
 
         @Test
         @DisplayName("loads under the time namespace without errors")
         void whenLoadedIntoStoreThenRegistersUnderTimeNamespace() {
-            try (val store = new InMemoryAttributeStore()) {
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
                 val now    = Instant.parse("2025-06-15T12:00:00Z");
-                val handle = store
+                val handle = broker
                         .load(new TimePolicyInformationPoint(new MutableClock(now), new TestTimeScheduler(now)));
 
                 assertThat(handle.pipName()).isEqualTo(TimePolicyInformationPoint.NAME);
                 assertThat(handle.isLoaded()).isTrue();
-                assertThat(store.catalog()).containsExactly(handle);
+                assertThat(broker.catalog()).containsExactly(handle);
             }
         }
     }

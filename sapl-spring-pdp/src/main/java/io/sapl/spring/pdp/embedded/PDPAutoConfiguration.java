@@ -18,7 +18,7 @@
 package io.sapl.spring.pdp.embedded;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static io.sapl.pdp.PolicyDecisionPointBuilder.buildAttributeStore;
+import static io.sapl.pdp.PolicyDecisionPointBuilder.buildPolicyInformationPointAttributeBroker;
 import static io.sapl.pdp.PolicyDecisionPointBuilder.buildFunctionBroker;
 
 import io.sapl.api.attributes.PolicyInformationPoint;
@@ -27,11 +27,11 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
-import io.sapl.attributes.store.AttributeRepository;
-import io.sapl.attributes.store.AttributeStore;
-import io.sapl.attributes.store.InMemoryAttributeStore;
-import io.sapl.attributes.store.LayeredAttributeStore;
-import io.sapl.attributes.store.VolatileAttributeStore;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
@@ -89,7 +89,7 @@ import java.util.Set;
  * <p>
  * Each top-level collaborator of the PDP is exposed as its own Spring
  * bean so the container manages each lifecycle individually:
- * {@link FunctionBroker}, {@link AttributeStore},
+ * {@link FunctionBroker}, {@link AttributeBroker},
  * {@link PDPConfigurationSource}, {@link PdpVoterSource},
  * {@link IdFactory}, and the {@link ReactivePolicyDecisionPoint} itself. Beans
  * that hold real resources implement {@link AutoCloseable} (the voter
@@ -229,9 +229,9 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     BlockingPolicyDecisionPoint blockingPolicyDecisionPoint(PdpVoterSource pdpVoterSource,
-            AttributeStore attributeStore, IdFactory idFactory) {
+            AttributeBroker attributeBroker, IdFactory idFactory) {
         log.debug("Deploying embedded Policy Decision Point.");
-        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeStore, idFactory);
+        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeBroker, idFactory);
     }
 
     /**
@@ -256,38 +256,40 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    InMemoryAttributeStore catalogStore(JsonMapper mapper, Clock clock, ApplicationContext applicationContext) {
+    PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper, Clock clock,
+            ApplicationContext applicationContext) {
         val pips = collectPolicyInformationPoints(applicationContext);
-        log.debug("Building catalog AttributeStore: SAPL default PIPs plus {} custom PIP instances.", pips.size());
-        return buildAttributeStore(clock, mapper, true, pips);
+        log.debug("Building catalog AttributeBroker: SAPL default PIPs plus {} custom PIP instances.", pips.size());
+        return buildPolicyInformationPointAttributeBroker(clock, mapper, true, pips);
     }
 
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    VolatileAttributeStore volatileAttributeStore(Clock clock) {
-        return new VolatileAttributeStore(clock);
+    InMemoryAttributeRepository inMemoryAttributeRepository(Clock clock) {
+        return new InMemoryAttributeRepository(clock);
     }
 
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeRepository attributeRepository(VolatileAttributeStore volatileAttributeStore) {
-        return volatileAttributeStore;
+    AttributeRepository attributeRepository(InMemoryAttributeRepository inMemoryAttributeRepository) {
+        return inMemoryAttributeRepository;
     }
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean(name = "attributeStore")
+    @ConditionalOnMissingBean(name = "attributeBroker")
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeStore attributeStore(InMemoryAttributeStore catalogStore, AttributeRepository attributeRepository) {
-        if (!(attributeRepository instanceof AttributeStore repositoryStore)) {
+    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker,
+            AttributeRepository attributeRepository) {
+        if (!(attributeRepository instanceof AttributeBroker repositoryStore)) {
             throw new IllegalStateException(
-                    "AttributeRepository bean must also implement AttributeStore for the default layered composition. "
-                            + "Provide your own AttributeStore bean to override the layered composition entirely.");
+                    "AttributeRepository bean must also implement AttributeBroker for the default layered composition. "
+                            + "Provide your own AttributeBroker bean to override the layered composition entirely.");
         }
-        log.debug("Building layered AttributeStore (catalog + repository).");
-        return new LayeredAttributeStore(catalogStore, repositoryStore);
+        log.debug("Building layered AttributeBroker (catalog + repository).");
+        return new LayeredAttributeBroker(policyInformationPointAttributeBroker, repositoryStore);
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {

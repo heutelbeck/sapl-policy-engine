@@ -20,11 +20,11 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.store.TestAttributeStore;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
-import io.sapl.attributes.store.VTCoverageEvaluator;
-import io.sapl.attributes.store.VTVoterEvaluator;
+import io.sapl.util.CoverageEvaluator;
+import io.sapl.util.VoterEvaluator;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetHit;
@@ -634,10 +634,10 @@ class FirstVoteCompilerTests {
                     """));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr1", Value.TRUE);
-                store.register("test.attr2", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr1", Value.TRUE);
+                broker.register("test.attr2", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("first-check"));
@@ -669,10 +669,10 @@ class FirstVoteCompilerTests {
                     """));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr1", Value.FALSE);
-                store.register("test.attr2", Value.FALSE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr1", Value.FALSE);
+                broker.register("test.attr2", Value.FALSE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("first-check", "second-check", "fallback-permit"));
@@ -708,9 +708,9 @@ class FirstVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "doc" }
                     """));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.time", Value.of(10));
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.time", Value.of(10));
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("first-window"));
@@ -742,9 +742,9 @@ class FirstVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "doc" }
                     """));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.time", Value.of(25));
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.time", Value.of(25));
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window"));
@@ -776,9 +776,9 @@ class FirstVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "doc" }
                     """));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.time", Value.of(45));
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.time", Value.of(45));
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("first-window", "second-window", "fallback"));
@@ -1009,12 +1009,12 @@ class FirstVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription(testCase.subscription()));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            try (val store = new TestAttributeStore()) {
+            try (val broker = new TestAttributeBroker()) {
                 for (val entry : testCase.attributes().entrySet()) {
-                    store.register(entry.getKey(), entry.getValue()[0]);
+                    broker.register(entry.getKey(), entry.getValue()[0]);
                 }
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store);
-                        val cov = VTCoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, store)) {
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker);
+                        val cov = CoverageEvaluator.evaluate(compiled.coverageVoter(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(testCase.expectedDecision());
                     assertVoteHasAllTheseContributing(vote, testCase.contributingPolicies());
@@ -1091,11 +1091,11 @@ class FirstVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attrA", Value.FALSE);
-                store.register("test.attrB", Value.FALSE);
-                store.register("test.attrC", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attrA", Value.FALSE);
+                broker.register("test.attrB", Value.FALSE);
+                broker.register("test.attrC", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
@@ -1122,10 +1122,10 @@ class FirstVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr1", Value.TRUE);
-                store.register("test.never", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr1", Value.TRUE);
+                broker.register("test.never", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                     assertVoteHasAllTheseContributing(vote, List.of("permits-immediately"));
@@ -1152,10 +1152,10 @@ class FirstVoteCompilerTests {
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attrX", Value.FALSE);
-                store.register("test.attrY", Value.FALSE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attrX", Value.FALSE);
+                broker.register("test.attrY", Value.FALSE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
                     assertVoteHasAllTheseContributing(vote, List.of("policy-x", "policy-y"));
@@ -1562,9 +1562,9 @@ class FirstVoteCompilerTests {
             val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
             assertThat(compiled.applicabilityAndVote()).as("Expected stream stratum").isInstanceOf(StreamVoter.class);
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attr", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attr", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
                     assertVoteHasAllTheseContributing(vote, List.of("stream-suspend"));
@@ -1615,11 +1615,11 @@ class FirstVoteCompilerTests {
                     """);
             val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
 
-            try (val store = new TestAttributeStore()) {
-                store.register("test.attrA", Value.FALSE);
-                store.register("test.attrB", Value.FALSE);
-                store.register("test.attrC", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("test.attrA", Value.FALSE);
+                broker.register("test.attrB", Value.FALSE);
+                broker.register("test.attrC", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(compiled.applicabilityAndVote(), ctx, broker)) {
                     val vote = stream.awaitNext();
                     assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
                     assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));

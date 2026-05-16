@@ -15,13 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.repository;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.repository.RepositoryKey;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -41,19 +43,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("VolatileAttributeStore")
-class VolatileAttributeStoreTests {
+@DisplayName("InMemoryAttributeRepository")
+class InMemoryAttributeRepositoryTests {
 
-    private VolatileAttributeStore store;
+    private InMemoryAttributeRepository broker;
 
     @BeforeEach
     void setUp() {
-        store = new VolatileAttributeStore();
+        broker = new InMemoryAttributeRepository();
     }
 
     @AfterEach
     void tearDown() {
-        store.close();
+        broker.close();
     }
 
     private static AttributeFinderInvocation envInvocation(String fqn) {
@@ -108,7 +110,7 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
                 assertThat(recorder.snapshots).hasSize(1);
                 assertThat(valueFor(key, recorder, 0)).isEqualTo(Value.UNDEFINED);
             }
@@ -123,10 +125,10 @@ class VolatileAttributeStoreTests {
         @DisplayName("then open fires synchronously with the published value")
         void thenOpenFiresSynchronouslyWithThePublishedValue() {
             val key = envKey("env.x");
-            store.publish(repoKey("env.x"), Value.of("hello"));
+            broker.publish(repoKey("env.x"), Value.of("hello"));
 
             val recorder = new Recorder(Set.of(key));
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
                 assertThat(recorder.snapshots).hasSize(1);
                 assertThat(valueFor(key, recorder, 0)).isEqualTo(Value.of("hello"));
             }
@@ -143,10 +145,10 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
                 assertThat(recorder.snapshots).hasSize(1);
 
-                store.publish(repoKey("env.x"), Value.of("v1"));
+                broker.publish(repoKey("env.x"), Value.of("v1"));
 
                 assertThat(recorder.snapshots).hasSize(2);
                 assertThat(valueFor(key, recorder, 1)).isEqualTo(Value.of("v1"));
@@ -159,9 +161,9 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
-                store.publish(repoKey("env.x"), Value.of("v1"));
-                store.publish(repoKey("env.x"), Value.of("v2"));
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
+                broker.publish(repoKey("env.x"), Value.of("v1"));
+                broker.publish(repoKey("env.x"), Value.of("v2"));
 
                 assertThat(recorder.snapshots).hasSize(3);
                 assertThat(valueFor(key, recorder, 2)).isEqualTo(Value.of("v2"));
@@ -178,12 +180,12 @@ class VolatileAttributeStoreTests {
         void thenTheConsumerCallbackFiresWithUndefined() {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
-            store.publish(repoKey("env.x"), Value.of("v1"));
+            broker.publish(repoKey("env.x"), Value.of("v1"));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
                 assertThat(valueFor(key, recorder, 0)).isEqualTo(Value.of("v1"));
 
-                store.remove(repoKey("env.x"));
+                broker.remove(repoKey("env.x"));
 
                 assertThat(recorder.snapshots).hasSize(2);
                 assertThat(valueFor(key, recorder, 1)).isEqualTo(Value.UNDEFINED);
@@ -196,9 +198,9 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
                 val before = recorder.snapshots.size();
-                store.remove(repoKey("env.x"));
+                broker.remove(repoKey("env.x"));
                 assertThat(recorder.snapshots).hasSize(before);
             }
         }
@@ -214,8 +216,8 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
-                store.publish(repoKey("env.x"), Value.of("v1"), Duration.ofMillis(100));
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
+                broker.publish(repoKey("env.x"), Value.of("v1"), Duration.ofMillis(100));
                 Awaitility.await().atMost(Duration.ofSeconds(2))
                         .untilAsserted(() -> assertThat(valueFor(key, recorder, recorder.snapshots.size() - 1))
                                 .isEqualTo(Value.UNDEFINED));
@@ -228,9 +230,9 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
-                store.publish(repoKey("env.x"), Value.of("v1"), Duration.ofMillis(100));
-                store.publish(repoKey("env.x"), Value.of("v2"));
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
+                broker.publish(repoKey("env.x"), Value.of("v1"), Duration.ofMillis(100));
+                broker.publish(repoKey("env.x"), Value.of("v2"));
 
                 // After 500ms the no-TTL entry must still be present.
                 Awaitility.await().pollDelay(Duration.ofMillis(500)).until(() -> true);
@@ -244,9 +246,9 @@ class VolatileAttributeStoreTests {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
-                store.publish(repoKey("env.x"), Value.of("v1"), Duration.ofMinutes(10));
-                store.remove(repoKey("env.x"));
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
+                broker.publish(repoKey("env.x"), Value.of("v1"), Duration.ofMinutes(10));
+                broker.remove(repoKey("env.x"));
 
                 assertThat(valueFor(key, recorder, recorder.snapshots.size() - 1)).isEqualTo(Value.UNDEFINED);
             }
@@ -265,12 +267,12 @@ class VolatileAttributeStoreTests {
             val rcdrX = new Recorder(Set.of(keyX));
             val rcdrY = new Recorder(Set.of(keyY));
 
-            try (val sx = store.open("sx", Set.of(keyX), rcdrX.asCallback());
-                    val sy = store.open("sy", Set.of(keyY), rcdrY.asCallback())) {
+            try (val sx = broker.open("sx", Set.of(keyX), rcdrX.asCallback());
+                    val sy = broker.open("sy", Set.of(keyY), rcdrY.asCallback())) {
                 val sizeXBefore = rcdrX.snapshots.size();
                 val sizeYBefore = rcdrY.snapshots.size();
 
-                store.publish(repoKey("env.x"), Value.of("only-x"));
+                broker.publish(repoKey("env.x"), Value.of("only-x"));
 
                 assertThat(rcdrX.snapshots.size()).isGreaterThan(sizeXBefore);
                 assertThat(rcdrY.snapshots).hasSize(sizeYBefore);
@@ -288,18 +290,18 @@ class VolatileAttributeStoreTests {
         void thenNoFurtherCallbacksFireOnSubsequentPublishes() {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
-            val sub      = store.open("s1", Set.of(key), recorder.asCallback());
+            val sub      = broker.open("s1", Set.of(key), recorder.asCallback());
             val before   = recorder.snapshots.size();
 
             sub.close();
-            store.publish(repoKey("env.x"), Value.of("v1"));
+            broker.publish(repoKey("env.x"), Value.of("v1"));
 
             assertThat(recorder.snapshots).hasSize(before);
         }
     }
 
     @Nested
-    @DisplayName("when the store is closed")
+    @DisplayName("when the broker is closed")
     class WhenTheStoreIsClosed {
 
         @Test
@@ -307,11 +309,11 @@ class VolatileAttributeStoreTests {
         void thenSubsequentPublishesAreSilentlyIgnored() {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
-            store.open("s1", Set.of(key), recorder.asCallback());
+            broker.open("s1", Set.of(key), recorder.asCallback());
             val before = recorder.snapshots.size();
 
-            store.close();
-            store.publish(repoKey("env.x"), Value.of("v1"));
+            broker.close();
+            broker.publish(repoKey("env.x"), Value.of("v1"));
 
             assertThat(recorder.snapshots).hasSize(before);
         }
@@ -319,8 +321,8 @@ class VolatileAttributeStoreTests {
         @Test
         @DisplayName("then close is idempotent")
         void thenCloseIsIdempotent() {
-            store.close();
-            store.close();
+            broker.close();
+            broker.close();
         }
     }
 
@@ -337,16 +339,16 @@ class VolatileAttributeStoreTests {
             val deps      = new Object() {
                               Set<SubscriptionKey> next = Set.of(keyA);
                           };
-            store.publish(repoKey("env.b"), Value.of("b-value"));
+            broker.publish(repoKey("env.b"), Value.of("b-value"));
 
-            try (val sub = store.open("s1", Set.of(keyA), snapshot -> {
+            try (val sub = broker.open("s1", Set.of(keyA), snapshot -> {
                 snapshots.add(snapshot);
                 val current = deps.next;
                 deps.next = Set.of(keyA);
                 return current;
             })) {
                 deps.next = Set.of(keyA, keyB);
-                store.publish(repoKey("env.a"), Value.of("a-value"));
+                broker.publish(repoKey("env.a"), Value.of("a-value"));
 
                 Awaitility.await().atMost(Duration.ofSeconds(1)).untilAsserted(
                         () -> assertThat(snapshots).anySatisfy(snap -> assertThat(snap).containsKey(keyB)));
@@ -363,12 +365,12 @@ class VolatileAttributeStoreTests {
             val keyB      = envKey("env.b");
             val snapshots = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
 
-            try (val sub = store.open("s1", Set.of(keyA, keyB), snapshot -> {
+            try (val sub = broker.open("s1", Set.of(keyA, keyB), snapshot -> {
                 snapshots.add(snapshot);
                 return Set.of(keyA);
             })) {
                 val sizeAfterDrop = snapshots.size();
-                store.publish(repoKey("env.b"), Value.of("ignored"));
+                broker.publish(repoKey("env.b"), Value.of("ignored"));
 
                 Awaitility.await().pollDelay(Duration.ofMillis(200)).until(() -> true);
                 assertThat(snapshots).hasSize(sizeAfterDrop);
@@ -385,12 +387,12 @@ class VolatileAttributeStoreTests {
         void thenTheCapturedFirstObservedValuePersistsAcrossSubsequentPublishes() {
             val key      = envHeadKey("env.x");
             val recorder = new Recorder(Set.of(key));
-            store.publish(repoKey("env.x"), Value.of("initial"));
+            broker.publish(repoKey("env.x"), Value.of("initial"));
 
-            try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
+            try (val sub = broker.open("s1", Set.of(key), recorder.asCallback())) {
                 assertThat(valueFor(key, recorder, 0)).isEqualTo(Value.of("initial"));
 
-                store.publish(repoKey("env.x"), Value.of("updated"));
+                broker.publish(repoKey("env.x"), Value.of("updated"));
 
                 // head=true keys do not re-fire on publish; consumer is unchanged.
                 Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
@@ -411,7 +413,7 @@ class VolatileAttributeStoreTests {
             val recorder = new Recorder(Set.of(key));
 
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> store.open("   ", Set.of(key), recorder.asCallback()))
+                    .isThrownBy(() -> broker.open("   ", Set.of(key), recorder.asCallback()))
                     .withMessageContaining("must not be blank");
         }
 
@@ -420,10 +422,10 @@ class VolatileAttributeStoreTests {
         void thenADuplicateSubscriptionIdIsRejected() {
             val key      = envKey("env.x");
             val recorder = new Recorder(Set.of(key));
-            store.open("s1", Set.of(key), recorder.asCallback());
+            broker.open("s1", Set.of(key), recorder.asCallback());
 
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> store.open("s1", Set.of(key), recorder.asCallback()))
+                    .isThrownBy(() -> broker.open("s1", Set.of(key), recorder.asCallback()))
                     .withMessageContaining("already open");
         }
 
@@ -431,7 +433,7 @@ class VolatileAttributeStoreTests {
         @DisplayName("then empty initialDependencies is rejected")
         void thenEmptyInitialDependenciesIsRejected() {
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> store.open("s1", Set.of(), m -> Set.of(envKey("env.x"))))
+                    .isThrownBy(() -> broker.open("s1", Set.of(), m -> Set.of(envKey("env.x"))))
                     .withMessageContaining("must not be empty");
         }
 
@@ -439,7 +441,7 @@ class VolatileAttributeStoreTests {
         @DisplayName("then a zero TTL is rejected")
         void thenAZeroTtlIsRejected() {
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> store.publish(repoKey("env.x"), Value.of("v"), Duration.ZERO))
+                    .isThrownBy(() -> broker.publish(repoKey("env.x"), Value.of("v"), Duration.ZERO))
                     .withMessageContaining("strictly positive");
         }
 
@@ -447,7 +449,7 @@ class VolatileAttributeStoreTests {
         @DisplayName("then a negative TTL is rejected")
         void thenANegativeTtlIsRejected() {
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> store.publish(repoKey("env.x"), Value.of("v"), Duration.ofMillis(-1)))
+                    .isThrownBy(() -> broker.publish(repoKey("env.x"), Value.of("v"), Duration.ofMillis(-1)))
                     .withMessageContaining("strictly positive");
         }
 
@@ -455,7 +457,7 @@ class VolatileAttributeStoreTests {
         @DisplayName("then a callback returning empty deps causes an IllegalStateException")
         void thenACallbackReturningEmptyDepsCausesAnIllegalStateException() {
             val key = envKey("env.x");
-            assertThatThrownBy(() -> store.open("s1", Set.of(key), snapshot -> Set.of()))
+            assertThatThrownBy(() -> broker.open("s1", Set.of(key), snapshot -> Set.of()))
                     .isInstanceOf(IllegalStateException.class).hasMessageContaining("empty/null dependencies");
         }
     }

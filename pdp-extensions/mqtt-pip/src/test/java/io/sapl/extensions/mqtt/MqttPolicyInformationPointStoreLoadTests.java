@@ -17,7 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
-import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,24 +26,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Lightweight registration test: confirms that the MQTT PIP can be
- * loaded into an {@link InMemoryAttributeStore} without errors. The
+ * loaded into an {@link PolicyInformationPointAttributeBroker} without errors.
+ * The
  * functional behaviour against a real broker is covered by
  * {@link MqttPolicyInformationPointIT}.
  */
-@DisplayName("MqttPolicyInformationPoint store registration")
+@DisplayName("MqttPolicyInformationPoint broker registration")
 class MqttPolicyInformationPointBrokerLoadTests {
 
     @Test
     @DisplayName("loads under the mqtt namespace without errors")
     void whenLoadedIntoStoreThenRegistersUnderMqttNamespace() {
-        try (val store = new InMemoryAttributeStore()) {
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
             val saplMqttClient = SaplMqttClient.withDefaults();
             try {
-                val handle = store.load(new MqttPolicyInformationPoint(saplMqttClient));
+                val handle = broker.load(new MqttPolicyInformationPoint(saplMqttClient));
 
                 assertThat(handle.pipName()).isEqualTo(MqttPolicyInformationPoint.NAME);
                 assertThat(handle.isLoaded()).isTrue();
-                assertThat(store.catalog()).containsExactly(handle);
+                assertThat(broker.catalog()).containsExactly(handle);
             } finally {
                 saplMqttClient.close();
             }

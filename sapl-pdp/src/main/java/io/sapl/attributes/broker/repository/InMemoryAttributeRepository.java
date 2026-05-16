@@ -15,11 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.repository;
 
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeRepository;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -43,7 +45,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 /**
- * In-memory {@link AttributeStore} that doubles as an
+ * In-memory {@link AttributeBroker} that doubles as an
  * {@link AttributeRepository}. Producers push values via
  * {@link #publish(RepositoryKey, Value)} and friends; consumers
  * subscribe via {@link #open(String, Set, Function)} and observe
@@ -51,21 +53,21 @@ import java.util.function.Function;
  * has no entry).
  * <p>
  * Designed as the fallback half of a
- * {@code LayeredAttributeStore(catalog, repository)}: PIPs in the
- * catalog-backed store win; when a PIP is absent or unloaded the
- * layered store falls through to this repository.
+ * {@code LayeredAttributeBroker(catalog, repository)}: PIPs in the
+ * catalog-backed broker win; when a PIP is absent or unloaded the
+ * layered broker falls through to this repository.
  * <p>
  * State is volatile: lost on close. TTL expiry removes the entry
  * and notifies subscribers (who observe {@link Value#UNDEFINED}).
  * <p>
  * Thread-safety: all state mutations occur under a single internal
- * lock; consumer callbacks fire outside the store lock and are
+ * lock; consumer callbacks fire outside the broker lock and are
  * serialized per-consumer by an internal callback lock.
  *
  * @since 4.1.0
  */
 @Slf4j
-public final class VolatileAttributeStore implements AttributeStore, AttributeRepository {
+public final class InMemoryAttributeRepository implements AttributeBroker, AttributeRepository {
 
     private static final String ERROR_DEPS_EMPTY             = "initialDependencies must not be empty";
     private static final String ERROR_RETURNED_DEPS_INVALID  = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
@@ -82,15 +84,15 @@ public final class VolatileAttributeStore implements AttributeStore, AttributeRe
     private final Map<String, ConsumerSubscriptionImpl> consumers = new HashMap<>();
     private boolean                                     closed    = false;
 
-    public VolatileAttributeStore() {
+    public InMemoryAttributeRepository() {
         this(Clock.systemUTC());
     }
 
-    public VolatileAttributeStore(@NonNull Clock clock) {
+    public InMemoryAttributeRepository(@NonNull Clock clock) {
         this.clock     = clock;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
                            val thread = Thread.ofVirtual().unstarted(runnable);
-                           thread.setName("VolatileAttributeStore-ttl");
+                           thread.setName("InMemoryAttributeRepository-ttl");
                            return thread;
                        });
     }
@@ -147,7 +149,7 @@ public final class VolatileAttributeStore implements AttributeStore, AttributeRe
             consumers.put(subscriptionId, consumer);
         }
         // The gate is trivially open: every key has a value (real entry
-        // or UNDEFINED) at all times in this store. Fire synchronously.
+        // or UNDEFINED) at all times in this broker. Fire synchronously.
         consumer.fireCallback();
         return consumer;
     }
@@ -212,7 +214,7 @@ public final class VolatileAttributeStore implements AttributeStore, AttributeRe
     }
 
     /**
-     * Caller holds the store lock.
+     * Caller holds the broker lock.
      */
     private void captureHeadValues(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
         for (val dep : deps) {
@@ -223,7 +225,7 @@ public final class VolatileAttributeStore implements AttributeStore, AttributeRe
     }
 
     /**
-     * Caller holds the store lock.
+     * Caller holds the broker lock.
      */
     private Value currentValueLocked(SubscriptionKey dep) {
         val repositoryKey = RepositoryKey.fromInvocation(dep.invocation());
@@ -232,7 +234,7 @@ public final class VolatileAttributeStore implements AttributeStore, AttributeRe
     }
 
     /**
-     * Caller holds the store lock. Returns consumers that hold at
+     * Caller holds the broker lock. Returns consumers that hold at
      * least one head=false dependency whose invocation projects onto
      * {@code repositoryKey}.
      */
@@ -340,7 +342,7 @@ public final class VolatileAttributeStore implements AttributeStore, AttributeRe
         }
 
         /**
-         * Caller holds the store lock.
+         * Caller holds the broker lock.
          */
         private Map<SubscriptionKey, AttributeSnapshot> currentSnapshot() {
             val now      = clock.instant();

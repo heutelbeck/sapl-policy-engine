@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
@@ -24,6 +24,7 @@ import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
+import io.sapl.attributes.broker.pip.AttributeStream;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;

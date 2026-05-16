@@ -21,12 +21,12 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
-import io.sapl.attributes.store.TestAttributeStore;
+import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.Voter;
-import io.sapl.attributes.store.VTVoterEvaluator;
+import io.sapl.util.VoterEvaluator;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
@@ -436,14 +436,14 @@ class PolicyCompilerTests {
             val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Rincewind", "action": "flee", "resource": "Luggage"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("luggage.nearby", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("luggage.nearby", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                    store.publishByName("luggage.nearby", Value.FALSE);
+                    broker.publishByName("luggage.nearby", Value.FALSE);
                     assertThat(stream.awaitNext().authorizationDecision().decision())
                             .isEqualTo(Decision.NOT_APPLICABLE);
-                    store.publishByName("luggage.nearby", Value.TRUE);
+                    broker.publishByName("luggage.nearby", Value.TRUE);
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                 }
             }
@@ -465,9 +465,9 @@ class PolicyCompilerTests {
             val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Carrot", "action": "patrol", "resource": "Ankh-Morpork"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("patrol.active", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("patrol.active", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     val authz = stream.awaitNext().authorizationDecision();
                     assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
                     assertThat(authz.obligations()).isNotNull().isNotEmpty();
@@ -491,9 +491,9 @@ class PolicyCompilerTests {
             val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Vimes", "action": "command", "resource": "City Watch"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("duty.status", Value.of("on_duty"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("duty.status", Value.of("on_duty"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     val authz = stream.awaitNext().authorizationDecision();
                     assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
                     assertThat(authz.obligations()).isNotNull().isNotEmpty();
@@ -516,10 +516,10 @@ class PolicyCompilerTests {
             val ctx = evaluationContext(parseSubscription("""
                     {"subject": "Moist", "action": "join", "resource": "Guild"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("guild.active", Value.TRUE);
-                store.register("audit.guild", Value.of("logged"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("guild.active", Value.TRUE);
+                broker.register("audit.guild", Value.of("logged"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     val authz = stream.awaitNext().authorizationDecision();
                     assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
                     assertThat(authz.obligations()).isNotNull().isNotEmpty();
@@ -538,11 +538,11 @@ class PolicyCompilerTests {
             val ctx   = evaluationContext(parseSubscription("""
                     {"subject": "Visitor", "action": "access", "resource": "Guild Hall"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("access.valid", Value.TRUE);
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("access.valid", Value.TRUE);
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
-                    store.publishByName("access.valid", Value.FALSE);
+                    broker.publishByName("access.valid", Value.FALSE);
                     assertThat(stream.awaitNext().authorizationDecision().decision())
                             .isEqualTo(Decision.NOT_APPLICABLE);
                 }
@@ -560,9 +560,9 @@ class PolicyCompilerTests {
             val ctx   = evaluationContext(parseSubscription("""
                     {"subject": "operator", "action": "transmit", "resource": "Clacks Tower"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("clacks.signal", Value.error("GNU Terry Pratchett"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("clacks.signal", Value.error("GNU Terry Pratchett"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
                 }
             }
@@ -884,9 +884,9 @@ class PolicyCompilerTests {
             val ctx = evaluationContext(parseSubscription("""
                     {"subject": {"name": "Lu-Tze"}, "action": "sweep", "resource": "time stream"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("temporal.audit", Value.of("time_recorded"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("temporal.audit", Value.of("time_recorded"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                 }
             }
@@ -904,9 +904,9 @@ class PolicyCompilerTests {
             val ctx   = evaluationContext(parseSubscription("""
                     {"subject": {"name": "Susan"}, "action": "substitute", "resource": "Death Duty"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("death.audit", Value.of("logged"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("death.audit", Value.of("logged"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision())
                             .isEqualTo(Decision.NOT_APPLICABLE);
                 }
@@ -927,9 +927,9 @@ class PolicyCompilerTests {
             val ctx = evaluationContext(parseSubscription("""
                     {"subject": {"headologyLevel": 99}, "action": "use", "resource": "headology"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("coven.audit", Value.of("recorded"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("coven.audit", Value.of("recorded"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     val authz = stream.awaitNext().authorizationDecision();
                     assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
                     assertThat(authz.advice()).contains(Value.of(99));
@@ -949,9 +949,9 @@ class PolicyCompilerTests {
             val ctx   = evaluationContext(parseSubscription("""
                     {"subject": {"magicPower": 0}, "action": "cast", "resource": "spell"}
                     """));
-            try (val store = new TestAttributeStore()) {
-                store.register("spell.audit", Value.of("recorded"));
-                try (val stream = VTVoterEvaluator.evaluate(voter, ctx, store)) {
+            try (val broker = new TestAttributeBroker()) {
+                broker.register("spell.audit", Value.of("recorded"));
+                try (val stream = VoterEvaluator.evaluate(voter, ctx, broker)) {
                     assertThat(stream.awaitNext().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
                 }
             }

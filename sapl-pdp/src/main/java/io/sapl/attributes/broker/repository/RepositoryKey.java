@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.attributes.store;
+package io.sapl.attributes.broker.repository;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeRepository;
 import lombok.NonNull;
 import org.jspecify.annotations.Nullable;
 
