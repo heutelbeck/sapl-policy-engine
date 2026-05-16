@@ -49,9 +49,12 @@ public interface PipHandle extends AutoCloseable {
     LibraryDocumentation documentation();
 
     /**
-     * Removes this PIP from the store's catalog. Idempotent.
-     * Active backing subscriptions served by this PIP receive an
-     * {@link io.sapl.api.model.ErrorValue} and are torn down.
+     * Removes this PIP from the store's catalog. Idempotent. Active
+     * backing subscriptions served by this PIP receive
+     * {@link io.sapl.api.model.Value#UNDEFINED} (absence) and are
+     * torn down. A {@code LayeredAttributeStore} composing this
+     * store with a repository falls through cleanly to the
+     * repository when this happens.
      */
     void unload();
 

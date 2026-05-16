@@ -63,35 +63,35 @@ import java.util.function.Function;
  * runtime resolution is unambiguous by construction.
  * <p>
  * Hot-swap rebinds active backing subscriptions to the replacement
- * specs without publishing a transient
- * {@link io.sapl.api.model.ErrorValue}; consumer mailboxes hold the
- * prior value through the source rebind and transition to the new
- * value when the new stream emits.
+ * specs without publishing a transient value: consumer mailboxes hold
+ * the prior value through the source rebind and transition to the new
+ * value when the new stream emits. Specs evicted by a swap (no shape
+ * match in the replacement) or by an unload publish
+ * {@link Value#UNDEFINED} to their backings: absence at this layer,
+ * which a {@code LayeredAttributeStore} can fall through to a
+ * repository.
  *
  * @since 4.1.0
  */
 @Slf4j
 public final class InMemoryAttributeStore implements AttributeStore {
 
-    private static final String ERROR_ANNOTATION_MISSING      = "PIP class %s is not annotated with @PolicyInformationPoint.";
-    private static final String ERROR_DEPS_EMPTY              = "initialDependencies must not be empty";
-    private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
-    private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
-    private static final String ERROR_PIP_EVICTED             = "Attribute '%s' became unavailable: backing PIP was unloaded.";
-    private static final String ERROR_REBIND_FAILED           = "Attribute '%s' rebind failed during hot-swap: %s";
-    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
-    private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
-    private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
-    private static final String ERROR_SUBSCRIPTION_ID_IN_USE  = "subscriptionId already open: %s";
-    private static final String ERROR_UNRESOLVABLE_INVOCATION = "Attribute '%s' is not available: no source serves this invocation.";
+    private static final String ERROR_ANNOTATION_MISSING     = "PIP class %s is not annotated with @PolicyInformationPoint.";
+    private static final String ERROR_DEPS_EMPTY             = "initialDependencies must not be empty";
+    private static final String ERROR_HANDLE_NOT_LOADED      = "Cannot swap PIP: handle for '%s' is not currently loaded.";
+    private static final String ERROR_LOAD_PROCESSOR_FAILED  = "Failed to register PIP '%s': %s";
+    private static final String ERROR_PIP_INVOKE_FAILED      = "PIP invocation for attribute '%s' failed: %s";
+    private static final String ERROR_REBIND_FAILED          = "Attribute '%s' rebind failed during hot-swap: %s";
+    private static final String ERROR_RETURNED_DEPS_INVALID  = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
+    private static final String ERROR_SPEC_COLLISION         = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
+    private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
+    private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
 
     private final Object                                                       lock                 = new Object();
     private final Map<PipHandleImpl, List<StreamAttributeFinderSpecification>> handleSpecs          = new LinkedHashMap<>();
     private final Map<AttributeFinderInvocation, BackingSubscription>          sharedSubscriptions  = new HashMap<>();
     private final Set<BackingSubscription>                                     privateSubscriptions = new HashSet<>();
     private final Map<String, ConsumerSubscriptionImpl>                        consumers            = new HashMap<>();
-    private final List<Source>                                                 sources              = List
-            .of(this::resolveFromCatalog);
 
     /**
      * Loads the given PIP instance and registers all of its annotated
@@ -127,11 +127,11 @@ public final class InMemoryAttributeStore implements AttributeStore {
      * with the specs contributed by {@code newInstance}. Backing
      * subscriptions whose source resolved through {@code oldHandle}
      * are rebound to the matching new spec without publishing a
-     * transient {@link io.sapl.api.model.ErrorValue} to their
-     * consumers. Specs that exist in {@code oldHandle} but have no
-     * shape match in {@code newInstance} are evicted (consumers see
-     * an ErrorValue, real loss). Specs new in {@code newInstance}
-     * are available for new subscriptions.
+     * transient value to their consumers. Specs that exist in
+     * {@code oldHandle} but have no shape match in
+     * {@code newInstance} are evicted: their backings publish
+     * {@link Value#UNDEFINED} (absence). Specs new in
+     * {@code newInstance} are available for new subscriptions.
      * <p>
      * Atomic: either the swap completes or the call throws and the
      * catalog still reflects {@code oldHandle}.
@@ -183,7 +183,7 @@ public final class InMemoryAttributeStore implements AttributeStore {
             rebindBacking(entry.getKey(), entry.getValue());
         }
         for (val backing : affected.evictedBackings) {
-            evictBacking(backing);
+            discardBacking(backing, Value.UNDEFINED);
         }
 
         log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace, plan.swapped.size(),
@@ -212,7 +212,8 @@ public final class InMemoryAttributeStore implements AttributeStore {
         val swappedBackings = new LinkedHashMap<BackingSubscription, StreamAttributeFinderSpecification>();
         val evictedBackings = new ArrayList<BackingSubscription>();
         for (val backing : allBackings()) {
-            if (!(backing.sourceTag() instanceof StreamAttributeFinderSpecification oldSpec)) {
+            val oldSpec = backing.sourceSpec();
+            if (oldSpec == null) {
                 continue;
             }
             val newSpec = plan.swapped.get(oldSpec);
@@ -428,28 +429,6 @@ public final class InMemoryAttributeStore implements AttributeStore {
     }
 
     /**
-     * {@link Source} that resolves invocations against this store's
-     * catalog. Returns the matching spec's stream wrapped in a
-     * binding tagged with the spec; empty when no spec matches. An
-     * exception thrown by the attribute finder is captured as a
-     * single-emit error stream rather than propagated.
-     */
-    private Optional<SourceBinding> resolveFromCatalog(AttributeFinderInvocation invocation) {
-        val specOpt = resolve(invocation);
-        if (specOpt.isEmpty()) {
-            return Optional.empty();
-        }
-        val spec = specOpt.get();
-        try {
-            return Optional.of(new SourceBinding(spec.attributeFinder().invoke(invocation), spec));
-        } catch (RuntimeException e) {
-            log.debug("Attribute finder for '{}' threw on invoke: {}", invocation.attributeName(), e.getMessage());
-            return Optional.of(new SourceBinding(Streams.just(Value.error("PIP invocation for attribute '%s' failed: %s"
-                    .formatted(invocation.attributeName(), e.getMessage()))), spec));
-        }
-    }
-
-    /**
      * Resolves a SubscriptionKey to its backing subscription. Caller
      * holds the store lock.
      */
@@ -470,26 +449,32 @@ public final class InMemoryAttributeStore implements AttributeStore {
     }
 
     /**
-     * Walks the source chain, opening a backing subscription. If no
-     * source serves the invocation, returns a terminal backing
-     * pre-loaded with an {@link io.sapl.api.model.ErrorValue}. Caller
-     * holds the store lock.
+     * Opens a backing subscription for the invocation. If a PIP in the
+     * catalog matches, the backing pumps from the PIP's
+     * {@link Stream}. If no PIP matches, the backing is terminal with
+     * the mailbox preloaded to {@link Value#UNDEFINED}. A later catalog
+     * mutation (load/swap) can rebind such a terminal backing to a
+     * newly-matching PIP. Caller holds the store lock.
      */
     private BackingSubscription openBacking(AttributeFinderInvocation invocation, boolean shared) {
-        val holder = new BackingSubscription[1];
-        for (val source : sources) {
-            val bindingOpt = source.open(invocation);
-            if (bindingOpt.isPresent()) {
-                val binding = bindingOpt.get();
-                holder[0] = new BackingSubscription(invocation, shared, binding.stream(), binding.tag(),
-                        v -> dispatchValue(holder[0]));
-                holder[0].start();
-                return holder[0];
-            }
+        val holder  = new BackingSubscription[1];
+        val specOpt = resolve(invocation);
+        if (specOpt.isEmpty()) {
+            holder[0] = new BackingSubscription(invocation, shared, null, null, v -> dispatchValue(holder[0]));
+            holder[0].publishImmediate(Value.UNDEFINED);
+            return holder[0];
         }
-        log.debug("No source for invocation '{}'; publishing ErrorValue", invocation.attributeName());
-        holder[0] = new BackingSubscription(invocation, shared, null, null, v -> dispatchValue(holder[0]));
-        holder[0].publishImmediate(Value.error(ERROR_UNRESOLVABLE_INVOCATION.formatted(invocation.attributeName())));
+        val           spec = specOpt.get();
+        Stream<Value> stream;
+        try {
+            stream = spec.attributeFinder().invoke(invocation);
+        } catch (RuntimeException e) {
+            log.debug("Attribute finder for '{}' threw on invoke: {}", invocation.attributeName(), e.getMessage());
+            stream = Streams
+                    .just(Value.error(ERROR_PIP_INVOKE_FAILED.formatted(invocation.attributeName(), e.getMessage())));
+        }
+        holder[0] = new BackingSubscription(invocation, shared, stream, spec, v -> dispatchValue(holder[0]));
+        holder[0].start();
         return holder[0];
     }
 
@@ -506,16 +491,22 @@ public final class InMemoryAttributeStore implements AttributeStore {
             newStream = newSpec.attributeFinder().invoke(backing.invocation());
         } catch (RuntimeException e) {
             log.debug("Rebind invoke for '{}' threw: {}", backing.invocation().attributeName(), e.getMessage());
-            backing.publishImmediate(
+            discardBacking(backing,
                     Value.error(ERROR_REBIND_FAILED.formatted(backing.invocation().attributeName(), e.getMessage())));
-            evictBacking(backing);
             return;
         }
         backing.rebind(newStream, newSpec);
     }
 
-    private void evictBacking(BackingSubscription backing) {
-        backing.publishImmediate(Value.error(ERROR_PIP_EVICTED.formatted(backing.invocation().attributeName())));
+    /**
+     * Publishes {@code terminalValue} to the backing's mailbox, removes
+     * it from the dedup/private tables, and closes it. Used for catalog
+     * mutations that remove the serving PIP (publish UNDEFINED:
+     * absence) and for rebind failures (publish ErrorValue: tried and
+     * failed).
+     */
+    private void discardBacking(BackingSubscription backing, Value terminalValue) {
+        backing.publishImmediate(terminalValue);
         synchronized (lock) {
             if (backing.shared()) {
                 sharedSubscriptions.remove(backing.invocation(), backing);
@@ -563,14 +554,14 @@ public final class InMemoryAttributeStore implements AttributeStore {
 
             evictedBackings = new ArrayList<>();
             for (val backing : allBackings()) {
-                if (backing.sourceTag() instanceof StreamAttributeFinderSpecification oldSpec
-                        && evicted.contains(oldSpec)) {
+                val oldSpec = backing.sourceSpec();
+                if (oldSpec != null && evicted.contains(oldSpec)) {
                     evictedBackings.add(backing);
                 }
             }
         }
         for (val backing : evictedBackings) {
-            evictBacking(backing);
+            discardBacking(backing, Value.UNDEFINED);
         }
         log.debug("Unloaded PIP '{}' ({} attribute(s) removed)", handle.pipName(), evicted.size());
     }

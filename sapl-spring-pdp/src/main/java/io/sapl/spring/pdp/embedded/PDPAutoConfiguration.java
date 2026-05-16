@@ -27,7 +27,11 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.attributes.store.AttributeRepository;
 import io.sapl.attributes.store.AttributeStore;
+import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.store.LayeredAttributeStore;
+import io.sapl.attributes.store.VolatileAttributeStore;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
@@ -60,6 +64,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Role;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -251,10 +256,38 @@ public class PDPAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeStore attributeStore(JsonMapper mapper, Clock clock, ApplicationContext applicationContext) {
+    InMemoryAttributeStore catalogStore(JsonMapper mapper, Clock clock, ApplicationContext applicationContext) {
         val pips = collectPolicyInformationPoints(applicationContext);
-        log.debug("Building AttributeStore: SAPL default PIPs plus {} custom PIP instances.", pips.size());
+        log.debug("Building catalog AttributeStore: SAPL default PIPs plus {} custom PIP instances.", pips.size());
         return buildAttributeStore(clock, mapper, true, pips);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    VolatileAttributeStore volatileAttributeStore(Clock clock) {
+        return new VolatileAttributeStore(clock);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AttributeRepository attributeRepository(VolatileAttributeStore volatileAttributeStore) {
+        return volatileAttributeStore;
+    }
+
+    @Bean
+    @Primary
+    @ConditionalOnMissingBean(name = "attributeStore")
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    AttributeStore attributeStore(InMemoryAttributeStore catalogStore, AttributeRepository attributeRepository) {
+        if (!(attributeRepository instanceof AttributeStore repositoryStore)) {
+            throw new IllegalStateException(
+                    "AttributeRepository bean must also implement AttributeStore for the default layered composition. "
+                            + "Provide your own AttributeStore bean to override the layered composition entirely.");
+        }
+        log.debug("Building layered AttributeStore (catalog + repository).");
+        return new LayeredAttributeStore(catalogStore, repositoryStore);
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {

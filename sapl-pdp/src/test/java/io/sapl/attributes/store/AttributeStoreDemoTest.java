@@ -172,10 +172,11 @@ class AttributeStoreDemoTest {
 
             // ------------------------------------------------------------
             // 5) Unload the PIP. Active backing subscriptions for it
-            // publish an ErrorValue (real loss this time -- the
-            // attribute is genuinely gone) and tear down their source.
-            // The consumer's evaluator sees the ErrorValue through the
-            // next callback and decides what to do.
+            // publish UNDEFINED (absence at this layer) and tear down
+            // their source. A LayeredAttributeStore composing this
+            // store with a repository would fall through to the
+            // repository at this point; standalone, the consumer
+            // observes UNDEFINED.
             // ------------------------------------------------------------
             v2Handle.unload();
             assertThat(v2Handle.isLoaded()).isFalse();
@@ -183,7 +184,7 @@ class AttributeStoreDemoTest {
 
             Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
                 val last = snapshots.get(snapshots.size() - 1).get(helloKey).value();
-                assertThat(last).isInstanceOf(ErrorValue.class);
+                assertThat(last).isEqualTo(Value.UNDEFINED);
             });
 
             // ------------------------------------------------------------

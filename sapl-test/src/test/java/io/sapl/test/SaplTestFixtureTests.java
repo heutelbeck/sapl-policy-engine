@@ -320,7 +320,7 @@ class SaplTestFixtureTests {
     @Test
     void whenSettingCustomBrokers_thenReturnsFixtureForChaining() {
         var fixture = SaplTestFixture.createSingleTest().withFunctionBroker(new MockingFunctionBroker())
-                .withAttributeStore(new MockingAttributeStore()).withPolicy(PERMIT_ALL_POLICY);
+                .withAttributeStore(new MockingAttributeBroker()).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }

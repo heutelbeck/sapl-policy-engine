@@ -36,7 +36,11 @@ import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
+import io.sapl.attributes.store.AttributeRepository;
+import io.sapl.attributes.store.AttributeStore;
 import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.store.LayeredAttributeStore;
+import io.sapl.attributes.store.VolatileAttributeStore;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
@@ -48,6 +52,7 @@ import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.net.http.HttpClient;
 import java.security.Key;
@@ -80,7 +85,7 @@ public class PlaygroundConfiguration {
     }
 
     @Bean
-    InMemoryAttributeStore attributeStore(JsonMapper mapper) {
+    InMemoryAttributeStore catalogStore(JsonMapper mapper) {
         var clock     = Clock.systemUTC();
         var scheduler = new RealTimeScheduler(clock);
         var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
@@ -95,6 +100,22 @@ public class PlaygroundConfiguration {
         store.load(new MqttPolicyInformationPoint(mqtt));
         store.load(new X509PolicyInformationPoint(clock, scheduler));
         return store;
+    }
+
+    @Bean
+    VolatileAttributeStore volatileAttributeStore() {
+        return new VolatileAttributeStore();
+    }
+
+    @Bean
+    AttributeRepository attributeRepository(VolatileAttributeStore volatileAttributeStore) {
+        return volatileAttributeStore;
+    }
+
+    @Bean
+    @Primary
+    AttributeStore attributeStore(InMemoryAttributeStore catalogStore, VolatileAttributeStore volatileAttributeStore) {
+        return new LayeredAttributeStore(catalogStore, volatileAttributeStore);
     }
 
     @Bean

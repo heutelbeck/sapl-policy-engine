@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link MqttPolicyInformationPointIT}.
  */
 @DisplayName("MqttPolicyInformationPoint store registration")
-class MqttPolicyInformationPointStoreLoadTests {
+class MqttPolicyInformationPointBrokerLoadTests {
 
     @Test
     @DisplayName("loads under the mqtt namespace without errors")

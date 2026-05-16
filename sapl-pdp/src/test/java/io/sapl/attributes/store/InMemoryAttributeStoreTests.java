@@ -532,15 +532,15 @@ class InMemoryAttributeStoreTests {
     class ErrorsAndMissing {
 
         @Test
-        @DisplayName("invocation with no loaded PIP yields ErrorValue immediately")
-        void whenNoLoadedPipThenErrorValueImmediately() {
+        @DisplayName("invocation with no loaded PIP yields UNDEFINED immediately")
+        void whenNoLoadedPipThenUndefinedImmediately() {
             val key      = envKey("nothing.here");
             val recorder = new Recorder(Set.of(key));
 
             try (val sub = store.open("s1", Set.of(key), recorder.asCallback())) {
                 Awaitility.await().atMost(Duration.ofSeconds(2))
                         .untilAsserted(() -> assertThat(recorder.snapshots).hasSizeGreaterThanOrEqualTo(1));
-                assertThat(valueFor(key, recorder, 0)).isInstanceOf(ErrorValue.class);
+                assertThat(valueFor(key, recorder, 0)).isEqualTo(Value.UNDEFINED);
             }
         }
     }
@@ -550,8 +550,8 @@ class InMemoryAttributeStoreTests {
     class HotUnload {
 
         @Test
-        @DisplayName("PIP unload while consumer subscribed publishes ErrorValue to mailbox")
-        void whenUnloadDuringSubscriptionThenErrorValueDelivered() {
+        @DisplayName("PIP unload while consumer subscribed publishes UNDEFINED to mailbox")
+        void whenUnloadDuringSubscriptionThenUndefinedDelivered() {
             val handle   = store.load(new ControllablePip());
             val key      = envKey("ctrl.latest");
             val recorder = new Recorder(Set.of(key));
@@ -567,7 +567,7 @@ class InMemoryAttributeStoreTests {
             Awaitility.await().atMost(Duration.ofSeconds(2))
                     .untilAsserted(() -> assertThat(recorder.snapshots.size()).isGreaterThan(before));
             val last = recorder.snapshots.get(recorder.snapshots.size() - 1).get(key).value();
-            assertThat(last).isInstanceOf(ErrorValue.class);
+            assertThat(last).isEqualTo(Value.UNDEFINED);
 
             sub.close();
         }

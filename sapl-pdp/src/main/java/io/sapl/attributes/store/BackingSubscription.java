@@ -21,6 +21,7 @@ import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -28,13 +29,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
- * Internal per-invocation value supply: the bridge between a
- * {@link Source}'s {@link Stream} and the mailbox slots that
+ * Internal per-invocation value supply for the catalog-backed store.
+ * Bridges a PIP-produced {@link Stream} into the mailbox that
  * consumers read. Owns one virtual-thread pump that drains the
- * source stream and republishes each value into the mailbox;
- * tracks the consumer refcount; supports atomic source rebind for
- * hot-swap so the mailbox value is preserved across the
- * transition.
+ * source stream and republishes each value into the mailbox; tracks
+ * the consumer refcount; supports atomic source rebind for hot-swap
+ * so the mailbox value is preserved across the transition.
  */
 @Slf4j
 final class BackingSubscription {
@@ -45,13 +45,13 @@ final class BackingSubscription {
     private final Consumer<Value>           onValue;
     private final AtomicInteger             refcount = new AtomicInteger();
 
-    private final Object    lock        = new Object();
-    private Stream<Value>   sourceStream;
-    private Thread          pumpThread;
-    private Optional<Value> latestValue = Optional.empty();
-    private Optional<Value> firstValue  = Optional.empty();
-    private Object          sourceTag;
-    private boolean         closed      = false;
+    private final Object                                 lock        = new Object();
+    private Stream<Value>                                sourceStream;
+    private Thread                                       pumpThread;
+    private Optional<Value>                              latestValue = Optional.empty();
+    private Optional<Value>                              firstValue  = Optional.empty();
+    private @Nullable StreamAttributeFinderSpecification sourceSpec;
+    private boolean                                      closed      = false;
 
     /**
      * @param invocation the invocation this backing serves
@@ -59,24 +59,23 @@ final class BackingSubscription {
      * shared-dedup map; {@code false} when private to one consumer
      * (created via {@code fresh=true})
      * @param sourceStream the initial source stream; may be
-     * {@code null} for terminal backings (e.g. unresolvable
-     * invocation) where no pump is needed
-     * @param sourceTag opaque identifier the store may use to relate
-     * the backing back to whatever source produced it (for slice 1:
-     * the {@link StreamAttributeFinderSpecification}); may be
-     * {@code null}
+     * {@code null} for terminal backings (no matching PIP)
+     * @param sourceSpec the catalog spec that produced
+     * {@code sourceStream}; {@code null} for terminal backings, used
+     * by the store on hot-swap to identify which backings serve which
+     * specs
      * @param onValue callback invoked on each new value emitted by
      * the source stream; the store wires this to its dispatch path
      */
     BackingSubscription(AttributeFinderInvocation invocation,
             boolean shared,
-            Stream<Value> sourceStream,
-            Object sourceTag,
+            @Nullable Stream<Value> sourceStream,
+            @Nullable StreamAttributeFinderSpecification sourceSpec,
             Consumer<Value> onValue) {
         this.invocation   = invocation;
         this.shared       = shared;
         this.sourceStream = sourceStream;
-        this.sourceTag    = sourceTag;
+        this.sourceSpec   = sourceSpec;
         this.onValue      = onValue;
     }
 
@@ -92,8 +91,9 @@ final class BackingSubscription {
         return shared;
     }
 
-    Object sourceTag() {
-        return sourceTag;
+    @Nullable
+    StreamAttributeFinderSpecification sourceSpec() {
+        return sourceSpec;
     }
 
     /**
@@ -147,10 +147,12 @@ final class BackingSubscription {
     }
 
     /**
-     * Publishes a value directly into the mailbox without involving
-     * a source stream. Used for terminal-state backings (e.g. an
-     * unresolvable invocation publishing a synthetic ErrorValue at
-     * open time).
+     * Publishes a value directly into the mailbox without involving a
+     * source stream. Used for terminal-state backings: an invocation
+     * with no matching PIP publishes {@link Value#UNDEFINED} at open
+     * time, and the catalog publishes a terminal value
+     * ({@link Value#UNDEFINED} on unload/swap-eviction, an ErrorValue
+     * on rebind failure) before discarding the backing.
      */
     void publishImmediate(Value value) {
         publish(value);
@@ -163,9 +165,10 @@ final class BackingSubscription {
      * first value. Closes the old stream so its pump exits naturally.
      *
      * @param newSourceStream the freshly opened replacement stream
-     * @param newSourceTag opaque identifier for the new binding
+     * @param newSourceSpec the catalog spec that produced the
+     * replacement stream
      */
-    void rebind(Stream<Value> newSourceStream, Object newSourceTag) {
+    void rebind(Stream<Value> newSourceStream, StreamAttributeFinderSpecification newSourceSpec) {
         Stream<Value> oldStream;
         synchronized (lock) {
             if (closed) {
@@ -176,7 +179,7 @@ final class BackingSubscription {
             }
             oldStream    = sourceStream;
             sourceStream = newSourceStream;
-            sourceTag    = newSourceTag;
+            sourceSpec   = newSourceSpec;
             pumpThread   = null;
         }
         if (oldStream != null) {

@@ -32,7 +32,9 @@ import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.attributes.store.AttributeStore;
 import io.sapl.attributes.store.InMemoryAttributeStore;
+import io.sapl.attributes.store.LayeredAttributeStore;
 import io.sapl.attributes.store.PipLoadException;
+import io.sapl.attributes.store.VolatileAttributeStore;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -46,7 +48,6 @@ import io.sapl.pdp.plugins.PluginsSource;
 import io.sapl.pdp.plugins.StaticPluginsSource;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
@@ -57,7 +58,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -115,6 +115,7 @@ public class PolicyDecisionPointBuilder {
     private FunctionBroker externalFunctionBroker;
     private PluginsSource  externalPluginsSource;
     private AttributeStore externalAttributeStore;
+    private AttributeStore externalRepository;
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
     private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
@@ -305,17 +306,34 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a custom {@link AttributeStore}. If not set, a default
-     * in-memory implementation is constructed and the requested PIPs
-     * (defaults plus any added via
-     * {@link #withPolicyInformationPoint(Object)}) are loaded into it
-     * during {@link #build()}.
+     * Sets a custom {@link AttributeStore}. When set, this store is used
+     * as-is and the builder's catalog, repository, and layered
+     * composition are bypassed. Use {@link #withRepository(AttributeStore)}
+     * instead if the goal is only to swap the repository half of the
+     * default layered store.
      *
      * @param attributeStore the pre-configured attribute store
      * @return this builder
      */
     public PolicyDecisionPointBuilder withAttributeStore(AttributeStore attributeStore) {
         this.externalAttributeStore = attributeStore;
+        return this;
+    }
+
+    /**
+     * Sets the repository half of the default layered attribute store.
+     * The catalog half is the in-memory PIP-backed store built from
+     * the configured PIPs. If not set, a default
+     * {@link VolatileAttributeStore} is used.
+     * <p>
+     * This setter has no effect when {@link #withAttributeStore(AttributeStore)}
+     * supplies a fully custom top-level store.
+     *
+     * @param repository the repository-side {@link AttributeStore}
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withRepository(AttributeStore repository) {
+        this.externalRepository = repository;
         return this;
     }
 
@@ -772,7 +790,10 @@ public class PolicyDecisionPointBuilder {
         if (externalAttributeStore != null) {
             return externalAttributeStore;
         }
-        return buildAttributeStore(clock, mapper, includeDefaultPolicyInformationPoints, policyInformationPoints);
+        val catalog    = buildAttributeStore(clock, mapper, includeDefaultPolicyInformationPoints,
+                policyInformationPoints);
+        val repository = externalRepository != null ? externalRepository : new VolatileAttributeStore(clock);
+        return new LayeredAttributeStore(catalog, repository);
     }
 
     /**

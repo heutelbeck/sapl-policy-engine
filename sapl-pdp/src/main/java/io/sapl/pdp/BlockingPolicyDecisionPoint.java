@@ -43,7 +43,6 @@ import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteResult;
-import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
 import io.sapl.compiler.document.Voters;
