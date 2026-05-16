@@ -17,6 +17,10 @@
  */
 package io.sapl.attributes.store;
 
+import io.sapl.api.SaplVersion;
+
+import java.io.Serial;
+
 /**
  * Thrown when {@link InMemoryAttributeStore#load} or
  * {@link InMemoryAttributeStore#swap} cannot register a Policy
@@ -26,7 +30,8 @@ package io.sapl.attributes.store;
  */
 public class PipLoadException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     public PipLoadException(String message) {
         super(message);
