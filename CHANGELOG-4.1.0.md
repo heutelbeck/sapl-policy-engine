@@ -150,7 +150,19 @@ The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query re
 
 ### AttributeStore
 
-A single `AttributeStore` replaces `AttributeBroker` and `FunctionBroker`. Custom PIPs and function libraries register against the store directly. The change is transparent to policy authors. Extension authors who built broker-style abstractions against 4.0 need to switch to the new interface.
+`AttributeStore` replaces `AttributeBroker`. Custom PIPs register against the store directly. The change is transparent to policy authors. Extension authors who built broker-style abstractions against 4.0 need to switch to the new interface.
+
+### Plugins source
+
+The PDP runtime is driven by an observable `PluginsSource` that emits immutable `PluginsBundle` snapshots. Each bundle carries the function broker, decision interceptors, and subscription lifecycle listeners as one atomic unit. `PdpVoterSource` subscribes and recompiles every retained PDP configuration against the new bundle when one arrives. The compiled artefact carries the bundle it was compiled against, so folded constants and live function calls go to the same broker for any given evaluation.
+
+The 4.1 implementation is `StaticPluginsSource`. One snapshot for the life of the source. A future plugin engine emits new bundles on every catalog change against the same interface. Plugin authors keep implementing the same leaf contracts (`FunctionLibrary`, `DecisionInterceptor`, `SubscriptionLifecycleListener`) in `sapl-api`. `PluginsSource` and `PluginsBundle` live in `sapl-pdp` under `io.sapl.pdp.plugins` because they are engine wiring, not author-facing API.
+
+Configurations that arrive before the plugins source delivers its first snapshot are retained and surface in the PDP's status as `AWAITING_PLUGINS` with their configurationId and document count. They compile automatically when the snapshot arrives. `loadConfiguration` no longer throws in this case.
+
+`PolicyDecisionPointBuilder.withFunctionBroker(...)` from 4.0 keeps working unchanged; the builder wraps the broker in a `StaticPluginsSource` internally. Code that wants to drive recompile from an external source uses the new `withPluginsSource(...)` method. The Spring starter's auto-configuration publishes a `PluginsSource` bean for you.
+
+Direct `PdpVoterSource` construction (rare, low-level) now takes a `PluginsSource` instead of a `FunctionBroker`.
 
 ## SAPL Node
 
