@@ -39,6 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -64,7 +65,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     private final ScheduledExecutorService scheduler;
 
-    private final Object                               lock           = new Object();
+    private final ReentrantLock                        lock           = new ReentrantLock(true);
     private final Map<RepositoryKey, Entry>            entries        = new HashMap<>();
     private final Map<RepositoryKey, Set<KeyObserver>> observersByKey = new HashMap<>();
 
@@ -94,7 +95,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     @Override
     public void remove(@NonNull RepositoryKey key) {
         List<KeyObserver> toFire;
-        synchronized (lock) {
+        lock.lock();
+
+        try {
             if (closed) {
                 return;
             }
@@ -106,6 +109,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 prior.expiryTask.cancel(false);
             }
             toFire = observers(key);
+        } finally {
+
+            lock.unlock();
+
         }
         fireObservers(toFire, Value.UNDEFINED);
     }
@@ -116,7 +123,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         val   repoKey  = RepositoryKey.fromInvocation(invocation);
         val   observer = new KeyObserver(repoKey, onValue);
         Value initial;
-        synchronized (lock) {
+        lock.lock();
+
+        try {
             if (closed) {
                 initial = Value.error(ERROR_CLOSED);
             } else {
@@ -124,6 +133,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 val entry = entries.get(repoKey);
                 initial = entry != null ? entry.value : Value.UNDEFINED;
             }
+        } finally {
+
+            lock.unlock();
+
         }
         observer.deliver(initial);
         return observer;
@@ -132,7 +145,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     @Override
     public void close() {
         Collection<Entry> toCancel;
-        synchronized (lock) {
+        lock.lock();
+
+        try {
             if (closed) {
                 return;
             }
@@ -147,6 +162,10 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             }
             entries.clear();
             observersByKey.clear();
+        } finally {
+
+            lock.unlock();
+
         }
         for (val e : toCancel) {
             if (e.expiryTask != null) {
@@ -158,7 +177,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     private void publishInternal(RepositoryKey key, Value value, @Nullable Duration ttl) {
         List<KeyObserver> toFire;
-        synchronized (lock) {
+        lock.lock();
+
+        try {
             if (closed) {
                 return;
             }
@@ -173,19 +194,29 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                         TimeUnit.MILLISECONDS);
             }
             toFire = observers(key);
+        } finally {
+
+            lock.unlock();
+
         }
         fireObservers(toFire, value);
     }
 
     private void expireKey(RepositoryKey key, Entry expectedEntry) {
         List<KeyObserver> toFire;
-        synchronized (lock) {
+        lock.lock();
+
+        try {
             val current = entries.get(key);
             if (current != expectedEntry) {
                 return;
             }
             entries.remove(key);
             toFire = observers(key);
+        } finally {
+
+            lock.unlock();
+
         }
         fireObservers(toFire, Value.UNDEFINED);
     }
@@ -257,12 +288,18 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
         @Override
         public void close() {
-            synchronized (lock) {
+            lock.lock();
+
+            try {
                 if (closed) {
                     return;
                 }
                 closed = true;
                 unregisterObserver(this);
+            } finally {
+
+                lock.unlock();
+
             }
         }
     }
