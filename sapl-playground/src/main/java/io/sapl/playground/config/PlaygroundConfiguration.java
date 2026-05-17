@@ -39,7 +39,6 @@ import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
-import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
@@ -57,6 +56,7 @@ import org.springframework.context.annotation.Primary;
 import java.net.http.HttpClient;
 import java.security.Key;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -85,14 +85,15 @@ public class PlaygroundConfiguration {
     }
 
     @Bean
-    PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper) {
+    PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper,
+            InMemoryAttributeRepository inMemoryAttributeRepository) {
         var clock     = Clock.systemUTC();
         var scheduler = new RealTimeScheduler(clock);
         var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
         var mqtt      = new DummySaplMqttClient(clock, scheduler);
         var keys      = new DummyJWTKeyProvider(clock);
 
-        var broker = new PolicyInformationPointAttributeBroker();
+        var broker = new PolicyInformationPointAttributeBroker(Duration.ZERO, inMemoryAttributeRepository);
         broker.load(new TimePolicyInformationPoint(clock, scheduler));
         broker.load(new HttpPolicyInformationPoint(webClient));
         broker.load(new TraccarPolicyInformationPoint(webClient));
@@ -114,9 +115,8 @@ public class PlaygroundConfiguration {
 
     @Bean
     @Primary
-    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker,
-            InMemoryAttributeRepository inMemoryAttributeRepository) {
-        return new LayeredAttributeBroker(policyInformationPointAttributeBroker, inMemoryAttributeRepository);
+    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker) {
+        return policyInformationPointAttributeBroker;
     }
 
     @Bean

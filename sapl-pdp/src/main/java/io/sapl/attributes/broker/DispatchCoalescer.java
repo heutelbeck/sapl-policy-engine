@@ -22,32 +22,22 @@ import lombok.NonNull;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Edge-triggered fire coalescer for a single consumer. Replaces the
- * per-consumer {@code ReentrantLock} that previously serialized
- * {@code fireCallback} invocations.
+ * Serializes a runnable's invocations and collapses concurrent
+ * triggers.
  * <p>
- * Each {@link #requestFire()} call sets a {@code pending} flag and
- * tries to claim the {@code running} flag. The winning thread drains
- * pending into a single in-flight execution of the wrapped runnable
- * and re-checks pending after the runnable returns; concurrent
- * {@code requestFire()} calls that lose the race simply set
- * {@code pending} and return.
+ * How: run the runnable; if anyone asked again while it was
+ * running, run it once more; otherwise exit. No queue, just one
+ * boolean for "re-run needed". N triggers arriving during one
+ * in-flight run collapse into one follow-up run.
  * <p>
- * Properties relevant to brokers:
- * <ul>
- * <li>Publisher and scheduler threads never block on slow consumers
- * (they only flip flags and exit).</li>
- * <li>N rapid requests during a slow in-flight fire collapse into
- * one re-fire afterwards, against the latest broker state.</li>
- * <li>No queue of values, no queue of fire requests. The wrapped
- * runnable always reads the current snapshot at fire time.</li>
- * <li>No skipped fires: any request that sets {@code pending} is
- * guaranteed to lead to at least one subsequent execution.</li>
- * </ul>
+ * Why: many producer threads can trigger the same consumer without
+ * blocking each other, while the consumer's runnable never runs
+ * concurrently with itself.
  * <p>
- * This object is per-consumer; one instance is held by each
- * subscription. Two different consumers each have their own
- * coalescer.
+ * Cost: the first caller while no run is in flight runs the
+ * runnable on its thread (plus any follow-up runs triggered while
+ * it was running). Other concurrent callers set the re-run bit and
+ * return without waiting.
  *
  * @since 4.1.0
  */
@@ -62,11 +52,10 @@ public final class DispatchCoalescer {
     }
 
     /**
-     * Marks a fire as pending and, if no other thread is currently
-     * driving the fire loop, becomes that driver. The driver consumes
-     * pending into one or more sequential {@code fire.run()} calls
-     * and exits when the pending flag has been cleared by a run that
-     * was not concurrent with a new request.
+     * Requests a run. If another thread is already running the
+     * runnable, sets the re-run bit and returns immediately.
+     * Otherwise runs the runnable on the calling thread (plus any
+     * follow-up runs triggered during the run) before returning.
      */
     public void requestFire() {
         pending.set(true);

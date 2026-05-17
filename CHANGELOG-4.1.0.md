@@ -151,11 +151,11 @@ The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query re
 ### AttributeBroker
 
 - Consumer interface: `AttributeBroker` in `io.sapl.attributes.broker`.
-- Writer interface: `AttributeRepository` with `publish(key, value)`, `publish(key, value, ttl)`, `remove(key)`.
-- Default top-level: `LayeredAttributeBroker(PolicyInformationPointAttributeBroker, InMemoryAttributeRepository)`. PIPs win; repository fills gaps; UNDEFINED if neither has a value.
+- Repository interface: `AttributeRepository` with `publish(key, value)`, `publish(key, value, ttl)`, `remove(key)`, and `observe(invocation, onValue)`. The first three are the producer surface; `observe` is the single-key listener surface used by the PIP broker's fallback path.
+- Default top-level: `PolicyInformationPointAttributeBroker(Duration, AttributeRepository)` with `InMemoryAttributeRepository` as the fallback. Routing is static per backing: PIP match goes through the PIP exclusively, no PIP match goes through the fallback, no fallback yields UNDEFINED. Catalog mutations migrate routing (load promotes delegated backings to PIP-backed; unload/swap-evict demotes PIP-backed backings to delegated or terminal).
 - PIP author API in `sapl-api` unchanged. PIPs register via `load(pipInstance)` returning a `PipHandle`; `swap`, `unload` available.
-- Builder: `withAttributeBroker(...)` for full override; `withRepository(...)` for the repository half only.
-- Spring beans: `policyInformationPointAttributeBroker`, `inMemoryAttributeRepository`, `attributeRepository`, `attributeBroker` (`@Primary`).
+- Builder: `withAttributeBroker(...)` for full override; `withRepository(...)` for the fallback only (takes an `AttributeRepository`).
+- Spring beans: `policyInformationPointAttributeBroker` (the broker, fallback-wired), `inMemoryAttributeRepository`, `attributeRepository`, `attributeBroker` (`@Primary`, delegates to the PIP broker).
 - v4.0 extension authors: new package `io.sapl.attributes.broker.*`; new callback-driven contract `open(id, deps, onUpdate) → Subscription`; no Reactor at the boundary.
 
 #### Dispatch coalescing

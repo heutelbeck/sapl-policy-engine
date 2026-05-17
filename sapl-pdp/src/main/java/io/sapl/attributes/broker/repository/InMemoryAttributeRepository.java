@@ -17,18 +17,15 @@
  */
 package io.sapl.attributes.broker.repository;
 
-import io.sapl.api.model.AttributeSnapshot;
-import io.sapl.api.model.SubscriptionKey;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
-import io.sapl.attributes.broker.DispatchCoalescer;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,66 +38,44 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
- * In-memory {@link AttributeBroker} that doubles as an
- * {@link AttributeRepository}. Producers push values via
- * {@link #publish(RepositoryKey, Value)} and friends; consumers
- * subscribe via {@link #open(String, Set, Function)} and observe
- * the published values (or {@link Value#UNDEFINED} for any key that
- * has no entry).
+ * In-memory {@link AttributeRepository}. Producers publish values
+ * keyed by {@link RepositoryKey}; observers register a per-invocation
+ * listener via {@link #observe} and receive the current value plus
+ * every subsequent change.
  * <p>
- * Designed as the fallback half of a
- * {@code LayeredAttributeBroker(catalog, repository)}: PIPs in the
- * catalog-backed broker win; when a PIP is absent or unloaded the
- * layered broker falls through to this repository.
- * <p>
- * State is volatile: lost on close. TTL expiry removes the entry
- * and notifies subscribers (who observe {@link Value#UNDEFINED}).
+ * State is volatile: lost on close. TTL expiry removes the entry and
+ * notifies observers (who observe {@link Value#UNDEFINED}).
  * <p>
  * Thread-safety: all state mutations occur under a single internal
- * lock; consumer callbacks fire outside the broker lock and are
- * serialized per-consumer by an internal callback lock.
+ * lock; observer callbacks fire outside the lock.
  *
  * @since 4.1.0
  */
 @Slf4j
-public final class InMemoryAttributeRepository implements AttributeBroker, AttributeRepository {
+public final class InMemoryAttributeRepository implements AttributeRepository {
 
-    private static final String ERROR_DEPS_EMPTY             = "initialDependencies must not be empty";
-    private static final String ERROR_RETURNED_DEPS_INVALID  = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
-    private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
-    private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
-    private static final String ERROR_TTL_NOT_POSITIVE       = "ttl must be a strictly positive Duration";
-    private static final String WARN_CALLBACK_THREW          = "Consumer {} onUpdate threw: {}";
+    private static final String ERROR_CLOSED           = "Repository is closed.";
+    private static final String ERROR_TTL_NOT_POSITIVE = "Ttl must be a strictly positive Duration.";
+    private static final String WARN_OBSERVER_THREW    = "Observer {} threw: {}.";
 
-    private final Clock                    clock;
     private final ScheduledExecutorService scheduler;
 
-    private final Object                                lock      = new Object();
-    private final Map<RepositoryKey, Entry>             entries   = new HashMap<>();
-    private final Map<String, ConsumerSubscriptionImpl> consumers = new HashMap<>();
-
-    // Reverse index: for every RepositoryKey, the set of consumers with at
-    // least one head=false dependency projecting onto it. Maintained on open,
-    // applyDepDiff and close. Drives findAffectedConsumers to O(consumers-of-
-    // this-key) instead of O(all-consumers * deps-per-consumer).
-    private final Map<RepositoryKey, Set<ConsumerSubscriptionImpl>> subscribersByKey = new HashMap<>();
+    private final Object                               lock           = new Object();
+    private final Map<RepositoryKey, Entry>            entries        = new HashMap<>();
+    private final Map<RepositoryKey, Set<KeyObserver>> observersByKey = new HashMap<>();
 
     private boolean closed = false;
 
     public InMemoryAttributeRepository() {
-        this(Clock.systemUTC());
-    }
-
-    public InMemoryAttributeRepository(@NonNull Clock clock) {
-        this.clock     = clock;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-                           val thread = Thread.ofVirtual().unstarted(runnable);
-                           thread.setName("InMemoryAttributeRepository-ttl");
-                           return thread;
-                       });
+            val thread = Thread.ofVirtual().unstarted(runnable);
+            thread.setName("InMemoryAttributeRepository-ttl");
+            return thread;
+        });
     }
 
     @Override
@@ -118,7 +93,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
 
     @Override
     public void remove(@NonNull RepositoryKey key) {
-        List<ConsumerSubscriptionImpl> toFire;
+        List<KeyObserver> toFire;
         synchronized (lock) {
             if (closed) {
                 return;
@@ -130,53 +105,47 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
             if (prior.expiryTask != null) {
                 prior.expiryTask.cancel(false);
             }
-            toFire = findAffectedConsumers(key);
+            toFire = observers(key);
         }
-        fireAll(toFire);
+        fireObservers(toFire, Value.UNDEFINED);
     }
 
     @Override
-    public Subscription open(@NonNull String subscriptionId, @NonNull Set<SubscriptionKey> initialDependencies,
-            @NonNull Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
-        if (subscriptionId.isBlank()) {
-            throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_BLANK);
-        }
-        if (initialDependencies.isEmpty()) {
-            throw new IllegalArgumentException(ERROR_DEPS_EMPTY);
-        }
-
-        ConsumerSubscriptionImpl consumer;
+    public AttributeRepository.Registration observe(@NonNull AttributeFinderInvocation invocation,
+            @NonNull Consumer<Value> onValue) {
+        val   repoKey  = RepositoryKey.fromInvocation(invocation);
+        val   observer = new KeyObserver(repoKey, onValue);
+        Value initial;
         synchronized (lock) {
-            if (consumers.containsKey(subscriptionId)) {
-                throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_IN_USE.formatted(subscriptionId));
+            if (closed) {
+                throw new IllegalStateException(ERROR_CLOSED);
             }
-            consumer = new ConsumerSubscriptionImpl(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
-            indexDeps(consumer, initialDependencies);
-            consumers.put(subscriptionId, consumer);
+            observersByKey.computeIfAbsent(repoKey, k -> new HashSet<>()).add(observer);
+            val entry = entries.get(repoKey);
+            initial = entry != null ? entry.value : Value.UNDEFINED;
         }
-        // The gate is trivially open: every key has a value (real entry
-        // or UNDEFINED) at all times in this broker. Fire synchronously.
-        consumer.fireCallback();
-        return consumer;
+        observer.deliver(initial);
+        return observer;
     }
 
     @Override
     public void close() {
-        List<ConsumerSubscriptionImpl> toClose;
-        Collection<Entry>              toCancel;
+        Collection<Entry> toCancel;
         synchronized (lock) {
             if (closed) {
                 return;
             }
             closed   = true;
-            toClose  = new ArrayList<>(consumers.values());
             toCancel = new ArrayList<>(entries.values());
-            consumers.clear();
+            // Mark every observer closed so in-flight fires (already past the
+            // observers gate, about to call deliver) become no-ops.
+            for (val bucket : observersByKey.values()) {
+                for (val observer : bucket) {
+                    observer.closed = true;
+                }
+            }
             entries.clear();
-            subscribersByKey.clear();
-        }
-        for (val c : toClose) {
-            c.markClosed();
+            observersByKey.clear();
         }
         for (val e : toCancel) {
             if (e.expiryTask != null) {
@@ -187,7 +156,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
     }
 
     private void publishInternal(RepositoryKey key, Value value, @Nullable Duration ttl) {
-        List<ConsumerSubscriptionImpl> toFire;
+        List<KeyObserver> toFire;
         synchronized (lock) {
             if (closed) {
                 return;
@@ -202,78 +171,45 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
                 entry.expiryTask = scheduler.schedule(() -> expireKey(key, entry), ttl.toMillis(),
                         TimeUnit.MILLISECONDS);
             }
-            toFire = findAffectedConsumers(key);
+            toFire = observers(key);
         }
-        fireAll(toFire);
+        fireObservers(toFire, value);
     }
 
     private void expireKey(RepositoryKey key, Entry expectedEntry) {
-        List<ConsumerSubscriptionImpl> toFire;
+        List<KeyObserver> toFire;
         synchronized (lock) {
             val current = entries.get(key);
             if (current != expectedEntry) {
                 return;
             }
             entries.remove(key);
-            toFire = findAffectedConsumers(key);
+            toFire = observers(key);
         }
-        fireAll(toFire);
+        fireObservers(toFire, Value.UNDEFINED);
     }
 
-    /**
-     * Caller holds the broker lock. Returns the value currently
-     * published for {@code dep}'s projected {@link RepositoryKey}, or
-     * {@link Value#UNDEFINED} when no entry exists.
-     */
-    private Value currentValueLocked(SubscriptionKey dep) {
-        val repositoryKey = RepositoryKey.fromInvocation(dep.invocation());
-        val entry         = entries.get(repositoryKey);
-        return entry != null ? entry.value : Value.UNDEFINED;
+    /** Caller holds the lock. */
+    private List<KeyObserver> observers(RepositoryKey repositoryKey) {
+        val bucket = observersByKey.get(repositoryKey);
+        return bucket == null ? List.of() : new ArrayList<>(bucket);
     }
 
-    /**
-     * Caller holds the broker lock. Returns consumers whose dep set
-     * projects onto {@code repositoryKey}. O(consumers-of-this-key)
-     * via the reverse index.
-     */
-    private List<ConsumerSubscriptionImpl> findAffectedConsumers(RepositoryKey repositoryKey) {
-        val subscribers = subscribersByKey.get(repositoryKey);
-        return subscribers == null ? List.of() : new ArrayList<>(subscribers);
-    }
-
-    /**
-     * Caller holds the broker lock. Adds {@code consumer} to the
-     * reverse index under every dep in {@code deps}.
-     */
-    private void indexDeps(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
-        for (val dep : deps) {
-            subscribersByKey.computeIfAbsent(RepositoryKey.fromInvocation(dep.invocation()), k -> new HashSet<>())
-                    .add(consumer);
+    private void fireObservers(List<KeyObserver> observers, Value value) {
+        for (val observer : observers) {
+            observer.deliver(value);
         }
     }
 
-    /**
-     * Caller holds the broker lock. Removes {@code consumer} from the
-     * reverse index for every dep in {@code deps}; drops empty bucket
-     * sets.
-     */
-    private void unindexDeps(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
-        for (val dep : deps) {
-            val repoKey     = RepositoryKey.fromInvocation(dep.invocation());
-            val subscribers = subscribersByKey.get(repoKey);
-            if (subscribers == null) {
-                continue;
-            }
-            subscribers.remove(consumer);
-            if (subscribers.isEmpty()) {
-                subscribersByKey.remove(repoKey);
-            }
+    /** Caller holds the lock. */
+    private void unregisterObserver(KeyObserver observer) {
+        val bucket = observersByKey.get(observer.repositoryKey);
+        if (bucket == null) {
+            return;
         }
-    }
-
-    private void fireAll(List<ConsumerSubscriptionImpl> consumers) {
-        for (val consumer : consumers) {
-            consumer.fireCallback();
+        bucket.remove(observer);
+        if (bucket.isEmpty()) {
+            observersByKey.remove(observer.repositoryKey);
         }
     }
 
@@ -292,21 +228,30 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
         }
     }
 
-    private final class ConsumerSubscriptionImpl implements Subscription {
+    /**
+     * Single-key observer registered via {@link #observe}. The
+     * repository indexes observers in {@link #observersByKey} and
+     * fires them on publish, expire and remove.
+     */
+    @RequiredArgsConstructor
+    private final class KeyObserver implements AttributeRepository.Registration {
 
-        private final String                                                                  id;
-        private final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
-        private final DispatchCoalescer                                                       coalescer;
-        private Set<SubscriptionKey>                                                          deps;
-        private boolean                                                                       closed = false;
+        private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
 
-        ConsumerSubscriptionImpl(String id,
-                Set<SubscriptionKey> deps,
-                Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
-            this.id        = id;
-            this.deps      = deps;
-            this.onUpdate  = onUpdate;
-            this.coalescer = new DispatchCoalescer(this::runOneFire);
+        private final long            id     = NEXT_ID.getAndIncrement();
+        final RepositoryKey           repositoryKey;
+        private final Consumer<Value> onValue;
+        private volatile boolean      closed = false;
+
+        void deliver(Value value) {
+            if (closed) {
+                return;
+            }
+            try {
+                onValue.accept(value);
+            } catch (RuntimeException e) {
+                log.warn(WARN_OBSERVER_THREW, id, e.getMessage(), e);
+            }
         }
 
         @Override
@@ -316,85 +261,8 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
                     return;
                 }
                 closed = true;
-                consumers.remove(id);
-                unindexDeps(this, deps);
-            }
-        }
-
-        void markClosed() {
-            synchronized (lock) {
-                closed = true;
-            }
-        }
-
-        void fireCallback() {
-            coalescer.requestFire();
-        }
-
-        /**
-         * Body of a single coalesced fire. Reads the current snapshot
-         * under the broker lock, invokes the consumer callback outside
-         * the lock, and applies the returned dep diff. See
-         * {@link DispatchCoalescer} for the surrounding flag dance.
-         */
-        private void runOneFire() {
-            Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
-            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> callback;
-            synchronized (lock) {
-                if (closed) {
-                    return;
-                }
-                snapshot = currentSnapshot();
-                callback = onUpdate;
-            }
-            Set<SubscriptionKey> newDeps;
-            try {
-                newDeps = callback.apply(snapshot);
-            } catch (RuntimeException e) {
-                log.warn(WARN_CALLBACK_THREW, id, e.getMessage(), e);
-                return;
-            }
-            if (newDeps == null || newDeps.isEmpty()) {
-                throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
-            }
-            applyDepDiff(newDeps);
-        }
-
-        /**
-         * Caller holds the broker lock.
-         */
-        private Map<SubscriptionKey, AttributeSnapshot> currentSnapshot() {
-            val now      = clock.instant();
-            val snapshot = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(deps.size());
-            for (val dep : deps) {
-                snapshot.put(dep, new AttributeSnapshot(currentValueLocked(dep), now));
-            }
-            return Map.copyOf(snapshot);
-        }
-
-        private void applyDepDiff(Set<SubscriptionKey> newDeps) {
-            boolean refire;
-            synchronized (lock) {
-                if (closed) {
-                    return;
-                }
-                if (newDeps.equals(deps)) {
-                    return;
-                }
-                val added = new HashSet<>(newDeps);
-                added.removeAll(deps);
-                val removed = new HashSet<>(deps);
-                removed.removeAll(newDeps);
-
-                indexDeps(this, added);
-                unindexDeps(this, removed);
-                deps   = new HashSet<>(newDeps);
-                refire = !added.isEmpty();
-            }
-            if (refire) {
-                fireCallback();
+                unregisterObserver(this);
             }
         }
     }
-
 }

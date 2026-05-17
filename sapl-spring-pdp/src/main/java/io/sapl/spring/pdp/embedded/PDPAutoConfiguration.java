@@ -30,7 +30,6 @@ import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
-import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
@@ -257,17 +256,17 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper, Clock clock,
-            ApplicationContext applicationContext) {
+            ApplicationContext applicationContext, InMemoryAttributeRepository inMemoryAttributeRepository) {
         val pips = collectPolicyInformationPoints(applicationContext);
         log.debug("Building catalog AttributeBroker: SAPL default PIPs plus {} custom PIP instances.", pips.size());
-        return buildPolicyInformationPointAttributeBroker(clock, mapper, true, pips);
+        return buildPolicyInformationPointAttributeBroker(clock, mapper, true, pips, inMemoryAttributeRepository);
     }
 
     @Bean
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    InMemoryAttributeRepository inMemoryAttributeRepository(Clock clock) {
-        return new InMemoryAttributeRepository(clock);
+    InMemoryAttributeRepository inMemoryAttributeRepository() {
+        return new InMemoryAttributeRepository();
     }
 
     @Bean
@@ -281,15 +280,8 @@ public class PDPAutoConfiguration {
     @Primary
     @ConditionalOnMissingBean(name = "attributeBroker")
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker,
-            AttributeRepository attributeRepository) {
-        if (!(attributeRepository instanceof AttributeBroker repositoryStore)) {
-            throw new IllegalStateException(
-                    "AttributeRepository bean must also implement AttributeBroker for the default layered composition. "
-                            + "Provide your own AttributeBroker bean to override the layered composition entirely.");
-        }
-        log.debug("Building layered AttributeBroker (catalog + repository).");
-        return new LayeredAttributeBroker(policyInformationPointAttributeBroker, repositoryStore);
+    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker) {
+        return policyInformationPointAttributeBroker;
     }
 
     private BundleSecurityPolicy createBundleSecurityPolicy(BundleSecurityProperties securityProps, Path policiesPath) {

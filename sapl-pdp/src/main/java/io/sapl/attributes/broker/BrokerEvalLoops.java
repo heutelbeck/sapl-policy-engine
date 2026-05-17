@@ -31,50 +31,51 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * Eval-loop primitives that drive an {@link AttributeBroker}
- * subscription through one round per fire, with eval-side head
- * caching threaded in via {@link HeadCache}. Two flavors:
+ * Two helpers that drive the standard eval loop against an
+ * {@link AttributeBroker} with eval-side head caching threaded in
+ * via {@link HeadCache}.
+ * <p>
+ * The standard loop, on every broker fire: merge cache into the
+ * snapshot, evaluate, emit, capture head values, evict cache
+ * entries the eval dropped, filter head keys out of the next broker
+ * dep set. The same pattern across many call sites; these helpers
+ * exist so it's written once.
+ * <p>
+ * Two flavors:
  * <ul>
- * <li>{@link #openWithHead}: streaming. Opens a subscription, runs
- * the evaluator on every fire, hands the result to a side-effecting
- * consumer (typically writing to a sink stream).</li>
- * <li>{@link #awaitFirstResult}: blocking. Subscribes, runs the
- * evaluator on every fire until the result builder produces a
- * non-null value, completes a future with that value, releases the
- * subscription.</li>
+ * <li>{@link #openWithHead}: streaming. Keeps the subscription open;
+ * emits via a caller-supplied consumer on every fire.</li>
+ * <li>{@link #awaitFirstResult}: blocking. Returns the first non-null
+ * value the builder produces, then closes the subscription.</li>
  * </ul>
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 @UtilityClass
 public class BrokerEvalLoops {
 
     /**
-     * Streaming flavor: drive an eval loop until the caller closes
-     * the returned {@link AttributeBroker.Subscription}. On every
-     * broker fire, builds the merged snapshot (HeadCache-aware),
-     * runs the evaluator, hands the result to {@code onResult}
-     * (which decides whether and where to emit), then extracts the
-     * next-round dep set and feeds it back to the broker after the
-     * HeadCache wind-down.
+     * Streaming flavor: opens a broker subscription that runs the
+     * eval loop on every fire until the caller closes the returned
+     * handle.
+     * <p>
+     * Each fire: merge HeadCache into the broker snapshot, run
+     * {@code evaluator}, hand the result to {@code onResult},
+     * extract next-round deps via {@code nextDeps}, update the
+     * HeadCache, return the filtered broker deps for the next round.
      *
-     * @param <R> the evaluator's per-round result type
-     * @param broker the broker to subscribe through
-     * @param subscriptionId per-subscription id (must be unique per
-     * broker; typically a fresh UUID)
-     * @param initialDeps the evaluator's initial dep set; head keys
-     * propagate to the broker on first call and are absorbed into
-     * the cache after the first fire
-     * @param evaluator runs against the merged snapshot for one
-     * round and returns the result {@code R}
-     * @param onResult side-effecting consumer of the per-round
-     * result and the merged snapshot; typically emits to a sink when
-     * the result represents a complete round
-     * @param nextDeps extracts the evaluator's logical dep set from
-     * the result; the helper filters head-cached keys before
-     * returning the broker-effective dep set
-     * @return the broker subscription handle; the caller is
-     * responsible for closing it (typically via the sink's onClose)
+     * @param <R> per-round result type
+     * @param broker broker to subscribe through
+     * @param subscriptionId broker-unique subscription id
+     * @param initialDeps eval's initial dep set
+     * @param evaluator runs against the merged snapshot, returns the
+     * round result
+     * @param onResult side-effecting consumer of the result and the
+     * merged snapshot; the typical body is "if the result is
+     * terminal, emit it on a sink"
+     * @param nextDeps extracts the eval's logical dep set from the
+     * result for the next round
+     * @return the subscription handle; the caller closes it
      */
     public static <R> AttributeBroker.Subscription openWithHead(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDeps, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluator,
@@ -93,25 +94,26 @@ public class BrokerEvalLoops {
     }
 
     /**
-     * Blocking flavor: drive an eval loop until {@code builder}
-     * produces a non-null value, then return that value and release
-     * the subscription. Built on {@link #openWithHead}; the builder
-     * is consulted on every fire, returning {@code null} when the
-     * round is incomplete (e.g., the policy body did not resolve)
-     * and the completion value when terminal.
+     * Blocking flavor: drives the eval loop until {@code builder}
+     * produces a non-null value, returns that value, releases the
+     * subscription.
+     * <p>
+     * Built on {@link #openWithHead}. The builder is consulted on
+     * every fire and returns {@code null} when the round is not
+     * terminal (e.g., a dep is still missing) or the completion
+     * value when the round resolves.
      *
-     * @param <R> the evaluator's per-round result type
-     * @param <V> the completion value type
-     * @param broker the broker to subscribe through
-     * @param subscriptionId per-subscription id
-     * @param initialDeps the evaluator's initial dep set
-     * @param evaluator runs against the merged snapshot for one
-     * round
-     * @param builder maps a per-round result and merged snapshot to
-     * a completion value, or {@code null} when the round is not
-     * terminal
-     * @param nextDeps extracts the evaluator's logical dep set from
-     * the result
+     * @param <R> per-round result type
+     * @param <V> completion value type
+     * @param broker broker to subscribe through
+     * @param subscriptionId broker-unique subscription id
+     * @param initialDeps eval's initial dep set
+     * @param evaluator runs against the merged snapshot, returns the
+     * round result
+     * @param builder maps a result + merged snapshot to a completion
+     * value, or {@code null} if the round is not terminal
+     * @param nextDeps extracts the eval's logical dep set from the
+     * result for the next round
      * @return the first non-null value the builder produced
      * @throws InterruptedException if the caller is interrupted
      * while waiting

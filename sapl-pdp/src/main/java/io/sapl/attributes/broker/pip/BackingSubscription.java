@@ -29,29 +29,41 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Internal per-invocation value supply for the catalog-backed broker.
- * Bridges a PIP-produced {@link Stream} into the mailbox that
- * consumers read. Owns one virtual-thread pump that drains the
- * source stream and republishes each value into the mailbox; tracks
- * the consumer refcount; supports atomic source rebind for hot-swap
- * so the mailbox value is preserved across the transition.
+ * Per-invocation value mailbox for the PIP broker. One backing per
+ * unique invocation across the broker's consumers; many consumers
+ * can attach to the same backing.
  * <p>
- * The broker is head-agnostic: this class only ever tracks the latest
- * value. Consumers that want a frozen-at-first-observation value run
- * an eval-side {@code HeadCache}.
+ * What it owns: a single-slot mailbox (the latest value), a pump on
+ * a virtual thread that reads the PIP's stream and pushes each
+ * value into the slot, the subscriber index for dispatch, and the
+ * refcount for lifecycle.
+ * <p>
+ * Hot-swap: {@link #rebind} replaces the source stream atomically
+ * without clearing the slot. The prior value stays visible until
+ * the new stream emits, so consumers don't see a transient
+ * UNDEFINED while a replacement PIP spins up.
+ * <p>
+ * Locking: two locks in play. The broker's outer lock guards the
+ * subscriber index and the refcount (so dispatch and attach/detach
+ * stay consistent with the broker's wider state). This class's own
+ * lock guards the mailbox + sourceStream + lifecycle flags. Callers
+ * of {@link #attach}, {@link #detach}, {@link #subscribers} and
+ * {@link #refcount} must hold the broker lock.
  */
 @Slf4j
-final class BackingSubscription {
+final class BackingSubscription implements Backing {
 
     private static final String DEBUG_PUMP_THREW         = "Backing subscription {} pump threw: {}";
     private static final String DEBUG_STREAM_CLOSE_THREW = "Stream close threw: {}";
     private static final String WARN_ONVALUE_THREW       = "Backing subscription {} onValue handler threw: {}";
 
-    private final String                    id = UUID.randomUUID().toString();
+    private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
+
+    private final long                      id = NEXT_ID.getAndIncrement();
     private final AttributeFinderInvocation invocation;
     private final Consumer<Value>           onValue;
 
@@ -93,16 +105,19 @@ final class BackingSubscription {
         this.onValue      = onValue;
     }
 
-    String id() {
+    @Override
+    public long id() {
         return id;
     }
 
-    AttributeFinderInvocation invocation() {
+    @Override
+    public AttributeFinderInvocation invocation() {
         return invocation;
     }
 
+    @Override
     @Nullable
-    StreamAttributeFinderSpecification sourceSpec() {
+    public StreamAttributeFinderSpecification sourceSpec() {
         return sourceSpec;
     }
 
@@ -110,7 +125,8 @@ final class BackingSubscription {
      * Returns the latest published value, or {@link Optional#empty()}
      * if no value has been published yet.
      */
-    Optional<Value> snapshot() {
+    @Override
+    public Optional<Value> snapshot() {
         synchronized (lock) {
             return latestValue;
         }
@@ -120,7 +136,8 @@ final class BackingSubscription {
      * Registers a consumer-side attach. Returns the new total refcount.
      * Caller must hold the broker lock.
      */
-    int attach(ConsumerSubscriptionImpl subscriber) {
+    @Override
+    public int attach(ConsumerSubscriptionImpl subscriber) {
         subscriberRefs.merge(subscriber, 1, Integer::sum);
         refcount++;
         return refcount;
@@ -132,7 +149,8 @@ final class BackingSubscription {
      * is removed from the subscriber index (no longer eligible for
      * dispatch). Caller must hold the broker lock.
      */
-    int detach(ConsumerSubscriptionImpl subscriber) {
+    @Override
+    public int detach(ConsumerSubscriptionImpl subscriber) {
         val current = subscriberRefs.get(subscriber);
         if (current == null) {
             return refcount;
@@ -151,11 +169,13 @@ final class BackingSubscription {
      * the broker lock; the returned view aliases the underlying map's
      * keySet and is invalidated by concurrent attach/detach.
      */
-    Set<ConsumerSubscriptionImpl> subscribers() {
+    @Override
+    public Set<ConsumerSubscriptionImpl> subscribers() {
         return subscriberRefs.keySet();
     }
 
-    int refcount() {
+    @Override
+    public int refcount() {
         return refcount;
     }
 
@@ -164,7 +184,8 @@ final class BackingSubscription {
      * no source stream (terminal backing), if a pump is already
      * running, or if this backing is closed.
      */
-    void start() {
+    @Override
+    public void start() {
         synchronized (lock) {
             if (closed || sourceStream == null || pumpStarted) {
                 return;
@@ -234,7 +255,8 @@ final class BackingSubscription {
      * still inspecting the snapshot, but the backing should be
      * discarded by the broker after this call.
      */
-    void close() {
+    @Override
+    public void close() {
         Stream<Value> toClose;
         synchronized (lock) {
             if (closed) {
@@ -249,7 +271,8 @@ final class BackingSubscription {
         }
     }
 
-    boolean isClosed() {
+    @Override
+    public boolean isClosed() {
         synchronized (lock) {
             return closed;
         }

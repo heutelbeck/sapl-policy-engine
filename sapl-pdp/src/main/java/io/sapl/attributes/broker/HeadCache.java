@@ -28,41 +28,40 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Per-subscription cache of "head" attribute values for the
- * evaluator-side head semantic. The {@link AttributeBroker} is
- * head-agnostic for value delivery; the policy semantic "freeze
- * this attribute at first observation" lives here.
+ * Per-subscription cache of "head" attribute values.
  * <p>
- * Lifecycle: one instance per active broker subscription, threaded
- * through the consumer's onUpdate callback. Five steps per fire:
+ * What: stores the first value observed for each {@code head=true}
+ * SubscriptionKey, and serves that value on every subsequent read
+ * until the key leaves the eval's dep set.
+ * <p>
+ * Why: the {@link AttributeBroker} always delivers the latest value
+ * for every key. Policies that wrote {@code |head} want
+ * "value frozen at first observation" instead. That semantic lives
+ * in the eval, not in the broker.
+ * <p>
+ * How: five-step pipeline per fire, one method per step.
  * <ol>
- * <li>{@link #merge}: build the snapshot the policy reads, with
- * cached head values taking precedence over the broker's delivery
- * for the same head key.</li>
+ * <li>{@link #merge}: build the snapshot the policy reads. Cached
+ * head values override the broker's delivery for the same key.</li>
  * <li>(evaluate the policy)</li>
  * <li>{@link #captureFrom}: putIfAbsent for any head key the broker
- * just delivered.</li>
+ * just delivered. First observation wins; nothing overwrites.</li>
  * <li>{@link #retainOnly}: drop cache entries the policy no longer
- * references.</li>
- * <li>{@link #brokerDepsFor}: filter eval deps to broker deps,
- * dropping head keys the cache now serves.</li>
+ * references. If a head dep re-enters later, it captures a fresh
+ * value at that point (not the original one).</li>
+ * <li>{@link #brokerDepsFor}: drop head keys from broker deps if
+ * the cache already serves them. The broker stops delivering them.</li>
  * </ol>
  * <p>
- * Re-entry semantic (head dep removed from eval deps then later
- * re-added): the eviction in step 4 drops the cache entry, so on
- * re-entry the head key flows to the broker again and the next fire
- * captures the value the broker delivers at that moment. The "head"
- * value is therefore "value at first observation in the current
- * active-deps period," not "value at first observation in this
- * consumer's lifetime."
+ * Thread safety: none needed. The broker's
+ * {@link DispatchCoalescer} serializes onUpdate per consumer, so
+ * the cache only ever sees one thread.
  * <p>
- * Single-threaded by construction: the broker's dispatch coalescer
- * serializes onUpdate per consumer, so the cache sees no concurrent
- * access. Empty-cache fast paths make every method a no-op for
- * head-free policies beyond one {@link HashMap} allocation at
- * subscription open.
+ * Cost when no head deps are used: one empty {@link HashMap} per
+ * subscription. Every method short-circuits on the empty-cache
+ * branch.
  *
- * @since 4.2.0
+ * @since 4.1.0
  */
 public final class HeadCache {
 

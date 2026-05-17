@@ -17,31 +17,37 @@
  */
 package io.sapl.attributes.broker;
 
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.NonNull;
 
 import java.time.Duration;
+import java.util.function.Consumer;
 
 /**
- * Writer-side surface for a value-broker that complements the
- * catalog-backed {@link AttributeBroker}. Producers push values into a
- * repository keyed by {@link RepositoryKey}; readers see those values
- * through the same {@link AttributeBroker} surface the catalog-backed
- * broker exposes.
- * <p>
- * Three methods. {@code void} returns: the writer learns nothing about
- * prior state. A producer that needs to read or compare prior values
- * should subscribe through the reader surface.
+ * Repository of attribute values: a write surface for producers and a
+ * narrow single-key read surface for the PIP broker's fallback path.
+ * Producers push values into the repository keyed by
+ * {@link RepositoryKey}. Observers register a per-invocation listener
+ * via {@link #observe} and receive the current value plus every
+ * subsequent change.
  * <p>
  * Absence is {@link Value#UNDEFINED}. A key with no published entry,
  * an entry that has been explicitly removed, and an entry whose TTL
- * has expired are observationally identical from the reader surface:
- * the subscription emits {@code UNDEFINED}.
+ * has expired are observationally identical: the observer receives
+ * {@code UNDEFINED}.
  *
  * @since 4.1.0
  */
-public interface AttributeRepository {
+public interface AttributeRepository extends AutoCloseable {
+
+    /**
+     * Releases every observer registration and any internal resources.
+     * Idempotent. No further callbacks fire after this returns.
+     */
+    @Override
+    void close();
 
     /**
      * Publishes a value with no TTL. The value stays in the
@@ -75,4 +81,36 @@ public interface AttributeRepository {
      * @param key the repository key
      */
     void remove(@NonNull RepositoryKey key);
+
+    /**
+     * Registers {@code onValue} to receive value changes for
+     * {@code invocation}. The current value is delivered synchronously
+     * via {@code onValue} before this method returns; subsequent
+     * changes deliver until the returned handle is closed.
+     * <p>
+     * {@code onValue} fires outside any internal lock of this
+     * repository. Concurrent fires are serialised per registration so
+     * the observer sees changes in order.
+     *
+     * @param invocation the invocation to observe
+     * @param onValue receives the current value and every subsequent
+     * change
+     * @return idempotent, thread-safe handle that unregisters
+     * {@code onValue} when closed
+     */
+    Registration observe(@NonNull AttributeFinderInvocation invocation, @NonNull Consumer<Value> onValue);
+
+    /**
+     * Observer registration handle. Narrowed {@link AutoCloseable}
+     * whose {@link #close()} does not throw checked exceptions.
+     */
+    interface Registration extends AutoCloseable {
+
+        /**
+         * Unregisters the observer. Idempotent; safe to call from any
+         * thread.
+         */
+        @Override
+        void close();
+    }
 }

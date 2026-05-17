@@ -31,8 +31,8 @@ import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
-import io.sapl.attributes.broker.layered.LayeredAttributeBroker;
 import io.sapl.attributes.broker.pip.PipLoadException;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.api.pdp.DecisionInterceptor;
@@ -111,11 +111,11 @@ public class PolicyDecisionPointBuilder {
 
     private IdFactory idFactory;
 
-    private int             functionCacheSize = -1;
-    private FunctionBroker  externalFunctionBroker;
-    private PluginsSource   externalPluginsSource;
-    private AttributeBroker externalAttributeBroker;
-    private AttributeBroker externalRepository;
+    private int                 functionCacheSize = -1;
+    private FunctionBroker      externalFunctionBroker;
+    private PluginsSource       externalPluginsSource;
+    private AttributeBroker     externalAttributeBroker;
+    private AttributeRepository externalRepository;
 
     private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
     private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
@@ -306,11 +306,10 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a custom {@link AttributeBroker}. When set, this broker is used
-     * as-is and the builder's catalog, repository, and layered
-     * composition are bypassed. Use {@link #withRepository(AttributeBroker)}
-     * instead if the goal is only to swap the repository half of the
-     * default layered broker.
+     * Sets a custom {@link AttributeBroker}. When set, this broker is
+     * used as-is and the builder's catalog and fallback wiring are
+     * bypassed. Use {@link #withRepository(AttributeRepository)}
+     * instead if the goal is only to swap the fallback repository.
      *
      * @param attributeBroker the pre-configured attribute broker
      * @return this builder
@@ -321,18 +320,20 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets the repository half of the default layered attribute broker.
-     * The catalog half is the in-memory PIP-backed broker built from
-     * the configured PIPs. If not set, a default
-     * {@link InMemoryAttributeRepository} is used.
+     * Sets the fallback repository for invocations that have no
+     * matching PIP. The PIP broker routes catalog-matched invocations
+     * through the loaded PIPs and routes the rest through this
+     * repository. If not set, a default {@link InMemoryAttributeRepository}
+     * is used.
      * <p>
-     * This setter has no effect when {@link #withAttributeBroker(AttributeBroker)}
-     * supplies a fully custom top-level broker.
+     * This setter has no effect when
+     * {@link #withAttributeBroker(AttributeBroker)} supplies a fully
+     * custom top-level broker.
      *
-     * @param repository the repository-side {@link AttributeBroker}
+     * @param repository the fallback {@link AttributeRepository}
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withRepository(AttributeBroker repository) {
+    public PolicyDecisionPointBuilder withRepository(AttributeRepository repository) {
         this.externalRepository = repository;
         return this;
     }
@@ -790,10 +791,9 @@ public class PolicyDecisionPointBuilder {
         if (externalAttributeBroker != null) {
             return externalAttributeBroker;
         }
-        val catalog    = buildPolicyInformationPointAttributeBroker(clock, mapper,
-                includeDefaultPolicyInformationPoints, policyInformationPoints);
-        val repository = externalRepository != null ? externalRepository : new InMemoryAttributeRepository(clock);
-        return new LayeredAttributeBroker(catalog, repository);
+        val repository = externalRepository != null ? externalRepository : new InMemoryAttributeRepository();
+        return buildPolicyInformationPointAttributeBroker(clock, mapper, includeDefaultPolicyInformationPoints,
+                policyInformationPoints, repository);
     }
 
     /**
@@ -816,7 +816,30 @@ public class PolicyDecisionPointBuilder {
      */
     public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
             JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips) {
-        val broker    = new PolicyInformationPointAttributeBroker();
+        return buildPolicyInformationPointAttributeBroker(clock, mapper, includeDefaults, additionalPips, null);
+    }
+
+    /**
+     * Same as the 4-arg overload, with an explicit fallback
+     * repository for invocations that have no matching PIP. A
+     * {@code null} fallback yields a broker that surfaces
+     * {@link Value#UNDEFINED} for unmatched invocations.
+     *
+     * @param clock clock used by the time-based PIPs and the
+     * {@link TimeScheduler}
+     * @param mapper JSON mapper used by the {@link BlockingWebClient}
+     * for HTTP-based PIPs
+     * @param includeDefaults whether to load the SAPL default PIPs
+     * (HTTP, JWT, time, X.509)
+     * @param additionalPips additional PIP instances to load on top of
+     * the defaults
+     * @param fallback fallback repository for unmatched invocations
+     * @return a fully configured attribute broker
+     * @throws PipLoadException if a PIP fails to load
+     */
+    public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
+            JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips, AttributeRepository fallback) {
+        val broker    = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback);
         val scheduler = new RealTimeScheduler(clock);
 
         if (includeDefaults) {
