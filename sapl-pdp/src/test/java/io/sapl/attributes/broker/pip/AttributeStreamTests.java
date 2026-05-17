@@ -122,7 +122,10 @@ class AttributeStreamTests {
             val inner = new ScriptedStream();
             inner.emit(Value.of("a"));
             inner.emit(Value.of("b"));
-            inner.complete();
+            // Intentionally do not complete: keeping the cycle open
+            // isolates this test from end-of-cycle behaviour (an empty
+            // completion publishes UNDEFINED, which would race with
+            // the assertion below).
             val source = new ControlledSource(() -> inner);
 
             try (val stream = new AttributeStream(invocation("multi"), source)) {
@@ -140,20 +143,20 @@ class AttributeStreamTests {
     class Timeout {
 
         @Test
-        @DisplayName("first-emit slower than initialTimeOut publishes ErrorValue and enters retry burst")
-        void whenFirstEmitSlowerThanTimeoutThenErrorValueThenRetry() throws Exception {
+        @DisplayName("first-emit slower than initialTimeOut publishes UNDEFINED and enters retry burst")
+        void whenFirstEmitSlowerThanTimeoutThenUndefinedThenRetry() throws Exception {
             val firstInner  = new ScriptedStream();   // never emits, never completes
             val secondInner = new ScriptedStream();
             secondInner.emit(Value.of("recovered"));
-            secondInner.complete();
+            // Intentionally do not complete: keeps the cycle open and isolates
+            // this test from the empty-completion path.
             val source = new ControlledSource(() -> firstInner, () -> secondInner);
 
             try (val stream = new AttributeStream(invocation("slow", Duration.ofMillis(50), POLL_INTERVAL, BACKOFF, 1L),
                     source)) {
 
                 val firstObserved = stream.awaitNext();
-                assertThat(firstObserved).isInstanceOf(ErrorValue.class);
-                assertThat(((ErrorValue) firstObserved).message()).contains("produced no first value");
+                assertThat(firstObserved).isEqualTo(Value.UNDEFINED);
 
                 val recovered = stream.awaitNext();
                 assertThat(recovered).isEqualTo(Value.of("recovered"));

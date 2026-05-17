@@ -22,6 +22,7 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.DispatchCoalescer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -41,7 +42,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 /**
@@ -283,7 +283,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
 
         private final String                                                                  id;
         private final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
-        private final ReentrantLock                                                           callbackLock       = new ReentrantLock();
+        private final DispatchCoalescer                                                       coalescer;
         private final Map<SubscriptionKey, Value>                                             capturedHeadValues = new HashMap<>();
         private Set<SubscriptionKey>                                                          deps;
         private boolean                                                                       closed             = false;
@@ -291,9 +291,10 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
         ConsumerSubscriptionImpl(String id,
                 Set<SubscriptionKey> deps,
                 Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
-            this.id       = id;
-            this.deps     = deps;
-            this.onUpdate = onUpdate;
+            this.id        = id;
+            this.deps      = deps;
+            this.onUpdate  = onUpdate;
+            this.coalescer = new DispatchCoalescer(this::runOneFire);
         }
 
         @Override
@@ -314,31 +315,36 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
         }
 
         void fireCallback() {
-            callbackLock.lock();
-            try {
-                Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
-                Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> callback;
-                synchronized (lock) {
-                    if (closed) {
-                        return;
-                    }
-                    snapshot = currentSnapshot();
-                    callback = onUpdate;
-                }
-                Set<SubscriptionKey> newDeps;
-                try {
-                    newDeps = callback.apply(snapshot);
-                } catch (RuntimeException e) {
-                    log.warn(WARN_CALLBACK_THREW, id, e.getMessage(), e);
+            coalescer.requestFire();
+        }
+
+        /**
+         * Body of a single coalesced fire. Reads the current snapshot
+         * under the broker lock, invokes the consumer callback outside
+         * the lock, and applies the returned dep diff. See
+         * {@link DispatchCoalescer} for the surrounding flag dance.
+         */
+        private void runOneFire() {
+            Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
+            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> callback;
+            synchronized (lock) {
+                if (closed) {
                     return;
                 }
-                if (newDeps == null || newDeps.isEmpty()) {
-                    throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
-                }
-                applyDepDiff(newDeps);
-            } finally {
-                callbackLock.unlock();
+                snapshot = currentSnapshot();
+                callback = onUpdate;
             }
+            Set<SubscriptionKey> newDeps;
+            try {
+                newDeps = callback.apply(snapshot);
+            } catch (RuntimeException e) {
+                log.warn(WARN_CALLBACK_THREW, id, e.getMessage(), e);
+                return;
+            }
+            if (newDeps == null || newDeps.isEmpty()) {
+                throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
+            }
+            applyDepDiff(newDeps);
         }
 
         /**

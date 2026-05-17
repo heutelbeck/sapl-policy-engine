@@ -33,10 +33,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -459,6 +464,74 @@ class InMemoryAttributeRepositoryTests {
             val key = envKey("env.x");
             assertThatThrownBy(() -> broker.open("s1", Set.of(key), snapshot -> Set.of()))
                     .isInstanceOf(IllegalStateException.class).hasMessageContaining("empty/null dependencies");
+        }
+    }
+
+    @Nested
+    @DisplayName("dispatch coalescing")
+    class DispatchCoalescing {
+
+        @Test
+        @DisplayName("rapid publishes from many threads do not serialize on a slow consumer callback; "
+                + "fires coalesce and the publishers return well before the serial-fire deadline")
+        void whenManyConcurrentPublishesAndSlowConsumerThenPublishersDoNotBlock() throws Exception {
+            val key      = envKey("env.coalesce");
+            val repoFqn  = repoKey("env.coalesce");
+            val fires    = new AtomicInteger();
+            val lastSeen = new AtomicReference<Value>();
+            val callback = (Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>>) snapshot -> {
+                             fires.incrementAndGet();
+                             lastSeen.set(snapshot.get(key).value());
+                             try {
+                                 Thread.sleep(30);
+                             } catch (InterruptedException e) {
+                                 Thread.currentThread().interrupt();
+                             }
+                             return Set.of(key);
+                         };
+
+            try (val ignored = broker.open("coalesce", Set.of(key), callback)) {
+                val publisherCount     = 8;
+                val publishesPerThread = 50;
+                val total              = publisherCount * publishesPerThread;
+                val barrier            = new CountDownLatch(publisherCount);
+                val done               = new CountDownLatch(publisherCount);
+                val threads            = new ArrayList<Thread>(publisherCount);
+
+                val startNanos = System.nanoTime();
+                for (int t = 0; t < publisherCount; t++) {
+                    val threadIndex = t;
+                    val thread      = Thread.ofVirtual().start(() -> {
+                                        barrier.countDown();
+                                        try {
+                                            barrier.await();
+                                        } catch (InterruptedException e) {
+                                            Thread.currentThread().interrupt();
+                                            return;
+                                        }
+                                        for (int i = 0; i < publishesPerThread; i++) {
+                                            broker.publish(repoFqn, Value.of(threadIndex * publishesPerThread + i));
+                                        }
+                                        done.countDown();
+                                    });
+                    threads.add(thread);
+                }
+                assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+                val elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000;
+
+                // Without coalescing, 400 publishes that each blocked on a 30ms
+                // onUpdate would serialize for ~12 seconds. With the coalescer,
+                // non-driver publishers return immediately and only the
+                // driver thread runs fires. Comfortably under that bound.
+                assertThat(elapsedMillis).isLessThan(4_000);
+
+                // After all publishes settle, the consumer must have observed
+                // far fewer fires than publishes, with a final value reflecting
+                // a real published value.
+                Awaitility.await().atMost(Duration.ofSeconds(5))
+                        .untilAsserted(() -> assertThat(lastSeen.get()).isNotNull());
+                assertThat(fires.get()).isLessThan(total / 2);
+            }
         }
     }
 }

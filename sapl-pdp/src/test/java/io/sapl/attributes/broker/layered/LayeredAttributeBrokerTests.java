@@ -34,10 +34,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -355,6 +360,75 @@ class LayeredAttributeBrokerTests {
             assertThatExceptionOfType(IllegalArgumentException.class)
                     .isThrownBy(() -> layered.open("s1", Set.of(), snapshot -> Set.of(envKey("env.x"))))
                     .withMessageContaining("must not be empty");
+        }
+    }
+
+    @Nested
+    @DisplayName("dispatch coalescing")
+    class DispatchCoalescing {
+
+        @Test
+        @DisplayName("rapid primary publishes from many threads during a slow layered-consumer callback "
+                + "coalesce; the layered subscription's fires are far fewer than the publishes")
+        void whenRapidPrimaryPublishesAndSlowConsumerThenFiresCoalesce() throws Exception {
+            val key      = envKey("env.coalesce");
+            val repoFqn  = repoKey("env.coalesce");
+            val fires    = new AtomicInteger();
+            val lastSeen = new AtomicReference<Value>();
+            val callback = (Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>>) snapshot -> {
+                             fires.incrementAndGet();
+                             lastSeen.set(snapshot.get(key).value());
+                             try {
+                                 Thread.sleep(30);
+                             } catch (InterruptedException e) {
+                                 Thread.currentThread().interrupt();
+                             }
+                             return Set.of(key);
+                         };
+
+            // Seed both stores so the layered gate opens immediately.
+            primary.publish(repoFqn, Value.of(-1));
+            fallback.publish(repoFqn, Value.of(-1));
+
+            try (val ignored = layered.open("coalesce", Set.of(key), callback)) {
+                Awaitility.await().atMost(Duration.ofSeconds(2))
+                        .untilAsserted(() -> assertThat(lastSeen.get()).isNotNull());
+                val publisherCount     = 8;
+                val publishesPerThread = 50;
+                val total              = publisherCount * publishesPerThread;
+                val barrier            = new CountDownLatch(publisherCount);
+                val done               = new CountDownLatch(publisherCount);
+                val threads            = new ArrayList<Thread>(publisherCount);
+
+                val startNanos = System.nanoTime();
+                for (int t = 0; t < publisherCount; t++) {
+                    val threadIndex = t;
+                    val thread      = Thread.ofVirtual().start(() -> {
+                                        barrier.countDown();
+                                        try {
+                                            barrier.await();
+                                        } catch (InterruptedException e) {
+                                            Thread.currentThread().interrupt();
+                                            return;
+                                        }
+                                        for (int i = 0; i < publishesPerThread; i++) {
+                                            primary.publish(repoFqn, Value.of(threadIndex * publishesPerThread + i));
+                                        }
+                                        done.countDown();
+                                    });
+                    threads.add(thread);
+                }
+                assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();
+                val elapsedMillis = (System.nanoTime() - startNanos) / 1_000_000;
+
+                // 400 serialized 30ms fires would take ~12s. With coalescing,
+                // the publisher cohort finishes well below that.
+                assertThat(elapsedMillis).isLessThan(4_000);
+
+                Awaitility.await().atMost(Duration.ofSeconds(5))
+                        .untilAsserted(() -> assertThat(lastSeen.get()).isNotNull());
+                assertThat(fires.get()).isLessThan(total / 2);
+            }
         }
     }
 }

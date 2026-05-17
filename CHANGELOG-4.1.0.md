@@ -158,6 +158,21 @@ The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query re
 - Spring beans: `policyInformationPointAttributeBroker`, `inMemoryAttributeRepository`, `attributeRepository`, `attributeBroker` (`@Primary`).
 - v4.0 extension authors: new package `io.sapl.attributes.broker.*`; new callback-driven contract `open(id, deps, onUpdate) → Subscription`; no Reactor at the boundary.
 
+#### Dispatch coalescing
+A single `DispatchCoalescer` (in `io.sapl.attributes.broker`) replaces the per-consumer `ReentrantLock callbackLock` across all three brokers. Rapid publishes during a slow `onUpdate` collapse into at most one re-fire afterwards against the latest snapshot. Publisher threads (HTTP handlers, MQTT bridges, TTL scheduler in the repository) no longer block on slow consumers.
+
+#### AttributeStream wired into the PIP broker
+`AttributeStream` is now wired into `BackingSubscription`: every per-invocation cycle runs the perpetual poll/retry/timeout state machine around the matched PIP. Two regressions versus v4.0 fixed during the wiring: initial-value timeout publishes `UNDEFINED` (absence) instead of `ErrorValue`, and empty-stream completion publishes `UNDEFINED` instead of silently hanging.
+
+#### List-of-candidates freshness
+`fresh=true` is a hard requirement: never attach to an existing stream. `fresh=false` attaches to the head of the per-invocation list. The dedup map key is canonicalised (drops the `fresh` flag), so a `fresh=true`-originated stream serves later `fresh=false` consumers once it becomes the head.
+
+#### Grace period
+`PolicyInformationPointAttributeBroker(Duration gracePeriodDuration)` configures a warm-reconnect window. Refcount-to-zero schedules teardown after the duration; a re-attaching consumer cancels the teardown and observes the cached value immediately. The optimisation in §9.4 skips grace when other live backings exist for the same invocation. Default `Duration.ZERO` preserves v4.0 immediate-teardown behaviour.
+
+#### Hot-swap jitter suppression
+During a hot-swap rebind, the new `AttributeStream`'s initial-value timeout would propagate `UNDEFINED` to consumers that were observing a real prior value. `BackingSubscription` now suppresses pump-path `UNDEFINED` publishes during the rebind transition until the new stream emits a non-`UNDEFINED` value (real `Value` or `ErrorValue`). Terminal `UNDEFINED` from `publishImmediate` (unload, swap-eviction) is unaffected.
+
 ### Plugins source
 
 The PDP runtime is driven by an observable `PluginsSource` that emits immutable `PluginsBundle` snapshots. Each bundle carries the function broker, decision interceptors, and subscription lifecycle listeners as one atomic unit. `PdpVoterSource` subscribes and recompiles every retained PDP configuration against the new bundle when one arrives. The compiled artefact carries the bundle it was compiled against, so folded constants and live function calls go to the same broker for any given evaluation.

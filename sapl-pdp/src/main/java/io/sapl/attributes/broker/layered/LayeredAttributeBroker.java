@@ -21,6 +21,7 @@ import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.DispatchCoalescer;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 /**
@@ -66,6 +66,7 @@ import java.util.function.Function;
 @Slf4j
 public final class LayeredAttributeBroker implements AttributeBroker {
 
+    private static final String DEBUG_SHALLOW_CLOSE_THREW    = "Shallow subscription close threw: {}";
     private static final String ERROR_DEPS_EMPTY             = "initialDependencies must not be empty";
     private static final String ERROR_RETURNED_DEPS_INVALID  = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
@@ -154,11 +155,11 @@ public final class LayeredAttributeBroker implements AttributeBroker {
 
         private final String                                                                  id;
         private final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
-        private final ReentrantLock                                                           callbackLock = new ReentrantLock();
-        private final Map<SubscriptionKey, Slot>                                              slots        = new HashMap<>();
+        private final DispatchCoalescer                                                       coalescer;
+        private final Map<SubscriptionKey, Slot>                                              slots       = new HashMap<>();
         private Set<SubscriptionKey>                                                          currentDeps;
-        private Map<SubscriptionKey, AttributeSnapshot>                                       lastEmitted  = Map.of();
-        private boolean                                                                       closed       = false;
+        private Map<SubscriptionKey, AttributeSnapshot>                                       lastEmitted = Map.of();
+        private boolean                                                                       closed      = false;
 
         LayeredSubscription(String id,
                 Set<SubscriptionKey> currentDeps,
@@ -166,6 +167,7 @@ public final class LayeredAttributeBroker implements AttributeBroker {
             this.id          = id;
             this.currentDeps = currentDeps;
             this.onUpdate    = onUpdate;
+            this.coalescer   = new DispatchCoalescer(this::runOneFire);
         }
 
         /**
@@ -319,31 +321,36 @@ public final class LayeredAttributeBroker implements AttributeBroker {
         }
 
         private void fireCallback() {
-            callbackLock.lock();
-            try {
-                Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
-                Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> callback;
-                synchronized (lock) {
-                    if (closed) {
-                        return;
-                    }
-                    snapshot = lastEmitted;
-                    callback = onUpdate;
-                }
-                Set<SubscriptionKey> newDeps;
-                try {
-                    newDeps = callback.apply(snapshot);
-                } catch (RuntimeException e) {
-                    log.warn(WARN_CALLBACK_THREW, id, e.getMessage(), e);
+            coalescer.requestFire();
+        }
+
+        /**
+         * Body of a single coalesced fire. The layered broker reads
+         * the latest combined snapshot (already merged from primary
+         * and fallback slots under the broker lock) and invokes the
+         * consumer callback outside the lock.
+         */
+        private void runOneFire() {
+            Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
+            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> callback;
+            synchronized (lock) {
+                if (closed) {
                     return;
                 }
-                if (newDeps == null || newDeps.isEmpty()) {
-                    throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
-                }
-                applyDepDiff(newDeps);
-            } finally {
-                callbackLock.unlock();
+                snapshot = lastEmitted;
+                callback = onUpdate;
             }
+            Set<SubscriptionKey> newDeps;
+            try {
+                newDeps = callback.apply(snapshot);
+            } catch (RuntimeException e) {
+                log.warn(WARN_CALLBACK_THREW, id, e.getMessage(), e);
+                return;
+            }
+            if (newDeps == null || newDeps.isEmpty()) {
+                throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
+            }
+            applyDepDiff(newDeps);
         }
 
         private void applyDepDiff(Set<SubscriptionKey> newDeps) {
@@ -408,7 +415,7 @@ public final class LayeredAttributeBroker implements AttributeBroker {
         try {
             subscription.close();
         } catch (RuntimeException e) {
-            log.debug("Shallow subscription close threw: {}", e.getMessage());
+            log.debug(DEBUG_SHALLOW_CLOSE_THREW, e.getMessage());
         }
     }
 }

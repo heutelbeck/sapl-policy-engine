@@ -119,10 +119,6 @@ class PolicyInformationPointAttributeBrokerTests {
         }
     }
 
-    // =================================================================
-    // Catalog management (admin surface)
-    // =================================================================
-
     @Nested
     @DisplayName("Catalog: load happy paths")
     class CatalogLoadHappyPaths {
@@ -329,10 +325,6 @@ class PolicyInformationPointAttributeBrokerTests {
             assertThat(broker.resolve(envInvocation("static.greeting"))).isPresent();
         }
     }
-
-    // =================================================================
-    // Consumer surface (the AttributeBroker interface)
-    // =================================================================
 
     @Nested
     @DisplayName("Open/close lifecycle")
@@ -709,10 +701,6 @@ class PolicyInformationPointAttributeBrokerTests {
             assertThat(maxConcurrent.get()).isEqualTo(1);
         }
     }
-
-    // ----------------------------------------------------------------
-    // Test PIP fixtures
-    // ----------------------------------------------------------------
 
     @PolicyInformationPoint(name = "constant")
     static class ConstantPip {

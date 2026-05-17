@@ -25,10 +25,12 @@ import io.sapl.api.stream.Stream;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
@@ -63,24 +65,54 @@ import java.util.function.Supplier;
 @Slf4j
 final class AttributeStream implements Stream<Value> {
 
+    private static final String DEBUG_ATTEMPT_FAILED          = "Attribute '{}' attempt failed: {}";
+    private static final String DEBUG_INNER_CLOSE_THREW       = "Inner stream close threw: {}";
     private static final String ERROR_INVALID_BACKOFF         = "backoff must be a positive Duration.";
     private static final String ERROR_INVALID_INITIAL_TIMEOUT = "initialTimeOut must be a positive Duration.";
     private static final String ERROR_INVALID_POLL_INTERVAL   = "pollInterval must be a positive Duration.";
     private static final String ERROR_RETRIES_EXHAUSTED       = "Attribute '%s' transient failure: retries exhausted, last cause: %s.";
-    private static final String ERROR_TIMEOUT                 = "Attribute '%s' produced no first value within %s.";
 
-    private final AttributeFinderInvocation invocation;
-    private final Supplier<Stream<Value>>   innerSupplier;
+    private final AttributeFinderInvocation      invocation;
+    private final Supplier<Stream<Value>>        innerSupplier;
+    private final AtomicReference<Stream<Value>> preOpenedFirstInner = new AtomicReference<>();
+    private final AtomicReference<Stream<Value>> currentInner        = new AtomicReference<>();
 
     private final LatestSlotStream<Value> output = new LatestSlotStream<>();
     private volatile boolean              closed = false;
 
     AttributeStream(@NonNull AttributeFinderInvocation invocation, @NonNull Supplier<Stream<Value>> innerSupplier) {
+        this(invocation, null, innerSupplier);
+    }
+
+    /**
+     * Constructor variant that accepts a pre-opened first inner stream.
+     * The first cycle uses this pre-opened inner; subsequent cycles
+     * (and retry attempts within the first cycle if the pre-opened
+     * inner fails immediately) call {@code innerSupplier}.
+     * <p>
+     * Pre-opening lets callers observe inner-stream construction side
+     * effects (connection setup, transient state registration)
+     * synchronously instead of waiting for the pump thread to reach
+     * its first attempt.
+     *
+     * @param invocation the per-invocation parameters
+     * @param preOpenedFirstInner the inner stream to use for the
+     * first cycle's first attempt, or {@code null} to defer opening
+     * to the pump thread
+     * @param innerSupplier the supplier for all subsequent inner
+     * stream opens
+     */
+    AttributeStream(@NonNull AttributeFinderInvocation invocation,
+            @Nullable Stream<Value> preOpenedFirstInner,
+            @NonNull Supplier<Stream<Value>> innerSupplier) {
         requirePositive(invocation.initialTimeOut(), ERROR_INVALID_INITIAL_TIMEOUT);
         requirePositive(invocation.pollInterval(), ERROR_INVALID_POLL_INTERVAL);
         requirePositive(invocation.backoff(), ERROR_INVALID_BACKOFF);
         this.invocation    = invocation;
         this.innerSupplier = innerSupplier;
+        if (preOpenedFirstInner != null) {
+            this.preOpenedFirstInner.set(preOpenedFirstInner);
+        }
         Thread.ofVirtual().name("AttributeStream-pump-" + invocation.attributeName()).start(this::runLoop);
     }
 
@@ -107,6 +139,14 @@ final class AttributeStream implements Stream<Value> {
         }
         closed = true;
         output.close();
+        val inflightInner = currentInner.getAndSet(null);
+        if (inflightInner != null) {
+            safeClose(inflightInner);
+        }
+        val preOpened = preOpenedFirstInner.getAndSet(null);
+        if (preOpened != null) {
+            safeClose(preOpened);
+        }
     }
 
     private void runLoop() {
@@ -125,11 +165,10 @@ final class AttributeStream implements Stream<Value> {
                 attempt();
                 return;
             } catch (TimeoutException e) {
-                publish(Value.error(
-                        ERROR_TIMEOUT.formatted(invocation.attributeName(), invocation.initialTimeOut().toString())));
-                lastCause = new RuntimeException("timeout");
+                publish(Value.UNDEFINED);
+                lastCause = new RuntimeException("timeout after " + invocation.initialTimeOut());
             } catch (RuntimeException e) {
-                log.debug("Attribute '{}' attempt failed: {}", invocation.attributeName(), e.getMessage());
+                log.debug(DEBUG_ATTEMPT_FAILED, invocation.attributeName(), e.getMessage());
                 lastCause = e;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -174,17 +213,34 @@ final class AttributeStream implements Stream<Value> {
      * the caller's retry loop can decide what to do.
      */
     private void attempt() throws InterruptedException, TimeoutException {
-        val inner = innerSupplier.get();
+        val inner = openInner();
+        currentInner.set(inner);
         try {
             val first = firstValue(inner);
             if (first == null) {
+                publish(Value.UNDEFINED);
                 return;
             }
             publish(first);
             drain(inner);
         } finally {
-            safeClose(inner);
+            if (currentInner.compareAndSet(inner, null)) {
+                safeClose(inner);
+            }
+            // If the CAS failed, close() already took ownership of the inner
+            // and closed it; do not double-close.
         }
+    }
+
+    /**
+     * Returns the pre-opened first inner once, then falls back to the
+     * supplier for every subsequent open. Retry attempts within the
+     * first cycle that need a fresh inner go through the supplier
+     * (the pre-opened inner is single-use).
+     */
+    private Stream<Value> openInner() {
+        val pre = preOpenedFirstInner.getAndSet(null);
+        return pre != null ? pre : innerSupplier.get();
     }
 
     private Value firstValue(Stream<Value> inner) throws InterruptedException, TimeoutException {
@@ -224,7 +280,7 @@ final class AttributeStream implements Stream<Value> {
         try {
             stream.close();
         } catch (RuntimeException e) {
-            log.debug("Inner stream close threw: {}", e.getMessage());
+            log.debug(DEBUG_INNER_CLOSE_THREW, e.getMessage());
         }
     }
 }

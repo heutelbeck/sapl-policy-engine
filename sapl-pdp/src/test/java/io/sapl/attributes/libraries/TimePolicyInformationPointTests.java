@@ -314,8 +314,8 @@ class TimePolicyInformationPointTests {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         @DisplayName("returns error for invalid timezone")
+        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         void whenInvalidTimezoneThenReturnsError(String invalidZone) {
             val f = fixtureAt("2021-11-08T13:00:00Z");
             try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"), Value.of(invalidZone))) {
@@ -353,8 +353,8 @@ class TimePolicyInformationPointTests {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         @DisplayName("returns error for invalid timezone")
+        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         void whenInvalidTimezoneThenReturnsError(String invalidZone) {
             val f = fixtureAt("2021-11-08T13:00:00Z");
             try (val stream = f.sut.localTimeIsBefore(Value.of("12:00"), Value.of(invalidZone))) {
@@ -438,7 +438,7 @@ class TimePolicyInformationPointTests {
         @Test
         @DisplayName("emits TRUE for wrapping interval when starting outside the gap")
         void whenWrappingIntervalAndStartingOutsideGapThenEmitsTrue() {
-            // Interval 15:00-14:00 (wraps midnight) at 13:00 → inside interval
+            // Interval 15:00-14:00 (wraps midnight) at 13:00 is inside the interval
             val f = fixtureAt("2021-11-08T13:00:00Z");
             try (val stream = f.sut.localTimeIsBetween(Value.of("15:00"), Value.of("14:00:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
@@ -459,8 +459,8 @@ class TimePolicyInformationPointTests {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         @DisplayName("returns error for invalid timezone")
+        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         void whenInvalidTimezoneThenReturnsError(String invalidZone) {
             val f = fixtureAt("2021-11-08T13:00:00Z");
             try (val stream = f.sut.localTimeIsBetween(Value.of("12:00"), Value.of("14:00"), Value.of(invalidZone))) {

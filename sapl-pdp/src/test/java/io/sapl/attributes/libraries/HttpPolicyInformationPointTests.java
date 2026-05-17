@@ -72,8 +72,8 @@ class HttpPolicyInformationPointTests {
     @DisplayName("Environment attributes")
     class EnvironmentAttributes {
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         @DisplayName("delegates to client with correct HTTP method")
         void whenEnvironmentAttributeCalledThenDelegatesToClient(String name, String expectedMethod,
                 EnvironmentAttributeInvoker invoker) {
@@ -110,8 +110,8 @@ class HttpPolicyInformationPointTests {
     @DisplayName("Entity attributes with request settings")
     class EntityAttributesWithSettings {
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         @DisplayName("delegates to client with merged URL")
         void whenEntityAttributeCalledThenDelegatesToClientWithMergedUrl(String name, String expectedMethod,
                 EntityAttributeInvoker invoker) {
@@ -150,8 +150,8 @@ class HttpPolicyInformationPointTests {
     @DisplayName("Entity attributes without request settings")
     class EntityAttributesNoArgs {
 
-        @ParameterizedTest(name = "{0}")
         @MethodSource
+        @ParameterizedTest(name = "{0}")
         @DisplayName("no-args overload delegates with empty settings")
         void whenEntityAttributeCalledWithoutSettingsThenDelegatesWithEmptyObject(String name, String expectedMethod,
                 NoArgsEntityAttributeInvoker invoker) {

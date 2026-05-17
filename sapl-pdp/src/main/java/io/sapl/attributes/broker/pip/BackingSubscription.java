@@ -39,25 +39,26 @@ import java.util.function.Consumer;
 @Slf4j
 final class BackingSubscription {
 
+    private static final String DEBUG_PUMP_THREW         = "Backing subscription {} pump threw: {}";
+    private static final String DEBUG_STREAM_CLOSE_THREW = "Stream close threw: {}";
+    private static final String WARN_ONVALUE_THREW       = "Backing subscription {} onValue handler threw: {}";
+
     private final String                    id       = UUID.randomUUID().toString();
     private final AttributeFinderInvocation invocation;
-    private final boolean                   shared;
     private final Consumer<Value>           onValue;
     private final AtomicInteger             refcount = new AtomicInteger();
 
-    private final Object                                 lock        = new Object();
+    private final Object                                 lock               = new Object();
     private Stream<Value>                                sourceStream;
     private Thread                                       pumpThread;
-    private Optional<Value>                              latestValue = Optional.empty();
-    private Optional<Value>                              firstValue  = Optional.empty();
+    private Optional<Value>                              latestValue        = Optional.empty();
+    private Optional<Value>                              firstValue         = Optional.empty();
     private @Nullable StreamAttributeFinderSpecification sourceSpec;
-    private boolean                                      closed      = false;
+    private boolean                                      closed             = false;
+    private boolean                                      inRebindTransition = false;
 
     /**
      * @param invocation the invocation this backing serves
-     * @param shared {@code true} when registered in the broker's
-     * shared-dedup map; {@code false} when private to one consumer
-     * (created via {@code fresh=true})
      * @param sourceStream the initial source stream; may be
      * {@code null} for terminal backings (no matching PIP)
      * @param sourceSpec the catalog spec that produced
@@ -68,12 +69,10 @@ final class BackingSubscription {
      * the source stream; the broker wires this to its dispatch path
      */
     BackingSubscription(AttributeFinderInvocation invocation,
-            boolean shared,
             @Nullable Stream<Value> sourceStream,
             @Nullable StreamAttributeFinderSpecification sourceSpec,
             Consumer<Value> onValue) {
         this.invocation   = invocation;
-        this.shared       = shared;
         this.sourceStream = sourceStream;
         this.sourceSpec   = sourceSpec;
         this.onValue      = onValue;
@@ -85,10 +84,6 @@ final class BackingSubscription {
 
     AttributeFinderInvocation invocation() {
         return invocation;
-    }
-
-    boolean shared() {
-        return shared;
     }
 
     @Nullable
@@ -153,9 +148,12 @@ final class BackingSubscription {
      * time, and the catalog publishes a terminal value
      * ({@link Value#UNDEFINED} on unload/swap-eviction, an ErrorValue
      * on rebind failure) before discarding the backing.
+     * <p>
+     * Bypasses the rebind-transition gate (see {@link #rebind}): the
+     * caller has explicitly chosen this value as terminal.
      */
     void publishImmediate(Value value) {
-        publish(value);
+        publishInternal(value, false);
     }
 
     /**
@@ -163,6 +161,14 @@ final class BackingSubscription {
      * stream with a fresh one without clearing the mailbox: consumers
      * keep observing the prior value until the new stream emits its
      * first value. Closes the old stream so its pump exits naturally.
+     * <p>
+     * Marks the backing as in a rebind transition: pump-path
+     * publishes of {@link Value#UNDEFINED} are suppressed until the
+     * new stream emits a non-UNDEFINED value. This prevents transient
+     * absence jitter during a hot-swap when the replacement stream's
+     * initial-value timeout would otherwise propagate UNDEFINED to
+     * consumers that were observing a real prior value. Terminal
+     * UNDEFINED (via {@link #publishImmediate}) is unaffected.
      *
      * @param newSourceStream the freshly opened replacement stream
      * @param newSourceSpec the catalog spec that produced the
@@ -177,10 +183,11 @@ final class BackingSubscription {
                 }
                 return;
             }
-            oldStream    = sourceStream;
-            sourceStream = newSourceStream;
-            sourceSpec   = newSourceSpec;
-            pumpThread   = null;
+            oldStream          = sourceStream;
+            sourceStream       = newSourceStream;
+            sourceSpec         = newSourceSpec;
+            pumpThread         = null;
+            inRebindTransition = true;
         }
         if (oldStream != null) {
             safeClose(oldStream);
@@ -231,21 +238,32 @@ final class BackingSubscription {
                 Thread.currentThread().interrupt();
                 return;
             } catch (RuntimeException e) {
-                log.debug("Backing subscription {} pump threw: {}", id, e.getMessage());
+                log.debug(DEBUG_PUMP_THREW, id, e.getMessage());
                 return;
             }
             if (next == null) {
                 return;
             }
-            publish(next);
+            publishInternal(next, true);
         }
     }
 
-    private void publish(Value value) {
+    /**
+     * @param value the value to publish
+     * @param gatedByRebind {@code true} when this publish flows from
+     * the source-stream pump (subject to the rebind-transition gate);
+     * {@code false} for immediate / terminal publishes that bypass
+     * the gate
+     */
+    private void publishInternal(Value value, boolean gatedByRebind) {
         synchronized (lock) {
             if (closed) {
                 return;
             }
+            if (gatedByRebind && inRebindTransition && Value.UNDEFINED.equals(value)) {
+                return;
+            }
+            inRebindTransition = false;
             if (firstValue.isEmpty()) {
                 firstValue = Optional.of(value);
             }
@@ -254,7 +272,7 @@ final class BackingSubscription {
         try {
             onValue.accept(value);
         } catch (RuntimeException e) {
-            log.warn("Backing subscription {} onValue handler threw: {}", id, e.getMessage(), e);
+            log.warn(WARN_ONVALUE_THREW, id, e.getMessage(), e);
         }
     }
 
@@ -262,7 +280,7 @@ final class BackingSubscription {
         try {
             stream.close();
         } catch (RuntimeException e) {
-            log.debug("Stream close threw: {}", e.getMessage());
+            log.debug(DEBUG_STREAM_CLOSE_THREW, e.getMessage());
         }
     }
 }

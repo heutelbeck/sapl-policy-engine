@@ -67,7 +67,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * unit suite covers the edge cases.
  */
 @DisplayName("AttributeBroker end-to-end demo")
-class AttributeBrokerDemoTest {
+class AttributeBrokerDemoTests {
 
     private static final boolean PRINT_OUTPUT = false;
 
@@ -108,77 +108,57 @@ class AttributeBrokerDemoTest {
     @Test
     @DisplayName("load a PIP, observe a value, hot-swap to a new version, observe the new value, unload")
     void endToEndDemo() {
-        // ----------------------------------------------------------------
-        // 1) Construct the broker. No external broker, no PDP scope, no
-        // config. The broker IS the catalog. Plug-in engines call
-        // load/swap/unload on this object; evaluators call open/close.
-        // ----------------------------------------------------------------
+        // Construct the broker. The broker is also the catalog: plug-in engines
+        // call load/swap/unload on this object; evaluators call open/close.
         try (val broker = new PolicyInformationPointAttributeBroker()) {
-            // ------------------------------------------------------------
-            // 2) Load the v1 PIP. The broker extracts every annotated
-            // method into a StreamAttributeFinderSpecification, checks
-            // for collisions against any already-loaded PIPs, and
-            // registers them. Returns a handle the plug-in engine can
-            // later use to swap or unload.
-            // ------------------------------------------------------------
+            // Load the v1 PIP. The broker extracts every annotated method into
+            // a StreamAttributeFinderSpecification, checks for collisions, and
+            // registers them; returns a handle for later swap/unload.
             val v1Handle = broker.load(new GreetingPipV1());
             assertThat(v1Handle.pipName()).isEqualTo("greeting");
             assertThat(v1Handle.isLoaded()).isTrue();
             assertThat(broker.catalog()).containsExactly(v1Handle);
 
-            // ------------------------------------------------------------
-            // 3) Open a consumer subscription. The consumer hands the
-            // broker a Set<SubscriptionKey> (its initial dependencies)
-            // and a callback. The broker wires the dependencies to
-            // backing subscriptions, opens the underlying PIP streams,
-            // and fires the callback once every dep has a value.
-            // ------------------------------------------------------------
+            // Open a consumer subscription. The consumer hands the broker a
+            // Set<SubscriptionKey> and a callback; the broker wires backing
+            // subscriptions and fires the callback once every dep has a value.
             val helloKey  = key("greeting.hello");
             val snapshots = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
 
             val consumerSub = broker.open("demo-subscription", Set.of(helloKey), snapshot -> {
                 snapshots.add(snapshot);
-                // The callback returns the next dep set. A consumer that wants to
-                // keep observing the same deps simply returns its current set.
+                // The callback returns the next dep set. A consumer that wants
+                // to keep observing the same deps returns its current set.
                 return Set.of(helloKey);
             });
 
-            // First snapshot arrives quickly (the v1 PIP's value is constant).
+            // First snapshot arrives quickly (v1's value is constant).
             Awaitility.await().atMost(Duration.ofSeconds(2))
                     .untilAsserted(() -> assertThat(snapshots).hasSizeGreaterThanOrEqualTo(1));
             assertThat(snapshots.get(0).get(helloKey).value()).isEqualTo(Value.of("hello from v1"));
 
-            // ------------------------------------------------------------
-            // 4) Hot-swap to v2. The broker atomically replaces v1's
-            // specs with v2's specs. The active backing subscription
-            // rebinds to the v2 stream WITHOUT publishing a transient
-            // ErrorValue: the consumer's mailbox keeps its current
-            // value and transitions to v2's value when v2 emits.
-            // ------------------------------------------------------------
+            // Hot-swap to v2. The broker atomically replaces v1's specs with
+            // v2's. The active backing rebinds to v2 without publishing a
+            // transient ErrorValue: the mailbox keeps the prior value and
+            // transitions to v2's value when v2 emits.
             val v2Handle = broker.swap(v1Handle, new GreetingPipV2());
             assertThat(v1Handle.isLoaded()).isFalse();
             assertThat(v2Handle.isLoaded()).isTrue();
 
-            // Push a value on v2's stream; the consumer observes it.
             GreetingPipV2.LATEST.put(Value.of("hello from v2"));
             Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(snapshots)
                     .anySatisfy(s -> assertThat(s.get(helloKey).value()).isEqualTo(Value.of("hello from v2"))));
 
-            // No snapshot in the consumer's history carries an
-            // ErrorValue for the swapped key. The transition was
-            // visible to no one.
+            // No snapshot in the consumer's history carries an ErrorValue for
+            // the swapped key. The transition was invisible to consumers.
             for (val s : snapshots) {
                 assertThat(s.get(helloKey).value()).isNotInstanceOf(ErrorValue.class);
             }
 
-            // ------------------------------------------------------------
-            // 5) Unload the PIP. Active backing subscriptions for it
-            // publish UNDEFINED (absence at this layer) and tear down
-            // their source. A LayeredAttributeBroker composing this
-            // broker with a repository would fall through to the
-            // repository at this point; standalone, the consumer
-            // observes UNDEFINED.
-            // ------------------------------------------------------------
+            // Unload the PIP. Active backings publish UNDEFINED (absence at
+            // this layer) and tear down their source. Under a layered broker
+            // composing this with a repository, the consumer would see the
+            // repository value; standalone, UNDEFINED.
             v2Handle.unload();
             assertThat(v2Handle.isLoaded()).isFalse();
             assertThat(broker.catalog()).isEmpty();
@@ -188,15 +168,8 @@ class AttributeBrokerDemoTest {
                 assertThat(last).isEqualTo(Value.UNDEFINED);
             });
 
-            // ------------------------------------------------------------
-            // 6) Close the consumer subscription. The broker releases the
-            // subscription's routing entries; backing subscriptions
-            // whose refcount drops to zero are torn down.
-            // ------------------------------------------------------------
-            // ------------------------------------------------------------
-            // 7) Closing the broker (here via try-with-resources) releases
-            // any remaining subscriptions and backing subscriptions.
-            // ------------------------------------------------------------
+            // Close the consumer subscription. The try-with-resources around
+            // the broker takes care of any remaining backings.
             consumerSub.close();
         }
     }
@@ -211,13 +184,11 @@ class AttributeBrokerDemoTest {
     @Test
     @DisplayName("loads every real PIP shipped in sapl-pdp into a single broker without collisions")
     void loadsAllRealSaplPdpPips() {
-        // ----------------------------------------------------------------
-        // Wire the minimal infrastructure each PIP needs: a clock, a
-        // virtual-time scheduler, a JSON mapper, and a blocking HTTP
-        // client. None of these PIPs is exercised through subscriptions
-        // here -- this test asserts only that every real PIP shipped in
-        // sapl-pdp registers cleanly under its declared namespace.
-        // ----------------------------------------------------------------
+        // Wire the minimal infrastructure each PIP needs: a clock, a virtual-time
+        // scheduler, a JSON mapper, and a blocking HTTP client. None of these
+        // PIPs is exercised through subscriptions here; the test asserts only
+        // that every real PIP shipped in sapl-pdp registers cleanly under its
+        // declared namespace.
         val mapper      = JsonMapper.builder().build();
         val clock       = Clock.systemUTC();
         val scheduler   = new RealTimeScheduler(clock);
