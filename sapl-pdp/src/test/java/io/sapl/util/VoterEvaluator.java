@@ -21,7 +21,7 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.HeadCache;
+import io.sapl.attributes.broker.BrokerEvalLoops;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
@@ -73,18 +73,12 @@ public class VoterEvaluator {
             return stream;
         }
 
-        val headCache = new HeadCache();
-        val sub       = broker.open("vt-voter-" + UUID.randomUUID(),
-                headCache.brokerDepsFor(initial.dependencies().keySet()), brokerSnap -> {
-                                  val r = streamVoter.evaluate(baseCtx.withSnapshot(headCache.merge(brokerSnap)));
-                                  if (r.vote() != null) {
-                                      stream.put(r.vote());
-                                  }
-                                  val newDeps = r.dependencies().keySet();
-                                  headCache.captureFrom(brokerSnap);
-                                  headCache.retainOnly(newDeps);
-                                  return headCache.brokerDepsFor(newDeps);
-                              });
+        val sub = BrokerEvalLoops.openWithHead(broker, "vt-voter-" + UUID.randomUUID(), initial.dependencies().keySet(),
+                snap -> streamVoter.evaluate(baseCtx.withSnapshot(snap)), (r, snap) -> {
+                    if (r.vote() != null) {
+                        stream.put(r.vote());
+                    }
+                }, r -> r.dependencies().keySet());
         stream.onClose(sub::close);
         return stream;
     }

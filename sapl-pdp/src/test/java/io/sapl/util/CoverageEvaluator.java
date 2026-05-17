@@ -21,7 +21,7 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.stream.QueueStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.HeadCache;
+import io.sapl.attributes.broker.BrokerEvalLoops;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.policy.CoverageVoter;
 import lombok.experimental.UtilityClass;
@@ -57,21 +57,16 @@ public class CoverageEvaluator {
             return stream;
         }
 
-        val headCache = new HeadCache();
-        val sub       = broker.open("vt-cov-" + UUID.randomUUID(),
-                headCache.brokerDepsFor(initial.voteResult().dependencies().keySet()), brokerSnap -> {
-                                  val r = voter.evaluate(baseCtx.withSnapshot(headCache.merge(brokerSnap)));
-                                  // Skip on incomplete: a null vote means the body did not resolve
-                                  // (some dep still missing); do not surface a partial coverage
-                                  // result to the consumer.
-                                  if (r.voteResult().vote() != null) {
-                                      stream.put(r);
-                                  }
-                                  val newDeps = r.voteResult().dependencies().keySet();
-                                  headCache.captureFrom(brokerSnap);
-                                  headCache.retainOnly(newDeps);
-                                  return headCache.brokerDepsFor(newDeps);
-                              });
+        val sub = BrokerEvalLoops.openWithHead(broker, "vt-cov-" + UUID.randomUUID(),
+                initial.voteResult().dependencies().keySet(), snap -> voter.evaluate(baseCtx.withSnapshot(snap)),
+                // Skip on incomplete: a null vote means the body did not
+                // resolve (some dep still missing); do not surface a partial
+                // coverage result to the consumer.
+                (r, snap) -> {
+                    if (r.voteResult().vote() != null) {
+                        stream.put(r);
+                    }
+                }, r -> r.voteResult().dependencies().keySet());
         stream.onClose(sub::close);
         return stream;
     }

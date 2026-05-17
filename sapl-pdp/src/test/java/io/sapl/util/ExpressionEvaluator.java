@@ -26,7 +26,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.HeadCache;
+import io.sapl.attributes.broker.BrokerEvalLoops;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -84,18 +84,12 @@ public class ExpressionEvaluator {
             return stream;
         }
 
-        val headCache = new HeadCache();
-        val sub       = broker.open("vt-eval-" + UUID.randomUUID(), headCache.brokerDepsFor(initialDeps.keySet()),
-                brokerSnap -> {
-                                  val r = streamOp.evaluate(baseCtx.withSnapshot(headCache.merge(brokerSnap)));
-                                  if (r.result() != null) {
-                                      stream.put(r.result());
-                                  }
-                                  val newDeps = r.dependencies().keySet();
-                                  headCache.captureFrom(brokerSnap);
-                                  headCache.retainOnly(newDeps);
-                                  return headCache.brokerDepsFor(newDeps);
-                              });
+        val sub = BrokerEvalLoops.openWithHead(broker, "vt-eval-" + UUID.randomUUID(), initialDeps.keySet(),
+                snap -> streamOp.evaluate(baseCtx.withSnapshot(snap)), (r, snap) -> {
+                    if (r.result() != null) {
+                        stream.put(r.result());
+                    }
+                }, r -> r.dependencies().keySet());
         stream.onClose(sub::close);
         return stream;
     }

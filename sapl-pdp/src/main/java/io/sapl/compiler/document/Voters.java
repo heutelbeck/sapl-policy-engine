@@ -20,7 +20,7 @@ package io.sapl.compiler.document;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.attributes.broker.AttributeBroker;
-import io.sapl.attributes.broker.HeadCache;
+import io.sapl.attributes.broker.BrokerEvalLoops;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -28,12 +28,13 @@ import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 /**
- * Utilities operating on {@link Voter} values.
+ * Vote-shaped wrappers around the generic eval-loop helpers in
+ * {@link BrokerEvalLoops}: each method drives a Voter against an
+ * {@link AttributeBroker} until the first round produces a non-null
+ * vote, then returns that vote (or a wrapped form of it).
  */
 @UtilityClass
 public class Voters {
@@ -58,23 +59,8 @@ public class Voters {
     public static Vote awaitFirstVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) throws InterruptedException {
-        val future    = new CompletableFuture<Vote>();
-        val headCache = new HeadCache();
-        try (val ignored = broker.open(subscriptionId, headCache.brokerDepsFor(initialDependencies), brokerSnap -> {
-            val r = evaluator.apply(headCache.merge(brokerSnap));
-            if (r.vote() != null) {
-                future.complete(r.vote());
-            }
-            val newDeps = r.dependencies().keySet();
-            headCache.captureFrom(brokerSnap);
-            headCache.retainOnly(newDeps);
-            return headCache.brokerDepsFor(newDeps);
-        })) {
-            return future.get();
-        } catch (ExecutionException ee) {
-            val cause = ee.getCause();
-            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
-        }
+        return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
+                (r, snap) -> r.vote(), r -> r.dependencies().keySet());
     }
 
     /**
@@ -87,24 +73,10 @@ public class Voters {
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, Clock clock)
             throws InterruptedException {
-        val future    = new CompletableFuture<TracedVote>();
-        val headCache = new HeadCache();
-        try (val ignored = broker.open(subscriptionId, headCache.brokerDepsFor(initialDependencies), brokerSnap -> {
-            val full = headCache.merge(brokerSnap);
-            val r    = evaluator.apply(full);
-            if (r.vote() != null) {
-                future.complete(new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, full)));
-            }
-            val newDeps = r.dependencies().keySet();
-            headCache.captureFrom(brokerSnap);
-            headCache.retainOnly(newDeps);
-            return headCache.brokerDepsFor(newDeps);
-        })) {
-            return future.get();
-        } catch (ExecutionException ee) {
-            val cause = ee.getCause();
-            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
-        }
+        return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
+                (r, snap) -> r.vote() == null ? null
+                        : new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, snap)),
+                r -> r.dependencies().keySet());
     }
 
     /**
@@ -118,23 +90,10 @@ public class Voters {
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResultWithCoverage> evaluator)
             throws InterruptedException {
-        val future    = new CompletableFuture<VoteWithCoverage>();
-        val headCache = new HeadCache();
-        try (val ignored = broker.open(subscriptionId, headCache.brokerDepsFor(initialDependencies), brokerSnap -> {
-            val r = evaluator.apply(headCache.merge(brokerSnap));
-            if (r.voteResult().vote() != null) {
-                future.complete(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));
-            }
-            val newDeps = r.voteResult().dependencies().keySet();
-            headCache.captureFrom(brokerSnap);
-            headCache.retainOnly(newDeps);
-            return headCache.brokerDepsFor(newDeps);
-        })) {
-            return future.get();
-        } catch (ExecutionException ee) {
-            val cause = ee.getCause();
-            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
-        }
+        return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
+                (r, snap) -> r.voteResult().vote() == null ? null
+                        : new VoteWithCoverage(r.voteResult().vote(), r.coverage()),
+                r -> r.voteResult().dependencies().keySet());
     }
 
     /**
