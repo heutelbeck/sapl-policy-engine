@@ -20,7 +20,7 @@ package io.sapl.attributes.broker.pip;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeRepository;
-import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.ConsumerSubscriptionImpl;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.BrokerSubscription;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -33,25 +33,26 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Backing for an invocation that has no matching PIP in the catalog.
- * Wraps an {@link AttributeRepository#observe} registration on the
- * broker's fallback (typically the
+ * Active invocation fed by the broker's fallback repository, used
+ * when no PIP in the catalog matches the invocation. Wraps an
+ * {@link AttributeRepository#observe} registration on the fallback
+ * (typically the
  * {@link io.sapl.attributes.broker.repository.InMemoryAttributeRepository})
- * and exposes the same {@link Backing} contract as
- * {@link BackingSubscription}, so the PIP broker dispatches and
- * tracks refcount uniformly across both kinds.
+ * and exposes the same {@link ActiveInvocation} contract as
+ * {@link ActivePolicyInformationPointInvocation}, so the PIP broker
+ * dispatches and tracks refcount uniformly across both kinds.
  * <p>
  * If a PIP later becomes available for this invocation (catalog
- * load or swap), the broker migrates: close this delegated backing
- * and replace it with a {@link BackingSubscription} fed by the PIP.
- * Migration is handled by the broker; this class itself is static
- * during its lifetime.
+ * load or swap), the broker migrates: close this active invocation
+ * and replace it with an {@link ActivePolicyInformationPointInvocation}
+ * fed by the PIP. Migration is handled by the broker; this class
+ * itself is static during its lifetime.
  */
 @Slf4j
-final class DelegatedBacking implements Backing {
+final class ActiveRepositoryInvocation implements ActiveInvocation {
 
-    private static final String DEBUG_FALLBACK_CLOSE_THREW = "Delegated backing {} fallback close threw: {}";
-    private static final String WARN_ONVALUE_THREW         = "Delegated backing {} onValue handler threw: {}";
+    private static final String DEBUG_FALLBACK_CLOSE_THREW = "Active repository invocation {} fallback close threw: {}";
+    private static final String WARN_ONVALUE_THREW         = "Active repository invocation {} onValue handler threw: {}";
 
     private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
 
@@ -60,8 +61,8 @@ final class DelegatedBacking implements Backing {
     private final AttributeRepository       fallback;
     private final Consumer<Value>           onValue;
 
-    private final Map<ConsumerSubscriptionImpl, Integer> subscriberRefs = new HashMap<>();
-    private int                                          refcount       = 0;
+    private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
+    private int                                    refcount       = 0;
 
     private final Object                               lock        = new Object();
     private AttributeRepository.@Nullable Registration handle      = null;
@@ -69,12 +70,14 @@ final class DelegatedBacking implements Backing {
     private volatile boolean                           closed      = false;
 
     /**
-     * @param invocation the canonical invocation this backing serves
-     * @param fallback the repository the delegated observation
-     * registers against
+     * @param invocation the canonical invocation this active
+     * invocation serves
+     * @param fallback the repository this active invocation observes
      * @param onValue dispatched on every new value from the fallback
      */
-    DelegatedBacking(AttributeFinderInvocation invocation, AttributeRepository fallback, Consumer<Value> onValue) {
+    ActiveRepositoryInvocation(AttributeFinderInvocation invocation,
+            AttributeRepository fallback,
+            Consumer<Value> onValue) {
         this.invocation = invocation;
         this.fallback   = fallback;
         this.onValue    = onValue;
@@ -101,14 +104,14 @@ final class DelegatedBacking implements Backing {
     }
 
     @Override
-    public int attach(ConsumerSubscriptionImpl subscriber) {
+    public int attach(BrokerSubscription subscriber) {
         subscriberRefs.merge(subscriber, 1, Integer::sum);
         refcount++;
         return refcount;
     }
 
     @Override
-    public int detach(ConsumerSubscriptionImpl subscriber) {
+    public int detach(BrokerSubscription subscriber) {
         val current = subscriberRefs.get(subscriber);
         if (current == null) {
             return refcount;
@@ -123,7 +126,7 @@ final class DelegatedBacking implements Backing {
     }
 
     @Override
-    public Set<ConsumerSubscriptionImpl> subscribers() {
+    public Set<BrokerSubscription> subscribers() {
         return subscriberRefs.keySet();
     }
 

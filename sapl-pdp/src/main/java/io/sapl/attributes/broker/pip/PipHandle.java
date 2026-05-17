@@ -50,7 +50,7 @@ public interface PipHandle extends AutoCloseable {
 
     /**
      * Removes this PIP from the broker's catalog. Idempotent. Active
-     * backings served by this PIP migrate to the broker's fallback
+     * active invocations served by this PIP migrate to the broker's fallback
      * repository if one is configured; otherwise they receive
      * {@link io.sapl.api.model.Value#UNDEFINED} (absence) and are
      * torn down.

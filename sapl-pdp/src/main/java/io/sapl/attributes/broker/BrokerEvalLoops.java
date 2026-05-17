@@ -117,22 +117,32 @@ public class BrokerEvalLoops {
      * @return the first non-null value the builder produced
      * @throws InterruptedException if the caller is interrupted
      * while waiting
+     * @throws EvaluationException if {@code evaluator} or
+     * {@code builder} threw during dispatch
      */
     public static <R, V> V awaitFirstResult(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDeps, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluator,
             BiFunction<R, Map<SubscriptionKey, AttributeSnapshot>, V> builder,
-            Function<R, Set<SubscriptionKey>> nextDeps) throws InterruptedException {
+            Function<R, Set<SubscriptionKey>> nextDeps) throws InterruptedException, EvaluationException {
         val future = new CompletableFuture<V>();
-        try (val ignored = openWithHead(broker, subscriptionId, initialDeps, evaluator, (r, snap) -> {
-            val v = builder.apply(r, snap);
-            if (v != null) {
-                future.complete(v);
+        try {
+            try (val ignored = openWithHead(broker, subscriptionId, initialDeps, evaluator, (r, snap) -> {
+                try {
+                    val v = builder.apply(r, snap);
+                    if (v != null) {
+                        future.complete(v);
+                    }
+                } catch (RuntimeException e) {
+                    future.completeExceptionally(e);
+                }
+            }, nextDeps)) {
+                return future.get();
             }
-        }, nextDeps)) {
-            return future.get();
         } catch (ExecutionException ee) {
             val cause = ee.getCause();
-            throw new IllegalStateException(cause == null ? ee.toString() : cause.toString(), ee);
+            throw new EvaluationException(cause == null ? ee.toString() : cause.toString(), cause == null ? ee : cause);
+        } catch (RuntimeException re) {
+            throw new EvaluationException(re.getMessage(), re);
         }
     }
 }

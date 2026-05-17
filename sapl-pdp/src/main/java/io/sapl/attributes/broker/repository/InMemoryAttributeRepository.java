@@ -118,11 +118,12 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         Value initial;
         synchronized (lock) {
             if (closed) {
-                throw new IllegalStateException(ERROR_CLOSED);
+                initial = Value.error(ERROR_CLOSED);
+            } else {
+                observersByKey.computeIfAbsent(repoKey, k -> new HashSet<>()).add(observer);
+                val entry = entries.get(repoKey);
+                initial = entry != null ? entry.value : Value.UNDEFINED;
             }
-            observersByKey.computeIfAbsent(repoKey, k -> new HashSet<>()).add(observer);
-            val entry = entries.get(repoKey);
-            initial = entry != null ? entry.value : Value.UNDEFINED;
         }
         observer.deliver(initial);
         return observer;

@@ -21,6 +21,7 @@ import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.BrokerEvalLoops;
+import io.sapl.attributes.broker.EvaluationException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -58,7 +59,8 @@ public class Voters {
      */
     public static Vote awaitFirstVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
-            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) throws InterruptedException {
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator)
+            throws InterruptedException, EvaluationException {
         return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
                 (r, snap) -> r.vote(), r -> r.dependencies().keySet());
     }
@@ -72,7 +74,7 @@ public class Voters {
     public static TracedVote awaitFirstTracedVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, Clock clock)
-            throws InterruptedException {
+            throws InterruptedException, EvaluationException {
         return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
                 (r, snap) -> r.vote() == null ? null
                         : new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, snap)),
@@ -89,7 +91,7 @@ public class Voters {
     public static VoteWithCoverage awaitFirstVoteWithCoverage(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResultWithCoverage> evaluator)
-            throws InterruptedException {
+            throws InterruptedException, EvaluationException {
         return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
                 (r, snap) -> r.voteResult().vote() == null ? null
                         : new VoteWithCoverage(r.voteResult().vote(), r.coverage()),

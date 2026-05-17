@@ -54,6 +54,10 @@ public class AttributeCompiler {
     public static final String OPTION_FRESH           = "fresh";
 
     private static final String ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED          = "Attribute access not permitted in attribute options.";
+    private static final String ERROR_OPTION_MUST_BE_BOOLEAN                  = "Attribute option '%s' must be a boolean, but was: %s.";
+    private static final String ERROR_OPTION_MUST_BE_NON_NEGATIVE             = "Attribute option '%s' must be non-negative, but was: %s.";
+    private static final String ERROR_OPTION_MUST_BE_NUMBER                   = "Attribute option '%s' must be a number, but was: %s.";
+    private static final String ERROR_OPTION_MUST_BE_POSITIVE                 = "Attribute option '%s' must be positive, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_BE_OBJECT                  = "Attribute options must be an object, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION = "Attribute options must not depend on any element of the authorization subscription";
     private static final String ERROR_PDP_DEFAULTS_MUST_BE_OBJECT             = "If defined, PDP wide defaults (%s) for attribute options must be an object, but was: %s.";
@@ -115,32 +119,34 @@ public class AttributeCompiler {
      * or use attributes
      */
     public static ObjectValue compileOptions(Expression optionsExpression, CompilationContext ctx) {
+        val location    = optionsExpression == null ? null : optionsExpression.location();
         var settings    = DEFAULT_SETTINGS;
         var pdpSettings = ctx.data.variables().get(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS);
         if (pdpSettings != null) {
             if (!(pdpSettings instanceof ObjectValue pdpSettingsObjectValue)) {
                 throw new SaplCompilerException(
                         ERROR_PDP_DEFAULTS_MUST_BE_OBJECT.formatted(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpSettings),
-                        optionsExpression == null ? null : optionsExpression.location());
+                        location);
             }
             settings = mergeSettings(settings, pdpSettingsObjectValue);
         }
         if (optionsExpression == null) {
+            validateSettings(settings, null);
             return settings;
         }
         val policyLocalSettings = ExpressionCompiler.compile(optionsExpression, ctx);
         if (policyLocalSettings instanceof StreamOperator) {
-            throw new SaplCompilerException(ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED, optionsExpression.location());
+            throw new SaplCompilerException(ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED, location);
         }
         if (policyLocalSettings instanceof PureOperator) {
-            throw new SaplCompilerException(ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION,
-                    optionsExpression.location());
+            throw new SaplCompilerException(ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION, location);
         }
         if (!(policyLocalSettings instanceof ObjectValue localOverrides)) {
-            throw new SaplCompilerException(ERROR_OPTIONS_MUST_BE_OBJECT.formatted(policyLocalSettings),
-                    optionsExpression.location());
+            throw new SaplCompilerException(ERROR_OPTIONS_MUST_BE_OBJECT.formatted(policyLocalSettings), location);
         }
-        return mergeSettings(settings, localOverrides);
+        val merged = mergeSettings(settings, localOverrides);
+        validateSettings(merged, location);
+        return merged;
     }
 
     private static ObjectValue mergeSettings(ObjectValue original, ObjectValue override) {
@@ -155,6 +161,43 @@ public class AttributeCompiler {
 
     private static void mergeKey(ObjectValue.Builder builder, String key, ObjectValue original, ObjectValue override) {
         builder.put(key, override.containsKey(key) ? override.get(key) : original.get(key));
+    }
+
+    private static void validateSettings(ObjectValue settings, @Nullable SourceLocation location) {
+        requirePositive(settings, OPTION_INITIAL_TIMEOUT, location);
+        requirePositive(settings, OPTION_POLL_INTERVAL, location);
+        requirePositive(settings, OPTION_BACKOFF, location);
+        requireNonNegative(settings, OPTION_RETRIES, location);
+        requireBoolean(settings, OPTION_FRESH, location);
+    }
+
+    private static void requirePositive(ObjectValue settings, String key, @Nullable SourceLocation location) {
+        val n = requireNumber(settings, key, location);
+        if (n.signum() <= 0) {
+            throw new SaplCompilerException(ERROR_OPTION_MUST_BE_POSITIVE.formatted(key, n), location);
+        }
+    }
+
+    private static void requireNonNegative(ObjectValue settings, String key, @Nullable SourceLocation location) {
+        val n = requireNumber(settings, key, location);
+        if (n.signum() < 0) {
+            throw new SaplCompilerException(ERROR_OPTION_MUST_BE_NON_NEGATIVE.formatted(key, n), location);
+        }
+    }
+
+    private static BigDecimal requireNumber(ObjectValue settings, String key, @Nullable SourceLocation location) {
+        val value = settings.get(key);
+        if (value instanceof NumberValue(BigDecimal n)) {
+            return n;
+        }
+        throw new SaplCompilerException(ERROR_OPTION_MUST_BE_NUMBER.formatted(key, value), location);
+    }
+
+    private static void requireBoolean(ObjectValue settings, String key, @Nullable SourceLocation location) {
+        val value = settings.get(key);
+        if (!(value instanceof BooleanValue)) {
+            throw new SaplCompilerException(ERROR_OPTION_MUST_BE_BOOLEAN.formatted(key, value), location);
+        }
     }
 
     /**

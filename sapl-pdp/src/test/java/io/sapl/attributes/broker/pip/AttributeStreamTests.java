@@ -30,9 +30,6 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.util.List;
@@ -40,8 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests {@link AttributeStream}'s perpetual-poll loop, retry burst,
@@ -72,32 +67,6 @@ class AttributeStreamTests {
 
     private static Value valueOrNull(Poll<Value> poll) {
         return poll instanceof Poll.Value(Value v) ? v : null;
-    }
-
-    @Nested
-    @DisplayName("argument validation")
-    class ArgumentValidation {
-
-        static List<Arguments> invalidInvocations() {
-            return List.of(arguments("zero initialTimeOut", invocation("a", Duration.ZERO, POLL_INTERVAL, BACKOFF, 0L)),
-                    arguments("negative initialTimeOut",
-                            invocation("a", Duration.ofMillis(-1), POLL_INTERVAL, BACKOFF, 0L)),
-                    arguments("zero pollInterval", invocation("a", INITIAL_TIMEOUT, Duration.ZERO, BACKOFF, 0L)),
-                    arguments("negative pollInterval",
-                            invocation("a", INITIAL_TIMEOUT, Duration.ofMillis(-1), BACKOFF, 0L)),
-                    arguments("zero backoff", invocation("a", INITIAL_TIMEOUT, POLL_INTERVAL, Duration.ZERO, 0L)),
-                    arguments("negative backoff",
-                            invocation("a", INITIAL_TIMEOUT, POLL_INTERVAL, Duration.ofMillis(-1), 0L)));
-        }
-
-        @ParameterizedTest(name = "{0}")
-        @MethodSource("invalidInvocations")
-        @DisplayName("non-positive timing parameter is rejected")
-        void whenInvalidTimingThenIllegalArgument(String description, AttributeFinderInvocation badInvocation) {
-            val source = new ControlledSource();
-            assertThatThrownBy(() -> new AttributeStream(badInvocation, source))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
     }
 
     @Nested

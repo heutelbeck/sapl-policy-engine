@@ -19,45 +19,47 @@ package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.ConsumerSubscriptionImpl;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.BrokerSubscription;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * One value source for one canonical invocation, used by the PIP
- * broker to serve a subscription key.
+ * The broker's runtime handle for one canonical invocation. Holds the
+ * current value, the subscriber index, and the refcount; routes
+ * values from a source (a PIP or the fallback repository) to attached
+ * consumers.
  * <p>
  * Two variants:
  * <ul>
- * <li>{@link BackingSubscription} — fed by a PIP from the catalog
- * (the normal case).</li>
- * <li>{@link DelegatedBacking} — fed by a fallback broker for keys
- * that have no matching PIP in the catalog.</li>
+ * <li>{@link ActivePolicyInformationPointInvocation} — fed by a PIP
+ * from the catalog (the normal case).</li>
+ * <li>{@link ActiveRepositoryInvocation} — fed by the broker's
+ * fallback repository for invocations that have no matching PIP.</li>
  * </ul>
  * <p>
  * Subscriber index, refcount, and snapshot semantics are uniform
  * across both. The PIP broker treats them interchangeably for
  * dispatch and lifecycle.
  */
-sealed interface Backing permits BackingSubscription, DelegatedBacking {
+sealed interface ActiveInvocation permits ActivePolicyInformationPointInvocation, ActiveRepositoryInvocation {
 
     long id();
 
     AttributeFinderInvocation invocation();
 
-    /** {@code null} for delegated backings (no PIP spec backs them). */
+    /** {@code null} for repository-fed active invocations (no PIP spec). */
     @Nullable
     StreamAttributeFinderSpecification sourceSpec();
 
     Optional<Value> snapshot();
 
-    int attach(ConsumerSubscriptionImpl subscriber);
+    int attach(BrokerSubscription subscriber);
 
-    int detach(ConsumerSubscriptionImpl subscriber);
+    int detach(BrokerSubscription subscriber);
 
-    Set<ConsumerSubscriptionImpl> subscribers();
+    Set<BrokerSubscription> subscribers();
 
     int refcount();
 

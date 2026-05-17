@@ -19,6 +19,7 @@ package io.sapl.attributes.broker.repository;
 
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.awaitility.Awaitility;
@@ -261,12 +262,14 @@ class InMemoryAttributeRepositoryTests {
         }
 
         @Test
-        @DisplayName("then observe after close is rejected")
-        void thenObserveAfterCloseIsRejected() {
+        @DisplayName("then observe after close yields a one-shot ErrorValue and is never fired again")
+        void thenObserveAfterCloseYieldsErrorValue() {
             repository.close();
-            assertThatExceptionOfType(IllegalStateException.class)
-                    .isThrownBy(() -> repository.observe(invocation("env.x"), new Recorder()))
-                    .withMessageContaining("closed");
+            val recorder = new Recorder();
+
+            try (val ignored = repository.observe(invocation("env.x"), recorder)) {
+                assertThat(recorder.values).singleElement().isInstanceOf(ErrorValue.class);
+            }
         }
     }
 

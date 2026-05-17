@@ -63,12 +63,12 @@ public interface Stream<T> extends AutoCloseable {
      * <p>
      * The default implementation runs the zero-arg {@link #awaitNext()}
      * on the calling thread and a watchdog virtual thread that
-     * interrupts the caller after {@code timeout}. The CAS-based
-     * handshake between the two guarantees that, on a successful
-     * return, the watchdog produces no observable side effect on the
-     * caller (no spurious interrupt on the calling thread, no
-     * propagated exception). Implementations may override to use a
-     * native blocking-with-timeout primitive (for example
+     * interrupts the caller after {@code timeout}. An atomic
+     * compare-and-set handshake between the two guarantees that, on a
+     * successful return, the watchdog produces no observable side
+     * effect on the caller (no spurious interrupt on the calling
+     * thread, no propagated exception). Implementations may override
+     * to use a native blocking-with-timeout primitive (for example
      * {@link java.util.concurrent.BlockingQueue#poll(long, java.util.concurrent.TimeUnit)})
      * but are not required to.
      * <p>
@@ -111,26 +111,26 @@ public interface Stream<T> extends AutoCloseable {
         try {
             val value = awaitNext();
             if (state.compareAndSet(WatchdogState.PENDING, WatchdogState.CANCELLED)) {
-                // Caller won the CAS race: watchdog will see CANCELLED, will
+                // Caller won the race. Watchdog will see CANCELLED and will
                 // not interrupt. Wake the watchdog's sleep so it exits early.
                 watchdog.interrupt();
             } else {
-                // Watchdog won the CAS race: it has already done (or is about
-                // to do) caller.interrupt(). Wait for the watchdog to finish so
-                // the interrupt is reliably delivered, then clear the flag.
+                // Watchdog won the race. It has already done (or is about
+                // to do) caller.interrupt(). Wait for the watchdog to finish
+                // so the interrupt is reliably delivered, then clear the flag.
                 joinUninterruptibly(watchdog);
                 Thread.interrupted();
             }
             return value;
         } catch (InterruptedException e) {
             if (state.compareAndSet(WatchdogState.PENDING, WatchdogState.CANCELLED)) {
-                // Caller won the CAS race: external interrupt arrived before
-                // the watchdog could fire. Wake the watchdog's sleep, then
+                // Caller won the race. External interrupt arrived before the
+                // watchdog could fire. Wake the watchdog's sleep, then
                 // re-throw the external interrupt.
                 watchdog.interrupt();
                 throw e;
             }
-            // Watchdog won the CAS race: the interrupt that broke us out of
+            // Watchdog won the race. The interrupt that broke us out of
             // awaitNext is the watchdog's. Wait for the watchdog to finish so
             // any in-flight interrupt is delivered, clear the flag, then
             // surface as TimeoutException.

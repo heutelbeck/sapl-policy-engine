@@ -20,7 +20,7 @@ package io.sapl.attributes.broker.pip;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.Stream;
-import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.ConsumerSubscriptionImpl;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.BrokerSubscription;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -33,33 +33,33 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Per-invocation value mailbox for the PIP broker. One backing per
- * unique invocation across the broker's consumers; many consumers
- * can attach to the same backing.
+ * Active invocation fed by a PIP. One instance per unique invocation
+ * across the broker's consumers; many consumers can attach to the
+ * same instance.
  * <p>
  * What it owns: a single-slot mailbox (the latest value), a pump on
- * a virtual thread that reads the PIP's stream and pushes each
- * value into the slot, the subscriber index for dispatch, and the
- * refcount for lifecycle.
+ * a virtual thread that reads the PIP's stream and pushes each value
+ * into the slot, the subscriber index for dispatch, and the refcount
+ * for lifecycle.
  * <p>
  * Hot-swap: {@link #rebind} replaces the source stream atomically
- * without clearing the slot. The prior value stays visible until
- * the new stream emits, so consumers don't see a transient
- * UNDEFINED while a replacement PIP spins up.
+ * without clearing the slot. The prior value stays visible until the
+ * new stream emits, so consumers don't see a transient UNDEFINED
+ * while a replacement PIP spins up.
  * <p>
  * Locking: two locks in play. The broker's outer lock guards the
- * subscriber index and the refcount (so dispatch and attach/detach
- * stay consistent with the broker's wider state). This class's own
- * lock guards the mailbox + sourceStream + lifecycle flags. Callers
- * of {@link #attach}, {@link #detach}, {@link #subscribers} and
- * {@link #refcount} must hold the broker lock.
+ * subscriber index and the refcount, so dispatch and attach/detach
+ * stay consistent with the broker's wider state. This class's own
+ * lock guards the mailbox plus sourceStream and lifecycle flags.
+ * Callers of {@link #attach}, {@link #detach}, {@link #subscribers}
+ * and {@link #refcount} must hold the broker lock.
  */
 @Slf4j
-final class BackingSubscription implements Backing {
+final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
 
-    private static final String DEBUG_PUMP_THREW         = "Backing subscription {} pump threw: {}";
+    private static final String DEBUG_PUMP_THREW         = "Active PIP invocation {} pump threw: {}";
     private static final String DEBUG_STREAM_CLOSE_THREW = "Stream close threw: {}";
-    private static final String WARN_ONVALUE_THREW       = "Backing subscription {} onValue handler threw: {}";
+    private static final String WARN_ONVALUE_THREW       = "Active PIP invocation {} onValue handler threw: {}";
 
     private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
 
@@ -68,13 +68,13 @@ final class BackingSubscription implements Backing {
     private final Consumer<Value>           onValue;
 
     // Subscriber index + refcount are guarded by the BROKER lock, not by this
-    // BackingSubscription's internal lock. Walking only `subscriberRefs` keeps
-    // dispatch O(consumers-of-this-backing), not O(all-broker-consumers). The
+    // class's internal lock. Walking only `subscriberRefs` keeps dispatch
+    // O(consumers-of-this-active-invocation), not O(all-broker-consumers). The
     // map is a multiset (count per consumer) so a consumer routing several
-    // keys to this same backing is counted once for dispatch but balanced
-    // correctly against refcount.
-    private final Map<ConsumerSubscriptionImpl, Integer> subscriberRefs = new HashMap<>();
-    private int                                          refcount       = 0;
+    // keys to this same active invocation is counted once for dispatch but
+    // balanced correctly against refcount.
+    private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
+    private int                                    refcount       = 0;
 
     private final Object                                 lock               = new Object();
     private Stream<Value>                                sourceStream;
@@ -85,17 +85,17 @@ final class BackingSubscription implements Backing {
     private boolean                                      inRebindTransition = false;
 
     /**
-     * @param invocation the invocation this backing serves
+     * @param invocation the invocation this active invocation serves
      * @param sourceStream the initial source stream; may be
-     * {@code null} for terminal backings (no matching PIP)
+     * {@code null} for terminal active invocations (no matching PIP)
      * @param sourceSpec the catalog spec that produced
-     * {@code sourceStream}; {@code null} for terminal backings, used
-     * by the broker on hot-swap to identify which backings serve which
-     * specs
+     * {@code sourceStream}; {@code null} for terminal active
+     * invocations, used by the broker on hot-swap to identify which
+     * active invocations serve which specs
      * @param onValue callback invoked on each new value emitted by
      * the source stream; the broker wires this to its dispatch path
      */
-    BackingSubscription(AttributeFinderInvocation invocation,
+    ActivePolicyInformationPointInvocation(AttributeFinderInvocation invocation,
             @Nullable Stream<Value> sourceStream,
             @Nullable StreamAttributeFinderSpecification sourceSpec,
             Consumer<Value> onValue) {
@@ -137,7 +137,7 @@ final class BackingSubscription implements Backing {
      * Caller must hold the broker lock.
      */
     @Override
-    public int attach(ConsumerSubscriptionImpl subscriber) {
+    public int attach(BrokerSubscription subscriber) {
         subscriberRefs.merge(subscriber, 1, Integer::sum);
         refcount++;
         return refcount;
@@ -145,12 +145,12 @@ final class BackingSubscription implements Backing {
 
     /**
      * Registers a consumer-side detach. Returns the new total refcount.
-     * If the consumer's per-backing count drops to zero, the consumer
-     * is removed from the subscriber index (no longer eligible for
-     * dispatch). Caller must hold the broker lock.
+     * If the consumer's count for this active invocation drops to
+     * zero, the consumer is removed from the subscriber index (no
+     * longer eligible for dispatch). Caller must hold the broker lock.
      */
     @Override
-    public int detach(ConsumerSubscriptionImpl subscriber) {
+    public int detach(BrokerSubscription subscriber) {
         val current = subscriberRefs.get(subscriber);
         if (current == null) {
             return refcount;
@@ -170,7 +170,7 @@ final class BackingSubscription implements Backing {
      * keySet and is invalidated by concurrent attach/detach.
      */
     @Override
-    public Set<ConsumerSubscriptionImpl> subscribers() {
+    public Set<BrokerSubscription> subscribers() {
         return subscriberRefs.keySet();
     }
 
@@ -181,8 +181,8 @@ final class BackingSubscription implements Backing {
 
     /**
      * Starts the pump on the current source stream. No-op if there is
-     * no source stream (terminal backing), if a pump is already
-     * running, or if this backing is closed.
+     * no source stream (terminal active invocation), if a pump is
+     * already running, or if this active invocation is closed.
      */
     @Override
     public void start() {
@@ -197,11 +197,12 @@ final class BackingSubscription implements Backing {
 
     /**
      * Publishes a value directly into the mailbox without involving a
-     * source stream. Used for terminal-state backings: an invocation
-     * with no matching PIP publishes {@link Value#UNDEFINED} at open
-     * time, and the catalog publishes a terminal value
-     * ({@link Value#UNDEFINED} on unload/swap-eviction, an ErrorValue
-     * on rebind failure) before discarding the backing.
+     * source stream. Used for terminal-state active invocations. An
+     * invocation with no matching PIP publishes {@link Value#UNDEFINED}
+     * at creation time, and the broker publishes a terminal value
+     * ({@link Value#UNDEFINED} on unload or swap-eviction, an
+     * ErrorValue on rebind failure) before discarding the active
+     * invocation.
      * <p>
      * Bypasses the rebind-transition gate (see {@link #rebind}): the
      * caller has explicitly chosen this value as terminal.
@@ -216,7 +217,7 @@ final class BackingSubscription implements Backing {
      * keep observing the prior value until the new stream emits its
      * first value. Closes the old stream so its pump exits naturally.
      * <p>
-     * Marks the backing as in a rebind transition: pump-path
+     * Marks the active invocation as in a rebind transition. Pump-path
      * publishes of {@link Value#UNDEFINED} are suppressed until the
      * new stream emits a non-UNDEFINED value. This prevents transient
      * absence jitter during a hot-swap when the replacement stream's
@@ -252,8 +253,8 @@ final class BackingSubscription implements Backing {
     /**
      * Idempotent. Releases the source stream and signals the pump
      * thread to exit. Mailbox state is retained for any consumer
-     * still inspecting the snapshot, but the backing should be
-     * discarded by the broker after this call.
+     * still inspecting the snapshot, but the active invocation
+     * should be discarded by the broker after this call.
      */
     @Override
     public void close() {

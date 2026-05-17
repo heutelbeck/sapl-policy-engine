@@ -39,6 +39,7 @@ import io.sapl.api.stream.Streams;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.BrokerEvalLoops;
+import io.sapl.attributes.broker.EvaluationException;
 import io.sapl.attributes.broker.HeadCache;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
@@ -83,6 +84,7 @@ import java.util.function.Function;
  */
 public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisionPoint {
 
+    private static final String ERROR_EVALUATOR_THREW            = "Voter evaluation failed.";
     private static final String ERROR_INTERRUPTED                = "Voter evaluation interrupted.";
     private static final String ERROR_NO_PDP_CONFIGURATION       = "No PDP configuration found.";
     private static final String ERROR_VOTER_PRODUCED_NO_DECISION = "Voter produced no decision.";
@@ -258,6 +260,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return new VoteWithCoverage(errorVote(pdp, ERROR_INTERRUPTED), null);
+        } catch (EvaluationException ee) {
+            return new VoteWithCoverage(errorVote(pdp, ERROR_EVALUATOR_THREW), null);
         }
     }
 
@@ -370,6 +374,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return errorVote(pdp, ERROR_INTERRUPTED);
+        } catch (EvaluationException ee) {
+            return errorVote(pdp, ERROR_EVALUATOR_THREW);
         }
     }
 
@@ -405,6 +411,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             return TracedVote.of(errorVote(pdp, ERROR_INTERRUPTED), clock.instant());
+        } catch (EvaluationException ee) {
+            return TracedVote.of(errorVote(pdp, ERROR_EVALUATOR_THREW), clock.instant());
         }
     }
 

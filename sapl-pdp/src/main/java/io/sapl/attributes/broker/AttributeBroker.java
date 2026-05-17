@@ -28,18 +28,19 @@ import java.util.function.Function;
  * Multi-tenant view over the attribute layer for evaluator instances.
  * Many concurrent consumers (one per authorization subscription) hold
  * a {@link Subscription} obtained via
- * {@link #open(String, Set, Function)}; the broker deduplicates backing
- * PIP subscriptions across consumers and routes value updates to the
- * consumers that depend on the changed key.
+ * {@link #open(String, Set, Function)}. The broker deduplicates the
+ * active invocations underlying each consumer's dep set and routes
+ * value updates to the consumers that depend on the changed key.
  * <p>
  * The consumer interacts with the broker through a single function
  * callback. On each fire the broker invokes the callback with the
- * fulfilled snapshot for the consumer's currently subscribed keys; the
- * callback evaluates against the snapshot and returns the dependency
- * set its next evaluation pass will read. The broker diffs the returned
- * set against the previous one and updates backing PIP subscriptions
- * accordingly. The {@link Subscription} handle is a pure lifecycle
- * marker, with a single {@link Subscription#close()} method.
+ * fulfilled snapshot for the consumer's currently subscribed keys.
+ * The callback evaluates against the snapshot and returns the
+ * dependency set its next evaluation pass will read. The broker
+ * diffs the returned set against the previous one, activating and
+ * releasing active invocations accordingly. The {@link Subscription}
+ * handle is a pure lifecycle marker, with a single
+ * {@link Subscription#close()} method.
  * <p>
  * The first callback for a given dependency set fires only when every
  * declared key has a value in its mailbox (the all-deps-fulfilled
@@ -76,11 +77,11 @@ public interface AttributeBroker extends AutoCloseable {
      * (the gate guarantees an entry per current dep) and must return a
      * non-empty {@link Set} of the SubscriptionKeys its next evaluation
      * pass will read. The broker applies the diff against the previous
-     * dep set: backing PIP subscriptions are reference-counted across
-     * consumers; freshly added keys open backing subscriptions, dropped
-     * keys release them. Returning an empty set is illegal. Consumers
-     * who want to stop must call {@link Subscription#close()}
-     * externally.
+     * dep set. Active invocations are reference-counted across
+     * consumers. Freshly added keys activate an invocation (or attach
+     * to an existing one), dropped keys release. Returning an empty
+     * set is illegal. Consumers who want to stop must call
+     * {@link Subscription#close()} externally.
      *
      * @param subscriptionId non-blank identifier; must not collide with
      * any open subscription on this broker
@@ -105,7 +106,7 @@ public interface AttributeBroker extends AutoCloseable {
             Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate);
 
     /**
-     * Releases every open subscription and the backing PIP state. No
+     * Releases every open subscription and all active invocations. No
      * further callbacks fire after this returns.
      */
     @Override
@@ -126,8 +127,8 @@ public interface AttributeBroker extends AutoCloseable {
          * Releases this consumer's dependencies and unregisters the
          * trigger callback. Idempotent; safe to call from any thread.
          * After {@code close()} returns the broker will not invoke the
-         * callback again. Backing PIP subscriptions whose refcount
-         * falls to zero are released by the broker.
+         * callback again. Active invocations whose refcount falls to
+         * zero are released by the broker.
          */
         @Override
         void close();
