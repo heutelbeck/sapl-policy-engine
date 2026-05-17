@@ -70,7 +70,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private volatile boolean                           closed      = false;
 
     /**
-     * @param invocation the canonical invocation this active
+     * @param invocation the normalized invocation this active
      * invocation serves
      * @param fallback the repository this active invocation observes
      * @param onValue dispatched on every new value from the fallback

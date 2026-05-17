@@ -50,6 +50,7 @@ public record StreamAttributeFinderSpecification(
 
     public StreamAttributeFinderSpecification {
         requireValidName(fullyQualifiedName());
+        parameterTypes = List.copyOf(parameterTypes);
     }
 
     /**

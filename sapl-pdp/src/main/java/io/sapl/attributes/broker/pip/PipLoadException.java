@@ -18,6 +18,7 @@
 package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.SaplVersion;
+import lombok.experimental.StandardException;
 
 import java.io.Serial;
 
@@ -28,16 +29,8 @@ import java.io.Serial;
  * signature, or a spec collision against the existing catalog.
  * Catalog state is unchanged whenever this exception is raised.
  */
-public class PipLoadException extends RuntimeException {
-
+@StandardException
+public final class PipLoadException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
-
-    public PipLoadException(String message) {
-        super(message);
-    }
-
-    public PipLoadException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

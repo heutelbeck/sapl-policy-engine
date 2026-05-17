@@ -27,7 +27,7 @@ import java.io.Serial;
  * Checked so callers must convert it to a domain error value.
  */
 @StandardException
-public class EvaluationException extends Exception {
+public final class EvaluationException extends Exception {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 }

@@ -220,11 +220,11 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
      * that the task closure captures.
      */
     private static final class Entry {
-        final Value        value;
+        private final Value        value;
         @Nullable
-        ScheduledFuture<?> expiryTask;
+        private ScheduledFuture<?> expiryTask;
 
-        Entry(Value value) {
+        private Entry(Value value) {
             this.value = value;
         }
     }
@@ -240,7 +240,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
 
         private final long            id     = NEXT_ID.getAndIncrement();
-        final RepositoryKey           repositoryKey;
+        private final RepositoryKey   repositoryKey;
         private final Consumer<Value> onValue;
         private volatile boolean      closed = false;
 

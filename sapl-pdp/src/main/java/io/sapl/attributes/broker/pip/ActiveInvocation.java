@@ -26,16 +26,16 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The broker's runtime handle for one canonical invocation. Holds the
+ * The broker's runtime handle for one normalized invocation. Holds the
  * current value, the subscriber index, and the refcount; routes
  * values from a source (a PIP or the fallback repository) to attached
  * consumers.
  * <p>
  * Two variants:
  * <ul>
- * <li>{@link ActivePolicyInformationPointInvocation} — fed by a PIP
+ * <li>{@link ActivePolicyInformationPointInvocation}, fed by a PIP
  * from the catalog (the normal case).</li>
- * <li>{@link ActiveRepositoryInvocation} — fed by the broker's
+ * <li>{@link ActiveRepositoryInvocation}, fed by the broker's
  * fallback repository for invocations that have no matching PIP.</li>
  * </ul>
  * <p>

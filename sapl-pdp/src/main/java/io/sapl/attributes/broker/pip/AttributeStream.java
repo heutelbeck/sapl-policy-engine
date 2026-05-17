@@ -102,6 +102,15 @@ final class AttributeStream implements Stream<Value> {
         if (inflightInner != null) {
             safeClose(inflightInner);
         }
+        // If the supplier holds a synchronously-opened first inner that the
+        // pump never consumed, release it. Otherwise it leaks until GC.
+        if (innerSupplier instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception ignored) {
+                // best-effort cleanup
+            }
+        }
     }
 
     private void runLoop() {
@@ -171,6 +180,13 @@ final class AttributeStream implements Stream<Value> {
         val inner = innerSupplier.get();
         currentInner.set(inner);
         try {
+            // close() may have run before currentInner.set(inner) and
+            // therefore missed closing this inner. Re-check now that
+            // currentInner is published so the finally block can close
+            // it without waiting out initialTimeOut on awaitNext.
+            if (closed) {
+                return;
+            }
             val first = firstValue(inner);
             if (first == null) {
                 publish(Value.UNDEFINED);
