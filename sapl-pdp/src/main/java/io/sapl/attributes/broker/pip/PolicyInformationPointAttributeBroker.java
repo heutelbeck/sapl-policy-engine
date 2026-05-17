@@ -876,44 +876,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Called when an active invocation's refcount drops to zero.
-     * <p>
-     * Three cases:
-     * <ul>
-     * <li>The per-invocation list has more than one entry: tear
-     * down immediately. The other entries already serve future
-     * {@code fresh=false} arrivals, so a grace window here would
-     * just delay reclaiming the resource.</li>
-     * <li>Grace duration is zero: tear down immediately.</li>
-     * <li>Otherwise: schedule teardown after the grace duration.
-     * The active invocation stays in the list during the window. A
-     * re-attaching {@code fresh=false} consumer cancels the
-     * scheduled teardown and reuses the warm connection.</li>
-     * </ul>
-     */
-    private void handleRefcountZero(ActiveInvocation activeInvocation) {
-        lock.lock();
-
-        try {
-            if (activeInvocation.refcount() > 0) {
-                return;
-            }
-            val list        = subscriptions.get(activeInvocation.invocation());
-            val teardownNow = (list != null && list.size() > 1) || gracePeriodDuration.isZero();
-            if (!teardownNow) {
-                scheduleTeardown(activeInvocation);
-                return;
-            }
-            removeFromList(activeInvocation);
-        } finally {
-
-            lock.unlock();
-
-        }
-        activeInvocation.close();
-    }
-
-    /**
      * Caller holds the broker lock. Schedules the active invocation
      * for teardown after the configured grace duration. The task is
      * idempotent against cancellation via {@link #pendingTeardowns}.
@@ -1201,6 +1163,42 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             if (refire) {
                 fireCallback();
             }
+        }
+
+        /**
+         * Called when an active invocation's refcount drops to zero as a
+         * result of this consumer detaching from it.
+         * <p>
+         * Three cases:
+         * <ul>
+         * <li>The per-invocation list has more than one entry: tear down
+         * immediately. The other entries already serve future
+         * {@code fresh=false} arrivals, so a grace window here would just
+         * delay reclaiming the resource.</li>
+         * <li>Grace duration is zero: tear down immediately.</li>
+         * <li>Otherwise: schedule teardown after the grace duration. The
+         * active invocation stays in the list during the window. A
+         * re-attaching {@code fresh=false} consumer cancels the scheduled
+         * teardown and reuses the warm connection.</li>
+         * </ul>
+         */
+        private void handleRefcountZero(ActiveInvocation activeInvocation) {
+            lock.lock();
+            try {
+                if (activeInvocation.refcount() > 0) {
+                    return;
+                }
+                val list        = subscriptions.get(activeInvocation.invocation());
+                val teardownNow = (list != null && list.size() > 1) || gracePeriodDuration.isZero();
+                if (!teardownNow) {
+                    scheduleTeardown(activeInvocation);
+                    return;
+                }
+                removeFromList(activeInvocation);
+            } finally {
+                lock.unlock();
+            }
+            activeInvocation.close();
         }
     }
 
