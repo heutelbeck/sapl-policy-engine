@@ -359,7 +359,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             for (val key : initialDependencies) {
                 val backing = resolveBackingForKey(key);
                 consumer.route.put(key, backing);
-                backing.attach();
+                backing.attach(consumer);
             }
             consumers.put(subscriptionId, consumer);
             fireImmediately = consumer.allDepsHaveValues();
@@ -704,21 +704,20 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     /**
      * Called by a {@link BackingSubscription} on each value
-     * publication. Walks consumers, fires those whose route includes
-     * this backing.
+     * publication. Iterates only this backing's own subscriber set
+     * (a reverse index maintained by attach/detach), so dispatch is
+     * O(consumers-of-this-backing), not O(all-consumers).
      */
     private void dispatchValue(BackingSubscription backing) {
         List<ConsumerSubscriptionImpl> toFire;
         synchronized (lock) {
             toFire = new ArrayList<>();
-            for (val consumer : consumers.values()) {
-                if (consumer.routesAnyKeyTo(backing)) {
-                    if (!consumer.gateOpen && consumer.allDepsHaveValues()) {
-                        consumer.gateOpen = true;
-                        toFire.add(consumer);
-                    } else if (consumer.gateOpen) {
-                        toFire.add(consumer);
-                    }
+            for (val consumer : backing.subscribers()) {
+                if (!consumer.gateOpen && consumer.allDepsHaveValues()) {
+                    consumer.gateOpen = true;
+                    toFire.add(consumer);
+                } else if (consumer.gateOpen) {
+                    toFire.add(consumer);
                 }
             }
         }
@@ -788,7 +787,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 consumers.remove(id);
                 zeroed = new ArrayList<>();
                 for (val backing : route.values()) {
-                    if (backing.detach() <= 0) {
+                    if (backing.detach(this) <= 0) {
                         zeroed.add(backing);
                     }
                 }
@@ -814,15 +813,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 }
             }
             return true;
-        }
-
-        boolean routesAnyKeyTo(BackingSubscription backing) {
-            for (val routed : route.values()) {
-                if (routed == backing) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         Map<SubscriptionKey, AttributeSnapshot> currentSnapshot() {
@@ -890,11 +880,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 for (val key : added) {
                     val backing = resolveBackingForKey(key);
                     route.put(key, backing);
-                    backing.attach();
+                    backing.attach(this);
                 }
                 for (val key : removed) {
                     val backing = route.remove(key);
-                    if (backing != null && backing.detach() <= 0) {
+                    if (backing != null && backing.detach(this) <= 0) {
                         zeroed.add(backing);
                     }
                 }

@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -82,7 +81,14 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
     private final Object                                lock      = new Object();
     private final Map<RepositoryKey, Entry>             entries   = new HashMap<>();
     private final Map<String, ConsumerSubscriptionImpl> consumers = new HashMap<>();
-    private boolean                                     closed    = false;
+
+    // Reverse index: for every RepositoryKey, the set of consumers with at
+    // least one head=false dependency projecting onto it. Maintained on open,
+    // applyDepDiff and close. Drives findAffectedConsumers to O(consumers-of-
+    // this-key) instead of O(all-consumers * deps-per-consumer).
+    private final Map<RepositoryKey, Set<ConsumerSubscriptionImpl>> subscribersByKey = new HashMap<>();
+
+    private boolean closed = false;
 
     public InMemoryAttributeRepository() {
         this(Clock.systemUTC());
@@ -146,6 +152,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
             }
             consumer = new ConsumerSubscriptionImpl(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
             captureHeadValues(consumer, initialDependencies);
+            indexDeps(consumer, initialDependencies);
             consumers.put(subscriptionId, consumer);
         }
         // The gate is trivially open: every key has a value (real entry
@@ -167,6 +174,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
             toCancel = new ArrayList<>(entries.values());
             consumers.clear();
             entries.clear();
+            subscribersByKey.clear();
         }
         for (val c : toClose) {
             c.markClosed();
@@ -236,26 +244,46 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
     /**
      * Caller holds the broker lock. Returns consumers that hold at
      * least one head=false dependency whose invocation projects onto
-     * {@code repositoryKey}.
+     * {@code repositoryKey}. O(consumers-of-this-key) via the reverse
+     * index.
      */
     private List<ConsumerSubscriptionImpl> findAffectedConsumers(RepositoryKey repositoryKey) {
-        val affected = new ArrayList<ConsumerSubscriptionImpl>();
-        for (val consumer : consumers.values()) {
-            for (val dep : consumer.deps) {
-                if (!dep.head() && keyMatches(dep, repositoryKey)) {
-                    affected.add(consumer);
-                    break;
+        val subscribers = subscribersByKey.get(repositoryKey);
+        return subscribers == null ? List.of() : new ArrayList<>(subscribers);
+    }
+
+    /**
+     * Caller holds the broker lock. Adds {@code consumer} to the
+     * reverse index under every head=false dep in {@code deps}.
+     */
+    private void indexDeps(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
+        for (val dep : deps) {
+            if (!dep.head()) {
+                subscribersByKey.computeIfAbsent(RepositoryKey.fromInvocation(dep.invocation()), k -> new HashSet<>())
+                        .add(consumer);
+            }
+        }
+    }
+
+    /**
+     * Caller holds the broker lock. Removes {@code consumer} from the
+     * reverse index for every head=false dep in {@code deps}; drops
+     * empty bucket sets.
+     */
+    private void unindexDeps(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
+        for (val dep : deps) {
+            if (!dep.head()) {
+                val repoKey     = RepositoryKey.fromInvocation(dep.invocation());
+                val subscribers = subscribersByKey.get(repoKey);
+                if (subscribers == null) {
+                    continue;
+                }
+                subscribers.remove(consumer);
+                if (subscribers.isEmpty()) {
+                    subscribersByKey.remove(repoKey);
                 }
             }
         }
-        return affected;
-    }
-
-    private static boolean keyMatches(SubscriptionKey dep, RepositoryKey repositoryKey) {
-        val invocation = dep.invocation();
-        return repositoryKey.name().equals(invocation.attributeName())
-                && Objects.equals(repositoryKey.entity(), invocation.entity())
-                && repositoryKey.arguments().equals(invocation.arguments());
     }
 
     private void fireAll(List<ConsumerSubscriptionImpl> consumers) {
@@ -305,6 +333,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
                 }
                 closed = true;
                 consumers.remove(id);
+                unindexDeps(this, deps);
             }
         }
 
@@ -387,6 +416,8 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
                 for (val dep : removed) {
                     capturedHeadValues.remove(dep);
                 }
+                indexDeps(this, added);
+                unindexDeps(this, removed);
                 deps   = new HashSet<>(newDeps);
                 refire = !added.isEmpty();
             }

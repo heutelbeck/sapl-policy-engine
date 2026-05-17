@@ -20,12 +20,16 @@ package io.sapl.attributes.broker.pip;
 import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.Stream;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.ConsumerSubscriptionImpl;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -43,10 +47,19 @@ final class BackingSubscription {
     private static final String DEBUG_STREAM_CLOSE_THREW = "Stream close threw: {}";
     private static final String WARN_ONVALUE_THREW       = "Backing subscription {} onValue handler threw: {}";
 
-    private final String                    id       = UUID.randomUUID().toString();
+    private final String                    id = UUID.randomUUID().toString();
     private final AttributeFinderInvocation invocation;
     private final Consumer<Value>           onValue;
-    private final AtomicInteger             refcount = new AtomicInteger();
+
+    // Subscriber index + refcount are guarded by the BROKER lock, not by this
+    // BackingSubscription's internal lock. Walking only `subscriberRefs` keeps
+    // dispatch O(consumers-of-this-backing), not O(all-broker-consumers).
+    // The map is a multiset (count per consumer) so that a consumer routing
+    // several keys (e.g., head=true and head=false) to this same backing is
+    // accounted for exactly once in subscribers() but balanced correctly on
+    // attach/detach against refcount.
+    private final Map<ConsumerSubscriptionImpl, Integer> subscriberRefs = new HashMap<>();
+    private int                                          refcount       = 0;
 
     private final Object                                 lock               = new Object();
     private Stream<Value>                                sourceStream;
@@ -110,21 +123,46 @@ final class BackingSubscription {
     }
 
     /**
-     * Increments the refcount. Returns the new count.
+     * Registers a consumer-side attach. Returns the new total refcount.
+     * Caller must hold the broker lock.
      */
-    int attach() {
-        return refcount.incrementAndGet();
+    int attach(ConsumerSubscriptionImpl subscriber) {
+        subscriberRefs.merge(subscriber, 1, Integer::sum);
+        refcount++;
+        return refcount;
     }
 
     /**
-     * Decrements the refcount. Returns the new count.
+     * Registers a consumer-side detach. Returns the new total refcount.
+     * If the consumer's per-backing count drops to zero, the consumer
+     * is removed from the subscriber index (no longer eligible for
+     * dispatch). Caller must hold the broker lock.
      */
-    int detach() {
-        return refcount.decrementAndGet();
+    int detach(ConsumerSubscriptionImpl subscriber) {
+        val current = subscriberRefs.get(subscriber);
+        if (current == null) {
+            return refcount;
+        }
+        if (current == 1) {
+            subscriberRefs.remove(subscriber);
+        } else {
+            subscriberRefs.put(subscriber, current - 1);
+        }
+        refcount--;
+        return refcount;
+    }
+
+    /**
+     * Returns the current consumer set for dispatch. Caller must hold
+     * the broker lock; the returned view aliases the underlying map's
+     * keySet and is invalidated by concurrent attach/detach.
+     */
+    Set<ConsumerSubscriptionImpl> subscribers() {
+        return subscriberRefs.keySet();
     }
 
     int refcount() {
-        return refcount.get();
+        return refcount;
     }
 
     /**

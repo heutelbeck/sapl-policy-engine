@@ -38,6 +38,7 @@ import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.HeadCache;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.TracedVote;
@@ -293,13 +294,19 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.voteResult().vote() != null) {
             out.put(new VoteWithCoverage(initial.voteResult().vote(), initial.coverage()));
         }
-        val handle = attributeBroker.open(subscriptionId, initial.voteResult().dependencies().keySet(), snapshot -> {
-            val r = pdp.coverageVoter().evaluate(baseCtx.withSnapshot(snapshot));
-            if (r.voteResult().vote() != null) {
-                out.put(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));
-            }
-            return r.voteResult().dependencies().keySet();
-        });
+        val headCache = new HeadCache();
+        val handle    = attributeBroker.open(subscriptionId,
+                headCache.brokerDepsFor(initial.voteResult().dependencies().keySet()), brokerSnap -> {
+                                  val r = pdp.coverageVoter()
+                                          .evaluate(baseCtx.withSnapshot(headCache.merge(brokerSnap)));
+                                  if (r.voteResult().vote() != null) {
+                                      out.put(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));
+                                  }
+                                  val newDeps = r.voteResult().dependencies().keySet();
+                                  headCache.captureFrom(brokerSnap);
+                                  headCache.retainOnly(newDeps);
+                                  return headCache.brokerDepsFor(newDeps);
+                              });
         out.onClose(handle::close);
         return out;
     }
@@ -522,13 +529,18 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.vote() != null) {
             out.put(initial.vote());
         }
-        val handle = attributeBroker.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
-            val r = voter.evaluate(baseCtx.withSnapshot(snapshot));
-            if (r.vote() != null) {
-                out.put(r.vote());
-            }
-            return r.dependencies().keySet();
-        });
+        val headCache = new HeadCache();
+        val handle    = attributeBroker.open(subscriptionId, headCache.brokerDepsFor(initial.dependencies().keySet()),
+                brokerSnap -> {
+                                  val r = voter.evaluate(baseCtx.withSnapshot(headCache.merge(brokerSnap)));
+                                  if (r.vote() != null) {
+                                      out.put(r.vote());
+                                  }
+                                  val newDeps = r.dependencies().keySet();
+                                  headCache.captureFrom(brokerSnap);
+                                  headCache.retainOnly(newDeps);
+                                  return headCache.brokerDepsFor(newDeps);
+                              });
         out.onClose(handle::close);
         return out;
     }
@@ -555,13 +567,19 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.vote() != null) {
             out.put(TracedVote.of(initial.vote(), clock.instant()));
         }
-        val handle = attributeBroker.open(subscriptionId, initial.dependencies().keySet(), snapshot -> {
-            val r = voter.evaluate(baseCtx.withSnapshot(snapshot));
-            if (r.vote() != null) {
-                out.put(buildTracedVote(r, snapshot, clock));
-            }
-            return r.dependencies().keySet();
-        });
+        val headCache = new HeadCache();
+        val handle    = attributeBroker.open(subscriptionId, headCache.brokerDepsFor(initial.dependencies().keySet()),
+                brokerSnap -> {
+                                  val full = headCache.merge(brokerSnap);
+                                  val r = voter.evaluate(baseCtx.withSnapshot(full));
+                                  if (r.vote() != null) {
+                                      out.put(buildTracedVote(r, full, clock));
+                                  }
+                                  val newDeps = r.dependencies().keySet();
+                                  headCache.captureFrom(brokerSnap);
+                                  headCache.retainOnly(newDeps);
+                                  return headCache.brokerDepsFor(newDeps);
+                              });
         out.onClose(handle::close);
         return out;
     }
@@ -594,14 +612,18 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             out.complete();
             return out;
         }
-        val handle = attributeBroker.open(subscriptionId, initialDeps, snapshot -> {
-            val newDeps = new HashSet<SubscriptionKey>();
-            val multi   = evaluateRound(items, pdp, subscriptionId, snapshot, newDeps);
-            if (multi != null) {
-                out.put(multi);
-            }
-            return newDeps.isEmpty() ? initialDeps : newDeps;
-        });
+        val headCache = new HeadCache();
+        val handle    = attributeBroker.open(subscriptionId, headCache.brokerDepsFor(initialDeps), brokerSnap -> {
+                          val newDeps = new HashSet<SubscriptionKey>();
+                          val multi   = evaluateRound(items, pdp, subscriptionId, headCache.merge(brokerSnap), newDeps);
+                          if (multi != null) {
+                              out.put(multi);
+                          }
+                          val effective = newDeps.isEmpty() ? initialDeps : newDeps;
+                          headCache.captureFrom(brokerSnap);
+                          headCache.retainOnly(effective);
+                          return headCache.brokerDepsFor(effective);
+                      });
         out.onClose(handle::close);
         return out;
     }

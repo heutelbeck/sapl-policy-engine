@@ -20,6 +20,7 @@ package io.sapl.compiler.document;
 import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.HeadCache;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -57,13 +58,17 @@ public class Voters {
     public static Vote awaitFirstVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator) throws InterruptedException {
-        val future = new CompletableFuture<Vote>();
-        try (val ignored = broker.open(subscriptionId, initialDependencies, snapshot -> {
-            val r = evaluator.apply(snapshot);
+        val future    = new CompletableFuture<Vote>();
+        val headCache = new HeadCache();
+        try (val ignored = broker.open(subscriptionId, headCache.brokerDepsFor(initialDependencies), brokerSnap -> {
+            val r = evaluator.apply(headCache.merge(brokerSnap));
             if (r.vote() != null) {
                 future.complete(r.vote());
             }
-            return r.dependencies().keySet();
+            val newDeps = r.dependencies().keySet();
+            headCache.captureFrom(brokerSnap);
+            headCache.retainOnly(newDeps);
+            return headCache.brokerDepsFor(newDeps);
         })) {
             return future.get();
         } catch (ExecutionException ee) {
@@ -82,13 +87,18 @@ public class Voters {
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, Clock clock)
             throws InterruptedException {
-        val future = new CompletableFuture<TracedVote>();
-        try (val ignored = broker.open(subscriptionId, initialDependencies, snapshot -> {
-            val r = evaluator.apply(snapshot);
+        val future    = new CompletableFuture<TracedVote>();
+        val headCache = new HeadCache();
+        try (val ignored = broker.open(subscriptionId, headCache.brokerDepsFor(initialDependencies), brokerSnap -> {
+            val full = headCache.merge(brokerSnap);
+            val r    = evaluator.apply(full);
             if (r.vote() != null) {
-                future.complete(new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, snapshot)));
+                future.complete(new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, full)));
             }
-            return r.dependencies().keySet();
+            val newDeps = r.dependencies().keySet();
+            headCache.captureFrom(brokerSnap);
+            headCache.retainOnly(newDeps);
+            return headCache.brokerDepsFor(newDeps);
         })) {
             return future.get();
         } catch (ExecutionException ee) {
@@ -108,13 +118,17 @@ public class Voters {
             Set<SubscriptionKey> initialDependencies,
             Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResultWithCoverage> evaluator)
             throws InterruptedException {
-        val future = new CompletableFuture<VoteWithCoverage>();
-        try (val ignored = broker.open(subscriptionId, initialDependencies, snapshot -> {
-            val r = evaluator.apply(snapshot);
+        val future    = new CompletableFuture<VoteWithCoverage>();
+        val headCache = new HeadCache();
+        try (val ignored = broker.open(subscriptionId, headCache.brokerDepsFor(initialDependencies), brokerSnap -> {
+            val r = evaluator.apply(headCache.merge(brokerSnap));
             if (r.voteResult().vote() != null) {
                 future.complete(new VoteWithCoverage(r.voteResult().vote(), r.coverage()));
             }
-            return r.voteResult().dependencies().keySet();
+            val newDeps = r.voteResult().dependencies().keySet();
+            headCache.captureFrom(brokerSnap);
+            headCache.retainOnly(newDeps);
+            return headCache.brokerDepsFor(newDeps);
         })) {
             return future.get();
         } catch (ExecutionException ee) {
