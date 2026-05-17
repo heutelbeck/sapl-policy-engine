@@ -362,10 +362,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 backing.attach(consumer);
             }
             consumers.put(subscriptionId, consumer);
-            fireImmediately = consumer.allDepsHaveValues();
-            if (fireImmediately) {
-                consumer.gateOpen = true;
-            }
+            fireImmediately = consumer.tryFireGate();
         }
         log.trace("Opened subscription '{}' with {} dependency(ies)", subscriptionId, initialDependencies.size());
         if (fireImmediately) {
@@ -713,10 +710,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         synchronized (lock) {
             toFire = new ArrayList<>();
             for (val consumer : backing.subscribers()) {
-                if (!consumer.gateOpen && consumer.allDepsHaveValues()) {
-                    consumer.gateOpen = true;
-                    toFire.add(consumer);
-                } else if (consumer.gateOpen) {
+                if (consumer.tryFireGate()) {
                     toFire.add(consumer);
                 }
             }
@@ -805,13 +799,35 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             }
         }
 
+        /**
+         * Caller holds the broker lock. Returns {@code true} iff
+         * every current dep has a value in its backing.
+         */
         boolean allDepsHaveValues() {
             for (val key : deps) {
                 val backing = route.get(key);
-                if (backing == null || backing.snapshot(key.head()).isEmpty()) {
+                if (backing == null || backing.snapshot().isEmpty()) {
                     return false;
                 }
             }
+            return true;
+        }
+
+        /**
+         * Caller holds the broker lock. Returns {@code true} iff the
+         * consumer is ready to fire: the gate is already open, or it
+         * opens now because every dep has a value. The caller is
+         * responsible for invoking {@link #fireCallback} after the
+         * lock is released.
+         */
+        boolean tryFireGate() {
+            if (gateOpen) {
+                return true;
+            }
+            if (!allDepsHaveValues()) {
+                return false;
+            }
+            gateOpen = true;
             return true;
         }
 
@@ -823,8 +839,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 if (backing == null) {
                     continue;
                 }
-                val v = backing.snapshot(key.head());
-                v.ifPresent(value -> result.put(key, new AttributeSnapshot(value, now)));
+                backing.snapshot().ifPresent(value -> result.put(key, new AttributeSnapshot(value, now)));
             }
             return Map.copyOf(result);
         }
@@ -890,7 +905,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 }
                 deps     = new HashSet<>(newDeps);
                 gateOpen = allDepsHaveValues();
-                refire   = gateOpen && !added.stream().allMatch(k -> route.get(k).snapshot(k.head()).isEmpty());
+                refire   = gateOpen && added.stream().anyMatch(k -> route.get(k).snapshot().isPresent());
             }
             for (val backing : zeroed) {
                 handleRefcountZero(backing);

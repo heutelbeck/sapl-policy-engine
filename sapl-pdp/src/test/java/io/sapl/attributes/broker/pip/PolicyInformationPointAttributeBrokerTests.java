@@ -493,31 +493,29 @@ class PolicyInformationPointAttributeBrokerTests {
     class Head {
 
         @Test
-        @DisplayName("head=true freezes at first value; head=false follows updates")
-        void whenHeadTrueThenFrozenWhileHeadFalseUpdates() {
+        @DisplayName("the broker is head-agnostic: head=true and head=false keys for the same invocation "
+                + "both follow the latest value. Freeze-at-first-observation semantic lives in the eval-side HeadCache.")
+        void whenHeadTrueAndHeadFalseThenBothFollowLatest() {
             broker.load(new ControllablePip());
-            val freshKey  = envKey("ctrl.latest", true, false);
-            val frozenKey = envKey("ctrl.latest", false, true);
+            val headKey = envKey("ctrl.latest", false, true);
+            val liveKey = envKey("ctrl.latest", false, false);
 
-            val rFresh  = new Recorder(Set.of(freshKey));
-            val rFrozen = new Recorder(Set.of(frozenKey));
-            broker.open("fresh", Set.of(freshKey), rFresh.asCallback());
-            broker.open("frozen", Set.of(frozenKey), rFrozen.asCallback());
+            val rHead = new Recorder(Set.of(headKey));
+            val rLive = new Recorder(Set.of(liveKey));
+            broker.open("head", Set.of(headKey), rHead.asCallback());
+            broker.open("live", Set.of(liveKey), rLive.asCallback());
 
             ControllablePip.emitToAll(Value.of("v1"));
             Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
-                assertThat(rFresh.snapshots).hasSizeGreaterThanOrEqualTo(1);
-                assertThat(rFrozen.snapshots).hasSizeGreaterThanOrEqualTo(1);
+                assertThat(rHead.snapshots).hasSizeGreaterThanOrEqualTo(1);
+                assertThat(rLive.snapshots).hasSizeGreaterThanOrEqualTo(1);
             });
-            val freshSnapsAfterFirst = rFresh.snapshots.size();
 
             ControllablePip.emitToAll(Value.of("v2"));
-            Awaitility.await().atMost(Duration.ofSeconds(2))
-                    .untilAsserted(() -> assertThat(rFresh.snapshots.size()).isGreaterThan(freshSnapsAfterFirst));
-            assertThat(valueFor(freshKey, rFresh, rFresh.snapshots.size() - 1)).isEqualTo(Value.of("v2"));
-            for (val s : rFrozen.snapshots) {
-                assertThat(s.get(frozenKey).value()).isEqualTo(Value.of("v1"));
-            }
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(valueFor(headKey, rHead, rHead.snapshots.size() - 1)).isEqualTo(Value.of("v2"));
+                assertThat(valueFor(liveKey, rLive, rLive.snapshots.size() - 1)).isEqualTo(Value.of("v2"));
+            });
         }
     }
 

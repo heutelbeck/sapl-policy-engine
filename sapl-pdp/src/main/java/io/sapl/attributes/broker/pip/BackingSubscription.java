@@ -39,6 +39,10 @@ import java.util.function.Consumer;
  * source stream and republishes each value into the mailbox; tracks
  * the consumer refcount; supports atomic source rebind for hot-swap
  * so the mailbox value is preserved across the transition.
+ * <p>
+ * The broker is head-agnostic: this class only ever tracks the latest
+ * value. Consumers that want a frozen-at-first-observation value run
+ * an eval-side {@code HeadCache}.
  */
 @Slf4j
 final class BackingSubscription {
@@ -53,19 +57,17 @@ final class BackingSubscription {
 
     // Subscriber index + refcount are guarded by the BROKER lock, not by this
     // BackingSubscription's internal lock. Walking only `subscriberRefs` keeps
-    // dispatch O(consumers-of-this-backing), not O(all-broker-consumers).
-    // The map is a multiset (count per consumer) so that a consumer routing
-    // several keys (e.g., head=true and head=false) to this same backing is
-    // accounted for exactly once in subscribers() but balanced correctly on
-    // attach/detach against refcount.
+    // dispatch O(consumers-of-this-backing), not O(all-broker-consumers). The
+    // map is a multiset (count per consumer) so a consumer routing several
+    // keys to this same backing is counted once for dispatch but balanced
+    // correctly against refcount.
     private final Map<ConsumerSubscriptionImpl, Integer> subscriberRefs = new HashMap<>();
     private int                                          refcount       = 0;
 
     private final Object                                 lock               = new Object();
     private Stream<Value>                                sourceStream;
-    private Thread                                       pumpThread;
+    private boolean                                      pumpStarted        = false;
     private Optional<Value>                              latestValue        = Optional.empty();
-    private Optional<Value>                              firstValue         = Optional.empty();
     private @Nullable StreamAttributeFinderSpecification sourceSpec;
     private boolean                                      closed             = false;
     private boolean                                      inRebindTransition = false;
@@ -105,20 +107,12 @@ final class BackingSubscription {
     }
 
     /**
-     * @param head if {@code true}, returns the first-emitted value
-     * (frozen view); if {@code false}, returns the latest-emitted
-     * value
+     * Returns the latest published value, or {@link Optional#empty()}
+     * if no value has been published yet.
      */
-    Optional<Value> snapshot(boolean head) {
+    Optional<Value> snapshot() {
         synchronized (lock) {
-            return head ? firstValue : latestValue;
-        }
-    }
-
-    /** {@code true} once at least one value has been published. */
-    boolean hasValue() {
-        synchronized (lock) {
-            return latestValue.isPresent();
+            return latestValue;
         }
     }
 
@@ -166,16 +160,17 @@ final class BackingSubscription {
     }
 
     /**
-     * Starts the pump thread on the current source stream. No-op if
-     * there is no source stream (terminal backing) or if already
-     * started or closed.
+     * Starts the pump on the current source stream. No-op if there is
+     * no source stream (terminal backing), if a pump is already
+     * running, or if this backing is closed.
      */
     void start() {
         synchronized (lock) {
-            if (closed || sourceStream == null || pumpThread != null) {
+            if (closed || sourceStream == null || pumpStarted) {
                 return;
             }
-            pumpThread = Thread.startVirtualThread(this::pumpLoop);
+            pumpStarted = true;
+            Thread.startVirtualThread(this::pumpLoop);
         }
     }
 
@@ -224,7 +219,7 @@ final class BackingSubscription {
             oldStream          = sourceStream;
             sourceStream       = newSourceStream;
             sourceSpec         = newSourceSpec;
-            pumpThread         = null;
+            pumpStarted        = false;
             inRebindTransition = true;
         }
         if (oldStream != null) {
@@ -302,10 +297,7 @@ final class BackingSubscription {
                 return;
             }
             inRebindTransition = false;
-            if (firstValue.isEmpty()) {
-                firstValue = Optional.of(value);
-            }
-            latestValue = Optional.of(value);
+            latestValue        = Optional.of(value);
         }
         try {
             onValue.accept(value);

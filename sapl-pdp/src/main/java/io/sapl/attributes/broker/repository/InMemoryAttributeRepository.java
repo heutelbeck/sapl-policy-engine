@@ -151,7 +151,6 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
                 throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_IN_USE.formatted(subscriptionId));
             }
             consumer = new ConsumerSubscriptionImpl(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
-            captureHeadValues(consumer, initialDependencies);
             indexDeps(consumer, initialDependencies);
             consumers.put(subscriptionId, consumer);
         }
@@ -222,18 +221,9 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
     }
 
     /**
-     * Caller holds the broker lock.
-     */
-    private void captureHeadValues(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
-        for (val dep : deps) {
-            if (dep.head()) {
-                consumer.capturedHeadValues.put(dep, currentValueLocked(dep));
-            }
-        }
-    }
-
-    /**
-     * Caller holds the broker lock.
+     * Caller holds the broker lock. Returns the value currently
+     * published for {@code dep}'s projected {@link RepositoryKey}, or
+     * {@link Value#UNDEFINED} when no entry exists.
      */
     private Value currentValueLocked(SubscriptionKey dep) {
         val repositoryKey = RepositoryKey.fromInvocation(dep.invocation());
@@ -242,10 +232,9 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
     }
 
     /**
-     * Caller holds the broker lock. Returns consumers that hold at
-     * least one head=false dependency whose invocation projects onto
-     * {@code repositoryKey}. O(consumers-of-this-key) via the reverse
-     * index.
+     * Caller holds the broker lock. Returns consumers whose dep set
+     * projects onto {@code repositoryKey}. O(consumers-of-this-key)
+     * via the reverse index.
      */
     private List<ConsumerSubscriptionImpl> findAffectedConsumers(RepositoryKey repositoryKey) {
         val subscribers = subscribersByKey.get(repositoryKey);
@@ -254,34 +243,30 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
 
     /**
      * Caller holds the broker lock. Adds {@code consumer} to the
-     * reverse index under every head=false dep in {@code deps}.
+     * reverse index under every dep in {@code deps}.
      */
     private void indexDeps(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
         for (val dep : deps) {
-            if (!dep.head()) {
-                subscribersByKey.computeIfAbsent(RepositoryKey.fromInvocation(dep.invocation()), k -> new HashSet<>())
-                        .add(consumer);
-            }
+            subscribersByKey.computeIfAbsent(RepositoryKey.fromInvocation(dep.invocation()), k -> new HashSet<>())
+                    .add(consumer);
         }
     }
 
     /**
      * Caller holds the broker lock. Removes {@code consumer} from the
-     * reverse index for every head=false dep in {@code deps}; drops
-     * empty bucket sets.
+     * reverse index for every dep in {@code deps}; drops empty bucket
+     * sets.
      */
     private void unindexDeps(ConsumerSubscriptionImpl consumer, Set<SubscriptionKey> deps) {
         for (val dep : deps) {
-            if (!dep.head()) {
-                val repoKey     = RepositoryKey.fromInvocation(dep.invocation());
-                val subscribers = subscribersByKey.get(repoKey);
-                if (subscribers == null) {
-                    continue;
-                }
-                subscribers.remove(consumer);
-                if (subscribers.isEmpty()) {
-                    subscribersByKey.remove(repoKey);
-                }
+            val repoKey     = RepositoryKey.fromInvocation(dep.invocation());
+            val subscribers = subscribersByKey.get(repoKey);
+            if (subscribers == null) {
+                continue;
+            }
+            subscribers.remove(consumer);
+            if (subscribers.isEmpty()) {
+                subscribersByKey.remove(repoKey);
             }
         }
     }
@@ -312,9 +297,8 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
         private final String                                                                  id;
         private final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
         private final DispatchCoalescer                                                       coalescer;
-        private final Map<SubscriptionKey, Value>                                             capturedHeadValues = new HashMap<>();
         private Set<SubscriptionKey>                                                          deps;
-        private boolean                                                                       closed             = false;
+        private boolean                                                                       closed = false;
 
         ConsumerSubscriptionImpl(String id,
                 Set<SubscriptionKey> deps,
@@ -383,13 +367,7 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
             val now      = clock.instant();
             val snapshot = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(deps.size());
             for (val dep : deps) {
-                Value value;
-                if (dep.head()) {
-                    value = capturedHeadValues.getOrDefault(dep, Value.UNDEFINED);
-                } else {
-                    value = currentValueLocked(dep);
-                }
-                snapshot.put(dep, new AttributeSnapshot(value, now));
+                snapshot.put(dep, new AttributeSnapshot(currentValueLocked(dep), now));
             }
             return Map.copyOf(snapshot);
         }
@@ -408,14 +386,6 @@ public final class InMemoryAttributeRepository implements AttributeBroker, Attri
                 val removed = new HashSet<>(deps);
                 removed.removeAll(newDeps);
 
-                for (val dep : added) {
-                    if (dep.head()) {
-                        capturedHeadValues.put(dep, currentValueLocked(dep));
-                    }
-                }
-                for (val dep : removed) {
-                    capturedHeadValues.remove(dep);
-                }
                 indexDeps(this, added);
                 unindexDeps(this, removed);
                 deps   = new HashSet<>(newDeps);

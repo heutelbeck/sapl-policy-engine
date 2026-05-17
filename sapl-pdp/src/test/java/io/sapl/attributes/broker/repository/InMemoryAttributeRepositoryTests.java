@@ -388,8 +388,9 @@ class InMemoryAttributeRepositoryTests {
     class WhenHeadTrueIsUsed {
 
         @Test
-        @DisplayName("then the captured first-observed value persists across subsequent publishes")
-        void thenTheCapturedFirstObservedValuePersistsAcrossSubsequentPublishes() {
+        @DisplayName("then the broker is head-agnostic: head=true keys deliver the latest value on every publish; "
+                + "freeze-at-first-observation semantic lives in the eval-side HeadCache, not in the broker")
+        void thenHeadTrueDeliversLatestValueLikeHeadFalse() {
             val key      = envHeadKey("env.x");
             val recorder = new Recorder(Set.of(key));
             broker.publish(repoKey("env.x"), Value.of("initial"));
@@ -399,10 +400,8 @@ class InMemoryAttributeRepositoryTests {
 
                 broker.publish(repoKey("env.x"), Value.of("updated"));
 
-                // head=true keys do not re-fire on publish; consumer is unchanged.
-                Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
-                assertThat(recorder.snapshots).hasSize(1);
-                assertThat(valueFor(key, recorder, 0)).isEqualTo(Value.of("initial"));
+                assertThat(recorder.snapshots).hasSize(2);
+                assertThat(valueFor(key, recorder, 1)).isEqualTo(Value.of("updated"));
             }
         }
     }
