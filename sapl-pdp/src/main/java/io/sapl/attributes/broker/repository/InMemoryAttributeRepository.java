@@ -233,18 +233,6 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         }
     }
 
-    /** Caller holds the lock. */
-    private void unregisterObserver(KeyObserver observer) {
-        val bucket = observersByKey.get(observer.repositoryKey);
-        if (bucket == null) {
-            return;
-        }
-        bucket.remove(observer);
-        if (bucket.isEmpty()) {
-            observersByKey.remove(observer.repositoryKey);
-        }
-    }
-
     /**
      * Per-entry storage. {@code expiryTask} is settable so the
      * publisher can install it after constructing the entry record
@@ -295,7 +283,13 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                     return;
                 }
                 closed = true;
-                unregisterObserver(this);
+                val bucket = observersByKey.get(repositoryKey);
+                if (bucket != null) {
+                    bucket.remove(this);
+                    if (bucket.isEmpty()) {
+                        observersByKey.remove(repositoryKey);
+                    }
+                }
             } finally {
 
                 lock.unlock();

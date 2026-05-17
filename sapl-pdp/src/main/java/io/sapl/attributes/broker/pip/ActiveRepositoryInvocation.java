@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -51,7 +52,9 @@ import java.util.function.Consumer;
 @Slf4j
 final class ActiveRepositoryInvocation implements ActiveInvocation {
 
+    private static final String DEBUG_CLOSED               = "Active repository invocation {} closed";
     private static final String DEBUG_FALLBACK_CLOSE_THREW = "Active repository invocation {} fallback close threw: {}";
+    private static final String DEBUG_OPENED               = "Active repository invocation {} opened for '{}'";
     private static final String WARN_ONVALUE_THREW         = "Active repository invocation {} onValue handler threw: {}";
 
     private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
@@ -61,8 +64,10 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final AttributeRepository       fallback;
     private final Consumer<Value>           onValue;
 
+    // The broker lock guards subscriberRefs + refcount; the AtomicInteger here
+    // is only to silence SonarQube's atomicity check on increment / decrement.
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
-    private int                                    refcount       = 0;
+    private final AtomicInteger                    refcount       = new AtomicInteger();
 
     private final Object                               lock        = new Object();
     private AttributeRepository.@Nullable Registration handle      = null;
@@ -81,6 +86,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
         this.invocation = invocation;
         this.fallback   = fallback;
         this.onValue    = onValue;
+        log.debug(DEBUG_OPENED, id, invocation.attributeName());
     }
 
     @Override
@@ -106,23 +112,21 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     @Override
     public int attach(BrokerSubscription subscriber) {
         subscriberRefs.merge(subscriber, 1, Integer::sum);
-        refcount++;
-        return refcount;
+        return refcount.incrementAndGet();
     }
 
     @Override
     public int detach(BrokerSubscription subscriber) {
         val current = subscriberRefs.get(subscriber);
         if (current == null) {
-            return refcount;
+            return refcount.get();
         }
         if (current == 1) {
             subscriberRefs.remove(subscriber);
         } else {
             subscriberRefs.put(subscriber, current - 1);
         }
-        refcount--;
-        return refcount;
+        return refcount.decrementAndGet();
     }
 
     @Override
@@ -132,7 +136,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
 
     @Override
     public int refcount() {
-        return refcount;
+        return refcount.get();
     }
 
     @Override
@@ -176,6 +180,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
         if (toClose != null) {
             safeClose(toClose);
         }
+        log.debug(DEBUG_CLOSED, id);
     }
 
     private void onUpdate(Value value) {

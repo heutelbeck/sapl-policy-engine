@@ -1627,12 +1627,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void updatePdpStatusDisplay() {
         val status = policyDecisionPoint.getPdpStatus();
         switch (status.state()) {
-        case LOADED -> pdpStatusDisplay.setIssues(List.of());
-        case STALE  -> pdpStatusDisplay
+        case LOADED           -> pdpStatusDisplay.setIssues(List.of());
+        case STALE            -> pdpStatusDisplay
                 .setIssues(List.of(new Issue("PDP STALE - Using last valid configuration. " + status.lastError(),
                         IssueSeverity.WARNING, null, null, null, null)));
-        case ERROR  -> pdpStatusDisplay.setIssues(
+        case ERROR            -> pdpStatusDisplay.setIssues(
                 List.of(new Issue("PDP ERROR - " + status.lastError(), IssueSeverity.ERROR, null, null, null, null)));
+        case AWAITING_PLUGINS -> pdpStatusDisplay
+                .setIssues(List.of(new Issue("PDP AWAITING_PLUGINS - Configuration retained until plugins arrive.",
+                        IssueSeverity.WARNING, null, null, null, null)));
         }
     }
 

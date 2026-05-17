@@ -212,6 +212,97 @@ class PipBrokerSpecTests {
                 broker.close();
             }
         }
+
+        @Test
+        @DisplayName("PIP whose attribute method returns an empty-completion Stream publishes UNDEFINED "
+                + "at the broker boundary (absence, not error)")
+        void whenPipReturnsEmptyStreamThenUndefinedAtBrokerBoundary() {
+            val broker = new PolicyInformationPointAttributeBroker();
+            try {
+                broker.load(new EmptyCompletionPip());
+                val k        = key("empty.never");
+                val recorder = new Recorder(Set.of(k));
+                try (val ignored = broker.open("s1", Set.of(k), recorder.asCallback())) {
+                    Awaitility.await().atMost(AWAIT).untilAsserted(() -> assertThat(recorder.snapshots).isNotEmpty());
+                    val firstSeen = recorder.snapshots.get(0).get(k).value();
+                    assertThat(firstSeen).isEqualTo(Value.UNDEFINED);
+                    assertThat(firstSeen).isNotInstanceOf(ErrorValue.class);
+                }
+            } finally {
+                broker.close();
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("open-time exceptions feed the retry burst")
+    class OpenTimeExceptions {
+
+        @Test
+        @DisplayName("PIP whose attribute method throws on every invoke until the Nth attempt recovers "
+                + "via the retry burst within backoff time, not pollInterval time")
+        void whenPipInvokeThrowsThenRecoversThenConsumerSeesRecoveredValue() {
+            val broker = new PolicyInformationPointAttributeBroker();
+            try {
+                ThrowingThenSucceedingPip.recoverOnInvocation = 3;
+                broker.load(new ThrowingThenSucceedingPip());
+                // Three attempts (initial + 2 retries) covers the prep + recovery
+                // within one cycle so the test does not depend on the outer
+                // pollInterval kicking in.
+                val k = key("throwing.tracked", false, Duration.ofSeconds(1), 5L);
+                val r = new Recorder(Set.of(k));
+                try (val ignored = broker.open("s1", Set.of(k), r.asCallback())) {
+                    Awaitility.await().atMost(AWAIT).untilAsserted(() -> {
+                        assertThat(r.snapshots).isNotEmpty();
+                        assertThat(lastValue(r, k)).isEqualTo(Value.of("recovered"));
+                    });
+                }
+            } finally {
+                broker.close();
+            }
+        }
+
+        @Test
+        @DisplayName("hot-swap to a PIP whose first invoke throws: the consumer keeps observing the prior "
+                + "value during the rebind-transition gate, no transient ErrorValue surfaces, "
+                + "and a recovery emission lands eventually")
+        void whenSwapToThrowingPipThenPriorValuePreservedAndRecoveryEventuallyLands() {
+            val broker = new PolicyInformationPointAttributeBroker();
+            try {
+                val v1Handle = broker.load(new InstrumentedPip());
+                val k        = key("instrumented.tracked", false, Duration.ofSeconds(1), 5L);
+                val r        = new Recorder(Set.of(k));
+                try (val ignored = broker.open("s1", Set.of(k), r.asCallback())) {
+                    InstrumentedPip.emitToAll(Value.of("v1"));
+                    Awaitility.await().atMost(AWAIT).untilAsserted(() -> assertThat(r.snapshots).isNotEmpty());
+                    Awaitility.await().atMost(AWAIT).untilAsserted(() -> assertThat(lastValue(r, k))
+                            .as("baseline v1 must land before swap").isEqualTo(Value.of("v1")));
+
+                    // Swap-to-throwing: the new PIP's first few invokes throw,
+                    // then it recovers. The rebind-transition gate must mask the
+                    // failure window from consumers; the cumulative recovery
+                    // must surface once the retry burst opens a working inner.
+                    ThrowingThenSucceedingPipForRebind.recoverOnInvocation = 3;
+                    broker.swap(v1Handle, new ThrowingThenSucceedingPipForRebind());
+
+                    // The transitional snapshots before recovery must not include
+                    // a transient ErrorValue or UNDEFINED for k; the gate hides
+                    // those. The next real value the consumer observes after the
+                    // swap is the recovered value.
+                    Awaitility.await().atMost(AWAIT).untilAsserted(() -> {
+                        assertThat(lastValue(r, k)).isEqualTo(Value.of("rebind-recovered"));
+                    });
+                    for (val snap : r.snapshots) {
+                        val v = snap.get(k).value();
+                        assertThat(v).as("transient values during rebind must not be ErrorValue")
+                                .isNotInstanceOf(ErrorValue.class);
+                    }
+                }
+            } finally {
+                ThrowingThenSucceedingPipForRebind.recoverOnInvocation = 0;
+                broker.close();
+            }
+        }
     }
 
     @Nested
@@ -558,6 +649,74 @@ class PipBrokerSpecTests {
         public Stream<Value> first() {
             // Never emits; AttributeStream's initialTimeOut watchdog drives the cycle.
             return new LatestSlotStream<>();
+        }
+    }
+
+    /**
+     * PIP whose attribute method returns a completed empty stream.
+     * Drives the broker-level § 4.2 path: no value emitted, the cycle
+     * closes cleanly, the broker mailbox publishes UNDEFINED.
+     */
+    @PolicyInformationPoint(name = "empty")
+    static final class EmptyCompletionPip {
+
+        @EnvironmentAttribute(name = "never")
+        public Stream<Value> never() {
+            return io.sapl.api.stream.Streams.empty();
+        }
+    }
+
+    /**
+     * PIP whose invoke throws on the first {@code recoverOnInvocation-1}
+     * calls and returns a one-shot value stream on call number
+     * {@code recoverOnInvocation}. Used to exercise the retry burst
+     * recovering from transient open-time failures.
+     */
+    @PolicyInformationPoint(name = "throwing")
+    static final class ThrowingThenSucceedingPip {
+
+        static volatile int recoverOnInvocation = 0;
+
+        private static final AtomicInteger callCount = new AtomicInteger();
+
+        @EnvironmentAttribute
+        public Stream<Value> tracked() {
+            val n = callCount.incrementAndGet();
+            if (n < recoverOnInvocation) {
+                throw new RuntimeException("transient open-time failure #" + n);
+            }
+            callCount.set(0);
+            val slot = new LatestSlotStream<Value>();
+            slot.put(Value.of("recovered"));
+            return slot;
+        }
+    }
+
+    /**
+     * Same as {@link ThrowingThenSucceedingPip} but with a distinct
+     * namespace and recovered-value tag so a hot-swap test can tell
+     * the post-swap fleet apart from the pre-swap one. The swap path
+     * requires the replacement PIP to expose an attribute method
+     * with the same fully-qualified shape as the original; named
+     * "instrumented" / "tracked" to match the original InstrumentedPip.
+     */
+    @PolicyInformationPoint(name = "instrumented")
+    static final class ThrowingThenSucceedingPipForRebind {
+
+        static volatile int recoverOnInvocation = 0;
+
+        private static final AtomicInteger callCount = new AtomicInteger();
+
+        @EnvironmentAttribute
+        public Stream<Value> tracked() {
+            val n = callCount.incrementAndGet();
+            if (n < recoverOnInvocation) {
+                throw new RuntimeException("transient rebind open-time failure #" + n);
+            }
+            callCount.set(0);
+            val slot = new LatestSlotStream<Value>();
+            slot.put(Value.of("rebind-recovered"));
+            return slot;
         }
     }
 

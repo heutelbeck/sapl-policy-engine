@@ -35,6 +35,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 @DisplayName("InMemoryAttributeRepository")
@@ -258,7 +259,7 @@ class InMemoryAttributeRepositoryTests {
         @DisplayName("then close is idempotent")
         void thenCloseIsIdempotent() {
             repository.close();
-            repository.close();
+            assertThatCode(repository::close).doesNotThrowAnyException();
         }
 
         @Test
@@ -274,22 +275,84 @@ class InMemoryAttributeRepositoryTests {
     }
 
     @Nested
+    @DisplayName("when a slow observer is in flight on one key")
+    class WhenSlowObserverInFlight {
+
+        @Test
+        @DisplayName("then a TTL expiry on an unrelated key fires its own observer concurrently "
+                + "rather than queuing behind the slow callback")
+        void thenTtlExpiryOnUnrelatedKeyFiresWhileSlowConsumerStillRunning() throws Exception {
+            val slowEntered  = new java.util.concurrent.CountDownLatch(1);
+            val ttlObserved  = new java.util.concurrent.CountDownLatch(1);
+            val unblockSlow  = new java.util.concurrent.CountDownLatch(1);
+            val slowObserver = new Consumer<Value>() {
+                                 @Override
+                                 public void accept(Value value) {
+                                     slowEntered.countDown();
+                                     try {
+                                         unblockSlow.await(5, java.util.concurrent.TimeUnit.SECONDS);
+                                     } catch (InterruptedException e) {
+                                         Thread.currentThread().interrupt();
+                                     }
+                                 }
+                             };
+            val fastObserver = new Consumer<Value>() {
+                                 @Override
+                                 public void accept(Value value) {
+                                     if (Value.UNDEFINED.equals(value)) {
+                                         // TTL expiry path delivers UNDEFINED to the observer.
+                                         ttlObserved.countDown();
+                                     }
+                                 }
+                             };
+
+            try (val ignored1 = repository.observe(invocation("env.slow"), slowObserver);
+                    val ignored2 = repository.observe(invocation("env.ttl"), fastObserver)) {
+
+                // Drive the slow observer from a separate thread so the main
+                // thread retains control to publish to the unrelated key.
+                Thread.startVirtualThread(() -> repository.publish(repoKey("env.slow"), Value.of("trigger")));
+
+                assertThat(slowEntered.await(2, java.util.concurrent.TimeUnit.SECONDS))
+                        .as("slow observer must be entered before we test TTL on unrelated key").isTrue();
+
+                // Publish to the unrelated key with a short TTL. Expiry fires
+                // on the scheduler thread; the slow observer is still parked
+                // in its accept(...) call right now.
+                repository.publish(repoKey("env.ttl"), Value.of("with-ttl"), Duration.ofMillis(50));
+
+                // TTL expiry must reach the fast observer regardless of the
+                // slow observer's in-flight callback.
+                assertThat(ttlObserved.await(2, java.util.concurrent.TimeUnit.SECONDS))
+                        .as("TTL expiry on env.ttl must fire while env.slow's onUpdate is still running").isTrue();
+
+                unblockSlow.countDown();
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("when input is invalid")
     class WhenInputIsInvalid {
 
         @Test
         @DisplayName("then a zero TTL is rejected")
         void thenAZeroTtlIsRejected() {
+            val key   = repoKey("env.x");
+            val value = Value.of("v");
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> repository.publish(repoKey("env.x"), Value.of("v"), Duration.ZERO))
+                    .isThrownBy(() -> repository.publish(key, value, Duration.ZERO))
                     .withMessageContaining("strictly positive");
         }
 
         @Test
         @DisplayName("then a negative TTL is rejected")
         void thenANegativeTtlIsRejected() {
+            val key      = repoKey("env.x");
+            val value    = Value.of("v");
+            val negative = Duration.ofMillis(-1);
             assertThatExceptionOfType(IllegalArgumentException.class)
-                    .isThrownBy(() -> repository.publish(repoKey("env.x"), Value.of("v"), Duration.ofMillis(-1)))
+                    .isThrownBy(() -> repository.publish(key, value, negative))
                     .withMessageContaining("strictly positive");
         }
     }

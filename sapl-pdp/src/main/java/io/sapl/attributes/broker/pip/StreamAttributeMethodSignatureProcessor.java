@@ -225,31 +225,40 @@ public class StreamAttributeMethodSignatureProcessor {
         val invocationConfig = new InvocationConfig(method, signatureInfo);
 
         return invocation -> {
-            try {
-                val arguments = invocation.arguments().toArray(new Value[0]);
+            val arguments = invocation.arguments().toArray(new Value[0]);
 
-                val validationError = validateArgumentCount(invocationConfig, invocation.attributeName(),
-                        arguments.length);
-                if (validationError != null) {
-                    return Streams.just(validationError);
-                }
-
-                val methodParameters = buildMethodParameters(invocationConfig, invocation, arguments);
-                if (methodParameters instanceof Value errorValue) {
-                    return Streams.just(errorValue);
-                }
-
-                val result = methodHandle.invokeWithArguments((Object[]) methodParameters);
-                if (!returnsStream && result == null) {
-                    return Streams
-                            .just(Value.error(ERROR_ATTRIBUTE_RETURNED_NULL.formatted(invocation.attributeName())));
-                }
-                return convertResultToStream(result, returnsStream);
-
-            } catch (Throwable throwable) {
-                return Streams.just(Value.error(ERROR_ATTRIBUTE_EXECUTION_TEMPLATE.formatted(invocation.attributeName(),
-                        throwable.getMessage())));
+            val validationError = validateArgumentCount(invocationConfig, invocation.attributeName(), arguments.length);
+            if (validationError != null) {
+                return Streams.just(validationError);
             }
+
+            val methodParameters = buildMethodParameters(invocationConfig, invocation, arguments);
+            if (methodParameters instanceof Value errorValue) {
+                return Streams.just(errorValue);
+            }
+
+            Object result;
+            try {
+                result = methodHandle.invokeWithArguments((Object[]) methodParameters);
+            } catch (RuntimeException | Error e) {
+                // Let runtime failures (including transient connect-time / send-time
+                // exceptions from the PIP body) propagate. The AttributeStream's
+                // retry burst recovers them under backoff. Errors propagate
+                // unconditionally per JLS.
+                throw e;
+            } catch (Throwable t) {
+                // Checked exceptions are unusual via MethodHandle.invokeWithArguments
+                // but the JLS allows them. Treat as an inline error rather than a
+                // retry candidate; the typical source is a misdeclared throws clause
+                // on the PIP method, which is deterministic and would just exhaust
+                // retries.
+                return Streams.just(Value.error(
+                        ERROR_ATTRIBUTE_EXECUTION_TEMPLATE.formatted(invocation.attributeName(), t.getMessage())));
+            }
+            if (!returnsStream && result == null) {
+                return Streams.just(Value.error(ERROR_ATTRIBUTE_RETURNED_NULL.formatted(invocation.attributeName())));
+            }
+            return convertResultToStream(result, returnsStream);
         };
     }
 

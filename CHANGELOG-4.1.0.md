@@ -162,7 +162,10 @@ The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query re
 A single `DispatchCoalescer` (in `io.sapl.attributes.broker`) replaces the per-consumer `ReentrantLock callbackLock` across all three brokers. Rapid publishes during a slow `onUpdate` collapse into at most one re-fire afterwards against the latest snapshot. Publisher threads (HTTP handlers, MQTT bridges, TTL scheduler in the repository) no longer block on slow consumers.
 
 #### AttributeStream wired into the PIP broker
-`AttributeStream` is now wired into `BackingSubscription`: every per-invocation cycle runs the perpetual poll/retry/timeout state machine around the matched PIP. Two regressions versus v4.0 fixed during the wiring: initial-value timeout publishes `UNDEFINED` (absence) instead of `ErrorValue`, and empty-stream completion publishes `UNDEFINED` instead of silently hanging.
+Every PIP-fed active invocation owns an `AttributeStream`: each per-invocation cycle runs the perpetual poll/retry/timeout state machine around the matched PIP. Two regressions versus v4.0 fixed during the wiring: initial-value timeout publishes `UNDEFINED` (absence) instead of `ErrorValue`, and empty-stream completion publishes `UNDEFINED` instead of silently hanging.
+
+#### Retry burst covers open-time PIP failures
+A `RuntimeException` thrown by a PIP method during invocation (transient MQTT connect-time failure, HTTP 503 on send, etc.) now drives the same retry burst as a mid-stream failure: jittered exponential backoff, up to the configured `retries` count, then a transient `ErrorValue` and a fresh cycle. Previously such exceptions were captured as inline `ErrorValue` streams and the broker only retried on the outer `pollInterval` cadence, so recovery was orders of magnitude slower than for mid-stream errors. The same path now covers hot-swap rebinds: a transient failure on the replacement PIP heals automatically while the rebind-transition gate masks the recovery window from consumers.
 
 #### List-of-candidates freshness
 `fresh=true` is a hard requirement: never attach to an existing stream. `fresh=false` attaches to the head of the per-invocation list. The dedup map key is canonicalised (drops the `fresh` flag), so a `fresh=true`-originated stream serves later `fresh=false` consumers once it becomes the head.
@@ -171,7 +174,10 @@ A single `DispatchCoalescer` (in `io.sapl.attributes.broker`) replaces the per-c
 `PolicyInformationPointAttributeBroker(Duration gracePeriodDuration)` configures a warm-reconnect window. Refcount-to-zero schedules teardown after the duration; a re-attaching consumer cancels the teardown and observes the cached value immediately. The optimisation in §9.4 skips grace when other live backings exist for the same invocation. Default `Duration.ZERO` preserves v4.0 immediate-teardown behaviour.
 
 #### Hot-swap jitter suppression
-During a hot-swap rebind, the new `AttributeStream`'s initial-value timeout would propagate `UNDEFINED` to consumers that were observing a real prior value. `BackingSubscription` now suppresses pump-path `UNDEFINED` publishes during the rebind transition until the new stream emits a non-`UNDEFINED` value (real `Value` or `ErrorValue`). Terminal `UNDEFINED` from `publishImmediate` (unload, swap-eviction) is unaffected.
+During a hot-swap rebind, the new `AttributeStream`'s initial-value timeout would propagate `UNDEFINED` to consumers that were observing a real prior value. The active invocation now suppresses pump-path `UNDEFINED` publishes during the rebind transition until the new stream emits a non-`UNDEFINED` value (real `Value` or `ErrorValue`). Terminal `UNDEFINED` from `publishImmediate` (unload, swap-eviction) is unaffected.
+
+#### Fair acquisition on the broker locks
+`PolicyInformationPointAttributeBroker` and `InMemoryAttributeRepository` use `ReentrantLock(true)` for their outer locks. Under sustained tight-loop emit bursts the prior `synchronized` could starve catalog-mutator threads (load / swap / unload) for many seconds. Operators with continuous high-frequency emissions from PIPs or repository publishers see bounded catalog-mutation latency. Throughput on the uncontended path is ~2-5x slower than `synchronized`; negligible at the kHz-class emission rates the engine targets.
 
 ### Plugins source
 

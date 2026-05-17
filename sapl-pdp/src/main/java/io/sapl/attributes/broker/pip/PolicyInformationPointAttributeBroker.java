@@ -27,7 +27,6 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.api.shared.Match;
 import io.sapl.api.stream.Stream;
-import io.sapl.api.stream.Streams;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.DispatchCoalescer;
@@ -104,7 +103,6 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
     private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
     private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
-    private static final String ERROR_PIP_INVOKE_FAILED       = "PIP invocation for attribute '%s' failed: %s";
     private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
@@ -679,6 +677,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * method returns, so values emitted on the PIP side land on a
      * registered subscriber rather than being dropped.
      * <p>
+     * If the synchronous first open throws (transient connect-time
+     * failure), the wrapper stores no cached first; the AttributeStream
+     * is still constructed, and the pump's first cycle re-invokes the
+     * supplier where the exception propagates into the retry burst.
+     * Without this, broker.open / load / swap would surface the
+     * transient failure on the caller's thread instead of recovering
+     * under backoff.
+     * <p>
      * The wrapper is {@link AutoCloseable} so the consumer (the
      * AttributeStream) can release the synchronously-opened stream
      * if it is closed before the pump consumed it. Without this,
@@ -696,7 +702,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
         SyncFirstThenLazySupplier(Supplier<Stream<Value>> delegate) {
             this.delegate = delegate;
-            this.first    = new AtomicReference<>(delegate.get());
+            Stream<Value> opened;
+            try {
+                opened = delegate.get();
+            } catch (RuntimeException e) {
+                log.debug("Synchronous first open threw; pump will retry: {}", e.getMessage());
+                opened = null;
+            }
+            this.first = new AtomicReference<>(opened);
         }
 
         @Override
@@ -782,22 +795,18 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     /**
      * Builds the inner-stream supplier that {@link AttributeStream}
-     * calls at the start of each cycle. Wraps invoke-time
-     * {@link RuntimeException}s as an inline error stream so the
-     * retry/burst logic in {@link AttributeStream} handles them
-     * uniformly with mid-stream errors.
+     * calls at the start of each cycle. Lets invoke-time
+     * {@link RuntimeException}s propagate so the retry/burst logic in
+     * {@link AttributeStream#attemptWithRetries} treats an open-time
+     * failure the same as a mid-stream failure (failed attempt,
+     * jittered backoff, eventual retries-exhausted ErrorValue). A
+     * transient connect-time error (MQTT broker briefly down,
+     * HTTP 503 on send) recovers on the same schedule as a transient
+     * mid-stream error.
      */
     private static Supplier<Stream<Value>> innerStreamSupplier(StreamAttributeFinderSpecification spec,
             AttributeFinderInvocation invocation) {
-        return () -> {
-            try {
-                return spec.attributeFinder().invoke(invocation);
-            } catch (RuntimeException e) {
-                log.debug("Attribute finder for '{}' threw on invoke: {}", invocation.attributeName(), e.getMessage());
-                return Streams.just(
-                        Value.error(ERROR_PIP_INVOKE_FAILED.formatted(invocation.attributeName(), e.getMessage())));
-            }
-        };
+        return () -> spec.attributeFinder().invoke(invocation);
     }
 
     /**

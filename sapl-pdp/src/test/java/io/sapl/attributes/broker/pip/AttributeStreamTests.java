@@ -254,6 +254,62 @@ class AttributeStreamTests {
 
             assertThat(stream.tryNext()).isEqualTo(Poll.done());
         }
+
+        @Test
+        @DisplayName("close during backoff sleep between failed attempts: the pump exits cleanly without "
+                + "waiting out the remaining backoff")
+        void whenClosedDuringRetryBackoffSleepThenPumpExitsCleanly() throws Exception {
+            // Supplier always throws so the pump is forced into the retry-burst loop:
+            // attempt fails, retry counter decrements, pump sleeps `backoff` jittered,
+            // attempt fails again, ad infinitum. Close mid-sleep is the path under test.
+            val supplierInvoked = new AtomicInteger();
+            val supplier        = (Supplier<Stream<Value>>) () -> {
+                                    supplierInvoked.incrementAndGet();
+                                    throw new RuntimeException("boom");
+                                };
+            // Long enough that we close during a backoff sleep, not during an attempt.
+            val backoff = Duration.ofSeconds(5);
+            val stream  = new AttributeStream(
+                    invocation("backoffSleepClose", INITIAL_TIMEOUT, POLL_INTERVAL, backoff, 1L), supplier);
+
+            // Wait until the first attempt has fired and the pump is asleep in backoff.
+            Awaitility.await().atMost(AWAIT_BUDGET).until(() -> supplierInvoked.get() >= 1);
+            sleepUninterruptibly(Duration.ofMillis(50));
+
+            val before = System.nanoTime();
+            stream.close();
+            // awaitNext returns null once the pump's output is completed by close().
+            assertThat(stream.awaitNext()).isNull();
+            val elapsed = Duration.ofNanos(System.nanoTime() - before);
+            assertThat(elapsed).isLessThan(backoff);
+        }
+
+        @Test
+        @DisplayName("close during the forwarding loop (pump awaiting the next emission inside drain): "
+                + "the pump exits cleanly")
+        void whenClosedDuringForwardingLoopThenPumpExitsCleanly() throws Exception {
+            val inner = new ScriptedStream();
+            inner.emit(Value.of("v1"));
+            // Intentionally not completed: pump publishes v1 then re-enters
+            // drain's awaitNext, which is the path under test for close.
+            val source = new ControlledSource(() -> inner);
+            val stream = new AttributeStream(invocation("drainClose"), source);
+
+            // Wait until v1 has surfaced; at that point the pump is parked in drain.
+            Awaitility.await().atMost(AWAIT_BUDGET).until(() -> Value.of("v1").equals(valueOrNull(stream.tryNext())));
+
+            stream.close();
+            assertThat(stream.awaitNext()).isNull();
+        }
+    }
+
+    private static void sleepUninterruptibly(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 
     private static Stream<Value> oneShot(Value v) {

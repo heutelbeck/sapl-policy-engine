@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -57,6 +58,8 @@ import java.util.function.Consumer;
 @Slf4j
 final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
 
+    private static final String DEBUG_CLOSED             = "Active PIP invocation {} closed";
+    private static final String DEBUG_OPENED             = "Active PIP invocation {} opened for '{}'";
     private static final String DEBUG_PUMP_THREW         = "Active PIP invocation {} pump threw: {}";
     private static final String DEBUG_STREAM_CLOSE_THREW = "Stream close threw: {}";
     private static final String WARN_ONVALUE_THREW       = "Active PIP invocation {} onValue handler threw: {}";
@@ -72,9 +75,12 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     // O(consumers-of-this-active-invocation), not O(all-broker-consumers). The
     // map is a multiset (count per consumer) so a consumer routing several
     // keys to this same active invocation is counted once for dispatch but
-    // balanced correctly against refcount.
+    // balanced correctly against refcount. The AtomicInteger is for static
+    // analysis: the broker lock already serializes access, so atomic ops are
+    // strictly redundant, but writing `refcount++` on a plain int trips
+    // SonarQube's atomicity check.
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
-    private int                                    refcount       = 0;
+    private final AtomicInteger                    refcount       = new AtomicInteger();
 
     private final Object                                 lock               = new Object();
     private Stream<Value>                                sourceStream;
@@ -103,6 +109,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
         this.sourceStream = sourceStream;
         this.sourceSpec   = sourceSpec;
         this.onValue      = onValue;
+        log.debug(DEBUG_OPENED, id, invocation.attributeName());
     }
 
     @Override
@@ -139,8 +146,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     @Override
     public int attach(BrokerSubscription subscriber) {
         subscriberRefs.merge(subscriber, 1, Integer::sum);
-        refcount++;
-        return refcount;
+        return refcount.incrementAndGet();
     }
 
     /**
@@ -153,15 +159,14 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     public int detach(BrokerSubscription subscriber) {
         val current = subscriberRefs.get(subscriber);
         if (current == null) {
-            return refcount;
+            return refcount.get();
         }
         if (current == 1) {
             subscriberRefs.remove(subscriber);
         } else {
             subscriberRefs.put(subscriber, current - 1);
         }
-        refcount--;
-        return refcount;
+        return refcount.decrementAndGet();
     }
 
     /**
@@ -176,7 +181,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
 
     @Override
     public int refcount() {
-        return refcount;
+        return refcount.get();
     }
 
     /**
@@ -270,6 +275,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
         if (toClose != null) {
             safeClose(toClose);
         }
+        log.debug(DEBUG_CLOSED, id);
     }
 
     @Override
