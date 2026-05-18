@@ -37,8 +37,9 @@ import lombok.val;
 @ConfigurationProperties(prefix = "io.sapl.pdp.remote")
 public class RemotePDPProperties implements Validator {
 
-    private static final String TYPE_HTTP    = "http";
-    private static final String TYPE_RSOCKET = "rsocket";
+    private static final String TYPE_HTTP                  = "http";
+    private static final String TYPE_RSOCKET               = "rsocket";
+    private static final String OAUTH2_CLIENT_REGISTRATION = "oauth2.clientRegistrationId";
 
     private boolean enabled = false;
 
@@ -153,15 +154,15 @@ public class RemotePDPProperties implements Validator {
 
     private void validateOauth2Combinations(RemotePDPProperties properties, Errors errors) {
         if (!properties.key.isEmpty() || !properties.secret.isEmpty()) {
-            errors.rejectValue("oauth2.clientRegistrationId", "oauth2-conflict-basic",
+            errors.rejectValue(OAUTH2_CLIENT_REGISTRATION, "oauth2-conflict-basic",
                     "oauth2.client-registration-id cannot be combined with key/secret authentication");
         }
         if (!properties.bearerToken.isEmpty()) {
-            errors.rejectValue("oauth2.clientRegistrationId", "oauth2-conflict-bearer",
+            errors.rejectValue(OAUTH2_CLIENT_REGISTRATION, "oauth2-conflict-bearer",
                     "oauth2.client-registration-id cannot be combined with bearer-token authentication");
         }
         if (properties.tokenRelay) {
-            errors.rejectValue("oauth2.clientRegistrationId", "oauth2-conflict-token-relay",
+            errors.rejectValue(OAUTH2_CLIENT_REGISTRATION, "oauth2-conflict-token-relay",
                     "oauth2.client-registration-id cannot be combined with token-relay authentication");
         }
     }

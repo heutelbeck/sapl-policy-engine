@@ -130,7 +130,7 @@ class RemotePDPOAuth2IT {
     private String[] oauth2Properties(String transportType, int port) {
         val tokenUri = keycloak.getAuthServerUrl() + "/realms/" + REALM + "/protocol/openid-connect/token";
         return new String[] { "io.sapl.pdp.remote.enabled=true", "io.sapl.pdp.remote.type=" + transportType,
-                "io.sapl.pdp.remote.host=" + (transportType.equals("http") ? "http://" + saplNode.getHost() + ":" + port
+                "io.sapl.pdp.remote.host=" + ("http".equals(transportType) ? "http://" + saplNode.getHost() + ":" + port
                         : saplNode.getHost()),
                 "io.sapl.pdp.remote.port=" + port,
                 "io.sapl.pdp.remote.oauth2.client-registration-id=" + REGISTRATION_ID,
