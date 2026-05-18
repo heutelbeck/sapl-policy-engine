@@ -19,12 +19,14 @@ package io.sapl.spring.pdp.remote;
 
 import javax.net.ssl.SSLException;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.remote.DelegatingBlockingPolicyDecisionPoint;
@@ -43,12 +45,20 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(RemotePDPProperties.class)
 public class RemotePDPAutoConfiguration {
 
+    private static final String ERROR_OAUTH2_REGISTRATION_REPOSITORY_MISSING = """
+            io.sapl.pdp.remote.oauth2.client-registration-id=%s is configured but no \
+            ReactiveClientRegistrationRepository bean is available. \
+            Add spring-boot-starter-oauth2-client to your dependencies and declare \
+            the client registration via spring.security.oauth2.client.registration.%s.*""";
+
     private static final String ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE = "Unsupported remote PDP connection type: %s";
 
     private static final String TYPE_HTTP    = "http";
     private static final String TYPE_RSOCKET = "rsocket";
 
     private final RemotePDPProperties configuration;
+
+    private final ObjectProvider<ReactiveClientRegistrationRepository> clientRegistrationRepositoryProvider;
 
     @Bean
     @ConditionalOnMissingBean
@@ -78,15 +88,19 @@ public class RemotePDPAutoConfiguration {
     }
 
     private void applyHttpAuthentication(RemoteHttpPolicyDecisionPointBuilder builder) {
-        if (configuration.isTokenRelay()) {
+        val registrationId = configuration.getOauth2().getClientRegistrationId();
+        if (!registrationId.isEmpty()) {
+            log.info("Connecting with OAuth2 client_credentials (registration: {})", registrationId);
+            builder.oauth2(requireClientRegistrationRepository(registrationId), registrationId);
+        } else if (configuration.isTokenRelay()) {
             log.info("Connecting with token relay (forwarding user credential per request)");
             builder.tokenRelay(RemotePDPAutoConfiguration::extractCurrentToken);
         } else if (!configuration.getKey().isEmpty()) {
             log.info("Connecting with basic authentication");
             builder.basicAuth(configuration.getKey(), configuration.getSecret());
-        } else if (!configuration.getApiKey().isEmpty()) {
-            log.info("Connecting with apiKey authentication");
-            builder.apiKey(configuration.getApiKey());
+        } else if (!configuration.getBearerToken().isEmpty()) {
+            log.info("Connecting with bearer token authentication");
+            builder.apiKey(configuration.getBearerToken());
         }
     }
 
@@ -106,12 +120,19 @@ public class RemotePDPAutoConfiguration {
     }
 
     private void applyRSocketAuthentication(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder) {
-        if (!configuration.getKey().isEmpty()) {
+        val registrationId = configuration.getOauth2().getClientRegistrationId();
+        if (!registrationId.isEmpty()) {
+            val principalName = configuration.getOauth2().getPrincipalName().isEmpty() ? registrationId
+                    : configuration.getOauth2().getPrincipalName();
+            log.info("Connecting with OAuth2 client_credentials (registration: {}, principal: {})", registrationId,
+                    principalName);
+            builder.oauth2(requireClientRegistrationRepository(registrationId), registrationId, principalName);
+        } else if (!configuration.getKey().isEmpty()) {
             log.info("Connecting with basic authentication");
             builder.basicAuth(configuration.getKey(), configuration.getSecret());
-        } else if (!configuration.getApiKey().isEmpty()) {
-            log.info("Connecting with apiKey authentication");
-            builder.apiKey(configuration.getApiKey());
+        } else if (!configuration.getBearerToken().isEmpty()) {
+            log.info("Connecting with bearer token authentication");
+            builder.apiKey(configuration.getBearerToken());
         }
     }
 
@@ -121,6 +142,15 @@ public class RemotePDPAutoConfiguration {
         } else if (configuration.isTls()) {
             builder.secure();
         }
+    }
+
+    private ReactiveClientRegistrationRepository requireClientRegistrationRepository(String registrationId) {
+        val repo = clientRegistrationRepositoryProvider.getIfAvailable();
+        if (repo == null) {
+            throw new IllegalStateException(
+                    ERROR_OAUTH2_REGISTRATION_REPOSITORY_MISSING.formatted(registrationId, registrationId));
+        }
+        return repo;
     }
 
     private static String extractCurrentToken() {

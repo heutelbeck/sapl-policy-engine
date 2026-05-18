@@ -1182,10 +1182,13 @@ io.sapl.pdp.remote.host=https://pdp.example.org:8443
 io.sapl.pdp.remote.key=myapp
 io.sapl.pdp.remote.secret=secret123
 
-# Or API key authentication
-io.sapl.pdp.remote.api-key=your-api-key
+# Or bearer token authentication (SAPL API key or static JWT)
+io.sapl.pdp.remote.bearer-token=your-token
 
-# Or token relay (forward the caller's bearer token)
+# Or OAuth2 client_credentials grant (Spring mints and refreshes the JWT)
+io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp
+
+# Or token relay (forward the caller's bearer token; HTTP only)
 io.sapl.pdp.remote.token-relay=true
 ```
 
@@ -1196,7 +1199,7 @@ io.sapl.pdp.remote.enabled=true
 io.sapl.pdp.remote.type=rsocket
 io.sapl.pdp.remote.host=pdp.example.org
 io.sapl.pdp.remote.port=7000
-io.sapl.pdp.remote.api-key=your-api-key
+io.sapl.pdp.remote.bearer-token=your-token
 
 # Enable TLS against a properly trusted certificate
 io.sapl.pdp.remote.tls=true
@@ -1204,6 +1207,42 @@ io.sapl.pdp.remote.tls=true
 # Or connect via a Unix domain socket (host and port are ignored when set)
 io.sapl.pdp.remote.socket-path=/var/run/sapl-pdp.sock
 ```
+
+#### Authentication methods
+
+| Method | HTTP | RSocket | Properties |
+|---|---|---|---|
+| No auth | yes | yes | omit all credential properties |
+| Basic | yes | yes | `key` + `secret` |
+| Bearer token (SAPL API key or static JWT) | yes | yes | `bearer-token` |
+| Token relay (forward caller's JWT per request) | yes | no (by design) | `token-relay=true` |
+| OAuth2 `client_credentials` (managed JWT lifecycle) | yes | yes | `oauth2.client-registration-id` |
+
+OAuth2 `client_credentials` requires `spring-boot-starter-security-oauth2-client` on the classpath and a Spring Security OAuth2 client registration. The starter resolves the registration through Spring's `ReactiveClientRegistrationRepository`, so consumers configure both blocks in tandem:
+
+```yaml
+io.sapl.pdp.remote:
+  enabled: true
+  type: rsocket
+  host: pdp.example.org
+  port: 7000
+  tls: true
+  oauth2:
+    client-registration-id: sapl-pdp
+
+spring.security.oauth2.client:
+  registration.sapl-pdp:
+    provider: keycloak
+    client-id: sapl-pdp-client
+    client-secret: ...
+    authorization-grant-type: client_credentials
+  provider.keycloak:
+    issuer-uri: https://idp.example.org/realms/sapl
+```
+
+The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. On the RSocket transport, each (re)connect mints a fresh BEARER setup-frame metadata payload from the current token; when the SAPL Node disposes the connection on JWT `exp`, the client reconnects with a freshly issued token. End-to-end this is transparent to the consumer's controllers.
+
+#### Property reference
 
 | Property | Default | Description |
 |---|---|---|
@@ -1217,11 +1256,13 @@ io.sapl.pdp.remote.socket-path=/var/run/sapl-pdp.sock
 | `io.sapl.pdp.remote.max-life-time` | `90s` | Maximum time without an inbound KEEPALIVE before the connection is considered dead. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.key` | empty | Username for basic authentication. |
 | `io.sapl.pdp.remote.secret` | empty | Password for basic authentication. |
-| `io.sapl.pdp.remote.api-key` | empty | API key for token authentication. |
-| `io.sapl.pdp.remote.token-relay` | `false` | Forward the caller's JWT on each PDP request. Mutually exclusive with `key`/`secret` and `api-key`. Supported only on the HTTP transport. RSocket authenticates once at connection setup and cannot relay per-request user credentials. |
+| `io.sapl.pdp.remote.bearer-token` | empty | Bearer token for token authentication. Carries either a SAPL API key (`sapl_*`) or a static JWT. Renamed from `api-key` in 4.1.0; the old name no longer binds. |
+| `io.sapl.pdp.remote.token-relay` | `false` | Forward the caller's JWT on each PDP request. Mutually exclusive with `key`/`secret`, `bearer-token`, and `oauth2.client-registration-id`. Supported only on the HTTP transport. RSocket authenticates once at connection setup and cannot relay per-request user credentials. |
+| `io.sapl.pdp.remote.oauth2.client-registration-id` | empty | Spring Security OAuth2 client registration ID. Enables the `client_credentials` grant on both transports. Mutually exclusive with `key`/`secret`, `bearer-token`, and `token-relay`. |
+| `io.sapl.pdp.remote.oauth2.principal-name` | empty (defaults to `client-registration-id`) | Principal name used as cache key in Spring's `OAuth2AuthorizedClientManager`. Override only when you need distinct cached clients for the same registration. |
 | `io.sapl.pdp.remote.ignore-certificates` | `false` | Skip TLS certificate validation. Not for production. |
 
-You must configure exactly one authentication mechanism. Either `key` and `secret` together, or `api-key` alone, or (HTTP only) `token-relay` alone. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime.
+You must configure exactly one authentication mechanism. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime; use `oauth2.client-registration-id` for managed service-account JWTs over RSocket.
 
 ### Method Security Properties
 

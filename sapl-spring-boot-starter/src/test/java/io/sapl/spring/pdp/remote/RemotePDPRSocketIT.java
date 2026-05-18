@@ -118,7 +118,7 @@ class RemotePDPRSocketIT {
                 val properties = new String[] { "io.sapl.pdp.remote.enabled=true", "io.sapl.pdp.remote.type=rsocket",
                         "io.sapl.pdp.remote.host=" + container.getHost(),
                         "io.sapl.pdp.remote.port=" + container.getMappedPort(RSOCKET_PORT),
-                        "io.sapl.pdp.remote.api-key=" + API_KEY };
+                        "io.sapl.pdp.remote.bearer-token=" + API_KEY };
                 runWithPdp(properties, AuthorizationDecision.PERMIT);
             }
         }
@@ -136,7 +136,7 @@ class RemotePDPRSocketIT {
                 val properties = new String[] { "io.sapl.pdp.remote.enabled=true", "io.sapl.pdp.remote.type=rsocket",
                         "io.sapl.pdp.remote.host=" + container.getHost(),
                         "io.sapl.pdp.remote.port=" + container.getMappedPort(RSOCKET_PORT),
-                        "io.sapl.pdp.remote.api-key=" + API_KEY, "io.sapl.pdp.remote.ignoreCertificates=true" };
+                        "io.sapl.pdp.remote.bearer-token=" + API_KEY, "io.sapl.pdp.remote.ignoreCertificates=true" };
                 runWithPdp(properties, AuthorizationDecision.PERMIT);
             }
         }

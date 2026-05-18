@@ -60,9 +60,26 @@ public class RemotePDPProperties implements Validator {
     private String key    = "";
     private String secret = "";
 
-    private String apiKey = "";
+    private String bearerToken = "";
 
     private boolean tokenRelay = false;
+
+    private Oauth2 oauth2 = new Oauth2();
+
+    /**
+     * OAuth2 client_credentials grant configuration. References a Spring
+     * Security OAuth2 client registration declared via
+     * {@code spring.security.oauth2.client.registration.<id>.*}. Spring's
+     * {@code OAuth2AuthorizedClientManager} caches and refreshes the access
+     * token; on RSocket, expiry triggers a reconnect with a fresh token.
+     */
+    @Data
+    public static class Oauth2 {
+
+        private String clientRegistrationId = "";
+
+        private String principalName = "";
+    }
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -107,23 +124,45 @@ public class RemotePDPProperties implements Validator {
             errors.rejectValue("tokenRelay", "token-relay-rsocket",
                     "tokenRelay is not supported on the rsocket transport. "
                             + "RSocket authenticates once at connection setup. "
-                            + "Use type=http if per-request user credential forwarding is required.");
+                            + "Use type=http if per-request user credential forwarding is required, "
+                            + "or oauth2.client-registration-id for service-account JWTs over RSocket.");
         }
     }
 
     private void validateAuthentication(RemotePDPProperties properties, Errors errors) {
+        val oauth2Set = !properties.oauth2.clientRegistrationId.isEmpty();
+        if (oauth2Set) {
+            validateOauth2Combinations(properties, errors);
+            return;
+        }
         if (properties.tokenRelay) {
-            if (!properties.key.isEmpty() || !properties.apiKey.isEmpty()) {
+            if (!properties.key.isEmpty() || !properties.bearerToken.isEmpty()) {
                 errors.rejectValue("tokenRelay", "token-relay-conflict",
-                        "token-relay cannot be combined with key/secret or api-key authentication");
+                        "token-relay cannot be combined with key/secret or bearer-token authentication");
             }
-        } else if (properties.apiKey.isEmpty() ^ properties.key.isEmpty()) {
+        } else if (properties.bearerToken.isEmpty() ^ properties.key.isEmpty()) {
             if (!properties.key.isEmpty()) {
                 ValidationUtils.rejectIfEmpty(errors, "secret", "requires-secret", "\"secret\" must not be empty");
             }
         } else {
             errors.rejectValue("key", "key-invalid", new String[] { properties.key },
-                    "At least one authentication mechanism needed: \"key\" and \"secret\", \"api-key\", or \"token-relay\"");
+                    "At least one authentication mechanism needed: \"key\" and \"secret\", \"bearer-token\", "
+                            + "\"token-relay\", or \"oauth2.client-registration-id\"");
+        }
+    }
+
+    private void validateOauth2Combinations(RemotePDPProperties properties, Errors errors) {
+        if (!properties.key.isEmpty() || !properties.secret.isEmpty()) {
+            errors.rejectValue("oauth2.clientRegistrationId", "oauth2-conflict-basic",
+                    "oauth2.client-registration-id cannot be combined with key/secret authentication");
+        }
+        if (!properties.bearerToken.isEmpty()) {
+            errors.rejectValue("oauth2.clientRegistrationId", "oauth2-conflict-bearer",
+                    "oauth2.client-registration-id cannot be combined with bearer-token authentication");
+        }
+        if (properties.tokenRelay) {
+            errors.rejectValue("oauth2.clientRegistrationId", "oauth2-conflict-token-relay",
+                    "oauth2.client-registration-id cannot be combined with token-relay authentication");
         }
     }
 }

@@ -22,14 +22,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 
 import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
 import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint;
+import lombok.val;
 
 class RemotePDPAutoConfigurationTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(RemotePDPAutoConfiguration.class));
+
+    @Configuration
+    static class StubClientRegistrationRepositoryConfiguration {
+
+        @Bean
+        ReactiveClientRegistrationRepository clientRegistrationRepository() {
+            val registration = ClientRegistration.withRegistrationId("sapl-pdp").clientId("sapl-pdp-client")
+                    .clientSecret("secret").authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                    .tokenUri("http://example.invalid/token").build();
+            return new InMemoryReactiveClientRegistrationRepository(registration);
+        }
+    }
 
     @Test
     void whenValidHttpBasicPropertiesArePresent_thenTheRemotePdpIsPresent() {
@@ -45,7 +64,7 @@ class RemotePDPAutoConfigurationTests {
     void whenValidHttpApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.enabled=true",
-                        "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.apiKey=anApiKey")
+                        "io.sapl.pdp.remote.host=https://localhost:8443", "io.sapl.pdp.remote.bearerToken=anApiKey")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
@@ -68,7 +87,7 @@ class RemotePDPAutoConfigurationTests {
     void whenValidRSocketApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
         contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
                 "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
-                "io.sapl.pdp.remote.apiKey=anApiKey").run(context -> {
+                "io.sapl.pdp.remote.bearerToken=anApiKey").run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
@@ -88,7 +107,7 @@ class RemotePDPAutoConfigurationTests {
     void whenValidRSocketTlsPropertiesArePresent_thenTheRemotePdpIsPresent() {
         contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
                 "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
-                "io.sapl.pdp.remote.apiKey=anApiKey", "io.sapl.pdp.remote.tls=true").run(context -> {
+                "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.tls=true").run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
@@ -99,11 +118,44 @@ class RemotePDPAutoConfigurationTests {
         contextRunner
                 .withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
                         "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
-                        "io.sapl.pdp.remote.apiKey=anApiKey", "io.sapl.pdp.remote.ignoreCertificates=true")
+                        "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.ignoreCertificates=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
+    }
+
+    @Test
+    void whenHttpOauth2WithRegistrationBean_thenTheRemotePdpIsPresent() {
+        contextRunner.withUserConfiguration(StubClientRegistrationRepositoryConfiguration.class)
+                .withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.enabled=true",
+                        "io.sapl.pdp.remote.host=https://localhost:8443",
+                        "io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenRSocketOauth2WithRegistrationBean_thenTheRemotePdpIsPresent() {
+        contextRunner.withUserConfiguration(StubClientRegistrationRepositoryConfiguration.class)
+                .withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                        "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                        "io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenOauth2RegistrationIdSetButNoRepositoryBean_thenContextFails() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.enabled=true",
+                        "io.sapl.pdp.remote.host=https://localhost:8443",
+                        "io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp")
+                .run(context -> assertThat(context).hasFailed());
     }
 
 }

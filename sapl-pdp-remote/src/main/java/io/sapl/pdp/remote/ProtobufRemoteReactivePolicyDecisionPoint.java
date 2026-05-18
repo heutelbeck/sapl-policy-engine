@@ -44,6 +44,12 @@ import javax.net.ssl.SSLException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.tcp.TcpClient;
@@ -53,8 +59,10 @@ import reactor.util.retry.Retry;
  * High-performance remote PDP client using direct RSocket API with protobuf
  * serialization. Bypasses Spring Messaging layer for minimal overhead.
  * <p>
- * Supports basic authentication, API key, and bearer token authentication via
- * RSocket setup frame metadata.
+ * Supports basic authentication, API key / static bearer token, and OAuth2
+ * client_credentials grant via RSocket setup frame metadata. For OAuth2 the
+ * setup payload is recomputed on every connect, so the server's connection
+ * disposal at JWT expiry triggers a reconnect with a freshly minted token.
  *
  * @see RemotePolicyDecisionPoint#builder()
  */
@@ -282,16 +290,16 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     }
 
     /**
-     * Builder for {@link ProtobufRemoteReactivePolicyDecisionPoint}. Supports TLS,
-     * basic authentication, API key, and bearer token authentication via
-     * RSocket setup frame metadata.
+     * Builder for {@link ProtobufRemoteReactivePolicyDecisionPoint}. Supports
+     * TLS, basic authentication, API key / static bearer token, and OAuth2
+     * client_credentials authentication via RSocket setup frame metadata.
      */
     public static class Builder {
 
-        private TcpClient tcpClient   = TcpClient.create();
-        private Duration  keepAlive   = Duration.ofSeconds(20);
-        private Duration  maxLifeTime = Duration.ofSeconds(90);
-        private Payload   setupPayload;
+        private TcpClient     tcpClient   = TcpClient.create();
+        private Duration      keepAlive   = Duration.ofSeconds(20);
+        private Duration      maxLifeTime = Duration.ofSeconds(90);
+        private Mono<Payload> setupPayloadMono;
 
         /**
          * Configure insecure SSL (development only).
@@ -370,20 +378,100 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         public Builder basicAuth(String username, String password) {
             val metadata = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, username.toCharArray(),
                     password.toCharArray());
-            this.setupPayload = DefaultPayload.create(Unpooled.EMPTY_BUFFER, metadata);
+            this.setupPayloadMono = Mono.just(DefaultPayload.create(Unpooled.EMPTY_BUFFER, metadata));
             return this;
         }
 
         /**
          * Configure bearer token authentication via RSocket setup frame
-         * metadata.
+         * metadata. The token is sent verbatim and is not refreshed; if it
+         * expires the connection cannot recover. Use
+         * {@link #oauth2(ReactiveClientRegistrationRepository, String)} for
+         * managed JWT lifecycle.
          *
-         * @param token the bearer token (API key or JWT)
+         * @param token the bearer token (API key or static JWT)
          * @return this builder
          */
         public Builder apiKey(String token) {
             val metadata = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT, token.toCharArray());
-            this.setupPayload = DefaultPayload.create(Unpooled.EMPTY_BUFFER, metadata);
+            this.setupPayloadMono = Mono.just(DefaultPayload.create(Unpooled.EMPTY_BUFFER, metadata));
+            return this;
+        }
+
+        /**
+         * Configure OAuth2 client_credentials grant authentication, using the
+         * supplied {@code registrationId} as the principal name for the
+         * authorized-client cache.
+         *
+         * @param clientRegistrationRepository the Spring OAuth2 client
+         * registration repository
+         * @param registrationId the registration ID identifying the
+         * client_credentials grant configuration
+         * @return this builder
+         */
+        public Builder oauth2(ReactiveClientRegistrationRepository clientRegistrationRepository,
+                String registrationId) {
+            return oauth2(clientRegistrationRepository, registrationId, registrationId);
+        }
+
+        /**
+         * Configure OAuth2 client_credentials grant authentication. The
+         * supplied Spring Security {@code OAuth2AuthorizedClientManager} is
+         * queried on every connect attempt; the cached token is reused while
+         * valid and refreshed automatically as it approaches its expiry
+         * (Spring's default 60 s clock skew). When the SAPL Node server
+         * disposes the RSocket connection on JWT {@code exp}, the client's
+         * reconnect path re-evaluates the supplier and obtains a fresh token.
+         * <p>
+         * The token is fetched lazily inside the connect path. Identity
+         * provider outages at connect time propagate as connection errors and
+         * are retried by the streaming decision path; one-shot calls
+         * (decideOnce) fail closed to {@code INDETERMINATE}.
+         *
+         * @param clientRegistrationRepository the Spring OAuth2 client
+         * registration repository
+         * @param registrationId the registration ID identifying the
+         * client_credentials grant configuration
+         * @param principalName the principal name used as cache key by
+         * {@link AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager}
+         * @return this builder
+         */
+        public Builder oauth2(ReactiveClientRegistrationRepository clientRegistrationRepository, String registrationId,
+                String principalName) {
+            val clientService           = new InMemoryReactiveOAuth2AuthorizedClientService(
+                    clientRegistrationRepository);
+            val authorizedClientManager = new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
+                    clientRegistrationRepository, clientService);
+            val principal               = new AnonymousAuthenticationToken(principalName, principalName,
+                    AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+            this.setupPayloadMono = Mono.defer(() -> {
+                val authorizeRequest = OAuth2AuthorizeRequest.withClientRegistrationId(registrationId)
+                        .principal(principal).build();
+                return authorizedClientManager.authorize(authorizeRequest)
+                        .switchIfEmpty(Mono.error(new IllegalStateException(
+                                "OAuth2 client manager returned no authorized client for registration: "
+                                        + registrationId)))
+                        .map(client -> client.getAccessToken().getTokenValue()).map(token -> {
+                            val metadata = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT,
+                                    token.toCharArray());
+                            return (Payload) DefaultPayload.create(Unpooled.EMPTY_BUFFER, metadata);
+                        });
+            });
+            return this;
+        }
+
+        /**
+         * Generic seam for callers that need full control over setup-frame
+         * metadata. The supplied {@link Mono} is subscribed on every connect
+         * attempt, so token refresh strategies beyond
+         * {@link #oauth2(ReactiveClientRegistrationRepository, String)} can
+         * plug in here.
+         *
+         * @param setupPayloadMono the setup payload supplier
+         * @return this builder
+         */
+        public Builder setupPayloadMono(Mono<Payload> setupPayloadMono) {
+            this.setupPayloadMono = setupPayloadMono;
             return this;
         }
 
@@ -408,8 +496,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
          */
         public ProtobufRemoteReactivePolicyDecisionPoint build() {
             val connector = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime);
-            if (setupPayload != null) {
-                connector.setupPayload(setupPayload);
+            if (setupPayloadMono != null) {
+                connector.setupPayload(setupPayloadMono);
             }
             val rSocketMono = connector.connect(TcpClientTransport.create(tcpClient));
             return new ProtobufRemoteReactivePolicyDecisionPoint(rSocketMono, 500, 5000);
