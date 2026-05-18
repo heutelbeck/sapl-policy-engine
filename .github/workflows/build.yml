@@ -100,62 +100,6 @@ jobs:
       - name: Clean up Local Repository before Caching
         run: rm -rf ~/.m2/repository/io/sapl
 
-  sonar-early:
-    name: SonarCloud Early Feedback
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    if: ${{ !github.event.pull_request.head.repo.fork && github.actor != 'dependabot[bot]' }}
-    timeout-minutes: 30
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
-        with:
-          egress-policy: audit
-
-      - name: Check out
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-          cache: 'maven'
-
-      - name: Compile and Run SpotBugs
-        run: |
-          mvn -B install -Dmaven.test.skip=true -pl sapl-code-style -q
-          mvn -B package spotbugs:spotbugs -Dmaven.test.skip=true -pl '!sapl-bom,!sapl-code-style' -Pspotbugs -T 1.5C
-
-      - name: Cache Sonar Packages
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-        # Runs SonarCloud analysis on compiled code with SpotBugs findings but
-        # without coverage data. This provides fast issue feedback (~12 min)
-        # while the full analysis with coverage follows after tests complete.
-      - name: Run SonarCloud Analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
-        run: >
-          mvn -B sonar:sonar
-          -pl '!sapl-bom,!sapl-code-style'
-          -Dsonar.organization=heutelbeck
-          -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.projectKey=heutelbeck_sapl-policy-engine
-          -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
-          -Dsonar.qualitygate.wait=true
-          -Pproduction
-
-      - name: Clean up Local Repository before Caching
-        run: rm -rf ~/.m2/repository/io/sapl
-
   test:
     strategy:
       matrix:
@@ -229,8 +173,7 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-        # Authoritative SonarCloud analysis with full coverage and SpotBugs data.
-        # Overwrites the earlier fast-feedback analysis from the sonar-early job.
+        # SonarCloud analysis with full coverage and SpotBugs data.
         # The quality gate is enforced here (sonar.qualitygate.wait=true).
       - name: Run SonarCloud Analysis with Coverage
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
