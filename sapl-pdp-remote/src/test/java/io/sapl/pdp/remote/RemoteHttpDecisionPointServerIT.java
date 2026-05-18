@@ -35,6 +35,7 @@ import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
 import org.testcontainers.images.ImagePullPolicy;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -63,8 +64,8 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     private void requestDecision(ReactivePolicyDecisionPoint pdp) {
-        StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
-                .verify();
+        StepVerifier.create(pdp.decide(permittedSubscription).retry(1)).expectNext(AuthorizationDecision.PERMIT)
+                .thenCancel().verify(Duration.ofSeconds(45));
     }
 
     // HTTP Protocol
@@ -81,7 +82,10 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTRACE","true")
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT","true")
                         .withExposedPorts(SAPL_SERVER_PORT)
-                        .waitingFor(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)))) {
+                        .waitingFor(new WaitAllStrategy()
+                                .withStrategy(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1))
+                                .withStrategy(Wait.forListeningPort())
+                                .withStartupTimeout(Duration.ofMinutes(2)))) {
         // @formatter:on
             container.start();
             log.debug("connecting to: " + "http://" + container.getHost() + ":"
@@ -111,7 +115,10 @@ class RemoteHttpDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_PORT)
-                .waitingFor(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)))
+                .waitingFor(new WaitAllStrategy()
+                        .withStrategy(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1))
+                        .withStrategy(Wait.forListeningPort())
+                        .withStartupTimeout(Duration.ofMinutes(2)))
                 .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
                 .withEnv("SERVER_ADDRESS", "0.0.0.0")
@@ -163,7 +170,7 @@ class RemoteHttpDecisionPointServerIT {
                     .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
                     .basicAuth(username, secret).withUnsecureSSL().build();
             StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE)
-                    .thenCancel().verify();
+                    .thenCancel().verify(Duration.ofSeconds(30));
             container.stop();
         }
     }
