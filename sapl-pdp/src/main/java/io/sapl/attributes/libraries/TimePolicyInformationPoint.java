@@ -35,6 +35,7 @@ import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneId;
@@ -736,16 +737,27 @@ public class TimePolicyInformationPoint {
 
     private Stream<Value> afterCheckpointFollowingDays(LocalTime checkpoint, ZoneId zone) {
         return Streams.repeat(() -> {
-            val startOfDay = boolAtZonedBoundary(Value.TRUE, checkpoint, zone);
-            val endOfDay   = boolAtZonedBoundary(Value.FALSE, LocalTime.MAX, zone);
+            // The caller has already covered "current day after checkpoint" via
+            // a tillMidnight segment, so the next emission this repeat produces
+            // is always for the NEXT day, not today. Computing the date as
+            // tomorrow-relative-to-now also keeps subsequent iterations correct:
+            // each iteration's supplier evaluates just after the previous
+            // endOfDay fired (clock at day N's end-of-day), so today = day N
+            // and tomorrow = day N+1, which is exactly the iteration we want
+            // to schedule next.
+            val nextDay    = zonedNow(zone).toLocalDate().plusDays(1);
+            val startOfDay = boolAtDate(Value.TRUE, checkpoint, nextDay, zone);
+            val endOfDay   = boolAtDate(Value.FALSE, LocalTime.MAX, nextDay, zone);
             return Streams.concat(startOfDay, endOfDay);
         });
     }
 
     private Stream<Value> boolAtZonedBoundary(Value value, LocalTime to, ZoneId zone) {
-        val today         = zonedNow(zone).toLocalDate();
-        val zonedTo       = to.atDate(today).atZone(zone);
-        val targetInstant = zonedTo.toInstant();
+        return boolAtDate(value, to, zonedNow(zone).toLocalDate(), zone);
+    }
+
+    private Stream<Value> boolAtDate(Value value, LocalTime to, LocalDate date, ZoneId zone) {
+        val targetInstant = to.atDate(date).atZone(zone).toInstant();
         return Streams.scheduledAt(value, targetInstant, scheduler);
     }
 
