@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.expressions;
 
-import java.util.stream.Stream;
-
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
 import lombok.val;
@@ -28,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.parseExpression;
 import static org.assertj.core.api.Assertions.assertThat;

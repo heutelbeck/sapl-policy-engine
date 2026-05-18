@@ -21,8 +21,8 @@ import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.Stream;
 import lombok.RequiredArgsConstructor;
-import reactor.core.publisher.Flux;
 
 /**
  * Policy Information Point for subscribing to MQTT topics and receiving
@@ -71,7 +71,7 @@ public class MqttPolicyInformationPoint {
             * `defaultResponse`: Response when no messages arrive before timeout --
               `"undefined"` or `"error"` (defaults to `"undefined"`)
             * `defaultResponseTimeout`: Timeout in milliseconds before emitting the default
-              response (defaults to 1000)
+              response (defaults to 2000)
             * `emitAtRetry`: Emit value on reconnection -- `"true"` or `"false"` (defaults to `"false"`)
 
             Each broker configuration object contains:
@@ -259,8 +259,8 @@ public class MqttPolicyInformationPoint {
               "building/#".<mqtt.messages>.alert == true;
             ```
             """)
-    public Flux<Value> messages(Value topic, AttributeAccessContext ctx) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx);
+    public Stream<Value> messages(Value topic, AttributeAccessContext ctx) {
+        return saplMqttClient.buildSaplMqttMessageStream(topic, ctx);
     }
 
     /**
@@ -302,8 +302,8 @@ public class MqttPolicyInformationPoint {
               "sensors/motion/#".<mqtt.messages(0)> != undefined;
             ```
             """)
-    public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx, qos);
+    public Stream<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
+        return saplMqttClient.buildSaplMqttMessageStream(topic, ctx, qos);
     }
 
     /**
@@ -370,7 +370,7 @@ public class MqttPolicyInformationPoint {
               "sensors/#".<mqtt.messages(2, brokers)>.status == "OK";
             ```
             """)
-    public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos, Value mqttPipConfig) {
-        return saplMqttClient.buildSaplMqttMessageFlux(topic, ctx, qos, mqttPipConfig);
+    public Stream<Value> messages(Value topic, AttributeAccessContext ctx, Value qos, Value mqttPipConfig) {
+        return saplMqttClient.buildSaplMqttMessageStream(topic, ctx, qos, mqttPipConfig);
     }
 }

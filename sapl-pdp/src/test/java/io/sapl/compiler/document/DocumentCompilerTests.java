@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.document;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -33,9 +32,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 
@@ -46,9 +43,8 @@ class DocumentCompilerTests {
 
     @BeforeEach
     void setUp() {
-        val functionBroker  = mock(FunctionBroker.class);
-        val attributeBroker = mock(AttributeBroker.class);
-        ctx = new CompilationContext(functionBroker, attributeBroker);
+        val functionBroker = mock(FunctionBroker.class);
+        ctx = new CompilationContext(functionBroker);
     }
 
     @Nested

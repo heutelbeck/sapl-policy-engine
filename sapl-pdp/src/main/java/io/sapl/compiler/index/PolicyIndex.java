@@ -17,9 +17,9 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.function.Predicate;
-
 import io.sapl.api.model.EvaluationContext;
+
+import java.util.function.Predicate;
 
 /**
  * Determines which compiled documents are applicable for a given authorization

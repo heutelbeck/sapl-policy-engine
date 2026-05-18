@@ -33,6 +33,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -188,14 +189,16 @@ public class BenchmarkCommand implements Callable<Integer> {
         if (policyPath == null) {
             return null;
         }
-        val subscriptionsFile = java.nio.file.Path.of(policyPath).resolve("subscriptions.json");
-        try {
-            if (Files.exists(subscriptionsFile)) {
-                return Files.readString(subscriptionsFile);
-            }
-        } catch (IOException e) {
-            // fall through to single subscription
+        val subscriptionsFile = Path.of(policyPath).resolve("subscriptions.json");
+        if (!Files.exists(subscriptionsFile)) {
+            return null;
         }
-        return null;
+        try {
+            return Files.readString(subscriptionsFile);
+        } catch (IOException e) {
+            System.err.println("Failed to read " + subscriptionsFile + ": " + e.getMessage()
+                    + ". Falling back to a single hard-coded subscription.");
+            return null;
+        }
     }
 }

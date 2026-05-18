@@ -112,13 +112,18 @@ public class TestCommand implements Callable<Integer> {
 
     static final String WARN_COVERAGE_WRITE_FAILED = "Warning: Failed to write coverage data: %s.";
 
-    private static final String ANSI_BOLD       = "\u001B[1m";
-    private static final String ANSI_BOLD_GREEN = "\u001B[1;32m";
-    private static final String ANSI_BOLD_RED   = "\u001B[1;31m";
-    private static final String ANSI_FAINT      = "\u001B[2m";
-    private static final String ANSI_GREEN      = "\u001B[32m";
-    private static final String ANSI_RED        = "\u001B[31m";
-    private static final String ANSI_RESET      = "\u001B[0m";
+    // Auto-disable colour codes when stdout is not a TTY (e.g. piped to a file or
+    // CI logs).
+    // System.console() returns null in those cases, so the codes collapse to empty
+    // strings.
+    private static final boolean ANSI_ON         = System.console() != null;
+    private static final String  ANSI_BOLD       = ANSI_ON ? "\u001B[1m" : "";
+    private static final String  ANSI_BOLD_GREEN = ANSI_ON ? "\u001B[1;32m" : "";
+    private static final String  ANSI_BOLD_RED   = ANSI_ON ? "\u001B[1;31m" : "";
+    private static final String  ANSI_FAINT      = ANSI_ON ? "\u001B[2m" : "";
+    private static final String  ANSI_GREEN      = ANSI_ON ? "\u001B[32m" : "";
+    private static final String  ANSI_RED        = ANSI_ON ? "\u001B[31m" : "";
+    private static final String  ANSI_RESET      = ANSI_ON ? "\u001B[0m" : "";
 
     @Spec
     CommandSpec spec;
@@ -200,10 +205,7 @@ public class TestCommand implements Callable<Integer> {
         val coverage = aggregateCoverage(results);
         generateReports(coverage, err);
 
-        if (results.errors() > 0) {
-            return 2;
-        }
-        if (!results.allPassed()) {
+        if (results.errors() > 0 || !results.allPassed()) {
             return 2;
         }
 

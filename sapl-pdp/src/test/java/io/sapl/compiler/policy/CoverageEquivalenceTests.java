@@ -18,7 +18,6 @@
 package io.sapl.compiler.policy;
 
 import io.sapl.api.model.Value;
-import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +28,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static io.sapl.util.SaplTesting.assertCoverageMatchesProduction;
-import static io.sapl.util.SaplTesting.attributeBroker;
+import static java.util.List.of;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("Coverage Path Equivalence")
@@ -140,96 +139,80 @@ class CoverageEquivalenceTests {
     @Test
     @DisplayName("Runtime errors from attribute")
     void runtimeErrorFromAttribute() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject.<attr.value> == true;
-                """;
-        val broker = attributeBroker("attr.value", Value.error("Service unavailable"));
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, "attr.value", Value.error("Service unavailable"));
     }
 
     @Test
     @DisplayName("Stream policy with single emission")
     void streamPolicySingleEmission() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject.<attr.check> == true;
-                """;
-        val broker = attributeBroker("attr.check", Value.TRUE);
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, "attr.check", Value.TRUE);
     }
 
     @Test
     @DisplayName("Stream policy with multiple emissions")
     void streamPolicyMultipleEmissions() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject.<attr.status> == "active";
-                """;
-        val broker = attributeBroker("attr.status", Value.of("active"), Value.of("inactive"), Value.of("active"));
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, "attr.status", Value.of("active"), Value.of("inactive"), Value.of("active"));
     }
 
     @Test
     @DisplayName("Stream policy with static constraints")
     void streamPolicyWithStaticConstraints() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject.<attr.valid> == true;
                 obligation "log"
                 advice "cache"
-                """;
-        val broker = attributeBroker("attr.valid", Value.TRUE, Value.FALSE);
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, "attr.valid", Value.TRUE, Value.FALSE);
     }
 
     @Test
     @DisplayName("Stream policy with pure constraints")
     void streamPolicyWithPureConstraints() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject.<attr.allowed> == true;
                 obligation subject
                 advice action
-                """;
-        val broker = attributeBroker("attr.allowed", Value.TRUE);
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, "attr.allowed", Value.TRUE);
     }
 
     @Test
     @DisplayName("Stream policy with stream constraints")
     void streamPolicyWithStreamConstraints() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject.<body.attr> == true;
                 obligation <constraint.attr>
-                """;
-        val broker = attributeBroker(
-                Map.of("body.attr", new Value[] { Value.TRUE }, "constraint.attr", new Value[] { Value.of("logged") }));
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, Map.of("body.attr", of(Value.TRUE), "constraint.attr", of(Value.of("logged"))));
     }
 
     @Test
     @DisplayName("Pure body with stream obligation")
     void pureBodyStreamObligation() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" permit
                 subject == "alice";
                 obligation <audit.log>
-                """;
-        val broker = attributeBroker("audit.log", Value.of("recorded"));
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy, broker);
+                """, "audit.log", Value.of("recorded"));
     }
 
     @Test
     @DisplayName("Deny policy with constraints")
     void denyPolicyWithConstraints() {
-        val policy = """
+        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, """
                 policy "test" deny
                 subject == "alice";
                 obligation "block_access"
                 advice "contact_admin"
-                """;
-        assertCoverageMatchesProduction(DEFAULT_SUBSCRIPTION, policy);
+                """);
     }
 }

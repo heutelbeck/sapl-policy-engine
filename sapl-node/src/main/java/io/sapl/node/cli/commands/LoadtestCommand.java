@@ -73,13 +73,13 @@ import java.util.concurrent.Callable;
     footerHeading = "%nExamples:%n",
     footer = { """
           # HTTP load test against a running server
-          sapl loadtest --url http://localhost:8443 -s '{"role":"admin"}' -a '"read"' -r '"doc"'
+          sapl loadtest --url http://localhost:8080 -s '{"role":"admin"}' -a '"read"' -r '"doc"'
 
           # RSocket load test
           sapl loadtest --rsocket --host localhost --port 7000 -s '{"role":"admin"}' -a '"read"' -r '"doc"'
 
           # With custom concurrency and output
-          sapl loadtest --url http://localhost:8443 --concurrency 128 --measurement-seconds 30 -o ./results -s '"alice"' -a '"read"' -r '"doc"'
+          sapl loadtest --url http://localhost:8080 --concurrency 128 --measurement-seconds 30 -o ./results -s '"alice"' -a '"read"' -r '"doc"'
 
           # RSocket with connection tuning
           sapl loadtest --rsocket --connections 8 --vt-per-connection 512 -s '"alice"' -a '"read"' -r '"doc"'
@@ -98,7 +98,7 @@ public class LoadtestCommand implements Callable<Integer> {
     @Spec
     CommandSpec spec;
 
-    @Option(names = "--url", defaultValue = "http://localhost:8443", description = "HTTP server URL (default: ${DEFAULT-VALUE})")
+    @Option(names = "--url", defaultValue = "http://localhost:8080", description = "HTTP server URL (default: ${DEFAULT-VALUE})")
     String url;
 
     @Option(names = "--rsocket", description = "Use RSocket/protobuf transport instead of HTTP")
@@ -112,6 +112,9 @@ public class LoadtestCommand implements Callable<Integer> {
 
     @Option(names = "--socket-path", description = "Unix domain socket path for RSocket (alternative to host/port)")
     String socketPath;
+
+    @Option(names = "--insecure", description = "Skip TLS certificate verification (development only)")
+    boolean insecure;
 
     @Option(names = "--concurrency", defaultValue = "64", description = "Concurrent in-flight requests for HTTP (default: ${DEFAULT-VALUE})")
     int concurrency;
@@ -169,31 +172,33 @@ public class LoadtestCommand implements Callable<Integer> {
             BenchmarkResult result;
             LoadtestContext ctx;
 
-            val progressOut = machineReadable
+            try (PrintWriter silent = machineReadable
                     ? new PrintWriter(OutputStream.nullOutputStream(), false, StandardCharsets.UTF_8)
-                    : out;
+                    : null) {
+                val progressOut = silent != null ? silent : out;
 
-            if (rsocket) {
-                val protoPayload = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
-                ctx = LoadtestContext.rsocket(rsocketHost, rsocketPort, connections, vtPerConnection, warmupSeconds,
-                        measureSeconds, timestamp, label);
-                if (!machineReadable) {
-                    if (socketPath != null) {
-                        out.println("RSocket load test: unix://%s".formatted(socketPath));
-                    } else {
-                        out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
+                if (rsocket) {
+                    val protoPayload = SaplProtobufCodec.writeAuthorizationSubscription(subscription);
+                    ctx = LoadtestContext.rsocket(rsocketHost, rsocketPort, connections, vtPerConnection, warmupSeconds,
+                            measureSeconds, timestamp, label);
+                    if (!machineReadable) {
+                        if (socketPath != null) {
+                            out.println("RSocket load test: unix://%s".formatted(socketPath));
+                        } else {
+                            out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
+                        }
                     }
+                    result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
+                            vtPerConnection, warmupSeconds, measureSeconds, rate, progressOut);
+                } else {
+                    val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
+                    ctx = LoadtestContext.http(url, concurrency, warmupSeconds, measureSeconds, timestamp, label);
+                    if (!machineReadable) {
+                        out.println("HTTP load test: %s".formatted(url));
+                    }
+                    result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, rate,
+                            insecure, progressOut);
                 }
-                result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
-                        vtPerConnection, warmupSeconds, measureSeconds, rate, progressOut);
-            } else {
-                val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
-                ctx = LoadtestContext.http(url, concurrency, warmupSeconds, measureSeconds, timestamp, label);
-                if (!machineReadable) {
-                    out.println("HTTP load test: %s".formatted(url));
-                }
-                result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, rate,
-                        progressOut);
             }
 
             val results = new ArrayList<BenchmarkResult>();

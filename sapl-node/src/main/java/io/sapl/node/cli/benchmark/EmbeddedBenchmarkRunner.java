@@ -28,7 +28,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,8 +40,7 @@ import org.HdrHistogram.Histogram;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -76,12 +77,11 @@ public class EmbeddedBenchmarkRunner {
      */
     public static List<BenchmarkResult> run(BenchmarkContext ctx, BenchmarkRunConfig cfg, int threads, PrintWriter out,
             PrintWriter err) {
-        PDPComponents components = null;
-        try {
-            components = ctx.buildEmbeddedPdp();
+        try (val components = ctx.buildEmbeddedPdp()) {
             val mapper        = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscriptions = loadSubscriptions(ctx, mapper);
-            val methods       = resolveMethods(components.pdp(), subscriptions, cfg.benchmarks());
+            val pdp           = components.pdp();
+            val methods       = resolveMethods(pdp, subscriptions, cfg.benchmarks());
 
             val results = cfg.machineReadable() ? measureMachineReadable(methods, cfg, threads, out, err)
                     : measureInteractive(methods, cfg, threads, out, err);
@@ -93,10 +93,6 @@ public class EmbeddedBenchmarkRunner {
         } catch (Exception e) {
             err.println(ERROR_BENCHMARK_FAILED.formatted(e.getMessage()));
             return List.of();
-        } finally {
-            if (components != null) {
-                components.dispose();
-            }
         }
     }
 
@@ -166,6 +162,8 @@ public class EmbeddedBenchmarkRunner {
         if (!cfg.latency()) {
             return null;
         }
+        // Force GC before measurement so a stop-the-world pause is less likely to land
+        // mid-iteration and skew tail latency. JIT'd code is unaffected.
         System.gc();
         val histogram = new Histogram(3_600_000_000_000L, 3);
         runLatencyIteration(cfg.measurementTimeSeconds(), threads, method, histogram);
@@ -256,14 +254,21 @@ public class EmbeddedBenchmarkRunner {
                 mapper.readValue(ctx.subscriptionJson(), AuthorizationSubscription.class) };
     }
 
-    private static Map<String, BenchmarkMethod> resolveMethods(PolicyDecisionPoint pdp,
+    private static Map<String, BenchmarkMethod> resolveMethods(BlockingPolicyDecisionPoint pdp,
             AuthorizationSubscription[] subscriptions, List<String> filter) {
         val                                 index   = new AtomicInteger(0);
         Supplier<AuthorizationSubscription> nextSub = () -> subscriptions[Integer
                 .remainderUnsigned(index.getAndIncrement(), subscriptions.length)];
         val                                 all     = new LinkedHashMap<String, BenchmarkMethod>();
-        all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnceBlocking(nextSub.get()), 1));
-        all.put("decideStreamFirst", new BenchmarkMethod(() -> pdp.decide(nextSub.get()).blockFirst(), 1));
+        all.put("decideOnceBlocking", new BenchmarkMethod(() -> pdp.decideOnce(nextSub.get()), 1));
+        all.put("decideStreamFirst", new BenchmarkMethod(() -> {
+            try (val stream = pdp.decide(nextSub.get())) {
+                return stream.awaitNext();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        }, 1));
 
         if (filter == null || filter.isEmpty()) {
             return all;
@@ -281,6 +286,8 @@ public class EmbeddedBenchmarkRunner {
             PrintWriter out, boolean collect) {
         val results = collect ? new ArrayList<Double>(iterations) : null;
         for (int i = 0; i < iterations; i++) {
+            // Same rationale as measureLatency: pre-iteration GC reduces variance
+            // from incidental collections during the timed run.
             System.gc();
             val opsCount   = runThroughputIteration(seconds, threads, bm.method()) * bm.opsPerInvocation();
             val throughput = (double) opsCount / seconds;
@@ -303,21 +310,19 @@ public class EmbeddedBenchmarkRunner {
     private static volatile Object sink;
 
     private static long runThroughputIteration(int seconds, int threadCount, Supplier<Object> method) {
-        val totalOps      = new AtomicLong(0);
-        val startBarrier  = new CountDownLatch(threadCount);
-        val completeLatch = new CountDownLatch(threadCount);
-        val threads       = new Thread[threadCount];
-        val durationNanos = TimeUnit.SECONDS.toNanos(seconds);
+        val totalOps       = new AtomicLong(0);
+        val sharedDeadline = new AtomicLong(0);
+        val durationNanos  = TimeUnit.SECONDS.toNanos(seconds);
+        val startBarrier   = new CyclicBarrier(threadCount,
+                () -> sharedDeadline.set(System.nanoTime() + durationNanos));
+        val completeLatch  = new CountDownLatch(threadCount);
+        val threads        = new Thread[threadCount];
         for (int t = 0; t < threadCount; t++) {
             threads[t] = new Thread(() -> {
-                startBarrier.countDown();
-                try {
-                    startBarrier.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                if (!awaitStart(startBarrier)) {
                     return;
                 }
-                val    deadline   = System.nanoTime() + durationNanos;
+                val    deadline   = sharedDeadline.get();
                 long   localOps   = 0;
                 Object lastResult = null;
                 while (System.nanoTime() < deadline) {
@@ -336,22 +341,20 @@ public class EmbeddedBenchmarkRunner {
     }
 
     private static void runLatencyIteration(int seconds, int threadCount, Supplier<Object> method, Histogram target) {
-        val startBarrier  = new CountDownLatch(threadCount);
-        val completeLatch = new CountDownLatch(threadCount);
-        val threads       = new Thread[threadCount];
-        val durationNanos = TimeUnit.SECONDS.toNanos(seconds);
-        val perThread     = new Histogram[threadCount];
+        val sharedDeadline = new AtomicLong(0);
+        val durationNanos  = TimeUnit.SECONDS.toNanos(seconds);
+        val startBarrier   = new CyclicBarrier(threadCount,
+                () -> sharedDeadline.set(System.nanoTime() + durationNanos));
+        val completeLatch  = new CountDownLatch(threadCount);
+        val threads        = new Thread[threadCount];
+        val perThread      = new Histogram[threadCount];
         for (int t = 0; t < threadCount; t++) {
             val threadIndex = t;
             threads[t] = new Thread(() -> {
-                startBarrier.countDown();
-                try {
-                    startBarrier.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                if (!awaitStart(startBarrier)) {
                     return;
                 }
-                val    deadline       = System.nanoTime() + durationNanos;
+                val    deadline       = sharedDeadline.get();
                 Object lastResult     = null;
                 val    localHistogram = new Histogram(3_600_000_000_000L, 3);
                 while (System.nanoTime() < deadline) {
@@ -371,6 +374,22 @@ public class EmbeddedBenchmarkRunner {
             if (threadHistogram != null) {
                 target.add(threadHistogram);
             }
+        }
+    }
+
+    /**
+     * Wait at the start barrier; the barrier action populates the shared
+     * deadline so every worker thread reads the same value once released.
+     */
+    private static boolean awaitStart(CyclicBarrier barrier) {
+        try {
+            barrier.await();
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (BrokenBarrierException e) {
+            return false;
         }
     }
 

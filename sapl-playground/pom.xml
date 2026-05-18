@@ -65,6 +65,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-pdp-reactive</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-vaadin-theme</artifactId>
             <version>${project.version}</version>

@@ -18,76 +18,87 @@
 package io.sapl.extensions.mqtt.util;
 
 import tools.jackson.databind.node.ObjectNode;
-import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAck;
-import com.hivemq.client.mqtt.mqtt5.reactor.Mqtt5ReactorClient;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
-import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * These data objects are used to store client specific data.
+ * Per-broker connection cache entry. Holds the async MQTT client, the
+ * broker configuration that produced it, and reference counters used to
+ * decide when to unsubscribe a topic and when to disconnect the client.
  */
 @Data
 public final class MqttClientValues {
     private final String               clientId;
-    private final Mqtt5ReactorClient   mqttReactorClient;
+    private final Mqtt5AsyncClient     mqttAsyncClient;
     private final ObjectNode           mqttBrokerConfig;
-    private final Mono<Mqtt5ConnAck>   clientConnection;
     @Getter(AccessLevel.NONE)
     private final Map<String, Integer> topicSubscriptionsCountMap;
+    @Getter(AccessLevel.NONE)
+    private final AtomicInteger        brokerSubscribers;
+    private final List<Runnable>       onDisconnectCallbacks;
 
-    /**
-     * Caches the given client specifics.
-     *
-     * @param clientId the referenced mqtt client
-     * @param mqttReactorClient the mqtt reactor client
-     * @param mqttBrokerConfig the configuration of the connection to the mqtt
-     * broker
-     * @param clientConnection the mqtt client connection
-     */
     public MqttClientValues(String clientId,
-            Mqtt5ReactorClient mqttReactorClient,
+            Mqtt5AsyncClient mqttAsyncClient,
             ObjectNode mqttBrokerConfig,
-            Mono<Mqtt5ConnAck> clientConnection) {
+            List<Runnable> onDisconnectCallbacks) {
         this.clientId                   = clientId;
-        this.mqttReactorClient          = mqttReactorClient;
+        this.mqttAsyncClient            = mqttAsyncClient;
         this.mqttBrokerConfig           = mqttBrokerConfig.deepCopy();
-        this.clientConnection           = clientConnection;
         this.topicSubscriptionsCountMap = new ConcurrentHashMap<>();
+        this.brokerSubscribers          = new AtomicInteger(0);
+        this.onDisconnectCallbacks      = onDisconnectCallbacks;
+    }
+
+    public MqttClientValues(String clientId, Mqtt5AsyncClient mqttAsyncClient, ObjectNode mqttBrokerConfig) {
+        this(clientId, mqttAsyncClient, mqttBrokerConfig, new CopyOnWriteArrayList<>());
     }
 
     /**
-     * Returns a deep copy of the mqtt broker configuration.
-     *
-     * @return returns the mqtt broker configuration
+     * Returns a defensive deep copy of the cached broker configuration.
      */
     public ObjectNode getMqttBrokerConfig() {
         return this.mqttBrokerConfig.deepCopy();
     }
 
     /**
-     * Adds 1 to the existing count. If there was no entry for the referenced count
-     * before, then a new entry will be set to the count of 1.
-     *
-     * @param topic the reference for the topic count
+     * Increments the per-broker subscriber count.
      */
-    public void countTopicSubscriptionsCountMapUp(String topic) {
+    public void incrementBrokerSubscribers() {
+        brokerSubscribers.incrementAndGet();
+    }
+
+    /**
+     * Decrements the per-broker subscriber count and returns the new
+     * value.
+     */
+    public int decrementBrokerSubscribers() {
+        return brokerSubscribers.decrementAndGet();
+    }
+
+    /**
+     * Adds 1 to the existing topic count. If there was no entry for the
+     * referenced topic before, sets the count to 1.
+     */
+    public void incrementTopicSubscribers(String topic) {
         topicSubscriptionsCountMap.merge(topic, 1, Integer::sum);
     }
 
     /**
-     * Reduces the count by one. If the new count would be 0 than the topic
-     * reference will be deleted.
+     * Reduces the topic count by one. If the new count would be zero,
+     * the topic entry is removed.
      *
-     * @param topic the reference for the topic count
-     * @return returns true in case there is a new positive count for the topic
-     * otherwise returns false
+     * @return {@code true} if a positive count remains for the topic,
+     * {@code false} if the topic entry was removed.
      */
-    public boolean countTopicSubscriptionsCountMapDown(String topic) {
+    public boolean decrementTopicSubscribers(String topic) {
         int[] newCount = { 0 };
         topicSubscriptionsCountMap.compute(topic, (k, count) -> {
             if (count == null || count <= 1) {
@@ -98,14 +109,5 @@ public final class MqttClientValues {
             return newCount[0];
         });
         return newCount[0] > 0;
-    }
-
-    /**
-     * Evaluates whether the topic subscription count map contains any entries.
-     *
-     * @return returns true in case the map is empty, otherwise returns false
-     */
-    public boolean isTopicSubscriptionsCountMapEmpty() {
-        return topicSubscriptionsCountMap.isEmpty();
     }
 }

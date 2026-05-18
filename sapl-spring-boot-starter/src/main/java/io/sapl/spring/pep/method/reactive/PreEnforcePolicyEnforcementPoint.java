@@ -19,7 +19,7 @@ package io.sapl.spring.pep.method.reactive;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
@@ -38,8 +38,10 @@ import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -65,6 +67,7 @@ import java.util.Set;
  *
  * @since 4.1.0
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
@@ -73,7 +76,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
 
     private static final Object EMPTY_RAP_MARKER = new Object();
 
-    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
+    private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -103,7 +107,10 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute);
         val pdp               = policyDecisionPointProvider.getObject();
-        return authzSubscription.flatMap(pdp::decideOnce);
+        val tenantResolver    = tenantResolverProvider.getObject();
+        return authzSubscription.doOnNext(sub -> log.trace("reactive @PreEnforce subscription: {}", sub))
+                .flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)))
+                .doOnNext(decision -> log.debug("reactive @PreEnforce decision: {}", decision));
     }
 
     private Mono<Object> enforceDecision(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {

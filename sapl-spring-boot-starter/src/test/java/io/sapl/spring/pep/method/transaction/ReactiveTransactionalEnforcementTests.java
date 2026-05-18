@@ -23,13 +23,14 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -52,7 +53,6 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.PreEnforce;
@@ -94,7 +94,10 @@ class ReactiveTransactionalEnforcementTests {
     DatabaseClient databaseClient;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @BeforeEach
     void resetSchema() {
@@ -111,7 +114,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT lets the loan be recorded; the row commits")
         void whenPermitThenRowIsCommitted() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(ledger.recordLoanWithPreEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -123,7 +127,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY blocks the protected method entirely; no row is ever written")
         void whenDenyThenMethodNeverInvokedAndNoRowWritten() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(ledger.recordLoanWithPreEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -142,7 +147,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("OutputSignal Mapper failure rolls the insert back (post-invocation handler-throws path)")
         void whenOutputMapperObligationFailsAfterInsertThenRollback() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(decisionWithObligation(GATE_REFUSES)));
 
             StepVerifier.create(ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -169,7 +175,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT lets the side-effecting Mono<Void> rite commit")
         void whenPermitThenSideEffectCommits() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier
@@ -182,7 +189,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY blocks the rite entirely; no row is ever written")
         void whenDenyThenMethodNeverInvoked() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier
@@ -200,7 +208,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("PERMIT after the insert lets the row commit")
         void whenPermitThenRowIsCommitted() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -212,7 +221,8 @@ class ReactiveTransactionalEnforcementTests {
         @Test
         @DisplayName("DENY after the insert rolls the transaction back; the row is expunged")
         void whenDenyAfterInsertThenTransactionRollsBack() {
-            org.mockito.Mockito.when(pdp.decideOnce(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito
+                    .when(pdp.decideOnce(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
                     .thenReturn(Mono.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(ledger.recordLoanWithPostEnforce(NEXT_LOAN_ID.getAndIncrement(), LOAN_ENTRY_BODY))
@@ -263,8 +273,7 @@ class ReactiveTransactionalEnforcementTests {
         }
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
     @EnableTransactionManagement
     static class LedgerTestApp {

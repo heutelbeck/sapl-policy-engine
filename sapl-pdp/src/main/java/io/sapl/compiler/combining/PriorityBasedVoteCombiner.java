@@ -29,10 +29,7 @@ import lombok.val;
 
 import java.util.List;
 
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
-import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
+import static io.sapl.compiler.combining.CombiningUtils.*;
 
 /**
  * Combines multiple policy votes into a single authorization decision using
@@ -146,8 +143,7 @@ public class PriorityBasedVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**
@@ -303,7 +299,7 @@ public class PriorityBasedVoteCombiner {
 
     private static Vote concreteResult(AuthorizationDecision authz, Outcome outcome, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
-        return new Vote(authz, List.of(), List.of(), contributingVotes, voterMetadata, outcome);
+        return new Vote(authz, List.of(), contributingVotes, voterMetadata, outcome);
     }
 
     private static boolean isCritical(Outcome outcome, Decision priorityDecision) {

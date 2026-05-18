@@ -27,7 +27,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PostEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
@@ -36,8 +36,10 @@ import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.ErrorSignal;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Mono;
 
@@ -60,6 +62,7 @@ import reactor.core.publisher.Mono;
  *
  * @since 4.1.0
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class PostEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
@@ -69,7 +72,8 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
 
     private static final Object EMPTY_RAP_MARKER = new Object();
 
-    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
+    private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -113,7 +117,10 @@ public final class PostEnforcePolicyEnforcementPoint implements MethodIntercepto
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, saplAttribute, returnedObject);
         val pdp               = policyDecisionPointProvider.getObject();
-        return authzSubscription.flatMap(pdp::decideOnce)
+        val tenantResolver    = tenantResolverProvider.getObject();
+        return authzSubscription.doOnNext(sub -> log.trace("reactive @PostEnforce subscription: {}", sub))
+                .flatMap(sub -> tenantResolver.resolve().flatMap(pdpId -> pdp.decideOnce(sub, pdpId)))
+                .doOnNext(decision -> log.debug("reactive @PostEnforce decision: {}", decision))
                 .flatMap(decision -> applyDecision(methodInvocation, decision, returnedObject));
     }
 

@@ -48,7 +48,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("JSON string values create valid subscription")
-        void whenJsonStringValues_thenSubscriptionCreated() {
+        void whenJsonStringValuesThenSubscriptionCreated() {
             val input        = inputWithNamed("\"alice\"", "\"read\"", "\"document\"");
             val subscription = SubscriptionResolver.resolve(input, MAPPER);
             val json         = MAPPER.writeValueAsString(subscription);
@@ -57,7 +57,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("JSON object values create valid subscription")
-        void whenJsonObjectValues_thenSubscriptionCreated() {
+        void whenJsonObjectValuesThenSubscriptionCreated() {
             val input        = inputWithNamed("{\"name\":\"alice\"}", "\"read\"", "{\"type\":\"doc\",\"id\":42}");
             val subscription = SubscriptionResolver.resolve(input, MAPPER);
             val json         = MAPPER.writeValueAsString(subscription);
@@ -66,7 +66,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("JSON number value is parsed as number")
-        void whenJsonNumberValue_thenParsedAsNumber() {
+        void whenJsonNumberValueThenParsedAsNumber() {
             val input        = inputWithNamed("42", "\"read\"", "\"doc\"");
             val subscription = SubscriptionResolver.resolve(input, MAPPER);
             val json         = MAPPER.writeValueAsString(subscription);
@@ -75,7 +75,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("invalid JSON value throws IllegalArgumentException")
-        void whenInvalidJsonValue_thenThrowsIllegalArgument() {
+        void whenInvalidJsonValueThenThrowsIllegalArgument() {
             val input = inputWithNamed("not-valid-json", "\"read\"", "\"doc\"");
             assertThatThrownBy(() -> SubscriptionResolver.resolve(input, MAPPER))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid JSON value");
@@ -83,7 +83,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("secrets that are not a JSON object throw IllegalArgumentException")
-        void whenSecretsNotObject_thenThrowsIllegalArgument() {
+        void whenSecretsNotObjectThenThrowsIllegalArgument() {
             val input = inputWithNamed("\"alice\"", "\"read\"", "\"doc\"");
             input.named.secrets = "\"not-an-object\"";
             assertThatThrownBy(() -> SubscriptionResolver.resolve(input, MAPPER))
@@ -92,7 +92,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("valid secrets JSON object is accepted")
-        void whenSecretsObject_thenSubscriptionCreated() {
+        void whenSecretsObjectThenSubscriptionCreated() {
             val input = inputWithNamed("\"alice\"", "\"read\"", "\"doc\"");
             input.named.secrets = "{\"key\":\"value\"}";
             val subscription = SubscriptionResolver.resolve(input, MAPPER);
@@ -101,7 +101,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("environment is included when provided")
-        void whenEnvironmentProvided_thenIncludedInSubscription() {
+        void whenEnvironmentProvidedThenIncludedInSubscription() {
             val input = inputWithNamed("\"alice\"", "\"read\"", "\"doc\"");
             input.named.environment = "{\"time\":\"morning\"}";
             val subscription = SubscriptionResolver.resolve(input, MAPPER);
@@ -117,7 +117,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("file subscription is deserialized via SaplJacksonModule")
-        void whenFileSubscription_thenDeserialized(@TempDir Path tempDir) throws IOException {
+        void whenFileSubscriptionThenDeserialized(@TempDir Path tempDir) throws IOException {
             val file = tempDir.resolve("request.json");
             Files.writeString(file, """
                     {"subject":"alice","action":"read","resource":"document"}
@@ -130,7 +130,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("missing subscription file throws IllegalArgumentException")
-        void whenFileMissing_thenThrowsIllegalArgument() {
+        void whenFileMissingThenThrowsIllegalArgument() {
             val input = inputWithFile(Path.of("nonexistent", "file.json"));
             assertThatThrownBy(() -> SubscriptionResolver.resolve(input, MAPPER))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Subscription file not found");
@@ -138,7 +138,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("invalid JSON in file throws IllegalArgumentException")
-        void whenFileContainsInvalidJson_thenThrowsIllegalArgument(@TempDir Path tempDir) throws IOException {
+        void whenFileContainsInvalidJsonThenThrowsIllegalArgument(@TempDir Path tempDir) throws IOException {
             val file = tempDir.resolve("bad.json");
             Files.writeString(file, "not valid json at all");
             val input = inputWithFile(file);
@@ -148,7 +148,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("file missing required fields throws IllegalArgumentException")
-        void whenFileMissingRequiredFields_thenThrowsIllegalArgument(@TempDir Path tempDir) throws IOException {
+        void whenFileMissingRequiredFieldsThenThrowsIllegalArgument(@TempDir Path tempDir) throws IOException {
             val file = tempDir.resolve("incomplete.json");
             Files.writeString(file, "{\"subject\":\"alice\"}");
             val input = inputWithFile(file);
@@ -158,7 +158,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("-f - reads subscription from stdin")
-        void whenStdinMarker_thenReadsFromStdin() {
+        void whenStdinMarkerThenReadsFromStdin() {
             val json       = "{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"document\"}";
             val originalIn = System.in;
             try {
@@ -175,7 +175,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("-f - with invalid JSON from stdin throws IllegalArgumentException")
-        void whenStdinInvalidJson_thenThrowsIllegalArgument() {
+        void whenStdinInvalidJsonThenThrowsIllegalArgument() {
             val originalIn = System.in;
             try {
                 System.setIn(new ByteArrayInputStream("not json".getBytes(StandardCharsets.UTF_8)));
@@ -195,7 +195,7 @@ class SubscriptionResolverTests {
 
         @Test
         @DisplayName("null input throws IllegalArgumentException with subscription required message")
-        void whenNullInput_thenThrowsSubscriptionRequired() {
+        void whenNullInputThenThrowsSubscriptionRequired() {
             assertThatThrownBy(() -> SubscriptionResolver.resolve(null, MAPPER))
                     .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("No subscription provided");
         }

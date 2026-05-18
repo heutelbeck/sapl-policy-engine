@@ -45,7 +45,7 @@ class BenchmarkCommandTests {
 
         @Test
         @DisplayName("--help produces help text and exits with code 0")
-        void whenHelp_thenExitZeroWithHelpText() {
+        void whenHelpThenExitZeroWithHelpText() {
             val out = new StringWriter();
             val cmd = new CommandLine(new BenchmarkCommand());
             cmd.setOut(new PrintWriter(out));
@@ -57,7 +57,7 @@ class BenchmarkCommandTests {
 
         @Test
         @DisplayName("--dir sets policy source directory")
-        void whenDirOption_thenPolicySourceDirIsSet() {
+        void whenDirOptionThenPolicySourceDirIsSet() {
             val cmd = new BenchmarkCommand();
             new CommandLine(cmd).parseArgs("--dir", "/tmp/policies", "-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
             assertThat(cmd.policySource.dir).isEqualTo(Path.of("/tmp/policies"));
@@ -65,7 +65,7 @@ class BenchmarkCommandTests {
 
         @Test
         @DisplayName("benchmark options have sensible defaults")
-        void whenNoOptions_thenDefaultsApplied() {
+        void whenNoOptionsThenDefaultsApplied() {
             val cmd = new BenchmarkCommand();
             new CommandLine(cmd).parseArgs("-s", "\"a\"", "-a", "\"b\"", "-r", "\"c\"");
             assertThat(cmd.benchmarkOptions).satisfies(opts -> {
@@ -80,7 +80,7 @@ class BenchmarkCommandTests {
 
         @Test
         @DisplayName("all benchmark options are configurable via CLI flags")
-        void whenAllBenchmarkOptions_thenAllParsed() {
+        void whenAllBenchmarkOptionsThenAllParsed() {
             val cmd = new BenchmarkCommand();
             new CommandLine(cmd).parseArgs("--warmup-iterations", "10", "--warmup-time", "5",
                     "--measurement-iterations", "20", "--measurement-time", "15", "-t", "8", "-o", "/tmp/results", "-s",
@@ -98,7 +98,7 @@ class BenchmarkCommandTests {
         @ParameterizedTest(name = "rejects {0}")
         @DisplayName("mutually exclusive options are rejected")
         @MethodSource
-        void whenMutuallyExclusiveOptions_thenNonZeroExitCode(String description, String[] args) {
+        void whenMutuallyExclusiveOptionsThenNonZeroExitCode(String description, String[] args) {
             val err = new StringWriter();
             val cmd = new CommandLine(new BenchmarkCommand());
             cmd.setErr(new PrintWriter(err));
@@ -106,7 +106,7 @@ class BenchmarkCommandTests {
             assertThat(exitCode).isNotZero();
         }
 
-        static Stream<Arguments> whenMutuallyExclusiveOptions_thenNonZeroExitCode() {
+        static Stream<Arguments> whenMutuallyExclusiveOptionsThenNonZeroExitCode() {
             return Stream.of(arguments("--dir and --bundle", new String[] { "--dir", "/a", "--bundle", "/b" }),
                     arguments("named flags and --file",
                             new String[] { "-s", "\"x\"", "-a", "\"y\"", "-r", "\"z\"", "-f", "input.json" }));
@@ -130,14 +130,14 @@ class BenchmarkCommandTests {
 
         @Test
         @DisplayName("missing subscription returns exit code 1 with error message")
-        void whenNoSubscription_thenExitCode1WithError() {
+        void whenNoSubscriptionThenExitCode1WithError() {
             assertThat(cmd.execute("--dir", "/tmp/policies")).isEqualTo(1);
             assertThat(err.toString()).contains(BenchmarkCommand.ERROR_SUBSCRIPTION_MISSING);
         }
 
         @Test
         @DisplayName("non-existent policy directory returns exit code 1")
-        void whenInvalidPolicyDir_thenExitCode1() {
+        void whenInvalidPolicyDirThenExitCode1() {
             assertThat(cmd.execute("--dir", "/nonexistent/path", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\""))
                     .isEqualTo(1);
             assertThat(err.toString()).contains("not found");

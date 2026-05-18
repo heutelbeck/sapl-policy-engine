@@ -37,38 +37,41 @@ class SaplNodePropertiesTests {
 
         @Test
         @DisplayName("normalizes missing pdpId to defaultPdpId when rejectOnMissingPdpId is false")
-        void whenRejectDisabledAndPdpIdMissing_thenNormalizesToDefault() {
+        void whenRejectDisabledAndPdpIdMissingThenNormalizesToDefault() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
             properties.setDefaultPdpId("fallback");
 
             var user = createUserEntry("user-1", null);
             properties.setUsers(List.of(user));
+            properties.afterPropertiesSet();
 
             assertThat(properties.getUsers().getFirst().getPdpId()).isEqualTo("fallback");
         }
 
         @Test
         @DisplayName("normalizes blank pdpId to defaultPdpId when rejectOnMissingPdpId is false")
-        void whenRejectDisabledAndPdpIdBlank_thenNormalizesToDefault() {
+        void whenRejectDisabledAndPdpIdBlankThenNormalizesToDefault() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
             properties.setDefaultPdpId("fallback");
 
             var user = createUserEntry("user-1", "   ");
             properties.setUsers(List.of(user));
+            properties.afterPropertiesSet();
 
             assertThat(properties.getUsers().getFirst().getPdpId()).isEqualTo("fallback");
         }
 
         @Test
         @DisplayName("preserves pdpId when explicitly set")
-        void whenPdpIdSet_thenPreserved() {
+        void whenPdpIdSetThenPreserved() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(false);
 
             var user = createUserEntry("user-1", "production");
             properties.setUsers(List.of(user));
+            properties.afterPropertiesSet();
 
             assertThat(properties.getUsers().getFirst().getPdpId()).isEqualTo("production");
         }
@@ -80,45 +83,36 @@ class SaplNodePropertiesTests {
     class PdpIdRejectionTests {
 
         @Test
-        @DisplayName("throws when pdpId missing and rejectOnMissingPdpId is true")
-        void whenRejectEnabledAndPdpIdMissing_thenThrows() {
+        @DisplayName("throws on missing pdpId when rejectOnMissingPdpId is true, regardless of setter order")
+        void whenRejectEnabledAndPdpIdMissingThenThrows() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(true);
+            properties.setUsers(List.of(createUserEntry("user-1", null)));
 
-            var user  = createUserEntry("user-1", null);
-            var users = List.of(user);
-
-            assertThatThrownBy(() -> properties.setUsers(users)).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("user-1").hasMessageContaining("no pdpId configured");
+            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("user-1").hasMessageContaining("no pdp-id configured");
         }
 
         @Test
-        @DisplayName("throws when pdpId blank and rejectOnMissingPdpId is true")
-        void whenRejectEnabledAndPdpIdBlank_thenThrows() {
+        @DisplayName("throws on blank pdpId when rejectOnMissingPdpId is true")
+        void whenRejectEnabledAndPdpIdBlankThenThrows() {
             var properties = new SaplNodeProperties();
             properties.setRejectOnMissingPdpId(true);
+            properties.setUsers(List.of(createUserEntry("user-1", "   ")));
 
-            var user  = createUserEntry("user-1", "   ");
-            var users = List.of(user);
-
-            assertThatThrownBy(() -> properties.setUsers(users)).isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("user-1");
         }
 
         @Test
-        @DisplayName("already-normalized users are not rejected when rejectOnMissingPdpId changes to true")
-        void whenRejectChangesToTrue_thenAlreadyNormalizedUsersAreAccepted() {
+        @DisplayName("rejection is order-independent: setUsers before setRejectOnMissingPdpId(true) still throws")
+        void whenSetUsersFirstAndRejectFlippedTrueThenStillThrows() {
             var properties = new SaplNodeProperties();
-            properties.setRejectOnMissingPdpId(false);
-            properties.setDefaultPdpId("fallback");
-
-            var user = createUserEntry("user-1", null);
-            properties.setUsers(List.of(user));
-
-            // pdpId was normalized to "fallback", so changing flag should not throw
+            properties.setUsers(List.of(createUserEntry("user-1", null)));
             properties.setRejectOnMissingPdpId(true);
 
-            assertThat(properties.getUsers().getFirst().getPdpId()).isEqualTo("fallback");
+            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("user-1").hasMessageContaining("no pdp-id configured");
         }
 
     }

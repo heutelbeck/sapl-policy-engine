@@ -17,20 +17,19 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-import java.util.HashMap;
-
 import io.sapl.api.model.Value;
 import io.sapl.compiler.index.smtdd.SmtddNode.BinaryDecision;
 import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
-
-import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.BitSet;
+import java.util.HashMap;
+
+import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SMTDD node types and unique table")

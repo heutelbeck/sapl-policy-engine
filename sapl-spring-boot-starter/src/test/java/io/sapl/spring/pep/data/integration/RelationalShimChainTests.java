@@ -19,6 +19,7 @@ package io.sapl.spring.pep.data.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -26,13 +27,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -54,7 +56,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
 import lombok.val;
@@ -93,7 +94,10 @@ class RelationalShimChainTests {
     DatabaseClient databaseClient;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @BeforeEach
     void resetSchema() {
@@ -286,7 +290,7 @@ class RelationalShimChainTests {
     }
 
     private void decide(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any())).thenReturn(Mono.just(decision));
+        when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decision));
     }
 
     private static AuthorizationDecision decisionWithRelationalCriteria(ObjectValue... criteria) {
@@ -379,8 +383,7 @@ class RelationalShimChainTests {
         }
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
     @org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories(basePackageClasses = TomeRepository.class)
     static class PalanthasLibraryTestApp {

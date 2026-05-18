@@ -23,7 +23,6 @@ import java.util.Map;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.JsonNode;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.EntryDocumentation;
 import io.sapl.api.documentation.EntryType;
@@ -34,7 +33,8 @@ import io.sapl.api.model.Value;
 /**
  * Configuration for the SAPL Language Server.
  * Contains function/attribute documentation, environment variables,
- * and brokers for expression evaluation for a specific PDP configuration.
+ * and the function broker for expression evaluation for a specific PDP
+ * configuration.
  *
  * @param configurationId unique identifier for this configuration
  * @param documentationBundle documentation for available functions and
@@ -42,15 +42,12 @@ import io.sapl.api.model.Value;
  * @param variables environment variables available in policies
  * @param functionBroker broker for function evaluation during expression
  * analysis
- * @param attributeBroker broker for attribute resolution during expression
- * analysis
  */
 public record LSPConfiguration(
         String configurationId,
         DocumentationBundle documentationBundle,
         Map<String, Value> variables,
-        FunctionBroker functionBroker,
-        AttributeBroker attributeBroker) {
+        FunctionBroker functionBroker) {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 

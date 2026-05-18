@@ -72,30 +72,30 @@ class UniqueVoteCombinerTests {
 
     static Vote voteFor(Decision decision) {
         return switch (decision) {
-        case PERMIT         -> Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata("p", Outcome.PERMIT), List.of());
-        case DENY           -> Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata("p", Outcome.DENY), List.of());
-        case SUSPEND        -> Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata("p", Outcome.SUSPEND), List.of());
+        case PERMIT         -> Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata("p", Outcome.PERMIT));
+        case DENY           -> Vote.of(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata("p", Outcome.DENY));
+        case SUSPEND        -> Vote.of(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata("p", Outcome.SUSPEND));
         case NOT_APPLICABLE -> Vote.abstain(testMetadata("p", Outcome.PERMIT));
         case INDETERMINATE  -> Vote.error(Value.error("test error"), testMetadata("p", Outcome.PERMIT));
         };
     }
 
     static Vote permitVote(String name) {
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote denyVote(String name) {
-        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.DENY), List.of());
+        return Vote.of(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.DENY));
     }
 
     static Vote suspendVote(String name) {
-        return Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.SUSPEND), List.of());
+        return Vote.of(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND));
     }
 
     static Vote notApplicableVote(String name) {

@@ -17,31 +17,22 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.Predicate;
-
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.IndexPredicate;
-import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Policy index based on a Semantic Multi-Terminal BDD (SMTDD).

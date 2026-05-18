@@ -19,27 +19,30 @@ package io.sapl.pdp.configuration.source;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
-import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
-import reactor.core.Disposable;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * PDP configuration source that loads configurations from a filesystem
  * directory with file watching for hot-reload.
  * <p>
  * The source monitors a directory for .sapl policy files and a required
- * pdp.json configuration file. When files
- * change, the configuration is reloaded into the voter source.
+ * pdp.json configuration file. The first {@link #subscribe(Consumer)}
+ * loads the initial configuration and starts file monitoring. Subsequent
+ * file changes emit a fresh {@link ConfigurationEvent.Load} to all
+ * subscribers.
  * </p>
  * <h2>Directory Layout</h2>
  *
@@ -61,7 +64,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. The file monitoring thread runs independently and
- * loads configurations directly into the voter source.
+ * emits events to subscribed listeners.
  * </p>
  * <h2>Security Measures</h2>
  * <ul>
@@ -69,7 +72,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * </ul>
  */
 @Slf4j
-public final class DirectoryPDPConfigurationSource implements Disposable {
+public final class DirectoryPDPConfigurationSource implements PDPConfigurationSource {
 
     private static final String PDP_JSON       = "pdp.json";
     private static final String SAPL_EXTENSION = ".sapl";
@@ -82,56 +85,78 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
     private static final String ERROR_FAILED_TO_START_FILE_MONITOR         = "Failed to start file monitor for configuration directory: '%s'.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY                = "Configuration path is not a directory: '%s'.";
 
-    private final Path                  directoryPath;
-    private final String                pdpId;
-    private final PdpVoterSource        pdpVoterSource;
-    private final Runnable              onDirectoryRemoved;
-    private final FileAlterationMonitor monitor;
-    private final AtomicBoolean         disposed = new AtomicBoolean(false);
+    private final Path                              directoryPath;
+    private final String                            pdpId;
+    private final Runnable                          onDirectoryRemoved;
+    private final FileAlterationMonitor             monitor;
+    private final Set<Consumer<ConfigurationEvent>> subscribers = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                     activated   = new AtomicBoolean(false);
+    private final AtomicBoolean                     closed      = new AtomicBoolean(false);
 
     /**
-     * Creates a source loading from the specified directory with default PDP ID.
+     * Creates a source for the specified directory with default PDP ID.
      *
-     * @param directoryPath
-     * the filesystem directory containing policy files
-     * @param pdpVoterSource
-     * the voter source to load configurations into
+     * @param directoryPath the filesystem directory containing policy files
      */
-    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath, @NonNull PdpVoterSource pdpVoterSource) {
-        this(directoryPath, PdpIdValidator.DEFAULT_PDP_ID, pdpVoterSource);
+    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath) {
+        this(directoryPath, PdpIdValidator.DEFAULT_PDP_ID);
     }
 
     /**
-     * Creates a source loading from the specified directory with a custom PDP ID.
+     * Creates a source for the specified directory with a custom PDP ID.
      *
-     * @param directoryPath
-     * the filesystem directory containing policy files
-     * @param pdpId
-     * the PDP identifier for loaded configurations
-     * @param pdpVoterSource
-     * the voter source to load configurations into
+     * @param directoryPath the filesystem directory containing policy files
+     * @param pdpId the PDP identifier for loaded configurations
      */
-    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
-            @NonNull String pdpId,
-            @NonNull PdpVoterSource pdpVoterSource) {
-        this(directoryPath, pdpId, pdpVoterSource, () -> {});
+    public DirectoryPDPConfigurationSource(@NonNull Path directoryPath, @NonNull String pdpId) {
+        this(directoryPath, pdpId, () -> {});
     }
 
     DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
             @NonNull String pdpId,
-            @NonNull PdpVoterSource pdpVoterSource,
             @NonNull Runnable onDirectoryRemoved) {
         PdpIdValidator.validatePdpId(pdpId);
         this.directoryPath      = PdpIdValidator.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath().normalize();
         this.pdpId              = pdpId;
-        this.pdpVoterSource     = pdpVoterSource;
         this.onDirectoryRemoved = onDirectoryRemoved;
         this.monitor            = new FileAlterationMonitor(POLL_INTERVAL_MS);
+    }
 
-        log.info("Loading PDP configuration '{}' from directory: '{}'.", pdpId, this.directoryPath);
+    @Override
+    public void subscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        if (closed.get()) {
+            return;
+        }
+        subscribers.add(listener);
+        if (activated.compareAndSet(false, true)) {
+            activate();
+        }
+    }
+
+    @Override
+    public void unsubscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        subscribers.remove(listener);
+    }
+
+    @Override
+    public void close() {
+        if (closed.compareAndSet(false, true)) {
+            stopMonitorSafely();
+            subscribers.clear();
+            log.debug("Closed directory configuration source for PDP '{}'.", pdpId);
+        }
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    private void activate() {
+        log.info("Loading PDP configuration '{}' from directory: '{}'.", pdpId, directoryPath);
         validateDirectory();
         try {
-            loadAndNotify();
+            loadAndEmit();
         } catch (Exception e) {
             // Intentionally not rethrowing: the file monitor started below will
             // detect corrected files and automatically reload a valid configuration.
@@ -140,29 +165,25 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
         startFileMonitor();
     }
 
-    @Override
-    public void dispose() {
-        if (disposed.compareAndSet(false, true)) {
-            stopMonitorSafely();
-            log.debug("Disposed directory configuration source for PDP '{}'.", pdpId);
-        }
-    }
-
-    @Override
-    public boolean isDisposed() {
-        return disposed.get();
-    }
-
     private void validateDirectory() {
         if (!Files.isDirectory(directoryPath)) {
             throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY.formatted(directoryPath));
         }
     }
 
-    private void loadAndNotify() {
+    private void loadAndEmit() {
         val config = PDPConfigurationLoader.loadFromDirectory(directoryPath, pdpId);
-        pdpVoterSource.loadConfiguration(config, true);
+        emit(new ConfigurationEvent.Load(config, true));
         log.debug("Loaded PDP configuration '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
+    }
+
+    private void emit(ConfigurationEvent event) {
+        if (closed.get()) {
+            return;
+        }
+        for (val subscriber : subscribers) {
+            subscriber.accept(event);
+        }
     }
 
     private void startFileMonitor() {
@@ -208,10 +229,10 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
 
         @Override
         public void onStart(FileAlterationObserver observer) {
-            if (disposed.get() || Files.exists(directoryPath)) {
+            if (closed.get() || Files.exists(directoryPath)) {
                 return;
             }
-            if (disposed.compareAndSet(false, true)) {
+            if (closed.compareAndSet(false, true)) {
                 log.info("Directory for PDP '{}' no longer exists, triggering removal.", pdpId);
                 Thread.ofPlatform().start(() -> {
                     stopMonitorSafely();
@@ -236,12 +257,12 @@ public final class DirectoryPDPConfigurationSource implements Disposable {
         }
 
         private void handleFileChange(File file) {
-            if (disposed.get()) {
+            if (closed.get()) {
                 return;
             }
             log.debug("Detected file change: {}.", file.getName());
             try {
-                loadAndNotify();
+                loadAndEmit();
                 log.info("Reloaded PDP configuration '{}'.", pdpId);
             } catch (Exception e) {
                 log.error("Failed to reload configuration for PDP '{}': {}.", pdpId, e.getMessage(), e);

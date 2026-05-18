@@ -45,8 +45,7 @@ class TemporalFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(TemporalFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new TemporalFunctionLibrary())).doesNotThrowAnyException();
     }
 
     /* ######## INSTANT MANIPULATION TESTS ######## */

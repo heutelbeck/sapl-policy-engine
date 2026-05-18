@@ -20,6 +20,7 @@ package io.sapl.spring.pep.http.servlet;
 import static io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer.saplHttp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,13 +34,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
@@ -60,7 +61,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -94,7 +94,7 @@ class SaplHttpServletEnforcementTests {
     MockMvc mockMvc;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    StreamingPolicyDecisionPoint pdp;
 
     @Autowired
     Probes probes;
@@ -112,7 +112,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("Authenticated PERMIT, no obligations: 200, body returned")
         @WithMockUser
         void givenPermitThenOk() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+            when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(content().string("hello"));
         }
@@ -121,7 +121,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("Authenticated DENY: 403 default body")
         @WithMockUser
         void givenAuthenticatedDenyThen403() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
 
             mockMvc.perform(get("/hello")).andExpect(status().isForbidden());
         }
@@ -129,7 +129,7 @@ class SaplHttpServletEnforcementTests {
         @Test
         @DisplayName("Anonymous DENY: routed to authentication entry point (401), SAPL deny handler does not fire")
         void givenAnonymousDenyThenEntryPoint() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.DENY);
+            when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.DENY);
 
             mockMvc.perform(get("/hello")).andExpect(status().isUnauthorized());
         }
@@ -143,7 +143,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("DecisionSignal audit obligation: handler fires once on every decision")
         @WithMockUser
         void givenAuditObligationThenHandlerFires() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(AUDIT_LOG));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(AUDIT_LOG));
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk());
 
@@ -154,7 +154,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpRequestSignal observation obligation: handler captures the inbound request path")
         @WithMockUser
         void givenRequestObservationObligationThenHandlerCapturesRequest() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(CAPTURE_REQUEST));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(CAPTURE_REQUEST));
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk());
 
@@ -165,7 +165,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpRequestMutationSignal obligation: controller sees the obligation-injected header")
         @WithMockUser
         void givenRequestHeaderInjectionObligationThenControllerSeesHeader() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(INJECT_HEADER));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(INJECT_HEADER));
 
             mockMvc.perform(get("/echo-tenant")).andExpect(status().isOk()).andExpect(content().string("krynn"));
         }
@@ -174,7 +174,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpResponseSignal observation obligation: handler observes the post-controller status")
         @WithMockUser
         void givenResponseObservationObligationThenHandlerObservesStatus() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(OBSERVE_STATUS));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(OBSERVE_STATUS));
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk());
 
@@ -185,7 +185,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpResponseSignal mutation obligation: client receives the obligation-added header")
         @WithMockUser
         void givenResponseHeaderObligationThenClientReceivesHeader() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(SET_HEADER));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(SET_HEADER));
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk())
                     .andExpect(header().string("X-Trace-Id", "abc-123"));
@@ -195,7 +195,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpResponseSignal body rewrite: client receives the obligation-replaced body")
         @WithMockUser
         void givenResponseBodyRewriteObligationThenClientReceivesRewrittenBody() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(REWRITE_BODY));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(REWRITE_BODY));
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(content().string("REWRITTEN"));
         }
@@ -204,7 +204,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("Multi-handler bundle: one obligation produces audit on DecisionSignal and header on HttpResponseSignal")
         @WithMockUser
         void givenMultiHandlerObligationThenBothHandlersFire() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(AUDIT_AND_STAMP));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(AUDIT_AND_STAMP));
 
             mockMvc.perform(get("/hello")).andExpect(status().isOk()).andExpect(header().string("X-Audit", "stamped"));
             assertThat(probes.auditCount()).isGreaterThanOrEqualTo(1);
@@ -214,7 +214,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpRequestMutationSignal failure: routed back through the deny handler as 403")
         @WithMockUser
         void givenRequestMutationFailureObligationThen403() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(permitWith(REQUEST_FAIL));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(permitWith(REQUEST_FAIL));
 
             mockMvc.perform(get("/hello")).andExpect(status().isForbidden());
         }
@@ -228,7 +228,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpDenialSignal obligation: handler writes a custom 451 body")
         @WithMockUser
         void givenCustomDenyObligationThenHandlerShapesResponse() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(denyWith(CUSTOM_DENY));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(denyWith(CUSTOM_DENY));
 
             mockMvc.perform(get("/hello")).andExpect(status().is(451)).andExpect(content().string("denied by policy"));
         }
@@ -237,7 +237,7 @@ class SaplHttpServletEnforcementTests {
         @DisplayName("HttpDenialSignal redirect obligation: handler issues 302 with Location header")
         @WithMockUser
         void givenRedirectDenyObligationThen302WithLocation() throws Exception {
-            when(pdp.decideOnceBlocking(any())).thenReturn(denyWith(REDIRECT_DENY));
+            when(pdp.decideOnce(any(), anyString())).thenReturn(denyWith(REDIRECT_DENY));
 
             mockMvc.perform(get("/hello")).andExpect(status().isFound())
                     .andExpect(header().string("Location", "/access-denied"));
@@ -255,8 +255,7 @@ class SaplHttpServletEnforcementTests {
         return new AuthorizationDecision(Decision.DENY, Value.ofArray(obligation), Value.EMPTY_ARRAY, Value.UNDEFINED);
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebSecurity
     static class TestApp {
 

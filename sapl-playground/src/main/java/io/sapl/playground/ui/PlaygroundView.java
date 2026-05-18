@@ -67,15 +67,14 @@ import io.sapl.api.SaplVersion;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.document.DocumentCompiler;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
-import io.sapl.pdp.configuration.PdpState;
 import io.sapl.pdp.interceptors.ReportBuilderUtil;
 import io.sapl.pdp.interceptors.ReportTextRenderUtil;
 import io.sapl.playground.config.PermalinkConfiguration;
@@ -309,7 +308,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private final transient PermalinkService              permalinkService;
     private final transient PermalinkConfiguration        permalinkConfiguration;
 
-    private final transient ArrayList<TimestampedVote> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
+    private final transient ArrayList<TracedVote> decisionBuffer = new ArrayList<>(MAX_BUFFER_SIZE);
 
     private TabSheet                leftTabSheet;
     private Tab                     variablesTab;
@@ -320,13 +319,13 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ValidationStatusDisplay subscriptionValidationDisplay;
     private ValidationStatusDisplay pdpStatusDisplay;
 
-    private Button                            playStopButton;
-    private Button                            scrollLockButton;
-    private IntegerField                      bufferSizeField;
-    private DecisionsGrid                     decisionsGrid;
-    private GridListDataView<TimestampedVote> decisionsGridView;
-    private Checkbox                          clearOnNewSubscriptionCheckBox;
-    private Checkbox                          followLatestDecisionCheckbox;
+    private Button                       playStopButton;
+    private Button                       scrollLockButton;
+    private IntegerField                 bufferSizeField;
+    private DecisionsGrid                decisionsGrid;
+    private GridListDataView<TracedVote> decisionsGridView;
+    private Checkbox                     clearOnNewSubscriptionCheckBox;
+    private Checkbox                     followLatestDecisionCheckbox;
 
     private JsonEditor             decisionJsonEditor;
     private JsonEditor             decisionJsonReportEditor;
@@ -465,7 +464,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * Handles new authorization decisions from the PDP. Ensures UI updates occur on
      * the UI thread.
      */
-    private void handleNewDecisionOnUiThread(final TimestampedVote timestampedVote) {
+    private void handleNewDecisionOnUiThread(final TracedVote timestampedVote) {
         getUI().ifPresent(ui -> ui.access(() -> handleNewDecision(timestampedVote)));
     }
 
@@ -1033,20 +1032,20 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Handles selection of decision in the grid.
      */
-    private void handleDecisionSelected(SelectionEvent<Grid<TimestampedVote>, TimestampedVote> selection) {
+    private void handleDecisionSelected(SelectionEvent<Grid<TracedVote>, TracedVote> selection) {
         updateDecisionDetailsView(selection.getFirstSelectedItem());
     }
 
     /*
      * Updates the decision details view with selected decision.
      */
-    private void updateDecisionDetailsView(Optional<TimestampedVote> maybeTimestampedVote) {
-        if (maybeTimestampedVote.isEmpty()) {
+    private void updateDecisionDetailsView(Optional<TracedVote> maybeTracedVote) {
+        if (maybeTracedVote.isEmpty()) {
             clearDecisionDetailsView();
             return;
         }
 
-        val timestampedVote = maybeTimestampedVote.get();
+        val timestampedVote = maybeTracedVote.get();
         displayDecisionJson(timestampedVote);
         displayDecisionTrace(timestampedVote);
         displayDecisionReport(timestampedVote);
@@ -1056,7 +1055,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision JSON in the editor.
      */
-    private void displayDecisionJson(TimestampedVote timestampedVote) {
+    private void displayDecisionJson(TracedVote timestampedVote) {
         try {
             val json       = mapper.valueToTree(timestampedVote.vote().authorizationDecision());
             val prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
@@ -1069,7 +1068,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision trace information.
      */
-    private void displayDecisionTrace(TimestampedVote timestampedVote) {
+    private void displayDecisionTrace(TracedVote timestampedVote) {
         val trace = timestampedVote.vote().toTrace();
         decisionJsonTraceEditor.setDocument(ValueJsonMarshaller.toPrettyString(trace));
         traceGraphVisualization.setValueData(trace);
@@ -1078,13 +1077,11 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays decision report information.
      */
-    private void displayDecisionReport(TimestampedVote timestampedVote) {
+    private void displayDecisionReport(TracedVote timestampedVote) {
         val subscription = parseAuthorizationSubscriptionFromEditor();
-        val timestamp    = timestampedVote.timestamp();
-        val report       = ReportBuilderUtil.extractReport(timestampedVote.vote(), timestamp, "",
-                subscription != null ? subscription : AuthorizationSubscription.of("", "", ""));
-        val reportValue  = ReportBuilderUtil.extractReportAsValue(timestampedVote.vote(), timestamp, "",
-                subscription != null ? subscription : AuthorizationSubscription.of("", "", ""));
+        val effectiveSub = subscription != null ? subscription : AuthorizationSubscription.of("", "", "");
+        val report       = ReportBuilderUtil.extractReport(timestampedVote, "", effectiveSub);
+        val reportValue  = ReportBuilderUtil.extractReportAsValue(timestampedVote, "", effectiveSub);
 
         decisionJsonReportEditor.setDocument(ValueJsonMarshaller.toPrettyString(reportValue));
         reportTextArea.setValue(ReportTextRenderUtil.textReport(report));
@@ -1093,7 +1090,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     /*
      * Displays errors from the decision.
      */
-    private void displayDecisionErrors(TimestampedVote timestampedVote) {
+    private void displayDecisionErrors(TracedVote timestampedVote) {
         val errors          = extractErrorsFromVote(timestampedVote.vote());
         val plainTextReport = buildAggregatedErrorReport(errors);
 
@@ -1162,7 +1159,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      * latest decision is active, automatically
      * selects the new decision.
      */
-    private void handleNewDecision(TimestampedVote timestampedVote) {
+    private void handleNewDecision(TracedVote timestampedVote) {
         decisionBuffer.add(timestampedVote);
 
         val bufferSize = getBufferSize();
@@ -1630,12 +1627,15 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private void updatePdpStatusDisplay() {
         val status = policyDecisionPoint.getPdpStatus();
         switch (status.state()) {
-        case LOADED -> pdpStatusDisplay.setIssues(List.of());
-        case STALE  -> pdpStatusDisplay
+        case LOADED           -> pdpStatusDisplay.setIssues(List.of());
+        case STALE            -> pdpStatusDisplay
                 .setIssues(List.of(new Issue("PDP STALE - Using last valid configuration. " + status.lastError(),
                         IssueSeverity.WARNING, null, null, null, null)));
-        case ERROR  -> pdpStatusDisplay.setIssues(
+        case ERROR            -> pdpStatusDisplay.setIssues(
                 List.of(new Issue("PDP ERROR - " + status.lastError(), IssueSeverity.ERROR, null, null, null, null)));
+        case AWAITING_PLUGINS -> pdpStatusDisplay
+                .setIssues(List.of(new Issue("PDP AWAITING_PLUGINS - Configuration retained until plugins arrive.",
+                        IssueSeverity.WARNING, null, null, null, null)));
         }
     }
 

@@ -17,7 +17,13 @@
  */
 package io.sapl.functions.libraries.crypto;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ERROR_INVALID_BASE64;
+import lombok.experimental.UtilityClass;
+import lombok.val;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.util.encoders.DecoderException;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
+import org.bouncycastle.util.io.pem.PemWriter;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -28,14 +34,7 @@ import java.nio.file.Path;
 import java.security.Key;
 import java.util.Base64;
 
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.bouncycastle.util.encoders.DecoderException;
-import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemReader;
-import org.bouncycastle.util.io.pem.PemWriter;
-
-import lombok.experimental.UtilityClass;
-import lombok.val;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.ERROR_INVALID_BASE64;
 
 /**
  * Utilities for handling PEM-encoded cryptographic data. Uses Bouncy Castle for

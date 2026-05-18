@@ -49,7 +49,7 @@ spring:
 
 server:
   address: 127.0.0.1
-  port: 8443
+  port: 8080
   ssl:
     enabled: false
     # Uncomment and configure to enable TLS.
@@ -124,6 +124,7 @@ io.sapl:
     #
     #   - id: "my-apikey-client"
     #     pdp-id: "default"
+    #     api-key-id: "<10-char-id-from-generator>"
     #     api-key: "$argon2id$..."
 
   # --- PDP Policy Source ---

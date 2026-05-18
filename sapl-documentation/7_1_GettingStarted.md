@@ -72,7 +72,7 @@ Start the server:
 cd demo && ./sapl
 ```
 
-The node starts on `localhost:8443` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
+The node starts on `localhost:8080` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
 
 In a separate terminal, request a one-shot decision:
 
@@ -88,7 +88,7 @@ sapl decide-once --remote -s '"anyone"' -a '"read"' -r '"clock"'
 <summary>curl</summary>
 
 ```shell
-curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+curl -s http://localhost:8080/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
 </details>
@@ -109,7 +109,7 @@ sapl decide --remote -s '"anyone"' -a '"read"' -r '"clock"'
 <summary>curl</summary>
 
 ```shell
-curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+curl -N http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
 </details>
@@ -123,15 +123,15 @@ Try editing `tick.sapl` while the stream is running. Change `% 5` to `% 10` and 
 While the server is running, you can also check its operational state. The health endpoint shows whether policies loaded successfully:
 
 ```shell
-curl -s http://localhost:8443/actuator/health | jq .
+curl -s http://localhost:8080/actuator/health | jq .
 ```
 
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
-The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allow-no-auth` is enabled by default):
+The info endpoint shows PDP configuration (this endpoint requires authentication in production; the snippet below assumes you started the node with `--io.sapl.node.allow-no-auth=true` for local exploration):
 
 ```shell
-curl -s http://localhost:8443/actuator/info | jq .
+curl -s http://localhost:8080/actuator/info | jq .
 ```
 
 For Prometheus metrics, Kubernetes probes, and decision logging, see [Monitoring](../7_7_Monitoring/).
@@ -240,7 +240,7 @@ Enable evaluation diagnostics by setting `print-text-report: true` in `/etc/sapl
 #### Verifying
 
 ```shell
-curl -s http://localhost:8443/actuator/health | jq .
+curl -s http://localhost:8080/actuator/health | jq .
 ```
 
 You should see `"status": "UP"`. The PDP watches `/var/lib/sapl/` for bundle changes and reloads automatically.
@@ -324,7 +324,7 @@ All evaluation commands accept `--remote` to connect to a running SAPL Node inst
 
 | Flag | Environment Variable | Default |
 |------|---------------------|---------|
-| `--url` | `SAPL_URL` | `http://localhost:8443` |
+| `--url` | `SAPL_URL` | `http://localhost:8080` |
 | `--token` | `SAPL_BEARER_TOKEN` | |
 | `--basic-auth` | `SAPL_BASIC_AUTH` | |
 

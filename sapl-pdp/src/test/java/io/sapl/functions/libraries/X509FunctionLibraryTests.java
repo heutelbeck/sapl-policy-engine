@@ -17,11 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import lombok.val;
@@ -72,8 +68,7 @@ class X509FunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(X509FunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new X509FunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static final String CTHULHU_DN     = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";

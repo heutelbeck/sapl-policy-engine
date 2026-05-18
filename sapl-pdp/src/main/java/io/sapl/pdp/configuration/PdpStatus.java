@@ -17,11 +17,10 @@
  */
 package io.sapl.pdp.configuration;
 
-import java.time.Instant;
-
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import org.jspecify.annotations.Nullable;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import java.time.Instant;
 
 /**
  * Immutable snapshot of a PDP's operational status, including configuration

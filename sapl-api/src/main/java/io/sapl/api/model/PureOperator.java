@@ -60,4 +60,5 @@ public non-sealed interface PureOperator extends CompiledExpression {
     default BooleanExpression booleanExpression() {
         return new BooleanExpression.Atom(new IndexPredicate(semanticHash(), this));
     }
+
 }

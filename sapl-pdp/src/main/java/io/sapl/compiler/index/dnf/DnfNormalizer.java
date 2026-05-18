@@ -17,17 +17,13 @@
  */
 package io.sapl.compiler.index.dnf;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.api.model.IndexPredicate;
 import lombok.experimental.UtilityClass;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Converts a {@link BooleanExpression} tree into Disjunctive Normal Form

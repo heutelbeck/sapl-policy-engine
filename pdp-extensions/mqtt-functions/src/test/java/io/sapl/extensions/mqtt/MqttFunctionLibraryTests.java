@@ -19,15 +19,11 @@ package io.sapl.extensions.mqtt;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.test.StepVerifier;
 
 import java.util.stream.Stream;
 
@@ -35,8 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class MqttFunctionLibraryTests {
-
-    private static final String ACTION = "actionName";
 
     @ParameterizedTest
     @ValueSource(strings = { "first/second/#", "first/+/third", "first/second/third" })
@@ -158,31 +152,5 @@ class MqttFunctionLibraryTests {
         var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics);
 
         assertThat(result).isEqualTo(Value.TRUE);
-    }
-
-    @Test
-    void when_allTopicsShouldMatchWithMultiLevelWildcardAndSingleTopicMatchesWildcard_then_returnTrue() {
-        var components        = PolicyDecisionPointBuilder.withoutDefaults()
-                .withFunctionLibrary(MqttFunctionLibrary.class).withResourcesSource("/functionsPolicies").build();
-        var pdp               = components.pdp();
-        var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
-
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
-    }
-
-    @Test
-    void when_atLeastOneTopicShouldMatchWithSingleLevelWildcardAndSingleTopicDoesNotMatchWildcard_then_returnTrue() {
-        var components        = PolicyDecisionPointBuilder.withoutDefaults()
-                .withFunctionLibrary(MqttFunctionLibrary.class).withResourcesSource("/functionsPolicies").build();
-        var pdp               = components.pdp();
-        var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
-
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
-
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
     }
 }

@@ -29,6 +29,7 @@ import picocli.CommandLine.Spec;
 import javax.net.ssl.SSLException;
 import java.util.concurrent.Callable;
 
+import static io.sapl.node.cli.support.PdpSetup.ERROR_EVALUATION_FAILED;
 import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 
 /**
@@ -75,8 +76,6 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 // @formatter:on
 public class DecideOnceCommand implements Callable<Integer> {
 
-    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
-
     @Spec
     CommandSpec spec;
 
@@ -93,7 +92,7 @@ public class DecideOnceCommand implements Callable<Integer> {
             if (setup == null)
                 return 1;
             val subscription = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
-            val decision     = setup.pdp().decideOnceBlocking(subscription);
+            val decision     = setup.blocking().decideOnce(subscription);
             out.println(setup.mapper().writeValueAsString(decision));
             return 0;
         } catch (IllegalArgumentException e) {

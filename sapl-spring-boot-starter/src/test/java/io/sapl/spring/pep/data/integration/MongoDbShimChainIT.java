@@ -19,6 +19,7 @@ package io.sapl.spring.pep.data.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -26,13 +27,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +44,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.stereotype.Service;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -53,7 +54,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
 import lombok.val;
@@ -93,7 +93,10 @@ class MongoDbShimChainIT {
     ReactiveMongoTemplate mongoTemplate;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @BeforeEach
     void resetCollection() {
@@ -278,7 +281,7 @@ class MongoDbShimChainIT {
     }
 
     private void decide(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any())).thenReturn(Mono.just(decision));
+        when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decision));
     }
 
     private static AuthorizationDecision decisionWithMongoCriteria(ObjectValue... criteria) {
@@ -378,8 +381,7 @@ class MongoDbShimChainIT {
         }
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
     @EnableReactiveMongoRepositories(basePackageClasses = MongoChronicleRepository.class)
     static class AstinusChroniclesTestApp {

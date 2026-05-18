@@ -33,7 +33,7 @@ import io.sapl.api.pdp.AuthorizationSubscription;
  */
 public abstract class BaseIntegrationTest {
 
-    protected static final int             SAPL_SERVER_PORT    = 8443;
+    protected static final int             SAPL_SERVER_PORT    = 8080;
     protected static final String          SAPL_SERVER_IMAGE   = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
     protected static final ImagePullPolicy NEVER_PULL          = imageName -> false;
     protected static final Duration        CONTAINER_STARTUP   = Duration.ofMinutes(2);
@@ -59,6 +59,7 @@ public abstract class BaseIntegrationTest {
     protected GenericContainer<?> createSaplNodeContainer() {
         return new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_IMAGE)).withImagePullPolicy(NEVER_PULL)
                 .withExposedPorts(SAPL_SERVER_PORT).withEnv("SERVER_ADDRESS", "0.0.0.0")
+                .withEnv("SERVER_PORT", String.valueOf(SAPL_SERVER_PORT))
                 .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .waitingFor(Wait.forLogMessage(STARTUP_LOG_PATTERN, 1).withStartupTimeout(CONTAINER_STARTUP));
     }

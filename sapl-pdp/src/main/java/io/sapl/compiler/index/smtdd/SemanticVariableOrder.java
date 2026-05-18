@@ -17,22 +17,14 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.IndexPredicate;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.PureBooleanTypeCheck;
+import io.sapl.compiler.policy.BooleanGuardCompiler.PureBooleanTypeCheck;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Analyzes predicates for semantic grouping opportunities.

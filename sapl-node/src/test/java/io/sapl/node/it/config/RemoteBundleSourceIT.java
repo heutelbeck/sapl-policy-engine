@@ -39,7 +39,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.node.it.BaseIntegrationTest;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;

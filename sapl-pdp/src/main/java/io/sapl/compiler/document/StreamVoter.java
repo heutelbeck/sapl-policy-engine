@@ -17,8 +17,9 @@
  */
 package io.sapl.compiler.document;
 
-import reactor.core.publisher.Flux;
+import io.sapl.api.model.EvaluationContext;
 
 public non-sealed interface StreamVoter extends Voter {
-    Flux<Vote> vote();
+    @Override
+    VoteResult evaluate(EvaluationContext ctx);
 }

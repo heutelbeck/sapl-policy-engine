@@ -159,7 +159,7 @@ class LibraryProposalsGeneratorTests {
                 List.of(entry));
         var bundle  = new DocumentationBundle(List.of(lib));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
     private static LSPConfiguration configWithAttribute(String pip, String name, String schema) {
@@ -168,7 +168,7 @@ class LibraryProposalsGeneratorTests {
                 List.of(entry));
         var bundle  = new DocumentationBundle(List.of(lib));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
     private static LSPConfiguration configWithEnvAttribute(String pip, String name, String schema) {
@@ -177,7 +177,7 @@ class LibraryProposalsGeneratorTests {
                 List.of(entry));
         var bundle  = new DocumentationBundle(List.of(lib));
         var minimal = LSPConfiguration.minimal();
-        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker(), minimal.attributeBroker());
+        return new LSPConfiguration("", bundle, Map.of(), minimal.functionBroker());
     }
 
     private static SaplContext parse(String content) {

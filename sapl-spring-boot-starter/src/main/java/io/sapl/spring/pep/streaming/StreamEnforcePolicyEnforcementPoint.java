@@ -29,7 +29,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ResolvableType;
 
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.method.metadata.StreamEnforce;
@@ -46,6 +46,7 @@ import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +68,8 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
 
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE = "@StreamEnforce reactive PEP supports Flux only at this time. Found return type %s.";
 
-    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<ReactivePolicyDecisionPoint>             policyDecisionPointProvider;
+    private final ObjectProvider<ReactiveTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -93,10 +95,12 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
         val supportedSignals = collectSupportedSignals(publisherType);
         val planner          = enforcementPlannerProvider.getObject();
         val pdp              = policyDecisionPointProvider.getObject();
+        val tenantResolver   = tenantResolverProvider.getObject();
         val authzSub         = subscriptionBuilderProvider.getObject()
                 .reactiveConstructAuthorizationSubscription(methodInvocation, attribute);
 
-        val decisions = authzSub.flatMapMany(pdp::decide);
+        val decisions = authzSub
+                .flatMapMany(sub -> tenantResolver.resolve().flatMapMany(pdpId -> pdp.decide(sub, pdpId)));
 
         Function<AuthorizationDecision, EnforcementPlan> planFor     = decision -> planner.plan(decision,
                 supportedSignals);

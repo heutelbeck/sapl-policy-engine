@@ -17,6 +17,8 @@
  */
 package io.sapl.spring.config;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -26,13 +28,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.http.reactive.DefaultReactiveAuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.reactive.ReactiveAuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager;
 import io.sapl.spring.pep.http.reactive.SaplHttpPepWebFilter;
 import io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import io.sapl.spring.pep.http.servlet.AuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.servlet.DefaultAuthorizationSubscriptionFactory;
 import io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler;
@@ -79,10 +82,11 @@ public final class AuthorizationManagerConfiguration {
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        SaplAuthorizationManager saplAuthorizationManager(PolicyDecisionPoint pdp,
-                EnforcementPlanner enforcementPlanner, AuthorizationSubscriptionFactory subscriptionFactory) {
+        SaplAuthorizationManager saplAuthorizationManager(StreamingPolicyDecisionPoint pdp,
+                BlockingTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
+                AuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Servlet-based environment detected. Deploy SaplAuthorizationManager.");
-            return new SaplAuthorizationManager(pdp, enforcementPlanner, subscriptionFactory);
+            return new SaplAuthorizationManager(pdp, tenantResolver, enforcementPlanner, subscriptionFactory);
         }
 
         @Bean
@@ -115,10 +119,11 @@ public final class AuthorizationManagerConfiguration {
         @Bean
         @ConditionalOnMissingBean
         @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-        ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(PolicyDecisionPoint pdp,
-                EnforcementPlanner enforcementPlanner, ReactiveAuthorizationSubscriptionFactory subscriptionFactory) {
+        ReactiveSaplAuthorizationManager reactiveSaplAuthorizationManager(ReactivePolicyDecisionPoint pdp,
+                ReactiveTenantResolver tenantResolver, EnforcementPlanner enforcementPlanner,
+                ReactiveAuthorizationSubscriptionFactory subscriptionFactory) {
             log.debug("Webflux environment detected. Deploy ReactiveSaplAuthorizationManager.");
-            return new ReactiveSaplAuthorizationManager(pdp, enforcementPlanner, subscriptionFactory);
+            return new ReactiveSaplAuthorizationManager(pdp, tenantResolver, enforcementPlanner, subscriptionFactory);
         }
 
         @Bean

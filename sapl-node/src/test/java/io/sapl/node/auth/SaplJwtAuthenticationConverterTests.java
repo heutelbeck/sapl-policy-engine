@@ -18,7 +18,7 @@
 package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -28,24 +28,31 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.SaplNodeProperties.OAuthConfig;
 import lombok.val;
-import reactor.test.StepVerifier;
 
 @DisplayName("SaplJwtAuthenticationConverter")
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class SaplJwtAuthenticationConverterTests {
 
-    private SaplNodeProperties             properties;
+    @Mock
+    private SaplNodeProperties properties;
+
     private OAuthConfig                    oauthConfig;
     private SaplJwtAuthenticationConverter converter;
 
     @BeforeEach
     void setUp() {
-        properties  = mock(SaplNodeProperties.class);
         oauthConfig = new OAuthConfig();
         when(properties.getOauth()).thenReturn(oauthConfig);
         converter = new SaplJwtAuthenticationConverter(properties);
@@ -62,29 +69,23 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("extracts pdpId from JWT claim")
-        void whenPdpIdClaimPresent_thenExtractsPdpId() {
-            val jwt = createJwt("user-1", Map.of("sapl_pdp_id", "production"));
-
-            StepVerifier.create(converter.convert(jwt)).assertNext(auth -> {
-                assertThat(auth).isInstanceOf(SaplJwtAuthenticationToken.class);
-                val saplAuth = (SaplJwtAuthenticationToken) auth;
-                assertThat(saplAuth.getName()).isEqualTo("user-1");
-                assertThat(saplAuth.getPdpId()).isEqualTo("production");
-            }).verifyComplete();
+        void whenPdpIdClaimPresentThenExtractsPdpId() {
+            val jwt  = createJwt("user-1", Map.of("sapl_pdp_id", "production"));
+            val auth = converter.convert(jwt);
+            assertThat(auth).isInstanceOf(SaplJwtAuthenticationToken.class);
+            val saplAuth = (SaplJwtAuthenticationToken) auth;
+            assertThat(saplAuth.getName()).isEqualTo("user-1");
+            assertThat(saplAuth.getPdpId()).isEqualTo("production");
         }
 
         @Test
         @DisplayName("uses custom claim name from config")
-        void whenCustomClaimName_thenUsesIt() {
+        void whenCustomClaimNameThenUsesIt() {
             oauthConfig.setPdpIdClaim("custom_pdp");
-            val jwt = createJwt("user-1", Map.of("custom_pdp", "custom-pdp-id"));
-
-            StepVerifier.create(converter.convert(jwt)).assertNext(auth -> {
-                val saplAuth = (SaplJwtAuthenticationToken) auth;
-                assertThat(saplAuth.getPdpId()).isEqualTo("custom-pdp-id");
-            }).verifyComplete();
+            val jwt      = createJwt("user-1", Map.of("custom_pdp", "custom-pdp-id"));
+            val saplAuth = (SaplJwtAuthenticationToken) converter.convert(jwt);
+            assertThat(saplAuth.getPdpId()).isEqualTo("custom-pdp-id");
         }
-
     }
 
     @Nested
@@ -93,42 +94,32 @@ class SaplJwtAuthenticationConverterTests {
 
         @Test
         @DisplayName("rejects token when rejectOnMissingPdpId is true")
-        void whenRejectOnMissingTrue_thenRejectsToken() {
+        void whenRejectOnMissingTrueThenRejectsToken() {
             when(properties.isRejectOnMissingPdpId()).thenReturn(true);
             val jwt = createJwt("user-1", Map.of());
 
-            StepVerifier
-                    .create(converter.convert(jwt)).expectErrorSatisfies(error -> assertThat(error)
-                            .isInstanceOf(InvalidBearerTokenException.class).hasMessageContaining("sapl_pdp_id"))
-                    .verify();
+            assertThatThrownBy(() -> converter.convert(jwt)).isInstanceOf(InvalidBearerTokenException.class)
+                    .hasMessageContaining("sapl_pdp_id");
         }
 
         @Test
         @DisplayName("uses default pdpId when rejectOnMissingPdpId is false")
-        void whenRejectOnMissingFalse_thenUsesDefault() {
+        void whenRejectOnMissingFalseThenUsesDefault() {
             when(properties.isRejectOnMissingPdpId()).thenReturn(false);
             when(properties.getDefaultPdpId()).thenReturn("fallback");
-            val jwt = createJwt("user-1", Map.of());
-
-            StepVerifier.create(converter.convert(jwt)).assertNext(auth -> {
-                val saplAuth = (SaplJwtAuthenticationToken) auth;
-                assertThat(saplAuth.getPdpId()).isEqualTo("fallback");
-            }).verifyComplete();
+            val jwt      = createJwt("user-1", Map.of());
+            val saplAuth = (SaplJwtAuthenticationToken) converter.convert(jwt);
+            assertThat(saplAuth.getPdpId()).isEqualTo("fallback");
         }
 
         @Test
         @DisplayName("treats blank claim as missing")
-        void whenBlankClaim_thenTreatsAsMissing() {
+        void whenBlankClaimThenTreatsAsMissing() {
             when(properties.isRejectOnMissingPdpId()).thenReturn(false);
             when(properties.getDefaultPdpId()).thenReturn("fallback");
-            val jwt = createJwt("user-1", Map.of("sapl_pdp_id", "  "));
-
-            StepVerifier.create(converter.convert(jwt)).assertNext(auth -> {
-                val saplAuth = (SaplJwtAuthenticationToken) auth;
-                assertThat(saplAuth.getPdpId()).isEqualTo("fallback");
-            }).verifyComplete();
+            val jwt      = createJwt("user-1", Map.of("sapl_pdp_id", "  "));
+            val saplAuth = (SaplJwtAuthenticationToken) converter.convert(jwt);
+            assertThat(saplAuth.getPdpId()).isEqualTo("fallback");
         }
-
     }
-
 }

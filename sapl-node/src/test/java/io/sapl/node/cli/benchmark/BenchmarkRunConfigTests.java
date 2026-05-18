@@ -55,7 +55,7 @@ class BenchmarkRunConfigTests {
 
         @Test
         @DisplayName("uses CLI defaults")
-        void whenDefaults_thenCliDefaultsApplied() {
+        void whenDefaultsThenCliDefaultsApplied() {
             val cfg = BenchmarkRunConfig.resolve(defaultOptions());
             assertThat(cfg).satisfies(c -> {
                 assertThat(c.warmupIterations()).isEqualTo(3);
@@ -73,14 +73,14 @@ class BenchmarkRunConfigTests {
 
         @Test
         @DisplayName("CLI thread override produces single-element list")
-        void whenCliThreadOverride_thenSingleElementList() {
+        void whenCliThreadOverrideThenSingleElementList() {
             val cfg = BenchmarkRunConfig.resolve(optionsWithThreads(8));
             assertThat(cfg.threads()).containsExactly(8);
         }
 
         @Test
         @DisplayName("machine-readable flag resolves to true when set")
-        void whenMachineReadableFlag_thenResolvedTrue() {
+        void whenMachineReadableFlagThenResolvedTrue() {
             val cfg = BenchmarkRunConfig.resolve(optionsWithMachineReadable());
             assertThat(cfg.machineReadable()).isTrue();
         }
@@ -93,7 +93,7 @@ class BenchmarkRunConfigTests {
 
         @Test
         @DisplayName("generates timestamp-prefixed filename")
-        void whenOutputFileName_thenTimestampPrefixed() {
+        void whenOutputFileNameThenTimestampPrefixed() {
             val cfg  = BenchmarkRunConfig.resolve(defaultOptions());
             val name = cfg.outputFileName("embedded", "decideOnceBlocking", 4);
             assertThat(name).matches("\\d{8}-\\d{6}_embedded_decideOnceBlocking_4threads\\.json");

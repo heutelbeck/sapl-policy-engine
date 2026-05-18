@@ -20,15 +20,18 @@ package io.sapl.attributes.libraries;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.stream.TimeScheduler;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
@@ -67,8 +70,15 @@ public class TimePolicyInformationPoint {
     private static final DateTimeFormatter ISO_FORMATTER                 = DateTimeFormatter.ISO_DATE_TIME
             .withZone(ZoneId.from(ZoneOffset.UTC));
 
-    private final Clock clock;
+    private final Clock         clock;
+    private final TimeScheduler scheduler;
 
+    /**
+     * Stream of the current ISO-8601 UTC timestamp, emitted once per
+     * second.
+     *
+     * @return a stream of {@link TextValue} timestamps
+     */
     @EnvironmentAttribute(docs = """
             ```<time.now>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.now>```emits the current date and time as an ISO 8601 String at UTC.
@@ -82,10 +92,19 @@ public class TimePolicyInformationPoint {
                time.dayOfWeek(<time.now>) == "MONDAY";
             ```
             """)
-    public Flux<Value> now() {
+    public Stream<Value> now() {
         return now(DEFAULT_UPDATE_INTERVAL_IN_MS);
     }
 
+    /**
+     * Stream of the current ISO-8601 UTC timestamp, emitted once per
+     * {@code updateIntervalInMillis}.
+     *
+     * @param updateIntervalInMillis polling interval in milliseconds; must be
+     * positive and non-zero
+     * @return a stream of {@link TextValue} timestamps, or an error value if the
+     * interval is invalid
+     */
     @EnvironmentAttribute(docs = """
             ```<time.now(INTEGER>0 updateIntervalInMillis>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.now(updateIntervalInMillis>``` emits the current date and time as an ISO 8601 String at UTC.
@@ -99,15 +118,19 @@ public class TimePolicyInformationPoint {
                time.dayOfWeek(<time.now(time.durationOfMinutes(5)>) == "MONDAY";
             ```
             """)
-    public Flux<Value> now(NumberValue updateIntervalInMillis) {
-        try {
+    public Stream<Value> now(NumberValue updateIntervalInMillis) {
+        return guarded(() -> {
             val interval = numberValueMsToNonZeroPositiveDuration(updateIntervalInMillis);
-            return instantNow(interval).map(ISO_FORMATTER::format).map(Value::of);
-        } catch (IllegalArgumentException e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+            return Streams.scheduledPoll(interval, instantSupplier(), clock, scheduler);
+        });
     }
 
+    /**
+     * Stream of the JVM default time zone identifier, re-emitted only
+     * when it changes (checked every five minutes).
+     *
+     * @return a stream of {@link TextValue} zone identifiers
+     */
     @EnvironmentAttribute(docs = """
             ```<time.systemTimeZone>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.systemTimeZone>``` emits the PDP's system time zone code.
@@ -117,10 +140,20 @@ public class TimePolicyInformationPoint {
             Example: The expression ```<time.systemTimeZone>``` will emit ```"US/Pacific"``` if the PDP's host default
             time zone is set this way and will not emit anything if no changes are made.
             """)
-    public Flux<Value> systemTimeZone() {
-        return poll(Duration.ofMinutes(5L), () -> (Value) Value.of(ZoneId.systemDefault().toString())).distinct();
+    public Stream<Value> systemTimeZone() {
+        return Streams.distinctUntilChanged(Streams.scheduledPoll(Duration.ofMinutes(5L),
+                () -> Value.of(ZoneId.systemDefault().toString()), clock, scheduler));
     }
 
+    /**
+     * Stream that emits {@code false} until the {@code checkpoint}
+     * instant is reached, then emits {@code true}. Boundary-driven; no
+     * polling.
+     *
+     * @param checkpoint an ISO-8601 UTC instant to compare against
+     * @return a stream of {@link BooleanValue}, or an error value if the checkpoint
+     * is malformed
+     */
     @EnvironmentAttribute(docs = """
             ```<time.nowIsAfter(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.nowIsAfter(checkpoint)>``` ```true```, if the current date time is after the ```checkpoint```
@@ -141,10 +174,19 @@ public class TimePolicyInformationPoint {
             Alternatively, assume that the current time is ```"2021-11-08T13:00:00Z"``` then the expression
             ```<time.nowIsAfter("2021-11-08T14:30:00Z")>``` will immediately return ```false``` and after
             90 minutes it will emit ```true```.""")
-    public Flux<Value> nowIsAfter(TextValue checkpoint) {
-        return nowIsAfter(textValueToInstant(checkpoint)).map(Value::of);
+    public Stream<Value> nowIsAfter(TextValue checkpoint) {
+        return guarded(() -> nowIsAfterStream(textValueToInstant(checkpoint)));
     }
 
+    /**
+     * Stream that compares the current local time of day in the clock's
+     * configured zone against {@code checkpoint}, toggling at the
+     * checkpoint and at midnight.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @return a stream of {@link BooleanValue}, or an error value if the checkpoint
+     * is malformed
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsAfter(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.localTimeIsAfter(checkpoint)>``` ```true```, if the current time of the day without date is after the
@@ -160,14 +202,18 @@ public class TimePolicyInformationPoint {
               <time.localTimeIsAfter(subject.startTimeOfShift)>;
             ```
             """)
-    public Flux<Value> localTimeIsAfter(TextValue checkpoint) {
-        try {
-            return localTimeIsAfter(LocalTime.parse(checkpoint.value()), defaultZone()).map(Value::of);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> localTimeIsAfter(TextValue checkpoint) {
+        return guarded(() -> localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), defaultZone()));
     }
 
+    /**
+     * Like {@link #localTimeIsAfter(TextValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @param timezone an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsAfter(TEXT checkpoint, TEXT timezone)>``` is an environment attribute stream and takes no
             left-hand arguments.
@@ -182,15 +228,19 @@ public class TimePolicyInformationPoint {
               <time.localTimeIsAfter(subject.startTimeOfShift, "Europe/Berlin")>;
             ```
             """)
-    public Flux<Value> localTimeIsAfter(TextValue checkpoint, TextValue timezone) {
-        try {
+    public Stream<Value> localTimeIsAfter(TextValue checkpoint, TextValue timezone) {
+        return guarded(() -> {
             val zone = resolveZone(timezone);
-            return localTimeIsAfter(LocalTime.parse(checkpoint.value()), zone).map(Value::of);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+            return localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), zone);
+        });
     }
 
+    /**
+     * Logical inverse of {@link #localTimeIsAfter(TextValue)}.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBefore(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.localTimeIsBefore(checkpoint)>``` ```false```, if the current time of the day without date is after the
@@ -206,15 +256,19 @@ public class TimePolicyInformationPoint {
               <time.localTimeIsBefore(subject.endTimeOfShift)>;
             ```
             """)
-    public Flux<Value> localTimeIsBefore(TextValue checkpoint) {
-        try {
-            return localTimeIsAfter(LocalTime.parse(checkpoint.value()), defaultZone()).map(this::negate)
-                    .map(Value::of);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> localTimeIsBefore(TextValue checkpoint) {
+        return guarded(() -> Streams.map(localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), defaultZone()),
+                TimePolicyInformationPoint::negateBoolean));
     }
 
+    /**
+     * Like {@link #localTimeIsBefore(TextValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @param timezone an IANA zone identifier, e.g. {@code "America/New_York"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBefore(TEXT checkpoint, TEXT timezone)>``` is an environment attribute stream and takes no
             left-hand arguments.
@@ -229,15 +283,25 @@ public class TimePolicyInformationPoint {
               <time.localTimeIsBefore(subject.endTimeOfShift, "America/New_York")>;
             ```
             """)
-    public Flux<Value> localTimeIsBefore(TextValue checkpoint, TextValue timezone) {
-        try {
+    public Stream<Value> localTimeIsBefore(TextValue checkpoint, TextValue timezone) {
+        return guarded(() -> {
             val zone = resolveZone(timezone);
-            return localTimeIsAfter(LocalTime.parse(checkpoint.value()), zone).map(this::negate).map(Value::of);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+            return Streams.map(localTimeIsAfterStream(LocalTime.parse(checkpoint.value()), zone),
+                    TimePolicyInformationPoint::negateBoolean);
+        });
     }
 
+    /**
+     * Stream that emits {@code true} while the current local time of
+     * day is within {@code [startTime, endTime]} in the clock's
+     * configured zone, transitioning at each boundary. When
+     * {@code startTime > endTime} the interval is treated as wrapping
+     * past midnight.
+     *
+     * @param startTime a local time of day, e.g. {@code "09:00"}
+     * @param endTime a local time of day, e.g. {@code "17:00"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBetween(TEXT startTime, TEXT endTime)>``` is an environment attribute stream and takes no left-hand
             arguments.
@@ -253,16 +317,23 @@ public class TimePolicyInformationPoint {
               <time.localTimeIsBetween(subject.shiftStarts, subject.shiftEnds)>;
             ```
             """)
-    public Flux<Value> localTimeIsBetween(TextValue startTime, TextValue endTime) {
-        try {
-            val localStartTime = LocalTime.parse(startTime.value());
-            val localEndTime   = LocalTime.parse(endTime.value());
-            return localTimeIsBetween(localStartTime, localEndTime, defaultZone()).map(Value::of);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> localTimeIsBetween(TextValue startTime, TextValue endTime) {
+        return guarded(() -> {
+            val localStart = LocalTime.parse(startTime.value());
+            val localEnd   = LocalTime.parse(endTime.value());
+            return localTimeIsBetweenStream(localStart, localEnd, defaultZone());
+        });
     }
 
+    /**
+     * Like {@link #localTimeIsBetween(TextValue, TextValue)} but
+     * evaluated in {@code timezone}.
+     *
+     * @param startTime a local time of day, e.g. {@code "09:00"}
+     * @param endTime a local time of day, e.g. {@code "17:00"}
+     * @param timezone an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.localTimeIsBetween(TEXT startTime, TEXT endTime, TEXT timezone)>``` is an environment attribute stream
             and takes no left-hand arguments.
@@ -278,17 +349,23 @@ public class TimePolicyInformationPoint {
               <time.localTimeIsBetween(subject.shiftStarts, subject.shiftEnds, "Europe/Berlin")>;
             ```
             """)
-    public Flux<Value> localTimeIsBetween(TextValue startTime, TextValue endTime, TextValue timezone) {
-        try {
-            val zone           = resolveZone(timezone);
-            val localStartTime = LocalTime.parse(startTime.value());
-            val localEndTime   = LocalTime.parse(endTime.value());
-            return localTimeIsBetween(localStartTime, localEndTime, zone).map(Value::of);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> localTimeIsBetween(TextValue startTime, TextValue endTime, TextValue timezone) {
+        return guarded(() -> {
+            val zone       = resolveZone(timezone);
+            val localStart = LocalTime.parse(startTime.value());
+            val localEnd   = LocalTime.parse(endTime.value());
+            return localTimeIsBetweenStream(localStart, localEnd, zone);
+        });
     }
 
+    /**
+     * Logical inverse of {@link #nowIsAfter(TextValue)}: emits
+     * {@code true} until {@code time} is reached, then {@code false}.
+     *
+     * @param time an ISO-8601 UTC instant
+     * @return a stream of {@link BooleanValue}, or an error value if {@code time}
+     * is malformed
+     */
     @EnvironmentAttribute(docs = """
             ```<time.nowIsBefore(TEXT checkpoint)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.nowIsBefore(checkpoint)>``` ```true```, if the current date time is before the ```checkpoint```
@@ -309,10 +386,20 @@ public class TimePolicyInformationPoint {
             Alternatively, assume that the current time is ```"2021-11-08T13:00:00Z"``` then the expression
             ```<time.nowIsBefore("2021-11-08T14:30:00Z")>``` will immediately return ```true``` and after
             90 minutes it will emit ```false```.""")
-    public Flux<Value> nowIsBefore(TextValue time) {
-        return nowIsBefore(textValueToInstant(time)).map(Value::of);
+    public Stream<Value> nowIsBefore(TextValue time) {
+        return guarded(() -> Streams.map(nowIsAfterStream(textValueToInstant(time)),
+                TimePolicyInformationPoint::negateBoolean));
     }
 
+    /**
+     * Stream that emits {@code true} while the current instant lies
+     * inside {@code [startTime, endTime]}, transitioning at each
+     * boundary.
+     *
+     * @param startTime an ISO-8601 UTC instant
+     * @param endTime an ISO-8601 UTC instant
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.nowIsBetween(TEXT startTime, TEXT endTime)>``` is an environment attribute stream and takes no left-hand
             arguments.
@@ -330,12 +417,22 @@ public class TimePolicyInformationPoint {
               <time.nowIsBetween(subject.employmentStarts, subject.employmentEnds)>;
             ```
             """)
-    public Flux<Value> nowIsBetween(TextValue startTime, TextValue endTime) {
-        val start = textValueToInstant(startTime);
-        val end   = textValueToInstant(endTime);
-        return nowIsBetween(start, end).map(Value::of);
+    public Stream<Value> nowIsBetween(TextValue startTime, TextValue endTime) {
+        return guarded(() -> {
+            val start = textValueToInstant(startTime);
+            val end   = textValueToInstant(endTime);
+            return nowIsBetweenStream(start, end);
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when today's weekday is contained
+     * in {@code days} (in the clock's configured zone), transitioning
+     * at each midnight crossing.
+     *
+     * @param days an array of day-of-week names (e.g., {@code "MONDAY"})
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.weekdayIn(ARRAY days)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.weekdayIn(days)>``` emits ```true``` if the current day of the week (in the clock's configured timezone)
@@ -349,15 +446,18 @@ public class TimePolicyInformationPoint {
               <time.weekdayIn(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"])>;
             ```
             """)
-    public Flux<Value> weekdayIn(ArrayValue days) {
-        try {
-            val daySet = parseDaySet(days);
-            return dayBasedStream(daySet, defaultZone());
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> weekdayIn(ArrayValue days) {
+        return guarded(() -> dayBasedStream(parseDaySet(days), defaultZone()));
     }
 
+    /**
+     * Like {@link #weekdayIn(ArrayValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param days an array of day-of-week names
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.weekdayIn(ARRAY days, TEXT timezone)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.weekdayIn(days, timezone)>``` emits ```true``` if the current day of the week in the given
@@ -370,16 +470,23 @@ public class TimePolicyInformationPoint {
               <time.weekdayIn(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"], "Europe/Berlin")>;
             ```
             """)
-    public Flux<Value> weekdayIn(ArrayValue days, TextValue timezone) {
-        try {
+    public Stream<Value> weekdayIn(ArrayValue days, TextValue timezone) {
+        return guarded(() -> {
             val zone   = resolveZone(timezone);
             val daySet = parseDaySet(days);
             return dayBasedStream(daySet, zone);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when today's weekday lies within
+     * {@code [startDay, endDay]} (in the clock's configured zone),
+     * wrapping past Sunday when {@code startDay > endDay}.
+     *
+     * @param startDay a day-of-week name
+     * @param endDay a day-of-week name
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.dayOfWeekBetween(TEXT startDay, TEXT endDay)>``` is an environment attribute stream and takes no left-hand
             arguments.
@@ -394,15 +501,19 @@ public class TimePolicyInformationPoint {
               <time.dayOfWeekBetween("SATURDAY", "SUNDAY")>;
             ```
             """)
-    public Flux<Value> dayOfWeekBetween(TextValue startDay, TextValue endDay) {
-        try {
-            val daySet = buildDayRange(startDay, endDay);
-            return dayBasedStream(daySet, defaultZone());
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> dayOfWeekBetween(TextValue startDay, TextValue endDay) {
+        return guarded(() -> dayBasedStream(buildDayRange(startDay, endDay), defaultZone()));
     }
 
+    /**
+     * Like {@link #dayOfWeekBetween(TextValue, TextValue)} but
+     * evaluated in {@code timezone}.
+     *
+     * @param startDay a day-of-week name
+     * @param endDay a day-of-week name
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.dayOfWeekBetween(TEXT startDay, TEXT endDay, TEXT timezone)>``` is an environment attribute stream and
             takes no left-hand arguments.
@@ -417,16 +528,22 @@ public class TimePolicyInformationPoint {
               <time.dayOfWeekBetween("SATURDAY", "SUNDAY", "America/New_York")>;
             ```
             """)
-    public Flux<Value> dayOfWeekBetween(TextValue startDay, TextValue endDay, TextValue timezone) {
-        try {
+    public Stream<Value> dayOfWeekBetween(TextValue startDay, TextValue endDay, TextValue timezone) {
+        return guarded(() -> {
             val zone   = resolveZone(timezone);
             val daySet = buildDayRange(startDay, endDay);
             return dayBasedStream(daySet, zone);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when the current month is in
+     * {@code months} (in the clock's configured zone), transitioning
+     * at month boundaries.
+     *
+     * @param months an array of month names or 1-based numbers
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthIn(ARRAY months)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.monthIn(months)>``` emits ```true``` if the current month (in the clock's configured timezone) is
@@ -441,15 +558,18 @@ public class TimePolicyInformationPoint {
               <time.monthIn(["JUNE", "JULY", "AUGUST"])>;
             ```
             """)
-    public Flux<Value> monthIn(ArrayValue months) {
-        try {
-            val monthSet = parseMonthSet(months);
-            return monthBasedStream(monthSet, defaultZone());
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> monthIn(ArrayValue months) {
+        return guarded(() -> monthBasedStream(parseMonthSet(months), defaultZone()));
     }
 
+    /**
+     * Like {@link #monthIn(ArrayValue)} but evaluated in
+     * {@code timezone}.
+     *
+     * @param months an array of month names or 1-based numbers
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthIn(ARRAY months, TEXT timezone)>``` is an environment attribute stream and takes no left-hand arguments.
             ```<time.monthIn(months, timezone)>``` emits ```true``` if the current month in the given ```timezone```
@@ -462,16 +582,23 @@ public class TimePolicyInformationPoint {
               <time.monthIn(["JUNE", "JULY", "AUGUST"], "Europe/Berlin")>;
             ```
             """)
-    public Flux<Value> monthIn(ArrayValue months, TextValue timezone) {
-        try {
+    public Stream<Value> monthIn(ArrayValue months, TextValue timezone) {
+        return guarded(() -> {
             val zone     = resolveZone(timezone);
             val monthSet = parseMonthSet(months);
             return monthBasedStream(monthSet, zone);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+        });
     }
 
+    /**
+     * Stream that emits {@code true} when the current month lies
+     * within {@code [startMonth, endMonth]} (1=January, 12=December),
+     * wrapping past December when {@code startMonth > endMonth}.
+     *
+     * @param startMonth 1-based month number
+     * @param endMonth 1-based month number
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthBetween(INTEGER startMonth, INTEGER endMonth)>``` is an environment attribute stream and takes no
             left-hand arguments.
@@ -486,15 +613,19 @@ public class TimePolicyInformationPoint {
               <time.monthBetween(11, 3)>;
             ```
             """)
-    public Flux<Value> monthBetween(NumberValue startMonth, NumberValue endMonth) {
-        try {
-            val monthSet = buildMonthRange(startMonth, endMonth);
-            return monthBasedStream(monthSet, defaultZone());
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+    public Stream<Value> monthBetween(NumberValue startMonth, NumberValue endMonth) {
+        return guarded(() -> monthBasedStream(buildMonthRange(startMonth, endMonth), defaultZone()));
     }
 
+    /**
+     * Like {@link #monthBetween(NumberValue, NumberValue)} but
+     * evaluated in {@code timezone}.
+     *
+     * @param startMonth 1-based month number
+     * @param endMonth 1-based month number
+     * @param timezone an IANA zone identifier
+     * @return a stream of {@link BooleanValue}, or an error value on bad input
+     */
     @EnvironmentAttribute(docs = """
             ```<time.monthBetween(INTEGER startMonth, INTEGER endMonth, TEXT timezone)>``` is an environment attribute stream
             and takes no left-hand arguments.
@@ -509,16 +640,24 @@ public class TimePolicyInformationPoint {
               <time.monthBetween(11, 3, "Europe/Berlin")>;
             ```
             """)
-    public Flux<Value> monthBetween(NumberValue startMonth, NumberValue endMonth, TextValue timezone) {
-        try {
+    public Stream<Value> monthBetween(NumberValue startMonth, NumberValue endMonth, TextValue timezone) {
+        return guarded(() -> {
             val zone     = resolveZone(timezone);
             val monthSet = buildMonthRange(startMonth, endMonth);
             return monthBasedStream(monthSet, zone);
-        } catch (Exception e) {
-            return Flux.just(Value.error(e.getMessage()));
-        }
+        });
     }
 
+    /**
+     * Stream that toggles between {@code true} for
+     * {@code trueDurationMs} milliseconds and {@code false} for
+     * {@code falseDurationMs} milliseconds, repeating indefinitely.
+     *
+     * @param trueDurationMs duration of the {@code true} phase, in milliseconds
+     * @param falseDurationMs duration of the {@code false} phase, in milliseconds
+     * @return a stream of {@link BooleanValue}, or an error value if a duration is
+     * invalid
+     */
     @EnvironmentAttribute(docs = """
             ```<time.toggle(INTEGER>0 trueDurationMs, INTEGER>0 falseDurationMs)>``` is an environment attribute
             stream and takes no left-hand arguments.
@@ -540,43 +679,203 @@ public class TimePolicyInformationPoint {
             ```PERMIT``` will be the result for one second and ```NOT_APPLICABLE```
             will be the result for two seconds.
             """)
-    public Flux<Value> toggle(NumberValue trueDurationMs, NumberValue falseDurationMs) {
-        return toggle(numberValueMsToNonZeroPositiveDuration(trueDurationMs),
-                numberValueMsToNonZeroPositiveDuration(falseDurationMs)).map(Value::of);
+    public Stream<Value> toggle(NumberValue trueDurationMs, NumberValue falseDurationMs) {
+        return guarded(() -> {
+            val trueDuration  = numberValueMsToNonZeroPositiveDuration(trueDurationMs);
+            val falseDuration = numberValueMsToNonZeroPositiveDuration(falseDurationMs);
+            return toggleStream(trueDuration, falseDuration);
+        });
     }
 
-    public Flux<Boolean> nowIsBetween(Instant start, Instant end) {
-        val now = clock.instant();
-        if (now.isAfter(end))
-            return Flux.just(Boolean.FALSE);
-
-        if (now.isAfter(start)) {
-            val initial  = Flux.just(Boolean.TRUE);
-            val eventual = Flux.just(Boolean.FALSE).delayElements(Duration.between(now, end));
-            return Flux.concat(initial, eventual);
-        }
-
-        val initial         = Flux.just(Boolean.FALSE);
-        val duringIsBetween = Flux.just(Boolean.TRUE).delayElements(Duration.between(now, start));
-        val eventual        = Flux.just(Boolean.FALSE).delayElements(Duration.between(start, end));
-
-        return Flux.concat(initial, duringIsBetween, eventual);
-    }
-
-    private ZoneId defaultZone() {
-        return clock.getZone();
-    }
-
-    private ZoneId resolveZone(TextValue timezone) {
+    private static Stream<Value> guarded(Supplier<Stream<Value>> body) {
         try {
-            return ZoneId.of(timezone.value());
-        } catch (Exception e) {
-            throw new IllegalArgumentException(String.format(ERROR_TIMEZONE_INVALID, timezone.value()), e);
+            return body.get();
+        } catch (RuntimeException e) {
+            return Streams.error(e.getMessage());
         }
     }
 
-    private ZonedDateTime zonedNow(ZoneId zone) {
-        return clock.instant().atZone(zone);
+    private Stream<Value> nowIsAfterStream(Instant checkpoint) {
+        val now = clock.instant();
+        if (now.isAfter(checkpoint)) {
+            return Streams.just(Value.TRUE);
+        }
+        return Streams.concat(Streams.just(Value.FALSE), Streams.scheduledAt(Value.TRUE, checkpoint, scheduler));
+    }
+
+    private Stream<Value> nowIsBetweenStream(Instant start, Instant end) {
+        val now = clock.instant();
+        if (now.isAfter(end)) {
+            return Streams.just(Value.FALSE);
+        }
+        if (now.isAfter(start)) {
+            return Streams.concat(Streams.just(Value.TRUE), Streams.scheduledAt(Value.FALSE, end, scheduler));
+        }
+        return Streams.concat(Streams.just(Value.FALSE), Streams.scheduledAt(Value.TRUE, start, scheduler),
+                Streams.scheduledAt(Value.FALSE, end, scheduler));
+    }
+
+    private Stream<Value> localTimeIsAfterStream(LocalTime checkpoint, ZoneId zone) {
+        if (checkpoint.equals(LocalTime.MIN)) {
+            return Streams.just(Value.TRUE);
+        }
+        if (checkpoint.equals(LocalTime.MAX)) {
+            return Streams.just(Value.FALSE);
+        }
+
+        val now = zonedNow(zone).toLocalTime();
+        if (now.isAfter(checkpoint)) {
+            val tillMidnight = boolAtZonedBoundary(Value.FALSE, LocalTime.MAX, zone);
+            return Streams.concat(Streams.just(Value.TRUE), tillMidnight,
+                    afterCheckpointFollowingDays(checkpoint, zone));
+        }
+        val tillCheckpoint = boolAtZonedBoundary(Value.TRUE, checkpoint, zone);
+        val tillMidnight   = boolAtZonedBoundary(Value.FALSE, LocalTime.MAX, zone);
+        return Streams.concat(Streams.just(Value.FALSE), tillCheckpoint, tillMidnight,
+                afterCheckpointFollowingDays(checkpoint, zone));
+    }
+
+    private Stream<Value> afterCheckpointFollowingDays(LocalTime checkpoint, ZoneId zone) {
+        return Streams.repeat(() -> {
+            // The caller has already covered "current day after checkpoint" via
+            // a tillMidnight segment, so the next emission this repeat produces
+            // is always for the NEXT day, not today. Computing the date as
+            // tomorrow-relative-to-now also keeps subsequent iterations correct:
+            // each iteration's supplier evaluates just after the previous
+            // endOfDay fired (clock at day N's end-of-day), so today = day N
+            // and tomorrow = day N+1, which is exactly the iteration we want
+            // to schedule next.
+            val nextDay    = zonedNow(zone).toLocalDate().plusDays(1);
+            val startOfDay = boolAtDate(Value.TRUE, checkpoint, nextDay, zone);
+            val endOfDay   = boolAtDate(Value.FALSE, LocalTime.MAX, nextDay, zone);
+            return Streams.concat(startOfDay, endOfDay);
+        });
+    }
+
+    private Stream<Value> boolAtZonedBoundary(Value value, LocalTime to, ZoneId zone) {
+        return boolAtDate(value, to, zonedNow(zone).toLocalDate(), zone);
+    }
+
+    private Stream<Value> boolAtDate(Value value, LocalTime to, LocalDate date, ZoneId zone) {
+        val targetInstant = to.atDate(date).atZone(zone).toInstant();
+        return Streams.scheduledAt(value, targetInstant, scheduler);
+    }
+
+    private Stream<Value> localTimeIsBetweenStream(LocalTime t1, LocalTime t2, ZoneId zone) {
+        if (t1.equals(t2)) {
+            return Streams.just(Value.FALSE);
+        }
+        if (t1.equals(LocalTime.MIN) && t2.equals(LocalTime.MAX)) {
+            return Streams.just(Value.TRUE);
+        }
+        if (t1.equals(LocalTime.MAX) && t2.equals(LocalTime.MIN)) {
+            return Streams.just(Value.TRUE);
+        }
+        val intervalWrapsAroundMidnight = t1.isAfter(t2);
+        if (intervalWrapsAroundMidnight) {
+            return Streams.map(localTimeIsBetweenAscending(t2, t1, zone), TimePolicyInformationPoint::negateBoolean);
+        }
+        return localTimeIsBetweenAscending(t1, t2, zone);
+    }
+
+    private Stream<Value> localTimeIsBetweenAscending(LocalTime start, LocalTime end, ZoneId zone) {
+        val now      = zonedNow(zone);
+        val local    = now.toLocalTime();
+        val today    = now.toLocalDate();
+        val tomorrow = today.plusDays(1);
+
+        Stream<Value> initialStates;
+        if (local.isBefore(start)) {
+            val startInstant = start.atDate(today).atZone(zone).toInstant();
+            initialStates = Streams.concat(Streams.just(Value.FALSE),
+                    Streams.scheduledAt(Value.TRUE, startInstant, scheduler));
+        } else if (local.isAfter(end)) {
+            val nextStartInstant = start.atDate(tomorrow).atZone(zone).toInstant();
+            initialStates = Streams.concat(Streams.just(Value.FALSE),
+                    Streams.scheduledAt(Value.TRUE, nextStartInstant, scheduler));
+        } else {
+            val endInstant       = end.atDate(today).atZone(zone).toInstant();
+            val nextStartInstant = start.atDate(tomorrow).atZone(zone).toInstant();
+            initialStates = Streams.concat(Streams.just(Value.TRUE),
+                    Streams.scheduledAt(Value.FALSE, endInstant, scheduler),
+                    Streams.scheduledAt(Value.TRUE, nextStartInstant, scheduler));
+        }
+
+        val repeated = Streams.repeat(() -> {
+            val now2      = zonedNow(zone);
+            val today2    = now2.toLocalDate();
+            val zonedEnd  = end.atDate(today2).atZone(zone).toInstant();
+            val nextStart = start.atDate(today2.plusDays(1)).atZone(zone).toInstant();
+            return Streams.concat(Streams.scheduledAt(Value.FALSE, zonedEnd, scheduler),
+                    Streams.scheduledAt(Value.TRUE, nextStart, scheduler));
+        });
+
+        return Streams.concat(initialStates, repeated);
+    }
+
+    private Stream<Value> dayBasedStream(EnumSet<DayOfWeek> daySet, ZoneId zone) {
+        if (daySet.size() == 7) {
+            return Streams.just(Value.TRUE);
+        }
+        return Streams.repeat(() -> {
+            val now          = zonedNow(zone);
+            val currentDay   = now.getDayOfWeek();
+            val isIn         = daySet.contains(currentDay);
+            val daysToNext   = daysUntilStateChange(currentDay, daySet, isIn);
+            val nextBoundary = now.toLocalDate().plusDays(daysToNext).atStartOfDay(zone);
+            val nextInstant  = nextBoundary.toInstant();
+            val current      = Value.of(isIn);
+            val next         = Value.of(!isIn);
+            return Streams.concat(Streams.just(current), Streams.scheduledAt(next, nextInstant, scheduler));
+        });
+    }
+
+    private Stream<Value> monthBasedStream(EnumSet<Month> monthSet, ZoneId zone) {
+        if (monthSet.size() == 12) {
+            return Streams.just(Value.TRUE);
+        }
+        return Streams.repeat(() -> {
+            val now          = zonedNow(zone);
+            val currentMonth = now.getMonth();
+            val isIn         = monthSet.contains(currentMonth);
+            val monthsToNext = monthsUntilStateChange(currentMonth, monthSet, isIn);
+            val nextBoundary = now.toLocalDate().withDayOfMonth(1).plusMonths(monthsToNext).atStartOfDay(zone);
+            val nextInstant  = nextBoundary.toInstant();
+            val current      = Value.of(isIn);
+            val next         = Value.of(!isIn);
+            return Streams.concat(Streams.just(current), Streams.scheduledAt(next, nextInstant, scheduler));
+        });
+    }
+
+    private Stream<Value> toggleStream(Duration trueDuration, Duration falseDuration) {
+        val firstFalseAt = clock.instant().plus(trueDuration);
+        return Streams.concat(Streams.just(Value.TRUE), Streams.scheduledAt(Value.FALSE, firstFalseAt, scheduler),
+                toggleTail(firstFalseAt, trueDuration, falseDuration));
+    }
+
+    private Stream<Value> toggleTail(Instant lastBoundary, Duration trueDuration, Duration falseDuration) {
+        return Streams.repeat(new Supplier<>() {
+            private Instant boundary = lastBoundary;
+
+            @Override
+            public Stream<Value> get() {
+                val nextTrue  = boundary.plus(falseDuration);
+                val nextFalse = nextTrue.plus(trueDuration);
+                boundary = nextFalse;
+                return Streams.concat(Streams.scheduledAt(Value.TRUE, nextTrue, scheduler),
+                        Streams.scheduledAt(Value.FALSE, nextFalse, scheduler));
+            }
+        });
+    }
+
+    private Supplier<Value> instantSupplier() {
+        return () -> {
+            val instant = clock.instant();
+            if (instant == null) {
+                throw new IllegalStateException(ERROR_CLOCK_RETURNED_NULL);
+            }
+            return Value.of(ISO_FORMATTER.format(instant));
+        };
     }
 
     private Duration numberValueMsToNonZeroPositiveDuration(NumberValue value) {
@@ -590,157 +889,34 @@ public class TimePolicyInformationPoint {
         return duration;
     }
 
-    private Flux<Instant> instantNow(Duration pollInterval) {
-        return poll(pollInterval, clock::instant);
+    private static Value negateBoolean(Value v) {
+        if (v instanceof BooleanValue(var b)) {
+            return Value.of(!b);
+        }
+        return v;
     }
 
-    private <T> Flux<T> poll(Duration pollInterval, Supplier<T> supplier) {
-        val checkedSupplier = nonNullClockResult(supplier);
-        val first           = Mono.fromCallable(checkedSupplier::get);
-        val following       = Flux.just(0).repeat().delayElements(pollInterval).map(tick -> checkedSupplier.get());
-        return Flux.concat(first, following);
-    }
-
-    private static <T> Supplier<T> nonNullClockResult(Supplier<T> supplier) {
-        return () -> {
-            val value = supplier.get();
-            if (value == null) {
-                throw new IllegalStateException(ERROR_CLOCK_RETURNED_NULL);
-            }
-            return value;
-        };
-    }
-
-    private Instant textValueToInstant(TextValue value) {
+    private static Instant textValueToInstant(TextValue value) {
         return Instant.parse(value.value());
     }
 
-    private Flux<Boolean> nowIsAfter(Instant anInstant) {
-        return isAfter(anInstant, clock.instant());
+    private ZoneId defaultZone() {
+        return clock.getZone();
     }
 
-    private Flux<Boolean> nowIsBefore(Instant anInstant) {
-        return isAfter(anInstant, clock.instant()).map(this::negate);
-    }
-
-    private Flux<Boolean> isAfter(Instant instantA, Instant instantB) {
-        if (instantB.isAfter(instantA))
-            return Flux.just(Boolean.TRUE);
-        val initial  = Flux.just(Boolean.FALSE);
-        val eventual = Flux.just(Boolean.TRUE).delayElements(Duration.between(instantB, instantA));
-        return Flux.concat(initial, eventual);
-    }
-
-    private boolean negate(boolean val) {
-        return !val;
-    }
-
-    private Flux<Boolean> localTimeIsAfter(LocalTime checkpoint, ZoneId zone) {
-        val now = zonedNow(zone).toLocalTime();
-
-        if (checkpoint.equals(LocalTime.MIN))
-            return Flux.just(Boolean.TRUE);
-
-        if (checkpoint.equals(LocalTime.MAX))
-            return Flux.just(Boolean.FALSE);
-
-        if (now.isAfter(checkpoint)) {
-            val initial      = Flux.just(Boolean.TRUE);
-            val tillMidnight = boolAfterZonedDuration(false, now, LocalTime.MAX, zone);
-            val initialDay   = Flux.concat(initial, tillMidnight);
-            return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint, zone));
+    private ZoneId resolveZone(TextValue timezone) {
+        try {
+            return ZoneId.of(timezone.value());
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException(String.format(ERROR_TIMEZONE_INVALID, timezone.value()), e);
         }
-
-        val initial        = Flux.just(Boolean.FALSE);
-        val tillCheckpoint = boolAfterZonedDuration(true, now, checkpoint, zone);
-        val tillMidnight   = boolAfterZonedDuration(false, checkpoint, LocalTime.MAX, zone);
-        val initialDay     = Flux.concat(initial, tillCheckpoint, tillMidnight);
-        return Flux.concat(initialDay, afterCheckpointEventsFollowingDays(checkpoint, zone));
     }
 
-    private Flux<Boolean> afterCheckpointEventsFollowingDays(LocalTime checkpoint, ZoneId zone) {
-        return Flux.defer(() -> {
-            val startOfDay = boolAfterZonedDuration(true, LocalTime.MIN, checkpoint, zone);
-            val endOfDay   = boolAfterZonedDuration(false, checkpoint, LocalTime.MAX, zone);
-            return Flux.concat(startOfDay, endOfDay);
-        }).repeat();
+    private ZonedDateTime zonedNow(ZoneId zone) {
+        return clock.instant().atZone(zone);
     }
 
-    private Flux<Boolean> boolAfterZonedDuration(boolean value, LocalTime from, LocalTime to, ZoneId zone) {
-        return Flux.defer(() -> {
-            val today     = LocalDate.now(clock);
-            val zonedFrom = from.atDate(today).atZone(zone);
-            val zonedTo   = to.atDate(today).atZone(zone);
-            val duration  = Duration.between(zonedFrom, zonedTo);
-            if (duration.isNegative() || duration.isZero()) {
-                return Flux.just(value);
-            }
-            return Flux.just(value).delayElements(duration);
-        });
-    }
-
-    private Flux<Boolean> localTimeIsBetween(LocalTime t1, LocalTime t2, ZoneId zone) {
-        if (t1.equals(t2))
-            return Flux.just(Boolean.FALSE);
-
-        if (t1.equals(LocalTime.MIN) && t2.equals(LocalTime.MAX))
-            return Flux.just(Boolean.TRUE);
-
-        if (t1.equals(LocalTime.MAX) && t2.equals(LocalTime.MIN))
-            return Flux.just(Boolean.TRUE);
-
-        val intervalWrapsAroundMidnight = t1.isAfter(t2);
-
-        if (intervalWrapsAroundMidnight)
-            return localTimeIsBetweenAscending(t2, t1, zone).map(this::negate);
-
-        return localTimeIsBetweenAscending(t1, t2, zone);
-    }
-
-    private Flux<Boolean> localTimeIsBetweenAscending(LocalTime start, LocalTime end, ZoneId zone) {
-        val now   = zonedNow(zone);
-        val local = now.toLocalTime();
-        val today = now.toLocalDate();
-
-        Flux<Boolean> initialStates;
-        if (local.isBefore(start)) {
-            val initial   = Flux.just(Boolean.FALSE);
-            val tillStart = boolAfterZonedDuration(true, local, start, zone);
-            initialStates = Flux.concat(initial, tillStart);
-        } else if (local.isAfter(end)) {
-            val initial        = Flux.just(Boolean.FALSE);
-            val zonedNow       = local.atDate(today).atZone(zone);
-            val zonedMidnight  = LocalTime.MAX.atDate(today).atZone(zone);
-            val zonedNextStart = start.atDate(today.plusDays(1)).atZone(zone);
-            val timeTillStart  = Duration.between(zonedNow, zonedMidnight)
-                    .plus(Duration.between(zonedMidnight, zonedNextStart));
-            val tillStart      = Flux.just(Boolean.TRUE).delayElements(timeTillStart);
-            initialStates = Flux.concat(initial, tillStart);
-        } else {
-            val initial        = Flux.just(Boolean.TRUE);
-            val tillEnd        = boolAfterZonedDuration(false, local, end, zone);
-            val zonedEnd       = end.atDate(today).atZone(zone);
-            val zonedMidnight  = LocalTime.MAX.atDate(today).atZone(zone);
-            val zonedNextStart = start.atDate(today.plusDays(1)).atZone(zone);
-            val timeTillStart  = Duration.between(zonedEnd, zonedMidnight)
-                    .plus(Duration.between(zonedMidnight, zonedNextStart));
-            val tillStart      = Flux.just(Boolean.TRUE).delayElements(timeTillStart);
-            initialStates = Flux.concat(initial, tillEnd, tillStart);
-        }
-
-        val tillEnd          = boolAfterZonedDuration(false, start, end, zone);
-        val zonedEnd         = end.atDate(today).atZone(zone);
-        val zonedMidnight    = LocalTime.MAX.atDate(today).atZone(zone);
-        val zonedNextStart   = start.atDate(today.plusDays(1)).atZone(zone);
-        val timeTillNextDay  = Duration.between(zonedEnd, zonedMidnight)
-                .plus(Duration.between(zonedMidnight, zonedNextStart));
-        val tillStartNextDay = Flux.just(Boolean.TRUE).delayElements(timeTillNextDay);
-        val repeated         = Flux.concat(tillEnd, tillStartNextDay).repeat();
-
-        return Flux.concat(initialStates, repeated);
-    }
-
-    private EnumSet<DayOfWeek> parseDaySet(ArrayValue days) {
+    private static EnumSet<DayOfWeek> parseDaySet(ArrayValue days) {
         if (days.isEmpty()) {
             throw new IllegalArgumentException(ERROR_DAYS_ARRAY_EMPTY);
         }
@@ -758,7 +934,7 @@ public class TimePolicyInformationPoint {
         return daySet;
     }
 
-    private EnumSet<DayOfWeek> buildDayRange(TextValue startDay, TextValue endDay) {
+    private static EnumSet<DayOfWeek> buildDayRange(TextValue startDay, TextValue endDay) {
         DayOfWeek start;
         try {
             start = DayOfWeek.valueOf(startDay.value().toUpperCase());
@@ -783,27 +959,7 @@ public class TimePolicyInformationPoint {
         return daySet;
     }
 
-    private Flux<Value> dayBasedStream(EnumSet<DayOfWeek> daySet, ZoneId zone) {
-        if (daySet.size() == 7) {
-            return Flux.just(Value.TRUE);
-        }
-        return Flux.defer(() -> {
-            val   now          = zonedNow(zone);
-            val   currentDay   = now.getDayOfWeek();
-            val   isIn         = daySet.contains(currentDay);
-            val   daysToNext   = daysUntilStateChange(currentDay, daySet, isIn);
-            val   nextMidnight = now.toLocalDate().plusDays(daysToNext).atStartOfDay(zone);
-            val   delay        = Duration.between(now, nextMidnight);
-            Value current      = Value.of(isIn);
-            Value next         = Value.of(!isIn);
-            if (delay.isNegative() || delay.isZero()) {
-                return Flux.just(current);
-            }
-            return Flux.concat(Flux.just(current), Flux.just(next).delayElements(delay));
-        }).repeat();
-    }
-
-    private int daysUntilStateChange(DayOfWeek current, EnumSet<DayOfWeek> daySet, boolean currentlyIn) {
+    private static int daysUntilStateChange(DayOfWeek current, EnumSet<DayOfWeek> daySet, boolean currentlyIn) {
         for (int i = 1; i <= 7; i++) {
             val candidate = current.plus(i);
             if (daySet.contains(candidate) != currentlyIn) {
@@ -813,7 +969,7 @@ public class TimePolicyInformationPoint {
         return 7;
     }
 
-    private EnumSet<Month> parseMonthSet(ArrayValue months) {
+    private static EnumSet<Month> parseMonthSet(ArrayValue months) {
         if (months.isEmpty()) {
             throw new IllegalArgumentException(ERROR_MONTHS_ARRAY_EMPTY);
         }
@@ -841,7 +997,7 @@ public class TimePolicyInformationPoint {
         return monthSet;
     }
 
-    private EnumSet<Month> buildMonthRange(NumberValue startMonth, NumberValue endMonth) {
+    private static EnumSet<Month> buildMonthRange(NumberValue startMonth, NumberValue endMonth) {
         val startVal = startMonth.value().intValue();
         if (startVal < 1 || startVal > 12) {
             throw new IllegalArgumentException(String.format(ERROR_START_MONTH_INVALID, startVal));
@@ -863,27 +1019,7 @@ public class TimePolicyInformationPoint {
         return monthSet;
     }
 
-    private Flux<Value> monthBasedStream(EnumSet<Month> monthSet, ZoneId zone) {
-        if (monthSet.size() == 12) {
-            return Flux.just(Value.TRUE);
-        }
-        return Flux.defer(() -> {
-            val   now          = zonedNow(zone);
-            val   currentMonth = now.getMonth();
-            val   isIn         = monthSet.contains(currentMonth);
-            val   monthsToNext = monthsUntilStateChange(currentMonth, monthSet, isIn);
-            val   nextBoundary = now.toLocalDate().withDayOfMonth(1).plusMonths(monthsToNext).atStartOfDay(zone);
-            val   delay        = Duration.between(now, nextBoundary);
-            Value current      = Value.of(isIn);
-            Value next         = Value.of(!isIn);
-            if (delay.isNegative() || delay.isZero()) {
-                return Flux.just(current);
-            }
-            return Flux.concat(Flux.just(current), Flux.just(next).delayElements(delay));
-        }).repeat();
-    }
-
-    private int monthsUntilStateChange(Month current, EnumSet<Month> monthSet, boolean currentlyIn) {
+    private static int monthsUntilStateChange(Month current, EnumSet<Month> monthSet, boolean currentlyIn) {
         for (int i = 1; i <= 12; i++) {
             val candidate = current.plus(i);
             if (monthSet.contains(candidate) != currentlyIn) {
@@ -892,13 +1028,4 @@ public class TimePolicyInformationPoint {
         }
         return 12;
     }
-
-    private Flux<Boolean> toggle(Duration trueDurationMs, Duration falseDurationMs) {
-        val initial       = Flux.just(Boolean.TRUE);
-        val waitTillFalse = Flux.just(Boolean.FALSE).delayElements(trueDurationMs);
-        val waitTillTrue  = Flux.just(Boolean.TRUE).delayElements(falseDurationMs);
-        val repeatingTail = Flux.concat(waitTillFalse, waitTillTrue).repeat();
-        return Flux.concat(initial, repeatingTail);
-    }
-
 }

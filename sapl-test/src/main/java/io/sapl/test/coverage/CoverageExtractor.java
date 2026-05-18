@@ -28,6 +28,7 @@ import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.BodyCoverage;
 import io.sapl.compiler.model.Coverage.ConditionHit;
 import io.sapl.compiler.model.Coverage.DocumentCoverage;
+import io.sapl.compiler.model.Coverage.PdpCoverage;
 import io.sapl.compiler.model.Coverage.PolicyCoverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetResult;
@@ -66,21 +67,30 @@ public class CoverageExtractor {
         val docCoverage = voteWithCoverage.coverage();
         val vote        = voteWithCoverage.vote();
 
-        // If the top-level coverage is from the PDP, descend into nested policy
-        // coverages
+        if (docCoverage instanceof PdpCoverage pdpCoverage) {
+            return extractFromContainedDocuments(pdpCoverage.documentCoverages(), vote, policySources);
+        }
+
+        // Legacy shape: PDP-level coverage encoded as a PolicySetCoverage with
+        // PdpVoterMetadata. Retained until every producer emits PdpCoverage.
         if (docCoverage instanceof PolicySetCoverage psc && psc.voter() instanceof PdpVoterMetadata) {
-            val results = new ArrayList<PolicyCoverageData>();
-            for (val nestedCoverage : psc.policyCoverages()) {
-                val extracted = extractDocumentCoverage(nestedCoverage, vote, policySources);
-                if (extracted != null) {
-                    results.add(extracted);
-                }
-            }
-            return results;
+            return extractFromContainedDocuments(psc.policyCoverages(), vote, policySources);
         }
 
         val coverage = extractDocumentCoverage(docCoverage, vote, policySources);
         return coverage != null ? List.of(coverage) : List.of();
+    }
+
+    private static List<PolicyCoverageData> extractFromContainedDocuments(List<DocumentCoverage> documents, Vote vote,
+            Map<String, String> policySources) {
+        val results = new ArrayList<PolicyCoverageData>(documents.size());
+        for (val nestedCoverage : documents) {
+            val extracted = extractDocumentCoverage(nestedCoverage, vote, policySources);
+            if (extracted != null) {
+                results.add(extracted);
+            }
+        }
+        return results;
     }
 
     /**
@@ -98,6 +108,8 @@ public class CoverageExtractor {
         return switch (docCoverage) {
         case PolicyCoverage pc     -> extractPolicyCoverage(pc, vote, policySources);
         case PolicySetCoverage psc -> extractPolicySetCoverage(psc, vote, policySources);
+        case PdpCoverage pdpc      -> throw new IllegalStateException(
+                "PdpCoverage is the top-level wrapper and cannot appear as a contained document; got " + pdpc);
         };
     }
 
@@ -163,6 +175,8 @@ public class CoverageExtractor {
                 extractNestedDocumentCoverage(innerDoc, vote, setCoverage);
             }
         }
+        case PdpCoverage pdpc                            -> throw new IllegalStateException(
+                "PdpCoverage is the top-level wrapper and cannot appear nested in a PolicySetCoverage; got " + pdpc);
         }
     }
 

@@ -19,6 +19,7 @@ package io.sapl.spring.config;
 
 import java.util.List;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.springframework.aop.Advisor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -26,7 +27,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.data.ShimSignalContributor;
@@ -34,6 +34,7 @@ import io.sapl.spring.pep.method.blocking.PolicyEnforcementPointAroundMethodInte
 import io.sapl.spring.pep.method.blocking.PostEnforcePolicyEnforcementPoint;
 import io.sapl.spring.pep.method.blocking.PreEnforcePolicyEnforcementPoint;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -50,26 +51,29 @@ class SaplMethodSecurityConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+    Advisor preEnforcePolicyEnforcementPoint(ObjectProvider<StreamingPolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<BlockingTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
             ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider,
             ObjectProvider<List<ShimSignalContributor>> shimSignalContributorsProvider) {
         log.debug("Deploy blocking @PreEnforce Policy Enforcement Point");
-        val pep = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
-                enforcementPlannerProvider, subscriptionBuilderProvider, shimSignalContributorsProvider);
+        val pep = new PreEnforcePolicyEnforcementPoint(policyDecisionPointProvider, tenantResolverProvider,
+                attributeRegistryProvider, enforcementPlannerProvider, subscriptionBuilderProvider,
+                shimSignalContributorsProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.preEnforce(pep);
     }
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<PolicyDecisionPoint> policyDecisionPointProvider,
+    Advisor postEnforcePolicyEnforcementPoint(ObjectProvider<StreamingPolicyDecisionPoint> policyDecisionPointProvider,
+            ObjectProvider<BlockingTenantResolver> tenantResolverProvider,
             ObjectProvider<SaplAttributeRegistry> attributeRegistryProvider,
             ObjectProvider<EnforcementPlanner> enforcementPlannerProvider,
             ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider) {
         log.debug("Deploy blocking @PostEnforce Policy Enforcement Point");
-        val pep = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider, attributeRegistryProvider,
-                enforcementPlannerProvider, subscriptionBuilderProvider);
+        val pep = new PostEnforcePolicyEnforcementPoint(policyDecisionPointProvider, tenantResolverProvider,
+                attributeRegistryProvider, enforcementPlannerProvider, subscriptionBuilderProvider);
         return PolicyEnforcementPointAroundMethodInterceptor.postEnforce(pep);
     }
 }

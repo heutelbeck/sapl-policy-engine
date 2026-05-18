@@ -20,6 +20,7 @@ package io.sapl.spring.pep.http.servlet;
 import static io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer.saplHttp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,12 +28,12 @@ import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcBuilderCustomizer;
@@ -51,7 +52,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -68,18 +68,18 @@ class SaplHttpServletConfigurerOverrideTests {
     MockMvc mockMvc;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    StreamingPolicyDecisionPoint pdp;
 
     @Test
     @DisplayName("Configurer subscriptionFactory(...) shapes the subscription that reaches the PDP")
     @WithMockUser(username = "alice")
     void configurerOverridePropagatesToPdp() throws Exception {
-        when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+        when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
 
         mockMvc.perform(get("/hello")).andExpect(status().isOk());
 
         var captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp, atLeastOnce()).decideOnceBlocking(captor.capture());
+        verify(pdp, atLeastOnce()).decideOnce(captor.capture(), anyString());
 
         assertThat(captor.getAllValues()).allSatisfy(captured -> {
             assertThat(captured.subject()).isEqualTo(Value.of("alice"));
@@ -88,8 +88,7 @@ class SaplHttpServletConfigurerOverrideTests {
         });
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebSecurity
     static class TestApp {
 

@@ -65,6 +65,7 @@ VARIABLES         : 'variables';
 SECRETS           : 'secrets';
 CONFIGURATION     : 'configuration';
 PDP_CONFIGURATION : 'pdp-configuration';
+LOW_LATENCY_MODE  : 'low-latency-mode';
 
 // Combining algorithm components (same as sapl-parser)
 KW_OR     : 'or';

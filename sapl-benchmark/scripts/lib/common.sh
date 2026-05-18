@@ -208,7 +208,7 @@ start_sapl_server() {
 
     local max_wait=30
     for i in $(seq 1 $max_wait); do
-        if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
+        if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
             if [ "$enable_rsocket" = true ]; then
                 if ss -tln | grep -q ":7000 " 2>/dev/null; then
                     echo "  Server started (PID $SERVER_PID, HTTP + RSocket)"
@@ -251,7 +251,7 @@ stop_server() {
     pkill -f "opa run" 2>/dev/null || true
     # Wait until server ports are released before starting a new server
     for _i in $(seq 1 15); do
-        ss -tln | grep -qE ":8443 |:7000 " || break
+        ss -tln | grep -qE ":8080 |:7000 " || break
         sleep 1
     done
 }

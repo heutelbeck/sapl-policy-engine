@@ -19,16 +19,17 @@ package io.sapl.spring.pep.http.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +45,6 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -63,13 +63,14 @@ class SaplHttpReactiveConfigurerOverrideTests {
     ApplicationContext context;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
 
     @Test
     @DisplayName("Reactive configurer subscriptionFactory(...) shapes the subscription that reaches the PDP")
     @WithMockUser(username = "alice")
     void configurerOverridePropagatesToPdp() {
-        when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+        when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 
         val client = WebTestClient.bindToApplicationContext(context).apply(
                 org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.springSecurity())
@@ -78,7 +79,7 @@ class SaplHttpReactiveConfigurerOverrideTests {
         client.get().uri("/hello").exchange().expectStatus().isOk();
 
         val captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp).decide(captor.<AuthorizationSubscription>capture());
+        verify(pdp).decide(captor.<AuthorizationSubscription>capture(), anyString());
 
         val captured = captor.getValue();
         assertThat(captured.subject()).isEqualTo(Value.of("alice"));
@@ -86,8 +87,7 @@ class SaplHttpReactiveConfigurerOverrideTests {
         assertThat(captured.resource()).isEqualTo(Value.of("/hello"));
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebFluxSecurity
     static class TestApp {
 

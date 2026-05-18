@@ -37,7 +37,7 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("creates token with user and credentials")
-        void whenUserAndCredentials_thenCreatesToken() {
+        void whenUserAndCredentialsThenCreatesToken() {
             val credentials = "secret";
             val token       = new SaplAuthenticationToken(TEST_USER, credentials);
 
@@ -48,7 +48,7 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("creates token without credentials")
-        void whenUserOnly_thenCreatesTokenWithNullCredentials() {
+        void whenUserOnlyThenCreatesTokenWithNullCredentials() {
             val token = new SaplAuthenticationToken(TEST_USER);
 
             assertThat(token.getPrincipal()).isEqualTo(TEST_USER);
@@ -57,8 +57,8 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("throws when user is null")
-        void whenNullUser_thenThrows() {
-            assertThatThrownBy(() -> new SaplAuthenticationToken(null)).isInstanceOf(IllegalArgumentException.class)
+        void whenNullUserThenThrows() {
+            assertThatThrownBy(() -> new SaplAuthenticationToken(null)).isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("SaplUser must not be null");
         }
 
@@ -70,7 +70,7 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("returns correct name from user id")
-        void whenGetName_thenReturnsUserId() {
+        void whenGetNameThenReturnsUserId() {
             val token = new SaplAuthenticationToken(TEST_USER);
 
             assertThat(token.getName()).isEqualTo("user-1");
@@ -78,7 +78,7 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("returns correct pdpId")
-        void whenGetPdpId_thenReturnsPdpId() {
+        void whenGetPdpIdThenReturnsPdpId() {
             val token = new SaplAuthenticationToken(TEST_USER);
 
             assertThat(token.getPdpId()).isEqualTo("production");
@@ -86,7 +86,7 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("returns PDP_CLIENT authority")
-        void whenGetAuthorities_thenReturnsPdpClientRole() {
+        void whenGetAuthoritiesThenReturnsPdpClientRole() {
             val token = new SaplAuthenticationToken(TEST_USER);
 
             assertThat(token.getAuthorities()).hasSize(1).extracting(auth -> auth.getAuthority())
@@ -95,7 +95,7 @@ class SaplAuthenticationTokenTests {
 
         @Test
         @DisplayName("setAuthenticated changes authentication state")
-        void whenSetAuthenticated_thenChangesState() {
+        void whenSetAuthenticatedThenChangesState() {
             val token = new SaplAuthenticationToken(TEST_USER);
             assertThat(token.isAuthenticated()).isTrue();
 

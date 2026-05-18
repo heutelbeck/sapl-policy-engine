@@ -274,7 +274,7 @@ You cannot mix SAPL annotations with Spring Security annotations like `@PreAutho
 
 ### Streaming Enforcement with `@StreamEnforce`
 
-`@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For methods that return a `Flux<T>`, the decision is rarely a single point in time — the same subscription stays open while the policy evaluates against attribute streams that may change. SAPL exposes a third method-security annotation for this case.
+`@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For methods that return a `Flux<T>`, the decision is rarely a single point in time. The same subscription stays open while the policy evaluates against attribute streams that may change. SAPL exposes a third method-security annotation for this case.
 
 ```java
 @StreamEnforce
@@ -299,7 +299,7 @@ Every decision the PDP emits during the lifetime of the subscription has one of 
 
 The mapping of `INDETERMINATE` and `NOT_APPLICABLE` to silent-drop is deliberate: streaming subscriptions should be resilient to transient policy gaps and broker errors. Operators who want hard fail-closed semantics on these set the combining algorithm's `defaultDecision` to `DENY` (so `NOT_APPLICABLE` collapses to `DENY`) or its `errorHandling` to `PROPAGATE` (so `INDETERMINATE` collapses to `DENY`) at the PDP level. The streaming PEP honours whatever decision the PDP produces.
 
-A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for — see [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
+A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
 
 #### Three Flags
 
@@ -313,17 +313,21 @@ A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP 
 )
 ```
 
-**`signalTransitions`** — surface every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused — waiting for access") opt in to `signalTransitions=true`.
+**`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused, waiting for access") opt in to `signalTransitions=true`.
 
-**`terminateOnItemEnforcementFailure`** — controls what happens when a per-item obligation handler fails. With the default `false`, an item-level failure silences the subscription as if the PDP had emitted `SUSPEND`; the subscription stays alive and may resume on a later decision. With `true`, an item-level failure terminates the subscription with an `AccessDeniedException`. Choose `true` for protected methods whose per-item side effects are unsafe to leave unenforced (where letting one item slip past would be a security failure). Choose `false` (the default) for streams where transient enforcement hiccups should pause the subscription without tearing it down.
+**`terminateOnItemEnforcementFailure`**. Controls what happens when a per-item obligation handler fails. With the default `false`, an item-level failure silences the subscription as if the PDP had emitted `SUSPEND`; the subscription stays alive and may resume on a later decision. With `true`, an item-level failure terminates the subscription with an `AccessDeniedException`. Choose `true` for protected methods whose per-item side effects are unsafe to leave unenforced (where letting one item slip past would be a security failure). Choose `false` (the default) for streams where transient enforcement hiccups should pause the subscription without tearing it down.
 
-**`pauseRapDuringSuspend`** — controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
+**`pauseRapDuringSuspend`**. Controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
+
+#### Backpressure Transparency
+
+`@StreamEnforce` does not change the backpressure characteristics of the protected stream. The subscriber's `request(N)` propagates through the wrapper to the protected `Flux`. A demand-respecting source (database cursor, paginated feed, iterable adapter) sees real demand and backpressures upstream accordingly. An unbounded source remains unbounded. The wrapper carries no hidden buffer. Items that are silently dropped under `SUSPEND` are accounted for by an extra single-item request to the upstream, so `request(N)` continues to mean "up to N delivered items" regardless of how many items the gate drops along the way. When `pauseRapDuringSuspend = true`, outstanding subscriber demand is replayed to the fresh upstream subscription on resume.
 
 #### Three Common Patterns
 
 The flag combinations encode the three behavioural patterns most streaming endpoints want.
 
-**Terminate on deny** — the subscription should end the moment access is revoked, and the subscriber should know.
+**Terminate on deny.** The subscription should end the moment access is revoked, and the subscriber should know.
 
 ```java
 @StreamEnforce
@@ -332,7 +336,7 @@ public Flux<Trade> liveTrades() { ... }
 
 Defaults are sufficient. A `DENY` from the PDP terminates the subscription with `AccessDeniedException`. A `SUSPEND` keeps the subscription alive but silently drops items. The subscriber sees data while permitted and a terminal error if denied. This matches subscription-based business models where service delivery should stop when the subscriber's contract ends.
 
-**Drop while suspended, silent transitions** — the subscription should survive deny windows transparently. The subscriber sees data when permitted and silence otherwise, with no boundary events.
+**Drop while suspended, silent transitions.** The subscription should survive deny windows transparently. The subscriber sees data when permitted and silence otherwise, with no boundary events.
 
 ```java
 @StreamEnforce
@@ -341,7 +345,7 @@ public Flux<TelemetryEvent> telemetry() { ... }
 
 Same defaults; the difference is in the policy: use the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open. When the policy returns `PERMIT` again, items resume. Useful for legacy clients that cannot renegotiate connections, or when revealing the deny condition itself would leak information.
 
-**Survive deny with explicit transition signals** — the subscription should survive, and the subscriber wants to know about every boundary.
+**Survive deny with explicit transition signals.** The subscription should survive, and the subscriber wants to know about every boundary.
 
 ```java
 @StreamEnforce(signalTransitions = true)
@@ -1167,7 +1171,7 @@ When `pdp-config-type=REMOTE_BUNDLES`, bundles are fetched from a remote HTTP se
 
 ### Remote PDP
 
-The remote PDP connects to an external PDP server (such as SAPL Node). Use this when policies are managed centrally or when multiple applications share the same policies.
+The remote PDP connects to an external PDP server (such as SAPL Node). Use this when policies are managed centrally or when multiple applications share the same policies. Two transports are supported, `http` and `rsocket`. The HTTP transport is the broadest fit. The RSocket transport uses protobuf framing over a long-lived TCP connection and trades per-request flexibility (no token relay) for substantially higher per-call throughput.
 
 ```properties
 io.sapl.pdp.remote.enabled=true
@@ -1178,25 +1182,87 @@ io.sapl.pdp.remote.host=https://pdp.example.org:8443
 io.sapl.pdp.remote.key=myapp
 io.sapl.pdp.remote.secret=secret123
 
-# Or API key authentication
-io.sapl.pdp.remote.api-key=your-api-key
+# Or bearer token authentication (SAPL API key or static JWT)
+io.sapl.pdp.remote.bearer-token=your-token
 
-# Or token relay (forward the caller's bearer token)
+# Or OAuth2 client_credentials grant (Spring mints and refreshes the JWT)
+io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp
+
+# Or token relay (forward the caller's bearer token; HTTP only)
 io.sapl.pdp.remote.token-relay=true
 ```
+
+For the RSocket transport, configure the hostname and port directly. TLS is opt-in via the `tls` property (or `ignore-certificates` for development with self-signed certificates).
+
+```properties
+io.sapl.pdp.remote.enabled=true
+io.sapl.pdp.remote.type=rsocket
+io.sapl.pdp.remote.host=pdp.example.org
+io.sapl.pdp.remote.port=7000
+io.sapl.pdp.remote.bearer-token=your-token
+
+# Enable TLS against a properly trusted certificate
+io.sapl.pdp.remote.tls=true
+
+# Or connect via a Unix domain socket (host and port are ignored when set)
+io.sapl.pdp.remote.socket-path=/var/run/sapl-pdp.sock
+```
+
+#### Authentication methods
+
+| Method | HTTP | RSocket | Properties |
+|---|---|---|---|
+| No auth | yes | yes | omit all credential properties |
+| Basic | yes | yes | `key` + `secret` |
+| Bearer token (SAPL API key or static JWT) | yes | yes | `bearer-token` |
+| Token relay (forward caller's JWT per request) | yes | no (by design) | `token-relay=true` |
+| OAuth2 `client_credentials` (managed JWT lifecycle) | yes | yes | `oauth2.client-registration-id` |
+
+OAuth2 `client_credentials` requires `spring-boot-starter-security-oauth2-client` on the classpath and a Spring Security OAuth2 client registration. The starter resolves the registration through Spring's `ReactiveClientRegistrationRepository`, so consumers configure both blocks in tandem:
+
+```yaml
+io.sapl.pdp.remote:
+  enabled: true
+  type: rsocket
+  host: pdp.example.org
+  port: 7000
+  tls: true
+  oauth2:
+    client-registration-id: sapl-pdp
+
+spring.security.oauth2.client:
+  registration.sapl-pdp:
+    provider: keycloak
+    client-id: sapl-pdp-client
+    client-secret: ...
+    authorization-grant-type: client_credentials
+  provider.keycloak:
+    issuer-uri: https://idp.example.org/realms/sapl
+```
+
+The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. On the RSocket transport, each (re)connect mints a fresh BEARER setup-frame metadata payload from the current token; when the SAPL Node disposes the connection on JWT `exp`, the client reconnects with a freshly issued token. End-to-end this is transparent to the consumer's controllers.
+
+#### Property reference
 
 | Property | Default | Description |
 |---|---|---|
 | `io.sapl.pdp.remote.enabled` | `false` | Enable or disable the remote PDP. |
-| `io.sapl.pdp.remote.type` | `http` | Connection type. Only `http` is supported today. |
-| `io.sapl.pdp.remote.host` | empty | HTTP URL of the PDP server. |
+| `io.sapl.pdp.remote.type` | `http` | Connection type. Either `http` or `rsocket`. |
+| `io.sapl.pdp.remote.host` | empty | HTTP URL when `type=http`. Hostname when `type=rsocket`. |
+| `io.sapl.pdp.remote.port` | `7000` | TCP port. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.socket-path` | empty | Unix domain socket path. When set, `host` and `port` are ignored. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.tls` | `false` | Enable TLS for the connection. Used only when `type=rsocket`. The HTTP transport selects TLS via the `https://` scheme on `host`. |
+| `io.sapl.pdp.remote.keep-alive` | `20s` | RSocket KEEPALIVE frame interval. Used only when `type=rsocket`. |
+| `io.sapl.pdp.remote.max-life-time` | `90s` | Maximum time without an inbound KEEPALIVE before the connection is considered dead. Used only when `type=rsocket`. |
 | `io.sapl.pdp.remote.key` | empty | Username for basic authentication. |
 | `io.sapl.pdp.remote.secret` | empty | Password for basic authentication. |
-| `io.sapl.pdp.remote.api-key` | empty | API key for token authentication. |
-| `io.sapl.pdp.remote.token-relay` | `false` | Forward the caller's JWT on each PDP request. Mutually exclusive with `key`/`secret` and `api-key`. |
+| `io.sapl.pdp.remote.bearer-token` | empty | Bearer token for token authentication. Carries either a SAPL API key (`sapl_*`) or a static JWT. Renamed from `api-key` in 4.1.0; the old name no longer binds. |
+| `io.sapl.pdp.remote.token-relay` | `false` | Forward the caller's JWT on each PDP request. Mutually exclusive with `key`/`secret`, `bearer-token`, and `oauth2.client-registration-id`. Supported only on the HTTP transport. RSocket authenticates once at connection setup and cannot relay per-request user credentials. |
+| `io.sapl.pdp.remote.oauth2.client-registration-id` | empty | Spring Security OAuth2 client registration ID. Enables the `client_credentials` grant on both transports. Mutually exclusive with `key`/`secret`, `bearer-token`, and `token-relay`. |
+| `io.sapl.pdp.remote.oauth2.principal-name` | empty (defaults to `client-registration-id`) | Principal name used as cache key in Spring's `OAuth2AuthorizedClientManager`. Override only when you need distinct cached clients for the same registration. |
 | `io.sapl.pdp.remote.ignore-certificates` | `false` | Skip TLS certificate validation. Not for production. |
 
-You must configure exactly one authentication mechanism. Either `key` and `secret` together, or `api-key` alone, or `token-relay` alone. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies.
+You must configure exactly one authentication mechanism. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime; use `oauth2.client-registration-id` for managed service-account JWTs over RSocket.
 
 ### Method Security Properties
 

@@ -79,8 +79,7 @@ class VariablesProposalsGeneratorTests {
         var variables = new HashMap<String, Value>();
         variables.put("appConfig", Value.of("test"));
         var minimal = LSPConfiguration.minimal();
-        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
-                minimal.attributeBroker());
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, true);
 
@@ -95,8 +94,7 @@ class VariablesProposalsGeneratorTests {
         variables.put("serverUrl", Value.of("https://api.example.com"));
         variables.put("apiKey", Value.of("secret"));
         var minimal = LSPConfiguration.minimal();
-        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
-                minimal.attributeBroker());
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, false);
 
@@ -110,8 +108,7 @@ class VariablesProposalsGeneratorTests {
         var variables = new HashMap<String, Value>();
         variables.put("serverConfig", config);
         var minimal   = LSPConfiguration.minimal();
-        var lspConfig = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
-                minimal.attributeBroker());
+        var lspConfig = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, lspConfig, false);
 
@@ -197,8 +194,7 @@ class VariablesProposalsGeneratorTests {
         var variables   = new HashMap<String, Value>();
         variables.put("person", outerObject);
         var minimal = LSPConfiguration.minimal();
-        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
-                minimal.attributeBroker());
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, false);
 
@@ -213,8 +209,7 @@ class VariablesProposalsGeneratorTests {
         var variables = new HashMap<String, Value>();
         variables.put("items", array);
         var minimal = LSPConfiguration.minimal();
-        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker(),
-                minimal.attributeBroker());
+        var config  = new LSPConfiguration("", minimal.documentationBundle(), variables, minimal.functionBroker());
 
         var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, 100, config, false);
 

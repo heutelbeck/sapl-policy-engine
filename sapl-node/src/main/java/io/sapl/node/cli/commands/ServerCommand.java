@@ -52,6 +52,10 @@ import java.util.concurrent.Callable;
           --sapl.pdp.rsocket.enabled=true
           --sapl.pdp.rsocket.port=7000
 
+        Shortcut for local development:
+          --no-auth   accept unauthenticated requests
+                      (alias for --io.sapl.node.allow-no-auth=true)
+
         Key configuration areas: policy source type (DIRECTORY, BUNDLES),
         authentication (no-auth, basic, API key, OAuth2), TLS, RSocket,
         and observability (health endpoints, Prometheus metrics).
@@ -65,6 +69,9 @@ import java.util.concurrent.Callable;
     footer = { """
           # Start with default settings
           sapl server
+
+          # Local development without authentication
+          sapl server --no-auth
 
           # Start on a custom port
           sapl server --server.port=9090

@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
@@ -42,7 +41,6 @@ import java.util.HexFormat;
  * legacy algorithms (MD5, SHA-1) that should
  * only be used for compatibility with existing systems.
  */
-@UtilityClass
 @FunctionLibrary(name = DigestFunctionLibrary.NAME, description = DigestFunctionLibrary.DESCRIPTION, libraryDocumentation = DigestFunctionLibrary.DOCUMENTATION)
 public class DigestFunctionLibrary {
 

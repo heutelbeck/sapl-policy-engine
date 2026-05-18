@@ -17,7 +17,6 @@
  */
 package io.sapl.attributes.libraries;
 
-import tools.jackson.databind.json.JsonMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -26,14 +25,16 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
 import io.sapl.attributes.libraries.util.Base64DataUtil;
 import io.sapl.attributes.libraries.util.DispatchMode;
 import io.sapl.attributes.libraries.util.JWTTestUtility;
 import io.sapl.attributes.libraries.util.JsonTestUtility;
 import io.sapl.attributes.libraries.util.KeyTestUtility;
+import io.sapl.api.test.stream.MutableClock;
+import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.attributes.libraries.util.TestMockServerDispatcher;
+import io.sapl.api.test.stream.TestTimeScheduler;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
@@ -42,41 +43,43 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@DisplayName("JWTPolicyInformationPoint")
+@DisplayName("JWTPolicyInformationPoint (vnext)")
 class JWTPolicyInformationPointTests {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
+    private static final Instant    NOW    = Instant.parse("2025-06-15T12:00:00Z");
 
     private static KeyPair                  keyPair;
     private static KeyPair                  keyPair2;
     private static String                   kid;
     private static String                   kid2;
-    private static WebClient.Builder        builder;
     private static MockWebServer            server;
     private static TestMockServerDispatcher dispatcher;
-    private JWTPolicyInformationPoint       jwtPolicyInformationPoint;
-    private JWTKeyProvider                  provider;
+
+    private MutableClock              clock;
+    private TestTimeScheduler         scheduler;
+    private JWTKeyProvider            provider;
+    private JWTPolicyInformationPoint sut;
 
     @BeforeAll
     static void preSetup() throws IOException, NoSuchAlgorithmException {
@@ -88,7 +91,6 @@ class JWTPolicyInformationPointTests {
         server     = KeyTestUtility.testServer(keyPair);
         dispatcher = (TestMockServerDispatcher) server.getDispatcher();
         server.start();
-        builder = WebClient.builder();
     }
 
     @AfterAll
@@ -98,47 +100,18 @@ class JWTPolicyInformationPointTests {
 
     @BeforeEach
     void setup() {
-        provider                  = new JWTKeyProvider(builder);
-        jwtPolicyInformationPoint = new JWTPolicyInformationPoint(provider);
+        clock     = new MutableClock(NOW);
+        scheduler = new TestTimeScheduler(NOW);
+        provider  = new JWTKeyProvider(HttpClient.newHttpClient(), clock);
+        sut       = new JWTPolicyInformationPoint(provider, clock, scheduler);
     }
 
-    @Test
-    void whenBrokerLoadsLibraryThenJwtLibraryIsAvailable() {
-        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val broker     = new CachingAttributeBroker(repository);
-        val pip        = new JWTPolicyInformationPoint(provider);
-
-        broker.loadPolicyInformationPointLibrary(pip);
-
-        assertThat(broker.getLoadedLibraryNames()).contains("jwt");
+    private static String validity(Value v) {
+        return ((ObjectValue) v).get("validity").toString().replace("\"", "");
     }
 
-    @Test
-    void whenLoadLibraryWithoutAnnotationThenThrowsException() {
-        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val broker     = new CachingAttributeBroker(repository);
-
-        class NotAnnotated {
-            @SuppressWarnings("unused")
-            public Value someAttribute() {
-                return Value.of("test");
-            }
-        }
-
-        assertThatThrownBy(() -> broker.loadPolicyInformationPointLibrary(new NotAnnotated()))
-                .hasMessageContaining("must be annotated with @PolicyInformationPoint");
-    }
-
-    @Test
-    void whenLoadDuplicateLibraryThenThrowsException() {
-        val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        val broker     = new CachingAttributeBroker(repository);
-        val pip        = new JWTPolicyInformationPoint(provider);
-
-        broker.loadPolicyInformationPointLibrary(pip);
-
-        assertThatThrownBy(() -> broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(provider)))
-                .hasMessageContaining("Library already loaded: jwt");
+    private static Value field(Value v, String key) {
+        return ((ObjectValue) v).get(key);
     }
 
     @Nested
@@ -146,24 +119,27 @@ class JWTPolicyInformationPointTests {
     class MissingTokenTests {
 
         @Test
+        @DisplayName("no token under jwt key emits MISSING_TOKEN")
         void whenNoTokenInSecretsThenMissingToken() {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of());
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("MISSING_TOKEN"));
-                assertThat(obj.get("valid")).isEqualTo(Value.FALSE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "validity")).isEqualTo(Value.of("MISSING_TOKEN"));
+                    assertThat(field(v, "valid")).isEqualTo(Value.FALSE);
+                });
+            }
         }
 
         @Test
+        @DisplayName("non-text token value emits MISSING_TOKEN")
         void whenTokenValueIsNotTextThenMissingToken() {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", Value.of(42)));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("MISSING_TOKEN"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "validity")).isEqualTo(Value.of("MISSING_TOKEN")));
+            }
         }
     }
 
@@ -172,25 +148,28 @@ class JWTPolicyInformationPointTests {
     class MalformedTokenTests {
 
         @Test
+        @DisplayName("non-JWT string emits MALFORMED")
         void whenMalformedTokenThenMalformed() {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null),
                     Map.of("jwt", Value.of("MALFORMED TOKEN")));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("MALFORMED"));
-                assertThat(obj.get("valid")).isEqualTo(Value.FALSE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "validity")).isEqualTo(Value.of("MALFORMED"));
+                    assertThat(field(v, "valid")).isEqualTo(Value.FALSE);
+                });
+            }
         }
 
         @Test
+        @DisplayName("numeric-string token emits MALFORMED")
         void whenNumericTokenValueInSecretsThenMalformed() {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", Value.of("50000")));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("MALFORMED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "validity")).isEqualTo(Value.of("MALFORMED")));
+            }
         }
     }
 
@@ -199,18 +178,20 @@ class JWTPolicyInformationPointTests {
     class InvalidKeyTests {
 
         @Test
+        @DisplayName("cached invalid key emits UNTRUSTED")
         void whenInvalidKeyCachedThenUntrusted() throws JOSEException {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, KeyTestUtility.generateInvalidRSAPublicKey());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-                assertThat(obj.get("valid")).isEqualTo(Value.FALSE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "validity")).isEqualTo(Value.of("UNTRUSTED"));
+                    assertThat(field(v, "valid")).isEqualTo(Value.FALSE);
+                });
+            }
         }
     }
 
@@ -219,51 +200,60 @@ class JWTPolicyInformationPointTests {
     class WhitelistTests {
 
         @Test
+        @DisplayName("whitelist with empty entry for the kid emits UNTRUSTED")
         void whenWhitelistHasEmptyEntryThenUntrusted() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, null, kid2, keyPair2),
                     Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "validity")).isEqualTo(Value.of("UNTRUSTED")));
+            }
         }
 
         @Test
+        @DisplayName("whitelist entry containing a bogus key emits UNTRUSTED")
         void whenWhitelistHasBogusEntryThenUntrusted() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair2);
             val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, null),
                     Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "validity")).isEqualTo(Value.of("UNTRUSTED")));
+            }
         }
 
         @Test
+        @DisplayName("multiple keys in whitelist resolve each kid correctly")
         void whenWhitelistHasMultipleKeysThenCorrectValidation()
                 throws NoSuchAlgorithmException, IOException, JOSEException {
-            val keyPairs   = new KeyPair[] { keyPair, keyPair2, Base64DataUtil.generateRSAKeyPair() };
-            val claims     = new JWTClaimsSet.Builder().build();
-            val validities = new ArrayList<Mono<Value>>();
-            for (int trial = 0; trial < 3; trial++) {
-                val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KeyTestUtility.kid(keyPairs[trial]))
-                        .build();
-                val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPairs[trial]);
-                val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2),
-                        Map.of("jwt", source));
-                validities.add(
-                        jwtPolicyInformationPoint.token(accessCtx).last().map(v -> ((ObjectValue) v).get("validity")));
+            val keyPair3 = Base64DataUtil.generateRSAKeyPair();
+
+            val accessCtx1 = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2),
+                    Map.of("jwt",
+                            JWTTestUtility.buildAndSignJwt(new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build(),
+                                    new JWTClaimsSet.Builder().build(), keyPair)));
+            val accessCtx2 = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2),
+                    Map.of("jwt",
+                            JWTTestUtility.buildAndSignJwt(
+                                    new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid2).build(),
+                                    new JWTClaimsSet.Builder().build(), keyPair2)));
+            val accessCtx3 = ctx(JsonTestUtility.publicKeyWhitelistVariables(kid, keyPair, kid2, keyPair2),
+                    Map.of("jwt", JWTTestUtility.buildAndSignJwt(
+                            new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(KeyTestUtility.kid(keyPair3)).build(),
+                            new JWTClaimsSet.Builder().build(), keyPair3)));
+
+            try (val s1 = sut.token(accessCtx1); val s2 = sut.token(accessCtx2); val s3 = sut.token(accessCtx3)) {
+                StreamAssertions.assertThat(s1).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                StreamAssertions.assertThat(s2).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                StreamAssertions.assertThat(s3).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
             }
-            val flux = Flux.concat(validities);
-            StepVerifier.create(flux).expectNext(Value.of("VALID")).expectNext(Value.of("VALID"))
-                    .expectNext(Value.of("UNTRUSTED")).verifyComplete();
         }
     }
 
@@ -272,46 +262,47 @@ class JWTPolicyInformationPointTests {
     class EnvironmentTests {
 
         @Test
+        @DisplayName("empty variables emits UNTRUSTED")
         void whenEmptyVariablesThenUntrusted() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(Map.of(), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
+            }
         }
 
         @Test
+        @DisplayName("missing key-server config emits UNTRUSTED")
         void whenMissingServerConfigThenUntrusted() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(Map.of("jwt", Value.EMPTY_OBJECT), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
+            }
         }
 
         @Test
+        @DisplayName("server returning the wrong key emits UNTRUSTED")
         void whenWrongKeyFromServerThenUntrusted() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.WRONG);
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
+            }
         }
 
         @Test
+        @DisplayName("invalid caching TTL configuration emits UNTRUSTED")
         void whenInvalidCachingTtlThenUntrusted() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val jwtNode   = MAPPER.createObjectNode().set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
@@ -321,11 +312,10 @@ class JWTPolicyInformationPointTests {
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
+            }
         }
     }
 
@@ -334,43 +324,43 @@ class JWTPolicyInformationPointTests {
     class HeaderClaimsTests {
 
         @Test
+        @DisplayName("missing kid emits INCOMPLETE")
         void whenMissingKeyIdThenIncomplete() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("INCOMPLETE"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("INCOMPLETE"));
+            }
         }
 
         @Test
+        @DisplayName("blank kid emits INCOMPLETE")
         void whenEmptyKeyIdThenIncomplete() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("").build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("INCOMPLETE"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("INCOMPLETE"));
+            }
         }
 
         @Test
+        @DisplayName("critical header parameter emits INCOMPATIBLE")
         void whenCriticalHeaderParamThenIncompatible() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).criticalParams(Set.of("critparam"))
                     .build();
             val claims    = new JWTClaimsSet.Builder().build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("INCOMPATIBLE"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("INCOMPATIBLE"));
+            }
         }
     }
 
@@ -379,22 +369,23 @@ class JWTPolicyInformationPointTests {
     class SignatureTests {
 
         @Test
+        @DisplayName("tampered payload emits UNTRUSTED")
         void whenTamperedPayloadThenUntrusted() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header         = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims         = new JWTClaimsSet.Builder().build();
             val tamperedClaims = new JWTClaimsSet.Builder().jwtID("").build();
-            val originalJWT    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            val source         = JWTTestUtility.replacePayload(originalJWT, tamperedClaims);
+            val originalJwt    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+            val source         = JWTTestUtility.replacePayload(originalJwt, tamperedClaims);
             val accessCtx      = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux           = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
+            }
         }
 
         @Test
+        @DisplayName("PS512-signed token validates with the correct key")
         void whenPS512AlgorithmThenValidWithCorrectKey() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
@@ -402,12 +393,13 @@ class JWTPolicyInformationPointTests {
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "valid")).isEqualTo(Value.TRUE);
+                    assertThat(validity(v)).isEqualTo("VALID");
+                });
+            }
         }
     }
 
@@ -416,91 +408,111 @@ class JWTPolicyInformationPointTests {
     class TimeClaimsTests {
 
         @Test
+        @DisplayName("nbf after exp emits NEVER_VALID")
         void whenNbfAfterExpThenNeverValid() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow())
-                    .notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
+            val claims    = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.minusSeconds(2)))
+                    .notBeforeTime(Date.from(NOW.plusSeconds(2))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("NEVER_VALID"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("NEVER_VALID"));
+            }
         }
 
         @Test
+        @DisplayName("exp in the past emits EXPIRED")
         void whenExpiredThenExpired() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims    = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
+            val claims    = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.minusSeconds(2))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("EXPIRED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("EXPIRED"));
+            }
         }
 
         @Test
+        @DisplayName("exp in future emits VALID then EXPIRED at the boundary")
         void whenExpiresInFutureThenValidThenExpired() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
+            val expiry = NOW.plusSeconds(5);
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims = new JWTClaimsSet.Builder().expirationTime(JWTTestUtility.timeOneUnitAfterNow()).build();
+            val claims = new JWTClaimsSet.Builder().expirationTime(Date.from(expiry)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            StepVerifier
-                    .withVirtualTime(() -> jwtPolicyInformationPoint.token(accessCtx)
-                            .map(v -> ((ObjectValue) v).get("validity")))
-                    .expectNext(Value.of("VALID")).thenAwait(JWTTestUtility.twoUnitDuration())
-                    .expectNext(Value.of("EXPIRED")).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                clock.setInstant(expiry);
+                scheduler.advanceTo(expiry);
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("EXPIRED"));
+            }
         }
 
         @Test
+        @DisplayName("nbf in the future emits IMMATURE then VALID at the boundary")
         void whenImmatureThenImmatureThenValid() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
+            val nbf    = NOW.plusSeconds(5);
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitAfterNow()).build();
+            val claims = new JWTClaimsSet.Builder().notBeforeTime(Date.from(nbf)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            StepVerifier
-                    .withVirtualTime(() -> jwtPolicyInformationPoint.token(accessCtx)
-                            .map(v -> ((ObjectValue) v).get("validity")))
-                    .expectNext(Value.of("IMMATURE")).thenAwait(JWTTestUtility.twoUnitDuration())
-                    .expectNext(Value.of("VALID")).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("IMMATURE"));
+                clock.setInstant(nbf);
+                scheduler.advanceTo(nbf);
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+            }
         }
 
         @Test
+        @DisplayName("nbf in past with no exp emits VALID")
         void whenNbfBeforeNowThenValid() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val claims    = new JWTClaimsSet.Builder().notBeforeTime(JWTTestUtility.timeOneUnitBeforeNow()).build();
+            val claims    = new JWTClaimsSet.Builder().notBeforeTime(Date.from(NOW.minusSeconds(2))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(validity(v)).isEqualTo("VALID");
+                    assertThat(field(v, "valid")).isEqualTo(Value.TRUE);
+                });
+            }
         }
 
         @Test
+        @DisplayName("nbf and exp in future emits IMMATURE -> VALID -> EXPIRED")
         void whenImmatureWithExpirationThenImmatureThenValidThenExpired() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
-            val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val nbf       = Date.from(Instant.now().plusSeconds(2));
-            val exp       = Date.from(Instant.now().plusSeconds(4));
-            val claims    = new JWTClaimsSet.Builder().notBeforeTime(nbf).expirationTime(exp).build();
-            val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+            val nbf    = NOW.plusSeconds(2);
+            val exp    = NOW.plusSeconds(4);
+            val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+            val claims = new JWTClaimsSet.Builder().notBeforeTime(Date.from(nbf)).expirationTime(Date.from(exp))
+                    .build();
+            val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+            provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            StepVerifier.create(jwtPolicyInformationPoint.token(accessCtx).map(v -> ((ObjectValue) v).get("validity")))
-                    .expectNext(Value.of("IMMATURE")).expectNext(Value.of("VALID")).expectNext(Value.of("EXPIRED"))
-                    .thenCancel().verify(Duration.ofSeconds(6));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("IMMATURE"));
+                clock.setInstant(nbf);
+                scheduler.advanceTo(nbf);
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                clock.setInstant(exp);
+                scheduler.advanceTo(exp);
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("EXPIRED"));
+            }
         }
     }
 
@@ -509,6 +521,7 @@ class JWTPolicyInformationPointTests {
     class ObjectValueStructureTests {
 
         @Test
+        @DisplayName("valid token contains header, payload, valid, validity")
         void whenValidTokenThenObjectValueContainsAllFields() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -516,24 +529,27 @@ class JWTPolicyInformationPointTests {
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.containsKey("header")).isTrue();
-                assertThat(obj.containsKey("payload")).isTrue();
-                assertThat(obj.containsKey("valid")).isTrue();
-                assertThat(obj.containsKey("validity")).isTrue();
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-                val payload = (ObjectValue) obj.get("payload");
-                assertThat(payload.get("sub")).isEqualTo(Value.of("user123"));
-                val headerVal = (ObjectValue) obj.get("header");
-                assertThat(headerVal.get("kid")).isEqualTo(Value.of(kid));
-                assertThat(headerVal.get("alg")).isEqualTo(Value.of("RS256"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    val obj = (ObjectValue) v;
+                    assertThat(obj.containsKey("header")).isTrue();
+                    assertThat(obj.containsKey("payload")).isTrue();
+                    assertThat(obj.containsKey("valid")).isTrue();
+                    assertThat(obj.containsKey("validity")).isTrue();
+                    assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
+                    assertThat(validity(v)).isEqualTo("VALID");
+                    val payload = (ObjectValue) obj.get("payload");
+                    assertThat(payload.get("sub")).isEqualTo(Value.of("user123"));
+                    val headerVal = (ObjectValue) obj.get("header");
+                    assertThat(headerVal.get("kid")).isEqualTo(Value.of(kid));
+                    assertThat(headerVal.get("alg")).isEqualTo(Value.of("RS256"));
+                });
+            }
         }
 
         @Test
+        @DisplayName("epoch time claims are converted to ISO-8601 in the payload")
         void whenValidTokenWithTimeClaimsThenEpochConvertedToIso() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -544,26 +560,29 @@ class JWTPolicyInformationPointTests {
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj     = (ObjectValue) result;
-                val payload = (ObjectValue) obj.get("payload");
-                assertThat(payload.get("nbf")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
-                assertThat(payload.get("exp")).isEqualTo(Value.of("2021-10-26T12:35:15Z"));
-                assertThat(payload.get("iat")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    val payload = (ObjectValue) ((ObjectValue) v).get("payload");
+                    assertThat(payload.get("nbf")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
+                    assertThat(payload.get("exp")).isEqualTo(Value.of("2021-10-26T12:35:15Z"));
+                    assertThat(payload.get("iat")).isEqualTo(Value.of("2021-10-26T12:30:15Z"));
+                });
+            }
         }
 
         @Test
+        @DisplayName("missing token yields empty header and payload")
         void whenMissingTokenThenEmptyHeaderAndPayload() {
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of());
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("header")).isEqualTo(Value.EMPTY_OBJECT);
-                assertThat(obj.get("payload")).isEqualTo(Value.EMPTY_OBJECT);
-                assertThat(obj.get("validity")).isEqualTo(Value.of("MISSING_TOKEN"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "header")).isEqualTo(Value.EMPTY_OBJECT);
+                    assertThat(field(v, "payload")).isEqualTo(Value.EMPTY_OBJECT);
+                    assertThat(validity(v)).isEqualTo("MISSING_TOKEN");
+                });
+            }
         }
     }
 
@@ -572,6 +591,7 @@ class JWTPolicyInformationPointTests {
     class CustomSecretsKeyTests {
 
         @Test
+        @DisplayName("argument-supplied secrets key reads from that key in subscription secrets")
         void whenCustomSecretsKeyThenReadsFromCorrectKey() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -579,14 +599,15 @@ class JWTPolicyInformationPointTests {
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("myToken", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx, Value.of("myToken"));
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx, Value.of("myToken"))) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.TRUE));
+            }
         }
 
         @Test
+        @DisplayName("config-supplied secrets key reads from that key in subscription secrets")
         void whenCustomSecretsKeyFromConfigThenReadsFromCorrectKey() throws JOSEException {
             dispatcher.setDispatchMode(DispatchMode.TRUE);
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
@@ -599,11 +620,11 @@ class JWTPolicyInformationPointTests {
                     JsonTestUtility.serverNode(server, null, null));
             val variables = Map.of("jwt", (Value) ValueJsonMarshaller.fromJsonNode(jwtConfigNode));
             val accessCtx = ctx(variables, Map.of("accessToken", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.TRUE));
+            }
         }
     }
 
@@ -612,7 +633,7 @@ class JWTPolicyInformationPointTests {
     class HmacKeyTests {
 
         @Test
-        @DisplayName("when valid HMAC-signed token with whitelist key then VALID")
+        @DisplayName("HS256 signed token with whitelisted key emits VALID")
         void whenValidHmacTokenThenValid() throws JOSEException {
             val secretKey = Base64DataUtil.generateHmacKey(32);
             val hmacKid   = "hmac-key-1";
@@ -622,16 +643,17 @@ class JWTPolicyInformationPointTests {
             val encoded   = JWTTestUtility.encodeSecretKey(secretKey);
             val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariablesForHmac(hmacKid, encoded),
                     Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "valid")).isEqualTo(Value.TRUE);
+                    assertThat(validity(v)).isEqualTo("VALID");
+                });
+            }
         }
 
         @Test
-        @DisplayName("when wrong HMAC key then UNTRUSTED")
+        @DisplayName("HS256 token signed with one key, validated against another emits UNTRUSTED")
         void whenWrongHmacKeyThenUntrusted() throws JOSEException {
             val signingKey = Base64DataUtil.generateHmacKey(32);
             val wrongKey   = Base64DataUtil.generateHmacKey(32);
@@ -642,15 +664,14 @@ class JWTPolicyInformationPointTests {
             val encoded    = JWTTestUtility.encodeSecretKey(wrongKey);
             val accessCtx  = ctx(JsonTestUtility.publicKeyWhitelistVariablesForHmac(hmacKid, encoded),
                     Map.of("jwt", source));
-            val flux       = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("UNTRUSTED"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("UNTRUSTED"));
+            }
         }
 
         @Test
-        @DisplayName("when HS384 token with correct key then VALID")
+        @DisplayName("HS384 signed token with correct key emits VALID")
         void whenHs384TokenThenValid() throws JOSEException {
             val secretKey = Base64DataUtil.generateHmacKey(48);
             val hmacKid   = "hmac-key-384";
@@ -660,15 +681,15 @@ class JWTPolicyInformationPointTests {
             val encoded   = JWTTestUtility.encodeSecretKey(secretKey);
             val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariablesForHmac(hmacKid, encoded),
                     Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.TRUE));
+            }
         }
 
         @Test
-        @DisplayName("when HS512 token with correct key then VALID")
+        @DisplayName("HS512 signed token with correct key emits VALID")
         void whenHs512TokenThenValid() throws JOSEException {
             val secretKey = Base64DataUtil.generateHmacKey(64);
             val hmacKid   = "hmac-key-512";
@@ -678,11 +699,11 @@ class JWTPolicyInformationPointTests {
             val encoded   = JWTTestUtility.encodeSecretKey(secretKey);
             val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariablesForHmac(hmacKid, encoded),
                     Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.TRUE));
+            }
         }
     }
 
@@ -691,7 +712,7 @@ class JWTPolicyInformationPointTests {
     class EcKeyTests {
 
         @Test
-        @DisplayName("when valid EC-signed token with whitelist key then VALID")
+        @DisplayName("ES256 signed token with whitelisted EC key emits VALID")
         void whenValidEcTokenThenValid() throws JOSEException, NoSuchAlgorithmException, IOException {
             val ecKeyPair = Base64DataUtil.generateECKeyPair();
             val ecKid     = KeyTestUtility.kid(ecKeyPair);
@@ -700,12 +721,13 @@ class JWTPolicyInformationPointTests {
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, ecKeyPair);
             val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariables(ecKid, ecKeyPair, kid, keyPair),
                     Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("valid")).isEqualTo(Value.TRUE);
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    assertThat(field(v, "valid")).isEqualTo(Value.TRUE);
+                    assertThat(validity(v)).isEqualTo("VALID");
+                });
+            }
         }
     }
 
@@ -713,72 +735,44 @@ class JWTPolicyInformationPointTests {
     @DisplayName("with clock skew tolerance")
     class ClockSkewTests {
 
-        @Test
-        @DisplayName("when expired within skew window then still VALID")
-        void whenExpiredWithinSkewThenValid() throws JOSEException {
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("expirationSkewScenarios")
+        @DisplayName("expiration claim and clock-skew config combine to yield the expected validity")
+        void whenExpirationAndClockSkewConfiguredThenExpectedValidity(String description, long expirationOffsetSeconds,
+                int clockSkewSeconds, String expectedValidity) throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val exp       = Date.from(Instant.now().minusSeconds(30));
-            val claims    = new JWTClaimsSet.Builder().expirationTime(exp).build();
+            val claims    = new JWTClaimsSet.Builder()
+                    .expirationTime(Date.from(NOW.plusSeconds(expirationOffsetSeconds))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 60));
+                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, clockSkewSeconds));
             val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-            }).thenCancel().verify(Duration.ofSeconds(2));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(validity(v)).isEqualTo(expectedValidity));
+            }
+        }
+
+        static Stream<Arguments> expirationSkewScenarios() {
+            return Stream.of(arguments("expired within skew window stays VALID", -30L, 60, "VALID"),
+                    arguments("expired beyond skew window emits EXPIRED", -90L, 60, "EXPIRED"),
+                    arguments("zero skew yields exact comparison and emits EXPIRED", -5L, 0, "EXPIRED"));
         }
 
         @Test
-        @DisplayName("when expired beyond skew window then EXPIRED")
-        void whenExpiredBeyondSkewThenExpired() throws JOSEException {
-            val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val exp       = Date.from(Instant.now().minusSeconds(90));
-            val claims    = new JWTClaimsSet.Builder().expirationTime(exp).build();
-            val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 60));
-            val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("EXPIRED"));
-            }).verifyComplete();
-        }
-
-        @Test
-        @DisplayName("when immature within skew window then still VALID")
+        @DisplayName("immature within skew window stays VALID")
         void whenImmatureWithinSkewThenValid() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val nbf       = Date.from(Instant.now().plusSeconds(30));
-            val claims    = new JWTClaimsSet.Builder().notBeforeTime(nbf).build();
+            val claims    = new JWTClaimsSet.Builder().notBeforeTime(Date.from(NOW.plusSeconds(30))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
                     node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 60));
             val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-            }).thenCancel().verify(Duration.ofSeconds(2));
-        }
 
-        @Test
-        @DisplayName("when clock skew is zero then exact comparison")
-        void whenClockSkewZeroThenExact() throws JOSEException {
-            val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val exp       = Date.from(Instant.now().minusSeconds(5));
-            val claims    = new JWTClaimsSet.Builder().expirationTime(exp).build();
-            val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.CLOCK_SKEW_SECONDS_KEY, 0));
-            val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("EXPIRED"));
-            }).verifyComplete();
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+            }
         }
     }
 
@@ -787,55 +781,50 @@ class JWTPolicyInformationPointTests {
     class MaxTokenLifetimeTests {
 
         @Test
-        @DisplayName("when token lifetime exceeds max then NEVER_VALID")
+        @DisplayName("lifetime exceeding max emits NEVER_VALID")
         void whenLifetimeExceedsMaxThenNeverValid() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val iat       = Date.from(Instant.now());
-            val exp       = Date.from(Instant.now().plusSeconds(86401));
-            val claims    = new JWTClaimsSet.Builder().issueTime(iat).expirationTime(exp).build();
+            val claims    = new JWTClaimsSet.Builder().issueTime(Date.from(NOW))
+                    .expirationTime(Date.from(NOW.plusSeconds(86_401))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.MAX_TOKEN_LIFETIME_SECONDS_KEY, 86400));
+                    node -> node.put(JWTPolicyInformationPoint.MAX_TOKEN_LIFETIME_SECONDS_KEY, 86_400));
             val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("NEVER_VALID"));
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("NEVER_VALID"));
+            }
         }
 
         @Test
-        @DisplayName("when token lifetime equals max then not rejected")
+        @DisplayName("lifetime equal to max is not rejected")
         void whenLifetimeEqualsMaxThenNotRejected() throws JOSEException {
             val header    = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val iat       = Date.from(Instant.now());
-            val exp       = Date.from(Instant.now().plusSeconds(86400));
-            val claims    = new JWTClaimsSet.Builder().issueTime(iat).expirationTime(exp).build();
+            val claims    = new JWTClaimsSet.Builder().issueTime(Date.from(NOW))
+                    .expirationTime(Date.from(NOW.plusSeconds(86_400))).build();
             val source    = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             val variables = JsonTestUtility.publicKeyWhitelistVariablesWithConfig(kid, keyPair,
-                    node -> node.put(JWTPolicyInformationPoint.MAX_TOKEN_LIFETIME_SECONDS_KEY, 86400));
+                    node -> node.put(JWTPolicyInformationPoint.MAX_TOKEN_LIFETIME_SECONDS_KEY, 86_400));
             val accessCtx = ctx(variables, Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isNotEqualTo(Value.of("NEVER_VALID"));
-            }).thenCancel().verify(Duration.ofSeconds(2));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(validity(v)).isNotEqualTo("NEVER_VALID"));
+            }
         }
 
         @Test
-        @DisplayName("when max not configured then extreme exp accepted")
+        @DisplayName("no max configured: extreme exp accepted")
         void whenNoMaxConfiguredThenExtremeExpAccepted() throws JOSEException {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val exp    = Date.from(Instant.now().plusSeconds(999_999));
-            val claims = new JWTClaimsSet.Builder().expirationTime(exp).build();
+            val claims = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.plusSeconds(999_999))).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj = (ObjectValue) result;
-                assertThat(obj.get("validity")).isEqualTo(Value.of("VALID"));
-            }).thenCancel().verify(Duration.ofSeconds(2));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+            }
         }
     }
 
@@ -844,40 +833,64 @@ class JWTPolicyInformationPointTests {
     class EpochBoundsTests {
 
         @Test
-        @DisplayName("when extreme epoch then payload keeps raw numeric value")
+        @DisplayName("extreme epoch keeps the raw numeric value in the payload")
         void whenExtremeEpochThenRawNumericValue() throws JOSEException {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().expirationTime(new Date(999_999_999_999_999L)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj     = (ObjectValue) result;
-                val payload = (ObjectValue) obj.get("payload");
-                val expVal  = payload.get("exp");
-                assertThat(expVal).isNotNull();
-                assertThat(expVal.toString()).doesNotContain("T");
-            }).thenCancel().verify(Duration.ofSeconds(2));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    val payload = (ObjectValue) ((ObjectValue) v).get("payload");
+                    val expVal  = payload.get("exp");
+                    assertThat(expVal).isNotNull();
+                    assertThat(expVal.toString()).doesNotContain("T");
+                });
+            }
         }
 
         @Test
-        @DisplayName("when reasonable epoch then payload has ISO string")
+        @DisplayName("reasonable epoch is converted to ISO string")
         void whenReasonableEpochThenIsoString() throws JOSEException {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
-            val exp    = new Date(1635251715000L);
-            val claims = new JWTClaimsSet.Builder().expirationTime(exp).build();
+            val claims = new JWTClaimsSet.Builder().expirationTime(new Date(1635251715000L)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
             provider.cache(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
-            val flux      = jwtPolicyInformationPoint.token(accessCtx);
-            StepVerifier.create(flux).assertNext(result -> {
-                val obj     = (ObjectValue) result;
-                val payload = (ObjectValue) obj.get("payload");
-                val expVal  = payload.get("exp");
-                assertThat(expVal).isNotNull();
-                assertThat(expVal.toString()).contains("T");
-            }).verifyComplete();
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    val payload = (ObjectValue) ((ObjectValue) v).get("payload");
+                    val expVal  = payload.get("exp");
+                    assertThat(expVal).isNotNull();
+                    assertThat(expVal.toString()).contains("T");
+                });
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("broker registration")
+    class StoreRegistration {
+
+        @Test
+        @DisplayName("loads under the jwt namespace without errors")
+        void whenLoadedIntoStoreThenRegistersUnderJwtNamespace() {
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
+                val now            = Instant.parse("2025-06-15T12:00:00Z");
+                val localClock     = new MutableClock(now);
+                val localScheduler = new TestTimeScheduler(now);
+                val httpClient     = HttpClient.newHttpClient();
+                val keyProvider    = new JWTKeyProvider(httpClient, localClock);
+                val handle         = broker
+                        .load(new JWTPolicyInformationPoint(keyProvider, localClock, localScheduler));
+
+                assertThat(handle.pipName()).isEqualTo(JWTPolicyInformationPoint.NAME);
+                assertThat(handle.isLoaded()).isTrue();
+                assertThat(broker.catalog()).containsExactly(handle);
+            }
         }
     }
 
@@ -888,5 +901,4 @@ class JWTPolicyInformationPointTests {
         subscriptionSecrets.forEach(secretsBuilder::put);
         return new AttributeAccessContext(varBuilder.build(), Value.EMPTY_OBJECT, secretsBuilder.build());
     }
-
 }

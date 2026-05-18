@@ -75,13 +75,13 @@ class PriorityBasedVoteCombinerTests {
     }
 
     static Vote permitVote(String name) {
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote denyVote(String name) {
-        return Vote.tracedVote(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.DENY), List.of());
+        return Vote.of(Decision.DENY, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.DENY));
     }
 
     static Vote indeterminateVote(String name, Outcome outcome) {
@@ -89,8 +89,8 @@ class PriorityBasedVoteCombinerTests {
     }
 
     static Vote permitWithResource(String name, Value resource) {
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, resource,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote permitWithObligations(String name, Value... obligations) {
@@ -98,13 +98,13 @@ class PriorityBasedVoteCombinerTests {
         for (var o : obligations) {
             obligationsArray.add(o);
         }
-        return Vote.tracedVote(Decision.PERMIT, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote suspendVote(String name) {
-        return Vote.tracedVote(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.SUSPEND), List.of());
+        return Vote.of(Decision.SUSPEND, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND));
     }
 
     static Vote suspendWithObligations(String name, Value... obligations) {
@@ -112,8 +112,8 @@ class PriorityBasedVoteCombinerTests {
         for (var o : obligations) {
             obligationsArray.add(o);
         }
-        return Vote.tracedVote(Decision.SUSPEND, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
-                testMetadata(name, Outcome.SUSPEND), List.of());
+        return Vote.of(Decision.SUSPEND, obligationsArray.build(), Value.EMPTY_ARRAY, Value.UNDEFINED,
+                testMetadata(name, Outcome.SUSPEND));
     }
 
     static Vote permitWithAdvice(String name, Value... advice) {
@@ -121,17 +121,17 @@ class PriorityBasedVoteCombinerTests {
         for (var a : advice) {
             adviceArray.add(a);
         }
-        return Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArray.build(), Value.UNDEFINED,
-                testMetadata(name, Outcome.PERMIT), List.of());
+        return Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, adviceArray.build(), Value.UNDEFINED,
+                testMetadata(name, Outcome.PERMIT));
     }
 
     static Vote voteWithNullOutcome(Decision decision, String name) {
         return new Vote(new AuthorizationDecision(decision, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED),
-                List.of(), List.of(), List.of(), testMetadata(name, null), null);
+                List.of(), List.of(), testMetadata(name, null), null);
     }
 
     static Vote indeterminateWithNullOutcome(String name) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(Value.error("test error")), List.of(), List.of(),
+        return new Vote(AuthorizationDecision.INDETERMINATE, List.of(Value.error("test error")), List.of(),
                 testMetadata(name, null), null);
     }
 
@@ -519,15 +519,6 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
-        @DisplayName("preserves contributing attributes from original vote")
-        void whenCalledThenPreservesContributingAttributes() {
-            val vote   = permitVote("original");
-            val result = PriorityBasedVoteCombiner.accumulatorVoteFrom(vote, TEST_METADATA);
-
-            assertThat(result.contributingAttributes()).isEqualTo(vote.contributingAttributes());
-        }
-
-        @Test
         @DisplayName("sets contributing votes to contain the original vote")
         void whenCalledThenSetsContributingVotes() {
             val vote   = permitVote("original");
@@ -606,7 +597,7 @@ class PriorityBasedVoteCombinerTests {
         void whenAccumulatorHasEmptyContributingVotesThenAppendWorks() {
             val accVote = new Vote(
                     new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED),
-                    List.of(), List.of(), List.of(), testMetadata("acc", Outcome.PERMIT), Outcome.PERMIT);
+                    List.of(), List.of(), testMetadata("acc", Outcome.PERMIT), Outcome.PERMIT);
             val newVote = permitVote("policy-2");
 
             val result = PriorityBasedVoteCombiner.combineVotes(accVote, newVote, Decision.PERMIT, TEST_METADATA);

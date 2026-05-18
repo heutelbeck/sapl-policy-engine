@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -34,8 +35,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -54,7 +54,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
@@ -88,7 +88,7 @@ class SaplHttpReactiveEnforcementTests {
     ApplicationContext context;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
 
     @Autowired
     Probes probes;
@@ -111,7 +111,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("Authenticated PERMIT, no obligations: 200, body returned")
         @WithMockUser
         void givenPermitThenOk() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk().expectBody(String.class).isEqualTo("hello");
@@ -121,7 +122,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("Authenticated DENY: 403 default body")
         @WithMockUser
         void givenAuthenticatedDenyThen403() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(AuthorizationDecision.DENY));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isForbidden();
@@ -136,7 +138,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("DecisionSignal audit obligation: handler fires once on every decision")
         @WithMockUser
         void givenAuditObligationThenHandlerFires() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(AUDIT_LOG)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(AUDIT_LOG)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk();
@@ -147,7 +150,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpRequestSignal observation obligation: handler captures the inbound request path")
         @WithMockUser
         void givenRequestObservationObligationThenHandlerCapturesRequest() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(CAPTURE_REQUEST)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(CAPTURE_REQUEST)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk();
@@ -158,7 +162,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpRequestMutationSignal obligation: controller sees the obligation-injected header")
         @WithMockUser
         void givenRequestHeaderInjectionObligationThenControllerSeesHeader() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(INJECT_HEADER)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(INJECT_HEADER)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/echo-tenant").exchange().expectStatus().isOk().expectBody(String.class)
@@ -169,7 +174,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpResponseSignal observation obligation: handler observes the post-controller status")
         @WithMockUser
         void givenResponseObservationObligationThenHandlerObservesStatus() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(OBSERVE_STATUS)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(OBSERVE_STATUS)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk();
@@ -180,7 +186,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpResponseSignal mutation obligation: client receives the obligation-added header")
         @WithMockUser
         void givenResponseHeaderObligationThenClientReceivesHeader() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(SET_HEADER)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(SET_HEADER)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk().expectHeader()
@@ -191,7 +198,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpResponseSignal body rewrite: client receives the obligation-replaced body")
         @WithMockUser
         void givenResponseBodyRewriteObligationThenClientReceivesRewrittenBody() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(REWRITE_BODY)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(REWRITE_BODY)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk().expectBody(String.class)
@@ -202,7 +210,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("Multi-handler bundle: one obligation produces audit on DecisionSignal and header on HttpResponseSignal")
         @WithMockUser
         void givenMultiHandlerObligationThenBothHandlersFire() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(AUDIT_AND_STAMP)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(AUDIT_AND_STAMP)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isOk().expectHeader()
@@ -214,7 +223,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpRequestMutationSignal failure: routed back through the deny handler as 403")
         @WithMockUser
         void givenRequestMutationFailureObligationThen403() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(permitWith(REQUEST_FAIL)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(permitWith(REQUEST_FAIL)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isForbidden();
@@ -229,7 +239,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpDenialSignal obligation: handler writes a custom 451 body")
         @WithMockUser
         void givenCustomDenyObligationThenHandlerShapesResponse() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(denyWith(CUSTOM_DENY)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(denyWith(CUSTOM_DENY)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isEqualTo(451).expectBody(String.class)
@@ -240,7 +251,8 @@ class SaplHttpReactiveEnforcementTests {
         @DisplayName("HttpDenialSignal redirect obligation: handler issues 302 with Location header")
         @WithMockUser
         void givenRedirectDenyObligationThen302WithLocation() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(denyWith(REDIRECT_DENY)));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(denyWith(REDIRECT_DENY)));
             client.mutateWith(
                     org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser())
                     .get().uri("/hello").exchange().expectStatus().isEqualTo(HttpStatus.FOUND).expectHeader()
@@ -259,8 +271,7 @@ class SaplHttpReactiveEnforcementTests {
         return new AuthorizationDecision(Decision.DENY, Value.ofArray(obligation), Value.EMPTY_ARRAY, Value.UNDEFINED);
     }
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableWebFluxSecurity
     static class TestApp {
 

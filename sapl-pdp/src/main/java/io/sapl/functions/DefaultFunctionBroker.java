@@ -61,7 +61,6 @@ public class DefaultFunctionBroker implements FunctionBroker {
 
     private static final String ERROR_FUNCTION_COLLISION             = "Function collision error for '%s'. A function with the same signature already exists.";
     private static final String ERROR_INVOCATION_NULL                = "Function invocation must not be null.";
-    private static final String ERROR_LIBRARY_CLASS_NULL             = "Library class must not be null.";
     private static final String ERROR_LIBRARY_INSTANCE_NULL          = "Library instance must not be null.";
     private static final String ERROR_NO_FUNCTION_LIBRARY_ANNOTATION = "Provided class has no @FunctionLibrary annotation.";
     private static final String ERROR_NO_MATCHING_FUNCTION_FOUND     = "No matching function found for %s.";
@@ -84,59 +83,27 @@ public class DefaultFunctionBroker implements FunctionBroker {
     private final List<Class<?>> registeredLibraries = new CopyOnWriteArrayList<>();
 
     /**
-     * Loads a static function library from the provided class.
-     * <p>
-     * The class must be annotated with {@link FunctionLibrary}. All methods
-     * annotated as functions will be registered.
-     * <p>
-     * Thread-safety: Safe to call during initialization. Concurrent loading of
-     * different libraries is supported.
-     * Collision detection ensures duplicate function signatures are rejected.
-     *
-     * @param libraryClass
-     * the class containing static function methods
-     *
-     * @throws IllegalStateException
-     * if the class lacks @FunctionLibrary annotation
-     * @throws IllegalArgumentException
-     * if libraryClass is null or function collision detected
-     */
-    public void loadStaticFunctionLibrary(Class<?> libraryClass) {
-        if (libraryClass == null) {
-            throw new IllegalArgumentException(ERROR_LIBRARY_CLASS_NULL);
-        }
-        loadLibrary(null, libraryClass);
-        registeredLibraries.add(libraryClass);
-    }
-
-    /**
-     * Loads a function library from the provided instance.
+     * Loads a function library from the supplied instance.
      * <p>
      * The instance's class must be annotated with {@link FunctionLibrary}. All
-     * methods annotated as functions will be
-     * registered.
+     * methods annotated as functions are registered. Static and instance
+     * methods are both supported.
      * <p>
-     * Thread-safety: Safe to call during initialization. Concurrent loading of
-     * different libraries is supported.
-     * Collision detection ensures duplicate function signatures are rejected.
+     * Thread-safety: safe to call during initialization. Concurrent loading
+     * of different libraries is supported. Collision detection ensures
+     * duplicate function signatures are rejected.
      *
-     * @param libraryInstance
-     * the object instance containing function methods
-     *
-     * @throws IllegalStateException
-     * if the class lacks @FunctionLibrary annotation
-     * @throws IllegalArgumentException
-     * if libraryInstance is null or function collision detected
+     * @param libraryInstance the object instance containing function methods
+     * @throws IllegalStateException if the class lacks {@link FunctionLibrary}
+     * @throws IllegalArgumentException if {@code libraryInstance} is null or
+     * a function signature collides with one already registered
      */
-    public void loadInstantiatedFunctionLibrary(Object libraryInstance) {
+    @Override
+    public void load(Object libraryInstance) {
         if (libraryInstance == null) {
             throw new IllegalArgumentException(ERROR_LIBRARY_INSTANCE_NULL);
         }
-        loadLibrary(libraryInstance, libraryInstance.getClass());
-        registeredLibraries.add(libraryInstance.getClass());
-    }
-
-    private void loadLibrary(Object library, Class<?> libraryType) {
+        val libraryType   = libraryInstance.getClass();
         val libAnnotation = libraryType.getAnnotation(FunctionLibrary.class);
 
         if (libAnnotation == null) {
@@ -149,11 +116,12 @@ public class DefaultFunctionBroker implements FunctionBroker {
         }
 
         for (Method method : libraryType.getDeclaredMethods()) {
-            val spec = MethodSignatureProcessor.functionSpecification(library, libName, method);
+            val spec = MethodSignatureProcessor.functionSpecification(libraryInstance, libName, method);
             if (spec != null) {
                 loadFunction(spec);
             }
         }
+        registeredLibraries.add(libraryType);
     }
 
     private void loadFunction(FunctionSpecification functionSpecification) {

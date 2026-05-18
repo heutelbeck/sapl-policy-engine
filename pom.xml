@@ -93,16 +93,19 @@
 		<!-- Dependencies -->
 		<okhttp.version>5.3.2</okhttp.version>
 		<jacoco.version>0.8.14</jacoco.version>
+		<scalar.version>0.6.34</scalar.version>
 		<vaadin.version>25.1.1</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
-		<lombok.version>1.18.44</lombok.version>
+		<lombok.version>1.18.46</lombok.version>
 		<jupiter.version>6.0.3</jupiter.version>
 		<guava.version>33.5.0-jre</guava.version>
 		<assertj.version>3.27.7</assertj.version>
 		<jspecify.version>1.0.0</jspecify.version>
 		<flexmark.version>0.64.8</flexmark.version>
+		<springdoc.version>3.0.3</springdoc.version>
+		<jsqlparser.version>5.0</jsqlparser.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
-		<springboot.version>4.0.5</springboot.version>
+		<springboot.version>4.0.6</springboot.version>
 		<commons-io.version>2.21.0</commons-io.version>
 		<classgraph.version>4.8.184</classgraph.version>
 		<bouncycastle.version>1.84</bouncycastle.version>
@@ -112,7 +115,6 @@
 		<nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
 		<spotbugs-annotations.version>4.9.8</spotbugs-annotations.version>
 		<json-schema-validator.version>3.0.1</json-schema-validator.version>
-		<jsqlparser.version>5.0</jsqlparser.version>
 		<jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
 
 		<!-- Maven Plug-Ins -->
@@ -147,6 +149,15 @@
 		<main.basedir>${project.basedir}</main.basedir>
 
 		<sonar.exclusions>**/gen/**/*</sonar.exclusions>
+
+		<!-- Suppress Sonar S1118 (utility class private constructor) for the
+			 io.sapl.functions.libraries.* classes. The FunctionBroker's
+			 instance-only load(Object) API instantiates them, even though the
+			 methods themselves are static, so a private constructor would block
+			 the load path. -->
+		<sonar.issue.ignore.multicriteria>S1118-FunctionLibraries</sonar.issue.ignore.multicriteria>
+		<sonar.issue.ignore.multicriteria.S1118-FunctionLibraries.ruleKey>java:S1118</sonar.issue.ignore.multicriteria.S1118-FunctionLibraries.ruleKey>
+		<sonar.issue.ignore.multicriteria.S1118-FunctionLibraries.resourceKey>**/io/sapl/functions/libraries/*.java</sonar.issue.ignore.multicriteria.S1118-FunctionLibraries.resourceKey>
 	</properties>
 
 	<dependencyManagement>
@@ -314,6 +325,28 @@
 				<groupId>org.jspecify</groupId>
 				<artifactId>jspecify</artifactId>
 				<version>${jspecify.version}</version>
+			</dependency>
+			<!-- springdoc-openapi (3.x line for Spring Boot 4) -->
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webflux-api</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
+			<!-- Scalar API Reference renderer -->
+			<dependency>
+				<groupId>com.scalar.maven</groupId>
+				<artifactId>scalar-webflux</artifactId>
+				<version>${scalar.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.scalar.maven</groupId>
+				<artifactId>scalar-webmvc</artifactId>
+				<version>${scalar.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -575,9 +608,14 @@
 								<exclude>**/*.pem</exclude>
 								<exclude>**/*.saplbundle</exclude>
 								<exclude>**/PKGBUILD</exclude>
-								<exclude>**/flake.lock</exclude>
 								<exclude>**/reference/**</exclude>
 								<exclude>**/*.csv</exclude>
+								<exclude>**/*.lock</exclude>
+								<exclude>**/*.1</exclude>
+								<exclude>**/__pycache__/**</exclude>
+								<exclude>**/*.pyc</exclude>
+								<exclude>**/.attach_pid*</exclude>
+								<exclude>**/sapl-benchmark/bin/**</exclude>
 							</excludes>
 						</licenseSet>
 					</licenseSets>
@@ -598,6 +636,7 @@
 						<install>SCRIPT_STYLE</install>
 						<nix>SCRIPT_STYLE</nix>
 						<rego>SCRIPT_STYLE</rego>
+						<fbs>DOUBLESLASH_STYLE</fbs>
 					</mapping>
 				</configuration>
 				<executions>
@@ -623,8 +662,10 @@
 		<!-- Core modules -->
 		<module>sapl-api</module>
 		<module>sapl-api-proto</module>
+		<module>sapl-api-test</module>
 		<module>sapl-parser</module>
 		<module>sapl-pdp</module>
+		<module>sapl-pdp-reactive</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>
@@ -639,6 +680,7 @@
 
 		<!-- Integration modules -->
 		<module>sapl-pdp-remote</module>
+		<module>sapl-spring-pdp</module>
 		<module>sapl-spring-boot-starter</module>
 
 		<!-- IDE and tooling -->
@@ -646,8 +688,6 @@
 		<module>sapl-documentation-generator</module>
 
 		<!-- Web endpoints -->
-		<module>sapl-webflux-endpoint</module>
-		<module>sapl-rsocket-endpoint</module>
 		<module>sapl-vaadin-theme</module>
 		<module>sapl-vaadin-editor</module>
 
@@ -657,7 +697,6 @@
 
 		<!-- Benchmarks (not published, not in BOM) -->
 		<module>sapl-benchmark/sapl-benchmark-sapl4</module>
-		<module>sapl-benchmark/sapl-benchmark-sapl3</module>
 
 		<!-- BOM (after all artifacts it references) -->
 		<module>sapl-bom</module>

@@ -55,11 +55,11 @@ import lombok.experimental.UtilityClass;
  * only on state). Four sealed types form one
  * {@code (state, event) -> (state, emissions)} step relation:
  * <ul>
- * <li>{@link State} — what the subscription is currently doing.</li>
- * <li>{@link Event} — the input alphabet (PDP, RAP, subscriber).</li>
- * <li>{@link Emission} — the output alphabet (what the adapter does
+ * <li>{@link State}. What the subscription is currently doing.</li>
+ * <li>{@link Event}. The input alphabet (PDP, RAP, subscriber).</li>
+ * <li>{@link Emission}. The output alphabet (what the adapter does
  * downstream).</li>
- * <li>{@link TransitionReason} — discriminator for boundary signals
+ * <li>{@link TransitionReason}. The discriminator for boundary signals
  * surfaced via {@link Emission.EmitTransition}.</li>
  * </ul>
  * Plus the {@link Step} record packing a step's results, and the pure

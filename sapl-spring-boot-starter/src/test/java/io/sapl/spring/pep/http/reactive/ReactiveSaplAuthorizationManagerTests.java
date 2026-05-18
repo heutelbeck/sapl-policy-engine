@@ -19,15 +19,16 @@ package io.sapl.spring.pep.http.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,7 +46,6 @@ import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
 import io.sapl.spring.pep.constraints.ConstraintHandlerProvider;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
@@ -70,17 +70,17 @@ class ReactiveSaplAuthorizationManagerTests {
 
     private static final String CAPTURE_REQUEST = "captureRequest";
 
-    private PolicyDecisionPoint pdp;
+    private ReactivePolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(PolicyDecisionPoint.class);
+        pdp = mock(ReactivePolicyDecisionPoint.class);
     }
 
     private ReactiveSaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new ReactiveSaplAuthorizationManager(pdp, planner,
-                new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER));
+        return new ReactiveSaplAuthorizationManager(pdp, () -> Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID),
+                planner, new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER));
     }
 
     private static AuthorizationContext exchangeContext() {
@@ -102,7 +102,8 @@ class ReactiveSaplAuthorizationManagerTests {
         @Test
         @DisplayName("PERMIT decision allows access")
         void givenPermitThenAllow() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(managerWith().authorize(Mono.just(userAuthentication()), exchangeContext()))
                     .assertNext(result -> assertThat(result.isGranted()).isTrue()).verifyComplete();
@@ -111,7 +112,8 @@ class ReactiveSaplAuthorizationManagerTests {
         @Test
         @DisplayName("DENY decision blocks access")
         void givenDenyThenBlock() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.DENY));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(AuthorizationDecision.DENY));
 
             StepVerifier.create(managerWith().authorize(Mono.just(userAuthentication()), exchangeContext()))
                     .assertNext(result -> assertThat(result.isGranted()).isFalse()).verifyComplete();
@@ -120,7 +122,7 @@ class ReactiveSaplAuthorizationManagerTests {
         @Test
         @DisplayName("Empty PDP stream falls back to DENY")
         void givenEmptyDecisionStreamThenDeny() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.empty());
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString())).thenReturn(Flux.empty());
 
             StepVerifier.create(managerWith().authorize(Mono.just(userAuthentication()), exchangeContext()))
                     .assertNext(result -> assertThat(result.isGranted()).isFalse()).verifyComplete();
@@ -134,7 +136,8 @@ class ReactiveSaplAuthorizationManagerTests {
         @Test
         @DisplayName("Empty authentication Mono is replaced with an anonymous token (no NPE)")
         void givenEmptyAuthenticationThenAnonymousFallback() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
 
             StepVerifier.create(managerWith().authorize(Mono.empty(), exchangeContext()))
                     .assertNext(result -> assertThat(result.isGranted()).isTrue()).verifyComplete();
@@ -150,7 +153,7 @@ class ReactiveSaplAuthorizationManagerTests {
         void givenHandlerOnRequestSignalThenReceivesRequest() {
             val captured = new AtomicReference<HttpRequest>();
             val provider = capturingProvider(captured);
-            when(pdp.decide(any(AuthorizationSubscription.class)))
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
                     .thenReturn(Flux.just(permitWithObligation(CAPTURE_REQUEST)));
 
             StepVerifier.create(managerWith(provider).authorize(Mono.just(userAuthentication()), exchangeContext()))
@@ -165,7 +168,7 @@ class ReactiveSaplAuthorizationManagerTests {
         @DisplayName("Obligation-handler failure during the request signal denies the request")
         void givenHandlerThrowsThenDeny() {
             val provider = throwingProvider();
-            when(pdp.decide(any(AuthorizationSubscription.class)))
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
                     .thenReturn(Flux.just(permitWithObligation(CAPTURE_REQUEST)));
 
             StepVerifier.create(managerWith(provider).authorize(Mono.just(userAuthentication()), exchangeContext()))
@@ -213,7 +216,8 @@ class ReactiveSaplAuthorizationManagerTests {
         @Test
         @DisplayName("Stores the EnforcementPlan on the exchange attribute keyed by HttpEnforcementContext.PLAN_ATTRIBUTE")
         void storesPlanOnExchangeAttribute() {
-            when(pdp.decide(any(AuthorizationSubscription.class))).thenReturn(Flux.just(AuthorizationDecision.PERMIT));
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
+                    .thenReturn(Flux.just(AuthorizationDecision.PERMIT));
             val request  = MockServerHttpRequest.get("/orders/42").build();
             val exchange = MockServerWebExchange.from(request);
             val context  = new AuthorizationContext(exchange);
@@ -239,7 +243,7 @@ class ReactiveSaplAuthorizationManagerTests {
                                                                    return List.of(new ScopedConstraintHandler(noop,
                                                                            Signal.DecisionSignal.SIGNAL_TYPE, 0));
                                                                };
-            when(pdp.decide(any(AuthorizationSubscription.class)))
+            when(pdp.decide(any(AuthorizationSubscription.class), anyString()))
                     .thenReturn(Flux.just(permitWithObligation(CAPTURE_REQUEST)));
 
             StepVerifier

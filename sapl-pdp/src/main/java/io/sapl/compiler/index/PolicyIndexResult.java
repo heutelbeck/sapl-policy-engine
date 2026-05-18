@@ -17,10 +17,10 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.List;
-
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
+
+import java.util.List;
 
 /**
  * Result of a policy index lookup. Contains the documents whose applicability

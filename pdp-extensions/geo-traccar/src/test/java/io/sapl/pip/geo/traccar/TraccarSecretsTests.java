@@ -20,18 +20,24 @@ package io.sapl.pip.geo.traccar;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.libraries.ReactiveWebClient;
+import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.test.stream.StreamAssertions;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("Traccar secrets resolution")
 class TraccarSecretsTests {
 
@@ -40,6 +46,9 @@ class TraccarSecretsTests {
                 "baseUrl": "http://localhost:8082"
             }
             """);
+
+    @Mock
+    private BlockingWebClient mockWebClient;
 
     private static ObjectValue secretsWithBasicAuth(String userName, String password) {
         return ObjectValue.builder().put("traccar",
@@ -59,16 +68,16 @@ class TraccarSecretsTests {
 
     @Test
     @DisplayName("when basic auth in secrets then auth header is set")
-    void whenBasicAuthInSecrets_thenAuthHeaderSet() {
-        val mockWebClient = Mockito.mock(ReactiveWebClient.class);
-        val pip           = new TraccarPolicyInformationPoint(mockWebClient);
-        val secrets       = secretsWithBasicAuth("user@example.com", "secret");
-        when(mockWebClient.httpRequest(Mockito.any(), Mockito.any())).thenReturn(Flux.just(json("{}")));
+    void whenBasicAuthInSecretsThenAuthHeaderSet() {
+        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
+        val pip     = new TraccarPolicyInformationPoint(mockWebClient);
+        val secrets = secretsWithBasicAuth("user@example.com", "secret");
 
-        val attributeStream = pip.server(BASE_CONFIG, secrets).next();
-        StepVerifier.create(attributeStream).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
+        try (val stream = pip.server(BASE_CONFIG, secrets)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
+        }
 
-        Mockito.verify(mockWebClient).httpRequest(Mockito.any(), Mockito.argThat(settings -> {
+        verify(mockWebClient).httpRequest(any(), argThat(settings -> {
             val headers = settings.get("headers");
             return headers instanceof ObjectValue headerObj && headerObj.containsKey("Authorization");
         }));
@@ -76,16 +85,16 @@ class TraccarSecretsTests {
 
     @Test
     @DisplayName("when token in secrets then query parameter is used")
-    void whenTokenInSecrets_thenQueryParameterUsed() {
-        val mockWebClient = Mockito.mock(ReactiveWebClient.class);
-        val pip           = new TraccarPolicyInformationPoint(mockWebClient);
-        val secrets       = secretsWithToken("my-api-token");
-        when(mockWebClient.httpRequest(Mockito.any(), Mockito.any())).thenReturn(Flux.just(json("{}")));
+    void whenTokenInSecretsThenQueryParameterUsed() {
+        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
+        val pip     = new TraccarPolicyInformationPoint(mockWebClient);
+        val secrets = secretsWithToken("my-api-token");
 
-        val attributeStream = pip.server(BASE_CONFIG, secrets).next();
-        StepVerifier.create(attributeStream).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
+        try (val stream = pip.server(BASE_CONFIG, secrets)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
+        }
 
-        Mockito.verify(mockWebClient).httpRequest(Mockito.any(), Mockito.argThat(settings -> {
+        verify(mockWebClient).httpRequest(any(), argThat(settings -> {
             val urlParams = settings.get("urlParameters");
             return urlParams instanceof ObjectValue paramsObj && paramsObj.containsKey("token");
         }));
@@ -93,16 +102,16 @@ class TraccarSecretsTests {
 
     @Test
     @DisplayName("when token and basic auth present then token takes precedence")
-    void whenTokenAndBasicAuth_thenTokenTakesPrecedence() {
-        val mockWebClient = Mockito.mock(ReactiveWebClient.class);
-        val pip           = new TraccarPolicyInformationPoint(mockWebClient);
-        val secrets       = secretsWithTokenAndBasicAuth("my-api-token", "user@example.com", "secret");
-        when(mockWebClient.httpRequest(Mockito.any(), Mockito.any())).thenReturn(Flux.just(json("{}")));
+    void whenTokenAndBasicAuthThenTokenTakesPrecedence() {
+        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
+        val pip     = new TraccarPolicyInformationPoint(mockWebClient);
+        val secrets = secretsWithTokenAndBasicAuth("my-api-token", "user@example.com", "secret");
 
-        val attributeStream = pip.server(BASE_CONFIG, secrets).next();
-        StepVerifier.create(attributeStream).expectNextMatches(v -> !(v instanceof ErrorValue)).verifyComplete();
+        try (val stream = pip.server(BASE_CONFIG, secrets)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
+        }
 
-        Mockito.verify(mockWebClient).httpRequest(Mockito.any(), Mockito.argThat(settings -> {
+        verify(mockWebClient).httpRequest(any(), argThat(settings -> {
             val urlParams = settings.get("urlParameters");
             val headers   = settings.get("headers");
             return urlParams instanceof ObjectValue paramsObj && paramsObj.containsKey("token") && headers == null;
@@ -111,18 +120,18 @@ class TraccarSecretsTests {
 
     @Test
     @DisplayName("when no secrets then error is returned")
-    void whenNoSecrets_thenErrorReturned() {
-        val mockWebClient = Mockito.mock(ReactiveWebClient.class);
-        val pip           = new TraccarPolicyInformationPoint(mockWebClient);
+    void whenNoSecretsThenErrorReturned() {
+        val pip = new TraccarPolicyInformationPoint(mockWebClient);
 
-        val attributeStream = pip.server(BASE_CONFIG, Value.EMPTY_OBJECT).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        try (val stream = pip.server(BASE_CONFIG, Value.EMPTY_OBJECT)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
+                    .awaitsCompletion();
+        }
     }
 
     @Test
     @DisplayName("when credentials in config only then not used for auth")
-    void whenCredentialsInConfigOnly_thenNotUsedForAuth() {
-        val mockWebClient   = Mockito.mock(ReactiveWebClient.class);
+    void whenCredentialsInConfigOnlyThenNotUsedForAuth() {
         val pip             = new TraccarPolicyInformationPoint(mockWebClient);
         val configWithCreds = (ObjectValue) json("""
                 {
@@ -132,13 +141,15 @@ class TraccarSecretsTests {
                 }
                 """);
 
-        val attributeStream = pip.server(configWithCreds, Value.EMPTY_OBJECT).next();
-        StepVerifier.create(attributeStream).expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+        try (val stream = pip.server(configWithCreds, Value.EMPTY_OBJECT)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class))
+                    .awaitsCompletion();
+        }
     }
 
     @Test
     @DisplayName("createBasicAuthHeader produces valid header")
-    void whenValidCredentials_thenBasicAuthHeaderCorrect() {
+    void whenValidCredentialsThenBasicAuthHeaderCorrect() {
         val secrets = (ObjectValue) json("""
                 {
                     "userName": "admin@test.de",
@@ -152,7 +163,7 @@ class TraccarSecretsTests {
 
     @Test
     @DisplayName("createBasicAuthHeader returns error for missing userName")
-    void whenMissingUserName_thenBasicAuthHeaderReturnsError() {
+    void whenMissingUserNameThenBasicAuthHeaderReturnsError() {
         val secrets = (ObjectValue) json("""
                 {
                     "password": "secret123"
@@ -164,7 +175,7 @@ class TraccarSecretsTests {
 
     @Test
     @DisplayName("createBasicAuthHeader returns error for missing password")
-    void whenMissingPassword_thenBasicAuthHeaderReturnsError() {
+    void whenMissingPasswordThenBasicAuthHeaderReturnsError() {
         val secrets = (ObjectValue) json("""
                 {
                     "userName": "admin@test.de"

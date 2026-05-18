@@ -163,7 +163,7 @@ for runtime in "${RUNTIMES[@]}"; do
         max_wait=60
         started=false
         for i in $(seq 1 $max_wait); do
-            if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
+            if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
                 if ss -tln | grep -q ":7000 " 2>/dev/null; then
                     echo "  Server started (PID $SERVER_PID, HTTP + RSocket)"
                     started=true

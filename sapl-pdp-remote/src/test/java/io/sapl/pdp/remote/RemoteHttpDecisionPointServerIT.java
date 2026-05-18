@@ -19,7 +19,7 @@ package io.sapl.pdp.remote;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest
 @ActiveProfiles(profiles = "quiet")
 class RemoteHttpDecisionPointServerIT {
-    private static final int             SAPL_SERVER_PORT = 8443;
+    private static final int             SAPL_SERVER_PORT = 8080;
     private static final String          SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
     private static final ImagePullPolicy NEVER_PULL       = imageName -> false;
 
@@ -62,7 +62,7 @@ class RemoteHttpDecisionPointServerIT {
     static class TestConfiguration {
     }
 
-    private void requestDecision(PolicyDecisionPoint pdp) {
+    private void requestDecision(ReactivePolicyDecisionPoint pdp) {
         StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
                 .verify();
     }

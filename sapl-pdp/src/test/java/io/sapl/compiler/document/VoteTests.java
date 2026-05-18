@@ -21,10 +21,10 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicySetVoterMetadata;
@@ -65,7 +65,6 @@ class VoteTests {
                 assertThat(v.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
                 assertThat(v.contributingVotes()).containsExactly(childVote);
                 assertThat(v.errors()).isEmpty();
-                assertThat(v.contributingAttributes()).isEmpty();
             });
         }
 
@@ -132,8 +131,7 @@ class VoteTests {
         @DisplayName("PERMIT vote is unchanged by finalization")
         void permitVoteUnchangedByFinalization() {
             val voter     = policyVoter("test-policy");
-            val vote      = Vote.tracedVote(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED,
-                    voter, List.of());
+            val vote      = Vote.of(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY, Value.UNDEFINED, voter);
             val finalized = vote.finalizeVote(DefaultDecision.DENY, ErrorHandling.PROPAGATE);
 
             assertThat(finalized.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);

@@ -17,13 +17,13 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.sapl.compiler.index.smtdd.SmtddNode.BinaryDecision;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
 import lombok.val;
+
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Interns SMTDD Terminal and BinaryDecision nodes for structural sharing.

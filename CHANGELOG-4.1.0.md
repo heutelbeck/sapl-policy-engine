@@ -1,129 +1,122 @@
-# SAPL 4.1.0 Changelog
+# SAPL 4.1.0
 
-4.1.0 is a ground-up rewrite of the Spring PEP. It replaces the ad hoc
-collection of enforcement points, constraint handlers, and query
-rewriting machinery that grew over the 3.x and 4.0 series with a single
-coherent model derived from the upcoming **PEP Patterns** paper. The
-external surface for the request-response PEPs (`@PreEnforce`,
-`@PostEnforce`) is preserved. The four legacy streaming annotations
-(`@EnforceTillDenied`, `@EnforceDropWhileDenied`, `@EnforceAccessAware`,
-`@EnforceRecoverableIfDenied`) are replaced by a single
-`@StreamEnforce` annotation with three orthogonal flags, driven by the
-new `SUSPEND` decision verb. The HTTP authorization managers are
-preserved at the configurer level but redesigned underneath.
+4.1.0 rewrites the Spring PEP, introduces the `SUSPEND` decision verb (new policy effect, new combining-algorithm interactions, new PDP decision value), and replaces the attribute layer with a new broker contract that drops Reactor at the boundary. Policy syntax for the existing `permit` and `deny` effects is unchanged; everything else listed below is.
 
-For the full architecture and worked examples, see
-[`sapl-documentation/6_3_Spring.md`](sapl-documentation/6_3_Spring.md).
+The full architecture and worked examples are in [`sapl-documentation/6_3_Spring.md`](sapl-documentation/6_3_Spring.md).
 
-## What's unified
+## SUSPEND decision verb
 
-- **One enforcement model.** `EnforcementPlanner` builds a `Plan` once
-  per decision and `EnforcementPlan.execute` discharges it against typed
-  `Signal`s at well-defined lifecycle points. Pre, post, HTTP, and shim
-  PEPs all share the same plan, the same admissibility invariants, and
-  the same failure semantics.
-- **One provider model.** A single `ConstraintHandlerProvider` interface
-  returning `List<ScopedConstraintHandler>` replaces the previous
-  collection of typed provider interfaces. One obligation can drive
-  several coordinated handlers across different signals.
-- **One mechanism for query rewriting.** R2DBC and reactive MongoDB
-  query manipulation now travel as ordinary obligations on a
-  `@PreEnforce` decision; a shim `BeanPostProcessor` intercepts the
-  query as Spring Data dispatches it. The legacy `@QueryEnforce`
-  annotation and the `io.sapl.spring.data` subtree are gone.
-- **One way to wire HTTP PEPs.** Servlet:
-  `http.with(saplHttp(), withDefaults())`. Reactive:
-  `SaplServerHttpSecurityConfigurer.apply(http, context)`. One call
-  installs the manager, the HTTP PEP filter, and the access-denied
-  handler.
-- **One streaming PEP.** `@StreamEnforce` replaces the four legacy
-  alias annotations. Behaviour is selected via three orthogonal boolean
-  flags (`signalTransitions`, `terminateOnItemEnforcementFailure`,
-  `pauseRapDuringSuspend`) and the policy author's choice of the
-  `suspend` vs `deny` decision verb, rather than by picking an alias
-  upfront. Routing is driven by the PDP decision verb directly: PERMIT
-  lets items flow, SUSPEND silences them while keeping the subscription
-  open, DENY terminates.
+A new third effect joins `permit` and `deny`. A policy with effect `suspend` casts a vote to **pause** access without terminating the subscription. Streaming PEPs that honour `SUSPEND` stop forwarding data while keeping the subscription alive; a later `permit` resumes flow. One-shot PEPs (`@PreEnforce`, `@PostEnforce`) treat `SUSPEND` exactly like `DENY`: the protected call is denied, and decision-attached obligations / advice / resource handlers run identically to the `DENY` path.
 
-## Proper obligation handling for HTTP authorization
+```sapl
+policy "suspend during maintenance window"
+suspend
+    resource.type == "patient_record";
+    <maintenance.isActive>;
+```
 
-Both the servlet and reactive authorization managers now participate in
-the plan-and-signal model. Five signals reach the planner over one HTTP
-exchange. Policy obligations can shape the request (header injection,
-attribute set), the response (status, headers, body rewrite), and the
-denial response (custom error page, redirect). The five-signal lifecycle
-and the configurer entry point are identical across servlet and
-reactive — the same SAPL policy text works against both backends.
+The `AuthorizationDecision.decision` enum now carries five values: `PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`. The HTTP and RSocket wire encodings serialise the new value as `"SUSPEND"`. CLI exit code 5 distinguishes SUSPEND from DENY (exit code 2) for shell scripts.
 
-4.0's HTTP authorization managers fired only `DecisionSignal` and a
-misnamed `HttpRequestShimSignal` and could not enforce response- or
-denial-level obligations at all.
+### Combining algorithms
 
-## Streaming PEP redesigned around the SUSPEND verb
+`SUSPEND` is a first-class vote alongside `PERMIT` and `DENY`. A new priority algorithm is introduced and the existing two are extended:
 
-The streaming PEP path has been redesigned ground-up to consume a
-continuous stream of authorization decisions. Each decision the PDP
-emits during the lifetime of the subscription has one of five verbs,
-and each maps to a single observable effect on the subscriber's stream.
+| Algorithm | Behaviour |
+|---|---|
+| `priority deny` | Any `DENY` wins over any number of `PERMIT`s or `SUSPEND`s. |
+| `priority permit` | Any `PERMIT` wins over any number of `DENY`s or `SUSPEND`s. |
+| `priority suspend` | Any `SUSPEND` wins over any number of `PERMIT`s or `DENY`s. |
+| `unanimous` | All applicable policies must agree on effect; constraints are merged. |
+| `first applicable` | First applicable policy's vote is taken; constraints are merged. |
+
+The `errors abstain` / `errors propagate` clause now governs the **final** disposition of an `INDETERMINATE` accumulation. `errors abstain` converts a final `INDETERMINATE` to `NOT_APPLICABLE` (and the configured default decision then applies); `errors propagate` returns `INDETERMINATE` as-is. Erroring policies still participate as `INDETERMINATE` votes inside the algorithm where they may block a priority decision; reading the clause as "errors are invisible" is a misread.
+
+Each `INDETERMINATE` vote now carries an `Outcome` field recording which decisions the errored policy could have produced (XACML 3.0 extended-indeterminate marker). Priority algorithms use this to decide whether an error blocks an otherwise-winning concrete decision: an error is **critical** if its outcome includes the priority decision.
+
+### Vocabulary rename
+
+The internal vocabulary "entitlement" (the result a policy casts) is renamed to "effect" everywhere it surfaced: documentation, AST node names, LSP completions, error messages. Policy syntax was never affected.
+
+See [Authorization Decisions](sapl-documentation/2_3_AuthorizationDecisions.md), [Policy Structure](sapl-documentation/2_4_PolicyStructure.md), and [Combining Algorithms](sapl-documentation/2_5_CombiningAlgorithms.md) for full semantics.
+
+## Streaming PEP
+
+A continuous stream of authorization decisions drives every protected subscription. Each PDP decision verb maps to one observable effect.
 
 | PDP decision | Effect on the subscription |
 |---|---|
 | `PERMIT` | Items from the protected method flow through to the subscriber. |
 | `SUSPEND` | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow. |
-| `INDETERMINATE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient PDP errors. |
-| `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient policy gaps. |
+| `INDETERMINATE` | Same as `SUSPEND`. Streaming survives transient PDP errors. |
+| `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming survives transient policy gaps. |
 | `DENY` | The subscription terminates with an `AccessDeniedException`. |
 
-The mapping of `INDETERMINATE` and `NOT_APPLICABLE` to silent-drop is
-deliberate: streaming subscriptions survive transient PDP errors and
-policy gaps. Operators who want hard fail-closed semantics on these
-set the combining algorithm's `defaultDecision` to `DENY` (so
-`NOT_APPLICABLE` collapses to `DENY`) or its `errorHandling` to
-`PROPAGATE` (so `INDETERMINATE` collapses to `DENY`) at the PDP
-level. The streaming PEP honours whatever decision the PDP produces.
+`INDETERMINATE` and `NOT_APPLICABLE` map to silent drop deliberately. Operators who want hard fail-closed semantics set the combining algorithm's `defaultDecision` to `DENY` or `errorHandling` to `PROPAGATE` at the PDP level.
 
-The combination of verb-driven routing plus three orthogonal flags
-(`signalTransitions`, `terminateOnItemEnforcementFailure`,
-`pauseRapDuringSuspend`) replaces the four legacy alias annotations
-that hard-coded each combination. See the
-[`@StreamEnforce`](sapl-documentation/6_3_Spring.md#streaming-enforcement-with-streamenforce)
-section in `6_3_Spring.md` for usage and worked patterns.
+The four 4.0 streaming annotations collapse into a single `@StreamEnforce` with three orthogonal boolean flags: `signalTransitions`, `terminateOnItemEnforcementFailure`, and `pauseRapDuringSuspend`. The `survivesDeny` parameter and the `StreamMode` enum are gone. Whether a deny terminates the subscription or merely suspends it moved into the policy: use `deny` for terminate, `suspend` for survive.
 
-## Breaking changes
+### Migration from 4.0
 
-### Streaming PEP annotations
+| 4.0 annotation | 4.1 replacement |
+|---|---|
+| `@EnforceTillDenied` | `@StreamEnforce` (defaults) |
+| `@EnforceDropWhileDenied` | `@StreamEnforce` plus `suspend` verb in policy |
+| `@EnforceAccessAware` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy |
+| `@EnforceRecoverableIfDenied` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy, then `TransitionSignals.onTransitions(...)` at the call site |
 
-The four 4.0 streaming annotations are replaced by a single
-`@StreamEnforce`. Migration:
+`terminateOnItemEnforcementFailure` (default `false`) controls behaviour when a per-item obligation handler fails: the default suspends; set `true` for methods whose per-item side effects are unsafe to leave unenforced.
 
-| 4.0 annotation | 4.1 replacement | Notes |
-|---|---|---|
-| `@EnforceTillDenied` | `@StreamEnforce` (defaults) | Behavioural difference moves into the policy. The policy uses `deny` for windows that should terminate the subscription (matching the old TillDenied semantics) and `suspend` for windows that should drop items but keep the subscription open. |
-| `@EnforceDropWhileDenied` | `@StreamEnforce` (defaults) plus `suspend` verb in policy | The annotation no longer encodes the survives-deny choice. Use the `suspend` verb in the policy text for the deny windows that should leave the subscription alive; use `deny` for the windows that should terminate. |
-| `@EnforceAccessAware` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy | Subscriber receives non-terminal `AccessDeniedException` / `AccessGrantedException` events on every transition. Same `suspend`-vs-`deny` policy distinction as DropWhileDenied. |
-| `@EnforceRecoverableIfDenied` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy plus `TransitionSignals.onTransitions(...)` at the call site | The annotation does the transition signalling; `TransitionSignals` translates the non-terminal events into application-level callbacks. |
+`pauseRapDuringSuspend` (default `false`) controls whether the upstream subscription is disposed during a suspend window: the default keeps it connected with items dropped silently; set `true` for upstream sources with expensive side effects that must not run while denied.
 
-The `survivesDeny` annotation parameter is gone. The choice of whether
-a deny condition terminates the subscription or merely suspends it
-moved into the policy: use `deny` for terminate, `suspend` for survive.
+## HTTP authorization
 
-The `StreamMode` enum is removed.
+Both the servlet and reactive authorization managers now run on the plan-and-signal model. One HTTP exchange produces five signals. Policy obligations can shape the request, the response, and the denial response. The configurer entry point is identical across servlet and reactive, and the same policy text works against either backend.
 
-Two new flags surface concerns the 4.0 aliases could not express:
+```
+// servlet
+http.with(saplHttp(), withDefaults())
 
-- `terminateOnItemEnforcementFailure` — when a per-item obligation
-  handler fails, terminate the subscription (default `false` —
-  suspend instead). Set to `true` for protected methods whose per-item
-  side effects are unsafe to leave unenforced.
-- `pauseRapDuringSuspend` — dispose the upstream subscription whenever
-  the stream is silenced, and re-subscribe when it resumes (default
-  `false` — upstream stays connected, items dropped silently). Set to
-  `true` for upstream sources with expensive side effects that must
-  not run while denied.
+// reactive
+SaplServerHttpSecurityConfigurer.apply(http, context)
+```
 
-### `ConstraintHandlerProvider`
+4.0's HTTP authorization managers fired only `DecisionSignal` and a misnamed shim signal; they could not enforce response-level or denial-level obligations at all.
 
-Custom providers must change the method signature and return type:
+### Unified request shape
+
+Both stacks emit the same shape under `action.http` and `resource.http`. One policy works against either backend.
+
+```sapl
+// 4.0 (servlet)
+deny resource.requestedURI == "/secret"
+
+// 4.0 (reactive, different shape)
+deny resource.contextPath == "/secret"
+
+// 4.1 (servlet and reactive)
+deny resource.path == "/secret"
+```
+
+Field migration:
+
+| 4.0 | 4.1 |
+|---|---|
+| `requestedURI` | `path` |
+| `requestURL` | `url` (includes query string) |
+| `serverName` / `serverPort` | `host` / `port` |
+| `remoteAddress` (host:port) | `client.address`, `client.host`, `client.port` |
+| `remoteHost` / `remotePort` | `client.host` / `client.port` |
+| `localAddress` / `localName` / `localPort` | `server.address` / `server.host` / `server.port` |
+| `parameters` | `queryParameters` (form-body parameters no longer mixed in) |
+| `protocol`, `requestedSessionId`, `authType`, `locale`, `locales`, `servletPath` | removed (use `subject.authentication`, `accept-language`, or `applicationPath`) |
+
+New fields: `applicationPath` (path with `contextPath` stripped); `forwarded` (parsed RFC 7239 `Forwarded` plus legacy `X-Forwarded-*`); `contentLength`.
+
+Header keys are now lowercased on both stacks (matches HTTP/2 and Spring's case-insensitive `HttpHeaders` contract). Read `headers["user-agent"]` instead of `headers["User-Agent"]`. Custom subscription factories that hand-built fields like `Map.of("requestedURI", req.getRequestURI())` should rename keys to match the unified shape.
+
+## Provider API
+
+`ConstraintHandlerProvider` returns a list.
 
 ```java
 // 4.0
@@ -133,98 +126,72 @@ Optional<ScopedConstraintHandler> getConstraintHandler(Value, Set<SignalType>);
 List<ScopedConstraintHandler> getConstraintHandlers(Value, Set<SignalType>);
 ```
 
-A single obligation may now drive several handlers — return multiple
-entries from one provider call.
+An empty list means the provider is not responsible. A non-empty list means one or more handlers will run. One obligation may now drive several coordinated handlers across different signals.
 
-### Authorization subscription factory
+## Authorization subscription factory
 
-The two HTTP authorization managers now delegate subscription
-construction to an `AuthorizationSubscriptionFactory` (servlet) /
-`ReactiveAuthorizationSubscriptionFactory` (reactive) bean. The starter
-registers a default factory under `@ConditionalOnMissingBean` that
-preserves 4.0 behaviour. Override the factory globally with a `@Bean`,
-per chain via `http.with(saplHttp(), c -> c.subscriptionFactory(...))`,
-or replace the manager entirely with `c.authorizationManager(...)`.
+HTTP authorization managers delegate subscription construction to an `AuthorizationSubscriptionFactory` (`ReactiveAuthorizationSubscriptionFactory` for reactive). The starter registers a default factory under `@ConditionalOnMissingBean` that preserves 4.0 behaviour. Override globally with a `@Bean`, per chain via `http.with(saplHttp(), c -> c.subscriptionFactory(...))`, or replace the manager entirely with `c.authorizationManager(...)`.
 
-The constructor signatures changed:
+Manager constructors changed from `(pdp, planner, mapper)` to `(pdp, planner, subscriptionFactory)`. Code that relies on the auto-configured beans is unaffected.
 
-```java
-// 4.0
-new SaplAuthorizationManager(pdp, planner, mapper);
-new ReactiveSaplAuthorizationManager(pdp, planner, mapper);
+## Package relocations
 
-// 4.1
-new SaplAuthorizationManager(pdp, planner, subscriptionFactory);
-new ReactiveSaplAuthorizationManager(pdp, planner, subscriptionFactory);
-```
+The `manager` and `config` packages fold into `pep.http.{servlet,reactive}`.
 
-Code that relies on the auto-configured beans is unaffected.
+| 4.0 | 4.1 |
+|---|---|
+| `io.sapl.spring.manager.SaplAuthorizationManager` | `io.sapl.spring.pep.http.servlet.SaplAuthorizationManager` |
+| `io.sapl.spring.manager.SaplAccessDeniedHandler` | `io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler` |
+| `io.sapl.spring.manager.ReactiveSaplAuthorizationManager` | `io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager` |
+| `io.sapl.spring.config.SaplHttpSecurityConfigurer` | `io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer` |
 
-### Package relocations
+## Removed
 
-The `manager` and `config` packages have been folded into a unified
-`pep.http.{servlet,reactive}` layout:
+The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query rewriting) is gone. Spring Data query manipulation now travels as an ordinary obligation on a `@PreEnforce` decision. A shim `BeanPostProcessor` intercepts the query as Spring Data dispatches it.
 
-| 4.0                                                               | 4.1                                                                       |
-|-------------------------------------------------------------------|---------------------------------------------------------------------------|
-| `io.sapl.spring.manager.SaplAuthorizationManager`                 | `io.sapl.spring.pep.http.servlet.SaplAuthorizationManager`                |
-| `io.sapl.spring.manager.SaplAccessDeniedHandler`                  | `io.sapl.spring.pep.http.servlet.SaplAccessDeniedHandler`                 |
-| `io.sapl.spring.manager.ReactiveSaplAuthorizationManager`         | `io.sapl.spring.pep.http.reactive.ReactiveSaplAuthorizationManager`       |
-| `io.sapl.spring.config.SaplHttpSecurityConfigurer`                | `io.sapl.spring.pep.http.servlet.SaplHttpSecurityConfigurer`              |
+## Glitch-free multi-subscription
 
-### HTTP request shape
+`Flux.combineLatest` is gone from main src across the engine. The previous combiner produced intermediate tuples during cascading updates, pairing one input's new value with stale previous values from the others before the correct tuple appeared. Multi-subscription evaluation now uses a snapshot-driven evaluator that delivers consistent tuples on every emission. `MultiSubscriptionDeglitchTests` lock the invariant for both the reactive and blocking PDPs.
 
-Both serializers (servlet and reactive) now emit the same unified
-shape under `action.http` and `resource.http`. The same SAPL policy
-text works against either backend. The most common rename is
-`requestedURI` -> `path`; the full schema is documented in
-[`sapl-documentation/6_3_Spring.md` -> "The HTTP Request Shape"](sapl-documentation/6_3_Spring.md).
+## AttributeBroker
 
-```sapl
-// 4.0 (servlet) and 4.0 (reactive, two different shapes)
-deny resource.requestedURI == "/secret";
-deny resource.contextPath == "/secret";
+The 4.0 Reactor-based attribute layer is replaced with a callback-driven broker.
 
-// 4.1 (servlet and reactive, same text)
-deny resource.path == "/secret";
-```
+- **Consumer interface**: `AttributeBroker` in `io.sapl.attributes.broker`. `open(id, deps, onUpdate) → Subscription` with no Reactor at the boundary.
+- **Repository interface**: `AttributeRepository` with `publish(key, value)`, `publish(key, value, ttl)`, `remove(key)`, and `observe(invocation, onValue)`. The first three are the producer surface; `observe` is the single-key listener surface used by the broker's fallback path.
+- **Default top-level**: `PolicyInformationPointAttributeBroker(Duration gracePeriodDuration, AttributeRepository fallback)` with `InMemoryAttributeRepository` as the fallback. PIP match routes through the PIP exclusively; non-match goes through the fallback; no fallback yields `UNDEFINED`. Catalog mutations (`load` / `swap` / `unload`) migrate routing atomically.
+- **PIP method signatures**: BREAKING. Attribute methods now return `io.sapl.api.stream.Stream<Value>` (for streaming attributes) or a plain `Value` subtype (for one-shot attributes). The 4.0 `Flux<Value>` / `Mono<Value>` returns are no longer accepted. The annotations (`@PolicyInformationPoint`, `@Attribute`, `@EnvironmentAttribute`) and the parameter-order rules are unchanged. Migrate by replacing `Flux.interval(...)` / `Flux.just(...)` / `Flux.error(...)` with the corresponding `Streams.scheduledPoll(...)` / `Streams.just(...)` / `Streams.error(...)` constructors from `io.sapl.api.stream.Streams`. `Mono<Value>` callers usually drop down to a direct `Value` return; if they must stay async, use `Streams.fromCallback(...)` or `Streams.fromBlockingSource(...)`. See [Custom Attribute Finders](sapl-documentation/8_3_CustomAttributeFinders.md).
+- **Builder**: `withAttributeBroker(...)` for full override; `withRepository(...)` swaps just the fallback.
+- **Spring beans**: `policyInformationPointAttributeBroker`, `inMemoryAttributeRepository`, `attributeRepository`, and `attributeBroker` (`@Primary`).
+- **Extension authors writing their own broker / repository implementations**: new package `io.sapl.attributes.broker.*`; new callback-driven contract `open(id, deps, onUpdate) → Subscription`; no Reactor at the boundary.
 
-Field-by-field migration:
+### Behavioural changes versus 4.0
 
-| 4.0 | 4.1 | Notes |
-|---|---|---|
-| `requestedURI` | `path` | The old name was a Servlet-API misnomer; the value is the request path, not a URI |
-| `requestURL` | `url` | Now also includes the query string for parity across stacks |
-| `serverName` | `host` | Plain noun; was misleading because the value is host-as-seen-here, not the JVM hostname |
-| `serverPort` | `port` | Same reasoning |
-| `remoteAddress` (string `"/127.0.0.1:54402"`) | `client.address` (`"127.0.0.1"`) | Also `client.host`, `client.port` split out |
-| `remoteHost` | `client.host` | Grouped under the `client` peer |
-| `remotePort` | `client.port` | Grouped under the `client` peer |
-| `localAddress` / `localName` / `localPort` | `server.address` / `server.host` / `server.port` | Grouped under the `server` bind interface |
-| `parameters` | `queryParameters` | Now query-only; servlet-side form-body parameters are no longer mixed in |
-| `protocol`, `requestedSessionId`, `authType`, `locale`, `locales`, `servletPath` | removed | Use `subject.authentication`, the `accept-language` header, or `applicationPath` instead |
+- A slow PIP whose initial-value timeout fires now publishes `UNDEFINED` (absence). 4.0 published an `ErrorValue("timeout...")`.
+- A PIP that returns an empty-completion stream now publishes `UNDEFINED`. 4.0 silently hung.
+- A `RuntimeException` thrown by a PIP method during invocation recovers under backoff-bounded retries (jittered exponential), not pollInterval-bounded. Transient connect-time and send-time failures heal on the same schedule as mid-stream failures.
+- Hot-swap of a PIP no longer surfaces transient `UNDEFINED` to consumers during the rebind window if a real prior value was observed; the prior value persists until the replacement emits.
 
-Additions:
+## Plugins source
 
-- `applicationPath` -- the path with `contextPath` stripped, useful when the app is mounted under a context root.
-- `forwarded` -- a parsed view of RFC 7239 `Forwarded` (or legacy `X-Forwarded-{For,Host,Proto,Port}`) so policies can read the original client / host / scheme behind a proxy without splitting headers manually. Block omitted when no relevant header is present.
-- `contentLength` -- request body length in bytes when known.
+The PDP runtime is driven by an observable `PluginsSource` that emits immutable `PluginsBundle` snapshots. Each bundle carries the function broker, decision interceptors, and subscription lifecycle listeners as one atomic unit. New snapshots drive recompilation of every retained PDP configuration against the new bundle. The compiled artefact carries the bundle it was compiled against, so folded constants and live function calls go to the same broker for any given evaluation.
 
-Header keys are now lowercased on both stacks (matches HTTP/2 and
-Spring's case-insensitive `HttpHeaders` contract). Policies that read
-`headers["User-Agent"]` must read `headers["user-agent"]` instead.
+The 4.1 implementation is `StaticPluginsSource`: one snapshot for the life of the source. A future plugin engine emits new bundles on every catalog change against the same interface. Plugin authors keep implementing the same leaf contracts (`FunctionLibrary`, `DecisionInterceptor`, `SubscriptionLifecycleListener`) in `sapl-api`.
 
-Custom subscription factories that hand-built fields like
-`Map.of("requestedURI", req.getRequestURI())` should rename the key to
-`"path"` so they match the policy and the default factory.
+Configurations that arrive before the plugins source has delivered an initial snapshot are retained and surface in the PDP's status as `AWAITING_PLUGINS`. They compile automatically when the snapshot arrives; `loadConfiguration` no longer throws in this case.
 
-### `MutableHttpResponse.setStatusCode`
+`PolicyDecisionPointBuilder.withFunctionBroker(...)` from 4.0 keeps working unchanged. The builder wraps the broker in a `StaticPluginsSource` internally. Code driving recompile from an external source uses the new `withPluginsSource(...)` method. The Spring starter's auto-configuration publishes a `PluginsSource` bean.
 
-Returns `boolean` (was `void`) to match the reactive `ServerHttpResponse`
-contract. Most callers ignore the return value.
+## SAPL Node
 
-### Removed
+Operator-facing improvements to the runnable PDP distribution.
 
-The legacy `io.sapl.spring.data` subtree (old `@QueryEnforce`-based
-query rewriting). Spring Data query manipulation now goes through
-`@PreEnforce` plus a query manipulation obligation.
+- **Higher HTTP throughput.** The PDP HTTP path runs on Spring MVC on Jetty with virtual threads, bypassing the reactive request pipeline on the hot path. The RSocket transport remains the top-throughput option.
+- **RSocket transport in the Spring starter.** `RemotePDP` configuration accepts `type: rsocket` with TLS via a shared SSL bundle, alongside the existing HTTP transport. `tokenRelay` is HTTP-only (RSocket authenticates once at connection setup).
+- **OpenID Authorization API endpoint.** An OpenID-style authorization API ships alongside the native SAPL HTTP API. Documented in the OpenAPI spec the node exposes.
+- **Scalar OpenAPI UI** at `/scalar`, generated from the OpenAPI definition.
+- **Status page** at `/` reports version, build metadata, and health.
+- **Readable startup failures.** Configuration errors surface as messages with concrete remediation advice instead of Spring stack traces.
+- **`--no-auth` CLI shortcut** sets `io.sapl.node.allow-no-auth=true` for first-run development.
+- **Clean boot logging.** Framework noise suppressed; the ready banner reports endpoints, ports, and active authentication methods.
+- **Active SSE drain on shutdown.** Open streaming subscriptions receive `event: shutdown` and complete cleanly before the HTTP listener disposes.

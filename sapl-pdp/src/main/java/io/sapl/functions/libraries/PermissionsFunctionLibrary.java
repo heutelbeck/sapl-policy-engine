@@ -23,7 +23,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -38,7 +37,6 @@ import java.math.BigDecimal;
  * eliminating the need for verbose manual
  * bitwise operations in policies.
  */
-@UtilityClass
 @FunctionLibrary(name = PermissionsFunctionLibrary.NAME, description = PermissionsFunctionLibrary.DESCRIPTION, libraryDocumentation = PermissionsFunctionLibrary.DOCUMENTATION)
 public class PermissionsFunctionLibrary {
 

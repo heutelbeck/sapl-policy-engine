@@ -23,18 +23,9 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Graph utilities for reachability, transitive closure, and shortest paths.
@@ -49,7 +40,6 @@ import java.util.Set;
  * closure. O(V + E + S) where S = total output size. Functions fold at compile
  * time when the input is a PDP variable.
  */
-@UtilityClass
 @FunctionLibrary(name = GraphFunctionLibrary.NAME, description = GraphFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphFunctionLibrary.DOCUMENTATION)
 public class GraphFunctionLibrary {
 

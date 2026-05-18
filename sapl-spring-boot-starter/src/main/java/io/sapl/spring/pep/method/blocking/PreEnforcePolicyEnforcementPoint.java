@@ -19,7 +19,7 @@ package io.sapl.spring.pep.method.blocking;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import io.sapl.spring.method.metadata.SaplAttributeRegistry;
@@ -33,8 +33,10 @@ import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.data.ShimSignalContributor;
 import io.sapl.spring.subscriptions.AuthorizationSubscriptionBuilderService;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -55,6 +57,7 @@ import java.util.Set;
  *
  * @since 4.1.0
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
@@ -62,7 +65,8 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     private static final String ERROR_ACCESS_DENIED_POST_INVOCATION_OBLIGATION_FAILED = "Access Denied by @PreEnforce PEP. A post-invocation obligation handler failed after the protected method had already executed. Side effects of the invocation may have occurred.";
     private static final String ERROR_ACCESS_DENIED_PRE_INVOCATION_OBLIGATION_FAILED  = "Access Denied by @PreEnforce PEP. A pre-invocation obligation handler failed. The protected method was not invoked.";
 
-    private final ObjectProvider<PolicyDecisionPoint>                     policyDecisionPointProvider;
+    private final ObjectProvider<StreamingPolicyDecisionPoint>            policyDecisionPointProvider;
+    private final ObjectProvider<BlockingTenantResolver>                  tenantResolverProvider;
     private final ObjectProvider<SaplAttributeRegistry>                   attributeRegistryProvider;
     private final ObjectProvider<EnforcementPlanner>                      enforcementPlannerProvider;
     private final ObjectProvider<AuthorizationSubscriptionBuilderService> subscriptionBuilderProvider;
@@ -144,7 +148,11 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             SaplAttribute attribute) {
         val authzSubscription = subscriptionBuilderProvider.getObject()
                 .constructAuthorizationSubscription(BlockingAuthentication.current(), methodInvocation, attribute);
-        return policyDecisionPointProvider.getObject().decideOnceBlocking(authzSubscription);
+        val pdpId             = tenantResolverProvider.getObject().resolve();
+        log.trace("@PreEnforce subscription: {}", authzSubscription);
+        val decision = policyDecisionPointProvider.getObject().decideOnce(authzSubscription, pdpId);
+        log.debug("@PreEnforce decision: {}", decision);
+        return decision;
     }
 
 }

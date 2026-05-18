@@ -23,7 +23,6 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.pip.geo.traccar.TraccarSchemata;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
@@ -34,7 +33,6 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
  * Utility function library for extracting geometries from Traccar positions and
  * geofences.
  */
-@UtilityClass
 @FunctionLibrary(name = "traccar", description = TraccarFunctionLibrary.DESCRIPTION)
 public class TraccarFunctionLibrary {
 

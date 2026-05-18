@@ -17,7 +17,7 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.val;
 

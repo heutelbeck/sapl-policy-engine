@@ -19,15 +19,9 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
+import io.sapl.api.model.*;
 import lombok.val;
 
-@UtilityClass
 @FunctionLibrary(name = StandardFunctionLibrary.NAME, description = StandardFunctionLibrary.DESCRIPTION, libraryDocumentation = StandardFunctionLibrary.DOCUMENTATION)
 public class StandardFunctionLibrary {
 

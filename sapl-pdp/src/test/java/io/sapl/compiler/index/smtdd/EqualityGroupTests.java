@@ -17,13 +17,13 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-
 import io.sapl.api.model.Value;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.BitSet;
 
 import static io.sapl.compiler.index.IndexTestFixtures.predicate;
 import static io.sapl.compiler.index.smtdd.SmtddTestFixtures.stubOperand;

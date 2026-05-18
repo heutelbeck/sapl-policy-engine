@@ -23,6 +23,14 @@ package io.sapl.pdp.configuration;
 public enum PdpState {
 
     /**
+     * A configuration has been accepted but not yet compiled because the
+     * plugins source has not delivered an initial snapshot. The PDP cannot
+     * serve decisions yet. Compilation happens automatically once plugins
+     * arrive.
+     */
+    AWAITING_PLUGINS,
+
+    /**
      * Compilation failed or no configuration loaded. The PDP cannot make valid
      * authorization decisions and serves INDETERMINATE via an error voter.
      */

@@ -17,15 +17,14 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Function library providing JSON marshalling and unmarshalling operations.
@@ -39,7 +38,6 @@ import lombok.val;
  * Values round-trip correctly through conversion:
  * {@code json.jsonToVal(json.valToJson(value)) == value}
  */
-@UtilityClass
 @FunctionLibrary(name = JsonFunctionLibrary.NAME, description = JsonFunctionLibrary.DESCRIPTION, libraryDocumentation = JsonFunctionLibrary.DOCUMENTATION)
 public class JsonFunctionLibrary {
 

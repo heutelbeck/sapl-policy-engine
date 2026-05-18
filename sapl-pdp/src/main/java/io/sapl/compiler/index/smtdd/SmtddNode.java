@@ -17,13 +17,13 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-import java.util.IdentityHashMap;
-import java.util.Map;
-
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import lombok.val;
+
+import java.util.BitSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 /**
  * A node in a Semantic Multi-Terminal Decision Diagram (SMTDD).

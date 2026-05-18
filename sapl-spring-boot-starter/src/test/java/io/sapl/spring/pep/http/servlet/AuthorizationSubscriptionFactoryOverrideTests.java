@@ -19,6 +19,7 @@ package io.sapl.spring.pep.http.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,7 +42,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.serialization.SaplServletJacksonModule;
 import lombok.val;
@@ -59,12 +60,12 @@ class AuthorizationSubscriptionFactoryOverrideTests {
     private static final ObjectMapper MAPPER = JsonMapper.builder().addModule(new SaplJacksonModule())
             .addModule(new SaplServletJacksonModule()).build();
 
-    private PolicyDecisionPoint pdp;
+    private StreamingPolicyDecisionPoint pdp;
 
     @BeforeEach
     void beforeEach() {
-        pdp = mock(PolicyDecisionPoint.class);
-        when(pdp.decideOnceBlocking(any())).thenReturn(AuthorizationDecision.PERMIT);
+        pdp = mock(StreamingPolicyDecisionPoint.class);
+        when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
     }
 
     @Test
@@ -118,13 +119,14 @@ class AuthorizationSubscriptionFactoryOverrideTests {
         subscribeAndCapture(counter);
 
         assertThat(invocations[0]).isEqualTo(1);
-        verify(pdp).decideOnceBlocking(any());
-        verify(pdp, never()).decide(any(AuthorizationSubscription.class));
+        verify(pdp).decideOnce(any(), anyString());
+        verify(pdp, never()).decide(any(AuthorizationSubscription.class), anyString());
     }
 
     private AuthorizationSubscription subscribeAndCapture(AuthorizationSubscriptionFactory factory) {
         val planner = new EnforcementPlanner(java.util.List.of(), MAPPER);
-        val manager = new SaplAuthorizationManager(pdp, planner, factory);
+        val manager = new SaplAuthorizationManager(pdp, () -> StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, planner,
+                factory);
         val request = new MockHttpServletRequest("GET", "/orders/42");
         val auth    = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",
                 AuthorityUtils.createAuthorityList("ROLE_USER"));
@@ -132,7 +134,7 @@ class AuthorizationSubscriptionFactoryOverrideTests {
         manager.authorize(() -> auth, new RequestAuthorizationContext(request));
 
         val captor = ArgumentCaptor.forClass(AuthorizationSubscription.class);
-        verify(pdp).decideOnceBlocking(captor.capture());
+        verify(pdp).decideOnce(captor.capture(), anyString());
         return captor.getValue();
     }
 }

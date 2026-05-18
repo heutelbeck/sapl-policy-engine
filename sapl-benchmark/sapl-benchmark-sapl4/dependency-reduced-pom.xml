@@ -8,10 +8,9 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>sapl-benchmark-sapl4</artifactId>
-  <name>SAPL Benchmark (SAPL 4.0)</name>
-  <description>Rigorous JMH benchmarks for SAPL 4.0 PDP evaluation
-		performance. Uses forks(1) with convergence warmup and 45-second
-		iterations for reproducible results.</description>
+  <name>SAPL Benchmark (SAPL 4.1)</name>
+  <description>Rigorous JMH benchmarks for SAPL 4.1 PDP evaluation
+		performance.</description>
   <licenses>
     <license>
       <name>Apache 2.0</name>
@@ -89,7 +88,7 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.44</version>
+      <version>1.18.46</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

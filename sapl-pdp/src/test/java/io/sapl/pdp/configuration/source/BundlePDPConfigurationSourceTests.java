@@ -17,25 +17,20 @@
  */
 package io.sapl.pdp.configuration.source;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
-import io.sapl.api.pdp.PDPConfiguration;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
-import io.sapl.pdp.configuration.bundle.BundleSignatureException;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,20 +41,14 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
-@ExtendWith(MockitoExtension.class)
 @DisplayName("BundlePDPConfigurationSource")
 class BundlePDPConfigurationSourceTests {
 
@@ -77,9 +66,6 @@ class BundlePDPConfigurationSourceTests {
     @TempDir
     Path tempDir;
 
-    @Mock
-    PdpVoterSource pdpVoterSource;
-
     private BundlePDPConfigurationSource source;
 
     @BeforeAll
@@ -95,17 +81,14 @@ class BundlePDPConfigurationSourceTests {
     @AfterEach
     void tearDown() {
         if (source != null) {
-            source.dispose();
+            source.close();
         }
     }
 
-    private CopyOnWriteArrayList<PDPConfiguration> captureConfigurations() {
-        val configs = new CopyOnWriteArrayList<PDPConfiguration>();
-        doAnswer(inv -> {
-            configs.add(inv.getArgument(0));
-            return null;
-        }).when(pdpVoterSource).loadConfiguration(any(), eq(true));
-        return configs;
+    private List<PDPConfiguration> captureConfigurations(PDPConfigurationSource src) {
+        val capture = new CapturingSubscriber();
+        src.subscribe(capture);
+        return capture.configs();
     }
 
     @Test
@@ -115,10 +98,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "necronomicon-v1" }
                         """,
                 "forbidden.sapl", "policy \"forbidden\" deny true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("necronomicon");
@@ -139,10 +121,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "PERMIT", "errorHandling": "ABSTAIN" }, "configurationId": "yuggoth-v1" }
                         """,
                 "migo.sapl", "policy \"migo\" permit true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(2);
 
@@ -157,27 +138,33 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDoesNotExistThenThrowsException() {
+    void whenDirectoryDoesNotExistThenSubscribeThrowsException() {
         val nonExistentPath = tempDir.resolve("non-existent");
+        source = new BundlePDPConfigurationSource(nonExistentPath, developmentPolicy);
 
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(nonExistentPath, developmentPolicy, pdpVoterSource))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
+        val capture = new CapturingSubscriber();
+
+        assertThatThrownBy(() -> source.subscribe(capture)).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("not a directory");
     }
 
     @Test
-    void whenPathIsNotADirectoryThenThrowsException() throws IOException {
+    void whenPathIsNotADirectoryThenSubscribeThrowsException() throws IOException {
         val file = tempDir.resolve("not-a-directory.txt");
         Files.writeString(file, "content");
+        source = new BundlePDPConfigurationSource(file, developmentPolicy);
 
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(file, developmentPolicy, pdpVoterSource))
-                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("not a directory");
+        val capture = new CapturingSubscriber();
+
+        assertThatThrownBy(() -> source.subscribe(capture)).isInstanceOf(PDPConfigurationException.class)
+                .hasMessageContaining("not a directory");
     }
 
     @Test
     void whenEmptyDirectoryThenVoterSourceNotInvoked() {
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        verifyNoInteractions(pdpVoterSource);
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
@@ -187,10 +174,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "eldritch-bundle-v1" }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().configurationId()).isEqualTo("eldritch-bundle-v1");
@@ -201,10 +187,10 @@ class BundlePDPConfigurationSourceTests {
         createBundleWithoutPdpJson(tempDir.resolve("miskatonic.saplbundle"), "policy.sapl",
                 "policy \"test\" permit true;");
 
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
         // Bundles without pdp.json are now skipped (they're invalid)
-        verifyNoInteractions(pdpVoterSource);
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
@@ -214,10 +200,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "innsmouth-v1" }
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().combiningAlgorithm()).isEqualTo(DENY_OVERRIDES);
@@ -241,10 +226,10 @@ class BundlePDPConfigurationSourceTests {
 
         // Malicious bundles are logged but don't throw - this allows other bundles to
         // load
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
         // No valid configurations should be loaded from the malicious bundle
-        verifyNoInteractions(pdpVoterSource);
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
@@ -254,20 +239,19 @@ class BundlePDPConfigurationSourceTests {
 
         // Malicious bundles are logged but don't throw - this allows other bundles to
         // load
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
         // No valid configurations should be loaded from the malicious bundle
-        verifyNoInteractions(pdpVoterSource);
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
     void whenBundleContainsNestedDirectoriesThenNestedFilesAreSkipped() throws IOException {
         val bundlePath = tempDir.resolve("nested.saplbundle");
         createBundleWithNestedDirectory(bundlePath);
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().saplDocuments()).hasSize(1);
@@ -282,15 +266,14 @@ class BundlePDPConfigurationSourceTests {
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
 
-        captureConfigurations();
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+        captureConfigurations(source);
 
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        assertThat(source.isClosed()).isFalse();
 
-        assertThat(source.isDisposed()).isFalse();
+        source.close();
 
-        source.dispose();
-
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -301,14 +284,13 @@ class BundlePDPConfigurationSourceTests {
                         """,
                 "policy.sapl", "policy \"test\" permit true;");
 
-        captureConfigurations();
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+        captureConfigurations(source);
 
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        source.close();
+        source.close();
 
-        source.dispose();
-        source.dispose();
-
-        assertThat(source.isDisposed()).isTrue();
+        assertThat(source.isClosed()).isTrue();
     }
 
     @Test
@@ -328,11 +310,10 @@ class BundlePDPConfigurationSourceTests {
             // Skip test on systems that don't support symlinks
             return;
         }
-
-        val configs = captureConfigurations();
-
         // Symlink directories are accepted for flexible deployment scenarios
-        source = new BundlePDPConfigurationSource(linkDir, developmentPolicy, pdpVoterSource);
+        source = new BundlePDPConfigurationSource(linkDir, developmentPolicy);
+
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
     }
@@ -353,10 +334,9 @@ class BundlePDPConfigurationSourceTests {
             // Skip test on systems that don't support symlinks
             return;
         }
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         // Symlinks are followed for flexible deployment scenarios
         assertThat(configs).hasSize(2);
@@ -371,10 +351,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "initial-v1" }
                         """,
                 "policy.sapl", "policy \"initial\" permit true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
 
@@ -400,18 +379,18 @@ class BundlePDPConfigurationSourceTests {
                         """,
                 "policy.sapl", "policy \"deletable\" permit true;");
 
-        val configs = captureConfigurations();
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
 
-        assertThat(configs).hasSize(1);
+        assertThat(capture.configs()).hasSize(1);
 
         Files.delete(bundlePath);
 
         // Wait for file watcher to detect deletion and verify configuration is removed
-        await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600)).untilAsserted(() -> {
-            verify(pdpVoterSource).removeConfigurationForPdp("deletable");
-        });
+        await().atMost(Duration.ofSeconds(5)).pollDelay(Duration.ofMillis(600))
+                .untilAsserted(() -> assertThat(capture.removedPdpIds()).contains("deletable"));
     }
 
     @Test
@@ -425,10 +404,9 @@ class BundlePDPConfigurationSourceTests {
         Files.writeString(tempDir.resolve("readme.txt"), "This should be ignored.");
         Files.writeString(tempDir.resolve("security.json"), "{}");
         Files.writeString(tempDir.resolve("bundle.zip"), "Not a real zip");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("valid");
@@ -437,10 +415,9 @@ class BundlePDPConfigurationSourceTests {
     @Test
     void whenBundleWithVariablesThenVariablesAreLoaded() throws IOException {
         createBundleWithVariables(tempDir.resolve("cultist.saplbundle"));
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().data().variables()).containsKey("realm");
@@ -457,10 +434,9 @@ class BundlePDPConfigurationSourceTests {
                             .formatted(i),
                     "policy.sapl", "policy \"tenant%d\" permit subject.tenant == %d;".formatted(i, i));
         }
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(10);
     }
@@ -542,14 +518,13 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "disposable-v3" }
                         """,
                 "policy.sapl", "policy \"original\" permit true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
 
-        source.dispose();
+        source.close();
 
         // Modify existing bundle and add new bundle after dispose
         createBundle(bundlePath,
@@ -584,10 +559,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "invalid-v1" }
                         """,
                 "policy.sapl", "policy \"invalid\" deny true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         // Only valid bundle should be loaded
         assertThat(configs).hasSize(1);
@@ -604,10 +578,9 @@ class BundlePDPConfigurationSourceTests {
 
         // Create corrupt "bundle" that's not a valid ZIP
         Files.writeString(tempDir.resolve("corrupt.saplbundle"), "This is not a ZIP file!");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         // Only valid bundle is loaded - corrupt one is skipped because it has no
         // pdp.json
@@ -631,10 +604,9 @@ class BundlePDPConfigurationSourceTests {
                         { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "target-v1" }
                         """,
                 "policy.sapl", "policy \"target\" deny true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("initial");
@@ -657,7 +629,7 @@ class BundlePDPConfigurationSourceTests {
 
     @Test
     void whenSecurityPolicyIsNullThenThrowsException() {
-        assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, null, pdpVoterSource))
+        assertThatThrownBy(() -> new BundlePDPConfigurationSource(tempDir, null))
                 .isInstanceOf(NullPointerException.class).hasMessageContaining("Security policy");
     }
 
@@ -667,10 +639,10 @@ class BundlePDPConfigurationSourceTests {
                 .withPolicy("test.sapl", "policy \"test\" permit true;").build();
         Files.write(tempDir.resolve("test.saplbundle"), unsignedBundle);
 
-        val configs        = captureConfigurations();
         val unsignedPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
+        source = new BundlePDPConfigurationSource(tempDir, unsignedPolicy);
 
-        source = new BundlePDPConfigurationSource(tempDir, unsignedPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
     }
@@ -682,10 +654,9 @@ class BundlePDPConfigurationSourceTests {
                 .signWith(elderKeyPair.getPrivate(), "test-key").build();
 
         Files.write(tempDir.resolve("signed.saplbundle"), signedBundle);
+        source = new BundlePDPConfigurationSource(tempDir, signedPolicy);
 
-        val configs = captureConfigurations();
-
-        source = new BundlePDPConfigurationSource(tempDir, signedPolicy, pdpVoterSource);
+        val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
         assertThat(configs.getFirst().pdpId()).isEqualTo("signed");
@@ -699,10 +670,10 @@ class BundlePDPConfigurationSourceTests {
                         """,
                 "policy.sapl", "policy \"unsigned\" permit true;");
 
-        source = new BundlePDPConfigurationSource(tempDir, signedPolicy, pdpVoterSource);
+        source = new BundlePDPConfigurationSource(tempDir, signedPolicy);
 
         // Unsigned bundle should be skipped when signature is required
-        verifyNoInteractions(pdpVoterSource);
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     private void createBundleWithVariables(Path bundlePath) throws IOException {

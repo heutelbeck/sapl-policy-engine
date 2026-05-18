@@ -17,48 +17,28 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.JsonNodeFactory;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.model.*;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import io.sapl.functions.libraries.crypto.KeyUtils;
 import io.sapl.functions.libraries.crypto.PemUtils;
-import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.KeyFactory;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.ECPoint;
-import java.security.spec.ECPublicKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.*;
 import java.util.Arrays;
 import java.util.Base64;
 
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_EC;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_ED25519;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.ALGORITHM_RSA;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.CURVE_ED25519;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_EC;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_OKP;
-import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_RSA;
+import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
 /**
  * Provides functions for parsing and converting cryptographic key material.
@@ -77,7 +57,6 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.JWK_KEY_TYPE_RS
  * JWK conversion follows RFC 7517 (JSON Web Key) and RFC 7518 (JSON Web
  * Algorithms).
  */
-@UtilityClass
 @FunctionLibrary(name = KeysFunctionLibrary.NAME, description = KeysFunctionLibrary.DESCRIPTION, libraryDocumentation = KeysFunctionLibrary.DOCUMENTATION)
 public class KeysFunctionLibrary {
 

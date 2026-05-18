@@ -38,28 +38,31 @@ class LoadtestCommandTests {
     class ArgumentParsingTests {
 
         @Test
-        @DisplayName("--help shows usage without error")
-        void whenHelp_thenExitCode0() {
-            val cmd      = new CommandLine(new LoadtestCommand());
+        @DisplayName("--help produces help text and exits with code 0")
+        void whenHelpThenExitZeroWithHelpText() {
+            val out = new StringWriter();
+            val cmd = new CommandLine(new LoadtestCommand());
+            cmd.setOut(new PrintWriter(out));
             val exitCode = cmd.execute("--help");
             assertThat(exitCode).isZero();
+            assertThat(out.toString()).contains("loadtest", "--rsocket", "--concurrency", "--rate", "-s", "-r");
         }
 
         @Test
         @DisplayName("parses HTTP options with defaults")
-        void whenDefaults_thenHttpOptionsPopulated() {
+        void whenDefaultsThenHttpOptionsPopulated() {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
             assertThat(cmd).satisfies(c -> {
                 assertThat(c.rsocket).isFalse();
-                assertThat(c.url).isEqualTo("http://localhost:8443");
+                assertThat(c.url).isEqualTo("http://localhost:8080");
                 assertThat(c.concurrency).isEqualTo(64);
             });
         }
 
         @Test
         @DisplayName("parses RSocket options")
-        void whenRsocket_thenRsocketOptionsPopulated() {
+        void whenRsocketThenRsocketOptionsPopulated() {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("--rsocket", "--host", "pdp.example.com", "--port", "9000", "--connections",
                     "4", "--vt-per-connection", "256", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
@@ -74,7 +77,7 @@ class LoadtestCommandTests {
 
         @Test
         @DisplayName("parses label option")
-        void whenLabel_thenLabelPopulated() {
+        void whenLabelThenLabelPopulated() {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("--label", "Server pinned to CPUs 0-7", "-s", "\"alice\"", "-a", "\"read\"",
                     "-r", "\"doc\"");
@@ -83,7 +86,7 @@ class LoadtestCommandTests {
 
         @Test
         @DisplayName("parses measurement options")
-        void whenMeasurementOptions_thenPopulated() {
+        void whenMeasurementOptionsThenPopulated() {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("--warmup-seconds", "10", "--measurement-seconds", "30", "-s", "\"alice\"",
                     "-a", "\"read\"", "-r", "\"doc\"");
@@ -93,7 +96,7 @@ class LoadtestCommandTests {
 
         @Test
         @DisplayName("machine-readable defaults to false")
-        void whenDefault_thenMachineReadableFalse() {
+        void whenDefaultThenMachineReadableFalse() {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
             assertThat(cmd.machineReadable).isFalse();
@@ -101,7 +104,7 @@ class LoadtestCommandTests {
 
         @Test
         @DisplayName("parses machine-readable flag")
-        void whenMachineReadable_thenTrue() {
+        void whenMachineReadableThenTrue() {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("--machine-readable", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
             assertThat(cmd.machineReadable).isTrue();
@@ -124,7 +127,7 @@ class LoadtestCommandTests {
 
         @Test
         @DisplayName("missing subscription returns exit code 1")
-        void whenNoSubscription_thenExitCode1() {
+        void whenNoSubscriptionThenExitCode1() {
             assertThat(cmd.execute()).isEqualTo(1);
             assertThat(err.toString()).contains(LoadtestCommand.ERROR_SUBSCRIPTION_MISSING);
         }

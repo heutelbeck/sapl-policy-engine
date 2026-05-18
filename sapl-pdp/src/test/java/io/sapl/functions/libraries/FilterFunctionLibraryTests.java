@@ -28,9 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 /**
  * Tests for FilterFunctionLibrary using new Value model.
@@ -41,13 +39,8 @@ class FilterFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(FilterFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new FilterFunctionLibrary())).doesNotThrowAnyException();
     }
-
-    // ============================================================================
-    // BLACKEN FUNCTION TESTS
-    // ============================================================================
 
     @Test
     void blackenNoArgumentsThrowsException() {
@@ -250,10 +243,6 @@ class FilterFunctionLibraryTests {
                 .isEqualTo(longIncantation.substring(longIncantation.length() - 10));
     }
 
-    // ============================================================================
-    // BLACKEN_UTIL TESTS
-    // ============================================================================
-
     @ParameterizedTest(name = "blackenUtil: {0} with replacement={1}, left={2}, right={3}, length={4}")
     @CsvSource(delimiter = '|', nullValues = "null", textBlock = """
             Necronomicon | * | 5 | 3 | null | Necro****con
@@ -268,10 +257,6 @@ class FilterFunctionLibraryTests {
                 length);
         assertThat(result).isEqualTo(expected);
     }
-
-    // ============================================================================
-    // REPLACE FUNCTION TESTS
-    // ============================================================================
 
     @Test
     void replaceNormalValueReturnsReplacement() {
@@ -296,10 +281,6 @@ class FilterFunctionLibraryTests {
 
         assertThat(result).isEqualTo(Value.of("replacement"));
     }
-
-    // ============================================================================
-    // REMOVE FUNCTION TESTS
-    // ============================================================================
 
     @Test
     void removeAnyValueReturnsUndefined() {

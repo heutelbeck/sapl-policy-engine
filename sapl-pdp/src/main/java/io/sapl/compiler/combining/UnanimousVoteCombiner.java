@@ -28,11 +28,7 @@ import lombok.val;
 import java.util.List;
 
 import static io.sapl.ast.Outcome.combine;
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
-import static io.sapl.compiler.combining.CombiningUtils.decisionToOutcome;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
-import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
+import static io.sapl.compiler.combining.CombiningUtils.*;
 
 /**
  * Combines multiple policy votes using unanimous semantics.
@@ -119,8 +115,7 @@ public class UnanimousVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public static Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**

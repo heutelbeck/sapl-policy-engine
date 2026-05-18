@@ -20,6 +20,7 @@ package io.sapl.spring.pep.http.servlet;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -30,7 +31,6 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.Signal.DecisionSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpDenialSignal;
@@ -39,7 +39,9 @@ import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpResponseSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
+import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
@@ -68,6 +70,7 @@ import lombok.val;
  * defaults to an anonymous token so policies can express "permit anyone" or
  * "deny anonymous" rules without the authorization machinery raising an NPE.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class SaplAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 
@@ -78,7 +81,8 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
             HttpRequestSignal.SIGNAL_TYPE, HttpRequestMutationSignal.SIGNAL_TYPE, HttpResponseSignal.SIGNAL_TYPE,
             HttpDenialSignal.SIGNAL_TYPE);
 
-    private final PolicyDecisionPoint              pdp;
+    private final StreamingPolicyDecisionPoint     pdp;
+    private final BlockingTenantResolver           tenantResolver;
     private final EnforcementPlanner               enforcementPlanner;
     private final AuthorizationSubscriptionFactory subscriptionFactory;
 
@@ -89,7 +93,9 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         val rawAuth        = authenticationSupplier.get();
         val authentication = rawAuth != null ? rawAuth : ANONYMOUS;
         val subscription   = subscriptionFactory.build(authentication, servletRequest);
-        val authzDecision  = pdp.decideOnceBlocking(subscription);
+        log.trace("HTTP PEP subscription: {}", subscription);
+        val authzDecision = pdp.decideOnce(subscription, tenantResolver.resolve());
+        log.debug("HTTP PEP decision: {}", authzDecision);
 
         val plan = enforcementPlanner.plan(authzDecision, SUPPORTED_SIGNALS);
         servletRequest.setAttribute(HttpEnforcementContext.PLAN_ATTRIBUTE, plan);

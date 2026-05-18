@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.io.IOException;
@@ -31,7 +30,6 @@ import java.util.Properties;
 /**
  * Collection of SAPL system information functions.
  */
-@UtilityClass
 @FunctionLibrary(name = SaplFunctionLibrary.NAME, description = SaplFunctionLibrary.DESCRIPTION, libraryDocumentation = SaplFunctionLibrary.DOCUMENTATION)
 public class SaplFunctionLibrary {
 

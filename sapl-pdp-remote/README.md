@@ -25,7 +25,7 @@ The builder supports three mutually exclusive authentication methods:
 
 ### SSL/TLS
 
-The default base URL is `https://localhost:8443`. For custom certificate handling:
+The builder default base URL is `https://localhost:8443`. The SAPL Node ships plain HTTP on `http://localhost:8080`, so most consumers will set `baseUrl` explicitly. For custom certificate handling:
 
 - `secure()` - Use JVM default SSL context
 - `secure(sslContext)` - Use a custom `SslContext`

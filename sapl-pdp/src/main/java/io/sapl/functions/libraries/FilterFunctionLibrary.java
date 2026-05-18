@@ -23,7 +23,6 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.math.BigDecimal;
@@ -37,7 +36,6 @@ import java.util.Arrays;
  * removing sensitive data in authorization
  * decisions.
  */
-@UtilityClass
 @FunctionLibrary(name = FilterFunctionLibrary.NAME, description = FilterFunctionLibrary.DESCRIPTION, libraryDocumentation = FilterFunctionLibrary.DOCUMENTATION)
 public class FilterFunctionLibrary {
 

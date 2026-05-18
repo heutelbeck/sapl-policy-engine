@@ -45,6 +45,11 @@
 			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-pdp-reactive</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 		<!-- Dependency for the WebClient -->
 		<dependency>
 			<groupId>org.springframework</groupId>

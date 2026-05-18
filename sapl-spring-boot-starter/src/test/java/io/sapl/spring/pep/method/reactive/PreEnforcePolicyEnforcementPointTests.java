@@ -19,25 +19,26 @@ package io.sapl.spring.pep.method.reactive;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.access.AccessDeniedException;
@@ -50,7 +51,6 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PolicyDecisionPoint;
 import io.sapl.spring.config.EnableReactiveSaplMethodSecurity;
 import io.sapl.spring.method.metadata.PreEnforce;
 import io.sapl.spring.pep.constraints.ConstraintHandler;
@@ -69,7 +69,6 @@ import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.constraints.Signal.SubscriptionSignal;
 import io.sapl.spring.pep.constraints.Signal.TerminationSignal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.SignalType.ValueSignalType;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -115,7 +114,10 @@ class PreEnforcePolicyEnforcementPointTests {
     WatchHouse watch;
 
     @MockitoBean
-    PolicyDecisionPoint pdp;
+    ReactivePolicyDecisionPoint pdp;
+
+    @MockitoBean
+    StreamingPolicyDecisionPoint blockingPdp;
 
     @Autowired
     PatricianLogbook logbook;
@@ -437,7 +439,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
             StepVerifier.create(watch.confiscateLostScroll()).verifyComplete();
 
-            verify(pdp).decideOnce(any());
+            verify(pdp).decideOnce(any(), anyString());
             assertThat(logbook.anguaAudits).hasValue(1);
         }
 
@@ -461,7 +463,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
             StepVerifier.create(watch.escortDrumknottHome()).verifyComplete();
 
-            verify(pdp).decideOnce(any());
+            verify(pdp).decideOnce(any(), anyString());
             assertThat(logbook.escortRiteSideEffects).hasValue(1);
         }
 
@@ -610,7 +612,7 @@ class PreEnforcePolicyEnforcementPointTests {
     }
 
     private void decide(AuthorizationDecision decision) {
-        when(pdp.decideOnce(any())).thenReturn(Mono.just(decision));
+        when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decision));
     }
 
     private static void assertAccessDenied(Mono<?> publisher, String messageFragment) {
@@ -700,8 +702,7 @@ class PreEnforcePolicyEnforcementPointTests {
 
     public record Suspect(String name, int dangerLevel) {}
 
-    @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
     static class AnkhMorporkTestApp {
 

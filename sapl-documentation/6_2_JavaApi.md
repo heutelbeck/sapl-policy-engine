@@ -193,7 +193,7 @@ For projects using multiple SAPL dependencies, use the bill of materials POM:
 Build a PDP using `PolicyDecisionPointBuilder`. For policies bundled in your application's resources (the `src/main/resources/policies` folder), use `withResourcesSource()`. For policies on the filesystem (with live-reload on changes), use `withDirectorySource()`:
 
 ```java
-import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
 
 // Option A: Load policies from application resources (src/main/resources/policies)
 var components = PolicyDecisionPointBuilder.withDefaults()

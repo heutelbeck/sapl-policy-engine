@@ -21,7 +21,6 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
 import org.geotools.api.feature.Feature;
 import org.geotools.api.feature.Property;
 import org.geotools.feature.FeatureCollection;
@@ -46,7 +45,6 @@ import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 
-@UtilityClass
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)
 public class GeographicFunctionLibrary {
 

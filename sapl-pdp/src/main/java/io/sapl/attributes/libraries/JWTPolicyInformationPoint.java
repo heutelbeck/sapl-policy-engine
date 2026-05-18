@@ -28,13 +28,14 @@ import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.stream.TimeScheduler;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -42,10 +43,10 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.security.Key;
 import java.text.ParseException;
-import java.time.Duration;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Date;
-import java.util.function.Function;
+import java.util.Optional;
 
 /**
  * Policy Information Point for validating and monitoring JSON Web Tokens.
@@ -127,7 +128,7 @@ public class JWTPolicyInformationPoint {
                   "secretsKey": "jwt",
                   "clockSkewSeconds": 60,
                   "publicKeyServer": {
-                    "uri": "http://authz-server:9000/public-key/{id}",
+                    "uri": "http://authz-server:9000/public-key/{kid}",
                     "method": "GET",
                     "keyCachingTtlMillis": 300000
                   },
@@ -180,7 +181,8 @@ public class JWTPolicyInformationPoint {
               directly in policy conditions.
             """;
 
-    private static final String ERROR_JWT_CONFIG_MISSING = "The key 'jwt' with the configuration of public key server and key whitelist is missing from variables. All JWT tokens will be treated as if the signatures could not be validated.";
+    private static final String ERROR_JWT_CONFIG_MISSING       = "The key 'jwt' with the configuration of public key server and key whitelist is missing from variables. All JWT tokens will be treated as if the signatures could not be validated.";
+    private static final String ERROR_KEY_PROVIDER_CONFIG_FAIL = "Key provider rejected the key-server configuration: {}";
 
     private static final JsonNodeFactory JSON   = JsonNodeFactory.instance;
     private static final JsonMapper      MAPPER = JsonMapper.builder().build();
@@ -212,23 +214,32 @@ public class JWTPolicyInformationPoint {
     }
 
     private final JWTKeyProvider keyProvider;
+    private final Clock          clock;
+    private final TimeScheduler  scheduler;
 
     /**
      * Constructor.
      *
-     * @param jwtKeyProvider a JWTKeyProvider
+     * @param keyProvider the JWT key provider
+     * @param clock the clock used for time-claim validation and boundary scheduling
+     * @param scheduler the scheduler used for IMMATURE -> VALID -> EXPIRED
+     * transitions
      */
-    public JWTPolicyInformationPoint(JWTKeyProvider jwtKeyProvider) {
-        this.keyProvider = jwtKeyProvider;
+    public JWTPolicyInformationPoint(JWTKeyProvider keyProvider, Clock clock, TimeScheduler scheduler) {
+        this.keyProvider = keyProvider;
+        this.clock       = clock;
+        this.scheduler   = scheduler;
     }
 
     /**
-     * Reads a JWT from subscription secrets using the configured default key and
-     * returns a reactive stream of token data including header, payload, validity
-     * state, and a boolean valid flag.
+     * Reads a JWT from subscription secrets using the configured
+     * default secrets key and emits an {@link ObjectValue} carrying the
+     * decoded header, payload, a boolean {@code valid} flag, and the
+     * current {@link ValidityState}. The stream re-emits as the token
+     * transitions through IMMATURE, VALID, and EXPIRED.
      *
-     * @param ctx the attribute access context
-     * @return a reactive stream of ObjectValue containing token data
+     * @param ctx the attribute access context (variables, subscription secrets)
+     * @return a stream of token-state {@link ObjectValue}s
      */
     @EnvironmentAttribute(docs = """
             ```<jwt.token>``` reads a JWT from subscription secrets using the configured default secrets key
@@ -263,18 +274,18 @@ public class JWTPolicyInformationPoint {
               "admin" in <jwt.token>.payload.roles;
             ```
             """)
-    public Flux<Value> token(AttributeAccessContext ctx) {
-        val secretsKey = resolveSecretsKey(ctx);
-        return tokenFromSecrets(secretsKey, ctx);
+    public Stream<Value> token(AttributeAccessContext ctx) {
+        return tokenFromSecrets(resolveSecretsKey(ctx), ctx);
     }
 
     /**
-     * Reads a JWT from subscription secrets using the specified key name and
-     * returns a reactive stream of token data.
+     * Reads a JWT from subscription secrets using {@code secretsKeyName}
+     * as the key, otherwise behaves like {@link #token(AttributeAccessContext)}.
      *
-     * @param ctx the attribute access context
-     * @param secretsKeyName the key name in subscription secrets
-     * @return a reactive stream of ObjectValue containing token data
+     * @param ctx the attribute access context (variables, subscription secrets)
+     * @param secretsKeyName the name of the secrets entry holding the token;
+     * falls back to the default {@code "jwt"} key when {@code null}
+     * @return a stream of token-state {@link ObjectValue}s
      */
     @EnvironmentAttribute(docs = """
             ```<jwt.token(TEXT secretsKeyName)>``` reads a JWT from subscription secrets using the specified
@@ -289,7 +300,7 @@ public class JWTPolicyInformationPoint {
               <jwt.token("accessToken")>.valid;
             ```
             """)
-    public Flux<Value> token(AttributeAccessContext ctx, TextValue secretsKeyName) {
+    public Stream<Value> token(AttributeAccessContext ctx, TextValue secretsKeyName) {
         val key = secretsKeyName != null ? secretsKeyName.value() : JWT_KEY;
         return tokenFromSecrets(key, ctx);
     }
@@ -327,21 +338,26 @@ public class JWTPolicyInformationPoint {
         return 0L;
     }
 
-    private Flux<Value> tokenFromSecrets(String secretsKey, AttributeAccessContext ctx) {
+    private Stream<Value> tokenFromSecrets(String secretsKey, AttributeAccessContext ctx) {
         val tokenValue = ctx.subscriptionSecrets().get(secretsKey);
 
-        if (!(tokenValue instanceof TextValue(String value)))
-            return Flux.just(buildTokenValue(null, ValidityState.MISSING_TOKEN));
+        if (!(tokenValue instanceof TextValue(String value))) {
+            return Streams.just(buildTokenValue(null, ValidityState.MISSING_TOKEN));
+        }
 
         SignedJWT signedJwt;
         try {
             signedJwt = SignedJWT.parse(value);
         } catch (ParseException e) {
-            return Flux.just(buildTokenValue(null, ValidityState.MALFORMED));
+            return Streams.just(buildTokenValue(null, ValidityState.MALFORMED));
         }
 
         val parsedToken = extractParsedToken(signedJwt);
-        return validityState(signedJwt, ctx).map(state -> buildTokenValue(parsedToken, state));
+        return Streams.map(validityStateStream(signedJwt, ctx), state -> buildTokenValue(parsedToken, asState(state)));
+    }
+
+    private static ValidityState asState(Value v) {
+        return v instanceof TextValue(var name) ? ValidityState.valueOf(name) : ValidityState.MALFORMED;
     }
 
     private Value buildTokenValue(ParsedToken parsedToken, ValidityState state) {
@@ -377,121 +393,132 @@ public class JWTPolicyInformationPoint {
     }
 
     private void ifPresentReplaceEpochFieldWithIsoTime(JsonNode payload, String key) {
-        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()))
+        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber())) {
             return;
+        }
 
         val epochSeconds = payload.get(key).asLong();
-        if (epochSeconds < 0 || epochSeconds > MAX_REASONABLE_EPOCH_SECONDS)
+        if (epochSeconds < 0 || epochSeconds > MAX_REASONABLE_EPOCH_SECONDS) {
             return;
+        }
 
         val isoString = Instant.ofEpochSecond(epochSeconds).toString();
         ((ObjectNode) payload).set(key, JSON.stringNode(isoString));
     }
 
-    private Flux<ValidityState> validityState(SignedJWT signedJwt, AttributeAccessContext ctx) {
+    private Stream<Value> validityStateStream(SignedJWT signedJwt, AttributeAccessContext ctx) {
         JWTClaimsSet claims;
         try {
             claims = signedJwt.getJWTClaimsSet();
         } catch (ParseException e) {
-            return Flux.just(ValidityState.MALFORMED);
+            return Streams.just(stateValue(ValidityState.MALFORMED));
         }
 
-        if (!hasCompatibleClaims(signedJwt))
-            return Flux.just(ValidityState.INCOMPATIBLE);
+        if (!hasCompatibleClaims(signedJwt)) {
+            return Streams.just(stateValue(ValidityState.INCOMPATIBLE));
+        }
 
-        if (!hasRequiredClaims(signedJwt))
-            return Flux.just(ValidityState.INCOMPLETE);
+        if (!hasRequiredClaims(signedJwt)) {
+            return Streams.just(stateValue(ValidityState.INCOMPLETE));
+        }
+
+        val signatureValid = validateSignature(signedJwt, ctx);
+        if (!signatureValid) {
+            return Streams.just(stateValue(ValidityState.UNTRUSTED));
+        }
 
         val clockSkewSeconds        = resolveClockSkewSeconds(ctx);
         val maxTokenLifetimeSeconds = resolveMaxTokenLifetimeSeconds(ctx);
-        return validateSignature(signedJwt, ctx).flatMapMany(isValid -> {
-
-            if (Boolean.FALSE.equals(isValid))
-                return Flux.just(ValidityState.UNTRUSTED);
-
-            return validateTime(claims, clockSkewSeconds, maxTokenLifetimeSeconds);
-        });
+        return validateTime(claims, clockSkewSeconds, maxTokenLifetimeSeconds);
     }
 
-    private Mono<Boolean> validateSignature(SignedJWT signedJwt, AttributeAccessContext ctx) {
+    private static Value stateValue(ValidityState state) {
+        return Value.of(state.toString());
+    }
 
+    private boolean validateSignature(SignedJWT signedJwt, AttributeAccessContext ctx) {
         val jwtConfig = ctx.variables().get(JWT_KEY);
         if (!(jwtConfig instanceof ObjectValue jwtConfigObj)) {
             log.error(ERROR_JWT_CONFIG_MISSING);
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
         val keyId = signedJwt.getHeader().getKeyID();
 
-        Mono<Key> publicKey       = null;
-        val       whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
-        var       isFromWhitelist = false;
+        var publicKey       = Optional.<Key>empty();
+        var isFromWhitelist = false;
+        val whitelist       = jwtConfigObj.get(WHITELIST_VARIABLES_KEY);
         if (whitelist instanceof ObjectValue whitelistObj && whitelistObj.containsKey(keyId)) {
             val keyValue = whitelistObj.get(keyId);
             val key      = JWTEncodingDecodingUtils.jsonNodeToKey(ValueJsonMarshaller.toJsonNode(keyValue));
             if (key.isPresent()) {
-                publicKey       = Mono.just(key.get());
+                publicKey       = key;
                 isFromWhitelist = true;
             }
         }
 
-        if (null == publicKey) {
+        if (publicKey.isEmpty()) {
             val jPublicKeyServer = jwtConfigObj.get(PUBLIC_KEY_VARIABLES_KEY);
-
-            if (null == jPublicKeyServer)
-                return Mono.just(Boolean.FALSE);
-
+            if (null == jPublicKeyServer) {
+                return false;
+            }
             try {
                 publicKey = keyProvider.provide(keyId, ValueJsonMarshaller.toJsonNode(jPublicKeyServer));
             } catch (JWTKeyProvider.CachingException e) {
-                log.error(e.getLocalizedMessage());
-                publicKey = Mono.empty();
+                log.error(ERROR_KEY_PROVIDER_CONFIG_FAIL, e.getLocalizedMessage());
+                return false;
             }
         }
 
-        return publicKey.map(signatureOfTokenIsValid(keyId, signedJwt, isFromWhitelist)).defaultIfEmpty(Boolean.FALSE);
+        if (publicKey.isEmpty()) {
+            return false;
+        }
+
+        return verifySignatureOf(keyId, signedJwt, publicKey.get(), isFromWhitelist);
     }
 
-    private Function<Key, Boolean> signatureOfTokenIsValid(String keyId, SignedJWT signedJwt, boolean isFromWhitelist) {
-        return key -> {
-            try {
-                JWSVerifier verifier = VERIFIER_FACTORY.createJWSVerifier(signedJwt.getHeader(), key);
-                val         isValid  = signedJwt.verify(verifier);
-                if (isValid && !isFromWhitelist)
-                    keyProvider.cache(keyId, key);
-                return isValid;
-            } catch (JOSEException e) {
-                return Boolean.FALSE;
+    private boolean verifySignatureOf(String keyId, SignedJWT signedJwt, Key key, boolean isFromWhitelist) {
+        try {
+            JWSVerifier verifier = VERIFIER_FACTORY.createJWSVerifier(signedJwt.getHeader(), key);
+            val         isValid  = signedJwt.verify(verifier);
+            if (isValid && !isFromWhitelist) {
+                keyProvider.cache(keyId, key);
             }
-        };
+            return isValid;
+        } catch (JOSEException e) {
+            return false;
+        }
     }
 
-    private Flux<ValidityState> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
+    private Stream<Value> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
         val notBefore      = claims.getNotBeforeTime();
         val expirationTime = claims.getExpirationTime();
-        val now            = new Date();
+        val now            = clock.instant();
         val skewMillis     = clockSkewSeconds * 1000L;
 
-        if (isNeverValid(notBefore, expirationTime, claims, now, maxTokenLifetimeSeconds))
-            return Flux.just(ValidityState.NEVER_VALID);
+        if (isNeverValid(notBefore, expirationTime, claims, now, maxTokenLifetimeSeconds)) {
+            return Streams.just(stateValue(ValidityState.NEVER_VALID));
+        }
 
         val expWithSkew = null != expirationTime ? saturatingAdd(expirationTime.getTime(), skewMillis) : 0L;
         val nbfWithSkew = null != notBefore ? notBefore.getTime() - skewMillis : 0L;
 
-        if (null != expirationTime && expWithSkew < now.getTime())
-            return Flux.just(ValidityState.EXPIRED);
+        if (null != expirationTime && expWithSkew < now.toEpochMilli()) {
+            return Streams.just(stateValue(ValidityState.EXPIRED));
+        }
 
         return buildValidityTimeline(notBefore, expirationTime, now, nbfWithSkew, expWithSkew);
     }
 
-    private static boolean isNeverValid(Date notBefore, Date expirationTime, JWTClaimsSet claims, Date now,
+    private static boolean isNeverValid(Date notBefore, Date expirationTime, JWTClaimsSet claims, Instant now,
             long maxTokenLifetimeSeconds) {
-        if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime())
+        if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime()) {
             return true;
+        }
 
         if (maxTokenLifetimeSeconds > 0 && null != expirationTime) {
             val issueTime         = claims.getIssueTime();
-            val referenceMillis   = null != issueTime ? issueTime.getTime() : now.getTime();
+            val referenceMillis   = null != issueTime ? issueTime.getTime() : now.toEpochMilli();
             val lifetimeMillis    = expirationTime.getTime() - referenceMillis;
             val maxLifetimeMillis = maxTokenLifetimeSeconds * 1000L;
             return lifetimeMillis > maxLifetimeMillis;
@@ -499,37 +526,40 @@ public class JWTPolicyInformationPoint {
         return false;
     }
 
-    private static Flux<ValidityState> buildValidityTimeline(Date notBefore, Date expirationTime, Date now,
-            long nbfWithSkew, long expWithSkew) {
-        if (null != notBefore && nbfWithSkew > now.getTime()) {
-            val nbfDelay = nbfWithSkew - now.getTime();
+    private Stream<Value> buildValidityTimeline(Date notBefore, Date expirationTime, Instant now, long nbfWithSkew,
+            long expWithSkew) {
+        if (null != notBefore && nbfWithSkew > now.toEpochMilli()) {
+            val nbfInstant = Instant.ofEpochMilli(nbfWithSkew);
             if (null == expirationTime) {
-                return Flux.concat(Mono.just(ValidityState.IMMATURE),
-                        Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)));
+                return Streams.concat(Streams.just(stateValue(ValidityState.IMMATURE)),
+                        Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler));
             }
-            val expDelay = expWithSkew - nbfWithSkew;
-            return Flux.concat(Mono.just(ValidityState.IMMATURE),
-                    Mono.just(ValidityState.VALID).delayElement(Duration.ofMillis(nbfDelay)),
-                    Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(expDelay)));
+            val expInstant = Instant.ofEpochMilli(expWithSkew);
+            return Streams.concat(Streams.just(stateValue(ValidityState.IMMATURE)),
+                    Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler),
+                    Streams.scheduledAt(stateValue(ValidityState.EXPIRED), expInstant, scheduler));
         }
 
-        if (null == expirationTime)
-            return Flux.just(ValidityState.VALID);
+        if (null == expirationTime) {
+            return Streams.just(stateValue(ValidityState.VALID));
+        }
 
-        return validThenExpiredAfterDelay(expWithSkew - now.getTime());
+        return validThenExpiredAt(Instant.ofEpochMilli(expWithSkew), now);
     }
 
-    private static Flux<ValidityState> validThenExpiredAfterDelay(long delayMillis) {
-        if (delayMillis > MAX_REASONABLE_EPOCH_SECONDS * 1000L)
-            return Flux.just(ValidityState.VALID);
-        return Flux.concat(Mono.just(ValidityState.VALID),
-                Mono.just(ValidityState.EXPIRED).delayElement(Duration.ofMillis(delayMillis)));
+    private Stream<Value> validThenExpiredAt(Instant expiry, Instant now) {
+        if (expiry.toEpochMilli() - now.toEpochMilli() > MAX_REASONABLE_EPOCH_SECONDS * 1000L) {
+            return Streams.just(stateValue(ValidityState.VALID));
+        }
+        return Streams.concat(Streams.just(stateValue(ValidityState.VALID)),
+                Streams.scheduledAt(stateValue(ValidityState.EXPIRED), expiry, scheduler));
     }
 
     private static long saturatingAdd(long a, long b) {
         val result = a + b;
-        if (((a ^ result) & (b ^ result)) < 0)
+        if (((a ^ result) & (b ^ result)) < 0) {
             return Long.MAX_VALUE;
+        }
         return result;
     }
 
@@ -542,5 +572,4 @@ public class JWTPolicyInformationPoint {
         val header = jwt.getHeader();
         return null == header.getCriticalParams();
     }
-
 }

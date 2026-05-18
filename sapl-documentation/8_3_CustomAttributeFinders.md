@@ -49,9 +49,13 @@ Both `@Attribute` and `@EnvironmentAttribute` support the same annotation attrib
 
 ### Return Types
 
-Attribute methods must return `Flux<Value>` or `Mono<Value>`. A `Mono<Value>` return is automatically converted to a `Flux<Value>` by the PDP.
+Attribute methods return either `io.sapl.api.stream.Stream<Value>` (for attributes that emit a sequence of values) or a `Value` subtype (for one-shot attributes that resolve to a single value). The PDP wraps a one-shot `Value` return as `Streams.just(value)` internally.
 
-Use `Flux<Value>` when the attribute value can change over time (e.g., periodic sensor readings, message streams). Use `Mono<Value>` when the attribute is fetched once (e.g., a database lookup).
+Use `Stream<Value>` for attributes whose value changes over time (periodic sensor readings, message streams, certificate expiry watchers). Use a `Value` return when the attribute resolves once per invocation (database lookup, deterministic computation, single-shot HTTP GET).
+
+`Stream<Value>` here is the SAPL stream primitive in `sapl-api`, not `java.util.stream.Stream`. The `io.sapl.api.stream.Streams` utility class provides constructors: `Streams.just(value)`, `Streams.error(message)`, `Streams.empty()`, `Streams.scheduledPoll(interval, supplier, clock, scheduler)`, `Streams.scheduledAt(value, instant, scheduler)`, `Streams.concat(...)`, `Streams.map(stream, fn)`, `Streams.distinctUntilChanged(stream, errorMapper)`, `Streams.fromCallback(producer)`, `Streams.fromBlockingSource(callable)`. PIP authors compose these in the same shape as the built-in libraries.
+
+Reactor types (`Flux<Value>`, `Mono<Value>`) are no longer accepted from PIP methods. The 4.1 attribute broker contract drops Reactor at the boundary.
 
 ### Parameter Order
 
@@ -83,9 +87,10 @@ Policy parameters use concrete `Value` subtypes for type safety, following the s
 ```java
 /* <time.now> */
 @EnvironmentAttribute(docs = "Returns the current UTC time, updating periodically.")
-public Flux<Value> now() {
-    return Flux.interval(Duration.ofSeconds(1))
-        .map(i -> Value.of(Instant.now(clock).toString()));
+public Stream<Value> now() {
+    return Streams.scheduledPoll(Duration.ofSeconds(1),
+        () -> Value.of(Instant.now(clock).toString()),
+        clock, scheduler);
 }
 ```
 
@@ -94,7 +99,7 @@ public Flux<Value> now() {
 ```java
 /* <jwt.token> */
 @EnvironmentAttribute(docs = "Extracts a JWT from the subscription secrets.")
-public Flux<Value> token(AttributeAccessContext ctx) {
+public Stream<Value> token(AttributeAccessContext ctx) {
     var secretsKey = resolveSecretsKey(ctx);
     return tokenFromSecrets(secretsKey, ctx);
 }
@@ -115,16 +120,17 @@ The context is injected automatically by the PDP and is invisible to policy auth
 ```java
 /* subject.clientCertificate.<x509.isCurrentlyValid> */
 @Attribute(docs = "Checks if the certificate is currently valid.")
-public Flux<Value> isCurrentlyValid(TextValue certPem) {
+public Stream<Value> isCurrentlyValid(TextValue certPem) {
     try {
         var certificate = CertificateUtils.parseCertificate(certPem.value());
         var notBefore   = certificate.getNotBefore().toInstant();
         var notAfter    = certificate.getNotAfter().toInstant();
-        return Flux.interval(Duration.ofMinutes(1))
-            .map(i -> Value.of(clock.instant().isAfter(notBefore)
-                            && clock.instant().isBefore(notAfter)));
+        return Streams.scheduledPoll(Duration.ofMinutes(1),
+            () -> Value.of(clock.instant().isAfter(notBefore)
+                        && clock.instant().isBefore(notAfter)),
+            clock, scheduler);
     } catch (CertificateException e) {
-        return Flux.just(Value.error("Invalid certificate.", e));
+        return Streams.just(Value.error("Invalid certificate."));
     }
 }
 ```
@@ -136,7 +142,7 @@ The first parameter (`TextValue certPem`) receives the left-hand value from the 
 ```java
 /* "sensors/#".<mqtt.messages(1)> */
 @Attribute(name = "messages", docs = "Subscribes to MQTT messages on a topic.")
-public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
+public Stream<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
     return mqttClient.subscribe(topic, ctx, qos);
 }
 ```
@@ -150,7 +156,7 @@ The entity (`topic`) is the left-hand value, `ctx` is injected, and `qos` is the
 /* Entity:      "https://api.example.com".<http.get(requestSettings)> */
 @Attribute
 @EnvironmentAttribute(docs = "Performs an HTTP GET request.")
-public Flux<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
+public Stream<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
     return webClient.httpRequest(HttpMethod.GET, mergeHeaders(ctx, requestSettings));
 }
 ```
@@ -162,10 +168,26 @@ When both annotations are present, the method is registered for both calling con
 ```java
 /* subject.<user.attribute("AA", "BB", "CC")> */
 @Attribute(name = "attribute", docs = "Accepts a variable number of arguments.")
-public Flux<Value> attribute(Value leftHand, AttributeAccessContext ctx, TextValue... params) {
+public Stream<Value> attribute(Value leftHand, AttributeAccessContext ctx, TextValue... params) {
     ...
 }
 ```
+
+**One-shot attribute (single `Value` return):**
+
+```java
+/* <user.lookup(id)> */
+@EnvironmentAttribute(docs = "Looks up a user record by id; returns once per invocation.")
+public Value lookup(TextValue id) {
+    var record = userRepository.findById(id.value());
+    if (record == null) {
+        return Value.error("User not found.");
+    }
+    return Value.of(record.toJson());
+}
+```
+
+The PDP wraps a `Value` return as a single-element stream automatically. Use this shape for deterministic, side-effect-free attribute resolutions.
 
 If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments implementation.
 
@@ -182,18 +204,21 @@ The PDP disambiguates at runtime based on the calling convention and argument co
 
 ### Error Handling
 
-Attribute methods must never throw exceptions. Return error values using `Value.error()`:
+Attribute methods should not throw checked exceptions and should treat thrown `RuntimeException`s as a last resort. Prefer publishing an `ErrorValue` into the stream so the PDP and the consuming policy can handle it deterministically. Use `Value.error("...")` (or `Streams.error("...")` for a one-shot error stream).
 
 ```java
 @EnvironmentAttribute(docs = "Fetches data from an external API.")
-public Mono<Value> fetchData(AttributeAccessContext ctx, TextValue endpoint) {
-    return webClient.get(endpoint.value())
-        .map(Value::of)
-        .onErrorResume(e -> Mono.just(Value.error("API request failed.", e)));
+public Stream<Value> fetchData(AttributeAccessContext ctx, TextValue endpoint) {
+    try {
+        var body = webClient.get(endpoint.value()).bodyAsString();
+        return Streams.just(Value.of(body));
+    } catch (Exception e) {
+        return Streams.error("API request failed: " + e.getMessage());
+    }
 }
 ```
 
-An error value propagates through the policy evaluation and causes the enclosing condition to evaluate to `INDETERMINATE`.
+A `RuntimeException` thrown by the attribute method is not silently captured: the attribute broker treats it as a failed attempt and drives the retry burst (jittered exponential backoff up to the policy-configured retry count). Transient connect-time or send-time failures recover on the same schedule as transient mid-stream errors. After retries are exhausted, the broker publishes a transient `ErrorValue` summarising the last cause and waits one `pollInterval` before the next cycle. An error value reaching a policy condition causes the enclosing condition to evaluate to `INDETERMINATE`.
 
 ### Credential Management
 

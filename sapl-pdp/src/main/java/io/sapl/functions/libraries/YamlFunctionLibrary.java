@@ -17,20 +17,18 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.dataformat.yaml.YAMLMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 
 /**
  * Function library providing YAML marshalling and unmarshalling operations.
  */
-@UtilityClass
 @FunctionLibrary(name = YamlFunctionLibrary.NAME, description = YamlFunctionLibrary.DESCRIPTION, libraryDocumentation = YamlFunctionLibrary.DOCUMENTATION)
 public class YamlFunctionLibrary {
 

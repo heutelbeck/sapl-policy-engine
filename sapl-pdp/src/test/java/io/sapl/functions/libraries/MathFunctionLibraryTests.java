@@ -22,6 +22,7 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,12 +30,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.within;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("MathFunctionLibrary")
 class MathFunctionLibraryTests {
@@ -44,8 +41,7 @@ class MathFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(MathFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new MathFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0}: {1} and {2} = {3}")
@@ -202,54 +198,6 @@ class MathFunctionLibraryTests {
                 arguments(16.0, 4.0, 2.0), arguments(1.0, 10.0, 0.0));
     }
 
-    @Test
-    void whenRandomIntegerThenReturnsValueInRange() {
-        val actual = MathFunctionLibrary.randomInteger(Value.of(10));
-
-        assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().intValue())
-                .satisfies(v -> assertThat(v).isGreaterThanOrEqualTo(0).isLessThan(10));
-    }
-
-    @Test
-    void whenRandomIntegerWithSameSeedThenReturnsSameValue() {
-        val actual1 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(42));
-        val actual2 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(42));
-
-        assertThat(actual1).isInstanceOf(NumberValue.class).isEqualTo(actual2);
-    }
-
-    @Test
-    void whenRandomIntegerWithDifferentSeedsThenReturnsDifferentValues() {
-        val actual1 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(42));
-        val actual2 = MathFunctionLibrary.randomIntegerSeeded(Value.of(100), Value.of(43));
-
-        assertThat(actual1).isInstanceOf(NumberValue.class).isNotEqualTo(actual2);
-    }
-
-    @Test
-    void whenRandomFloatThenReturnsValueInRange() {
-        val actual = MathFunctionLibrary.randomFloat();
-
-        assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
-                .satisfies(v -> assertThat(v).isGreaterThanOrEqualTo(0.0).isLessThan(1.0));
-    }
-
-    @Test
-    void whenRandomFloatWithSameSeedThenReturnsSameValue() {
-        val actual1 = MathFunctionLibrary.randomFloatSeeded(Value.of(42));
-        val actual2 = MathFunctionLibrary.randomFloatSeeded(Value.of(42));
-
-        assertThat(actual1).isInstanceOf(NumberValue.class).isEqualTo(actual2);
-    }
-
-    @Test
-    void whenRandomFloatWithDifferentSeedsThenReturnsDifferentValues() {
-        val actual1 = MathFunctionLibrary.randomFloatSeeded(Value.of(42));
-        val actual2 = MathFunctionLibrary.randomFloatSeeded(Value.of(43));
-
-        assertThat(actual1).isInstanceOf(NumberValue.class).isNotEqualTo(actual2);
-    }
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("errorCases")
     void whenInvalidInputThenReturnsError(String description, Value result, String expectedMessage) {
@@ -269,18 +217,6 @@ class MathFunctionLibraryTests {
                 arguments("clamp with min > max",
                         MathFunctionLibrary.clamp(Value.of(5.0), Value.of(10.0), Value.of(0.0)),
                         "Minimum must be less than or equal to maximum"),
-                // randomInteger errors
-                arguments("randomInteger(0) - zero bound", MathFunctionLibrary.randomInteger(Value.of(0)),
-                        "Bound must be positive"),
-                arguments("randomInteger(-5) - negative bound", MathFunctionLibrary.randomInteger(Value.of(-5)),
-                        "Bound must be positive"),
-                arguments("randomInteger(10.5) - non-integer bound", MathFunctionLibrary.randomInteger(Value.of(10.5)),
-                        "Bound must be an integer"),
-                arguments("randomIntegerSeeded with non-integer seed",
-                        MathFunctionLibrary.randomIntegerSeeded(Value.of(10), Value.of(42.5)),
-                        "Seed must be an integer"),
-                arguments("randomFloatSeeded with non-integer seed",
-                        MathFunctionLibrary.randomFloatSeeded(Value.of(42.5)), "Seed must be an integer"),
                 // log errors
                 arguments("log(0) - zero value", MathFunctionLibrary.log(Value.of(0.0)),
                         "Logarithm requires a positive value"),
