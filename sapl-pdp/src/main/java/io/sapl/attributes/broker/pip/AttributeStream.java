@@ -83,11 +83,21 @@ final class AttributeStream implements Stream<Value> {
 
     @Override
     public Value awaitNext() throws InterruptedException {
-        return output.awaitNext();
+        if (closed) {
+            return null;
+        }
+        val next = output.awaitNext();
+        if (closed) {
+            return null;
+        }
+        return next;
     }
 
     @Override
     public Poll<Value> tryNext() {
+        if (closed) {
+            return Poll.done();
+        }
         return output.tryNext();
     }
 
