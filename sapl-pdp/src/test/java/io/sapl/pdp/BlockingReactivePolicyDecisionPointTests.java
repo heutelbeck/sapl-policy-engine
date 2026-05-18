@@ -29,11 +29,13 @@ import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
@@ -48,6 +50,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * parity between the two PDPs is observable from the test inputs.
  */
 @DisplayName("BlockingPolicyDecisionPoint")
+@Timeout(value = 30, unit = TimeUnit.SECONDS)
 class BlockingReactivePolicyDecisionPointTests {
 
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT  = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,

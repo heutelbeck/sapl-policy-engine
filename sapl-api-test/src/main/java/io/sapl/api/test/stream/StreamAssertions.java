@@ -43,7 +43,12 @@ import java.util.function.Consumer;
  */
 public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T>, Stream<T>> {
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(2);
+    // 10 s rather than 2 s so the default tolerates Windows CI runners with
+    // ~15 ms timer granularity and slower virtual-thread scheduling. Tests on
+    // a working platform still reach the value in milliseconds and the budget
+    // is unused. Tests that want a deliberately tight bound override via
+    // .withinTimeout(...).
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
     private Duration timeout = DEFAULT_TIMEOUT;
 

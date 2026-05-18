@@ -692,7 +692,12 @@ class PolicyInformationPointAttributeBrokerTests {
                 for (int i = 0; i < 50; i++) {
                     ControllablePip.emitToAll(Value.of(i));
                 }
-                Awaitility.await().atMost(Duration.ofSeconds(2)).until(() -> concurrentEntries.get() == 0);
+                // Wait until at least one callback has been observed AND the dispatcher
+                // has quiesced. Without the "fired >= 1" gate, the await would return
+                // immediately because concurrentEntries starts at 0 - racing the test
+                // against the very first callback dispatch.
+                Awaitility.await().atMost(Duration.ofSeconds(10))
+                        .until(() -> maxConcurrent.get() >= 1 && concurrentEntries.get() == 0);
             }
 
             assertThat(concurrencyDetected).isFalse();
