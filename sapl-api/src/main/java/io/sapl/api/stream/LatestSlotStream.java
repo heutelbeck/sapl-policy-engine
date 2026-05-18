@@ -133,7 +133,15 @@ public final class LatestSlotStream<T> implements Stream<T> {
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) {
-            complete();
+            lock.lock();
+            try {
+                value     = null;
+                hasValue  = false;
+                completed = true;
+                slotReady.signalAll();
+            } finally {
+                lock.unlock();
+            }
             closeAction.run();
         }
     }
