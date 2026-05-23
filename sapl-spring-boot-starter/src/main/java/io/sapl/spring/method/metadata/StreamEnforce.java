@@ -30,19 +30,21 @@ import java.lang.annotation.Target;
  * subscription to the PDP open across the lifetime of the returned Flux,
  * re-planning per decision and gating per item.
  * <p>
- * The PDP decision verb drives the streaming-state response:
+ * The PDP decision verb drives the streaming-state response under the
+ * strict fail-closed discipline:
  * <ul>
  * <li><b>PERMIT</b> with enforceable obligations: items flow.</li>
  * <li><b>SUSPEND</b>: subscription preserved, items dropped silently
- * until a later PERMIT resumes the flow. INDETERMINATE and
- * NOT_APPLICABLE map to the same suspended state for resilience to
- * intermittent failures and policy gaps.</li>
- * <li><b>DENY</b>: subscription terminates with
+ * until a later PERMIT resumes the flow.</li>
+ * <li><b>DENY</b>, <b>INDETERMINATE</b>, <b>NOT_APPLICABLE</b>, and a
+ * PERMIT whose decision-scoped enforcement fails: subscription
+ * terminates with
  * {@link org.springframework.security.access.AccessDeniedException
- * AccessDeniedException}.</li>
+ * AccessDeniedException}. Per-item obligation failure terminates
+ * identically.</li>
  * </ul>
  * <p>
- * Three optional flags refine the PEP-side behaviour:
+ * Two optional flags refine the PEP-side behaviour:
  * <ul>
  * <li>{@link #signalTransitions()} (default {@code false}). Surfaces
  * every suspend/resume boundary to the subscriber as a non-terminal
@@ -52,11 +54,6 @@ import java.lang.annotation.Target;
  * {@link io.sapl.spring.pep.streaming.AccessGrantedException} on resume).
  * Subscribers consume the signals with {@code onErrorContinue} or via
  * {@link io.sapl.spring.pep.streaming.TransitionSignals}.</li>
- * <li>{@link #terminateOnItemEnforcementFailure()} (default {@code false}).
- * Strict per-item failure handling. When {@code false}, an item
- * whose obligation handlers fail transitions the subscription to
- * suspended and a future decision may resume it. When {@code true}, the
- * failure terminates the subscription loudly.</li>
  * <li>{@link #pauseRapDuringSuspend()} (default {@code false}). Manages
  * the RAP connection while suspended. When {@code false}, the RAP
  * subscription stays connected and items keep arriving; the PEP drops
@@ -84,25 +81,6 @@ public @interface StreamEnforce {
      * subscriber; {@code false} (default) for silent transitions.
      */
     boolean signalTransitions() default false;
-
-    /**
-     * Whether per-item obligation enforcement failure terminates the
-     * subscription. Default {@code false}: a per-item failure
-     * transitions the subscription to suspended and a future decision
-     * may resume it. {@code true}: the failure terminates the
-     * subscription with
-     * {@link org.springframework.security.access.AccessDeniedException
-     * AccessDeniedException}, matching strict {@code @PreEnforce}
-     * semantics on a per-item timeline. Choose strict when the protected
-     * method's side effect is unsafe to leave unenforced; choose lenient
-     * (the default) for resilient streaming where transient handler
-     * failure should not tear down the subscription.
-     *
-     * @return {@code true} to terminate on per-item enforcement failure;
-     * {@code false} (default) to suspend and recover on the next
-     * decision.
-     */
-    boolean terminateOnItemEnforcementFailure() default false;
 
     /**
      * Whether the protected method (RAP) subscription is disposed while

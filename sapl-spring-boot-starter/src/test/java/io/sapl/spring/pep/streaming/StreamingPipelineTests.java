@@ -71,7 +71,6 @@ class StreamingPipelineTests {
         Sinks.Many<Object>                rap                        = Sinks.many().unicast().onBackpressureBuffer();
         EnforcementPlan                   plan                       = new EnforcementPlan(java.util.Map.of());
         AtomicInteger                     rapSupplierInvocationCount = new AtomicInteger();
-        boolean                           terminateOnItemEnforcementFailure;
         boolean                           pauseRapDuringSuspend;
         boolean                           signalTransitions;
 
@@ -80,8 +79,8 @@ class StreamingPipelineTests {
                 rapSupplierInvocationCount.incrementAndGet();
                 return rap.asFlux();
             };
-            return StreamingPipeline.create(terminateOnItemEnforcementFailure, pauseRapDuringSuspend, pdp.asFlux(),
-                    d -> plan, supplier, signalTransitions);
+            return StreamingPipeline.create(pauseRapDuringSuspend, pdp.asFlux(), d -> plan, supplier,
+                    signalTransitions);
         }
 
         void emitPermit() {
@@ -174,9 +173,8 @@ class StreamingPipelineTests {
         }
 
         @Test
-        void perItemFailureWithTerminateFlagTrueErrorsTheSubscription() {
-            Harness h = new Harness();
-            h.terminateOnItemEnforcementFailure = true;
+        void perItemFailureErrorsTheSubscription() {
+            Harness         h           = new Harness();
             EnforcementPlan failingPlan = mock(EnforcementPlan.class);
             when(failingPlan.enforceDecisionConstraints(any())).thenReturn(false);
             when(failingPlan.execute(any(Signal.class), anyBoolean()))
@@ -186,29 +184,6 @@ class StreamingPipelineTests {
 
             StepVerifier.create(out).then(h::emitPermit).then(() -> h.emitRap("doomed"))
                     .expectError(AccessDeniedException.class).verify(TIMEOUT);
-        }
-
-        @Test
-        void perItemFailureWithTerminateFlagFalseDoesNotErrorTheSubscription() {
-            Harness h = new Harness();
-            h.terminateOnItemEnforcementFailure = false;
-            EnforcementPlan failingPlan = mock(EnforcementPlan.class);
-            when(failingPlan.enforceDecisionConstraints(any())).thenReturn(false);
-            when(failingPlan.execute(any(Signal.class), anyBoolean()))
-                    .thenReturn(new EnforcementResult<>(Maybe.absent(), true));
-            h.plan = failingPlan;
-            Flux<Object> out = h.create();
-
-            // After per-item failure, the pipeline transitions to suspended.
-            // The next PERMIT should resume items flowing.
-            EnforcementPlan goodPlan = mock(EnforcementPlan.class);
-            when(goodPlan.enforceDecisionConstraints(any())).thenReturn(false);
-            when(goodPlan.execute(any(Signal.class), anyBoolean()))
-                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(extractValue(inv.getArgument(0))), false));
-
-            StepVerifier.create(out.take(1)).then(h::emitPermit).then(() -> h.emitRap("doomed"))
-                    .then(() -> h.plan = goodPlan).then(h::emitPermit).then(() -> h.emitRap("recovered"))
-                    .expectNext("recovered").verifyComplete();
         }
 
         @Test

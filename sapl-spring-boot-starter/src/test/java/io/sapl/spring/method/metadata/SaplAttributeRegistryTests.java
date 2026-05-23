@@ -220,7 +220,7 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, false, false, false);
+        expectFlagsInAttribute(TestClass.class, false, false);
     }
 
     @Test
@@ -233,20 +233,7 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, true, false, false);
-    }
-
-    @Test
-    void whenStreamEnforceWithTerminateOnItemEnforcementFailure_ThenFlagPropagates() {
-
-        class TestClass {
-            @StreamEnforce(terminateOnItemEnforcementFailure = true, subject = "'s'")
-            public void doSomething() {
-                // NOOP test dummy
-            }
-        }
-
-        expectFlagsInAttribute(TestClass.class, false, true, false);
+        expectFlagsInAttribute(TestClass.class, true, false);
     }
 
     @Test
@@ -259,20 +246,20 @@ class SaplAttributeRegistryTests {
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, false, false, true);
+        expectFlagsInAttribute(TestClass.class, false, true);
     }
 
     @Test
     void whenStreamEnforceWithAllFlags_ThenAllPropagate() {
 
         class TestClass {
-            @StreamEnforce(signalTransitions = true, terminateOnItemEnforcementFailure = true, pauseRapDuringSuspend = true, subject = "'s'")
+            @StreamEnforce(signalTransitions = true, pauseRapDuringSuspend = true, subject = "'s'")
             public void doSomething() {
                 // NOOP test dummy
             }
         }
 
-        expectFlagsInAttribute(TestClass.class, true, true, true);
+        expectFlagsInAttribute(TestClass.class, true, true);
     }
 
     @Test
@@ -290,7 +277,6 @@ class SaplAttributeRegistryTests {
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, PreEnforce.class);
         assertThat(attribute).hasValueSatisfying(a -> {
             assertThat(a.signalTransitions()).isFalse();
-            assertThat(a.terminateOnItemEnforcementFailure()).isFalse();
             assertThat(a.pauseRapDuringSuspend()).isFalse();
         });
     }
@@ -304,13 +290,12 @@ class SaplAttributeRegistryTests {
     }
 
     private void expectFlagsInAttribute(Class<?> clazz, boolean expectedSignalTransitions,
-            boolean expectedTerminateOnItemEnforcementFailure, boolean expectedPauseRapDuringSuspend) {
+            boolean expectedPauseRapDuringSuspend) {
         final var sut       = new SaplAttributeRegistry();
         final var mi        = MethodInvocationUtils.createFromClass(clazz, "doSomething");
         final var attribute = sut.getSaplAttributeForAnnotationType(mi, StreamEnforce.class);
         assertThat(attribute).hasValueSatisfying(a -> {
             assertThat(a.signalTransitions()).isEqualTo(expectedSignalTransitions);
-            assertThat(a.terminateOnItemEnforcementFailure()).isEqualTo(expectedTerminateOnItemEnforcementFailure);
             assertThat(a.pauseRapDuringSuspend()).isEqualTo(expectedPauseRapDuringSuspend);
         });
     }

@@ -37,10 +37,6 @@ import lombok.NonNull;
  * surface to the subscriber as non-terminal exceptions on the error
  * channel. Effective for {@link StreamEnforce}-derived attributes;
  * always {@code false} for {@link PreEnforce} / {@link PostEnforce}.
- * @param terminateOnItemEnforcementFailure whether per-item obligation
- * enforcement failure terminates the subscription instead of suspending.
- * Effective for {@link StreamEnforce}-derived attributes; always
- * {@code false} for one-shot PEPs.
  * @param pauseRapDuringSuspend whether the RAP subscription is disposed
  * while the PEP is in suspended state. Effective for
  * {@link StreamEnforce}-derived attributes; always {@code false} for
@@ -54,14 +50,13 @@ public record SaplAttribute(
         Expression environmentExpression,
         Expression secretsExpression,
         boolean signalTransitions,
-        boolean terminateOnItemEnforcementFailure,
         boolean pauseRapDuringSuspend) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
     public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, false,
-            false, false);
+            false);
 
     @Override
     public @NonNull String toString() {
@@ -70,7 +65,6 @@ public record SaplAttribute(
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
                 + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets()
                 + (signalTransitions() ? ", signalTransitions=true" : "")
-                + (terminateOnItemEnforcementFailure() ? ", terminateOnItemEnforcementFailure=true" : "")
                 + (pauseRapDuringSuspend() ? ", pauseRapDuringSuspend=true" : "") + ")";
     }
 

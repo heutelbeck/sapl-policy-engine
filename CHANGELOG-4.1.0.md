@@ -41,19 +41,21 @@ See [Authorization Decisions](sapl-documentation/2_3_AuthorizationDecisions.md),
 
 ## Streaming PEP
 
-A continuous stream of authorization decisions drives every protected subscription. Each PDP decision verb maps to one observable effect.
+A continuous stream of authorization decisions drives every protected subscription. Under the strict fail-closed discipline, each PDP decision verb maps to one observable effect.
 
 | PDP decision | Effect on the subscription |
 |---|---|
 | `PERMIT` | Items from the protected method flow through to the subscriber. |
 | `SUSPEND` | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow. |
-| `INDETERMINATE` | Same as `SUSPEND`. Streaming survives transient PDP errors. |
-| `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming survives transient policy gaps. |
+| `INDETERMINATE` | The subscription terminates with an `AccessDeniedException`. |
+| `NOT_APPLICABLE` | The subscription terminates with an `AccessDeniedException`. |
 | `DENY` | The subscription terminates with an `AccessDeniedException`. |
 
-`INDETERMINATE` and `NOT_APPLICABLE` map to silent drop deliberately. Operators who want hard fail-closed semantics set the combining algorithm's `defaultDecision` to `DENY` or `errorHandling` to `PROPAGATE` at the PDP level.
+Only an explicit `SUSPEND` from the PDP silences (rather than terminates) the subscription. Operators who want `NOT_APPLICABLE` to silence rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level, producing a real `SUSPEND` decision the streaming PEP then routes through suspension.
 
-The four 4.0 streaming annotations collapse into a single `@StreamEnforce` with three orthogonal boolean flags: `signalTransitions`, `terminateOnItemEnforcementFailure`, and `pauseRapDuringSuspend`. The `survivesDeny` parameter and the `StreamMode` enum are gone. Whether a deny terminates the subscription or merely suspends it moved into the policy: use `deny` for terminate, `suspend` for survive.
+Per-item obligation failure also terminates the subscription unconditionally with an `AccessDeniedException`. This is the strict fail-closed default; matching strict `@PreEnforce` semantics on a per-item timeline.
+
+The four 4.0 streaming annotations collapse into a single `@StreamEnforce` with two orthogonal boolean flags: `signalTransitions` and `pauseRapDuringSuspend`. The `survivesDeny` parameter and the `StreamMode` enum are gone. Whether a deny terminates the subscription or merely suspends it moved into the policy: use `deny` for terminate, `suspend` for survive.
 
 ### Migration from 4.0
 
@@ -64,7 +66,9 @@ The four 4.0 streaming annotations collapse into a single `@StreamEnforce` with 
 | `@EnforceAccessAware` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy |
 | `@EnforceRecoverableIfDenied` | `@StreamEnforce(signalTransitions = true)` plus `suspend` verb in policy, then `TransitionSignals.onTransitions(...)` at the call site |
 
-`terminateOnItemEnforcementFailure` (default `false`) controls behaviour when a per-item obligation handler fails: the default suspends; set `true` for methods whose per-item side effects are unsafe to leave unenforced.
+### Breaking change: `terminateOnItemEnforcementFailure` removed
+
+`@StreamEnforce(..., terminateOnItemEnforcementFailure = ...)` is a compile error in 4.1. Under the strict fail-closed default, per-item enforcement failure is unconditionally terminal, which is what the prior `true` setting produced. Migration: remove the parameter from every `@StreamEnforce` annotation. The new default matches the prior `true` semantics.
 
 `pauseRapDuringSuspend` (default `false`) controls whether the upstream subscription is disposed during a suspend window: the default keeps it connected with items dropped silently; set `true` for upstream sources with expensive side effects that must not run while denied.
 

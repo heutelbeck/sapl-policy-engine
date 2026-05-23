@@ -68,7 +68,7 @@ class StreamingPipelineBackpressureTransparencyTests {
                                                 return rap.asFlux().doOnRequest(upstreamRequested::addAndGet);
                                             };
             val                    pdpFlux  = pdp.asFlux().doOnNext(ignored -> pdpEvents.incrementAndGet());
-            return StreamingPipeline.create(false, pauseRapDuringSuspend, pdpFlux, d -> plan, supplier, false);
+            return StreamingPipeline.create(pauseRapDuringSuspend, pdpFlux, d -> plan, supplier, false);
         }
 
         void resetUpstreamSink() {

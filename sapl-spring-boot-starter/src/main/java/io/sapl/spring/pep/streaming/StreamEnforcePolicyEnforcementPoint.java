@@ -106,8 +106,8 @@ public final class StreamEnforcePolicyEnforcementPoint implements MethodIntercep
                 supportedSignals);
         Supplier<Flux<?>>                                rapSupplier = () -> invokeProtected(methodInvocation);
 
-        return StreamingPipeline.create(attribute.terminateOnItemEnforcementFailure(),
-                attribute.pauseRapDuringSuspend(), decisions, planFor, rapSupplier, attribute.signalTransitions());
+        return StreamingPipeline.create(attribute.pauseRapDuringSuspend(), decisions, planFor, rapSupplier,
+                attribute.signalTransitions());
     }
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {

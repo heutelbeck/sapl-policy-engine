@@ -19,7 +19,6 @@ package io.sapl.spring.pep.streaming;
 
 import java.util.List;
 
-import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
@@ -42,7 +41,6 @@ import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
-import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.ItemEnforcementFailed;
 import io.sapl.spring.util.Maybe;
 import lombok.experimental.UtilityClass;
 
@@ -66,10 +64,9 @@ import lombok.experimental.UtilityClass;
  * <p>
  * Routing dispatches on the PDP decision verb (carried by the event)
  * and the current state. Explicit {@link PdpDeny} always terminates;
- * {@link PdpSuspend} always transitions to {@link Suspended}. The
- * {@code terminateOnItemEnforcementFailure} flag is consulted only on
- * the per-item failure path (it lives on the {@link Permitting} state,
- * stamped from the triggering {@link PdpPermit}).
+ * {@link PdpSuspend} always transitions to {@link Suspended}. Under the
+ * strict fail-closed default, a per-item obligation failure also
+ * terminates the subscription with {@link AccessDeniedException}.
  * <p>
  * Boundary signals fire symmetrically on every entry into
  * {@link Permitting} from a non-Permitting state (initial grant or
@@ -82,6 +79,12 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class MealyMachine {
 
+    /**
+     * Message text for {@link AccessDeniedException} when a per-item
+     * obligation handler fails to enforce an item under an otherwise-valid
+     * PERMIT. The subscription terminates.
+     */
+    public static final String DENIED_BY_OBLIGATION_FAILURE  = "Access denied: a per-item obligation handler failed.";
     /**
      * Message text for {@link AccessDeniedException} when access is denied
      * by an explicit {@code Decision.DENY} from the PDP.
@@ -128,22 +131,14 @@ public class MealyMachine {
          * current.
          *
          * @param plan the active plan for this decision
-         * @param terminateOnItemEnforcementFailure whether a subsequent
-         * per-item enforcement failure terminates the subscription
-         * (true) or transitions to {@link Suspended} (false). Stamped
-         * from the triggering {@link Event.PdpPermit} so a future
-         * mid-stream change takes effect on the next permit.
          */
-        record Permitting(EnforcementPlan plan, boolean terminateOnItemEnforcementFailure) implements State {}
+        record Permitting(EnforcementPlan plan) implements State {}
 
         /**
-         * The PDP returned a non-DENY non-PERMIT decision (SUSPEND,
-         * INDETERMINATE, NOT_APPLICABLE) or PERMIT with failed
-         * decision-scoped enforcement, or a per-item handler failed
-         * with {@code terminateOnItemEnforcementFailure = false}.
+         * The PDP returned an explicit {@code Decision.SUSPEND}.
          * Subscription is preserved; items arriving from the RAP are
          * dropped silently. The next PERMIT decision transitions back
-         * to {@link Permitting}; an explicit DENY transitions to
+         * to {@link Permitting}; any denial transitions to
          * {@link Terminated}. Singleton; the suspending event's reason
          * flows out via {@link Emission.EmitTransition} rather than
          * being stored on the state.
@@ -155,11 +150,11 @@ public class MealyMachine {
 
         /**
          * Absorbing state. Reached on RAP completion, RAP error,
-         * downstream cancellation, PDP error, or an explicit DENY
-         * decision (or per-item enforcement failure when the PEP is
-         * configured with {@code terminateOnItemEnforcementFailure =
-         * true}). No further events are processed. Singleton; the
-         * terminating event's outcome flows out via the corresponding
+         * downstream cancellation, PDP error, any denial event (explicit
+         * DENY, INDETERMINATE, NOT_APPLICABLE, or PERMIT with failed
+         * decision-scoped enforcement), or a per-item obligation failure.
+         * No further events are processed. Singleton; the terminating
+         * event's outcome flows out via the corresponding
          * {@link Emission} (EmitComplete / EmitError) rather than
          * being stored on the state.
          */
@@ -186,13 +181,9 @@ public class MealyMachine {
         /**
          * The PDP returned PERMIT and decision-scoped enforcement
          * succeeded. The state machine transitions to
-         * {@link State.Permitting} carrying the plan and the
-         * {@code terminateOnItemEnforcementFailure} flag.
+         * {@link State.Permitting} carrying the active plan.
          */
-        record PdpPermit(
-                AuthorizationDecision decision,
-                EnforcementPlan plan,
-                boolean terminateOnItemEnforcementFailure) implements Event {}
+        record PdpPermit(AuthorizationDecision decision, EnforcementPlan plan) implements Event {}
 
         /**
          * The PDP returned an explicit {@code Decision.SUSPEND}. The state
@@ -272,10 +263,10 @@ public class MealyMachine {
         record Emit(Object value) implements Emission {}
 
         /**
-         * Terminate the subscriber with an error. Used for explicit
-         * DENY, RAP errors, PDP stream errors, and item-enforcement
-         * failure when the PEP is configured with
-         * {@code terminateOnItemEnforcementFailure = true}.
+         * Terminate the subscriber with an error. Used for any denial
+         * (DENY, INDETERMINATE, NOT_APPLICABLE, PERMIT with failed
+         * decision-scoped enforcement), per-item obligation failure,
+         * RAP errors, and PDP stream errors.
          */
         record EmitError(Throwable throwable) implements Emission {}
 
@@ -319,19 +310,6 @@ public class MealyMachine {
          * @param decision the decision that caused the suspension
          */
         record Suspended(AuthorizationDecision decision) implements TransitionReason {}
-
-        /**
-         * A per-item obligation handler failed when enforcing a single
-         * item under an otherwise-valid PERMIT. The PEP's
-         * {@code terminateOnItemEnforcementFailure} flag controls the
-         * downstream behavior: {@code true} terminates the
-         * subscription; {@code false} (default) transitions to
-         * suspended and waits for a fresh decision.
-         *
-         * @param payload the item whose enforcement failed
-         * @param throwable the cause of the failure, if available
-         */
-        record ItemEnforcementFailed(Object payload, @Nullable Throwable throwable) implements TransitionReason {}
 
         /**
          * The PEP entered or resumed permitting state. Emitted on the
@@ -417,7 +395,7 @@ public class MealyMachine {
     }
 
     private static Step onPermit(State state, PdpPermit permit) {
-        var next = new Permitting(permit.plan(), permit.terminateOnItemEnforcementFailure());
+        var next = new Permitting(permit.plan());
         // Plan replacement (Permitting -> Permitting) is silent. Initial
         // grant (Pending -> Permitting) and resume (Suspended -> Permitting)
         // emit the Granted boundary signal; the pipeline gates visibility.
@@ -465,11 +443,7 @@ public class MealyMachine {
     private static Step permittingItem(Permitting state, RapItem item) {
         var result = item.enforcementResult();
         if (result.failureState()) {
-            var reason = new ItemEnforcementFailed(item.payload(), null);
-            if (state.terminateOnItemEnforcementFailure()) {
-                return Step.to(Terminated.INSTANCE, new EmitError(new AccessDeniedException(reason.toString())));
-            }
-            return Step.to(Suspended.INSTANCE, new EmitTransition(reason));
+            return Step.to(Terminated.INSTANCE, new EmitError(new AccessDeniedException(DENIED_BY_OBLIGATION_FAILURE)));
         }
         if (result.value() instanceof Maybe.Present<Object>(var value)) {
             return Step.to(state, new Emit(value));

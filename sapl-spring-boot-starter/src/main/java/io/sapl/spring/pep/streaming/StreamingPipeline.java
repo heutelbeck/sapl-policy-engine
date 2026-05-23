@@ -95,7 +95,6 @@ public final class StreamingPipeline {
     private static final String ERROR_STREAM_SUSPENDED     = "Stream suspended: %s";
     private static final String WARN_RAP_AFTER_TERMINATION = "RAP item arrived after termination; dropping.";
 
-    private final boolean                                          terminateOnItemEnforcementFailure;
     private final boolean                                          pauseRapDuringSuspend;
     private final Flux<AuthorizationDecision>                      decisions;
     private final Function<AuthorizationDecision, EnforcementPlan> planner;
@@ -117,11 +116,6 @@ public final class StreamingPipeline {
      * lazily-subscribed RAP. Each subscription gets a fresh pipeline
      * instance with its own state and lifecycle.
      *
-     * @param terminateOnItemEnforcementFailure whether per-item
-     * obligation enforcement failure terminates the subscription. When
-     * {@code false} (default), failure transitions to suspended and a
-     * later PERMIT may resume; when {@code true} the subscription
-     * terminates with {@link AccessDeniedException}.
      * @param pauseRapDuringSuspend whether the RAP subscription is
      * disposed on entering suspended state and re-subscribed on resume.
      * When {@code false} (default), the RAP stays connected and items
@@ -144,11 +138,10 @@ public final class StreamingPipeline {
      * enabled) on the error channel, and completes / errors when the
      * FSM reaches {@link State.Terminated}.
      */
-    public static Flux<Object> create(boolean terminateOnItemEnforcementFailure, boolean pauseRapDuringSuspend,
-            Flux<AuthorizationDecision> decisions, Function<AuthorizationDecision, EnforcementPlan> planner,
-            Supplier<? extends Flux<?>> rapSupplier, boolean signalTransitions) {
-        val pipeline = new StreamingPipeline(terminateOnItemEnforcementFailure, pauseRapDuringSuspend, decisions,
-                planner, rapSupplier, signalTransitions);
+    public static Flux<Object> create(boolean pauseRapDuringSuspend, Flux<AuthorizationDecision> decisions,
+            Function<AuthorizationDecision, EnforcementPlan> planner, Supplier<? extends Flux<?>> rapSupplier,
+            boolean signalTransitions) {
+        val pipeline = new StreamingPipeline(pauseRapDuringSuspend, decisions, planner, rapSupplier, signalTransitions);
         // handle is used instead of flatMap so downstream request signals
         // pass through to the create-sink without an intervening prefetch
         // buffer. Errors raised via sink.error inside the handler remain
@@ -249,7 +242,7 @@ public final class StreamingPipeline {
     Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
         return switch (decision.decision()) {
         case PERMIT         -> decisionScopedFailed ? new PdpDeny(decision, plan, DenyKind.PERMIT_NOT_ENFORCEABLE)
-                : new PdpPermit(decision, plan, terminateOnItemEnforcementFailure);
+                : new PdpPermit(decision, plan);
         case SUSPEND        -> new PdpSuspend(decision, plan, new TransitionReason.Suspended(decision));
         case INDETERMINATE  -> new PdpDeny(decision, plan, DenyKind.INDETERMINATE);
         case NOT_APPLICABLE -> new PdpDeny(decision, plan, DenyKind.NO_POLICY_APPLICABLE);

@@ -297,25 +297,24 @@ Every decision the PDP emits during the lifetime of the subscription has one of 
 | `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient policy gaps. |
 | `DENY` | The subscription terminates with an `AccessDeniedException`. |
 
-The mapping of `INDETERMINATE` and `NOT_APPLICABLE` to silent-drop is deliberate: streaming subscriptions should be resilient to transient policy gaps and broker errors. Operators who want hard fail-closed semantics on these set the combining algorithm's `defaultDecision` to `DENY` (so `NOT_APPLICABLE` collapses to `DENY`) or its `errorHandling` to `PROPAGATE` (so `INDETERMINATE` collapses to `DENY`) at the PDP level. The streaming PEP honours whatever decision the PDP produces.
+Under the strict fail-closed discipline, `INDETERMINATE`, `NOT_APPLICABLE`, and a `PERMIT` whose decision-scoped enforcement fails all terminate the subscription with an `AccessDeniedException`. Only an explicit `SUSPEND` from the PDP silences (rather than terminates) the subscription. Operators who want `NOT_APPLICABLE` to silence rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level, producing a real `SUSPEND` decision the streaming PEP then routes through suspension.
 
 A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
 
-#### Three Flags
+Per-item obligation failure also terminates the subscription, with an `AccessDeniedException` carrying a message indicating the per-item discharge failure. The strict fail-closed default removes the prior `terminateOnItemEnforcementFailure` annotation flag: per-item failure is now unconditionally terminal, matching strict `@PreEnforce` semantics on a per-item timeline.
 
-`@StreamEnforce` carries three boolean flags, all defaulting to `false`. Each addresses one orthogonal concern.
+#### Two Flags
+
+`@StreamEnforce` carries two boolean flags, both defaulting to `false`. Each addresses one orthogonal concern.
 
 ```java
 @StreamEnforce(
-    signalTransitions                 = boolean,  // default false
-    terminateOnItemEnforcementFailure = boolean,  // default false
-    pauseRapDuringSuspend             = boolean   // default false
+    signalTransitions     = boolean,  // default false
+    pauseRapDuringSuspend = boolean   // default false
 )
 ```
 
 **`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused, waiting for access") opt in to `signalTransitions=true`.
-
-**`terminateOnItemEnforcementFailure`**. Controls what happens when a per-item obligation handler fails. With the default `false`, an item-level failure silences the subscription as if the PDP had emitted `SUSPEND`; the subscription stays alive and may resume on a later decision. With `true`, an item-level failure terminates the subscription with an `AccessDeniedException`. Choose `true` for protected methods whose per-item side effects are unsafe to leave unenforced (where letting one item slip past would be a security failure). Choose `false` (the default) for streams where transient enforcement hiccups should pause the subscription without tearing it down.
 
 **`pauseRapDuringSuspend`**. Controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
 

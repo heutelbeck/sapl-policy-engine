@@ -55,18 +55,17 @@ class StreamingPipelineClassifyTests {
 
     private static final EnforcementPlan PLAN = new EnforcementPlan(Map.of());
 
-    private static StreamingPipeline pipelineWithTerminateFlag(boolean terminate) {
-        return new StreamingPipeline(terminate, false, Flux.empty(), d -> PLAN, Flux::empty, false);
+    private static StreamingPipeline pipeline() {
+        return new StreamingPipeline(false, Flux.empty(), d -> PLAN, Flux::empty, false);
     }
 
     @ParameterizedTest(name = "{0} (failed={1}) -> {2}")
     @MethodSource("verbCases")
     void classifyProducesExpectedEventForVerbAndFailedFlag(Decision verb, boolean failed,
             Class<? extends Event> expectedEventType) {
-        StreamingPipeline     pipeline = pipelineWithTerminateFlag(false);
         AuthorizationDecision decision = decisionFor(verb);
 
-        Event event = pipeline.classify(decision, PLAN, failed);
+        Event event = pipeline().classify(decision, PLAN, failed);
 
         assertThat(event).isInstanceOf(expectedEventType);
     }
@@ -74,20 +73,18 @@ class StreamingPipelineClassifyTests {
     @ParameterizedTest(name = "{0} (failed={1}) -> DenyKind {2}")
     @MethodSource("denyCases")
     void classifyTagsDenyKindForDenyingInputs(Decision verb, boolean failed, DenyKind expectedKind) {
-        StreamingPipeline     pipeline = pipelineWithTerminateFlag(false);
         AuthorizationDecision decision = decisionFor(verb);
 
-        Event event = pipeline.classify(decision, PLAN, failed);
+        Event event = pipeline().classify(decision, PLAN, failed);
 
         assertThat(event).isInstanceOfSatisfying(PdpDeny.class, ev -> assertThat(ev.kind()).isEqualTo(expectedKind));
     }
 
     @Test
     void classifySuspendCarriesTransitionReasonWithDecision() {
-        StreamingPipeline     pipeline = pipelineWithTerminateFlag(false);
         AuthorizationDecision decision = AuthorizationDecision.SUSPEND;
 
-        Event event = pipeline.classify(decision, PLAN, false);
+        Event event = pipeline().classify(decision, PLAN, false);
 
         assertThat(event).isInstanceOfSatisfying(PdpSuspend.class,
                 ev -> assertThat(ev.reason()).isInstanceOfSatisfying(TransitionReason.Suspended.class,
@@ -95,25 +92,12 @@ class StreamingPipelineClassifyTests {
     }
 
     @Test
-    void permitCarriesPipelineTerminateFlagWhenTrue() {
-        StreamingPipeline     pipeline = pipelineWithTerminateFlag(true);
+    void classifyPermitProducesPdpPermit() {
         AuthorizationDecision decision = AuthorizationDecision.PERMIT;
 
-        Event event = pipeline.classify(decision, PLAN, false);
+        Event event = pipeline().classify(decision, PLAN, false);
 
-        assertThat(event).isInstanceOfSatisfying(PdpPermit.class,
-                ev -> assertThat(ev.terminateOnItemEnforcementFailure()).isTrue());
-    }
-
-    @Test
-    void permitCarriesPipelineTerminateFlagWhenFalse() {
-        StreamingPipeline     pipeline = pipelineWithTerminateFlag(false);
-        AuthorizationDecision decision = AuthorizationDecision.PERMIT;
-
-        Event event = pipeline.classify(decision, PLAN, false);
-
-        assertThat(event).isInstanceOfSatisfying(PdpPermit.class,
-                ev -> assertThat(ev.terminateOnItemEnforcementFailure()).isFalse());
+        assertThat(event).isInstanceOf(PdpPermit.class);
     }
 
     static Stream<Arguments> verbCases() {

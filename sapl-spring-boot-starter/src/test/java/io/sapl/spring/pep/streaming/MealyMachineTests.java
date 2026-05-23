@@ -57,7 +57,6 @@ import io.sapl.spring.pep.streaming.MealyMachine.Step;
 import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
-import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.ItemEnforcementFailed;
 import io.sapl.spring.util.Maybe;
 
 /**
@@ -92,12 +91,12 @@ class MealyMachineTests {
         return new EnforcementResult<>(Maybe.absent(), true);
     }
 
-    private static Permitting permitting(boolean terminate) {
-        return new Permitting(PLAN, terminate);
+    private static Permitting permitting() {
+        return new Permitting(PLAN);
     }
 
-    private static PdpPermit pdpPermit(boolean terminate) {
-        return new PdpPermit(AuthorizationDecision.PERMIT, PLAN, terminate);
+    private static PdpPermit pdpPermit() {
+        return new PdpPermit(AuthorizationDecision.PERMIT, PLAN);
     }
 
     private static PdpSuspend pdpSuspend() {
@@ -119,7 +118,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpPermitTransitionsToPermittingAndEmitsGrantedBoundary() {
-                Step step = MealyMachine.step(Pending.INSTANCE, pdpPermit(false));
+                Step step = MealyMachine.step(Pending.INSTANCE, pdpPermit());
 
                 assertThat(step.newState()).isInstanceOf(Permitting.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitTransition.class,
@@ -197,7 +196,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpPermitReplansSilentlyAndStaysInPermitting() {
-                Step step = MealyMachine.step(permitting(false), pdpPermit(false));
+                Step step = MealyMachine.step(permitting(), pdpPermit());
 
                 assertThat(step.newState()).isInstanceOf(Permitting.class);
                 assertThat(step.emissions()).isEmpty();
@@ -205,34 +204,13 @@ class MealyMachineTests {
 
             // Behavioural validation that the per-item terminate flag carried
             // on PdpPermit is preserved across the transition: a subsequent
-            // RapItem(failed) on a state established by PdpPermit(t=true)
-            // must terminate (cf. the t=false case below). No introspection
-            // of the post-state's record fields.
+            // RapItem(failed) under any Permitting state must terminate
+            // with EmitError (strict fail-closed: per-item failure is
+            // unconditionally terminal).
             @Test
-            void permitWithTerminateFlagTrueIsPreservedAcrossSubsequentItemFailure() {
-                Step afterPermit = MealyMachine.step(Pending.INSTANCE, pdpPermit(true));
+            void permitFollowedByItemFailureTerminates() {
+                Step afterPermit = MealyMachine.step(Pending.INSTANCE, pdpPermit());
                 Step afterItem   = MealyMachine.step(afterPermit.newState(), new RapItem("bad", resultFailed()));
-
-                assertThat(afterItem.newState()).isInstanceOf(Terminated.class);
-                assertThat(afterItem.emissions()).singleElement().isInstanceOf(EmitError.class);
-            }
-
-            @Test
-            void permitWithTerminateFlagFalseIsPreservedAcrossSubsequentItemFailure() {
-                Step afterPermit = MealyMachine.step(Pending.INSTANCE, pdpPermit(false));
-                Step afterItem   = MealyMachine.step(afterPermit.newState(), new RapItem("bad", resultFailed()));
-
-                assertThat(afterItem.newState()).isInstanceOf(Suspended.class);
-                assertThat(afterItem.emissions()).singleElement().isInstanceOf(EmitTransition.class);
-            }
-
-            // Re-stamp via replan: a Permitting state established with t=false
-            // must, after a fresh PdpPermit(t=true), behave with the new flag.
-            @Test
-            void replanWithTerminateFlagTrueOverwritesPriorFlag() {
-                Step afterFirstPermit = MealyMachine.step(Pending.INSTANCE, pdpPermit(false));
-                Step afterReplan      = MealyMachine.step(afterFirstPermit.newState(), pdpPermit(true));
-                Step afterItem        = MealyMachine.step(afterReplan.newState(), new RapItem("bad", resultFailed()));
 
                 assertThat(afterItem.newState()).isInstanceOf(Terminated.class);
                 assertThat(afterItem.emissions()).singleElement().isInstanceOf(EmitError.class);
@@ -241,7 +219,7 @@ class MealyMachineTests {
             @Test
             void onPdpSuspendCrossesBoundaryToSuspended() {
                 PdpSuspend ev   = pdpSuspend();
-                Step       step = MealyMachine.step(permitting(false), ev);
+                Step       step = MealyMachine.step(permitting(), ev);
 
                 assertThat(step.newState()).isInstanceOf(Suspended.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitTransition.class,
@@ -250,7 +228,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpDenyTransitionsToTerminatedAndEmitsAccessDeniedError() {
-                Step step = MealyMachine.step(permitting(false), pdpDeny());
+                Step step = MealyMachine.step(permitting(), pdpDeny());
 
                 assertThat(step.newState()).isInstanceOf(Terminated.class);
                 assertThat(step.emissions()).singleElement().isInstanceOf(EmitError.class);
@@ -259,7 +237,7 @@ class MealyMachineTests {
             @Test
             void onRapItemPresentEmitsValueAndStaysInPermitting() {
                 RapItem item = new RapItem("payload-1", resultPresent("post-mapper-1"));
-                Step    step = MealyMachine.step(permitting(false), item);
+                Step    step = MealyMachine.step(permitting(), item);
 
                 assertThat(step.newState()).isInstanceOf(Permitting.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(Emit.class,
@@ -269,16 +247,16 @@ class MealyMachineTests {
             @Test
             void onRapItemAbsentDropsSilentlyAndStaysInPermitting() {
                 RapItem item = new RapItem("payload-2", resultAbsent());
-                Step    step = MealyMachine.step(permitting(false), item);
+                Step    step = MealyMachine.step(permitting(), item);
 
                 assertThat(step.newState()).isInstanceOf(Permitting.class);
                 assertThat(step.emissions()).isEmpty();
             }
 
             @Test
-            void onRapItemFailedWithTerminateFlagTrueTransitionsToTerminatedAndEmitsError() {
+            void onRapItemFailedTransitionsToTerminatedAndEmitsAccessDeniedError() {
                 RapItem item = new RapItem("bad-payload", resultFailed());
-                Step    step = MealyMachine.step(permitting(true), item);
+                Step    step = MealyMachine.step(permitting(), item);
 
                 assertThat(step.newState()).isInstanceOf(Terminated.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitError.class,
@@ -286,19 +264,8 @@ class MealyMachineTests {
             }
 
             @Test
-            void onRapItemFailedWithTerminateFlagFalseTransitionsToSuspendedAndEmitsItemFailedTransition() {
-                RapItem item = new RapItem("bad-payload", resultFailed());
-                Step    step = MealyMachine.step(permitting(false), item);
-
-                assertThat(step.newState()).isInstanceOf(Suspended.class);
-                assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitTransition.class,
-                        e -> assertThat(e.reason()).isInstanceOfSatisfying(ItemEnforcementFailed.class,
-                                r -> assertThat(r.payload()).isEqualTo("bad-payload")));
-            }
-
-            @Test
             void onRapCompleteTransitionsToTerminatedAndEmitsComplete() {
-                Step step = MealyMachine.step(permitting(false), RapComplete.INSTANCE);
+                Step step = MealyMachine.step(permitting(), RapComplete.INSTANCE);
 
                 assertThat(step.newState()).isInstanceOf(Terminated.class);
                 assertThat(step.emissions()).singleElement().isInstanceOf(EmitComplete.class);
@@ -307,7 +274,7 @@ class MealyMachineTests {
             @Test
             void onRapErrorTransitionsToTerminatedAndForwardsThrowable() {
                 Throwable t    = new RuntimeException("rap boom");
-                Step      step = MealyMachine.step(permitting(false), new RapError(t));
+                Step      step = MealyMachine.step(permitting(), new RapError(t));
 
                 assertThat(step.newState()).isInstanceOf(Terminated.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitError.class,
@@ -317,7 +284,7 @@ class MealyMachineTests {
             @Test
             void onPdpErrorTransitionsToTerminatedAndForwardsThrowable() {
                 Throwable t    = new RuntimeException("pdp boom");
-                Step      step = MealyMachine.step(permitting(false), new PdpError(t));
+                Step      step = MealyMachine.step(permitting(), new PdpError(t));
 
                 assertThat(step.newState()).isInstanceOf(Terminated.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitError.class,
@@ -326,7 +293,7 @@ class MealyMachineTests {
 
             @Test
             void onCancelTransitionsToTerminatedSilently() {
-                Step step = MealyMachine.step(permitting(false), Cancel.INSTANCE);
+                Step step = MealyMachine.step(permitting(), Cancel.INSTANCE);
 
                 assertThat(step.newState()).isInstanceOf(Terminated.class);
                 assertThat(step.emissions()).isEmpty();
@@ -339,7 +306,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpPermitResumesToPermittingAndEmitsGrantedBoundary() {
-                Step step = MealyMachine.step(Suspended.INSTANCE, pdpPermit(false));
+                Step step = MealyMachine.step(Suspended.INSTANCE, pdpPermit());
 
                 assertThat(step.newState()).isInstanceOf(Permitting.class);
                 assertThat(step.emissions()).singleElement().isInstanceOfSatisfying(EmitTransition.class,
@@ -439,7 +406,7 @@ class MealyMachineTests {
         @ParameterizedTest(name = "from {0}")
         @MethodSource("io.sapl.spring.pep.streaming.MealyMachineTests#anyNonTerminatedState")
         void pdpPermitAlwaysReachesPermittingFromAnyNonTerminatedState(String name, State source) {
-            Step step = MealyMachine.step(source, pdpPermit(false));
+            Step step = MealyMachine.step(source, pdpPermit());
 
             assertThat(step.newState()).isInstanceOf(Permitting.class);
         }
@@ -455,7 +422,7 @@ class MealyMachineTests {
         @ParameterizedTest(name = "{0}")
         @MethodSource("io.sapl.spring.pep.streaming.MealyMachineTests#anyLifecycleTerminator")
         void lifecycleTerminatorsAlwaysReachTerminatedFromAnyNonTerminatedState(String name, Event event) {
-            for (State source : List.of(Pending.INSTANCE, permitting(false), Suspended.INSTANCE)) {
+            for (State source : List.of(Pending.INSTANCE, permitting(), Suspended.INSTANCE)) {
                 Step step = MealyMachine.step(source, event);
                 assertThat(step.newState()).as("source=%s event=%s", source, name).isInstanceOf(Terminated.class);
             }
@@ -483,8 +450,8 @@ class MealyMachineTests {
             // -> Suspended (crossing, +1) -> Suspended (re-suspend, silent)
             // -> Permitting (crossing, +1) -> Terminated (DENY, EmitError, not
             // EmitTransition)
-            List<Event> sequence = List.of(pdpPermit(false), pdpPermit(false), pdpSuspend(), pdpSuspend(),
-                    pdpPermit(false), pdpDeny());
+            List<Event> sequence = List.of(pdpPermit(), pdpPermit(), pdpSuspend(), pdpSuspend(), pdpPermit(),
+                    pdpDeny());
 
             int   crossings         = 0;
             int   boundaryEmissions = 0;
@@ -533,7 +500,7 @@ class MealyMachineTests {
     }
 
     static Stream<Arguments> anyEvent() {
-        return Stream.of(arguments("PdpPermit", new PdpPermit(AuthorizationDecision.PERMIT, PLAN, false)),
+        return Stream.of(arguments("PdpPermit", new PdpPermit(AuthorizationDecision.PERMIT, PLAN)),
                 arguments("PdpSuspend",
                         new PdpSuspend(AuthorizationDecision.SUSPEND, PLAN,
                                 new TransitionReason.Suspended(AuthorizationDecision.SUSPEND))),
@@ -545,9 +512,7 @@ class MealyMachineTests {
     }
 
     static Stream<Arguments> anyNonTerminatedState() {
-        return Stream.of(arguments("Pending", Pending.INSTANCE),
-                arguments("Permitting(terminate=false)", new Permitting(PLAN, false)),
-                arguments("Permitting(terminate=true)", new Permitting(PLAN, true)),
+        return Stream.of(arguments("Pending", Pending.INSTANCE), arguments("Permitting", new Permitting(PLAN)),
                 arguments("Suspended", Suspended.INSTANCE));
     }
 
