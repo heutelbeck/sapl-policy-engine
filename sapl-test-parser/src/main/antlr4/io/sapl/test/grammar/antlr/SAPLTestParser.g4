@@ -105,6 +105,7 @@ defaultDecision
     : DENY    # denyDefault
     | ABSTAIN # abstainDefault
     | PERMIT  # permitDefault
+    | SUSPEND # suspendDefault
     ;
 
 errorHandling

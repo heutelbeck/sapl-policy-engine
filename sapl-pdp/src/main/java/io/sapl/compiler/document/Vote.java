@@ -143,6 +143,7 @@ public final class Vote implements Voter, TracedDecision {
             case ABSTAIN -> this;
             case DENY    -> replaceDecision(Decision.DENY, Outcome.DENY);
             case PERMIT  -> replaceDecision(Decision.PERMIT, Outcome.PERMIT);
+            case SUSPEND -> replaceDecision(Decision.SUSPEND, Outcome.SUSPEND);
             };
         }
         if (authorizationDecision.decision() == Decision.INDETERMINATE) {

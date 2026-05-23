@@ -497,9 +497,11 @@ class UnanimousVoteCompilerTests {
                 arguments("unanimous or deny", Decision.DENY, false),
                 arguments("unanimous or permit", Decision.PERMIT, false),
                 arguments("unanimous or abstain", Decision.NOT_APPLICABLE, false),
+                arguments("unanimous or suspend", Decision.SUSPEND, false),
                 arguments("unanimous strict or deny", Decision.DENY, true),
                 arguments("unanimous strict or permit", Decision.PERMIT, true),
-                arguments("unanimous strict or abstain", Decision.NOT_APPLICABLE, true)
+                arguments("unanimous strict or abstain", Decision.NOT_APPLICABLE, true),
+                arguments("unanimous strict or suspend", Decision.SUSPEND, true)
             );
         }
         // @formatter:on

@@ -164,6 +164,8 @@ class BundleBuilderTests {
                             ErrorHandling.PROPAGATE), "PRIORITY_DENY"),
                     arguments(new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                             ErrorHandling.ABSTAIN), "PRIORITY_PERMIT"),
+                    arguments(new CombiningAlgorithm(VotingMode.PRIORITY_SUSPEND, DefaultDecision.SUSPEND,
+                            ErrorHandling.PROPAGATE), "PRIORITY_SUSPEND"),
                     arguments(new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN,
                             ErrorHandling.PROPAGATE), "UNANIMOUS"),
                     arguments(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN),

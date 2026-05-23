@@ -101,7 +101,8 @@ class VoteTests {
         static Stream<Arguments> defaultDecisionCases() {
             return Stream.of(arguments(DefaultDecision.DENY, Decision.DENY),
                     arguments(DefaultDecision.PERMIT, Decision.PERMIT),
-                    arguments(DefaultDecision.ABSTAIN, Decision.NOT_APPLICABLE));
+                    arguments(DefaultDecision.ABSTAIN, Decision.NOT_APPLICABLE),
+                    arguments(DefaultDecision.SUSPEND, Decision.SUSPEND));
         }
 
         @ParameterizedTest(name = "NOT_APPLICABLE with {0} default becomes {1}")

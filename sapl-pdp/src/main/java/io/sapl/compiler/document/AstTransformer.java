@@ -256,6 +256,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case ABSTAIN -> null;
         case DENY    -> Outcome.DENY;
         case PERMIT  -> Outcome.PERMIT;
+        case SUSPEND -> Outcome.SUSPEND;
         };
         for (val policy : policies) {
             val policyOutcome = policy.metadata().outcome();
@@ -871,6 +872,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case DenyDefaultContext ignored    -> DefaultDecision.DENY;
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
+        case SuspendDefaultContext ignored -> DefaultDecision.SUSPEND;
         default                            ->
             throw new SaplCompilerException(ERROR_UNKNOWN_DEFAULT_VOTE, fromContext(ctx));
         };

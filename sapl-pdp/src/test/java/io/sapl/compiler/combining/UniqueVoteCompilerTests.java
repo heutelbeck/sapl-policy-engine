@@ -472,7 +472,8 @@ class UniqueVoteCompilerTests {
 
         static Stream<Arguments> defaultDecisionCases() {
             return Stream.of(arguments("unique or deny", Decision.DENY), arguments("unique or permit", Decision.PERMIT),
-                    arguments("unique or abstain", Decision.NOT_APPLICABLE));
+                    arguments("unique or abstain", Decision.NOT_APPLICABLE),
+                    arguments("unique or suspend", Decision.SUSPEND));
         }
 
         @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {1}")

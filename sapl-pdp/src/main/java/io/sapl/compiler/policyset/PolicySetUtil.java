@@ -116,6 +116,8 @@ public class PolicySetUtil {
         case DENY    -> Vote.combinedVote(AuthorizationDecision.DENY, voterMetadata, contributingVotes, Outcome.DENY);
         case PERMIT  ->
             Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingVotes, Outcome.PERMIT);
+        case SUSPEND ->
+            Vote.combinedVote(AuthorizationDecision.SUSPEND, voterMetadata, contributingVotes, Outcome.SUSPEND);
         };
     }
 

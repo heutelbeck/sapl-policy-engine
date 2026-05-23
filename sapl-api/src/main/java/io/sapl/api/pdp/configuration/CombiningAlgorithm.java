@@ -64,7 +64,8 @@ public record CombiningAlgorithm(VotingMode votingMode, DefaultDecision defaultD
     public enum DefaultDecision {
         ABSTAIN,
         DENY,
-        PERMIT
+        PERMIT,
+        SUSPEND
     }
 
     public enum ErrorHandling {

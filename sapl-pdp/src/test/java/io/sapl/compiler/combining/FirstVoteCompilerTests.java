@@ -1038,8 +1038,10 @@ class FirstVoteCompilerTests {
             return Stream.of(arguments("first or deny", "permit", Decision.DENY),
                     arguments("first or permit", "deny", Decision.PERMIT),
                     arguments("first or abstain", "permit", Decision.NOT_APPLICABLE),
+                    arguments("first or suspend", "permit", Decision.SUSPEND),
                     arguments("first or deny errors propagate", "permit", Decision.DENY),
-                    arguments("first or permit errors propagate", "deny", Decision.PERMIT));
+                    arguments("first or permit errors propagate", "deny", Decision.PERMIT),
+                    arguments("first or suspend errors propagate", "permit", Decision.SUSPEND));
         }
 
         @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {2}")

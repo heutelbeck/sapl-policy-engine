@@ -369,6 +369,7 @@ public class ScenarioInterpreter {
         case DenyDefaultContext ignored    -> DefaultDecision.DENY;
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
+        case SuspendDefaultContext ignored -> DefaultDecision.SUSPEND;
         default                            ->
             throw new IllegalArgumentException(ERROR_UNKNOWN_DEFAULT_DECISION.formatted(ctx.getText()));
         };

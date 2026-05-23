@@ -46,6 +46,7 @@ This reads naturally: "priority to deny, or permit by default." The notation sep
 |-----------|------------------|
 | `deny`    | `DENY`           |
 | `permit`  | `PERMIT`         |
+| `suspend` | `SUSPEND`        |
 | `abstain` | `NOT_APPLICABLE` |
 
 **Error handling** determines how the final `INDETERMINATE` result of the combining process is presented. The clause is optional; when omitted, `errors abstain` applies.
@@ -60,12 +61,12 @@ This reads naturally: "priority to deny, or permit by default." The notation sep
 
 These three concerns interact to determine the possible result space:
 
-| Default            | Error handling     | Possible results                                              |
-|--------------------|--------------------|---------------------------------------------------------------|
-| `deny` or `permit` | `errors abstain`   | `PERMIT`, `DENY`, `SUSPEND`                                   |
-| `abstain`          | `errors abstain`   | `PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`                 |
-| `deny` or `permit` | `errors propagate` | `PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`                  |
-| `abstain`          | `errors propagate` | `PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`, `INDETERMINATE` |
+| Default                       | Error handling     | Possible results                                               |
+|-------------------------------|--------------------|----------------------------------------------------------------|
+| `deny`, `permit`, or `suspend`| `errors abstain`   | `PERMIT`, `DENY`, `SUSPEND`                                    |
+| `abstain`                     | `errors abstain`   | `PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`                  |
+| `deny`, `permit`, or `suspend`| `errors propagate` | `PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`                   |
+| `abstain`                     | `errors propagate` | `PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`, `INDETERMINATE` |
 
 If you choose a non-abstain default and omit the error handling clause, the PEP sees concrete decisions only (`PERMIT`, `DENY`, or `SUSPEND`). Errors and missing policies are absorbed into the default. Add `errors propagate` when the PEP must distinguish errors from normal denials.
 

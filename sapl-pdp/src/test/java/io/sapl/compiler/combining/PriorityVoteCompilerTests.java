@@ -686,7 +686,12 @@ class PriorityVoteCompilerTests {
                     arguments("priority permit or abstain yields NOT_APPLICABLE", "priority permit", "abstain",
                             Decision.NOT_APPLICABLE),
                     arguments("priority deny or abstain yields NOT_APPLICABLE", "priority deny", "abstain",
-                            Decision.NOT_APPLICABLE));
+                            Decision.NOT_APPLICABLE),
+                    arguments("priority permit or suspend yields SUSPEND", "priority permit", "suspend",
+                            Decision.SUSPEND),
+                    arguments("priority deny or suspend yields SUSPEND", "priority deny", "suspend", Decision.SUSPEND),
+                    arguments("priority suspend or suspend yields SUSPEND", "priority suspend", "suspend",
+                            Decision.SUSPEND));
         }
 
         @ParameterizedTest(name = "{0}")
