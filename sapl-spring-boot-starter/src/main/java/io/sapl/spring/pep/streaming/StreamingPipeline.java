@@ -45,7 +45,7 @@ import io.sapl.spring.pep.streaming.MealyMachine.State;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
-import io.sapl.spring.pep.streaming.MealyMachine.SuspendKind;
+import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 import lombok.AccessLevel;
@@ -239,26 +239,22 @@ public final class StreamingPipeline {
     }
 
     /**
-     * Routes each PDP decision into a single FSM event. PERMIT becomes
-     * either {@link PdpPermit} (decision-scoped enforcement OK) or
-     * {@link PdpSuspend} with reason
-     * {@link SuspendKind#PERMIT_NOT_ENFORCEABLE}. SUSPEND,
-     * INDETERMINATE, NOT_APPLICABLE all become {@link PdpSuspend} with
-     * discriminating {@link SuspendKind}s. DENY becomes {@link PdpDeny}.
+     * Routes each PDP decision into a single FSM event under the strict
+     * fail-closed discipline. PERMIT becomes either {@link PdpPermit}
+     * (decision-scoped enforcement OK) or {@link PdpDeny} with kind
+     * {@link DenyKind#PERMIT_NOT_ENFORCEABLE}. Only {@code Decision.SUSPEND}
+     * becomes {@link PdpSuspend}. INDETERMINATE, NOT_APPLICABLE, and DENY
+     * all become {@link PdpDeny} with the corresponding {@link DenyKind}.
      */
     Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
         return switch (decision.decision()) {
-        case PERMIT         -> decisionScopedFailed ? suspended(decision, plan, SuspendKind.PERMIT_NOT_ENFORCEABLE)
+        case PERMIT         -> decisionScopedFailed ? new PdpDeny(decision, plan, DenyKind.PERMIT_NOT_ENFORCEABLE)
                 : new PdpPermit(decision, plan, terminateOnItemEnforcementFailure);
-        case SUSPEND        -> suspended(decision, plan, SuspendKind.POLICY_SUSPENDED);
-        case INDETERMINATE  -> suspended(decision, plan, SuspendKind.EVALUATION_ERROR);
-        case NOT_APPLICABLE -> suspended(decision, plan, SuspendKind.NO_POLICY_APPLICABLE);
-        case DENY           -> new PdpDeny(decision, plan);
+        case SUSPEND        -> new PdpSuspend(decision, plan, new TransitionReason.Suspended(decision));
+        case INDETERMINATE  -> new PdpDeny(decision, plan, DenyKind.INDETERMINATE);
+        case NOT_APPLICABLE -> new PdpDeny(decision, plan, DenyKind.NO_POLICY_APPLICABLE);
+        case DENY           -> new PdpDeny(decision, plan, DenyKind.POLICY_DENIED);
         };
-    }
-
-    private static PdpSuspend suspended(AuthorizationDecision decision, EnforcementPlan plan, SuspendKind kind) {
-        return new PdpSuspend(decision, plan, new TransitionReason.Suspended(kind, decision));
     }
 
     private void onPdpError(Throwable throwable) {

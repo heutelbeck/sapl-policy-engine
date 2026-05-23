@@ -54,7 +54,7 @@ import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
 import io.sapl.spring.pep.streaming.MealyMachine.Step;
-import io.sapl.spring.pep.streaming.MealyMachine.SuspendKind;
+import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.ItemEnforcementFailed;
@@ -100,13 +100,13 @@ class MealyMachineTests {
         return new PdpPermit(AuthorizationDecision.PERMIT, PLAN, terminate);
     }
 
-    private static PdpSuspend pdpSuspend(SuspendKind kind) {
-        return new PdpSuspend(AuthorizationDecision.NOT_APPLICABLE, PLAN,
-                new TransitionReason.Suspended(kind, AuthorizationDecision.NOT_APPLICABLE));
+    private static PdpSuspend pdpSuspend() {
+        return new PdpSuspend(AuthorizationDecision.SUSPEND, PLAN,
+                new TransitionReason.Suspended(AuthorizationDecision.SUSPEND));
     }
 
     private static PdpDeny pdpDeny() {
-        return new PdpDeny(AuthorizationDecision.DENY, PLAN);
+        return new PdpDeny(AuthorizationDecision.DENY, PLAN, DenyKind.POLICY_DENIED);
     }
 
     @Nested
@@ -128,7 +128,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpSuspendTransitionsToSuspendedAndEmitsTransition() {
-                PdpSuspend ev   = pdpSuspend(SuspendKind.POLICY_SUSPENDED);
+                PdpSuspend ev   = pdpSuspend();
                 Step       step = MealyMachine.step(Pending.INSTANCE, ev);
 
                 assertThat(step.newState()).isInstanceOf(Suspended.class);
@@ -240,7 +240,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpSuspendCrossesBoundaryToSuspended() {
-                PdpSuspend ev   = pdpSuspend(SuspendKind.POLICY_SUSPENDED);
+                PdpSuspend ev   = pdpSuspend();
                 Step       step = MealyMachine.step(permitting(false), ev);
 
                 assertThat(step.newState()).isInstanceOf(Suspended.class);
@@ -348,7 +348,7 @@ class MealyMachineTests {
 
             @Test
             void onPdpSuspendReSuspendsSilently() {
-                Step step = MealyMachine.step(Suspended.INSTANCE, pdpSuspend(SuspendKind.EVALUATION_ERROR));
+                Step step = MealyMachine.step(Suspended.INSTANCE, pdpSuspend());
 
                 assertThat(step.newState()).isInstanceOf(Suspended.class);
                 assertThat(step.emissions()).isEmpty();
@@ -447,7 +447,7 @@ class MealyMachineTests {
         @ParameterizedTest(name = "from {0}")
         @MethodSource("io.sapl.spring.pep.streaming.MealyMachineTests#anyNonTerminatedState")
         void pdpSuspendAlwaysReachesSuspendedFromAnyNonTerminatedState(String name, State source) {
-            Step step = MealyMachine.step(source, pdpSuspend(SuspendKind.POLICY_SUSPENDED));
+            Step step = MealyMachine.step(source, pdpSuspend());
 
             assertThat(step.newState()).isInstanceOf(Suspended.class);
         }
@@ -483,8 +483,8 @@ class MealyMachineTests {
             // -> Suspended (crossing, +1) -> Suspended (re-suspend, silent)
             // -> Permitting (crossing, +1) -> Terminated (DENY, EmitError, not
             // EmitTransition)
-            List<Event> sequence = List.of(pdpPermit(false), pdpPermit(false), pdpSuspend(SuspendKind.POLICY_SUSPENDED),
-                    pdpSuspend(SuspendKind.EVALUATION_ERROR), pdpPermit(false), pdpDeny());
+            List<Event> sequence = List.of(pdpPermit(false), pdpPermit(false), pdpSuspend(), pdpSuspend(),
+                    pdpPermit(false), pdpDeny());
 
             int   crossings         = 0;
             int   boundaryEmissions = 0;
@@ -535,10 +535,9 @@ class MealyMachineTests {
     static Stream<Arguments> anyEvent() {
         return Stream.of(arguments("PdpPermit", new PdpPermit(AuthorizationDecision.PERMIT, PLAN, false)),
                 arguments("PdpSuspend",
-                        new PdpSuspend(AuthorizationDecision.NOT_APPLICABLE, PLAN,
-                                new TransitionReason.Suspended(SuspendKind.POLICY_SUSPENDED,
-                                        AuthorizationDecision.NOT_APPLICABLE))),
-                arguments("PdpDeny", new PdpDeny(AuthorizationDecision.DENY, PLAN)),
+                        new PdpSuspend(AuthorizationDecision.SUSPEND, PLAN,
+                                new TransitionReason.Suspended(AuthorizationDecision.SUSPEND))),
+                arguments("PdpDeny", new PdpDeny(AuthorizationDecision.DENY, PLAN, DenyKind.POLICY_DENIED)),
                 arguments("PdpError", new PdpError(new RuntimeException("e"))),
                 arguments("RapItem-ok", new RapItem("p", resultPresent("v"))),
                 arguments("RapError", new RapError(new RuntimeException("e"))),

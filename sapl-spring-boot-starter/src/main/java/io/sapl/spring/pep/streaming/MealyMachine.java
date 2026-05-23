@@ -41,7 +41,6 @@ import io.sapl.spring.pep.streaming.MealyMachine.State.Pending;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Permitting;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Suspended;
 import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
-import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.DecisionDenied;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.ItemEnforcementFailed;
 import io.sapl.spring.util.Maybe;
@@ -82,6 +81,28 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class MealyMachine {
+
+    /**
+     * Message text for {@link AccessDeniedException} when access is denied
+     * by an explicit {@code Decision.DENY} from the PDP.
+     */
+    public static final String DENIED_BY_POLICY              = "Access denied by policy.";
+    /**
+     * Message text for {@link AccessDeniedException} when access is denied
+     * because the PDP returned {@code Decision.INDETERMINATE}.
+     */
+    public static final String DENIED_INDETERMINATE          = "Access denied: policy evaluation produced an indeterminate result.";
+    /**
+     * Message text for {@link AccessDeniedException} when access is denied
+     * because the PDP returned {@code Decision.NOT_APPLICABLE}.
+     */
+    public static final String DENIED_NO_POLICY_APPLICABLE   = "Access denied: no applicable policy found.";
+    /**
+     * Message text for {@link AccessDeniedException} when access is denied
+     * because a granted PERMIT could not be enforced at the decision-scoped
+     * enforcement phase.
+     */
+    public static final String DENIED_PERMIT_NOT_ENFORCEABLE = "Access denied: decision-scoped enforcement of permit failed.";
 
     /**
      * The state set of the streaming PEP's Mealy machine. Sealed into
@@ -174,21 +195,23 @@ public class MealyMachine {
                 boolean terminateOnItemEnforcementFailure) implements Event {}
 
         /**
-         * The PDP returned a non-DENY non-PERMIT decision (SUSPEND,
-         * INDETERMINATE, NOT_APPLICABLE), or PERMIT with failed
-         * decision-scoped enforcement. The state machine transitions
-         * to {@link State.Suspended} carrying the plan and the
-         * discriminating {@link TransitionReason}.
+         * The PDP returned an explicit {@code Decision.SUSPEND}. The state
+         * machine transitions to {@link State.Suspended} carrying the plan
+         * and the discriminating {@link TransitionReason}.
          */
         record PdpSuspend(AuthorizationDecision decision, EnforcementPlan plan, TransitionReason reason)
                 implements Event {}
 
         /**
-         * The PDP returned an explicit DENY. The state machine
-         * transitions to {@link State.Terminated} and emits a terminal
-         * {@link Emission.EmitError}.
+         * Access is denied. Either the PDP returned an explicit DENY, returned
+         * INDETERMINATE or NOT_APPLICABLE under the strict fail-closed
+         * discipline, or returned PERMIT whose decision-scoped enforcement
+         * could not be honoured. The {@link DenyKind} discriminates the cause.
+         * The state machine transitions to {@link State.Terminated} and emits
+         * a terminal {@link Emission.EmitError} carrying an
+         * {@link AccessDeniedException}.
          */
-        record PdpDeny(AuthorizationDecision decision, EnforcementPlan plan) implements Event {}
+        record PdpDeny(AuthorizationDecision decision, EnforcementPlan plan, DenyKind kind) implements Event {}
 
         /**
          * The PDP's decision flux raised. Treated as terminal: emit
@@ -290,21 +313,12 @@ public class MealyMachine {
     public sealed interface TransitionReason {
 
         /**
-         * The PDP returned an explicit {@code Decision.DENY}.
-         * Terminal.
-         */
-        record DecisionDenied(AuthorizationDecision decision) implements TransitionReason {}
-
-        /**
-         * The subscription has been suspended by a non-terminal
-         * decision-time event. The {@link SuspendKind} discriminates
-         * between the four equivalent suspend-causing inputs the PDP
-         * may emit.
+         * The subscription has been suspended by an explicit
+         * {@code Decision.SUSPEND} from the PDP.
          *
-         * @param kind discriminator
          * @param decision the decision that caused the suspension
          */
-        record Suspended(SuspendKind kind, AuthorizationDecision decision) implements TransitionReason {}
+        record Suspended(AuthorizationDecision decision) implements TransitionReason {}
 
         /**
          * A per-item obligation handler failed when enforcing a single
@@ -329,21 +343,22 @@ public class MealyMachine {
     }
 
     /**
-     * Discriminator for {@link TransitionReason.Suspended}. The four
-     * causes are isomorphic (each carries an
-     * {@link AuthorizationDecision}); the kind names which decision
-     * verb or which decision-scoped enforcement outcome put the
-     * subscription into the suspended state.
+     * Discriminator for {@link Event.PdpDeny}. The four causes are
+     * isomorphic from the FSM's perspective (each terminates the
+     * subscription with an {@link AccessDeniedException}); the kind names
+     * which decision verb or which enforcement outcome triggered the
+     * terminal denial, enabling distinct exception messages and audit
+     * diagnostics.
      */
-    public enum SuspendKind {
-        /** Explicit {@code Decision.SUSPEND} from the PDP. */
-        POLICY_SUSPENDED,
+    public enum DenyKind {
         /** {@code Decision.INDETERMINATE} from the PDP. */
-        EVALUATION_ERROR,
+        INDETERMINATE,
         /** {@code Decision.NOT_APPLICABLE} from the PDP. */
         NO_POLICY_APPLICABLE,
         /** PERMIT but the plan's decision-scoped enforcement failed. */
-        PERMIT_NOT_ENFORCEABLE
+        PERMIT_NOT_ENFORCEABLE,
+        /** Explicit {@code Decision.DENY} from the PDP. */
+        POLICY_DENIED
     }
 
     /**
@@ -423,8 +438,13 @@ public class MealyMachine {
     }
 
     private static Step onDeny(PdpDeny deny) {
-        var reason = new DecisionDenied(deny.decision());
-        return Step.to(Terminated.INSTANCE, new EmitError(new AccessDeniedException(reason.toString())));
+        var message = switch (deny.kind()) {
+        case INDETERMINATE          -> DENIED_INDETERMINATE;
+        case NO_POLICY_APPLICABLE   -> DENIED_NO_POLICY_APPLICABLE;
+        case PERMIT_NOT_ENFORCEABLE -> DENIED_PERMIT_NOT_ENFORCEABLE;
+        case POLICY_DENIED          -> DENIED_BY_POLICY;
+        };
+        return Step.to(Terminated.INSTANCE, new EmitError(new AccessDeniedException(message)));
     }
 
     private static Step onItem(State state, RapItem item) {
