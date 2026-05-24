@@ -147,18 +147,24 @@ public class SaplNodeProperties implements InitializingBean {
     }
 
     private void warnIfApiKeyLooksPlaintext(UserEntry user) {
-        // Spring's PasswordEncoder marks encoded values with an {algo} prefix
-        // (e.g. {argon2id$...}). A configured apiKey lacking that prefix is
-        // almost certainly the plaintext from `sapl generate apikey` instead
-        // of the encoded line; matching will silently fail at every request
-        // because passwordEncoder.matches expects the encoded form.
+        // Two formats are accepted by the matcher: Spring's delegated form
+        // {algo}<hash> (e.g. {argon2id}$argon2id$v=19$...) and the bare PHC
+        // string $argon2*$... produced directly by Argon2PasswordEncoder.
+        // A configured apiKey matching neither shape is almost certainly
+        // the plaintext from `sapl generate apikey` instead of the encoded
+        // line, and the matcher will silently fail at every request.
         val key = user.getApiKey();
-        if (!key.startsWith("{")) {
-            log.warn("User '{}' has an apiKey that does not look encoded "
-                    + "(no {{algo}} prefix). The matcher requires the encoded "
-                    + "form; configure the {{argon2id$...}} value from the "
-                    + "generator output, not the plaintext key.", user.getId());
+        if (!looksEncoded(key)) {
+            log.warn("User '{}' has an apiKey that does not look encoded. "
+                    + "The matcher requires the encoded form; configure the "
+                    + "{{argon2id}}... or $argon2id$... value from the generator " + "output, not the plaintext key.",
+                    user.getId());
         }
+    }
+
+    private static boolean looksEncoded(String key) {
+        return key.startsWith("{") || key.startsWith("$argon2id$") || key.startsWith("$argon2i$")
+                || key.startsWith("$argon2d$");
     }
 
     /**
