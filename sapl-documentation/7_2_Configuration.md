@@ -75,7 +75,7 @@ See [Security](../7_6_Security/) for details on each authentication mode and cre
 
 ### RSocket Properties
 
-All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is disabled by default.
+All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is enabled by default on port 7000.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|

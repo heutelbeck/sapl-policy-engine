@@ -83,7 +83,7 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT","true")
                         .withExposedPorts(SAPL_SERVER_PORT)
                         .waitingFor(new WaitAllStrategy()
-                                .withStrategy(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1))
+                                .withStrategy(Wait.forLogMessage(".*SAPL Node ready.*\\n", 1))
                                 .withStrategy(Wait.forListeningPort())
                                 .withStartupTimeout(Duration.ofMinutes(2)))) {
         // @formatter:on
@@ -116,7 +116,7 @@ class RemoteHttpDecisionPointServerIT {
                 .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_PORT)
                 .waitingFor(new WaitAllStrategy()
-                        .withStrategy(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1))
+                        .withStrategy(Wait.forLogMessage(".*SAPL Node ready.*\\n", 1))
                         .withStrategy(Wait.forListeningPort())
                         .withStartupTimeout(Duration.ofMinutes(2)))
                 .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")

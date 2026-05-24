@@ -59,7 +59,7 @@ class RemotePDPRSocketIT {
     private static final String          SAPL_SERVER_IMAGE = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
     private static final ImagePullPolicy NEVER_PULL        = imageName -> false;
     private static final Duration        STARTUP           = Duration.ofMinutes(2);
-    private static final String          STARTUP_LOG       = ".*Started SaplNodeApplication.*\\n";
+    private static final String          STARTUP_LOG       = ".*SAPL Node ready.*\\n";
     private static final String          POLICIES_PATH     = "policies-rsocket/";
     private static final Duration        STEP_TIMEOUT      = Duration.ofSeconds(30);
 

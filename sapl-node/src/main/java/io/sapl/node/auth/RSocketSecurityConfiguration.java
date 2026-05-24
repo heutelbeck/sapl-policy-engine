@@ -79,7 +79,7 @@ public class RSocketSecurityConfiguration {
     @Bean
     @Nullable
     RSocketConnectionAuthenticator rsocketConnectionAuthenticator(
-            @Value("${sapl.pdp.rsocket.enabled:false}") boolean rsocketEnabled) {
+            @Value("${sapl.pdp.rsocket.enabled:true}") boolean rsocketEnabled) {
         if (!rsocketEnabled) {
             return null;
         }

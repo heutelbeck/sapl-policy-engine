@@ -246,11 +246,13 @@ scalar:
 # --- RSocket (Protobuf) ---
 #
 # High-performance binary transport using RSocket with protobuf serialization.
-# Disabled by default. Enable for applications that need lower latency than
-# HTTP/JSON. Clients connect via RemotePolicyDecisionPoint.builder().rsocket().
+# Enabled by default, listening on port 7000. Clients connect via
+# RemotePolicyDecisionPoint.builder().rsocket(). Disable explicitly when the
+# endpoint is unused, for example in container layouts that publish only the
+# HTTP/JSON port.
 #
 # sapl.pdp.rsocket:
-#   enabled: true
+#   enabled: false
 #   port: 7000
 
 # --- Rate Limiting ---

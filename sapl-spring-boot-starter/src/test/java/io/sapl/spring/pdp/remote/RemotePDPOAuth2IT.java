@@ -72,7 +72,7 @@ class RemotePDPOAuth2IT {
     private static final String          POLICIES_PATH     = "policies-rsocket/";
     private static final ImagePullPolicy NEVER_PULL        = imageName -> false;
     private static final Duration        STARTUP           = Duration.ofMinutes(2);
-    private static final String          STARTUP_LOG       = ".*Started SaplNodeApplication.*\\n";
+    private static final String          STARTUP_LOG       = ".*SAPL Node ready.*\\n";
     private static final Duration        STEP_TIMEOUT      = Duration.ofSeconds(45);
 
     private static final AuthorizationSubscription PERMIT_SUBSCRIPTION = AuthorizationSubscription.of("Willi", "eat",
