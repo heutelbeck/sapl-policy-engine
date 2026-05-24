@@ -34,6 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
 import org.testcontainers.images.ImagePullPolicy;
@@ -82,6 +83,7 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTRACE","true")
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT","true")
                         .withExposedPorts(SAPL_SERVER_PORT)
+                        .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("sapl-node"))
                         .waitingFor(new WaitAllStrategy()
                                 .withStrategy(Wait.forLogMessage(".*SAPL Node ready.*\\n", 1))
                                 .withStrategy(Wait.forListeningPort())
@@ -115,6 +117,7 @@ class RemoteHttpDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_PORT)
+                .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("sapl-node"))
                 .waitingFor(new WaitAllStrategy()
                         .withStrategy(Wait.forLogMessage(".*SAPL Node ready.*\\n", 1))
                         .withStrategy(Wait.forListeningPort())
