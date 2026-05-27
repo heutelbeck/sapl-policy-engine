@@ -38,20 +38,21 @@ import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 
 /**
- * Universal-quantifier invariants on
- * {@link MealyMachine#step(State, Event)}.
+ * Layer-2 invariants on {@link MealyMachine#step(State, Event)}.
  * <p>
  * Each test is the executable witness of a theorem proved on the
  * formal model in
  * {@code stream-pep-lean/StreamPepFsm/Properties.lean}. Test method
  * names mirror the Lean theorem names (snake_case → camelCase). The
  * Javadoc carries the Lean statement; the test body discharges it by
- * enumeration over the finite quantification domain.
+ * computation, by enumeration over a finite quantification domain, or
+ * by replaying a fixed event sequence — whichever shape Lean uses.
  * <p>
- * Path-level invariants (theorems over multi-step traces) live in
- * {@code MealyMachineSequenceInvariantTests}.
+ * The Lean module groups its theorems by section (per-cell invariants
+ * first, sequence invariants last); the test methods follow the same
+ * order.
  */
-class MealyMachineUniversalInvariantTests {
+class MealyMachineInvariantTests {
 
     /**
      * Lean theorem: {@code terminated_is_absorbing}
@@ -267,6 +268,21 @@ class MealyMachineUniversalInvariantTests {
         var step = MealyMachine.step(MealyTestSupport.permitting(), MealyTestSupport.pdpSuspend());
 
         assertThat(step.emissions()).singleElement().isInstanceOf(EmitTransition.class);
+    }
+
+    /**
+     * Lean theorem: {@code permit_then_failed_item_terminates}
+     *
+     * <pre>
+     * (replay .Pending [.PdpPermit, .RapItem .Failed]).fst = .Terminated
+     * </pre>
+     */
+    @Test
+    void permitThenFailedItemTerminates() {
+        var afterPermit = MealyMachine.step(Pending.INSTANCE, MealyTestSupport.pdpPermit());
+        var afterItem   = MealyMachine.step(afterPermit.newState(), MealyTestSupport.rapItemFailed());
+
+        assertThat(afterItem.newState()).isInstanceOf(Terminated.class);
     }
 
     static Stream<Arguments> allEvents() {

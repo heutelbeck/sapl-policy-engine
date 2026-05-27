@@ -31,8 +31,8 @@
 
 	<artifactId>sapl-benchmark-sapl4</artifactId>
 	<packaging>jar</packaging>
-	<name>SAPL Benchmark (SAPL 4.1)</name>
-	<description>Rigorous JMH benchmarks for SAPL 4.1 PDP evaluation
+	<name>SAPL Benchmark</name>
+	<description>Rigorous JMH benchmarks for SAPL PDP evaluation
 		performance.</description>
 
 	<organization>
