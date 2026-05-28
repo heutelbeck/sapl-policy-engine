@@ -426,14 +426,21 @@ public class MealyMachine {
     }
 
     private static Step onItem(State state, RapItem item) {
+        // Per-item obligation failure is terminal from any non-Terminated
+        // source state under the universal-fulfillment-failure-termination
+        // invariant (paper Table 1 row "obligationfailure", Invariant 5).
+        // Although the pipeline only produces RapItem in Permitting under
+        // normal operation, a failure flag must terminate defensively.
+        if (item.enforcementResult().failureState()) {
+            return Step.to(Terminated.INSTANCE, new EmitError(new AccessDeniedException(DENIED_BY_OBLIGATION_FAILURE)));
+        }
         return switch (state) {
         // No decision yet: drop silently. RAP should not normally emit
         // before a permit, but the FSM tolerates it.
         case Pending p -> Step.to(p);
-        // Suspended: items are dropped silently regardless of reason.
+        // Suspended: items are dropped silently.
         case Suspended s -> Step.to(s);
-        // Permitting: the enforcement result decides; failure routes
-        // through permittingItem with the binding flag.
+        // Permitting: deliver Present values; drop Absent silently.
         case Permitting p -> permittingItem(p, item);
         // Exhaustive; unreachable here because Terminated was handled in step().
         case Terminated t -> Step.to(t);
@@ -441,11 +448,7 @@ public class MealyMachine {
     }
 
     private static Step permittingItem(Permitting state, RapItem item) {
-        var result = item.enforcementResult();
-        if (result.failureState()) {
-            return Step.to(Terminated.INSTANCE, new EmitError(new AccessDeniedException(DENIED_BY_OBLIGATION_FAILURE)));
-        }
-        if (result.value() instanceof Maybe.Present<Object>(var value)) {
+        if (item.enforcementResult().value() instanceof Maybe.Present<Object>(var value)) {
             return Step.to(state, new Emit(value));
         }
         // Maybe.Absent: the mapper said "drop this item." Empty emission

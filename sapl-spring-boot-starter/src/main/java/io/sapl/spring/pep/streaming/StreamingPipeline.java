@@ -26,6 +26,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
+import io.sapl.spring.pep.constraints.EnforcementResult;
 import io.sapl.spring.pep.constraints.Signal.OutputSignal;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission;
 import io.sapl.spring.pep.streaming.MealyMachine.Emission.Emit;
@@ -48,6 +49,7 @@ import io.sapl.spring.pep.streaming.MealyMachine.State.Terminated;
 import io.sapl.spring.pep.streaming.MealyMachine.DenyKind;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
+import io.sapl.spring.util.Maybe;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -320,7 +322,11 @@ public final class StreamingPipeline {
                     log.warn(WARN_RAP_AFTER_TERMINATION);
                     return;
                 }
-                process(new RapItem(payload, null));
+                // Item arrived outside Permitting (typically Suspended).
+                // The plan is not active here, so per-item enforcement is
+                // not attempted; the FSM routes the absent-value, non-failure
+                // result through the silent-drop branch.
+                process(new RapItem(payload, ENFORCEMENT_NOT_ATTEMPTED));
                 return;
             }
             plan = permitting.plan();
@@ -329,6 +335,9 @@ public final class StreamingPipeline {
         val result = plan.execute(signal, false);
         process(new RapItem(payload, result));
     }
+
+    private static final EnforcementResult<Object> ENFORCEMENT_NOT_ATTEMPTED = new EnforcementResult<>(Maybe.absent(),
+            false);
 
     private void onRapError(Throwable throwable) {
         process(new RapError(throwable));

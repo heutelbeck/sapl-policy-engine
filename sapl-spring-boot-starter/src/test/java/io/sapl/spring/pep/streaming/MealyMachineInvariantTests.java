@@ -170,15 +170,21 @@ class MealyMachineInvariantTests {
     }
 
     /**
-     * Lean theorem: {@code item_failure_terminates}
+     * Lean theorem: {@code item_failure_universally_terminates}
      *
      * <pre>
-     * step .Permitting (.RapItem .Failed) = ⟨.Terminated, [.EmitError]⟩
+     * ∀ (s : State), s ≠ .Terminated →
+     *   step s (.RapItem .Failed) = ⟨.Terminated, [.EmitError]⟩
      * </pre>
+     *
+     * The strict-fail-closed reading of paper Invariant 5 ("Universal
+     * fulfillment-failure termination"): a per-item obligation failure
+     * terminates regardless of source state.
      */
-    @Test
-    void itemFailureTerminates() {
-        var step = MealyMachine.step(MealyTestSupport.permitting(), MealyTestSupport.rapItemFailed());
+    @ParameterizedTest(name = "from {0}")
+    @MethodSource("nonTerminatedStates")
+    void itemFailureUniversallyTerminates(String name, State source) {
+        var step = MealyMachine.step(source, MealyTestSupport.rapItemFailed());
 
         assertThat(step.newState()).isInstanceOf(Terminated.class);
         assertThat(step.emissions()).singleElement().isInstanceOf(EmitError.class);

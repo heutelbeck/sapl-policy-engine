@@ -5,7 +5,7 @@ Pending,PdpDeny,,Terminated,EMIT_ERROR
 Pending,PdpError,,Terminated,EMIT_ERROR
 Pending,RapItem,Present,Pending,
 Pending,RapItem,Absent,Pending,
-Pending,RapItem,Failed,Pending,
+Pending,RapItem,Failed,Terminated,EMIT_ERROR
 Pending,RapError,,Terminated,EMIT_ERROR
 Pending,RapComplete,,Terminated,EMIT_COMPLETE
 Pending,Cancel,,Terminated,
@@ -25,7 +25,7 @@ Suspended,PdpDeny,,Terminated,EMIT_ERROR
 Suspended,PdpError,,Terminated,EMIT_ERROR
 Suspended,RapItem,Present,Suspended,
 Suspended,RapItem,Absent,Suspended,
-Suspended,RapItem,Failed,Suspended,
+Suspended,RapItem,Failed,Terminated,EMIT_ERROR
 Suspended,RapError,,Terminated,EMIT_ERROR
 Suspended,RapComplete,,Terminated,EMIT_COMPLETE
 Suspended,Cancel,,Terminated,
