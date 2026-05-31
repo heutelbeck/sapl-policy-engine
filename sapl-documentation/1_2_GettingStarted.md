@@ -217,7 +217,7 @@ You now have policies that grant and deny access, react to live changes, and can
 
 **Integrate into your application.** SAPL provides SDKs for Java ([Java API](../6_2_JavaApi/)), [Spring](../6_3_Spring/), [NestJS](../6_4_NestJS/), Python ([Django](../6_5_Django/), [Flask](../6_6_Flask/), [FastAPI](../6_7_FastAPI/), [Tornado](../6_8_Tornado/), [FastMCP](../6_9_FastMCP/)), and [.NET](../6_10_DotNet/). See [SDKs and APIs](../6_0_SDKsAndAPIs/) for the full list.
 
-**Build your own integration.** If no SDK exists for your language or framework, you can implement a client against the [HTTP API](../6_1_HTTPApi/) directly. For authors building reusable PEP libraries, the [PEP Implementation Specification](../8_1_PEPImplementationSpecification/) defines the requirements.
+**Build your own integration.** If no SDK exists for your language or framework, you can implement a client against the [HTTP API](../6_1_HTTPApi/) directly. Authors building reusable PEP libraries can follow the [Spring](../6_3_Spring/) and [NestJS](../6_4_NestJS/) integrations as reference implementations of the unified enforcement model.
 
 **Explore demo applications.** Complete working examples show how SAPL integrates with real frameworks. Each demo includes policies, Docker infrastructure, and runnable endpoints:
 

@@ -222,6 +222,21 @@ public class PlaygroundView extends Composite<VerticalLayout> {
                 delete window.playgroundHashListener;
             }
             """;
+    private static final String JS_DETECT_COLOR_SCHEME   = """
+            var el = $0;
+            function isDark() {
+                var t = document.documentElement.getAttribute('data-theme');
+                if (t) return t === 'dark';
+                return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+            function notify() {
+                el.dispatchEvent(new CustomEvent('host-theme', {detail: {dark: isDark()}}));
+            }
+            notify();
+            new MutationObserver(notify)
+                .observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', notify);
+            """;
 
     private static final String LABEL_AUTO_CLEAR                 = "Auto Clear";
     private static final String LABEL_AUTHORIZATION_SUBSCRIPTION = "Authorization Subscription";
@@ -338,6 +353,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
     private ComboBox<DefaultDecision> defaultDecisionComboBox;
     private ComboBox<ErrorHandling>   errorHandlingComboBox;
 
+    private ThemeToggleButton    themeToggle;
     private boolean              isDarkMode           = false;
     private boolean              isScrollLockActive;
     private boolean              isFollowLatestDecisionActive;
@@ -402,6 +418,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         super.onAttach(attachEvent);
         checkInitialFragment();
         setupHashChangeListener();
+        detectHostColorScheme(attachEvent);
     }
 
     /*
@@ -1805,8 +1822,8 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val spacer = new Span();
         spacer.getStyle().set(CSS_FLEX_GROW, CSS_VALUE_ONE);
 
-        val themeToggle = new ThemeToggleButton();
-        themeToggle.addThemeToggleListener(event -> toggleColorScheme(event.isDarkMode()));
+        themeToggle = new ThemeToggleButton();
+        themeToggle.addThemeToggleListener(event -> applyColorScheme(event.isDarkMode()));
 
         val rightSection = new HorizontalLayout(homepageLink, shareButton, themeToggle);
         rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -1838,10 +1855,28 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         return button;
     }
 
-    private void toggleColorScheme(boolean darkMode) {
+    /*
+     * Detects the host page color scheme on attach and keeps the editors in sync
+     * with it. The application shell follows prefers-color-scheme automatically via
+     * the LIGHT_DARK color scheme, but the CodeMirror editors are separate web
+     * components whose theme is only driven from the server, so they must be
+     * aligned explicitly on the initial load and whenever the preference changes.
+     */
+    private void detectHostColorScheme(AttachEvent attachEvent) {
+        attachEvent.getUI().getPage().executeJs(JS_DETECT_COLOR_SCHEME, getElement());
+        getElement()
+                .addEventListener("host-theme",
+                        event -> applyColorScheme(event.getEventData().get("event.detail.dark").booleanValue()))
+                .addEventData("event.detail.dark");
+    }
+
+    private void applyColorScheme(boolean darkMode) {
         isDarkMode = darkMode;
+        if (themeToggle != null)
+            themeToggle.setDarkMode(isDarkMode);
+
         val scheme = isDarkMode ? ColorScheme.Value.DARK : ColorScheme.Value.LIGHT;
-        UI.getCurrent().getPage().setColorScheme(scheme);
+        getUI().ifPresent(ui -> ui.getPage().setColorScheme(scheme));
 
         policyTabContexts.values().forEach(ctx -> ctx.editor.setDarkTheme(isDarkMode));
         if (subscriptionEditor != null)

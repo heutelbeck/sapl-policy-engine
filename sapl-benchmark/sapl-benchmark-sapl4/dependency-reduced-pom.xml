@@ -8,8 +8,8 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>sapl-benchmark-sapl4</artifactId>
-  <name>SAPL Benchmark (SAPL 4.1)</name>
-  <description>Rigorous JMH benchmarks for SAPL 4.1 PDP evaluation
+  <name>SAPL Benchmark</name>
+  <description>Rigorous JMH benchmarks for SAPL PDP evaluation
 		performance.</description>
   <licenses>
     <license>

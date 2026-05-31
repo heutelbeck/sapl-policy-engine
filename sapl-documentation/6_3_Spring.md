@@ -211,7 +211,7 @@ If the decision is `PERMIT`, constraint handlers proceed through the same stages
 
 There is one subtlety worth keeping in mind. Because the method runs before the PDP is consulted, if the method itself throws an exception, that exception propagates directly. The PDP is never called. There is no return value to include in the subscription, and no point in authorizing a failed operation.
 
-For the formal specification of these enforcement modes, including state machines, teardown invariants, and edge cases around handler resolution timing, see the [PEP Implementation Specification](../8_1_PEPImplementationSpecification/).
+SAPL PEP libraries share a single unified enforcement model. It is a strict fail-closed state machine over the five decision verbs, where only `PERMIT` grants access and only an explicit `SUSPEND` pauses a stream without terminating it. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the decision-verb semantics.
 
 ### Building the Authorization Subscription
 
@@ -293,8 +293,8 @@ Every decision the PDP emits during the lifetime of the subscription has one of 
 |---|---|
 | `PERMIT` | Items from the protected method flow through to the subscriber. |
 | `SUSPEND` | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow. |
-| `INDETERMINATE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient PDP errors. |
-| `NOT_APPLICABLE` | Same as `SUSPEND`. Streaming subscriptions are kept open across transient policy gaps. |
+| `INDETERMINATE` | The subscription terminates with an `AccessDeniedException`. |
+| `NOT_APPLICABLE` | The subscription terminates with an `AccessDeniedException`. |
 | `DENY` | The subscription terminates with an `AccessDeniedException`. |
 
 Under the strict fail-closed discipline, `INDETERMINATE`, `NOT_APPLICABLE`, and a `PERMIT` whose decision-scoped enforcement fails all terminate the subscription with an `AccessDeniedException`. Only an explicit `SUSPEND` from the PDP silences (rather than terminates) the subscription. Operators who want `NOT_APPLICABLE` to silence rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level, producing a real `SUSPEND` decision the streaming PEP then routes through suspension.
@@ -745,7 +745,7 @@ public class TenantHeaderHandler implements ConstraintHandlerProvider {
     public List<ScopedConstraintHandler> getConstraintHandlers(
             Value constraint, Set<SignalType> supportedSignals) {
 
-        if (!ConstraintResponsibility.isResponsible(constraint, "tenant-header")) {
+        if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "tenant-header")) {
             return List.of();
         }
         if (!supportedSignals.contains(Signal.HttpRequestMutationSignal.SIGNAL_TYPE)) {
@@ -903,7 +903,7 @@ public class LogAccessHandler implements ConstraintHandlerProvider {
     public List<ScopedConstraintHandler> getConstraintHandlers(
             Value constraint, Set<SignalType> supportedSignals) {
 
-        if (!ConstraintResponsibility.isResponsible(constraint, CONSTRAINT_TYPE)) {
+        if (!ConstraintHandlerProvider.constraintIsOfType(constraint, CONSTRAINT_TYPE)) {
             return List.of();
         }
 
@@ -925,7 +925,7 @@ public class LogAccessHandler implements ConstraintHandlerProvider {
 
 Two things are worth pointing out.
 
-First, the responsibility check uses the helper `ConstraintResponsibility.isResponsible(constraint, type)`, which checks whether the constraint is a JSON object with a `type` field matching the given string. This is the convention used by all built-in providers. You are free to use a different convention if it makes more sense for your obligations.
+First, the responsibility check uses the static helper `ConstraintHandlerProvider.constraintIsOfType(constraint, type)`, which checks whether the constraint is a JSON object with a `type` field matching the given string. This is the convention used by all built-in providers. You are free to use a different convention if it makes more sense for your obligations.
 
 Second, the handler attaches to `DecisionSignal.SIGNAL_TYPE`. The PEP fires `DecisionSignal` once when the decision arrives, before the method runs. If you want to log on completion instead, attach to `CompleteSignal.SIGNAL_TYPE`. If you want to inspect the return value, attach to `OutputSignal.typeFor(SomeReturnType.class)` and use a `Consumer<SomeReturnType>` handler.
 
