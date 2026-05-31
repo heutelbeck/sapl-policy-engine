@@ -452,6 +452,7 @@ enum Decision {
   PERMIT = 1;
   DENY = 2;
   NOT_APPLICABLE = 3;
+  SUSPEND = 4;
 }
 
 message Value {

@@ -7,7 +7,7 @@ nav_order: 602
 
 ## Java API
 
-The Java API is based on Project Reactor (<https://projectreactor.io/>). It is defined in the `sapl-api` module:
+The core SAPL decision types are defined in the `sapl-api` module:
 
 ```xml
 <dependency>
@@ -17,126 +17,58 @@ The Java API is based on Project Reactor (<https://projectreactor.io/>). It is d
 </dependency>
 ```
 
-The central interface is `PolicyDecisionPoint`. It exposes the same authorization semantics as the HTTP API: single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and batch). Only the streaming single-subscription method is abstract; all others have default implementations that PDP implementations may override with optimized evaluation paths.
+An application reaches a PDP in one of two ways. An **embedded PDP** runs in process and evaluates policies locally. It is Reactor-free and exposes decisions through the SAPL `Stream` primitive and synchronous one-shot calls. A **remote PDP client** connects to a SAPL Node (or any SAPL-compatible server) over HTTP or RSocket, and exposes decisions reactively as `Flux` and `Mono`. Both speak the same authorization semantics as the HTTP API, with single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and batch).
 
-| Method                                          | Returns                                   | Behavior                                                                                                                                           |
-|-------------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `decide(AuthorizationSubscription)`             | `Flux<AuthorizationDecision>`             | Streaming. Returns a continuous stream of decisions that updates whenever policies, attributes, or conditions change.                              |
-| `decideOnce(AuthorizationSubscription)`         | `Mono<AuthorizationDecision>`             | One-shot reactive. Returns a single decision.                                                                                                      |
-| `decideOnceBlocking(AuthorizationSubscription)` | `AuthorizationDecision`                   | One-shot synchronous. When no policy accesses external attributes, the PDP uses an optimized evaluation path that bypasses all reactive machinery. |
-| `decide(MultiAuthorizationSubscription)`        | `Flux<IdentifiableAuthorizationDecision>` | Streaming individual. Each decision is tagged with the subscription ID for correlation.                                                            |
-| `decideAll(MultiAuthorizationSubscription)`     | `Flux<MultiAuthorizationDecision>`        | Streaming batch. Emits all decisions as a single object whenever any decision changes.                                                             |
+### Authorization Decisions
 
-### Embedded PDP (Non-Spring)
+A decision is an `io.sapl.api.pdp.AuthorizationDecision`, a record with four components.
 
-For non-Spring JVM applications, an embedded PDP can be used directly:
+| Component     | Type                  | Description                                              |
+|---------------|-----------------------|---------------------------------------------------------|
+| `decision`    | `Decision`            | One of the five decision verbs below.                   |
+| `obligations` | `ArrayValue`          | Constraints the PEP must fulfil, or it denies access.   |
+| `advice`      | `ArrayValue`          | Constraints the PEP should fulfil on a best-effort basis.|
+| `resource`    | `Value`               | A replacement resource, when the policy supplies one.    |
 
-```xml
-<dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-pdp</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
-</dependency>
-```
+The `decision` is always present and carries one of five verbs.
 
-### Remote PDP Client (Non-Spring)
+| Verb             | Meaning                                                                                                            |
+|------------------|--------------------------------------------------------------------------------------------------------------------|
+| `PERMIT`         | Access is granted.                                                                                                  |
+| `DENY`           | Access is denied.                                                                                                   |
+| `SUSPEND`        | Access is paused. The subscription stays alive and may resume on a later `PERMIT`. A one-shot PEP that cannot suspend treats `SUSPEND` as `DENY`. |
+| `INDETERMINATE`  | An error prevented a decision.                                                                                      |
+| `NOT_APPLICABLE` | No policy matched the subscription.                                                                                 |
 
-For non-Spring JVM applications connecting to a SAPL Node or other remote PDP server. Supports both HTTP/JSON and RSocket/protobuf transports:
+Singletons exist for the simple cases, for example `AuthorizationDecision.PERMIT` and `AuthorizationDecision.SUSPEND`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the full decision-verb semantics.
 
-```xml
-<dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-pdp-remote</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
-</dependency>
-```
+### The PDP Interfaces
 
-```java
-// HTTP
-var pdp = RemotePolicyDecisionPoint.builder().http()
-    .baseUrl("https://localhost:8443")
-    .basicAuth("clientKey", "clientSecret")
-    .build();
+The two access styles correspond to two interfaces.
 
-// RSocket (high-performance protobuf transport)
-var pdp = RemotePolicyDecisionPoint.builder().rsocket()
-    .host("localhost").port(7000)
-    .apiKey("sapl_7f3a...")
-    .build();
-```
+**Embedded** uses `io.sapl.api.pdp.StreamingPolicyDecisionPoint` (the concrete embedded PDP, `BlockingPolicyDecisionPoint`, implements it). It is Reactor-free.
 
-Both transports implement `PolicyDecisionPoint`. For the RSocket wire protocol, see [RSocket API](../6_1_HTTPApi/#rsocket-api).
+| Method                                      | Returns                                  | Behaviour                                                              |
+|---------------------------------------------|------------------------------------------|-----------------------------------------------------------------------|
+| `decideOnce(AuthorizationSubscription)`     | `AuthorizationDecision`                   | One-shot, synchronous. No Reactor on the call path.                    |
+| `decide(AuthorizationSubscription)`         | `Stream<AuthorizationDecision>`           | Streaming. A SAPL `Stream`, consumed with `awaitNext()` and closed.    |
+| `decide(MultiAuthorizationSubscription)`    | `Stream<IdentifiableAuthorizationDecision>` | Streaming individual. Each decision is tagged with its subscription ID.|
+| `decideAll(MultiAuthorizationSubscription)` | `Stream<MultiAuthorizationDecision>`      | Streaming batch. All decisions in one object whenever any changes.     |
 
-### Spring Boot Applications
+**Remote** uses `io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint`, based on Project Reactor (<https://projectreactor.io/>).
 
-For Spring Boot applications, use the unified starter. It includes the embedded PDP, the remote PDP client, Spring Security integration, and uses autoconfiguration to bootstrap the PDP:
+| Method                                      | Returns                                | Behaviour                            |
+|---------------------------------------------|----------------------------------------|--------------------------------------|
+| `decideOnce(AuthorizationSubscription)`     | `Mono<AuthorizationDecision>`           | One-shot reactive.                   |
+| `decide(AuthorizationSubscription)`         | `Flux<AuthorizationDecision>`           | Streaming.                           |
+| `decide(MultiAuthorizationSubscription)`    | `Flux<IdentifiableAuthorizationDecision>` | Streaming individual.              |
+| `decideAll(MultiAuthorizationSubscription)` | `Flux<MultiAuthorizationDecision>`      | Streaming batch.                     |
 
-```xml
-<dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
-</dependency>
-```
+Every method also has an overload taking a `String pdpId` for routing to a named PDP in a multi-tenant deployment.
 
-By default, the embedded PDP is active. To connect to a remote PDP server instead, configure the remote PDP properties (prefix `io.sapl.pdp.remote`):
+### Embedded PDP
 
-| Property             | Type      | Default  | Description                                                                       |
-|----------------------|-----------|----------|-----------------------------------------------------------------------------------|
-| `enabled`            | `boolean` | `false`  | Activates the remote PDP client and disables the embedded PDP.                    |
-| `type`               | `String`  | `"http"` | Connection protocol. Currently only `http` is supported.                          |
-| `host`               | `String`  |          | Base URL of the remote PDP server (e.g., `https://pdp.example.com:8443`).         |
-| `key`                | `String`  |          | Client key for basic authentication. Requires `secret`.                           |
-| `secret`             | `String`  |          | Client secret for basic authentication. Requires `key`.                           |
-| `apiKey`             | `String`  |          | API key for API-key-based authentication. Mutually exclusive with `key`/`secret`. |
-| `ignoreCertificates` | `boolean` | `false`  | Disables TLS certificate verification. For development only.                      |
-
-Exactly one authentication method must be configured: either `key` and `secret` together, or `apiKey` alone.
-
-Example using basic authentication:
-
-```properties
-io.sapl.pdp.remote.enabled=true
-io.sapl.pdp.remote.host=https://pdp.example.com:8443
-io.sapl.pdp.remote.key=your-client-key
-io.sapl.pdp.remote.secret=your-client-secret
-```
-
-Example using API key authentication:
-
-```properties
-io.sapl.pdp.remote.enabled=true
-io.sapl.pdp.remote.host=https://pdp.example.com:8443
-io.sapl.pdp.remote.apiKey=your-api-key
-```
-
-#### Reducing Application Footprint
-
-When using only a remote PDP, you can exclude the embedded PDP dependency to reduce the application size:
-
-```xml
-<dependency>
-    <groupId>io.sapl</groupId>
-    <artifactId>sapl-spring-boot-starter</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
-    <exclusions>
-        <exclusion>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-pdp</artifactId>
-        </exclusion>
-    </exclusions>
-</dependency>
-```
-
-### Integrating SAPL into Applications
-
-Applications can integrate SAPL authorization either through an embedded PDP or by connecting to a remote SAPL server via HTTP. The embedded approach works well for single-instance applications or microservices, while the remote approach supports centralized policy management across multiple applications.
-
-#### Embedded PDP for Java Applications
-
-SAPL requires Java 21 or newer and is compatible with Java 25.
-
-Configure a Java version in your project:
+SAPL requires Java 21 or newer and is compatible with Java 25. Configure a Java version in your project:
 
 ```xml
 <properties>
@@ -146,17 +78,17 @@ Configure a Java version in your project:
 </properties>
 ```
 
-Add the SAPL embedded PDP dependency:
+Add the embedded PDP dependency:
 
 ```xml
 <dependency>
   <groupId>io.sapl</groupId>
-  <artifactId>sapl-pdp-embedded</artifactId>
+  <artifactId>sapl-pdp</artifactId>
   <version>4.1.0-SNAPSHOT</version>
 </dependency>
 ```
 
-Add the Maven Central snapshot repository:
+For snapshot builds, add the Maven Central snapshot repository:
 
 ```xml
 <repositories>
@@ -174,7 +106,7 @@ Add the Maven Central snapshot repository:
 </repositories>
 ```
 
-For projects using multiple SAPL dependencies, use the bill of materials POM:
+For projects using multiple SAPL dependencies, import the bill of materials:
 
 ```xml
 <dependencyManagement>
@@ -190,23 +122,26 @@ For projects using multiple SAPL dependencies, use the bill of materials POM:
 </dependencyManagement>
 ```
 
-Build a PDP using `PolicyDecisionPointBuilder`. For policies bundled in your application's resources (the `src/main/resources/policies` folder), use `withResourcesSource()`. For policies on the filesystem (with live-reload on changes), use `withDirectorySource()`:
+Build a PDP with `PolicyDecisionPointBuilder` (package `io.sapl.pdp`). For policies bundled in your application resources (the `src/main/resources/policies` folder), use `withResourcesSource()`. For policies on the filesystem, with live-reload on changes, use `withDirectorySource()`. Custom Policy Information Points and function libraries bind through `withPolicyInformationPoint(...)` and `withFunctionLibrary(...)`:
 
 ```java
-import io.sapl.reactive.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.PDPComponents;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
 
-// Option A: Load policies from application resources (src/main/resources/policies)
+// Option A: load policies from application resources (src/main/resources/policies)
 var components = PolicyDecisionPointBuilder.withDefaults()
+        .withPolicyInformationPoint(new MyCustomPip())
+        .withFunctionLibrary(new MyFunctionLibrary())
         .withResourcesSource()
         .build();
-var pdp = components.pdp();
 
-// Option B: Load policies from a filesystem directory (with live-reload)
+// Option B: load policies from a filesystem directory (with live-reload)
 var components = PolicyDecisionPointBuilder.withDefaults()
-        .withDirectorySource(Path.of("~/sapl/policies"))
+        .withDirectorySource(Path.of("/etc/sapl/policies"))
         .build();
-var pdp = components.pdp();
 ```
+
+`build()` returns a `PDPComponents` record, which is `AutoCloseable`. Obtain the PDP with `components.pdp()`. It is a `BlockingPolicyDecisionPoint`.
 
 Create the configuration file `pdp.json` in the policies directory:
 
@@ -230,34 +165,159 @@ permit
   subject == "willi" & resource =~ "some.+";
 ```
 
-Request authorization decisions using the PDP. For a single blocking decision:
+For a single synchronous decision, use `decideOnce`. It returns the `AuthorizationDecision` directly, with no Reactor on the call path:
+
+```java
+try (var components = PolicyDecisionPointBuilder.withDefaults().withResourcesSource().build()) {
+    var pdp          = components.pdp();
+    var subscription = AuthorizationSubscription.of("willi", "read", "something");
+    var decision     = pdp.decideOnce(subscription);
+    System.out.println(decision.decision()); // PERMIT, DENY, SUSPEND, INDETERMINATE, or NOT_APPLICABLE
+}
+```
+
+For continuous decisions that update when policies or attributes change, `decide` returns a SAPL `Stream`. Read from it with `awaitNext()` and close it when finished. The `try`-with-resources block closes both the stream and the `PDPComponents`:
+
+```java
+try (var components = PolicyDecisionPointBuilder.withDefaults().withResourcesSource().build()) {
+    var pdp = components.pdp();
+    try (var stream = pdp.decide(subscription)) {
+        var decision = stream.awaitNext();
+        System.out.println(decision.decision());
+    }
+}
+```
+
+`PDPComponents` owns the policy sources, the attribute broker, and their background threads. Always close it (directly via `close()` or through `try`-with-resources) so those resources are released.
+
+The [Embedded PDP Demo](https://github.com/heutelbeck/sapl-demos/tree/master/embedded-pdp) shows this end to end, including a custom PIP and function library.
+
+### Remote PDP Client
+
+For a non-Spring application that connects to a SAPL Node or other remote PDP server. Both HTTP/JSON and RSocket/protobuf transports are supported:
+
+```xml
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-pdp-remote</artifactId>
+    <version>4.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+`RemotePolicyDecisionPoint.builder()` selects the transport with `.http()` or `.rsocket()`, and returns a `ReactivePolicyDecisionPoint`:
+
+```java
+import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+
+// HTTP
+ReactivePolicyDecisionPoint pdp = RemotePolicyDecisionPoint.builder().http()
+        .baseUrl("https://localhost:8443")
+        .basicAuth("clientKey", "clientSecret")
+        .build();
+
+// RSocket (high-throughput protobuf transport)
+ReactivePolicyDecisionPoint pdp = RemotePolicyDecisionPoint.builder().rsocket()
+        .host("localhost").port(7000)
+        .apiKey("sapl_7f3a...")
+        .build();
+```
+
+Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication, and `secure()` / `secure(SslContext)` / `withUnsecureSSL()` for TLS. The HTTP builder defaults `baseUrl` to `https://localhost:8443`; the RSocket builder defaults `port` to `7000` and also accepts `socketPath(...)` and `keepAlive(...)`.
+
+Consume decisions reactively. A streaming subscription keeps receiving updated decisions until you unsubscribe; use `blockFirst()` or `take(1)` to consume just the first:
 
 ```java
 var subscription = AuthorizationSubscription.of("willi", "read", "something");
-var decision     = pdp.decideOnceBlocking(subscription);
-System.out.println(decision.decision()); // PERMIT
+
+// Reactive streaming
+pdp.decide(subscription)
+   .doOnNext(decision -> System.out.println(decision.decision()))
+   .subscribe();
+
+// One-shot, blocking on the reactive result
+var decision = pdp.decideOnce(subscription).block();
 ```
 
-For reactive streaming decisions that update when policies or attributes change:
+The [Remote PDP Demo](https://github.com/heutelbeck/sapl-demos/tree/master/remote-pdp) shows HTTP and multi-subscription usage. For the RSocket wire protocol, see [RSocket API](../6_1_HTTPApi/#rsocket-api).
 
-```java
-pdp.decide(subscription).subscribe(decision ->
-    System.out.println(decision.decision())
-);
+### Spring Boot Applications
+
+For Spring Boot applications, use the unified starter. It includes the embedded PDP, the remote PDP client, Spring Security integration, and autoconfigures the PDP:
+
+```xml
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-spring-boot-starter</artifactId>
+    <version>4.1.0-SNAPSHOT</version>
+</dependency>
 ```
 
-When the PDP is no longer needed, release its resources:
+By default the embedded PDP is active. To connect to a remote PDP server instead, configure the remote PDP properties (prefix `io.sapl.pdp.remote`):
 
-```java
-components.dispose();
+| Property             | Type      | Default  | Description                                                              |
+|----------------------|-----------|----------|-------------------------------------------------------------------------|
+| `enabled`            | `boolean` | `false`  | Activates the remote PDP client and disables the embedded PDP.          |
+| `type`               | `String`  | `"http"` | Connection transport, `http` or `rsocket`.                              |
+| `host`               | `String`  |          | Host of the remote PDP. An HTTP base URL, or a hostname for RSocket.    |
+| `port`               | `int`     | `7000`   | RSocket port.                                                           |
+| `socketPath`         | `String`  |          | RSocket Unix domain socket path, as an alternative to host and port.   |
+| `tls`                | `boolean` | `false`  | Enables TLS on the RSocket transport.                                   |
+| `key`                | `String`  |          | Client key for basic authentication. Requires `secret`.                 |
+| `secret`             | `String`  |          | Client secret for basic authentication. Requires `key`.                 |
+| `bearerToken`        | `String`  |          | A SAPL API key or bearer token sent as `Authorization: Bearer`.         |
+| `tokenRelay`         | `boolean` | `false`  | Forwards the incoming user's OAuth2 token to the PDP (HTTP only).       |
+| `oauth2`             | object    |          | OAuth2 client-credentials configuration (`clientRegistrationId`, etc.). |
+| `keepAlive`          | duration  | `20s`    | RSocket keep-alive interval.                                            |
+| `maxLifeTime`        | duration  | `90s`    | RSocket connection maximum lifetime.                                    |
+| `ignoreCertificates` | `boolean` | `false`  | Disables TLS certificate verification. For development only.            |
+
+Configure exactly one authentication method: `key` and `secret` together, `bearerToken` alone, `tokenRelay`, or `oauth2`.
+
+Example using basic authentication over HTTP:
+
+```properties
+io.sapl.pdp.remote.enabled=true
+io.sapl.pdp.remote.type=http
+io.sapl.pdp.remote.host=https://pdp.example.com:8443
+io.sapl.pdp.remote.key=your-client-key
+io.sapl.pdp.remote.secret=your-client-secret
 ```
 
-Example applications demonstrating different integration patterns are available in the [SAPL demos repository](https://github.com/heutelbeck/sapl-demos). Start with the [Embedded PDP Demo](https://github.com/heutelbeck/sapl-demos/tree/master/embedded-pdp) for basic usage, or explore the [Spring MVC Project](https://github.com/heutelbeck/sapl-demos/tree/master/web-mvc-app) and [Webflux Application](https://github.com/heutelbeck/sapl-demos/tree/master/webflux) for framework integration.
+Example using a bearer token over RSocket:
+
+```properties
+io.sapl.pdp.remote.enabled=true
+io.sapl.pdp.remote.type=rsocket
+io.sapl.pdp.remote.host=pdp.example.com
+io.sapl.pdp.remote.port=7000
+io.sapl.pdp.remote.tls=true
+io.sapl.pdp.remote.bearerToken=sapl_7f3a...
+```
+
+#### Reducing Application Footprint
+
+When using only a remote PDP, exclude the embedded PDP dependency to reduce the application size:
+
+```xml
+<dependency>
+    <groupId>io.sapl</groupId>
+    <artifactId>sapl-spring-boot-starter</artifactId>
+    <version>4.1.0-SNAPSHOT</version>
+    <exclusions>
+        <exclusion>
+            <groupId>io.sapl</groupId>
+            <artifactId>sapl-pdp</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+```
 
 ### Deployment Options
 
 SAPL provides three ways to deploy a PDP:
 
-- **Embedded PDP**: Runs inside a Java (or any other JVM language) application with policies loaded from the classpath, a filesystem directory, or signed bundles. Suitable for single-instance applications or microservices where policies are deployed alongside the application.
-- **SAPL Node**: A standalone, headless PDP server that exposes the PDP via an HTTP API. Supports filesystem directories, signed bundles, and remote bundle fetching. Designed for centralized policy management across multiple applications.
-- **Remote PDP client**: A lightweight client library that connects to a SAPL Node (or any SAPL-compatible server) via HTTP. Applications use this when policies are managed centrally rather than embedded.
+- **Embedded PDP**: Runs inside a JVM application with policies loaded from the classpath, a filesystem directory, or signed bundles. Suitable for single-instance applications or microservices where policies are deployed alongside the application.
+- **SAPL Node**: A standalone, headless PDP server that exposes the PDP over HTTP and RSocket. Supports filesystem directories, signed bundles, and remote bundle fetching. Designed for centralized policy management across multiple applications.
+- **Remote PDP client**: A lightweight client library that connects to a SAPL Node (or any SAPL-compatible server) over HTTP or RSocket. Applications use this when policies are managed centrally rather than embedded.
+</content>

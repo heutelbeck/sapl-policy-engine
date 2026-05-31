@@ -53,9 +53,93 @@ Attribute methods return either `io.sapl.api.stream.Stream<Value>` (for attribut
 
 Use `Stream<Value>` for attributes whose value changes over time (periodic sensor readings, message streams, certificate expiry watchers). Use a `Value` return when the attribute resolves once per invocation (database lookup, deterministic computation, single-shot HTTP GET).
 
-`Stream<Value>` here is the SAPL stream primitive in `sapl-api`, not `java.util.stream.Stream`. The `io.sapl.api.stream.Streams` utility class provides constructors: `Streams.just(value)`, `Streams.error(message)`, `Streams.empty()`, `Streams.scheduledPoll(interval, supplier, clock, scheduler)`, `Streams.scheduledAt(value, instant, scheduler)`, `Streams.concat(...)`, `Streams.map(stream, fn)`, `Streams.distinctUntilChanged(stream, errorMapper)`, `Streams.fromCallback(producer)`, `Streams.fromBlockingSource(callable)`. PIP authors compose these in the same shape as the built-in libraries.
+`Stream<Value>` here is the SAPL stream primitive in `io.sapl.api.stream`, not `java.util.stream.Stream`. See [Working with Streams](#working-with-streams) below for how to build one.
 
-Reactor types (`Flux<Value>`, `Mono<Value>`) are no longer accepted from PIP methods. The 4.1 attribute broker contract drops Reactor at the boundary.
+### Working with Streams
+
+`Stream<Value>` is a push-based, latest-wins value source. It is not a Reactor `Flux` and it is not `java.util.stream.Stream`. A PIP author rarely implements the interface directly. You build a stream with one of the `io.sapl.api.stream.Streams` factory methods and return it.
+
+A stream holds only its most recent value. A consumer that falls behind a fast producer observes the latest value rather than every intermediate one. This conflation lets a high-frequency source coexist with a slower policy evaluation without unbounded buffering.
+
+**Lifecycle.** The producer-driven factories (`poll`, `scheduledPoll`, `concat`, `repeat`, `map`, `distinctUntilChanged`, `fromBlockingSource`) are hot. They start a virtual thread the moment the stream is constructed, before any consumer reads from it. In a running PDP the attribute broker owns the stream and closes it when the consuming subscription releases, so a PIP author does not call `close()`. Outside the broker, in unit tests or ad-hoc code, wrap the stream in try-with-resources so the producer thread is released.
+
+**Threading.** Blocking work inside a stream, such as an HTTP call, an MQTT receive, or an `awaitNext()`, runs on a virtual thread supplied by these helpers. Do not run it on a Reactor scheduler thread or a Netty event loop. A PIP that returns a `Streams.*` construction gets this for free.
+
+#### Choosing a Factory
+
+One value, then completion.
+
+| Factory | Emits |
+|---------|-------|
+| `Streams.just(value)` | the value once, then completes |
+| `Streams.error(message)` | a single error value carrying `message`, then completes |
+| `Streams.empty()` | nothing, completes immediately (absence, surfaces to the policy as `UNDEFINED`) |
+| `Streams.scheduledAt(value, instant, scheduler)` | the value once at `instant`, then completes |
+
+A value recomputed on a schedule.
+
+| Factory | Behaviour |
+|---------|-----------|
+| `Streams.poll(interval, supplier)` | calls `supplier` now and every `interval`, using real-time sleep |
+| `Streams.scheduledPoll(interval, supplier, clock, scheduler)` | the same, but each tick is scheduled via `scheduler` |
+
+Prefer `scheduledPoll` when the attribute must be deterministically testable, because `poll` uses wall-clock sleep and cannot be advanced by a test clock. If the supplier throws, both convert the exception to an error value, emit it, and continue at the next tick.
+
+A value driven by an external source.
+
+| Factory | Use when |
+|---------|----------|
+| `Streams.fromBlockingSource(callable)` | a blocking pull loop. `callable` returns the next value, or `null` to complete |
+| `Streams.fromCallback(producer)` | a push source such as a subscription or listener. `producer` receives an `emit` and a `complete` consumer and returns a cleanup `Runnable` that runs on close |
+
+Composition.
+
+| Factory | Behaviour |
+|---------|-----------|
+| `Streams.concat(a, b, ...)` | emits each source in order, completes when all have completed |
+| `Streams.repeat(sourceFactory)` | recreates a fresh source each time the previous one completes |
+| `Streams.map(source, mapper)` | transforms each value. A throwing mapper emits an error value and terminates |
+| `Streams.distinctUntilChanged(source)` | drops a value equal to its predecessor. The first value always passes |
+
+#### Stream Examples
+
+A push source bridged with `fromCallback`, here an MQTT subscription.
+
+```java
+@Attribute(name = "messages", docs = "Streams MQTT messages on a topic.")
+public Stream<Value> messages(TextValue topic) {
+    return Streams.fromCallback((emit, complete) -> {
+        var subscription = mqttClient.subscribe(topic.value(),
+            message -> emit.accept(Value.of(message.payload())));
+        return subscription::unsubscribe;
+    });
+}
+```
+
+A blocking pull loop with `fromBlockingSource`. Returning `null` completes the stream.
+
+```java
+@EnvironmentAttribute(docs = "Streams records from a blocking queue.")
+public Stream<Value> events() {
+    return Streams.fromBlockingSource(() -> {
+        var record = queue.take();
+        return record.isPoison() ? null : Value.of(record.toJson());
+    });
+}
+```
+
+Deduplicate a noisy poll so the policy re-evaluates only on a real change.
+
+```java
+@EnvironmentAttribute(docs = "Emits the sensor reading, updating only when it changes.")
+public Stream<Value> reading() {
+    var raw = Streams.scheduledPoll(Duration.ofSeconds(1),
+        () -> Value.of(sensor.read()), clock, scheduler);
+    return Streams.distinctUntilChanged(raw);
+}
+```
+
+Reactor types (`Flux<Value>`, `Mono<Value>`) are no longer accepted from PIP methods. The 4.1 attribute broker contract drops Reactor at the boundary. To expose an existing reactive source, bridge it onto a virtual thread inside `fromCallback` or `fromBlockingSource`.
 
 ### Parameter Order
 
@@ -237,8 +321,7 @@ See [Authorization Subscriptions](../2_1_AuthorizationSubscriptions/) for detail
 Custom PIPs are registered with the PDP through the builder API:
 
 ```java
-var pdp = PolicyDecisionPointBuilder.builder()
-    .withDefaults()
+var pdpComponents = PolicyDecisionPointBuilder.withDefaults()
     .withPolicyInformationPoint(new UserPIP(userService))
     .build();
 ```
