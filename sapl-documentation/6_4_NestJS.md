@@ -18,7 +18,7 @@ SAPL is a policy language and Policy Decision Point (PDP) for attribute-based ac
 Three core concepts:
 
 1. **Authorization subscription**: your app sends `{ subject, action, resource, environment }` to the PDP.
-2. **PDP decision**: the PDP evaluates policies and returns `PERMIT` or `DENY`, optionally with obligations, advice, or a replacement resource.
+2. **PDP decision**: the PDP evaluates policies and returns a decision verb (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, or `NOT_APPLICABLE`), optionally with obligations, advice, or a replacement resource.
 3. **Constraint handlers**: registered handlers execute the policy's instructions (log, filter, transform, cap values, etc.).
 
 A PDP decision looks like this:
@@ -51,7 +51,7 @@ If you use transactions and want obligation failures to trigger rollbacks, also 
 npm install @nestjs-cls/transactional
 ```
 
-The library requires Node.js 20 or later, NestJS 11, and RxJS 7.
+The library requires Node.js 22 or later, NestJS 11, and RxJS 7.
 
 A complete working demo with JWT authentication, constraint handlers, and streaming enforcement is available at [sapl-nestjs-demo](https://github.com/heutelbeck/sapl-nestjs-demo).
 
@@ -117,29 +117,56 @@ export class AppModule {}
 
 `SaplModule` registers everything automatically:
 - `PdpService` for PDP communication
-- `ConstraintEnforcementService` for constraint handler discovery and orchestration
-- `PreEnforceAspect`, `PostEnforceAspect`, and streaming enforcement aspects via `@toss/nestjs-aop`
+- `EnforcementPlanner` for constraint handler discovery and enforcement plan construction
+- `ProviderRegistry` for constraint handler provider discovery
+- `PreEnforceAspect`, `PostEnforceAspect`, and `StreamEnforceAspect` via `@toss/nestjs-aop`
 - `ClsModule` from `nestjs-cls` for request context propagation
 - Built-in `ContentFilteringProvider` and `ContentFilterPredicateProvider`
 
 The decorators work on any injectable class method (controllers, services, repositories, etc.). Methods without enforcement decorators are unaffected.
 
+### Transport
+
+The PDP client speaks HTTP by default. To opt into the high-throughput binary protocol against a SAPL Node listening on its RSocket port, set `transport: 'rsocket'`.
+
+```typescript
+SaplModule.forRoot({
+  baseUrl: 'https://localhost:8443',
+  transport: 'rsocket',
+  rsocketPort: 7000,
+  token: 'sapl_your_api_key_here',
+}),
+```
+
+The RSocket transport is covered in more detail under [RSocket Transport](#rsocket-transport) below.
+
 ## Security
 
 ### Transport Security
 
-`@sapl/nestjs` requires HTTPS for PDP communication by default. Authorization decisions and potentially sensitive information are transmitted over this connection. Using unencrypted HTTP would expose this data to network-level attackers.
+`@sapl/nestjs` encrypts PDP communication by default. Authorization decisions and potentially sensitive information are transmitted over this connection. Using unencrypted transport would expose this data to network-level attackers.
 
-For local development without TLS, set `allowInsecureConnections: true`:
+The library enforces a loopback-only plaintext rule. A plain `http://` base URL (HTTP transport) or a missing `tls` block (RSocket transport) is accepted only when the target host is a loopback address (`localhost`, `127.0.0.1`, `::1`). Any plaintext connection to a non-loopback host is refused at client construction with an error. On loopback the HTTP client logs a warning to flag that production must use TLS.
+
+For custom CA certificates, self-signed certificates, or mutual TLS, pass a `tls` block. The library never reads files. Load PEM contents yourself, for example with `fs.readFileSync`, and pass the contents.
 
 ```typescript
+import { readFileSync } from 'node:fs';
+
 SaplModule.forRoot({
-  baseUrl: 'http://localhost:8443',
-  allowInsecureConnections: true, // HTTP only, never use in production
+  baseUrl: 'https://pdp.example.org:8443',
+  token: 'sapl_your_api_key_here',
+  tls: {
+    ca: readFileSync('ca.pem'),
+    // cert and key for mutual TLS, both optional
+    // cert: readFileSync('client-cert.pem'),
+    // key: readFileSync('client-key.pem'),
+    // rejectUnauthorized defaults to true. Leave true in production.
+  },
 }),
 ```
 
-For custom CA certificates or self-signed certificates in production, configure Node.js at the process level via the `NODE_EXTRA_CA_CERTS` environment variable.
+The same `tls` block applies to both transports. On the RSocket transport `servername` selects the SNI host name and defaults to the connection host. On the HTTP transport SNI is derived from the URL and `servername` is ignored. `rejectUnauthorized` defaults to `true` and should be set to `false` only in tests against self-signed certificates without a provided CA.
 
 ### Response Validation
 
@@ -147,7 +174,7 @@ PDP responses are validated before use. Malformed responses (non-object, missing
 
 ### Streaming Limits
 
-The streaming SSE parser enforces a 1 MB buffer limit per connection. If the PDP sends data without newline delimiters exceeding this limit, the connection is aborted and an `INDETERMINATE` decision is emitted. This protects against memory exhaustion from misbehaving upstream connections.
+The streaming SSE parser enforces a 64 KB buffer limit per connection. If the PDP sends data without newline delimiters exceeding this limit, the connection is aborted and an `INDETERMINATE` decision is emitted. This protects against memory exhaustion from misbehaving upstream connections.
 
 ## Decorators
 
@@ -196,7 +223,7 @@ Use `@PostEnforce` when the policy needs to see the actual return value to make 
 
 ### Subscription Fields
 
-Both decorators accept `EnforceOptions` to customize the authorization subscription:
+Both decorators accept `SubscriptionOptions` to customize the authorization subscription:
 
 ```typescript
 type SubscriptionField<T = any> = T | ((ctx: SubscriptionContext) => T);
@@ -235,19 +262,23 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 })
 ```
 
-### Custom Deny Handling
+### Shaping the Deny Response
 
-Add `onDeny` to any `@PreEnforce` or `@PostEnforce` to return a custom response instead of throwing `ForbiddenException`:
+On denial the PEP throws a NestJS `ForbiddenException` (the streaming PEP throws `AccessDeniedError`, a subclass of `ForbiddenException`). There is no per-decorator deny callback. To shape the deny response, catch the exception with a standard NestJS exception filter.
 
 ```typescript
-@PreEnforce({
-  onDeny: (ctx, decision) => ({
-    error: 'access_denied',
-    decision: decision.decision,
-    user: ctx.request.user?.preferred_username ?? 'unknown',
-  }),
-})
+import { ArgumentsHost, Catch, ExceptionFilter, ForbiddenException } from '@nestjs/common';
+
+@Catch(ForbiddenException)
+export class AccessDeniedFilter implements ExceptionFilter {
+  catch(exception: ForbiddenException, host: ArgumentsHost) {
+    const response = host.switchToHttp().getResponse();
+    response.status(403).json({ error: 'access_denied' });
+  }
+}
 ```
+
+Exception filters integrate correctly with `@Transactional`. A per-decorator deny-return would silently commit the transaction when a post-method obligation fails, which is why deny shaping lives in the exception filter rather than the decorator.
 
 ## How Enforcement Works
 
@@ -279,17 +310,19 @@ For request-response methods (`@PreEnforce` and `@PostEnforce`), constraints can
 | On return value       | After the method returns             | Transform, filter, or replace the result        |
 | On error              | If the method throws                 | Transform or observe the error                  |
 
-For streaming methods (`@EnforceTillDenied`, `@EnforceDropWhileDenied`, `@EnforceRecoverableIfDenied`), constraints can run at five points:
+For the streaming method decorator (`@StreamEnforce`), constraints attach to a wider set of lifecycle signals:
 
-| Location           | When it happens                              | What constraints do here                |
-|--------------------|----------------------------------------------|-----------------------------------------|
-| On decision        | Each new decision from the PDP stream        | Side effects like logging, audit        |
-| On each data item  | Each element emitted by the source stream    | Transform, filter, or replace items     |
-| On stream error    | Source stream produces an error               | Transform or observe the error          |
-| On stream complete | Source stream completes normally              | Cleanup and finalization                |
-| On cancel          | Subscriber cancels or enforcement terminates | Release resources and close connections |
+| Signal        | When it fires                                | What constraints do here                |
+|---------------|----------------------------------------------|-----------------------------------------|
+| `decision`    | Each new decision from the PDP stream        | Side effects like logging, audit        |
+| `output`      | Each element emitted by the source stream    | Transform, filter, or observe items     |
+| `error`       | Source stream produces an error               | Transform or observe the error          |
+| `subscribe`   | The source stream is subscribed              | Setup side effects                      |
+| `complete`    | Source stream completes normally              | Cleanup and finalization                |
+| `cancel`      | Subscriber cancels                           | Release resources                       |
+| `termination` | The pipeline finalizes for any reason        | Final cleanup                           |
 
-This is why the handler interfaces have different shapes. A `RunnableConstraintHandlerProvider` fires at a lifecycle point like "on decision". A `ConsumerConstraintHandlerProvider` processes each data item. A `MethodInvocationConstraintHandlerProvider` only exists in `@PreEnforce` because it modifies arguments before the method runs, which makes no sense after the method has already executed.
+A handler decides which signals it attaches to. A side-effect-only handler attaches to a void signal such as `decision`, `complete`, or `cancel`. A handler that observes or transforms a value attaches to a data-carrying signal (`input`, `output`, or `error`). The `input` signal exists only on `@PreEnforce`, where a handler can rewrite the method arguments before the method runs. After the method has executed there is nothing to rewrite, so `@PostEnforce` does not advertise it.
 
 ### PreEnforce Lifecycle
 
@@ -321,98 +354,122 @@ SAPL PEP libraries share a single unified enforcement model. It is a strict fail
 
 ## Constraint Handlers
 
-When the PDP returns a decision with `obligations` or `advice`, the `ConstraintEnforcementService` builds a `ConstraintHandlerBundle` that orchestrates all constraint handlers.
+When the PDP returns a decision with `obligations` or `advice`, the `EnforcementPlanner` queries the registered constraint handler providers, builds an enforcement plan, and the active aspect executes that plan against each lifecycle signal.
 
 ### Obligation vs. Advice Semantics
 
-The core contract between obligations and advice is covered in [The Deny Invariant](#the-deny-invariant) above. In short: unhandled or failing obligations deny access, advice failures are logged and ignored.
+The core contract between obligations and advice is covered in [The Deny Invariant](#the-deny-invariant) above. In short, unhandled or failing obligations deny access, advice failures are logged and ignored.
 
-### When to Use Which Handler
+### The Provider Interface
 
-| You want to...                            | Use this handler type                       |
-| ----------------------------------------- | ------------------------------------------- |
-| Log or notify on a decision               | `RunnableConstraintHandlerProvider`         |
-| Record/inspect the response (side-effect) | `ConsumerConstraintHandlerProvider`         |
-| Transform the response                    | `MappingConstraintHandlerProvider`          |
-| Filter array elements from the response   | `FilterPredicateConstraintHandlerProvider`  |
-| Modify request or method arguments        | `MethodInvocationConstraintHandlerProvider` |
-| Log/notify on errors (side-effect)        | `ErrorHandlerProvider`                      |
-| Transform errors                          | `ErrorMappingConstraintHandlerProvider`     |
-
-### Handler Types Reference
-
-| Type               | Interface                                   | Handler Signature                             | When It Runs                       |
-| ------------------ | ------------------------------------------- | --------------------------------------------- | ---------------------------------- |
-| `runnable`         | `RunnableConstraintHandlerProvider`         | `() => void`                                  | On decision (side effects)         |
-| `methodInvocation` | `MethodInvocationConstraintHandlerProvider` | `(context: MethodInvocationContext) => void`   | Before method (`@PreEnforce` only) |
-| `consumer`         | `ConsumerConstraintHandlerProvider`         | `(value: any) => void`                        | After method, inspects response    |
-| `mapping`          | `MappingConstraintHandlerProvider`          | `(value: any) => any`                         | After method, transforms response  |
-| `filterPredicate`  | `FilterPredicateConstraintHandlerProvider`  | `(element: any) => boolean`                   | After method, filters elements     |
-| `errorHandler`     | `ErrorHandlerProvider`                      | `(error: Error) => void`                      | On error, inspects                 |
-| `errorMapping`     | `ErrorMappingConstraintHandlerProvider`     | `(error: Error) => Error`                     | On error, transforms               |
-
-`MappingConstraintHandlerProvider` and `ErrorMappingConstraintHandlerProvider` also require `getPriority(): number`. When multiple mapping handlers match the same constraint, they execute in descending priority order (higher number runs first).
-
-### MethodInvocationContext
-
-The `MethodInvocationContext` provides:
-
-| Field        | Type     | Description                                                   |
-| ------------ | -------- | ------------------------------------------------------------- |
-| `request`    | `any`    | The HTTP request object (from CLS)                            |
-| `args`       | `any[]`  | The method arguments. Handlers can mutate or replace entries.  |
-| `methodName` | `string` | The intercepted method name                                   |
-| `className`  | `string` | The class containing the intercepted method                   |
-
-Handlers can modify `context.args` to change what arguments the method receives. This enables patterns like policy-driven transfer limits:
+There is a single constraint handler provider interface. A provider inspects one constraint and returns the scoped handlers that enforce it, or an empty array when it does not recognise the constraint.
 
 ```typescript
-@Injectable()
-@SaplConstraintHandler('methodInvocation')
-export class CapTransferHandler implements MethodInvocationConstraintHandlerProvider {
-  isResponsible(constraint: any) { return constraint?.type === 'capTransferAmount'; }
-
-  getHandler(constraint: any): (context: MethodInvocationContext) => void {
-    const maxAmount = constraint.maxAmount;
-    const argIndex = constraint.argIndex ?? 0;
-    return (context) => {
-      const requested = Number(context.args[argIndex]);
-      if (requested > maxAmount) {
-        context.args[argIndex] = maxAmount;
-      }
-    };
-  }
+interface ConstraintHandlerProvider {
+  getHandlers(constraint: unknown): ReadonlyArray<ScopedHandler>;
 }
 ```
+
+A `ScopedHandler` bundles four things. The `signal` it attaches to, a `priority` (lower runs earlier among handlers on the same signal), a `shape`, and the handler function itself.
+
+```typescript
+interface ScopedHandler {
+  readonly signal: SignalKind;
+  readonly priority: number;
+  readonly shape: 'runner' | 'consumer' | 'mapper';
+  readonly handler: (value: unknown) => unknown | void;
+}
+```
+
+The three shapes determine what the handler does with the value passed to it.
+
+| Shape      | Signature          | Use when                                                                 |
+|------------|--------------------|--------------------------------------------------------------------------|
+| `runner`   | `() => void`       | A side effect that needs no value. Logging the decision, sending a notification. |
+| `consumer` | `(value) => void`  | A side effect that observes the value but does not change it. Structured audit logging of the response. |
+| `mapper`   | `(value) => value` | A transformation of the value flowing through a data-carrying signal. Redacting fields in `output`, rewriting an error. |
+
+A single provider can return several handlers across different signals for one constraint. For example one constraint can drive both a `decision` runner that records the outcome and an `output` consumer that audits the response.
+
+Two admissibility rules apply. A `mapper` may only be returned for an obligation, never for advice. Advice is allowed to fail silently, and a value transformation that silently does not happen would leave the caller unable to tell whether the result was transformed. If a provider returns a mapper for an advice constraint, the planner replaces the whole claim with a synthetic failure runner. The second rule is that `consumer` and `mapper` handlers attach only to the data-carrying signals (`input`, `output`, `error`), while `runner` handlers attach to any signal. A handler scoped to a signal the active PEP does not advertise is inadmissible, and an inadmissible handler for an obligation denies access.
+
+### Lifecycle Signals
+
+A signal is the discriminated union of lifecycle events at which handlers may attach. There are eight kinds, four value-carrying and four void.
+
+| Kind          | Carries           | Fires                                                       |
+|---------------|-------------------|------------------------------------------------------------|
+| `decision`    | the decision      | When a decision arrives (runners only).                    |
+| `input`       | the method args   | Before the method runs, `@PreEnforce` only. Args are mutable. |
+| `output`      | the return value  | After the method returns, or per item on a stream.         |
+| `error`       | the thrown error  | When the method or stream produces an error.               |
+| `subscribe`   | nothing           | When a streaming source is subscribed.                     |
+| `cancel`      | nothing           | When the subscriber cancels.                               |
+| `complete`    | nothing           | When the source completes normally.                        |
+| `termination` | nothing           | When the streaming pipeline finalizes for any reason.      |
+
+Which signals a PEP advertises depends on the decorator. `@PreEnforce` advertises `decision`, `input`, `output`, and `error`. `@PostEnforce` advertises `decision`, `output`, and `error` (no `input`, the method has already run). `@StreamEnforce` advertises `decision`, `output`, `error`, `subscribe`, `cancel`, `complete`, and `termination`.
 
 ### Registering Custom Handlers
 
+A constraint handler is an injectable class annotated with `@SaplConstraintHandler('provider')`. The literal `'provider'` is the only accepted argument. It tags the class for discovery.
+
 ```typescript
 import { Injectable } from '@nestjs/common';
-import {
-  SaplConstraintHandler,
-  RunnableConstraintHandlerProvider,
-  Signal,
-} from '@sapl/nestjs';
+import { SaplConstraintHandler } from '@sapl/nestjs';
+import type { ConstraintHandlerProvider, ScopedHandler } from '@sapl/nestjs';
 
 @Injectable()
-@SaplConstraintHandler('runnable')
-export class AuditLogHandler implements RunnableConstraintHandlerProvider {
-  isResponsible(constraint: any): boolean {
-    return constraint?.type === 'logAccess';
-  }
-
-  getSignal(): Signal {
-    return Signal.ON_DECISION;
-  }
-
-  getHandler(constraint: any): () => void {
-    return () => console.log(`Audit: ${constraint.message}`);
+@SaplConstraintHandler('provider')
+export class AuditLogHandler implements ConstraintHandlerProvider {
+  getHandlers(constraint: unknown): ReadonlyArray<ScopedHandler> {
+    if ((constraint as { type?: unknown })?.type !== 'logAccess') {
+      return [];
+    }
+    const message = (constraint as { message?: string }).message ?? 'Access logged';
+    return [
+      {
+        signal: 'decision',
+        priority: 0,
+        shape: 'runner',
+        handler: () => console.log(`Audit: ${message}`),
+      },
+    ];
   }
 }
 ```
 
-Register the handler in any module's `providers` array. The `ConstraintEnforcementService` discovers all `@SaplConstraintHandler`-decorated providers automatically.
+Register the handler in any module's `providers` array. The `ProviderRegistry` discovers all `@SaplConstraintHandler('provider')`-decorated classes automatically.
+
+A handler that rewrites the method arguments returns a `mapper` on the `input` signal. The `input` value is the argument array, and the mapper returns the replacement array. This signal is only available under `@PreEnforce`.
+
+```typescript
+@Injectable()
+@SaplConstraintHandler('provider')
+export class CapTransferHandler implements ConstraintHandlerProvider {
+  getHandlers(constraint: unknown): ReadonlyArray<ScopedHandler> {
+    if ((constraint as { type?: unknown })?.type !== 'capTransferAmount') {
+      return [];
+    }
+    const max = (constraint as { maxAmount: number }).maxAmount;
+    const argIndex = (constraint as { argIndex?: number }).argIndex ?? 0;
+    return [
+      {
+        signal: 'input',
+        priority: 0,
+        shape: 'mapper',
+        handler: (value) => {
+          const args = [...(value as unknown[])];
+          if (Number(args[argIndex]) > max) {
+            args[argIndex] = max;
+          }
+          return args;
+        },
+      },
+    ];
+  }
+}
+```
 
 ## Built-in Constraint Handlers
 
@@ -462,144 +519,119 @@ Filters array elements or nullifies single values that do not meet conditions.
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported and will throw an error.
 
-## Streaming Enforcement
+## Streaming Enforcement with @StreamEnforce
 
-For SSE endpoints that return `Observable<T>`, three streaming decorators provide continuous authorization where the PDP streams decisions over time. Access may flip between PERMIT and DENY based on time, location, or context changes.
-
-<!-- mermaid source for regeneration:
-sequenceDiagram
-    participant PDP
-    participant Stream
-    rect rgb(220, 245, 220)
-        Note over PDP,Stream: PERMIT phase
-        PDP->>Stream: PERMIT
-        loop Every 2s
-            Stream-->>Stream: data event
-        end
-    end
-    rect rgb(255, 220, 220)
-        Note over PDP,Stream: DENY phase
-        PDP->>Stream: DENY
-    end
-    alt @EnforceTillDenied
-        Stream-->>Stream: ACCESS_DENIED event
-        Note over Stream: Stream closed permanently
-    else @EnforceDropWhileDenied
-        Note over Stream: Events silently dropped
-        PDP->>Stream: PERMIT
-        Note over Stream: Events resume
-    else @EnforceRecoverableIfDenied
-        Stream-->>Stream: ACCESS_SUSPENDED event
-        PDP->>Stream: PERMIT
-        Stream-->>Stream: ACCESS_RESTORED event
-        Note over Stream: Events resume
-    end
--->
-![Streaming enforcement sequence: PDP sends PERMIT and data events flow, then DENY triggers one of three strategies - EnforceTillDenied closes the stream, EnforceDropWhileDenied silently drops events and resumes on re-PERMIT, EnforceRecoverableIfDenied sends ACCESS_SUSPENDED and ACCESS_RESTORED signals](/docs/XXXSAPLVERSIONXXX/assets/sapl_reference_images/nestjs-streaming.svg)
-
-### When to Use Which Strategy
-
-| Scenario                                       | Strategy                      |
-| ---------------------------------------------- | ----------------------------- |
-| Access loss is permanent (revoked credentials) | `@EnforceTillDenied`          |
-| Client doesn't need to know about gaps         | `@EnforceDropWhileDenied`     |
-| Client should show suspended/restored status   | `@EnforceRecoverableIfDenied` |
-
-### @EnforceTillDenied
-
-Stream terminates on first non-PERMIT decision. Use for streams where denial is a terminal condition.
+`@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For SSE endpoints that return an `Observable<T>`, the decision is rarely a single point in time. The same subscription stays open while the policy evaluates against attribute streams that may change. The single `@StreamEnforce` decorator covers this case.
 
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { Observable, interval, map } from 'rxjs';
-import { EnforceTillDenied } from '@sapl/nestjs';
+import { StreamEnforce } from '@sapl/nestjs';
 
 @Injectable()
 export class HeartbeatService {
-  @EnforceTillDenied({
-    action: 'stream:heartbeat',
-    resource: 'heartbeat',
-    onStreamDeny: (decision, subscriber) => {
-      subscriber.next({ data: JSON.stringify({ type: 'ACCESS_DENIED' }) });
-    },
-  })
+  @StreamEnforce({ action: 'stream:heartbeat', resource: 'heartbeat' })
   heartbeat(): Observable<any> {
-    return interval(2000).pipe(
-      map((i) => ({ data: JSON.stringify({ seq: i }) })),
-    );
+    return interval(2000).pipe(map((i) => ({ seq: i })));
   }
 }
 ```
 
-The `onStreamDeny` callback receives the PDP decision and a restricted emitter. Calling `emitter.next()` injects an event into the output stream before the stream terminates with a `ForbiddenException`.
+`@StreamEnforce` consumes a continuous stream of authorization decisions from the PDP. As decisions change, the aspect lets items flow, drops them silently, or terminates the subscription accordingly. The protected method must return an `Observable`. For `Observable`-of-one or request-response semantics, use `@PreEnforce`/`@PostEnforce`.
 
-### @EnforceDropWhileDenied
+### How Decisions Affect the Subscription
 
-Silently drops data during DENY periods. Stream stays alive and resumes forwarding on re-PERMIT.
+Every decision the PDP emits during the lifetime of the subscription has one of five verbs, and each maps to a single observable effect.
+
+| PDP decision | Effect on the subscription |
+|---|---|
+| `PERMIT` | Items from the protected method flow through to the subscriber. |
+| `SUSPEND` | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow. |
+| `INDETERMINATE` | The subscription terminates with an `AccessDeniedError`. |
+| `NOT_APPLICABLE` | The subscription terminates with an `AccessDeniedError`. |
+| `DENY` | The subscription terminates with an `AccessDeniedError`. |
+
+Under the strict fail-closed discipline, `INDETERMINATE`, `NOT_APPLICABLE`, and a `PERMIT` whose decision-scoped enforcement fails all terminate the subscription with an `AccessDeniedError`. Only an explicit `SUSPEND` from the PDP silences (rather than terminates) the subscription. Operators who want `NOT_APPLICABLE` to silence rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level, producing a real `SUSPEND` decision the streaming PEP then routes through suspension.
+
+A subscription that has been silenced by a `SUSPEND` resumes the moment the PDP emits a `PERMIT` again. This is the use case the `suspend` verb in policies was designed for. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the policy-side semantics.
+
+Per-item obligation failure also terminates the subscription, with an `AccessDeniedError` carrying a message indicating the per-item discharge failure. Per-item failure is unconditionally terminal, matching strict `@PreEnforce` semantics on a per-item timeline.
+
+`AccessDeniedError` is a subclass of NestJS `ForbiddenException`, so a terminal denial routes through the HTTP layer as a 403 natively and is caught by the same exception filters that catch a `@PreEnforce` denial.
+
+### The Streaming State Machine
+
+The streaming pipeline is a four-state machine over the decision verbs. It starts in `Pending` before any decision arrives. A `PERMIT` (with successful decision-scoped enforcement) moves it to `Permitting`, where items flow. A `SUSPEND` moves it to `Suspended`, where items are dropped and the subscription stays open. Any terminal verb (`DENY`, `INDETERMINATE`, `NOT_APPLICABLE`, a `PERMIT` whose enforcement fails, a per-item failure, a source error, or subscriber cancel) moves it to the absorbing `Terminated` state. From `Suspended` a later `PERMIT` returns to `Permitting`. The machine is the local realization of the unified enforcement model described under [Authorization Decisions](../2_3_AuthorizationDecisions/).
+
+### Two Flags
+
+`@StreamEnforce` carries two boolean flags, both defaulting to `false`. Each addresses one orthogonal concern.
 
 ```typescript
-@Injectable()
-export class HeartbeatService {
-  @EnforceDropWhileDenied({
-    action: 'stream:heartbeat',
-    resource: 'heartbeat',
-  })
-  heartbeat(): Observable<any> {
-    return interval(2000).pipe(
-      map((i) => ({ data: JSON.stringify({ seq: i }) })),
-    );
-  }
-}
+@StreamEnforce({
+  signalTransitions: false,     // default false
+  pauseRapDuringSuspend: false, // default false
+})
 ```
 
-Data is silently dropped during DENY periods with no signals to the client. If you need deny/recover signals, use `@EnforceRecoverableIfDenied` instead.
+**`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal value on the `next` channel. When `false` (the default), boundary transitions are silent. The subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessSuspendedSignal` value every time the subscription is silenced and an `AccessGrantedSignal` value (carrying the granting decision) every time it resumes. These arrive on the `next` channel, not the error channel; subscribers detect them with `instanceof` or with the `TransitionSignals` helper operators below. Terminal denials bypass the gate entirely and surface on the `error` channel as `AccessDeniedError` regardless of this flag.
 
-### @EnforceRecoverableIfDenied
+**`pauseRapDuringSuspend`**. Controls the underlying source Observable while the subscription is silenced. With the default `false`, the protected method's Observable stays subscribed throughout the silenced period. Items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume, and upstream state is preserved. With `true`, the upstream subscription is disposed when the subscription enters `Suspended` and re-established when it resumes into `Permitting`. This stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run while the subscriber is denied access.
 
-In-band deny/recover signals via subscriber callbacks. Edge-triggered: `onStreamDeny` fires on PERMIT-to-DENY transitions and on the initial decision if it is DENY. `onStreamRecover` fires on DENY-to-PERMIT transitions (not on the initial PERMIT). Repeated same-state decisions do not re-fire callbacks.
+### The Source Observable and Authorization Ordering
+
+The protected method's Observable is subscribed only after the first `PERMIT` decision arrives from the PDP. For hot observables (WebSocket streams, event emitters), events emitted before the initial `PERMIT` are not buffered and will not be delivered. This is intentional. Data should not be buffered before authorization is confirmed.
+
+RxJS is push-only, so the streaming pipeline carries no demand-forwarding logic and no hidden buffer. A slow subscriber backs up in its own buffers, not in the PEP.
+
+### Subscriber-Side Transition Handling
+
+When `signalTransitions = true`, the `TransitionSignals` helper operators translate the in-band `AccessSuspendedSignal` / `AccessGrantedSignal` values into ordinary callbacks and re-emit a clean stream of source values to the downstream consumer.
 
 ```typescript
-@Injectable()
-export class HeartbeatService {
-  @EnforceRecoverableIfDenied({
-    action: 'stream:heartbeat',
-    resource: 'heartbeat',
-    onStreamDeny: (decision, subscriber) => {
-      subscriber.next({ data: JSON.stringify({ type: 'ACCESS_SUSPENDED' }) });
-    },
-    onStreamRecover: (decision, subscriber) => {
-      subscriber.next({ data: JSON.stringify({ type: 'ACCESS_RESTORED' }) });
-    },
-  })
-  heartbeat(): Observable<any> {
-    return interval(2000).pipe(
-      map((i) => ({ data: JSON.stringify({ seq: i }) })),
-    );
-  }
-}
+import { TransitionSignals } from '@sapl/nestjs';
+
+const clean = TransitionSignals.onTransitions(
+  heartbeatService.heartbeat(),
+  (suspended) => log.info('Stream suspended'),
+  (granted) => log.info('Stream resumed', granted.decision),
+);
 ```
 
-### Decision Lifecycle
+`TransitionSignals` exposes three operators. `onSuspend` observes the suspend boundary, `onGranted` observes the resume boundary, and `onTransitions` composes both. Each operator either drops the boundary value from the stream or, with an extra substitute callback, replaces it with a value of the source type.
 
-All three streaming aspects:
-- Subscribe to `PdpService.decide()` which opens a streaming connection to the PDP
-- Identical consecutive decisions are deduplicated (`distinctUntilChanged` by deep equality). The PDP may resend the same decision periodically, and only actual changes trigger processing.
-- On each PERMIT decision, build a `StreamingConstraintHandlerBundle` that applies constraint handlers to each data element
-- Hot-swap the constraint handler bundle when a new PERMIT decision arrives with different obligations
-- Run best-effort constraint handlers on DENY decisions
-- Clean up both the PDP subscription and source subscription on unsubscribe
+### Three Common Patterns
 
-> **Note:** The source observable is subscribed only after the first PERMIT decision arrives from the PDP. For hot observables (WebSocket streams, event emitters), events emitted before the initial PERMIT are not buffered and will not be delivered. This is intentional; data should not be buffered before authorization is confirmed.
+The flag combinations encode the three behavioural patterns most streaming endpoints want.
 
-### Streaming Signals
+**Terminate on deny.** The subscription should end the moment access is revoked, and the subscriber should know. The defaults are sufficient. A `DENY` from the PDP terminates the subscription with `AccessDeniedError`. A `SUSPEND` keeps the subscription alive but silently drops items.
 
-Runnables can target different lifecycle signals:
+```typescript
+@StreamEnforce({ action: 'stream:trades' })
+liveTrades(): Observable<Trade> { ... }
+```
 
-| Signal        | When it fires                        |
-| ------------- | ------------------------------------ |
-| `ON_DECISION` | Each time a new PDP decision arrives |
-| `ON_COMPLETE` | When the source Observable completes |
-| `ON_CANCEL`   | When the subscriber unsubscribes     |
+**Drop while suspended, silent transitions.** The subscription should survive deny windows transparently, with no boundary events. The defaults are again sufficient; the difference is in the policy, which uses the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open, and a later `PERMIT` resumes the flow.
+
+```typescript
+@StreamEnforce({ action: 'stream:telemetry' })
+telemetry(): Observable<TelemetryEvent> { ... }
+```
+
+**Survive deny with explicit transition signals.** The subscription should survive, and the subscriber wants to know about every boundary. The policy returns `SUSPEND` for windows where access should pause, and the subscriber observes the boundary signals.
+
+```typescript
+@StreamEnforce({ action: 'stream:market', signalTransitions: true })
+marketData(): Observable<MarketData> { ... }
+```
+
+### Subscription, Action, and Resource
+
+`@StreamEnforce` carries the same `SubscriptionOptions` slots as `@PreEnforce` for shaping the authorization subscription. When omitted, defaults are derived from the request and method invocation as for the request-response annotations. See [Subscription Fields](#subscription-fields) above.
+
+### Streaming Constraint Handlers
+
+The same `ConstraintHandlerProvider` mechanism that powers `@PreEnforce` and `@PostEnforce` applies. Decision-scoped handlers attach to the `decision` signal and run once per decision arrival. Per-item handlers attach to the `output` signal and run on every emitted item. The full set of signals `@StreamEnforce` advertises is listed under [Lifecycle Signals](#lifecycle-signals) above.
 
 ## Manual PDP Access
 
@@ -711,11 +743,13 @@ SaplModule.forRoot({
 
 The `cls` options are merged into the default configuration (`{ global: true, middleware: { mount: true } }`), so you only need to specify the parts you want to customize.
 
+The `cls` option is honoured only by `SaplModule.forRoot()`. `SaplModule.forRootAsync()` ignores it, because module imports are resolved before the async factory runs and the factory result is not available at import time. `ClsModule` always gets the defaults under `forRootAsync`. Applications that need custom CLS setup with async configuration inject `ClsService` in a guard or interceptor instead.
+
 ### Transaction Integration
 
 #### The Problem
 
-When `@PreEnforce` and a database transaction coexist on a method, the transaction typically commits inside the method body. SAPL's post-method constraint handlers (`handleAllOnNextConstraints`) run after the method returns. If a constraint handler fails at that point, the transaction has already committed and cannot be rolled back.
+When `@PreEnforce` and a database transaction coexist on a method, the transaction typically commits inside the method body. SAPL's post-method constraint handlers run after the method returns. If a constraint handler fails at that point, the transaction has already committed and cannot be rolled back.
 
 The same problem applies to `@PostEnforce`. The method executes (and commits its transaction) before the PDP even makes its authorization decision. A subsequent DENY cannot undo committed database writes.
 
@@ -801,36 +835,70 @@ Methods that manage their own transaction via callback APIs (`prisma.$transactio
 
 If `transactional: true` is set but `@nestjs-cls/transactional` is not installed or `ClsPluginTransactional` is not registered, `SaplTransactionAdapter` logs a warning at first request time and falls back to non-transactional execution.
 
-## Configuration Reference
+## RSocket Transport
+
+The PDP client speaks one of two transports, selected at module configuration time by `transport`. The default `'http'` is the broadest fit. Its streaming path decodes server-sent events, with the buffer limit described under [Streaming Limits](#streaming-limits). The `'rsocket'` transport uses protobuf framing over a long-lived TCP connection against a SAPL Node listening on its RSocket port, with streaming carried over RSocket request-stream rather than SSE, trading per-request flexibility for substantially higher per-call throughput.
+
+```typescript
+SaplModule.forRoot({
+  baseUrl: 'https://pdp.example.org:8443',
+  transport: 'rsocket',
+  rsocketHost: 'pdp.example.org', // defaults to the hostname from baseUrl
+  rsocketPort: 7000,              // defaults to 7000
+  token: 'sapl_your_api_key_here',
+  tls: { ca: caPem },
+}),
+```
+
+`rsocketHost` defaults to the hostname extracted from `baseUrl`, and `rsocketPort` defaults to `7000`. The same loopback-only plaintext rule applies. Without a `tls` block the RSocket client refuses to connect to a non-loopback host.
+
+### Authentication
+
+The RSocket transport authenticates once at connection setup. The credential is carried in the setup-frame metadata and binds the whole connection to a single identity for its lifetime. Two auth modes are wired through `SaplModule.forRoot`.
+
+| Mode | Configuration |
+|---|---|
+| No auth | omit `token`, `username`, and `secret` |
+| Basic | `username` + `secret` |
+| API key (bearer) | `token` |
+
+These are the same `token` and `username`/`secret` fields used by the HTTP transport. `token` and `username`/`secret` are mutually exclusive on both transports.
+
+The library also ships an `OAuth2TokenProvider` (wrapping `openid-client` for the `client_credentials` grant) and the `RsocketPdpClient` accepts an OAuth2 token source. This path is not wired through `SaplModule.forRoot`, so module-level OAuth2 over RSocket is not configured by the `forRoot` options today. Applications that need a managed service-account JWT over RSocket construct an `RsocketPdpClient` directly with an `oauth2Token` callback and provide it as the `PdpClient` themselves.
 
 All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
 
-| Option                       | Type                       | Default                                                  | Description                                                               |
-| ---------------------------- | -------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `baseUrl`                    | `string`                   | (required)                                               | Base URL of the SAPL PDP server                                           |
-| `token`                      | `string`                   | -                                                        | Bearer token (API key or JWT). Mutually exclusive with `username`/`secret` |
-| `username`                   | `string`                   | -                                                        | HTTP Basic Auth username. Requires `secret`.                              |
-| `secret`                     | `string`                   | -                                                        | HTTP Basic Auth password. Requires `username`.                            |
-| `timeout`                    | `number`                   | `5000`                                                   | PDP HTTP request timeout in ms                                            |
-| `streamingMaxRetries`        | `number`                   | unlimited                                                | Maximum reconnection attempts for streaming subscriptions                 |
-| `streamingRetryBaseDelay`    | `number`                   | `1000`                                                   | Initial delay in ms before first streaming reconnection                   |
-| `streamingRetryMaxDelay`     | `number`                   | `30000`                                                  | Maximum backoff delay in ms for streaming reconnection                    |
-| `allowInsecureConnections`   | `boolean`                  | `false`                                                  | Allow unencrypted HTTP connections to the PDP                             |
-| `cls`                        | `Partial<ClsModuleOptions>` | `{ global: true, middleware: { mount: true } }`          | Options merged into `ClsModule.forRoot()`                                 |
-| `transactional`              | `boolean`                  | `false`                                                  | Wrap enforcement in a database transaction via `@nestjs-cls/transactional` |
+| Option                    | Type                        | Default                                         | Description                                                                                  |
+| ------------------------- | --------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `baseUrl`                 | `string`                    | (required)                                      | Base URL of the SAPL PDP server for the HTTP transport. Also the RSocket host fallback.       |
+| `transport`              | `'http' \| 'rsocket'`       | `'http'`                                        | Which transport the PDP client uses.                                                          |
+| `rsocketHost`            | `string`                    | hostname from `baseUrl`                          | RSocket host. Only used when `transport: 'rsocket'`.                                          |
+| `rsocketPort`            | `number`                    | `7000`                                          | RSocket TCP port. Only used when `transport: 'rsocket'`.                                      |
+| `token`                   | `string`                    | -                                               | Bearer token (API key or JWT). Mutually exclusive with `username`/`secret`.                  |
+| `username`                | `string`                    | -                                               | Basic Auth username. Must be used together with `secret`. Mutually exclusive with `token`.   |
+| `secret`                  | `string`                    | -                                               | Basic Auth password. Must be used together with `username`. Mutually exclusive with `token`. |
+| `timeout`                 | `number`                    | `5000`                                          | Timeout in ms for PDP HTTP requests.                                                          |
+| `streamingMaxRetries`     | `number`                    | unlimited                                       | Maximum reconnection attempts for streaming subscriptions.                                    |
+| `streamingRetryBaseDelay` | `number`                    | `1000`                                          | Initial delay in ms before the first streaming reconnection.                                  |
+| `streamingRetryMaxDelay`  | `number`                    | `30000`                                         | Maximum backoff delay in ms for streaming reconnection.                                       |
+| `tls`                     | `TlsConfig`                 | -                                               | TLS configuration for the connection. See [Transport Security](#transport-security).         |
+| `cls`                     | `Partial<ClsModuleOptions>` | `{ global: true, middleware: { mount: true } }` | Options merged into `ClsModule.forRoot()`. Ignored by `forRootAsync`.                         |
+| `transactional`           | `boolean`                   | `false`                                         | Wrap enforcement in a database transaction via `@nestjs-cls/transactional`.                  |
+
+The `tls` block (`TlsConfig`) carries `ca`, `cert`, `key`, `servername`, and `rejectUnauthorized`. All fields take PEM contents, not file paths. See [Transport Security](#transport-security).
 
 ## Troubleshooting
 
-| Symptom                          | Likely Cause                              | Fix                                                                |
-| -------------------------------- | ----------------------------------------- | ------------------------------------------------------------------ |
-| All decisions are INDETERMINATE  | PDP unreachable                           | Check `baseUrl` and that PDP is running                            |
-| 403 despite PERMIT decision      | Unhandled obligation                      | Check handler `isResponsible()` matches the obligation `type`      |
-| Handler not firing               | Missing registration                      | Add `@SaplConstraintHandler(type)` + add to module `providers`     |
-| Subject is `'anonymous'`         | No auth guard populating `req.user`       | Add `@UseGuards()` or set subject explicitly in EnforceOptions     |
-| Content filter throws            | Unsupported JSONPath                      | Only simple dot paths supported (`$.field.nested`)                 |
-| CLS context missing              | Module order                              | Ensure `SaplModule` is imported before modules that use it         |
-| `allowInsecureConnections` error | `baseUrl` uses HTTP                       | Use HTTPS or set `allowInsecureConnections: true` for development  |
-| Streaming buffer overflow        | PDP proxy injecting data                  | Check network path to PDP; 1 MB buffer limit per SSE line          |
+| Symptom                         | Likely Cause                        | Fix                                                                         |
+| ------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| All decisions are INDETERMINATE | PDP unreachable                     | Check `baseUrl` and that the PDP is running.                                 |
+| 403 despite PERMIT decision     | Unhandled obligation                | Check that a provider's `getHandlers` matches the obligation `type`.        |
+| Handler not firing              | Missing registration                | Add `@SaplConstraintHandler('provider')` and add the class to a module's `providers`. |
+| Subject is `'anonymous'`        | No auth guard populating `req.user` | Add `@UseGuards()` or set `subject` explicitly in the decorator options.     |
+| Content filter throws           | Unsupported JSONPath                | Only simple dot paths are supported (`$.field.nested`).                      |
+| CLS context missing             | Module order                        | Ensure `SaplModule` is imported before modules that use it.                  |
+| Plaintext connection refused    | Non-loopback host without TLS       | Use `https://` (HTTP) or a `tls` block (RSocket), or run the PDP on localhost. |
+| Streaming buffer overflow       | PDP proxy injecting data            | Check the network path to the PDP. The buffer limit is 64 KB per SSE line.   |
 
 ## License
 

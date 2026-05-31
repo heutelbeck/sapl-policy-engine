@@ -144,6 +144,10 @@ public class FirstVoteCompiler {
                 return Vote.combinedVote(AuthorizationDecision.PERMIT, voterMetadata, contributingVotes,
                         Outcome.PERMIT);
             }
+            case SUSPEND -> {
+                return Vote.combinedVote(AuthorizationDecision.SUSPEND, voterMetadata, contributingVotes,
+                        Outcome.SUSPEND);
+            }
             }
         }
 

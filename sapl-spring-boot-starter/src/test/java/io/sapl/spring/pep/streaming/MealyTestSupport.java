@@ -192,9 +192,12 @@ class MealyTestSupport {
     }
 
     static Stream<Arguments> nonTerminatedStateAndLifecycleTerminator() {
-        return nonTerminatedStates()
-                .flatMap(stateArgs -> lifecycleTerminators().map(eventArgs -> arguments(stateArgs.get()[0],
-                        eventArgs.get()[0], stateArgs.get()[1], eventArgs.get()[1])));
+        return nonTerminatedStates().flatMap(stateArgs -> {
+            var stateName  = stateArgs.get()[0];
+            var stateValue = stateArgs.get()[1];
+            return lifecycleTerminators()
+                    .map(eventArgs -> arguments(stateName, eventArgs.get()[0], stateValue, eventArgs.get()[1]));
+        });
     }
 
     private static RapItem rapItemByOutcome(String outcome) {

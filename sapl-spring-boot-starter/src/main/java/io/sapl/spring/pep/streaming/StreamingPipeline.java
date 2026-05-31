@@ -317,7 +317,7 @@ public final class StreamingPipeline {
     private void onRapItem(Object payload) {
         EnforcementPlan plan;
         synchronized (lock) {
-            if (!(state instanceof Permitting permitting)) {
+            if (!(state instanceof Permitting(var permittingPlan))) {
                 if (state instanceof Terminated) {
                     log.warn(WARN_RAP_AFTER_TERMINATION);
                     return;
@@ -329,7 +329,7 @@ public final class StreamingPipeline {
                 process(new RapItem(payload, ENFORCEMENT_NOT_ATTEMPTED));
                 return;
             }
-            plan = permitting.plan();
+            plan = permittingPlan;
         }
         val signal = OutputSignal.ofUnchecked(plan.outputType(), payload);
         val result = plan.execute(signal, false);
