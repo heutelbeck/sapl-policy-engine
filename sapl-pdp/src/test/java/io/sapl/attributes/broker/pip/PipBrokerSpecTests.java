@@ -200,7 +200,11 @@ class PipBrokerSpecTests {
             val broker = new PolicyInformationPointAttributeBroker();
             try {
                 broker.load(new SlowFirstEmitPip());
-                val k        = key("slow.first", false, Duration.ofMillis(60));
+                // One retry separates the initial-timeout absence (UNDEFINED) from the
+                // eventual retries-exhausted error by a backoff gap, so the boundary
+                // delivers the absence as a distinct first snapshot instead of coalescing
+                // it with the trailing error.
+                val k        = key("slow.first", false, Duration.ofMillis(60), 1L);
                 val recorder = new Recorder(Set.of(k));
                 try (val ignored = broker.open("s1", Set.of(k), recorder.asCallback())) {
                     Awaitility.await().atMost(AWAIT).untilAsserted(() -> assertThat(recorder.snapshots).isNotEmpty());
