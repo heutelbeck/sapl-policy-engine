@@ -127,12 +127,12 @@ class RemotePDPOAuth2IT {
         }
     }
 
-    private String[] oauth2Properties(String transportType, int port) {
-        val tokenUri = keycloak.getAuthServerUrl() + "/realms/" + REALM + "/protocol/openid-connect/token";
+    private String[] oauth2Properties(boolean httpTransport, int port) {
+        val transportType = httpTransport ? "http" : "rsocket";
+        val host          = httpTransport ? "http://" + saplNode.getHost() + ":" + port : saplNode.getHost();
+        val tokenUri      = keycloak.getAuthServerUrl() + "/realms/" + REALM + "/protocol/openid-connect/token";
         return new String[] { "io.sapl.pdp.remote.enabled=true", "io.sapl.pdp.remote.type=" + transportType,
-                "io.sapl.pdp.remote.host=" + ("http".equals(transportType) ? "http://" + saplNode.getHost() + ":" + port
-                        : saplNode.getHost()),
-                "io.sapl.pdp.remote.port=" + port,
+                "io.sapl.pdp.remote.host=" + host, "io.sapl.pdp.remote.port=" + port,
                 "io.sapl.pdp.remote.oauth2.client-registration-id=" + REGISTRATION_ID,
                 "spring.security.oauth2.client.registration." + REGISTRATION_ID + ".client-id=" + CLIENT_ID,
                 "spring.security.oauth2.client.registration." + REGISTRATION_ID + ".client-secret=" + CLIENT_SECRET,
@@ -157,7 +157,7 @@ class RemotePDPOAuth2IT {
         @DisplayName("autowires bean and returns PERMIT over HTTP with minted JWT")
         void whenHttpOauth2AndPolicyMatchesThenPermit() {
             val port       = saplNode.getMappedPort(HTTP_PORT);
-            val properties = oauth2Properties("http", port);
+            val properties = oauth2Properties(true, port);
             runWithPdp(properties, AuthorizationDecision.PERMIT);
         }
     }
@@ -170,7 +170,7 @@ class RemotePDPOAuth2IT {
         @DisplayName("autowires bean and returns PERMIT over RSocket with minted JWT in setup frame")
         void whenRSocketOauth2AndPolicyMatchesThenPermit() {
             val port       = saplNode.getMappedPort(RSOCKET_PORT);
-            val properties = oauth2Properties("rsocket", port);
+            val properties = oauth2Properties(false, port);
             runWithPdp(properties, AuthorizationDecision.PERMIT);
         }
     }
