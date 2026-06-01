@@ -223,45 +223,35 @@ components:
 
     MultiAuthorizationSubscription:
       type: object
-      required: [subscriptions]
-      properties:
-        subscriptions:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/AuthorizationSubscription"
-          description: Map of subscription id to subscription.
+      additionalProperties:
+        $ref: "#/components/schemas/AuthorizationSubscription"
+      description: Bare map of subscription id to subscription, sent with no envelope.
       example:
-        subscriptions:
-          alice-read:
-            subject: "alice"
-            action: "read"
-            resource: "doc-42"
-          bob-write:
-            subject: "bob"
-            action: "write"
-            resource: "doc-42"
+        alice-read:
+          subject: "alice"
+          action: "read"
+          resource: "doc-42"
+        bob-write:
+          subject: "bob"
+          action: "write"
+          resource: "doc-42"
 
     MultiAuthorizationDecision:
       type: object
-      required: [decisions]
-      properties:
-        decisions:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/AuthorizationDecision"
-          description: Map of subscription id to decision.
+      additionalProperties:
+        $ref: "#/components/schemas/AuthorizationDecision"
+      description: Bare map of subscription id to decision, returned with no envelope.
       example:
-        decisions:
-          alice-read:
-            decision: PERMIT
-            obligations: []
-            advice: []
-            resource: {}
-          bob-write:
-            decision: DENY
-            obligations: []
-            advice: []
-            resource: {}
+        alice-read:
+          decision: PERMIT
+          obligations: []
+          advice: []
+          resource: {}
+        bob-write:
+          decision: DENY
+          obligations: []
+          advice: []
+          resource: {}
 
     IdentifiableAuthorizationDecision:
       type: object

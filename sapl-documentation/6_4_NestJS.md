@@ -92,6 +92,27 @@ export class AppModule {}
 
 `token` (API key or JWT) and `username`/`secret` (Basic Auth) are mutually exclusive. Configure one or the other. Providing both throws an error at startup.
 
+### Direct Configuration (OAuth2 client_credentials)
+
+For a service account registered at an OIDC issuer, set `oauth2`. The client obtains a bearer token via the `client_credentials` grant and refreshes it automatically before expiry. It works on both transports and is mutually exclusive with `token` and `username`/`secret`.
+
+```typescript
+@Module({
+  imports: [
+    SaplModule.forRoot({
+      baseUrl: 'https://localhost:8443',
+      oauth2: {
+        issuerUrl: 'https://issuer.example.org/realms/sapl',
+        clientId: 'sapl-client',
+        clientSecret: 'your-client-secret',
+        scope: 'sapl', // optional
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
 ### Async Configuration
 
 ```typescript
@@ -854,17 +875,18 @@ SaplModule.forRoot({
 
 ### Authentication
 
-The RSocket transport authenticates once at connection setup. The credential is carried in the setup-frame metadata and binds the whole connection to a single identity for its lifetime. Two auth modes are wired through `SaplModule.forRoot`.
+The RSocket transport authenticates once at connection setup. The credential is carried in the setup-frame metadata and binds the whole connection to a single identity for its lifetime. The auth modes are wired through `SaplModule.forRoot`.
 
 | Mode | Configuration |
 |---|---|
-| No auth | omit `token`, `username`, and `secret` |
+| No auth | omit `token`, `username`, `secret`, and `oauth2` |
 | Basic | `username` + `secret` |
 | API key (bearer) | `token` |
+| OAuth2 client_credentials | `oauth2` |
 
-These are the same `token` and `username`/`secret` fields used by the HTTP transport. `token` and `username`/`secret` are mutually exclusive on both transports.
+These are the same `token`, `username`/`secret`, and `oauth2` fields used by the HTTP transport, and they are mutually exclusive on both transports.
 
-The library also ships an `OAuth2TokenProvider` (wrapping `openid-client` for the `client_credentials` grant) and the `RsocketPdpClient` accepts an OAuth2 token source. This path is not wired through `SaplModule.forRoot`, so module-level OAuth2 over RSocket is not configured by the `forRoot` options today. Applications that need a managed service-account JWT over RSocket construct an `RsocketPdpClient` directly with an `oauth2Token` callback and provide it as the `PdpClient` themselves.
+The `oauth2` option wraps `openid-client` for the `client_credentials` grant with automatic refresh. On RSocket the bearer token is acquired before connection setup and carried in the setup-frame metadata.
 
 All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
 
@@ -877,6 +899,7 @@ All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
 | `token`                   | `string`                    | -                                               | Bearer token (API key or JWT). Mutually exclusive with `username`/`secret`.                  |
 | `username`                | `string`                    | -                                               | Basic Auth username. Must be used together with `secret`. Mutually exclusive with `token`.   |
 | `secret`                  | `string`                    | -                                               | Basic Auth password. Must be used together with `username`. Mutually exclusive with `token`. |
+| `oauth2`                  | `OAuth2TokenProviderOptions`| -                                               | OAuth2 client_credentials config (`issuerUrl`, `clientId`, `clientSecret`, `scope?`). Mutually exclusive with `token` and `username`/`secret`. |
 | `timeout`                 | `number`                    | `5000`                                          | Timeout in ms for PDP HTTP requests.                                                          |
 | `streamingMaxRetries`     | `number`                    | unlimited                                       | Maximum reconnection attempts for streaming subscriptions.                                    |
 | `streamingRetryBaseDelay` | `number`                    | `1000`                                          | Initial delay in ms before the first streaming reconnection.                                  |
