@@ -18,6 +18,7 @@
 package io.sapl.pdp.remote;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,6 +34,7 @@ import io.rsocket.core.RSocketConnector;
 import io.rsocket.metadata.AuthMetadataCodec;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.DefaultPayload;
+import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
@@ -129,9 +131,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Flux.just(AuthorizationDecision.INDETERMINATE);
             }
-        }).onErrorResume(error -> {
+        }).concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
             log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
-            return Flux.just(AuthorizationDecision.INDETERMINATE);
+            return Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error));
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
 
@@ -170,9 +172,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
             }
-        }).onErrorResume(error -> {
+        }).concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
             log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
-            return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
+            return Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE), Flux.error(error));
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
 
@@ -192,9 +194,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(MultiAuthorizationDecision.indeterminate());
             }
-        }).onErrorResume(error -> {
+        }).concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
             log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
-            return Flux.just(MultiAuthorizationDecision.indeterminate());
+            return Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error));
         }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
 
@@ -277,6 +279,15 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         val socket = cachedSocket.getAndSet(null);
         if (socket != null) {
             socket.dispose();
+        }
+    }
+
+    private static final class StreamEndedException extends RuntimeException {
+        @Serial
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+        StreamEndedException() {
+            super("PDP decision stream ended");
         }
     }
 
