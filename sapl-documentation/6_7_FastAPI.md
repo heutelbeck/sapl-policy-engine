@@ -196,20 +196,6 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 )
 ```
 
-**Custom Deny Handling**
-
-Add `on_deny` to any `@pre_enforce` or `@post_enforce` to return a custom response instead of raising `HTTPException(403)`:
-
-```python
-@pre_enforce(
-    action="exportData",
-    on_deny=lambda decision: {
-        "error": "access_denied",
-        "decision": decision.decision.value,
-    },
-)
-```
-
 #### @stream_enforce
 
 Streaming enforcement for SSE endpoints. The decorated endpoint returns an async iterator of data items. The wrapper opens a streaming PDP subscription, drives the streaming state machine, and returns a Starlette `StreamingResponse` whose body is each item rendered as an SSE `data:` frame on `text/event-stream`.
@@ -546,6 +532,28 @@ async def get_patient_detail(request: Request, patient_id: str):
 ```
 
 Service-layer decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as when used on endpoints. When no `Request` is available, subject defaults to `"anonymous"` and environment is empty.
+
+### Database Transactions
+
+`@pre_enforce` and `@post_enforce` can own a transaction boundary, so a denial that lands after the endpoint has written to the database rolls the write back. Three triggers cause a rollback: a `@post_enforce` DENY, a `@post_enforce` output-obligation failure, and a `@pre_enforce` output-obligation failure (the pre-decision permits, but its output obligations run after the endpoint writes). A clean PERMIT commits.
+
+This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning an async context manager that commits on clean exit and rolls back on a propagated exception, exactly the semantics of SQLAlchemy `AsyncSession.begin()` and Django `transaction.atomic()`.
+
+With an async SQLAlchemy session, pass `session.begin()` directly:
+
+```python
+from sapl_fastapi.dependencies import set_transaction_provider
+
+set_transaction_provider(lambda: get_current_session().begin())
+```
+
+The factory should resolve the current request's session (for example a request-scoped `AsyncSession` held in a contextvar). For a sync session or `transaction.atomic`, wrap it with `from_sync_context` from `sapl_base.pep`:
+
+```python
+from sapl_base.pep import from_sync_context
+
+set_transaction_provider(from_sync_context(lambda: get_current_session().begin()))
+```
 
 ### Demo Application
 
