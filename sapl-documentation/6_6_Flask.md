@@ -11,7 +11,7 @@ nav_order: 606
 
 Attribute-Based Access Control (ABAC) for Flask using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
-The `sapl-flask` library integrates SAPL policy enforcement into Flask applications as a Flask extension. It wraps Flask's synchronous request model with an internal async bridge to communicate with the PDP, and supports streaming responses with Server-Sent Events for continuous authorization.
+The `sapl-flask` library integrates SAPL policy enforcement into Flask applications as a Flask extension. Flask is WSGI and always synchronous, so the one-shot enforcement decorators run on the blocking enforcement core, which executes the view and its PDP communication off the event loop. The library also supports streaming responses with Server-Sent Events for continuous authorization.
 
 ### What is SAPL?
 
@@ -122,7 +122,7 @@ The extension registers itself as `app.extensions["sapl"]` and is automatically 
 
 ### Enforcement Decorators
 
-All decorators work on synchronous Flask view functions. The decorators internally bridge to async for PDP communication. The Flask request context is accessed via `flask.request` and `flask.g`, so no explicit `request` parameter is needed in decorator arguments.
+All decorators work on synchronous Flask view functions. Because Flask is always synchronous, the one-shot decorators (`@pre_enforce`, `@post_enforce`) always run on the blocking enforcement core, which executes the view off the event loop, so synchronous database and IO access works normally. When you configure a transaction provider (see [Database Transactions](#database-transactions)) it must be a sync context-manager factory, since the blocking core uses it as a sync context manager. The Flask request context is accessed via `flask.request` and `flask.g`, so no explicit `request` parameter is needed in decorator arguments.
 
 #### @pre_enforce
 
@@ -547,22 +547,30 @@ Service-layer decorators accept the same subscription field options (`subject`, 
 
 `@pre_enforce` and `@post_enforce` can own a transaction boundary, so a denial that lands after the view has written to the database rolls the write back. Three triggers cause a rollback: a `@post_enforce` DENY, a `@post_enforce` output-obligation failure, and a `@pre_enforce` output-obligation failure (the pre-decision permits, but its output obligations run after the view writes). A clean PERMIT commits.
 
-This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning an async context manager that commits on clean exit and rolls back on a propagated exception, exactly the semantics of SQLAlchemy `AsyncSession.begin()` and Django `transaction.atomic()`. `set_transaction_provider` is a method on the `SaplFlask` extension.
+This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning a context manager that commits on clean exit and rolls back on a propagated exception. `set_transaction_provider` is a method on the `SaplFlask` extension.
 
-Flask views are synchronous, so wrap a sync session or `transaction.atomic` with `from_sync_context`:
+Flask views are synchronous and run on the blocking core, which uses the provider as a sync context manager, so pass the sync context-manager factory directly. A sync SQLAlchemy `session.begin` is exactly such a factory:
 
 ```python
-from sapl_base.pep import from_sync_context
-
 sapl = SaplFlask(app)
-sapl.set_transaction_provider(from_sync_context(lambda: get_current_session().begin()))
-```
-
-The factory should resolve the current request's session (for example a request-scoped session held in a contextvar). With an async SQLAlchemy session you can pass the async scope directly:
-
-```python
 sapl.set_transaction_provider(lambda: get_current_session().begin())
 ```
+
+The factory should resolve the current request's session (for example a request-scoped session held in a contextvar). Django's `transaction.atomic` is passed the same way:
+
+```python
+from django.db import transaction
+
+sapl.set_transaction_provider(transaction.atomic)
+```
+
+### Client Resilience
+
+The PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`decide_once`) fail closed to `INDETERMINATE` immediately, with no retry, and never throw. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (streaming `decide`) never terminate on a transport problem or on a server-side stream completion. Either condition emits one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer cancels it or the client shuts down. This contract holds identically across the HTTP and RSocket transports and across every SAPL PEP client.
 
 ### Demo Application
 

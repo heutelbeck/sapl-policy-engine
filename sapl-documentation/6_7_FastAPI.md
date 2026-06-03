@@ -11,7 +11,7 @@ nav_order: 607
 
 Attribute-Based Access Control (ABAC) for FastAPI using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
-The `sapl-fastapi` library integrates SAPL policy enforcement into FastAPI and Starlette applications. It is fully async-native, supports Server-Sent Events streaming for continuous authorization, and works with FastAPI's dependency injection system.
+The `sapl-fastapi` library integrates SAPL policy enforcement into FastAPI and Starlette applications. It works on both synchronous (`def`) and asynchronous (`async def`) endpoints, supports Server-Sent Events streaming for continuous authorization, and works with FastAPI's dependency injection system.
 
 ### What is SAPL?
 
@@ -106,7 +106,9 @@ config = SaplConfig(
 
 ### Enforcement Decorators
 
-All decorators work on async FastAPI endpoint functions. The decorated endpoint **must** include `request: Request` as a parameter (either positional or keyword) so the decorator can extract request context.
+The decorators work on both synchronous (`def`) and asynchronous (`async def`) FastAPI endpoint functions. The decorated endpoint **must** include `request: Request` as a parameter (either positional or keyword) so the decorator can extract request context.
+
+The decorators auto-detect the endpoint kind, so you write the endpoint in whichever style suits it. An async endpoint runs on the async enforcement core. A sync endpoint runs on the blocking core, which executes the endpoint off the event loop, so synchronous database and IO access works normally. FastAPI and Starlette already run sync `def` endpoints in a threadpool, so the blocking core runs cleanly there. When you configure a transaction provider (see [Database Transactions](#database-transactions)) it must match the endpoint kind: a sync context-manager factory for sync endpoints, an async one for async endpoints.
 
 #### @pre_enforce
 
@@ -537,23 +539,31 @@ Service-layer decorators accept the same subscription field options (`subject`, 
 
 `@pre_enforce` and `@post_enforce` can own a transaction boundary, so a denial that lands after the endpoint has written to the database rolls the write back. Three triggers cause a rollback: a `@post_enforce` DENY, a `@post_enforce` output-obligation failure, and a `@pre_enforce` output-obligation failure (the pre-decision permits, but its output obligations run after the endpoint writes). A clean PERMIT commits.
 
-This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning an async context manager that commits on clean exit and rolls back on a propagated exception, exactly the semantics of SQLAlchemy `AsyncSession.begin()` and Django `transaction.atomic()`.
+This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning a context manager that commits on clean exit and rolls back on a propagated exception. It must match the endpoint kind it protects: a sync context manager for sync endpoints, an async one for async endpoints.
 
-With an async SQLAlchemy session, pass `session.begin()` directly:
+Async endpoints run on the async core, which uses the provider as an async context manager, so pass an async SQLAlchemy `AsyncSession.begin()` directly:
 
 ```python
 from sapl_fastapi.dependencies import set_transaction_provider
 
-set_transaction_provider(lambda: get_current_session().begin())
+set_transaction_provider(lambda: get_current_async_session().begin())
 ```
 
-The factory should resolve the current request's session (for example a request-scoped `AsyncSession` held in a contextvar). For a sync session or `transaction.atomic`, wrap it with `from_sync_context` from `sapl_base.pep`:
+Sync endpoints run on the blocking core, which uses the provider as a sync context manager, so pass a sync context-manager factory directly. A sync SQLAlchemy session built from `create_engine` plus `session.begin` is exactly such a factory:
 
 ```python
-from sapl_base.pep import from_sync_context
-
-set_transaction_provider(from_sync_context(lambda: get_current_session().begin()))
+set_transaction_provider(lambda: get_current_sync_session().begin())
 ```
+
+The factory should resolve the current request's session (for example a request-scoped session held in a contextvar).
+
+### Client Resilience
+
+The PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`decide_once`) fail closed to `INDETERMINATE` immediately, with no retry, and never throw. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (streaming `decide`) never terminate on a transport problem or on a server-side stream completion. Either condition emits one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer cancels it or the client shuts down. This contract holds identically across the HTTP and RSocket transports and across every SAPL PEP client.
 
 ### Demo Application
 
@@ -577,7 +587,6 @@ All options are set via the `SaplConfig` dataclass passed to `configure_sapl()`:
 | `username`                            | `str`   | `None`                      | Basic auth username (mutually exclusive with `token`)    |
 | `secret`                              | `str`   | `None`                      | Basic auth secret                                        |
 | `timeout_seconds`                     | `float` | `5.0`                       | PDP request timeout in seconds                           |
-| `streaming_max_retries`               | `int`   | `None`                      | Maximum reconnection attempts for streaming connections. `None` retries indefinitely |
 | `streaming_retry_base_delay_seconds`  | `float` | `1.0`                       | Base delay in seconds for exponential backoff on retry   |
 | `streaming_retry_max_delay_seconds`   | `float` | `30.0`                      | Maximum delay in seconds for exponential backoff         |
 

@@ -1263,6 +1263,14 @@ The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. O
 
 You must configure exactly one authentication mechanism. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime; use `oauth2.client-registration-id` for managed service-account JWTs over RSocket.
 
+#### Client Resilience
+
+The remote PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`decideOnce`, `multiDecideAllOnce`) fail closed to `INDETERMINATE` immediately, with no retry, and never throw. The returned `Mono` always completes with a decision. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (the streaming `decide`, `multiDecide`, and `decideAll`) never terminate on a transport problem or on a server-side stream completion. The returned `Flux` never signals `onError` for a transport condition. Either condition emits one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer cancels it or the client shuts down. This contract holds identically across the HTTP transport (`RemoteHttpPolicyDecisionPoint`) and the RSocket transport, and across every SAPL PEP client.
+
 ### Method Security Properties
 
 | Property | Default | Description |

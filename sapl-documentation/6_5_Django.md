@@ -11,7 +11,7 @@ nav_order: 605
 
 Attribute-Based Access Control (ABAC) for Django using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
-The `sapl-django` library integrates SAPL policy enforcement into Django applications with asynchronous (ASGI) views and Server-Sent Events streaming for continuous authorization.
+The `sapl-django` library integrates SAPL policy enforcement into Django applications, supporting both synchronous and asynchronous views, with Server-Sent Events streaming for continuous authorization.
 
 ### What is SAPL?
 
@@ -117,7 +117,9 @@ The PDP client and the `EnforcementPlanner` are created lazily on first use from
 
 ### Enforcement Decorators
 
-All decorators work on async Django view functions. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
+The `@pre_enforce` and `@post_enforce` decorators work on both synchronous (`def`) and asynchronous (`async def`) Django view functions; `@stream_enforce` requires an async view served under ASGI. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
+
+The decorators auto-detect the view kind, so you write the view in whichever style suits it. An async view runs on the async enforcement core. A sync view runs on the blocking core, which executes the view off the event loop, so synchronous Django ORM access works normally with no `SynchronousOnlyOperation`. When you configure a transaction provider (see [Database Transactions](#database-transactions)) it must match the view kind: a sync context-manager factory such as `transaction.atomic` for sync views, an async one for async views.
 
 #### @pre_enforce
 
@@ -531,19 +533,28 @@ Service-layer decorators accept the same subscription field options (`subject`, 
 
 `@pre_enforce` and `@post_enforce` can own a transaction boundary, so a denial that lands after the view has written to the database rolls the write back. Three triggers cause a rollback: a `@post_enforce` DENY, a `@post_enforce` output-obligation failure, and a `@pre_enforce` output-obligation failure (the pre-decision permits, but its output obligations run after the view writes). A clean PERMIT commits.
 
-This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning an async context manager that commits on clean exit and rolls back on a propagated exception, exactly the semantics of Django `transaction.atomic()` and SQLAlchemy `AsyncSession.begin()`.
+This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning a context manager that commits on clean exit and rolls back on a propagated exception. It must match the view kind it protects: a sync context manager for sync views, an async one for async views.
 
-`transaction.atomic` is synchronous, so wrap it with `from_sync_context`:
+Sync views run on the blocking core, which uses the provider as a sync context manager. `transaction.atomic` is exactly such a factory, so pass it directly:
 
 ```python
 from django.db import transaction
-from sapl_base.pep import from_sync_context
 from sapl_django.config import set_transaction_provider
 
-set_transaction_provider(from_sync_context(transaction.atomic))
+set_transaction_provider(transaction.atomic)
 ```
 
-The factory should resolve the current request's transaction. A sync SQLAlchemy `session.begin` is wrapped the same way with `from_sync_context(lambda: get_current_session().begin())`. For an async SQLAlchemy session, pass the async scope directly: `set_transaction_provider(lambda: get_current_session().begin())`.
+A sync SQLAlchemy `session.begin` is passed the same way: `set_transaction_provider(lambda: get_current_session().begin())`. Async views run on the async core, which uses the provider as an async context manager, so pass an async SQLAlchemy `AsyncSession.begin()` directly: `set_transaction_provider(lambda: get_current_async_session().begin())`.
+
+Transactional enforcement with the Django ORM is a sync-view feature. Django's `transaction.atomic` is async-unsafe, so it cannot run on an async view. The async enforcement core opens the transaction boundary on the event loop thread, where entering `transaction.atomic` raises `SynchronousOnlyOperation`. To wrap a Django ORM write in an enforced transaction, write the view as a sync `def` and pass `transaction.atomic` directly, as above. Async views can still own a transaction over an async-native resource such as async SQLAlchemy, but not over the Django ORM.
+
+### Client Resilience
+
+The PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`decide_once`) fail closed to `INDETERMINATE` immediately, with no retry, and never throw. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (streaming `decide`) never terminate on a transport problem or on a server-side stream completion. Either condition emits one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer cancels it or the client shuts down. This contract holds identically across the HTTP and RSocket transports and across every SAPL PEP client.
 
 ### Demo Application
 
@@ -567,8 +578,7 @@ All options are set via the `SAPL_CONFIG` dictionary in Django settings:
 | `username`                            | `str`   | `None`                      | Basic auth username (mutually exclusive with `token`)    |
 | `secret`                              | `str`   | `None`                      | Basic auth secret                                        |
 | `timeout_seconds`                     | `float` | `5.0`                       | PDP request timeout in seconds                           |
-| `streaming_max_retries`               | `int`   | `None`                      | Maximum reconnection attempts for streaming connections. `None` retries indefinitely |
-| `streaming_retry_base_delay_seconds`  | `float` | `1.0`                       | Base delay in seconds for exponential backoff on retry   |
+| `streaming_retry_base_delay_seconds`  | `float` | `1.0`                       | Base delay in seconds for exponential backoff on reconnect |
 | `streaming_retry_max_delay_seconds`   | `float` | `30.0`                      | Maximum delay in seconds for exponential backoff         |
 
 ### Troubleshooting

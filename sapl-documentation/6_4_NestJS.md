@@ -910,6 +910,14 @@ All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
 
 The `tls` block (`TlsConfig`) carries `ca`, `cert`, `key`, `servername`, and `rejectUnauthorized`. All fields take PEM contents, not file paths. See [Transport Security](#transport-security).
 
+## Client Resilience
+
+The PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`decideOnce`) fail closed to `INDETERMINATE` immediately, with no retry, and never reject the returned promise. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (the streaming `decide`) never terminate on a transport problem or on a server-side stream completion. The returned RxJS `Observable` never errors or completes for a transport condition. Either condition emits one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer unsubscribes or the client shuts down. This contract holds identically across the HTTP and RSocket transports and across every SAPL PEP client.
+
 ## Troubleshooting
 
 | Symptom                         | Likely Cause                        | Fix                                                                         |
