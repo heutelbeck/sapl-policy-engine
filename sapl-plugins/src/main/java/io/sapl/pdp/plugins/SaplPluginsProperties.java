@@ -15,20 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api;
+package io.sapl.pdp.plugins;
 
-import lombok.experimental.UtilityClass;
+import java.nio.file.Path;
+
+import lombok.NonNull;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Class defining the common serialization ID for all Serializable classes.
- * Objects are not intended to be serializable between versions of the engine.
+ * Configuration for PF4J-based SAPL plugin loading.
  */
-@UtilityClass
-public class SaplVersion {
-    public static final long VERSION_UID = 4_01_00L;
+@Data
+@ConfigurationProperties(prefix = "io.sapl.pdp.plugins")
+public class SaplPluginsProperties {
+    @NonNull
+    private Boolean enabled = true;
 
-    /**
-     * SAPL Version as String in semantic version format.
-     */
-    public static final String SEMANTIC_VERSION = "4.1.0";
+    @NonNull
+    private Path pluginsPath = Path.of("plugins");
 }
