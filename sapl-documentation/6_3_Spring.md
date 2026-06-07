@@ -1091,6 +1091,12 @@ io.sapl.method-security.mongo-shim.enabled=false
 
 Setting either to `false` removes that engine's auto-configuration. The corresponding `BeanPostProcessor` does not register, your `DatabaseClient` and `ReactiveMongoTemplate` beans are not wrapped, and any `sql:queryManipulation` or `mongo:queryManipulation` obligation on a decision becomes an unhandled obligation, which the PEP treats as a denial. Keep this in mind when you disable a shim. If your policies still emit the obligation type, requests will start failing closed.
 
+### Coverage and Limitations
+
+The shim sees a query only when the query flows through the bean it wraps. For R2DBC that bean is `DatabaseClient`, and every dispatch path bottoms out there, so derived queries, `@Query` methods, and direct `databaseClient.sql(...)` calls are all covered. SELECT, UPDATE, and DELETE statements are rewritten. INSERT and DDL are not query manipulation targets, and an obligation that cannot be applied to the statement fails the obligation, which denies the decision. For MongoDB the wrapped bean is `ReactiveMongoTemplate`, covering its read and remove entry points and the fluent `query(Class).matching(Query)` chain that derived queries use.
+
+Not covered is any access that bypasses the wrapped bean. A raw R2DBC `Connection`, a reactive `MongoClient` or `MongoCollection` used directly, or any driver-level call obtained outside the wrapped beans never reaches the shim. This has a fail-open consequence you must account for. While a shim is enabled its obligation type is admissible, so a decision carrying it is not rejected up front. If an enforced method then reaches the store off the wrapped bean, the filter is silently not applied to that access. The accepted position is that off-convention store access means the developer owns row-level security manually for that path, because the shim cannot anticipate arbitrary access and does not parse externally built queries. This is the opposite of the disabled-shim case above, where the obligation type is inadmissible and every decision carrying it fails closed.
+
 ## Configuration
 
 SAPL Spring Security is configured through `application.properties` or `application.yml`. The properties control which PDP to use and how it behaves, plus a few cross-cutting toggles for method security, JWT injection, and query manipulation.

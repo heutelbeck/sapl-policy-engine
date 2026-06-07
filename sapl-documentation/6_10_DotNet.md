@@ -135,7 +135,7 @@ This middleware should be registered before `app.MapControllers()`. Without it, 
 
 ### Enforcement Attributes
 
-All enforcement attributes can be placed on controller action methods or on the controller class itself. The attributes work through ASP.NET Core's MVC filter pipeline, so they require standard controller routing (`[ApiController]`, `MapControllers()`).
+`[PreEnforce]` and `[PostEnforce]` can be placed on controller action methods or on the controller class itself. `[StreamEnforce]` applies to methods only and targets actions returning `IAsyncEnumerable<T>`. The attributes work through ASP.NET Core's MVC filter pipeline, so they require standard controller routing (`[ApiController]`, `MapControllers()`).
 
 #### [PreEnforce]
 
@@ -687,7 +687,6 @@ The `IPolicyDecisionPoint` interface exposes both one-shot and streaming endpoin
 | ---------------------- | -------------------------------------------- | -------------------------------------------- |
 | `DecideOnceAsync`      | `Task<AuthorizationDecision>`                | One-shot single subscription                 |
 | `Decide`               | `IAsyncEnumerable<AuthorizationDecision>`    | Streaming single subscription                |
-| `MultiDecideOnceAsync` | `Task<MultiAuthorizationDecision>`           | One-shot multi subscription                  |
 | `MultiDecideAllOnceAsync` | `Task<MultiAuthorizationDecision>`        | One-shot multi subscription (all decisions)  |
 | `MultiDecide`          | `IAsyncEnumerable<IdentifiableAuthorizationDecision>` | Streaming multi subscription    |
 | `MultiDecideAll`       | `IAsyncEnumerable<MultiAuthorizationDecision>` | Streaming multi subscription (all decisions) |
@@ -722,7 +721,6 @@ All options are set via `PdpClientOptions`, either inline or from configuration:
 | `Username`                    | `string?` | `null`                    | Basic auth username (mutually exclusive with `Token`)     |
 | `Secret`                      | `string?` | `null`                    | Basic auth password                                       |
 | `TimeoutMs`                   | `int`   | `5000`                     | PDP request timeout in milliseconds                       |
-| `StreamingMaxRetries`         | `int`   | `0` (unlimited)            | Maximum reconnection attempts for streaming subscriptions |
 | `StreamingRetryBaseDelayMs`   | `int`   | `1000`                     | Base delay for exponential backoff on reconnection        |
 | `StreamingRetryMaxDelayMs`    | `int`   | `30000`                    | Maximum delay between reconnection attempts               |
 
@@ -736,7 +734,7 @@ Streaming retries use exponential backoff with jitter. The delay doubles on each
 | 403 despite PERMIT decision           | Unhandled obligation                  | Check a provider's `GetConstraintHandlers` returns a handler for the obligation `type` |
 | Handler not firing                    | Missing registration                  | Call `AddSaplConstraintHandler<T>()` in `Program.cs`              |
 | Subject is `"anonymous"`              | No authenticated user                 | Configure ASP.NET Core authentication middleware and JWT validation |
-| Content filter throws                 | Unsupported path syntax               | Only simple dot paths supported (`$.field.nested`)                 |
+| Content filter throws                 | Invalid JSONPath                      | Paths resolve through Newtonsoft `SelectToken`; check the JSONPath syntax (recursive descent, array indexing, wildcards, and filter expressions are all supported) |
 | Service method throws `AccessDeniedException` | Normal denial behavior       | Register `UseSaplAccessDenied()` middleware for automatic 403      |
 | Streaming SSE empty                   | Action does not return `IAsyncEnumerable` | Ensure streaming methods return `IAsyncEnumerable<T>`          |
 | HTTP 500 on service denial            | Missing middleware                    | Add `app.UseSaplAccessDenied()` before `app.MapControllers()`      |

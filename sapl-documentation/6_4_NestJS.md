@@ -901,7 +901,6 @@ All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
 | `secret`                  | `string`                    | -                                               | Basic Auth password. Must be used together with `username`. Mutually exclusive with `token`. |
 | `oauth2`                  | `OAuth2TokenProviderOptions`| -                                               | OAuth2 client_credentials config (`issuerUrl`, `clientId`, `clientSecret`, `scope?`). Mutually exclusive with `token` and `username`/`secret`. |
 | `timeout`                 | `number`                    | `5000`                                          | Timeout in ms for PDP HTTP requests.                                                          |
-| `streamingMaxRetries`     | `number`                    | unlimited                                       | Maximum reconnection attempts for streaming subscriptions.                                    |
 | `streamingRetryBaseDelay` | `number`                    | `1000`                                          | Initial delay in ms before the first streaming reconnection.                                  |
 | `streamingRetryMaxDelay`  | `number`                    | `30000`                                         | Maximum backoff delay in ms for streaming reconnection.                                       |
 | `tls`                     | `TlsConfig`                 | -                                               | TLS configuration for the connection. See [Transport Security](#transport-security).         |

@@ -45,7 +45,7 @@ Install the library and the base dependency:
 pip install sapl-django
 ```
 
-This also installs `sapl-base`, which provides the PDP client, the `EnforcementPlanner`, and content filtering. The library requires Python 3.12 or later and Django 4.2+.
+This also installs `sapl-base`, which provides the PDP client, the `EnforcementPlanner`, and content filtering. The library requires Python 3.12 or later and Django 5.0+.
 
 A complete working demo with constraint handlers, content filtering, and streaming enforcement is available at [sapl-python-demos/django_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/django_demo).
 
@@ -166,7 +166,7 @@ When not explicitly provided, the subscription fields are derived from the Djang
 
 | Field         | Default                                                                     |
 | ------------- | --------------------------------------------------------------------------- |
-| `subject`     | `request.user.username` or `"anonymous"` if no authenticated user           |
+| `subject`     | `request.user.username`, else JWT claims from the `Authorization` header, else `"anonymous"` |
 | `action`      | `{"method": request.method, "view": function_name}`                         |
 | `resource`    | `{"path": request.path, "kwargs": resolver_match.kwargs}`                   |
 | `environment` | `{"ip": request.META["REMOTE_ADDR"]}` (when available)                      |
@@ -334,9 +334,9 @@ There is one extension point. A constraint handler is an object that implements 
 
 ```python
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Protocol
 
-from sapl_base.pep import ConstraintHandlerProvider, ScopedHandler
+from sapl_base.pep import ScopedHandler
 
 
 class ConstraintHandlerProvider(Protocol):
@@ -441,6 +441,62 @@ Filters array elements or nullifies single values that do not meet conditions.
 #### ContentFilter Limitations
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported.
+
+### Query Manipulation
+
+The Django integration can rewrite ORM queries so the database returns only the rows and columns a policy authorises. This enforces at the data layer rather than after the fact. Instead of loading every row and filtering the result in Python, the policy injects a `WHERE` clause and a column projection into the query before it runs, so unauthorised rows never leave the database.
+
+This is driven by the `sql:queryManipulation` obligation and the `DjangoQueryManipulationProvider`. A policy attaches the obligation, and the provider lowers it into Django's `Q` objects and query API.
+
+```
+policy "tenant-scoped-read"
+permit
+  action == "read";
+  resource == "patient";
+obligation
+  {
+    "type": "sql:queryManipulation",
+    "criteria": [
+      { "column": "tenant_id", "op": "=", "value": subject.tenantId }
+    ],
+    "columns": ["id", "name", "tenant_id"]
+  }
+```
+
+The obligation carries three optional parts. `criteria` is a tree of `and`, `or`, and `not` nodes over leaf comparisons of the form `{ "column", "op", "value" }`, with operators `=`, `!=`, `>`, `>=`, `<`, `<=`, `in`, `like`, `notLike`, `isNull`, and `isNotNull`. `conditions` is a list of raw SQL `WHERE` fragments for expressions the criteria tree cannot express. `columns` is a projection list. The provider lowers `criteria` into `Q` objects, `conditions` into a raw `WHERE` via `add_extra`, and `columns` into `.only()`.
+
+A column projection through `.only()` defers the other fields rather than blocking them. A deferred field still loads lazily on first access, so treat `columns` as a projection for efficiency, not as hard column-level access control. For hard column security, pair it with content filtering on the response.
+
+#### Setup
+
+Register the listener and the provider once at startup, for example in `AppConfig.ready()`.
+
+```python
+from sapl_django import (
+    DjangoQueryManipulationProvider,
+    register_orm_listener,
+    register_provider,
+)
+
+register_orm_listener()
+register_provider(DjangoQueryManipulationProvider())
+```
+
+`register_orm_listener()` installs the hook into the ORM and advertises that the integration can satisfy a `sql:queryManipulation` obligation. Until it is called, that obligation is inadmissible and any decision carrying it fails closed.
+
+#### Target Selection
+
+A single enforced view may run several queries against different models. The provider applies a criteria-based or projection-based obligation only to a query whose model actually has the referenced columns. A query against an unrelated model passes through unchanged, so a `tenant_id` criterion filters the tenant-scoped tables and leaves a lookup table untouched. An obligation that carries only `conditions` applies to every query, because a raw fragment has no introspectable target.
+
+#### Where It Hooks In and What It Covers
+
+The integration hooks into Django's query execution at the base `SQLCompiler.execute_sql`, the single point every ORM query passes through before it reaches the database. Hooking in at that one place covers reads and writes, because the delete and aggregate compilers inherit it and the update compiler calls into it. It works on both sync and async views, since an async query runs the same compiler on a worker thread that inherits the enforcement context.
+
+Covered access patterns are the ORM read surface and the row selection of writes. This includes iteration, `.values()`, `.count()`, `.exists()`, aggregates, `get_or_create`, `bulk_update`, `prefetch_related`, `select_for_update`, `refresh_from_db`, `in_bulk`, and the `WHERE` of `.update()` and `.delete()`.
+
+Not covered are `INSERT` statements (`create`, `bulk_create`, and saving a new instance), `.raw()` queries, and direct `connection.cursor()` access. These either are not a query-manipulation target or bypass the ORM compiler entirely.
+
+This boundary has a fail-open consequence you must account for. Once the listener is registered the `sql:queryManipulation` obligation is admissible, so it does not fail closed. If an enforced method reaches the database off the ORM golden path, through raw SQL or a direct cursor, the filter is silently not applied to that access. The accepted position is that off-convention database access means the developer owns row-level security manually for that path, because the integration cannot anticipate arbitrary access and does not parse SQL strings. The contrast is not registering the shim at all, in which case the obligation is inadmissible and the decision fails closed by denying.
 
 ### Streaming Authorization
 

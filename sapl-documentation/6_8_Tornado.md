@@ -340,9 +340,9 @@ There is one extension point. A constraint handler is an object that implements 
 
 ```python
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Protocol
 
-from sapl_base.pep import ConstraintHandlerProvider, ScopedHandler
+from sapl_base.pep import ScopedHandler
 
 
 class ConstraintHandlerProvider(Protocol):
@@ -470,6 +470,55 @@ Registered automatically by `configure_sapl()`. Filters array elements or nullif
 #### ContentFilter Limitations
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported.
+
+### Query Manipulation
+
+The `sapl-sqlalchemy` package lets a policy rewrite SQLAlchemy ORM queries so the database returns only the rows and columns it authorises. This enforces at the data layer rather than after the fact. Instead of loading every row and filtering the result in Python, the policy injects a `WHERE` clause and a column projection into the query before it runs, so unauthorised rows never leave the database. It is an optional add-on, installed separately.
+
+```bash
+pip install sapl-sqlalchemy
+```
+
+This is driven by the `sql:queryManipulation` obligation and the `SqlQueryManipulationProvider`. A policy attaches the obligation, and the provider lowers it into SQLAlchemy `Select`, `Update`, and `Delete` expressions.
+
+```
+policy "tenant-scoped-read"
+permit
+  action == "read";
+  resource == "patient";
+obligation
+  {
+    "type": "sql:queryManipulation",
+    "criteria": [
+      { "column": "tenant_id", "op": "=", "value": subject.tenantId }
+    ],
+    "columns": ["id", "name", "tenant_id"]
+  }
+```
+
+The obligation carries three optional parts. `criteria` is a tree of `and`, `or`, and `not` nodes over leaf comparisons of the form `{ "column", "op", "value" }`, with operators `=`, `!=`, `>`, `>=`, `<`, `<=`, `in`, `like`, `notLike`, `isNull`, and `isNotNull`. `conditions` is a list of raw SQL `WHERE` fragments for expressions the criteria tree cannot express. `columns` is a projection list. The provider lowers `criteria` and `conditions` into a `WHERE` predicate on the statement, and `columns` into the statement's projection.
+
+#### Setup
+
+Register the listener and the provider once at startup.
+
+```python
+from sapl_sqlalchemy import SqlQueryManipulationProvider, register_orm_listener
+from sapl_tornado import register_provider
+
+register_orm_listener()
+register_provider(SqlQueryManipulationProvider())
+```
+
+`register_orm_listener()` attaches to the SQLAlchemy `Session` class, so it covers every session including `AsyncSession` through its sync-session proxy. It also advertises that the integration can satisfy a `sql:queryManipulation` obligation. Until it is called, that obligation is inadmissible and any decision carrying it fails closed.
+
+#### Where It Hooks In and What It Covers
+
+The integration hooks into SQLAlchemy through the `do_orm_execute` ORM event on the `Session`, which fires for every query a session runs. Covered access patterns are ORM executes through a session. A `Select`, an ORM `Update`, and an ORM `Delete` get the authorised `WHERE` predicate injected, and a column-typed select gets its projection narrowed.
+
+Some statements are rejected rather than rewritten, and a rejected obligation denies access. Raw `text()` executed through the session, a set operation such as `UNION` combined with predicates, and a column projection against an entity-typed select all raise, which fails the obligation and denies the decision. Malformed criteria deny the same way.
+
+Not covered is execution that bypasses the ORM session entirely, such as SQLAlchemy Core `engine.execute()` or a raw DBAPI cursor obtained outside the session. Those never trigger the `do_orm_execute` event, so no filter is applied. This is a fail-open consequence you must account for. Once the listener is registered the `sql:queryManipulation` obligation is admissible, so it does not fail closed. An enforced method that reaches the database off the ORM session leaves that access unfiltered. The accepted position is that off-session database access means the developer owns row-level security manually for that path, because the integration cannot anticipate arbitrary access and does not parse SQL strings. The contrast is not registering the shim at all, in which case the obligation is inadmissible and the decision fails closed by denying.
 
 ### Streaming Authorization
 
