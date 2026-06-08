@@ -99,7 +99,7 @@ Condition fragments must be valid JSON (double-quoted), not MongoDB shell syntax
 - `conditions` fragments are combined with the user's query inside a top-level `$and` (or `AND`-ed into the SQL `WHERE`); the original query is preserved.
 - The obligation can only narrow access, never widen it.
 - A malformed criterion, an unsupported statement, or (for MongoDB) a non-JSON condition causes the decision to be denied.
-- **Portability across PEPs.** Because the obligation and its behaviour are identical across SDKs, the same obligation produces the same narrowing on every PEP for that backend. A `mongo:queryRewriting` obligation authored once works unchanged on the Spring MongoDB integration and the Python `sapl_pymongo` integration.
+- **Portability across PEPs.** Because the obligation and its behaviour are identical across SDKs, the same obligation produces the same narrowing on every PEP for that backend. A `mongo:queryRewriting` obligation authored once works unchanged on the Spring MongoDB integration, the Python `sapl_pymongo` integration, and the NestJS Mongoose integration. The same holds for `sql:queryRewriting` across the SQL integrations, with one backend caveat: the NestJS Prisma integration supports the typed `criteria` and `columns` but not the raw-SQL `conditions` escape hatch, since Prisma's `where` is structured rather than SQL.
 
 ## Integrations
 
@@ -165,3 +165,35 @@ widgets = wrap_async_collection(database["widgets"])  # wraps and registers the 
 Use `wrap_collection` for a synchronous `Collection` (the blocking enforcement path) and `wrap_async_collection` for an `AsyncCollection`. The wrapper covers `find`, `find_one`, `aggregate`, `count_documents`, `update_*`, and `delete_*`; each applies the obligation to the query before passing it to the driver. An aggregation pipeline cannot be narrowed by this obligation, so it is rejected (and the decision denied), as is a malformed condition.
 
 Because wrapping the collection is what registers the integration, you cannot enable it without also installing the interception. A collection used without wrapping, or a raw `database.command(...)`, is not intercepted: that is the fail-open path you must account for, the MongoDB equivalent of off-session SQL access. Wrap every collection an enforced method may reach.
+
+### NestJS: Mongoose
+
+For NestJS applications on Mongoose, `@sapl/nestjs/mongoose` provides the MongoDB integration. Register the shim once at startup, apply the plugin to your schemas, and register the provider in your module.
+
+```ts
+import { registerMongooseShim, createSaplMongoosePlugin, MongoDbQueryRewritingProvider } from '@sapl/nestjs/mongoose';
+
+registerMongooseShim();                          // advertise the obligation
+mongoose.plugin(createSaplMongoosePlugin(cls));  // or schema.plugin(...) per schema; cls is the nestjs-cls ClsService
+// add MongoDbQueryRewritingProvider to your SAPL module's providers
+```
+
+The plugin hooks Mongoose query middleware for `find`, `findOne`, `countDocuments`, `update*`, and `delete*`, applying the obligation to the filter before the driver runs it. An aggregation pipeline cannot be narrowed by this obligation, so it is rejected (and the decision denied), as is a malformed condition. The plugin reads the active enforcement plan from the request-scoped CLS context the `@PreEnforce` PEP populates, so no repository changes are needed; you annotate the calling service method with `@PreEnforce` as usual.
+
+Until `registerMongooseShim()` runs, a decision carrying a `mongo:queryRewriting` obligation is denied. A schema without the plugin is not intercepted: that is the fail-open path you must account for. Apply the plugin to every schema an enforced method may reach.
+
+### NestJS: Prisma
+
+For NestJS applications on Prisma, `@sapl/nestjs/prisma` provides the SQL integration. Register the shim, extend your Prisma client, and register the provider.
+
+```ts
+import { registerPrismaShim, createSaplPrismaExtension, SqlQueryRewritingProvider } from '@sapl/nestjs/prisma';
+
+registerPrismaShim();
+const prisma = basePrismaClient.$extends(createSaplPrismaExtension(cls));  // cls is the nestjs-cls ClsService
+// add SqlQueryRewritingProvider to your SAPL module's providers
+```
+
+The extension hooks Prisma's `$allOperations` for filter operations (`findMany`, `findFirst`, `count`, `aggregate`, `groupBy`, `updateMany`, `deleteMany`), AND-merging the obligation's `criteria` into the operation's `where` and narrowing `columns` to a `select`. Prisma's `where` is structured rather than SQL, so the `conditions` escape hatch cannot be lowered and is rejected (the decision denied); policies targeting Prisma use typed `criteria`. A unique-key operation (`findUnique`, `update`, `delete`, `upsert`) cannot be safely AND-narrowed, so it is denied while an obligation is active; use `findFirst`, `updateMany`, or `deleteMany` instead. Operations without a filter (`create`, `createMany`) pass through.
+
+Until `registerPrismaShim()` runs, a decision carrying a `sql:queryRewriting` obligation is denied. A client used without the extension is not intercepted: that is the fail-open path you must account for. Extend every client an enforced method may reach.
