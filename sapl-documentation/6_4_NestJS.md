@@ -9,6 +9,8 @@ nav_order: 604
 
 Attribute-Based Access Control (ABAC) for NestJS using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
+Version 2.0 re-architected enforcement from the legacy constraint-bundle model to the SAPL 4.1 planner and `@StreamEnforce` model, added the RSocket transport, support for the new `SUSPEND` decision verb, and data-layer query rewriting. Projects upgrading from 1.x should consult the `@sapl/nestjs` CHANGELOG for the migration table.
+
 ## What is SAPL?
 
 SAPL is a policy language and Policy Decision Point (PDP) for attribute-based access control. Policies are written in a dedicated language and evaluated by the PDP, which streams authorization decisions based on subject, action, resource, and environment attributes.
@@ -539,6 +541,17 @@ Filters array elements or nullifies single values that do not meet conditions.
 ### ContentFilter Limitations
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported and will throw an error.
+
+## Query Rewriting
+
+Constraint handlers also cover data-layer enforcement: a policy can attach a query-rewriting obligation that narrows the rows an enforced method reads at the database, rather than filtering them in memory. The query an enforced method issues is rewritten transparently, fail-closed and narrowing-only.
+
+Two integrations ship as optional subpath exports, so you install only the driver you use:
+
+- **`@sapl/nestjs/mongoose`** for MongoDB on Mongoose. Register the shim and apply `createSaplMongoosePlugin(cls)` to your schemas, then add `MongoDbQueryRewritingProvider` to your module. It honours the `mongo:queryRewriting` obligation.
+- **`@sapl/nestjs/prisma`** for SQL on Prisma. Register the shim and extend your client with `createSaplPrismaExtension(cls)`, then add `SqlQueryRewritingProvider`. It honours the `sql:queryRewriting` obligation (typed `criteria` and `columns`; Prisma's structured `where` cannot lower the raw-SQL `conditions` escape hatch).
+
+The obligation format is identical across every SAPL PEP for a backend, so the same `mongo:queryRewriting` policy works unchanged on the Spring, Python, and NestJS MongoDB integrations. See [Query Rewriting](6_11_QueryRewriting.md) for the obligation schema, semantics, and setup.
 
 ## Streaming Enforcement with @StreamEnforce
 
