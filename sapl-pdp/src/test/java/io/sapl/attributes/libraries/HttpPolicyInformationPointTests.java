@@ -60,6 +60,8 @@ import static org.mockito.Mockito.when;
 @DisplayName("HttpPolicyInformationPoint (vnext)")
 class HttpPolicyInformationPointTests {
 
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
+
     private static final AttributeAccessContext EMPTY_CTX = new AttributeAccessContext(Value.EMPTY_OBJECT,
             Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
 
@@ -501,7 +503,7 @@ class HttpPolicyInformationPointTests {
 
     private static BlockingWebClient newRealClient() {
         return new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient(),
-                new MutableClock(Instant.now()), new TestTimeScheduler(Instant.now()));
+                new MutableClock(REFERENCE), new TestTimeScheduler(REFERENCE));
     }
 
     private static ObjectValue baseRequest(String url) {

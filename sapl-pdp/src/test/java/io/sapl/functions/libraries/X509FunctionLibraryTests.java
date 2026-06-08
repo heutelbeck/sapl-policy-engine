@@ -78,6 +78,8 @@ class X509FunctionLibraryTests {
     private static final String DEFAULT_DNS_2  = "shoggoth-services.antarctica";
     private static final String DEFAULT_IP     = "192.168.1.1";
 
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
+
     private static String  cthulhuCertPem;
     private static String  expiredCertPem;
     private static String  certWithSansPem;
@@ -89,7 +91,7 @@ class X509FunctionLibraryTests {
         keyPairGenerator.initialize(2048);
         keyPair = keyPairGenerator.generateKeyPair();
 
-        val now = Instant.now();
+        val now = REFERENCE;
         cthulhuCertPem  = toPem(generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), false, null));
         expiredCertPem  = toPem(generateCertificate(YOG_SOTHOTH_DN, now.minus(365, ChronoUnit.DAYS),
@@ -125,7 +127,7 @@ class X509FunctionLibraryTests {
     }
 
     static Stream<Arguments> validCertificates() throws OperatorCreationException, CertificateException, IOException {
-        val now = Instant.now();
+        val now = REFERENCE;
         // Chinese: "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=CN"
         val unicodeCertPem = toPem(generateCertificate("CN=克苏鲁会计服务,O=拉莱耶深潜者有限责任公司,C=CN", now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), false, null));
@@ -146,7 +148,7 @@ class X509FunctionLibraryTests {
 
     static Stream<Arguments> malformedCertificates()
             throws OperatorCreationException, CertificateException, IOException {
-        val now          = Instant.now();
+        val now          = REFERENCE;
         val validCertPem = toPem(generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), false, null));
 
@@ -310,7 +312,7 @@ class X509FunctionLibraryTests {
     @Test
     void whenHasDnsNameWithWildcardCertThenMatchesSubdomain()
             throws OperatorCreationException, CertificateException, IOException {
-        val now  = Instant.now();
+        val now  = REFERENCE;
         val cert = generateCertificate("CN=*.rlyeh.deep,O=Wildcard Services,C=US", now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), true, new String[] { "*.rlyeh.deep" });
         val pem  = toPem(cert);
@@ -363,7 +365,7 @@ class X509FunctionLibraryTests {
             "400, DAYS, false, After validity end" })
     void whenIsValidAtWithVariousTimestampsThenReturnsExpectedResult(long amount, ChronoUnit unit, boolean expected,
             String description) {
-        val timestamp = Instant.now().plus(amount, unit).toString();
+        val timestamp = REFERENCE.plus(amount, unit).toString();
         val result    = X509FunctionLibrary.isValidAt((TextValue) Value.of(cthulhuCertPem),
                 (TextValue) Value.of(timestamp));
 
@@ -400,8 +402,8 @@ class X509FunctionLibraryTests {
     @MethodSource("unicodeDns")
     void whenParseAndExtractWithVariousUnicodeScriptsThenSucceeds(String dn, String description)
             throws OperatorCreationException, CertificateException, IOException {
-        val cert = generateCertificate(dn, Instant.now().minus(1, ChronoUnit.DAYS),
-                Instant.now().plus(365, ChronoUnit.DAYS), false, null);
+        val cert = generateCertificate(dn, REFERENCE.minus(1, ChronoUnit.DAYS), REFERENCE.plus(365, ChronoUnit.DAYS),
+                false, null);
         val pem  = toPem(cert);
 
         val parseResult   = X509FunctionLibrary.parseCertificate((TextValue) Value.of(pem));
@@ -430,7 +432,7 @@ class X509FunctionLibraryTests {
     @Test
     void whenIsValidAtWithCertValidForOneHourThenHandlesCorrectly()
             throws OperatorCreationException, CertificateException, IOException {
-        val now     = Instant.now();
+        val now     = REFERENCE;
         val cert    = generateCertificate(CTHULHU_DN, now.minus(1, ChronoUnit.HOURS), now.plus(1, ChronoUnit.HOURS),
                 false, null);
         val certPem = toPem(cert);

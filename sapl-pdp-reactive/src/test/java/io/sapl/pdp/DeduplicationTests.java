@@ -61,6 +61,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Deduplication diagnostics")
 class DeduplicationTests {
 
+    private static final Clock              CLOCK              = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"),
+            ZoneOffset.UTC);
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
             DefaultDecision.DENY, ErrorHandling.ABSTAIN);
 
@@ -230,7 +232,7 @@ class DeduplicationTests {
         @DisplayName("config source notifies listeners on every reload, including duplicates")
         void whenSameConfigReloadedThenConfigSourceEmitsBothCompilations() {
             val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
+            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, CLOCK).build();
             val voterSource = components.pdpVoterSource();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);
 
@@ -248,7 +250,7 @@ class DeduplicationTests {
         @DisplayName("decide() deduplicates despite config source emitting duplicate compilations")
         void whenSameConfigReloadedThenDecideDeduplicatesAtDecisionLevel() {
             val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
+            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, CLOCK).build();
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);

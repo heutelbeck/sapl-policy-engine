@@ -38,7 +38,6 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -511,8 +510,8 @@ public class X509FunctionLibrary {
         return withCertificate(certificatePem.value(), certificate -> {
             try {
                 val timestamp = parseTimestamp(isoTimestamp.value());
-                val isValid   = !timestamp.before(certificate.getNotBefore())
-                        && !timestamp.after(certificate.getNotAfter());
+                val isValid   = !timestamp.isBefore(certificate.getNotBefore().toInstant())
+                        && !timestamp.isAfter(certificate.getNotAfter().toInstant());
                 return Value.of(isValid);
             } catch (CryptoException exception) {
                 return Value.error(ERROR_INVALID_TIMESTAMP.formatted(exception.getMessage()));
@@ -573,19 +572,19 @@ public class X509FunctionLibrary {
     }
 
     /**
-     * Parses an ISO 8601 timestamp string to a Date object.
+     * Parses an ISO 8601 timestamp string to an Instant.
      *
      * @param isoTimestamp
      * the ISO 8601 timestamp string
      *
-     * @return the parsed Date
+     * @return the parsed Instant
      *
      * @throws CryptoException
      * if the timestamp format is invalid
      */
-    private static Date parseTimestamp(String isoTimestamp) {
+    private static Instant parseTimestamp(String isoTimestamp) {
         try {
-            return Date.from(Instant.parse(isoTimestamp));
+            return Instant.parse(isoTimestamp);
         } catch (DateTimeParseException exception) {
             throw new CryptoException(ERROR_INVALID_ISO8601_FORMAT.formatted(isoTimestamp), exception);
         }

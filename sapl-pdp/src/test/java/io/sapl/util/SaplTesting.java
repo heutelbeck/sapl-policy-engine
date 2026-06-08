@@ -73,9 +73,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @UtilityClass
 public class SaplTesting {
 
-    private static final String DEFAULT_PDP_ID    = "testPdp";
-    private static final String DEFAULT_CONFIG_ID = "testConfig";
-    private static final String DEFAULT_SUB_ID    = "testSubscription";
+    private static final String  DEFAULT_PDP_ID    = "testPdp";
+    private static final String  DEFAULT_CONFIG_ID = "testConfig";
+    private static final String  DEFAULT_SUB_ID    = "testSubscription";
+    private static final Instant REFERENCE         = Instant.parse("2025-01-01T00:00:00Z");
 
     public static final SourceLocation        TEST_LOCATION           = new SourceLocation("test", "", 0, 0, 1, 1, 1,
             1);
@@ -799,7 +800,7 @@ public class SaplTesting {
         }
 
         private ExpressionResult stepStream(StreamOperator stream, EvaluationContext baseCtx) {
-            val now      = Instant.now();
+            val now      = REFERENCE;
             val snapshot = new HashMap<SubscriptionKey, AttributeSnapshot>();
             for (val key : knownKeys) {
                 val bound = bindings.get(key.invocation().attributeName());

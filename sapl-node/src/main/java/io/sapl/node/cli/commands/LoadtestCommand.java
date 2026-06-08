@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -163,7 +164,7 @@ public class LoadtestCommand implements Callable<Integer> {
 
             val mapper       = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
             val subscription = SubscriptionResolver.resolve(subscriptionInput, mapper);
-            val timestamp    = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+            val timestamp    = LocalDateTime.now(ZoneId.systemDefault()).format(TIMESTAMP_FORMAT);
 
             if (output != null) {
                 Files.createDirectories(output);

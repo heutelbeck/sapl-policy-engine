@@ -60,9 +60,10 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TraccarPolicyInformationPointIT {
+    private static final Instant                       REFERENCE   = Instant.parse("2025-01-01T00:00:00Z");
     private static final JsonMapper                    MAPPER      = JsonMapper.builder().build();
     private static final BlockingWebClient             CLIENT      = new BlockingWebClient(MAPPER,
-            HttpClient.newHttpClient(), new MutableClock(Instant.now()), new TestTimeScheduler(Instant.now()));
+            HttpClient.newHttpClient(), new MutableClock(REFERENCE), new TestTimeScheduler(REFERENCE));
     private static final TraccarPolicyInformationPoint TRACCAR_PIP = new TraccarPolicyInformationPoint(CLIENT);
 
     private static TextValue   deviceId;

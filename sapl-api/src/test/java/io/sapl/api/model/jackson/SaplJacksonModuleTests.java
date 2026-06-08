@@ -39,6 +39,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -601,14 +602,14 @@ class SaplJacksonModuleTests {
 
         @Test
         void when_serializingLocalDateTime_then_producesIso8601String() throws JacksonException {
-            val dateTime = LocalDateTime.of(2025, 1, 6, 10, 30, 0);
+            val dateTime = LocalDateTime.of(2025, Month.JANUARY, 6, 10, 30, 0);
             val json     = mapper.writeValueAsString(dateTime);
             assertThat(json).isEqualTo("\"2025-01-06T10:30:00\"");
         }
 
         @Test
         void when_roundTrippingLocalDateTime_then_valuePreserved() throws JacksonException {
-            val original = LocalDateTime.of(2025, 1, 6, 10, 30, 45, 123456789);
+            val original = LocalDateTime.of(2025, Month.JANUARY, 6, 10, 30, 45, 123456789);
             val json     = mapper.writeValueAsString(original);
             val restored = mapper.readValue(json, LocalDateTime.class);
             assertThat(restored).isEqualTo(original);

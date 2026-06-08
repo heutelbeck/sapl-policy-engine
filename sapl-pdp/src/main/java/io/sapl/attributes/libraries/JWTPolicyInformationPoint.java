@@ -45,7 +45,6 @@ import java.security.Key;
 import java.text.ParseException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Date;
 import java.util.Optional;
 
 /**
@@ -491,8 +490,10 @@ public class JWTPolicyInformationPoint {
     }
 
     private Stream<Value> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
-        val notBefore      = claims.getNotBeforeTime();
-        val expirationTime = claims.getExpirationTime();
+        val notBeforeDate  = claims.getNotBeforeTime();
+        val expirationDate = claims.getExpirationTime();
+        val notBefore      = null == notBeforeDate ? null : notBeforeDate.toInstant();
+        val expirationTime = null == expirationDate ? null : expirationDate.toInstant();
         val now            = clock.instant();
         val skewMillis     = clockSkewSeconds * 1000L;
 
@@ -500,8 +501,8 @@ public class JWTPolicyInformationPoint {
             return Streams.just(stateValue(ValidityState.NEVER_VALID));
         }
 
-        val expWithSkew = null != expirationTime ? saturatingAdd(expirationTime.getTime(), skewMillis) : 0L;
-        val nbfWithSkew = null != notBefore ? notBefore.getTime() - skewMillis : 0L;
+        val expWithSkew = null != expirationTime ? saturatingAdd(expirationTime.toEpochMilli(), skewMillis) : 0L;
+        val nbfWithSkew = null != notBefore ? notBefore.toEpochMilli() - skewMillis : 0L;
 
         if (null != expirationTime && expWithSkew < now.toEpochMilli()) {
             return Streams.just(stateValue(ValidityState.EXPIRED));
@@ -510,24 +511,24 @@ public class JWTPolicyInformationPoint {
         return buildValidityTimeline(notBefore, expirationTime, now, nbfWithSkew, expWithSkew);
     }
 
-    private static boolean isNeverValid(Date notBefore, Date expirationTime, JWTClaimsSet claims, Instant now,
+    private static boolean isNeverValid(Instant notBefore, Instant expirationTime, JWTClaimsSet claims, Instant now,
             long maxTokenLifetimeSeconds) {
-        if (null != notBefore && null != expirationTime && notBefore.getTime() > expirationTime.getTime()) {
+        if (null != notBefore && null != expirationTime && notBefore.isAfter(expirationTime)) {
             return true;
         }
 
         if (maxTokenLifetimeSeconds > 0 && null != expirationTime) {
-            val issueTime         = claims.getIssueTime();
-            val referenceMillis   = null != issueTime ? issueTime.getTime() : now.toEpochMilli();
-            val lifetimeMillis    = expirationTime.getTime() - referenceMillis;
+            val issueDate         = claims.getIssueTime();
+            val referenceMillis   = null != issueDate ? issueDate.toInstant().toEpochMilli() : now.toEpochMilli();
+            val lifetimeMillis    = expirationTime.toEpochMilli() - referenceMillis;
             val maxLifetimeMillis = maxTokenLifetimeSeconds * 1000L;
             return lifetimeMillis > maxLifetimeMillis;
         }
         return false;
     }
 
-    private Stream<Value> buildValidityTimeline(Date notBefore, Date expirationTime, Instant now, long nbfWithSkew,
-            long expWithSkew) {
+    private Stream<Value> buildValidityTimeline(Instant notBefore, Instant expirationTime, Instant now,
+            long nbfWithSkew, long expWithSkew) {
         if (null != notBefore && nbfWithSkew > now.toEpochMilli()) {
             val nbfInstant = Instant.ofEpochMilli(nbfWithSkew);
             if (null == expirationTime) {

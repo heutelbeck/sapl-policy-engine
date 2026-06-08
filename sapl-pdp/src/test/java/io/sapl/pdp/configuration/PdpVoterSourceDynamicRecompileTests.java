@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -43,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("PdpVoterSource dynamic recompile")
 class PdpVoterSourceDynamicRecompileTests {
 
-    private static final Clock   CLOCK    = Clock.systemUTC();
+    private static final Clock   CLOCK    = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
     private static final PdpData EMPTY    = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     private static final String  PDP_ID   = "test-pdp";
     private static final String  CONFIG_A = "config-A";
