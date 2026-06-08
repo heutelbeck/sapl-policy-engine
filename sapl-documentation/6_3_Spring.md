@@ -139,7 +139,7 @@ public class SecurityConfig {
 }
 ```
 
-The same `@PreEnforce` and `@PostEnforce` annotations work here. They integrate with the reactive pipeline instead of blocking. One restriction is worth knowing about. `@PostEnforce` on reactive methods only works with `Mono`, not `Flux`. The resource value must be a single object, not a stream. If you need to enforce on a `Flux` return type, apply the policy at a different layer such as filtering inside the publisher, or use `@PreEnforce` together with query-manipulation obligations.
+The same `@PreEnforce` and `@PostEnforce` annotations work here. They integrate with the reactive pipeline instead of blocking. One restriction is worth knowing about. `@PostEnforce` on reactive methods only works with `Mono`, not `Flux`. The resource value must be a single object, not a stream. If you need to enforce on a `Flux` return type, apply the policy at a different layer such as filtering inside the publisher, or use `@PreEnforce` together with query-rewriting obligations.
 
 ### How Enforcement Works
 
@@ -853,9 +853,9 @@ obligation {
 
 This example uses SAPL's built-in `timeBetween` and `dateOf` functions to calculate the user's age and filter out books with age ratings above that age. The schema accepts only `conditions`, with the same shape as in `filterJsonContent`. Elements that do not match all conditions are dropped from the collection.
 
-#### Query Manipulation
+#### Query Rewriting
 
-`SqlQueryManipulationProvider` and `MongoDbQueryManipulationProvider` rewrite database queries to filter at the data layer. They are covered in detail in the [Query Manipulation](#query-manipulation) section below.
+`SqlQueryRewritingProvider` and `MongoDbQueryRewritingProvider` rewrite database queries to filter at the data layer. See [Query Rewriting](../6_11_QueryRewriting/) for details.
 
 ### Writing Custom Handlers
 
@@ -931,175 +931,15 @@ Second, the handler attaches to `DecisionSignal.SIGNAL_TYPE`. The PEP fires `Dec
 
 Spring auto-discovers any bean implementing `ConstraintHandlerProvider`. Just annotate with `@Component` and put it in a scanned package.
 
-## Query Manipulation
+## Query Rewriting
 
-Spring Data applications often want to filter results at the database, not in memory. SAPL supports this with two backends today, R2DBC and reactive MongoDB. The mechanism is a transparent shim. You do not annotate repository methods. You apply `@PreEnforce` on the calling service method as usual, and the policy emits a query manipulation obligation. The shim catches the query as Spring Data dispatches it, applies the obligation, and sends the rewritten query to the driver.
+Spring Data applications can filter results at the database with no changes to your repositories: apply `@PreEnforce` to the calling service method, and the policy attaches a `sql:queryRewriting` or `mongo:queryRewriting` obligation that the SAPL integration applies before the query reaches the driver. The SAPL Spring Boot starter wires this automatically for R2DBC repositories and reactive MongoDB.
 
-### How the Shim Works
-
-When the SAPL Spring Boot starter sees `R2dbcRepository` or `ReactiveMongoTemplate` on the classpath, it activates an auto-configuration that wraps two beans.
-
-- `DatabaseClient` for R2DBC. Every R2DBC dispatch path bottoms out at `DatabaseClient.sql(...)`. The shim wraps that call.
-- `ReactiveMongoTemplate` for MongoDB. The shim intercepts both the legacy entry points (`find`, `findOne`, `exists`, `count`, `remove`) and the fluent `query(Class).matching(Query)` chain that derived queries use internally.
-
-When a service method annotated with `@PreEnforce` triggers a decision carrying a query manipulation obligation, the obligation is bound to the active enforcement plan. Calls that flow through your repository while that plan is active reach the shim, fire a shim signal, apply the rewritten query, and forward to the driver.
-
-When no plan is active (for example, when the same repository is called from a controller without `@PreEnforce`), the shim passes the query through unchanged. There is no global filter. The obligation only applies inside the protected service call.
-
-The obligation can never widen the user's filter. It can only narrow it. If the user requested rows where `category = 'art'` and the obligation says `tenant_id = 7`, the resulting query asks for rows where both conditions hold.
-
-### SQL: `sql:queryManipulation`
-
-For R2DBC and other SQL backends, the constraint type is `sql:queryManipulation` (the alias `relational:queryManipulation` is accepted as a synonym). The provider supports a typed criteria language for portable obligations and a string escape hatch for backend-specific SQL.
-
-A simple obligation that adds a tenant filter and projects only some columns.
-
-```
-obligation {
-             "type": "sql:queryManipulation",
-             "criteria": [
-               { "column": "tenant_id", "op": "=", "value": 7 }
-             ],
-             "columns": [ "id", "title", "author" ]
-           }
-```
-
-The full schema.
-
-```jsonc
-{
-  "type":       "sql:queryManipulation",
-  "criteria":   [],   // typed criteria, AND-joined at top level
-  "conditions": [],   // raw SQL fragments, AND-joined
-  "columns":    []    // SELECT projection narrowing
-}
-```
-
-A typed criterion is a JSON object with `column`, `op`, and `value`.
-
-```json
-{ "column": "status", "op": "=", "value": "active" }
-```
-
-The supported operators are `=`, `!=`, `>`, `>=`, `<`, `<=`, `in` (with an array `value`), `like`, `notLike`, `isNull`, and `isNotNull`. The `isNull` and `isNotNull` operators do not need a `value`.
-
-You can group criteria with `or` and `and`, and groups can be nested.
-
-```json
-[
-  { "column": "tenant_id", "op": "=", "value": 7 },
-  { "or": [
-    { "column": "owner_id",  "op": "=", "value": "alice" },
-    { "column": "is_public", "op": "=", "value": true }
-  ]}
-]
-```
-
-Each top-level entry in the `criteria` array is AND-joined with the others.
-
-The `conditions` array carries raw SQL fragments. Use this for SQL features the typed language does not cover, such as `BETWEEN`, `EXISTS`, or vendor functions.
-
-```json
-{ "conditions": [ "created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'" ] }
-```
-
-The `columns` array narrows the SELECT projection. If the original query is `SELECT *`, the obligation columns become the projection. If the original query already projects specific columns, the obligation columns intersect with them. The `columns` array applies only to SELECT statements. For UPDATE and DELETE it is ignored.
-
-### MongoDB: `mongo:queryManipulation`
-
-For reactive MongoDB, the constraint type is `mongo:queryManipulation`.
-
-```
-obligation {
-             "type": "mongo:queryManipulation",
-             "criteria": [
-               { "column": "tenantId", "op": "=", "value": 7 }
-             ]
-           }
-```
-
-The schema mirrors the SQL provider, minus the `columns` projection feature.
-
-```jsonc
-{
-  "type":       "mongo:queryManipulation",
-  "criteria":   [],   // typed criteria, AND-joined at top level
-  "conditions": []    // raw BSON fragments, AND-joined
-}
-```
-
-The typed criteria language accepts the same operators as SQL except `like` and `notLike`. For pattern matching use the `conditions` escape hatch with `$regex`. Condition fragments must be valid JSON (double-quoted), not MongoDB shell syntax, so the same obligation parses identically on every SAPL MongoDB PEP.
-
-```json
-{ "conditions": [ "{ \"name\": { \"$regex\": \"^A\" } }" ] }
-```
-
-Conditions use the standard MongoDB BSON query syntax. The provider parses each fragment and intersects it with the user's query inside a top-level `$and` array. The original query is preserved. The obligation can never overwrite a field the user is already filtering on.
-
-### Worked Example
-
-A service method that lists books for the current user.
-
-```java
-@Service
-public class LibraryService {
-
-    private final BookRepository books;
-
-    LibraryService(BookRepository books) {
-        this.books = books;
-    }
-
-    @PreEnforce(subject = "authentication.name", action = "'list-books'")
-    public Flux<Book> listBooks() {
-        return books.findAll();
-    }
-}
-```
-
-A policy that restricts each user to books belonging to their tenant.
-
-```
-policy "books are tenant-scoped"
-permit
-  action == "list-books";
-obligation {
-             "type": "sql:queryManipulation",
-             "criteria": [
-               { "column": "tenant_id", "op": "=", "value": subject.tenantId }
-             ]
-           }
-```
-
-When a user from tenant 7 calls `listBooks()`, the SQL the database executes carries an additional `WHERE tenant_id = 7`. The user only ever sees their own tenant's books. No code in `LibraryService` or `BookRepository` had to change.
-
-The same pattern works for derived queries (`findByAuthor`, `findByPriceLessThan`), `@Query`-annotated methods, and direct calls to `databaseClient.sql(...)`. Every R2DBC dispatch path eventually reaches the shim.
-
-### Disabling the Shim per Engine
-
-You may want to keep the SAPL starter in your application without letting it wrap your data access beans. Common cases include integration tests against a fixture database, a phased rollout where you have not yet authored query manipulation policies, or wanting to enforce only at the method-call boundary.
-
-Each shim has its own opt-out property, both default `true`.
-
-```properties
-# Disable the R2DBC shim
-io.sapl.method-security.r2dbc-shim.enabled=false
-
-# Disable the Mongo shim
-io.sapl.method-security.mongo-shim.enabled=false
-```
-
-Setting either to `false` removes that engine's auto-configuration. The corresponding `BeanPostProcessor` does not register, your `DatabaseClient` and `ReactiveMongoTemplate` beans are not wrapped, and any `sql:queryManipulation` or `mongo:queryManipulation` obligation on a decision becomes an unhandled obligation, which the PEP treats as a denial. Keep this in mind when you disable a shim. If your policies still emit the obligation type, requests will start failing closed.
-
-### Coverage and Limitations
-
-The shim sees a query only when the query flows through the bean it wraps. For R2DBC that bean is `DatabaseClient`, and every dispatch path bottoms out there, so derived queries, `@Query` methods, and direct `databaseClient.sql(...)` calls are all covered. SELECT, UPDATE, and DELETE statements are rewritten. INSERT and DDL are not query manipulation targets, and an obligation that cannot be applied to the statement fails the obligation, which denies the decision. For MongoDB the wrapped bean is `ReactiveMongoTemplate`, covering its read and remove entry points and the fluent `query(Class).matching(Query)` chain that derived queries use.
-
-Not covered is any access that bypasses the wrapped bean. A raw R2DBC `Connection`, a reactive `MongoClient` or `MongoCollection` used directly, or any driver-level call obtained outside the wrapped beans never reaches the shim. This has a fail-open consequence you must account for. While a shim is enabled its obligation type is admissible, so a decision carrying it is not rejected up front. If an enforced method then reaches the store off the wrapped bean, the filter is silently not applied to that access. The accepted position is that off-convention store access means the developer owns row-level security manually for that path, because the shim cannot anticipate arbitrary access and does not parse externally built queries. This is the opposite of the disabled-shim case above, where the obligation type is inadmissible and every decision carrying it fails closed.
+See [Query Rewriting](../6_11_QueryRewriting/) for the obligation format, the shared semantics, worked examples, and the per-backend opt-out properties.
 
 ## Configuration
 
-SAPL Spring Security is configured through `application.properties` or `application.yml`. The properties control which PDP to use and how it behaves, plus a few cross-cutting toggles for method security, JWT injection, and query manipulation.
+SAPL Spring Security is configured through `application.properties` or `application.yml`. The properties control which PDP to use and how it behaves, plus a few cross-cutting toggles for method security, JWT injection, and query rewriting.
 
 ### Embedded PDP
 
@@ -1282,8 +1122,8 @@ Subscriptions (the streaming `decide`, `multiDecide`, and `decideAll`) never ter
 | Property | Default | Description |
 |---|---|---|
 | `io.sapl.method-security.adjust-transaction-order` | `true` | Reorder the `TransactionInterceptor` so the transaction wraps SAPL enforcement. Set to `false` if you have explicit AOP order requirements. See [Transaction Integration](#transaction-integration). |
-| `io.sapl.method-security.r2dbc-shim.enabled` | `true` | Wrap `DatabaseClient` for R2DBC query manipulation. Set to `false` to disable the shim. See [Disabling the Shim per Engine](#disabling-the-shim-per-engine). |
-| `io.sapl.method-security.mongo-shim.enabled` | `true` | Wrap `ReactiveMongoTemplate` for MongoDB query manipulation. Set to `false` to disable the shim. See [Disabling the Shim per Engine](#disabling-the-shim-per-engine). |
+| `io.sapl.method-security.r2dbc-shim.enabled` | `true` | Wrap `DatabaseClient` for R2DBC query rewriting. Set to `false` to disable the shim. See [Disabling the Shim per Engine](#disabling-the-shim-per-engine). |
+| `io.sapl.method-security.mongo-shim.enabled` | `true` | Wrap `ReactiveMongoTemplate` for MongoDB query rewriting. Set to `false` to disable the shim. See [Disabling the Shim per Engine](#disabling-the-shim-per-engine). |
 
 ### JWT Token Injection
 
@@ -1402,7 +1242,7 @@ By default, `src/main/resources/policies/`. The embedded PDP loads from this pat
 
 ## Next Steps
 
-The best way to learn is to try it. Start with method security on one or two endpoints. Write simple permit and deny policies. Once that works, add an obligation to see how constraints work, then a query manipulation obligation to see how the shim transparently filters at the database layer.
+The best way to learn is to try it. Start with method security on one or two endpoints. Write simple permit and deny policies. Once that works, add an obligation to see how constraints work, then a query rewriting obligation to see how the shim transparently filters at the database layer.
 
 For more details.
 

@@ -288,7 +288,7 @@ class MongoDbShimChainIT {
 
     private static AuthorizationDecision decisionWithMongoCriteria(ObjectValue... criteria) {
         val obligation = Value
-                .ofObject(Map.of("type", Value.of("mongo:queryManipulation"), "criteria", arrayOf(criteria)));
+                .ofObject(Map.of("type", Value.of("mongo:queryRewriting"), "criteria", arrayOf(criteria)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }
@@ -327,7 +327,7 @@ class MongoDbShimChainIT {
             conditionValues[i] = Value.of(conditions[i]);
         }
         val obligation = Value.ofObject(
-                Map.of("type", Value.of("mongo:queryManipulation"), "conditions", Value.ofArray(conditionValues)));
+                Map.of("type", Value.of("mongo:queryRewriting"), "conditions", Value.ofArray(conditionValues)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }

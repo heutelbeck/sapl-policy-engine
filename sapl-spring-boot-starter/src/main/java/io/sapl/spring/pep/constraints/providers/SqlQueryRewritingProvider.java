@@ -52,11 +52,11 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.update.Update;
 
 /**
- * Translates a {@code sql:queryManipulation} (or alias
- * {@code relational:queryManipulation}) constraint into a
+ * Translates a {@code sql:queryRewriting} (or alias
+ * {@code relational:queryRewriting}) constraint into a
  * {@link Mapper} attached to the PEP's {@link SqlShimSignal}. The mapper
  * rewrites the SQL via JSqlParser AST
- * manipulation, eliminating the precedence and string- literal hazards inherent
+ * rewriting, eliminating the precedence and string- literal hazards inherent
  * to regex-based SQL rewriting.
  * <p>
  * The obligation supports two complementary input shapes that may be combined
@@ -64,7 +64,7 @@ import net.sf.jsqlparser.statement.update.Update;
  *
  * <pre>{@code
  * {
- *   "type": "sql:queryManipulation",
+ *   "type": "sql:queryRewriting",
  *   "criteria": [
  *     {"column": "tenant_id", "op": "=", "value": 7},
  *     {"or": [
@@ -107,10 +107,10 @@ import net.sf.jsqlparser.statement.update.Update;
  * conditions are present</li>
  * </ul>
  */
-public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
+public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
 
-    private static final String CONSTRAINT_TYPE_SQL        = "sql:queryManipulation";
-    private static final String CONSTRAINT_TYPE_RELATIONAL = "relational:queryManipulation";
+    private static final String CONSTRAINT_TYPE_SQL        = "sql:queryRewriting";
+    private static final String CONSTRAINT_TYPE_RELATIONAL = "relational:queryRewriting";
 
     private static final String FIELD_AND        = "and";
     private static final String FIELD_COLUMN     = "column";
@@ -226,7 +226,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         }
         val originalItems = plainSelect.getSelectItems();
         if (isSelectStar(originalItems)) {
-            plainSelect.setSelectItems(columns.stream().map(SqlQueryManipulationProvider::columnSelectItem).toList());
+            plainSelect.setSelectItems(columns.stream().map(SqlQueryRewritingProvider::columnSelectItem).toList());
             return;
         }
         val obligationSet = new LinkedHashSet<>(columns);

@@ -25,11 +25,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 
-import io.sapl.spring.pep.constraints.providers.MongoDbQueryManipulationProvider;
+import io.sapl.spring.pep.constraints.providers.MongoDbQueryRewritingProvider;
 
 /**
  * Activates the Mongo arm of the shim-signal architecture: registers the
- * {@code mongo:queryManipulation} constraint
+ * {@code mongo:queryRewriting} constraint
  * handler provider, declares the {@code MongoDbQueryShimSignal} as a supported
  * PEP signal, and wraps every
  * {@code ReactiveMongoTemplate} bean in a CGLIB proxy via
@@ -46,8 +46,8 @@ public class MongoShimAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    MongoDbQueryManipulationProvider mongoDbQueryManipulationProvider() {
-        return new MongoDbQueryManipulationProvider();
+    MongoDbQueryRewritingProvider mongoDbQueryRewritingProvider() {
+        return new MongoDbQueryRewritingProvider();
     }
 
     @Bean

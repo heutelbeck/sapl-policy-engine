@@ -205,7 +205,9 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 
 #### @stream_enforce
 
-Streaming enforcement for SSE endpoints. The decorated view returns an async iterator of data items. The wrapper opens a streaming PDP subscription, drives the streaming state machine, and returns a Django `StreamingHttpResponse` whose body is each item rendered as an SSE `data:` frame on `text/event-stream`.
+Streaming enforcement applies an authorization decision continuously to a stream of items your view produces. The decorated view returns an **async iterator** of data items; SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
+
+`@stream_enforce` is the ready-made binding for **Server-Sent Events**: it wraps the enforced iterator in a Django `StreamingHttpResponse` that renders each item as an SSE `data:` frame on `text/event-stream`. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`: it takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 
 ```python
 import asyncio
@@ -238,15 +240,15 @@ A single decorator now covers every streaming case. The behaviour is driven by t
 
 | PDP decision     | Effect on the stream                                                                                  |
 | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `PERMIT`         | Items flow through to the client as SSE frames.                                                       |
+| `PERMIT`         | Items flow through to the consumer.                                                                    |
 | `SUSPEND`        | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow.            |
-| `DENY`           | The subscription terminates. A final `ACCESS_DENIED` SSE frame is emitted and the stream closes.       |
+| `DENY`           | The stream terminates. The SSE binding emits a final `ACCESS_DENIED` frame before closing.             |
 | `INDETERMINATE`  | The subscription terminates, the same way `DENY` does.                                                 |
 | `NOT_APPLICABLE` | The subscription terminates, the same way `DENY` does.                                                 |
 
 Under the strict fail-closed discipline only an explicit `SUSPEND` keeps the subscription alive while pausing it. `DENY`, `INDETERMINATE`, and `NOT_APPLICABLE` all terminate. For keep-alive semantics where access pauses and later resumes, the policy must emit `SUSPEND` rather than `DENY`. Operators who want `NOT_APPLICABLE` to pause rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level.
 
-**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The client sees items while permitted and a gap while suspended, with no boundary frame. With `True`, the wrapper emits an `ACCESS_SUSPENDED` SSE frame each time the stream is suspended and an `ACCESS_RESTORED` SSE frame each time it resumes. Use this when the client should render a paused/resumed status.
+**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The consumer sees items while permitted and a gap while suspended, with no boundary item. With `True`, the enforced stream carries an `ACCESS_SUSPENDED` boundary item each time it is suspended and an `ACCESS_RESTORED` boundary item each time it resumes (the SSE binding renders these as frames). Use this when the consumer should show a paused/resumed status.
 
 **pause_rap_during_suspend.** With the default `False`, the protected async iterator stays subscribed during suspension. Items keep arriving from upstream and are dropped on the way to the client, giving lower latency on resume. With `True`, the upstream iterator is cancelled on entry to the suspended state and re-subscribed on resume. Use this for upstream sources with expensive side effects that must not run while access is paused.
 
@@ -442,61 +444,22 @@ Filters array elements or nullifies single values that do not meet conditions.
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported.
 
-### Query Manipulation
+### Query Rewriting
 
-The Django integration can rewrite ORM queries so the database returns only the rows and columns a policy authorises. This enforces at the data layer rather than after the fact. Instead of loading every row and filtering the result in Python, the policy injects a `WHERE` clause and a column projection into the query before it runs, so unauthorised rows never leave the database.
-
-This is driven by the `sql:queryManipulation` obligation and the `DjangoQueryManipulationProvider`. A policy attaches the obligation, and the provider lowers it into Django's `Q` objects and query API.
-
-```
-policy "tenant-scoped-read"
-permit
-  action == "read";
-  resource == "patient";
-obligation
-  {
-    "type": "sql:queryManipulation",
-    "criteria": [
-      { "column": "tenant_id", "op": "=", "value": subject.tenantId }
-    ],
-    "columns": ["id", "name", "tenant_id"]
-  }
-```
-
-The obligation carries three optional parts. `criteria` is a tree of `and`, `or`, and `not` nodes over leaf comparisons of the form `{ "column", "op", "value" }`, with operators `=`, `!=`, `>`, `>=`, `<`, `<=`, `in`, `like`, `notLike`, `isNull`, and `isNotNull`. `conditions` is a list of raw SQL `WHERE` fragments for expressions the criteria tree cannot express. `columns` is a projection list. The provider lowers `criteria` into `Q` objects, `conditions` into a raw `WHERE` via `add_extra`, and `columns` into `.only()`.
-
-A column projection through `.only()` defers the other fields rather than blocking them. A deferred field still loads lazily on first access, so treat `columns` as a projection for efficiency, not as hard column-level access control. For hard column security, pair it with content filtering on the response.
-
-#### Setup
-
-Register the listener and the provider once at startup, for example in `AppConfig.ready()`.
+Django applications can filter results at the database through SAPL's native ORM integration: a policy attaches a `sql:queryRewriting` obligation and the integration rewrites the query before it reaches the database, so unauthorised rows never leave it. Register it once at startup, for example in `AppConfig.ready()`.
 
 ```python
 from sapl_django import (
-    DjangoQueryManipulationProvider,
+    DjangoQueryRewritingProvider,
     register_orm_listener,
     register_provider,
 )
 
 register_orm_listener()
-register_provider(DjangoQueryManipulationProvider())
+register_provider(DjangoQueryRewritingProvider())
 ```
 
-`register_orm_listener()` installs the hook into the ORM and advertises that the integration can satisfy a `sql:queryManipulation` obligation. Until it is called, that obligation is inadmissible and any decision carrying it fails closed.
-
-#### Target Selection
-
-A single enforced view may run several queries against different models. The provider applies a criteria-based or projection-based obligation only to a query whose model actually has the referenced columns. A query against an unrelated model passes through unchanged, so a `tenant_id` criterion filters the tenant-scoped tables and leaves a lookup table untouched. An obligation that carries only `conditions` applies to every query, because a raw fragment has no introspectable target.
-
-#### Where It Hooks In and What It Covers
-
-The integration hooks into Django's query execution at the base `SQLCompiler.execute_sql`, the single point every ORM query passes through before it reaches the database. Hooking in at that one place covers reads and writes, because the delete and aggregate compilers inherit it and the update compiler calls into it. It works on both sync and async views, since an async query runs the same compiler on a worker thread that inherits the enforcement context.
-
-Covered access patterns are the ORM read surface and the row selection of writes. This includes iteration, `.values()`, `.count()`, `.exists()`, aggregates, `get_or_create`, `bulk_update`, `prefetch_related`, `select_for_update`, `refresh_from_db`, `in_bulk`, and the `WHERE` of `.update()` and `.delete()`.
-
-Not covered are `INSERT` statements (`create`, `bulk_create`, and saving a new instance), `.raw()` queries, and direct `connection.cursor()` access. These either are not a query-manipulation target or bypass the ORM compiler entirely.
-
-This boundary has a fail-open consequence you must account for. Once the listener is registered the `sql:queryManipulation` obligation is admissible, so it does not fail closed. If an enforced method reaches the database off the ORM golden path, through raw SQL or a direct cursor, the filter is silently not applied to that access. The accepted position is that off-convention database access means the developer owns row-level security manually for that path, because the integration cannot anticipate arbitrary access and does not parse SQL strings. The contrast is not registering the shim at all, in which case the obligation is inadmissible and the decision fails closed by denying.
+See [Query Rewriting](../6_11_QueryRewriting/) for the obligation format and the shared semantics. Two Django-specific points: the integration applies an obligation only to queries whose model actually has the referenced columns, so unrelated models pass through unchanged; and the `columns` projection uses `.only()`, which defers fields rather than blocking them, so pair it with content filtering when you need hard column-level security. Raw SQL and direct cursor access are not covered.
 
 ### Streaming Authorization
 

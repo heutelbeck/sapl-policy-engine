@@ -64,13 +64,13 @@ import lombok.val;
  * {@code .fetch().all()} chain proceeds on the real
  * {@code GenericExecuteSpec}; only the SQL string the chain is built around is
  * the lazy-rewrite. JSqlParser AST
- * manipulation only adds new conditions and never reorders or removes existing
+ * rewriting only adds new conditions and never reorders or removes existing
  * parameter placeholders, so the chain's
  * bind positions remain valid against the rewritten SQL.
  */
 public class DatabaseClientShimMethodInterceptor implements MethodInterceptor {
 
-    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A SQL query-manipulation obligation handler failed.";
+    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A SQL query-rewriting obligation handler failed.";
 
     private static final String METHOD_SQL = "sql";
 

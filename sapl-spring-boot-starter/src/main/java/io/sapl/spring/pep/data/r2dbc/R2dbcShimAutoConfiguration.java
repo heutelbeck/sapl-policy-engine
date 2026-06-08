@@ -26,13 +26,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import org.springframework.r2dbc.core.DatabaseClient;
 
-import io.sapl.spring.pep.constraints.providers.SqlQueryManipulationProvider;
+import io.sapl.spring.pep.constraints.providers.SqlQueryRewritingProvider;
 import io.sapl.spring.pep.data.SaplContextPropagationActivator;
 
 /**
  * Activates the R2DBC arm of the shim-signal architecture: registers the
- * {@code sql:queryManipulation} (alias
- * {@code relational:queryManipulation}) constraint handler provider, declares
+ * {@code sql:queryRewriting} (alias
+ * {@code relational:queryRewriting}) constraint handler provider, declares
  * {@code SqlShimSignal} as a supported PEP
  * signal, and wraps every {@code DatabaseClient} bean in a CGLIB proxy via
  * {@link DatabaseClientShimBeanPostProcessor}
@@ -57,8 +57,8 @@ public class R2dbcShimAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-    SqlQueryManipulationProvider sqlQueryManipulationProvider() {
-        return new SqlQueryManipulationProvider();
+    SqlQueryRewritingProvider sqlQueryRewritingProvider() {
+        return new SqlQueryRewritingProvider();
     }
 
     @Bean

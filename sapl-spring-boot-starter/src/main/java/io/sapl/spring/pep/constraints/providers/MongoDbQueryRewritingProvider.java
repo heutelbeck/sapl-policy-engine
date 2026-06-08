@@ -45,7 +45,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Translates a {@code mongo:queryManipulation} constraint into a {@link Mapper}
+ * Translates a {@code mongo:queryRewriting} constraint into a {@link Mapper}
  * attached to the PEP's
  * {@link MongoDbQueryShimSignal}. The mapper appends MongoDB {@link Criteria}
  * predicates to the original {@link Query}
@@ -57,7 +57,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <pre>{@code
  * {
- *   "type": "mongo:queryManipulation",
+ *   "type": "mongo:queryRewriting",
  *   "criteria": [
  *     {"column": "tenantId", "op": "=", "value": 7},
  *     {"or": [
@@ -76,7 +76,7 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <pre>{@code
  * {
- *   "type": "mongo:queryManipulation",
+ *   "type": "mongo:queryRewriting",
  *   "conditions": ["{\"tenantId\": 7}", "{\"age\": {\"$gte\": 18}}"]
  * }
  * }</pre>
@@ -103,9 +103,9 @@ import tools.jackson.databind.json.JsonMapper;
  * the string-conditions form with
  * {@code $regex}.
  */
-public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvider {
+public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider {
 
-    private static final String CONSTRAINT_TYPE  = "mongo:queryManipulation";
+    private static final String CONSTRAINT_TYPE  = "mongo:queryRewriting";
     private static final String FIELD_AND        = "and";
     private static final String FIELD_COLUMN     = "column";
     private static final String FIELD_CONDITIONS = "conditions";
@@ -117,7 +117,7 @@ public class MongoDbQueryManipulationProvider implements ConstraintHandlerProvid
 
     private static final JsonMapper STRICT_JSON = JsonMapper.builder().build();
 
-    private static final String ERROR_NON_JSON_CONDITION = "mongo:queryManipulation condition is not strict JSON: ";
+    private static final String ERROR_NON_JSON_CONDITION = "mongo:queryRewriting condition is not strict JSON: ";
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {

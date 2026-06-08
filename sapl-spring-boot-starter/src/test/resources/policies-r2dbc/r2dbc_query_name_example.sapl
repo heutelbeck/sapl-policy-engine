@@ -6,7 +6,7 @@ permit
     action == "findAll";
     subject.age >= 18;
 obligation {
-               "type": "r2dbcQueryManipulation",
+               "type": "r2dbcQueryRewriting",
                "conditions": [ "active = false" ],
 			   "selection": {
 						"type": "blacklist",
@@ -22,6 +22,6 @@ permit
     action == "findAllByAgeAfter";
     resource.age >= 18;
 obligation {
-               "type": "r2dbcQueryManipulation",
+               "type": "r2dbcQueryRewriting",
                "conditions": [ "active = true" ]
              }

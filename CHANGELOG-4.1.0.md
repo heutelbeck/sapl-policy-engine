@@ -151,7 +151,7 @@ The `manager` and `config` packages fold into `pep.http.{servlet,reactive}`.
 
 ## Removed
 
-The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query rewriting) is gone. Spring Data query manipulation now travels as an ordinary obligation on a `@PreEnforce` decision. A shim `BeanPostProcessor` intercepts the query as Spring Data dispatches it.
+The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query rewriting) is gone. Spring Data query rewriting now travels as an ordinary obligation on a `@PreEnforce` decision. A shim `BeanPostProcessor` intercepts the query as Spring Data dispatches it.
 
 ## Glitch-free multi-subscription
 

@@ -53,7 +53,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.pep.constraints.ScopedConstraintHandler;
 import io.sapl.spring.pep.constraints.Signal.MongoDbQueryShimSignal;
 import io.sapl.spring.pep.constraints.SignalType;
-import io.sapl.spring.pep.constraints.providers.MongoDbQueryManipulationProvider;
+import io.sapl.spring.pep.constraints.providers.MongoDbQueryRewritingProvider;
 import lombok.val;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -88,7 +88,7 @@ class MongoShimEndToEndTests {
     void setUp() {
         shimmedTemplate = (ReactiveMongoTemplate) new MongoShimBeanPostProcessor()
                 .postProcessAfterInitialization(delegate, "reactiveMongoTemplate");
-        planner         = new EnforcementPlanner(List.of(new MongoDbQueryManipulationProvider()), MAPPER);
+        planner         = new EnforcementPlanner(List.of(new MongoDbQueryRewritingProvider()), MAPPER);
     }
 
     private static AuthorizationDecision permitWithObligation(String obligationJson) {
@@ -105,7 +105,7 @@ class MongoShimEndToEndTests {
         void givenObligationWhenFindThenInjectedQueryReachesDelegate() {
             val decision = permitWithObligation("""
                     {
-                      "type": "mongo:queryManipulation",
+                      "type": "mongo:queryRewriting",
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
@@ -128,7 +128,7 @@ class MongoShimEndToEndTests {
         void givenOriginalCriteriaWhenObligationAppliesThenBothApply() {
             val decision = permitWithObligation("""
                     {
-                      "type": "mongo:queryManipulation",
+                      "type": "mongo:queryRewriting",
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
@@ -176,7 +176,7 @@ class MongoShimEndToEndTests {
         void givenPlanWithoutMatchingObligationWhenFindThenOriginalQueryReachesDelegate() {
             val decision = permitWithObligation("""
                     {
-                      "type": "relational:queryManipulation",
+                      "type": "relational:queryRewriting",
                       "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]
                     }
                     """);
@@ -245,7 +245,7 @@ class MongoShimEndToEndTests {
         void givenNestedFlatMapWhenFindInsideThenPlanStillSeen() {
             val decision = permitWithObligation("""
                     {
-                      "type": "mongo:queryManipulation",
+                      "type": "mongo:queryRewriting",
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);
@@ -273,7 +273,7 @@ class MongoShimEndToEndTests {
         void givenObligationWhenFindWithCollectionNameThenInjectedQueryReachesDelegate() {
             val decision = permitWithObligation("""
                     {
-                      "type": "mongo:queryManipulation",
+                      "type": "mongo:queryRewriting",
                       "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
                     }
                     """);

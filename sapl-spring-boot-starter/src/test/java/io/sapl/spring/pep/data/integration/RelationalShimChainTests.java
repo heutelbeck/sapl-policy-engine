@@ -69,8 +69,8 @@ import reactor.test.StepVerifier;
  * Data repository whose underlying {@code R2dbcEntityTemplate} bean has been
  * wrapped by the
  * {@code R2dbcShimBeanPostProcessor}. The PDP returns a decision carrying a
- * {@code relational:queryManipulation}
- * obligation; the {@code RelationalQueryManipulationProvider} produces a Mapper
+ * {@code relational:queryRewriting}
+ * obligation; the {@code RelationalQueryRewritingProvider} produces a Mapper
  * that rewrites the {@code Query} at the
  * {@code RelationalQueryShimSignal}; the rewritten query reaches H2 and the
  * result set is asserted on real rows.
@@ -297,7 +297,7 @@ class RelationalShimChainTests {
 
     private static AuthorizationDecision decisionWithRelationalCriteria(ObjectValue... criteria) {
         val obligation = Value
-                .ofObject(Map.of("type", Value.of("relational:queryManipulation"), "criteria", arrayOf(criteria)));
+                .ofObject(Map.of("type", Value.of("relational:queryRewriting"), "criteria", arrayOf(criteria)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }

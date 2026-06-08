@@ -71,7 +71,7 @@ import reactor.test.StepVerifier;
  * <p>
  * Scenario continues from {@link RelationalShimChainTests}: same Palanthas
  * library, same Tome data, same
- * {@code relational:queryManipulation} obligation. The service method
+ * {@code relational:queryRewriting} obligation. The service method
  * introduces a deliberate scheduler hop between the
  * {@code @PreEnforce}-annotated boundary and the repository call.
  */
@@ -168,8 +168,8 @@ class ReactorContextPropagationTests {
     }
 
     private static AuthorizationDecision decisionWithRelationalCriteria(ObjectValue criterion) {
-        val obligation = Value.ofObject(
-                Map.of("type", Value.of("relational:queryManipulation"), "criteria", Value.ofArray(criterion)));
+        val obligation = Value
+                .ofObject(Map.of("type", Value.of("relational:queryRewriting"), "criteria", Value.ofArray(criterion)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }

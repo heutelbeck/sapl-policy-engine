@@ -68,7 +68,7 @@ import reactor.util.context.ContextView;
  */
 public class MongoShimMethodInterceptor implements MethodInterceptor {
 
-    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A MongoDB query-manipulation obligation handler failed.";
+    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A MongoDB query-rewriting obligation handler failed.";
 
     private static final String      METHOD_QUERY                = "query";
     private static final Set<String> SHIMMED_LEGACY_QUERY_METHOD = Set.of("find", "findOne", "exists", "count",
