@@ -254,7 +254,7 @@ A single decorator now covers every streaming case. The behaviour is driven by t
 
 Under the strict fail-closed discipline only an explicit `SUSPEND` keeps the subscription alive while pausing it. `DENY`, `INDETERMINATE`, and `NOT_APPLICABLE` all terminate. For keep-alive semantics where access pauses and later resumes, the policy must emit `SUSPEND` rather than `DENY`. Operators who want `NOT_APPLICABLE` to pause rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level.
 
-**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The consumer sees items while permitted and a gap while suspended, with no boundary marker. With `True`, the enforced stream carries an `ACCESS_SUSPENDED` boundary item each time it is suspended and an `ACCESS_RESTORED` boundary item each time it resumes (the SSE binding renders these as frames). Use this when the consumer should render a paused/resumed status.
+**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The consumer sees items while permitted and a gap while suspended, with no boundary marker. With `True`, the enforced stream carries an `ACCESS_SUSPENDED` boundary item each time it is suspended and an `ACCESS_GRANTED` boundary item each time it resumes (the SSE binding renders these as frames). Use this when the consumer should render a paused/resumed status.
 
 **pause_rap_during_suspend.** With the default `False`, the protected async iterator stays subscribed during suspension. Items keep arriving from upstream and are dropped on the way to the client, giving lower latency on resume. With `True`, the upstream iterator is cancelled on entry to the suspended state and re-subscribed on resume. Use this for upstream sources with expensive side effects that must not run while access is paused.
 
@@ -495,7 +495,7 @@ See [Query Rewriting](../6_11_QueryRewriting/) for the obligation format, the sh
 
 For SSE endpoints returning async iterators, `@stream_enforce` provides continuous authorization where the PDP streams decisions over time. Access may flip between permitted, suspended, and denied based on time, location, or context changes.
 
-Tornado streaming responses are written directly to the response via `handler.write()` and `handler.flush()`. The decorator sets the SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`) and calls `handler.finish()` when the stream ends. Each yielded item is rendered as an SSE `data:` event (dicts are JSON-serialized). With `signal_transitions=True`, suspend and resume boundaries arrive as `ACCESS_SUSPENDED` and `ACCESS_RESTORED` frames; a terminating `DENY` arrives as a final `ACCESS_DENIED` frame.
+Tornado streaming responses are written directly to the response via `handler.write()` and `handler.flush()`. The decorator sets the SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`) and calls `handler.finish()` when the stream ends. Each yielded item is rendered as an SSE `data:` event (dicts are JSON-serialized). With `signal_transitions=True`, suspend and resume boundaries arrive as `ACCESS_SUSPENDED` and `ACCESS_GRANTED` frames; a terminating `DENY` arrives as a final `ACCESS_DENIED` frame.
 
 A time-based policy that cycles between `PERMIT` and `SUSPEND`, so the stream pauses and resumes without terminating:
 

@@ -247,7 +247,7 @@ For SSE endpoints, the single `[StreamEnforce]` attribute provides continuous au
 
 | Property            | Effect                                                                                                                                                                                                                       |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SignalTransitions` | When `true`, each suspend/resume boundary surfaces an out-of-band frame to the subscriber (`ACCESS_SUSPENDED` on entering suspended, `ACCESS_RESTORED` on resuming). When `false` (default) transitions are silent and items simply drop while suspended. |
+| `SignalTransitions` | When `true`, each suspend/resume boundary surfaces an out-of-band frame to the subscriber (`ACCESS_SUSPENDED` on entering suspended, `ACCESS_GRANTED` on resuming). When `false` (default) transitions are silent and items simply drop while suspended. |
 
 The three streaming semantics the old library expressed with three separate attributes are now expressed with one attribute plus the policy's decision verb:
 
@@ -648,7 +648,7 @@ public interface IStreamingService
 }
 ```
 
-At the service (proxy) layer the enforced stream keeps yielding the concrete element type; boundary frames (`ACCESS_SUSPENDED` / `ACCESS_RESTORED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, so `SignalTransitions` applies to controller-level streaming.
+At the service (proxy) layer the enforced stream keeps yielding the concrete element type; boundary frames (`ACCESS_SUSPENDED` / `ACCESS_GRANTED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, so `SignalTransitions` applies to controller-level streaming.
 
 ### Manual PDP Access
 
