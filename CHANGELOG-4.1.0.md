@@ -1,6 +1,6 @@
 # SAPL 4.1.0
 
-4.1.0 rewrites the Spring PEP, introduces the `SUSPEND` decision verb (new policy effect, new combining-algorithm interactions, new PDP decision value), and replaces the attribute layer with a new broker contract that drops Reactor at the boundary. Policy syntax for the existing `permit` and `deny` effects is unchanged; everything else listed below is.
+4.1.0 has three big changes. `SUSPEND` is a new decision effect that pauses access instead of terminating the subscription. The PDP core no longer uses Reactor internally; it runs on a small `Stream` type instead, though the reactive Spring PEP still uses Reactor at its boundary. And the PEP was rebuilt around a plan-and-signal constraint model. The attribute layer also moved to a new broker contract. Policy syntax for `permit` and `deny` is unchanged; everything else below is new.
 
 The full architecture and worked examples are in [`sapl-documentation/6_3_Spring.md`](sapl-documentation/6_3_Spring.md).
 
@@ -19,7 +19,7 @@ The `AuthorizationDecision.decision` enum now carries five values: `PERMIT`, `DE
 
 ### Combining algorithms
 
-`SUSPEND` is a first-class vote alongside `PERMIT` and `DENY`. A new priority algorithm is introduced and the existing two are extended:
+`SUSPEND` is a vote alongside `PERMIT` and `DENY`. A new priority algorithm is added and the existing two are extended:
 
 | Algorithm | Behaviour |
 |---|---|
@@ -153,9 +153,11 @@ The `manager` and `config` packages fold into `pep.http.{servlet,reactive}`.
 
 The legacy `io.sapl.spring.data` subtree (the old `@QueryEnforce`-based query rewriting) is gone. Spring Data query rewriting now travels as an ordinary obligation on a `@PreEnforce` decision. A shim `BeanPostProcessor` intercepts the query as Spring Data dispatches it.
 
-## Glitch-free multi-subscription
+## Stream abstraction (Reactor out of the PDP core)
 
-`Flux.combineLatest` is gone from main src across the engine. The previous combiner produced intermediate tuples during cascading updates, pairing one input's new value with stale previous values from the others before the correct tuple appeared. Multi-subscription evaluation now uses a snapshot-driven evaluator that delivers consistent tuples on every emission. `MultiSubscriptionDeglitchTests` lock the invariant for both the reactive and blocking PDPs.
+The PDP core no longer uses Reactor internally. Policy evaluation, the attribute broker, and multi-subscription now run on a small `io.sapl.api.stream.Stream` type instead of `Flux` and `Mono`. The reason was `Flux.combineLatest`: while several attributes updated in a cascade it would emit intermediate tuples, pairing one input's new value with the others' stale values before settling on the correct one. A snapshot-driven evaluator took its place and emits a consistent tuple every time; `MultiSubscriptionDeglitchTests` pin that down for both the blocking and reactive PDPs.
+
+Reactor has not gone away as a PEP target. The reactive Spring PEP (WebFlux) still talks to the PDP through the adapter in `sapl-pdp-reactive`, which turns the core `Stream` back into `Flux` and `Mono` at the boundary. The change is internal; the only place it shows up directly is when you write a PIP, where attribute methods now return `io.sapl.api.stream.Stream<Value>` rather than `Flux` or `Mono` (see the AttributeBroker section below).
 
 ## AttributeBroker
 
@@ -188,14 +190,14 @@ Configurations that arrive before the plugins source has delivered an initial sn
 
 ## SAPL Node
 
-Operator-facing improvements to the runnable PDP distribution.
+Changes to the runnable PDP distribution (sapl-node).
 
-- **Higher HTTP throughput.** The PDP HTTP path runs on Spring MVC on Jetty with virtual threads, bypassing the reactive request pipeline on the hot path. The RSocket transport remains the top-throughput option.
+- **HTTP throughput.** The PDP HTTP path runs on Spring MVC on Jetty with virtual threads, bypassing the reactive request pipeline on the hot path. RSocket is the highest-throughput transport.
 - **RSocket transport in the Spring starter.** `RemotePDP` configuration accepts `type: rsocket` with TLS via a shared SSL bundle, alongside the existing HTTP transport. `tokenRelay` is HTTP-only (RSocket authenticates once at connection setup).
 - **OpenID Authorization API endpoint.** An OpenID-style authorization API ships alongside the native SAPL HTTP API. Documented in the OpenAPI spec the node exposes.
 - **Scalar OpenAPI UI** at `/scalar`, generated from the OpenAPI definition.
 - **Status page** at `/` reports version, build metadata, and health.
-- **Readable startup failures.** Configuration errors surface as messages with concrete remediation advice instead of Spring stack traces.
+- **Startup failures.** Configuration errors are reported as messages with remediation advice instead of Spring stack traces.
 - **`--no-auth` CLI shortcut** sets `io.sapl.node.allow-no-auth=true` for first-run development.
-- **Clean boot logging.** Framework noise suppressed; the ready banner reports endpoints, ports, and active authentication methods.
+- **Boot logging.** Framework log noise is suppressed; the ready banner reports endpoints, ports, and active authentication methods.
 - **Active SSE drain on shutdown.** Open streaming subscriptions receive `event: shutdown` and complete cleanly before the HTTP listener disposes.
