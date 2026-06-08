@@ -83,7 +83,8 @@ class SaplServerAccessDeniedHandlerTests {
         @Test
         @DisplayName("denial handler is a Runner that does not shape the response: falls back to 403")
         void runnerOnlyDoesNotShape() {
-            ConstraintHandler.Runner h        = () -> { /* logs only */ };
+            ConstraintHandler.Runner h        = () -> {
+                                                  /* logs only */ };
             val                      plan     = planFor(denyWith("audit"),
                     provider(constraint -> ConstraintHandlerProvider.constraintIsOfType(constraint, "audit")
                             ? List.of(new ScopedConstraintHandler(h, Signal.HttpDenialSignal.SIGNAL_TYPE, 0))

@@ -41,9 +41,10 @@ import lombok.val;
 
 /**
  * Tests that exercise both content-filter providers together. Concerns scoped
- * here: priority ordering between the predicate filter and the content
- * redaction filter, both as a behavioural outcome and as a numeric invariant
- * on the resolved handlers.
+ * here: priority ordering between the
+ * predicate filter and the content redaction filter, both as a behavioural
+ * outcome and as a numeric invariant on the
+ * resolved handlers.
  */
 @DisplayName("Content filter provider interactions")
 class ContentFilterProviderInteractionTests {

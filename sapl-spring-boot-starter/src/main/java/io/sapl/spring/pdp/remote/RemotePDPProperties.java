@@ -68,11 +68,12 @@ public class RemotePDPProperties implements Validator {
     private Oauth2 oauth2 = new Oauth2();
 
     /**
-     * OAuth2 client_credentials grant configuration. References a Spring
-     * Security OAuth2 client registration declared via
-     * {@code spring.security.oauth2.client.registration.<id>.*}. Spring's
-     * {@code OAuth2AuthorizedClientManager} caches and refreshes the access
-     * token; on RSocket, expiry triggers a reconnect with a fresh token.
+     * OAuth2 client_credentials grant configuration. References a Spring Security
+     * OAuth2 client registration declared
+     * via {@code spring.security.oauth2.client.registration.<id>.*}. Spring's
+     * {@code OAuth2AuthorizedClientManager}
+     * caches and refreshes the access token; on RSocket, expiry triggers a
+     * reconnect with a fresh token.
      */
     @Data
     public static class Oauth2 {

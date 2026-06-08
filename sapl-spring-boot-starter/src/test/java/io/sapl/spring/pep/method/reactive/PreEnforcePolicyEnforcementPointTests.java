@@ -76,14 +76,16 @@ import reactor.test.StepVerifier;
 
 /**
  * End-to-end tests for the reactive @PreEnforce PEP. Mirrors the blocking
- * PreEnforce scenarios on the Mono path so the two PEPs are directly
- * comparable, and adds reactive-only groups for Mono empty handling, Mono&lt;
- * Void&gt;, Flux publisher-level OutputSignal dispatch, and the reactive
- * lifecycle signals (Subscription, Cancel, Complete, Terminate,
+ * PreEnforce scenarios on the Mono path so the
+ * two PEPs are directly comparable, and adds reactive-only groups for Mono
+ * empty handling, Mono&lt; Void&gt;, Flux
+ * publisher-level OutputSignal dispatch, and the reactive lifecycle signals
+ * (Subscription, Cancel, Complete, Terminate,
  * AfterTerminate).
  * <p>
- * Same Ankh-Morpork City Watch scenario as the blocking twin: the Watch
- * (PEP) consults the Patrician (PDP) before acting on warrants.
+ * Same Ankh-Morpork City Watch scenario as the blocking twin: the Watch (PEP)
+ * consults the Patrician (PDP) before
+ * acting on warrants.
  */
 @SpringBootTest(classes = PreEnforcePolicyEnforcementPointTests.AnkhMorporkTestApp.class)
 @WithMockUser(username = "vimes", roles = "WATCH_COMMANDER")

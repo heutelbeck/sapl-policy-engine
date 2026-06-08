@@ -21,13 +21,13 @@ import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import org.springframework.security.core.Authentication;
 
 /**
- * Synchronous companion to {@link PdpIdAuthenticationExtractor} for
- * use on servlet-stack threads where {@code SecurityContextHolder} is
- * available and Reactor is not appropriate.
+ * Synchronous companion to {@link PdpIdAuthenticationExtractor} for use on
+ * servlet-stack threads where
+ * {@code SecurityContextHolder} is available and Reactor is not appropriate.
  * <p>
- * Applications wishing to support tenant routing on the servlet path
- * register a bean of this type. The default implementation registered
- * by Spring autoconfig returns
+ * Applications wishing to support tenant routing on the servlet path register a
+ * bean of this type. The default
+ * implementation registered by Spring autoconfig returns
  * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}
  * unconditionally.
  */
@@ -37,8 +37,9 @@ public interface PdpIdAuthenticationExtractorBlocking {
     /**
      * Extracts the PDP identifier from the given authentication.
      *
-     * @param authentication the current authentication, possibly
-     * {@code null} if no user is authenticated
+     * @param authentication
+     * the current authentication, possibly {@code null} if no user is authenticated
+     *
      * @return the PDP identifier
      */
     String extractPdpId(Authentication authentication);

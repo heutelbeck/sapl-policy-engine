@@ -68,9 +68,10 @@ import lombok.val;
  * End-to-end tests for the blocking @PostEnforce PEP.
  * <p>
  * The scenario is the Miskatonic University Library archive: a service that
- * lends out forbidden texts only after the librarian (the PEP) consults the
- * library policy (the PDP) about what the visitor may take home and what the
- * archive must do on the way out.
+ * lends out forbidden texts only after the
+ * librarian (the PEP) consults the library policy (the PDP) about what the
+ * visitor may take home and what the archive
+ * must do on the way out.
  */
 @SpringBootTest(classes = PostEnforcePolicyEnforcementPointTests.MiskatonicArchiveTestApp.class)
 @WithMockUser(username = "armitage", roles = "FACULTY")

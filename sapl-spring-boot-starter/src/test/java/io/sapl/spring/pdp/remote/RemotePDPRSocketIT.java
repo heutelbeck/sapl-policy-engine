@@ -44,10 +44,11 @@ import reactor.test.StepVerifier;
 
 /**
  * End-to-end integration tests for the {@code rsocket} transport in the SAPL
- * Spring Boot Starter. Spins up a SAPL Node container with RSocket enabled,
- * configures the starter via Spring properties, then asserts that the
- * autowired {@link ReactivePolicyDecisionPoint} bean talks to the container
- * over the configured transport.
+ * Spring Boot Starter. Spins up a SAPL Node
+ * container with RSocket enabled, configures the starter via Spring properties,
+ * then asserts that the autowired
+ * {@link ReactivePolicyDecisionPoint} bean talks to the container over the
+ * configured transport.
  */
 @Testcontainers
 @DisplayName("RemotePDP Starter RSocket Integration Tests")

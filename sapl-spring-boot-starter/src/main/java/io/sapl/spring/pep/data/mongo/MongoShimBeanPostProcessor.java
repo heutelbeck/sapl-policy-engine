@@ -31,17 +31,18 @@ import io.sapl.spring.pep.data.ShimSignalContributor;
 import lombok.val;
 
 /**
- * Wraps every {@link ReactiveMongoTemplate} bean in a CGLIB proxy that
- * (a) intercepts the {@code find(Query, ...)} entry points via
- * {@link MongoShimMethodInterceptor} so they fire
- * {@link MongoDbQueryShimSignal} against the active enforcement plan, and
- * (b) introduces the {@link ShimSignalContributor} interface so the proxy is
- * picked up by the PEP's contributor lookup as the source of truth for which
- * shim signals are actually fired.
+ * Wraps every {@link ReactiveMongoTemplate} bean in a CGLIB proxy that (a)
+ * intercepts the {@code find(Query, ...)}
+ * entry points via {@link MongoShimMethodInterceptor} so they fire
+ * {@link MongoDbQueryShimSignal} against the active
+ * enforcement plan, and (b) introduces the {@link ShimSignalContributor}
+ * interface so the proxy is picked up by the
+ * PEP's contributor lookup as the source of truth for which shim signals are
+ * actually fired.
  * </p>
  * Since the proxy is a CGLIB subclass of {@link ReactiveMongoTemplate},
- * injection sites typed as the concrete class continue to work, unlike the
- * earlier composition-based wrapper.
+ * injection sites typed as the concrete class
+ * continue to work, unlike the earlier composition-based wrapper.
  */
 public class MongoShimBeanPostProcessor implements BeanPostProcessor {
 

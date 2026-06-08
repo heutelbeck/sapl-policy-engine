@@ -38,21 +38,19 @@ import tools.jackson.databind.ObjectMapper;
  * Translates a {@code jsonContentFilterPredicate} constraint into a
  * {@link Mapper} attached to the PEP's
  * {@link Signal.OutputSignal}. Claims responsibility only for OutputSignals
- * whose value type is a
- * {@link List}, {@link Set}, {@link Optional}, {@link Publisher} (e.g.
- * {@code Mono}, {@code Flux}), or
- * array. Scalar types and other collection families (e.g. {@code Queue},
- * {@code Deque}, {@code Map}) are
- * rejected with {@link Optional#empty()} so the planner can produce a clear
- * failure substitute rather than
- * silently returning {@code null}.
+ * whose value type is a {@link List},
+ * {@link Set}, {@link Optional}, {@link Publisher} (e.g. {@code Mono},
+ * {@code Flux}), or array. Scalar types and other
+ * collection families (e.g. {@code Queue}, {@code Deque}, {@code Map}) are
+ * rejected with {@link Optional#empty()} so
+ * the planner can produce a clear failure substitute rather than silently
+ * returning {@code null}.
  * <p>
  * Note: a {@code List} payload is filtered into an {@code ArrayList} and a
- * {@code Set} payload into a
- * {@code HashSet}, regardless of the input subtype. Callers that need a
- * specific subtype (for example
- * {@code LinkedList} ordering or {@code TreeSet} comparators) must declare the
- * broader interface in their
+ * {@code Set} payload into a {@code HashSet},
+ * regardless of the input subtype. Callers that need a specific subtype (for
+ * example {@code LinkedList} ordering or
+ * {@code TreeSet} comparators) must declare the broader interface in their
  * method signature.
  */
 @RequiredArgsConstructor

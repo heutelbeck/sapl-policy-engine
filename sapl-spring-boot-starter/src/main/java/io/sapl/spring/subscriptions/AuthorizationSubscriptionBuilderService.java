@@ -60,8 +60,9 @@ import static java.lang.reflect.Modifier.isSynchronized;
 
 /**
  * Unified service for building {@link AuthorizationSubscription} instances from
- * method invocations and {@link SaplAttribute} security annotations. Supports
- * both Servlet (blocking) and WebFlux (reactive) contexts.
+ * method invocations and
+ * {@link SaplAttribute} security annotations. Supports both Servlet (blocking)
+ * and WebFlux (reactive) contexts.
  */
 @Slf4j
 public class AuthorizationSubscriptionBuilderService {
@@ -87,8 +88,10 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructor for reactive method security context with resolved beans.
      *
-     * @param expressionHandler the method security expression handler
-     * @param mapper the object mapper for JSON serialization
+     * @param expressionHandler
+     * the method security expression handler
+     * @param mapper
+     * the object mapper for JSON serialization
      */
     public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
             ObjectMapper mapper) {
@@ -96,12 +99,15 @@ public class AuthorizationSubscriptionBuilderService {
     }
 
     /**
-     * Constructor for reactive method security context with resolved beans
-     * and optional secrets injector.
+     * Constructor for reactive method security context with resolved beans and
+     * optional secrets injector.
      *
-     * @param expressionHandler the method security expression handler
-     * @param mapper the object mapper for JSON serialization
-     * @param secretsInjector optional injector for subscription secrets
+     * @param expressionHandler
+     * the method security expression handler
+     * @param mapper
+     * the object mapper for JSON serialization
+     * @param secretsInjector
+     * optional injector for subscription secrets
      */
     public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
             ObjectMapper mapper,
@@ -118,10 +124,14 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructor for lazy bean resolution via ObjectProviders.
      *
-     * @param expressionHandlerProvider provider for the expression handler
-     * @param mapperProvider provider for the object mapper
-     * @param defaultsProvider provider for granted authority defaults
-     * @param applicationContext the application context
+     * @param expressionHandlerProvider
+     * provider for the expression handler
+     * @param mapperProvider
+     * provider for the object mapper
+     * @param defaultsProvider
+     * provider for granted authority defaults
+     * @param applicationContext
+     * the application context
      */
     public AuthorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
@@ -135,11 +145,16 @@ public class AuthorizationSubscriptionBuilderService {
      * Constructor for lazy bean resolution via ObjectProviders with optional
      * secrets injector.
      *
-     * @param expressionHandlerProvider provider for the expression handler
-     * @param mapperProvider provider for the object mapper
-     * @param defaultsProvider provider for granted authority defaults
-     * @param applicationContext the application context
-     * @param secretsInjector optional injector for subscription secrets
+     * @param expressionHandlerProvider
+     * provider for the expression handler
+     * @param mapperProvider
+     * provider for the object mapper
+     * @param defaultsProvider
+     * provider for granted authority defaults
+     * @param applicationContext
+     * the application context
+     * @param secretsInjector
+     * optional injector for subscription secrets
      */
     public AuthorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
@@ -157,9 +172,13 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructs an authorization subscription for Servlet/blocking context.
      *
-     * @param authentication the current authentication
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
+     * @param authentication
+     * the current authentication
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     *
      * @return the constructed authorization subscription
      */
     public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
@@ -174,10 +193,15 @@ public class AuthorizationSubscriptionBuilderService {
      * Constructs an authorization subscription for Servlet/blocking context with
      * return object.
      *
-     * @param authentication the current authentication
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
-     * @param returnObject the return object from the method
+     * @param authentication
+     * the current authentication
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     * @param returnObject
+     * the return object from the method
+     *
      * @return the constructed authorization subscription
      */
     public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
@@ -192,8 +216,11 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructs a reactive authorization subscription for WebFlux context.
      *
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     *
      * @return a Mono emitting the constructed authorization subscription
      */
     public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
@@ -206,9 +233,13 @@ public class AuthorizationSubscriptionBuilderService {
      * Constructs a reactive authorization subscription for WebFlux context with
      * return object.
      *
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
-     * @param returnedObject the return object from the method
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     * @param returnedObject
+     * the return object from the method
+     *
      * @return a Mono emitting the constructed authorization subscription
      */
     public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
@@ -303,8 +334,8 @@ public class AuthorizationSubscriptionBuilderService {
 
     /**
      * Retrieves the subject for the authorization subscription. When no explicit
-     * subject expression is provided, serializes the authentication object and
-     * strips sensitive fields:
+     * subject expression is provided,
+     * serializes the authentication object and strips sensitive fields:
      * <ul>
      * <li>{@code credentials} - removed from the root authentication object</li>
      * <li>{@code token.tokenValue} - raw encoded token removed from token

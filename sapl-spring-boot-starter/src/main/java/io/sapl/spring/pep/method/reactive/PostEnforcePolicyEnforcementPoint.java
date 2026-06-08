@@ -47,17 +47,20 @@ import reactor.core.publisher.Mono;
  * Reactive {@link Mono} variant of the @{@link PostEnforce} PEP.
  * <p>
  * RAP errors propagate unmapped: the plan does not exist when {@code proceed()}
- * runs, so {@link ErrorSignal} handlers cannot transform them.
+ * runs, so {@link ErrorSignal} handlers
+ * cannot transform them.
  * <p>
  * Empty-Mono RAPs still consult the PDP - a {@code null} returnedObject is
- * threaded through enforcement so an empty result cannot bypass policy.
- * {@link Mono}{@code <Void>} returns ride this same path: the OutputSignal
- * fires with {@code Maybe.absent} (Mappers and Consumers skip, Runners fire),
- * matching blocking {@code void}.
+ * threaded through enforcement so an empty
+ * result cannot bypass policy. {@link Mono}{@code <Void>} returns ride this
+ * same path: the OutputSignal fires with
+ * {@code Maybe.absent} (Mappers and Consumers skip, Runners fire), matching
+ * blocking {@code void}.
  * <p>
- * No {@link io.sapl.spring.pep.data.ShimSignalContributor} wiring: the RAP
- * runs before the plan exists, so any downstream shim wrapper would never see
- * a plan in context, and advertising shim signals would violate the
+ * No {@link io.sapl.spring.pep.data.ShimSignalContributor} wiring: the RAP runs
+ * before the plan exists, so any
+ * downstream shim wrapper would never see a plan in context, and advertising
+ * shim signals would violate the
  * supportedSignals invariant.
  *
  * @since 4.1.0

@@ -40,16 +40,18 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Provides the shared infrastructure beans the SAPL PEP framework needs
- * regardless of which Enable* annotation is active: the
- * {@link EnforcementPlanner}, the {@link SaplAttributeRegistry}, the
- * {@link AuthorizationSubscriptionBuilderService}, and the framework's
- * default {@link ConstraintHandlerProvider} beans (content filtering and
- * content-filter predicate).
+ * regardless of which Enable* annotation is
+ * active: the {@link EnforcementPlanner}, the {@link SaplAttributeRegistry},
+ * the
+ * {@link AuthorizationSubscriptionBuilderService}, and the framework's default
+ * {@link ConstraintHandlerProvider} beans
+ * (content filtering and content-filter predicate).
  * </p>
- * Method-security advisors live in
- * {@link SaplMethodSecurityConfiguration} (blocking) and
- * {@link ReactiveSaplMethodSecurityConfiguration} (reactive) so that the
- * advice surface scales with the activated {@code @Enable*MethodSecurity}.
+ * Method-security advisors live in {@link SaplMethodSecurityConfiguration}
+ * (blocking) and
+ * {@link ReactiveSaplMethodSecurityConfiguration} (reactive) so that the advice
+ * surface scales with the activated
+ * {@code @Enable*MethodSecurity}.
  */
 @Slf4j
 @AutoConfiguration

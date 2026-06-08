@@ -40,17 +40,18 @@ import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
 /**
  * Layer-2 invariants on {@link MealyMachine#step(State, Event)}.
  * <p>
- * Each test is the executable witness of a theorem proved on the
- * formal model in
- * {@code stream-pep-lean/StreamPepFsm/Properties.lean}. Test method
- * names mirror the Lean theorem names (snake_case → camelCase). The
- * Javadoc carries the Lean statement; the test body discharges it by
- * computation, by enumeration over a finite quantification domain, or
- * by replaying a fixed event sequence — whichever shape Lean uses.
+ * Each test is the executable witness of a theorem proved on the formal model
+ * in
+ * {@code stream-pep-lean/StreamPepFsm/Properties.lean}. Test method names
+ * mirror the Lean theorem names (snake_case →
+ * camelCase). The Javadoc carries the Lean statement; the test body discharges
+ * it by computation, by enumeration over a
+ * finite quantification domain, or by replaying a fixed event sequence —
+ * whichever shape Lean uses.
  * <p>
- * The Lean module groups its theorems by section (per-cell invariants
- * first, sequence invariants last); the test methods follow the same
- * order.
+ * The Lean module groups its theorems by section (per-cell invariants first,
+ * sequence invariants last); the test
+ * methods follow the same order.
  */
 class MealyMachineInvariantTests {
 
@@ -178,8 +179,8 @@ class MealyMachineInvariantTests {
      * </pre>
      *
      * The strict-fail-closed reading of paper Invariant 5 ("Universal
-     * fulfillment-failure termination"): a per-item obligation failure
-     * terminates regardless of source state.
+     * fulfillment-failure termination"): a per-item
+     * obligation failure terminates regardless of source state.
      */
     @ParameterizedTest(name = "from {0}")
     @MethodSource("nonTerminatedStates")

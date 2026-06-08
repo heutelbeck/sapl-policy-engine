@@ -50,10 +50,12 @@ import reactor.test.StepVerifier;
 
 /**
  * Integration tests for OAuth2 client_credentials authentication through the
- * starter on both HTTP and RSocket transports. Starts a Keycloak container with
- * a service-account client and a SAPL Node container configured for OAuth2 JWT
- * resource-server validation; the autowired remote PDP authenticates by
- * minting a JWT via Spring's {@code OAuth2AuthorizedClientManager}.
+ * starter on both HTTP and RSocket
+ * transports. Starts a Keycloak container with a service-account client and a
+ * SAPL Node container configured for OAuth2
+ * JWT resource-server validation; the autowired remote PDP authenticates by
+ * minting a JWT via Spring's
+ * {@code OAuth2AuthorizedClientManager}.
  */
 @Testcontainers
 @DisplayName("RemotePDP Starter OAuth2 Integration Tests")

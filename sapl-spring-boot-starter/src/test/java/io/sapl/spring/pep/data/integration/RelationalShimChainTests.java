@@ -65,17 +65,19 @@ import reactor.test.StepVerifier;
 
 /**
  * Engine-side end-to-end test of the R2DBC shim chain: a {@code @PreEnforce}
- * service method calls a reactive Spring Data repository whose underlying
- * {@code R2dbcEntityTemplate} bean has been wrapped by the
+ * service method calls a reactive Spring
+ * Data repository whose underlying {@code R2dbcEntityTemplate} bean has been
+ * wrapped by the
  * {@code R2dbcShimBeanPostProcessor}. The PDP returns a decision carrying a
- * {@code relational:queryManipulation} obligation; the
- * {@code RelationalQueryManipulationProvider} produces a Mapper that rewrites
- * the {@code Query} at the {@code RelationalQueryShimSignal}; the rewritten
- * query reaches H2 and the result set is asserted on real rows.
+ * {@code relational:queryManipulation}
+ * obligation; the {@code RelationalQueryManipulationProvider} produces a Mapper
+ * that rewrites the {@code Query} at the
+ * {@code RelationalQueryShimSignal}; the rewritten query reaches H2 and the
+ * result set is asserted on real rows.
  * <p>
  * Scenario: the Great Library of Palanthas. Tomes are catalogued by moon
- * alignment (Solinari, Lunitari, Nuitari) and a forbidden tier. Robe-color
- * users see only tomes their moon permits.
+ * alignment (Solinari, Lunitari, Nuitari) and a
+ * forbidden tier. Robe-color users see only tomes their moon permits.
  */
 @SpringBootTest(classes = RelationalShimChainTests.PalanthasLibraryTestApp.class)
 @WithMockUser(username = "raistlin", roles = "BLACK_ROBE")

@@ -32,20 +32,21 @@ import reactor.core.publisher.Mono;
 
 /**
  * Reactive mirror of {@link io.sapl.spring.pep.http.servlet.SaplHttpPepFilter}.
- * Reads the {@link EnforcementPlan} published by
- * {@link ReactiveSaplAuthorizationManager} on the exchange attribute, then
- * fires the HTTP request-mutation and response signals around the
- * downstream chain.
+ * Reads the {@link EnforcementPlan}
+ * published by {@link ReactiveSaplAuthorizationManager} on the exchange
+ * attribute, then fires the HTTP request-mutation
+ * and response signals around the downstream chain.
  * <p>
  * Wraps only when the active plan schedules at least one handler at the
- * corresponding signal. The common case (a permit decision with no HTTP
- * signal handlers) runs against the raw exchange with no extra copy.
- * Response wrapping captures the controller body in memory and re-emits
- * it on commit; routes that intentionally stream large payloads should
- * not register response-signal handlers.
+ * corresponding signal. The common case (a permit
+ * decision with no HTTP signal handlers) runs against the raw exchange with no
+ * extra copy. Response wrapping captures
+ * the controller body in memory and re-emits it on commit; routes that
+ * intentionally stream large payloads should not
+ * register response-signal handlers.
  * <p>
- * Obligation handler failures propagate as {@link AccessDeniedException},
- * which the configured
+ * Obligation handler failures propagate as {@link AccessDeniedException}, which
+ * the configured
  * {@link io.sapl.spring.pep.http.reactive.SaplServerAccessDeniedHandler}
  * converts into a deny response.
  */

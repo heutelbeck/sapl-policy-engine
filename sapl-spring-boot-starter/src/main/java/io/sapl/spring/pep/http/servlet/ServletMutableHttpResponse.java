@@ -39,29 +39,32 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import lombok.val;
 
 /**
- * Servlet-backed {@link MutableHttpResponse}. Buffers status, headers, and
- * body so that constraint handlers attached to the response or denial
- * signals can read what the controller produced and replace any of it
- * before the response is committed to the client. Call {@link #commit()}
- * once handlers have run to flush the buffer to the underlying servlet
+ * Servlet-backed {@link MutableHttpResponse}. Buffers status, headers, and body
+ * so that constraint handlers attached to
+ * the response or denial signals can read what the controller produced and
+ * replace any of it before the response is
+ * committed to the client. Call {@link #commit()} once handlers have run to
+ * flush the buffer to the underlying servlet
  * response.
  * <p>
  * Reads through the standard servlet response API ({@code getStatus},
- * {@code getHeader}, etc.) return the buffered state, not the underlying
- * delegate. Writes through either the servlet API or the
- * {@link MutableHttpResponse} API mutate the buffer; nothing reaches the
- * client until {@link #commit()} runs. {@link #isModified()} ticks for
- * every mutation made through the typed API or through
- * {@link #getOutputStream()} or {@link #getWriter()}; bulk header changes
- * applied through the {@link #headers()} view share the same buffer but do
- * not tick the flag.
+ * {@code getHeader}, etc.) return the buffered
+ * state, not the underlying delegate. Writes through either the servlet API or
+ * the {@link MutableHttpResponse} API
+ * mutate the buffer; nothing reaches the client until {@link #commit()} runs.
+ * {@link #isModified()} ticks for every
+ * mutation made through the typed API or through {@link #getOutputStream()} or
+ * {@link #getWriter()}; bulk header
+ * changes applied through the {@link #headers()} view share the same buffer but
+ * do not tick the flag.
  * <p>
- * Performance: every controller byte is captured in memory and re-emitted
- * on commit. This is fine for typical HTTP responses but is unsuitable for
- * unbounded streaming bodies. Callers that do not need response-level
- * mutation should not wrap at all; the SAPL HTTP PEP filter installs this
- * wrapper only when the active enforcement plan schedules at least one
- * handler at the response signal.
+ * Performance: every controller byte is captured in memory and re-emitted on
+ * commit. This is fine for typical HTTP
+ * responses but is unsuitable for unbounded streaming bodies. Callers that do
+ * not need response-level mutation should
+ * not wrap at all; the SAPL HTTP PEP filter installs this wrapper only when the
+ * active enforcement plan schedules at
+ * least one handler at the response signal.
  */
 public final class ServletMutableHttpResponse extends HttpServletResponseWrapper implements MutableHttpResponse {
 
@@ -270,10 +273,10 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
     }
 
     /**
-     * Flushes the buffered status, headers, and body to the underlying
-     * servlet response. Idempotent: subsequent calls are no-ops. Closes the
-     * cached writer first so any pending bytes land in the buffer before
-     * the flush.
+     * Flushes the buffered status, headers, and body to the underlying servlet
+     * response. Idempotent: subsequent calls
+     * are no-ops. Closes the cached writer first so any pending bytes land in the
+     * buffer before the flush.
      */
     public void commit() throws IOException {
         if (committed) {

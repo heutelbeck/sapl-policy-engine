@@ -29,10 +29,11 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Default {@link AuthorizationSubscriptionFactory}: places the resolved
- * {@link Authentication} on {@code subject} and the serialized
- * {@link HttpServletRequest} on both {@code action} and {@code resource},
- * leaving {@code environment} undefined. Registered automatically when no
- * other {@code AuthorizationSubscriptionFactory} bean is present.
+ * {@link Authentication} on {@code subject} and
+ * the serialized {@link HttpServletRequest} on both {@code action} and
+ * {@code resource}, leaving {@code environment}
+ * undefined. Registered automatically when no other
+ * {@code AuthorizationSubscriptionFactory} bean is present.
  */
 @RequiredArgsConstructor
 public class DefaultAuthorizationSubscriptionFactory implements AuthorizationSubscriptionFactory {

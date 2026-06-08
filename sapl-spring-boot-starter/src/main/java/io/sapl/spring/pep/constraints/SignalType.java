@@ -26,10 +26,11 @@ import lombok.val;
 
 /**
  * Reified key identifying a {@link Signal} for plan lookup. Two signal types
- * are equal when their signal class and (for value signals) their
- * {@link ResolvableType} match. Using {@link ResolvableType} preserves generic
- * information so that providers may dispatch on
- * {@code Mono<String>} differently from {@code Mono<User>}.
+ * are equal when their signal class and (for
+ * value signals) their {@link ResolvableType} match. Using
+ * {@link ResolvableType} preserves generic information so that
+ * providers may dispatch on {@code Mono<String>} differently from
+ * {@code Mono<User>}.
  */
 public sealed interface SignalType permits SignalType.VoidSignalType, SignalType.ValueSignalType {
 
@@ -39,19 +40,21 @@ public sealed interface SignalType permits SignalType.VoidSignalType, SignalType
             implements SignalType {}
 
     /**
-     * Returns the first {@link ValueSignalType} in {@code supported} whose
-     * signal class equals {@code signalClass}, or {@link Optional#empty()}
-     * when the PEP does not fire that signal. Used by providers that need
-     * to bind a handler to a specific value signal contributed by the
-     * surrounding PEP.
+     * Returns the first {@link ValueSignalType} in {@code supported} whose signal
+     * class equals {@code signalClass}, or
+     * {@link Optional#empty()} when the PEP does not fire that signal. Used by
+     * providers that need to bind a handler to
+     * a specific value signal contributed by the surrounding PEP.
      * <p>
-     * <b>Use this instead of {@code supportedSignals.contains(typeFor(X))}.</b>
-     * The {@link ValueSignalType} record's equality includes the value's
+     * <b>Use this instead of {@code supportedSignals.contains(typeFor(X))}.</b> The
+     * {@link ValueSignalType} record's
+     * equality includes the value's
      * {@link org.springframework.core.ResolvableType}, so a hardcoded
-     * {@code typeFor(Object.class)} will not match the per-method-typed
-     * signals the PEPs actually fire (e.g. {@code OutputSignal} for a
-     * {@code Flux<Integer>} method carries a {@code ResolvableType} for
-     * {@code Integer}, not {@code Object}).
+     * {@code typeFor(Object.class)} will not match the per-method-typed signals the
+     * PEPs actually fire (e.g.
+     * {@code OutputSignal} for a {@code Flux<Integer>} method carries a
+     * {@code ResolvableType} for {@code Integer}, not
+     * {@code Object}).
      */
     static Optional<ValueSignalType<?>> findIn(Set<SignalType> supported, Class<? extends Signal> signalClass) {
         for (val signal : supported) {

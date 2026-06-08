@@ -36,8 +36,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Shared fixtures and helpers used by the end-to-end content-filter tests
- * across both providers. Centralises the {@link SignalType} constants,
- * decision-builder, and {@link EnforcementResult} unwrapping.
+ * across both providers. Centralises the
+ * {@link SignalType} constants, decision-builder, and {@link EnforcementResult}
+ * unwrapping.
  */
 final class ContentFilterTestSupport {
 

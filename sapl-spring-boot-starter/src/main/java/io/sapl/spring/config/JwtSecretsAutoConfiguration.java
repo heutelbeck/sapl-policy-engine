@@ -34,8 +34,8 @@ import org.springframework.security.core.Authentication;
  * authorization subscription secrets.
  * <p>
  * When enabled, this configuration extracts the raw encoded JWT from
- * JwtAuthenticationToken instances and merges it into subscription secrets
- * so the JWT PIP can access it securely.
+ * JwtAuthenticationToken instances and merges it
+ * into subscription secrets so the JWT PIP can access it securely.
  * <p>
  * Activation requires:
  * <ul>
@@ -54,9 +54,12 @@ public class JwtSecretsAutoConfiguration {
 
     /**
      * Creates a SubscriptionSecretsInjector that extracts the bearer token from
-     * JwtAuthenticationToken and adds it to subscription secrets.
+     * JwtAuthenticationToken and adds it to
+     * subscription secrets.
      *
-     * @param properties the JWT properties
+     * @param properties
+     * the JWT properties
+     *
      * @return a SubscriptionSecretsInjector for JWT tokens
      */
     @Bean

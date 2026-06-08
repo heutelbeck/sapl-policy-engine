@@ -23,14 +23,14 @@ import org.springframework.security.core.Authentication;
 import reactor.core.publisher.Mono;
 
 /**
- * Extracts the PDP identifier from the current user's authentication
- * for multi-tenant routing.
+ * Extracts the PDP identifier from the current user's authentication for
+ * multi-tenant routing.
  * <p>
- * Implementations inspect the {@link Authentication} object and
- * return the tenant's PDP id. When registered as a Spring bean, the
- * SAPL auto-configuration creates a WebFilter that writes the
- * extracted id to the Reactor Context, where the reactive tenant
- * resolver picks it up.
+ * Implementations inspect the {@link Authentication} object and return the
+ * tenant's PDP id. When registered as a Spring
+ * bean, the SAPL auto-configuration creates a WebFilter that writes the
+ * extracted id to the Reactor Context, where the
+ * reactive tenant resolver picks it up.
  * <p>
  * Example for JWT-based tenancy:
  *
@@ -52,7 +52,9 @@ public interface PdpIdAuthenticationExtractor {
     /**
      * Extracts the PDP identifier from the given authentication.
      *
-     * @param authentication the current user's authentication
+     * @param authentication
+     * the current user's authentication
+     *
      * @return a Mono emitting the PDP ID, or empty to fall back to
      * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}
      */

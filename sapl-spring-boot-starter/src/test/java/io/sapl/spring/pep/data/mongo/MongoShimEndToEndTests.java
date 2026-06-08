@@ -62,9 +62,10 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Real-world end-to-end tests for the Mongo shim path. Same scenario set as
- * the R2DBC suite, adapted for the {@code find(Query, Class)} entry point.
- * The mock template captures what reaches it so the assertions are on the
+ * Real-world end-to-end tests for the Mongo shim path. Same scenario set as the
+ * R2DBC suite, adapted for the
+ * {@code find(Query, Class)} entry point. The mock template captures what
+ * reaches it so the assertions are on the
  * rewritten {@link Query}, not on intermediate machinery.
  */
 @DisplayName("Mongo shim end-to-end")

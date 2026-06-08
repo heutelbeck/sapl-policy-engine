@@ -10,6 +10,16 @@
     <!-- Forward container stdout (Slf4jLogConsumer on the test class logger). -->
     <logger name="io.sapl.pdp.remote.RemoteHttpDecisionPointServerIT" level="INFO"/>
 
+    <!-- Code-under-test loggers: tests drive these into error/retry paths on
+         purpose and assert on captured events via a ListAppender. Detach from
+         the console so a passing run stays silent; the ListAppender still gets them. -->
+    <logger name="io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint" level="WARN" additivity="false"/>
+    <logger name="io.sapl.pdp.remote.RemotePdpRetry" level="WARN" additivity="false"/>
+
+    <!-- Late buffer-release noise on stream cancel during MockWebServer teardown. -->
+    <logger name="reactor.netty.channel.FluxReceive" level="OFF"/>
+    <logger name="io.netty.channel.DefaultChannelPipeline" level="OFF"/>
+
     <root level="WARN">
         <appender-ref ref="STDOUT"/>
     </root>

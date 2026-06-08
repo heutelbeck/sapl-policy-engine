@@ -34,12 +34,13 @@ import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
 
 /**
- * Jackson serializer for {@link HttpServletRequest} that exposes the
- * unified policy-facing HTTP shape. Same field names and grouping as
- * {@link ServerHttpRequestSerializer}, so a SAPL policy reads the same
- * fields regardless of whether the deployed PEP is on the servlet stack
- * or the reactive stack. Header keys are lowercased to match HTTP/2 wire
- * format and Spring's case-insensitive {@code HttpHeaders} contract.
+ * Jackson serializer for {@link HttpServletRequest} that exposes the unified
+ * policy-facing HTTP shape. Same field names
+ * and grouping as {@link ServerHttpRequestSerializer}, so a SAPL policy reads
+ * the same fields regardless of whether the
+ * deployed PEP is on the servlet stack or the reactive stack. Header keys are
+ * lowercased to match HTTP/2 wire format
+ * and Spring's case-insensitive {@code HttpHeaders} contract.
  */
 public class HttpServletRequestSerializer extends StdSerializer<HttpServletRequest> {
 

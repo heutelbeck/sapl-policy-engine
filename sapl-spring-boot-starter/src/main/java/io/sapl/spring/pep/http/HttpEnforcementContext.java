@@ -21,17 +21,18 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 
 /**
  * Shared constants for HTTP-layer enforcement. The authorization managers
- * publish the active {@link EnforcementPlan} on the request or exchange
- * under {@link #PLAN_ATTRIBUTE}. Downstream collaborators (the SAPL HTTP
- * filter and the SAPL access-denied handler) read it from there.
+ * publish the active {@link EnforcementPlan} on
+ * the request or exchange under {@link #PLAN_ATTRIBUTE}. Downstream
+ * collaborators (the SAPL HTTP filter and the SAPL
+ * access-denied handler) read it from there.
  */
 public final class HttpEnforcementContext {
 
     /**
-     * Attribute key under which the SAPL authorization managers publish the
-     * active {@link EnforcementPlan}. Used by the HTTP filter and the
-     * access-denied handler to fire HTTP-layer signals against the same
-     * plan the manager built.
+     * Attribute key under which the SAPL authorization managers publish the active
+     * {@link EnforcementPlan}. Used by the
+     * HTTP filter and the access-denied handler to fire HTTP-layer signals against
+     * the same plan the manager built.
      */
     public static final String PLAN_ATTRIBUTE = EnforcementPlan.class.getName();
 

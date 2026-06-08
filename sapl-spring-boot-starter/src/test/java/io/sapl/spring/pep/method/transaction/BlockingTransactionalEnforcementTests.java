@@ -71,14 +71,16 @@ import java.util.Set;
 
 /**
  * Verifies that SAPL method-security PEPs nest correctly inside the Spring
- * transaction proxy, so that an access-denied decision after a transactional
- * write rolls back the transaction. The setup deliberately uses no SAPL
- * autoconfig overrides; only the default ordering applied by
+ * transaction proxy, so that an access-denied
+ * decision after a transactional write rolls back the transaction. The setup
+ * deliberately uses no SAPL autoconfig
+ * overrides; only the default ordering applied by
  * {@code SaplTransactionManagementConfiguration} is in effect.
  * <p>
  * Scenario: the Miskatonic Library keeps a JDBC-backed loan ledger. Each loan
- * is recorded in a transactional method; the librarian (PEP) decides whether
- * the loan stands. A DENY after the row has been inserted must roll back the
+ * is recorded in a transactional method;
+ * the librarian (PEP) decides whether the loan stands. A DENY after the row has
+ * been inserted must roll back the
  * insert.
  */
 @SpringBootTest(classes = BlockingTransactionalEnforcementTests.LedgerTestApp.class)

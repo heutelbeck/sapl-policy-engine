@@ -97,22 +97,25 @@ public class ContentFilter {
 
     /**
      * Builds a typed mapper that filters JSON content of the payload according to
-     * {@code constraint}.
-     * The constraint must be an {@link ObjectValue} with optional
-     * {@code conditions} (array of predicates)
-     * and {@code actions} (array of redaction/blacken/replace actions). Payloads of
-     * type {@link Optional},
-     * {@link List}, {@link Set}, {@link Object Object[]}, and reactive
-     * {@link Publisher} are filtered
-     * elementwise; any other payload is filtered as a single element.
+     * {@code constraint}. The constraint
+     * must be an {@link ObjectValue} with optional {@code conditions} (array of
+     * predicates) and {@code actions} (array
+     * of redaction/blacken/replace actions). Payloads of type {@link Optional},
+     * {@link List}, {@link Set},
+     * {@link Object Object[]}, and reactive {@link Publisher} are filtered
+     * elementwise; any other payload is filtered
+     * as a single element.
      * </p>
      *
-     * @param constraint the SAPL constraint value (an object with
-     * conditions/actions)
-     * @param objectMapper Jackson mapper used to round-trip payloads through native
-     * Java types for JsonPath
+     * @param constraint
+     * the SAPL constraint value (an object with conditions/actions)
+     * @param objectMapper
+     * Jackson mapper used to round-trip payloads through native Java types for
+     * JsonPath
+     *
      * @return a mapper from {@code Object} to {@code Object}; collection-shaped
-     * payloads round-trip per element using each element's runtime class.
+     * payloads round-trip per element using
+     * each element's runtime class.
      */
     public static Mapper<Object> getHandler(Value constraint, ObjectMapper objectMapper) {
         val predicate      = predicateFromConditions(constraint, objectMapper);
@@ -132,14 +135,16 @@ public class ContentFilter {
 
     /**
      * Builds a mapper that filters out elements not matching the constraint's
-     * predicate. Mirrors the payload-shape dispatch of
-     * {@link #getHandler(Value, ObjectMapper)} but applies the predicate as
-     * an element filter (drops non-matching elements) rather than guarding a
-     * transformation.
+     * predicate. Mirrors the payload-shape
+     * dispatch of {@link #getHandler(Value, ObjectMapper)} but applies the
+     * predicate as an element filter (drops
+     * non-matching elements) rather than guarding a transformation.
      *
-     * @param constraint the SAPL constraint value carrying the {@code conditions}
-     * @param objectMapper Jackson mapper used to evaluate JsonPath expressions in
-     * conditions
+     * @param constraint
+     * the SAPL constraint value carrying the {@code conditions}
+     * @param objectMapper
+     * Jackson mapper used to evaluate JsonPath expressions in conditions
+     *
      * @return a mapper from {@code Object} to {@code Object}
      */
     @SuppressWarnings("unchecked")
@@ -159,12 +164,11 @@ public class ContentFilter {
 
     /*
      * Use this in place of Stream#toList() when collecting list-shaped payload
-     * contents. Axon Server cannot
-     * deserialise the immutable ListN/List12 classes that Stream#toList() returns,
-     * so the integration breaks
-     * if a downstream Axon stage receives such a list. Collectors.toList() yields a
-     * mutable ArrayList that
-     * Axon can handle.
+     * contents. Axon Server cannot deserialise
+     * the immutable ListN/List12 classes that Stream#toList() returns, so the
+     * integration breaks if a downstream Axon
+     * stage receives such a list. Collectors.toList() yields a mutable ArrayList
+     * that Axon can handle.
      */
     private static <T> List<T> mutableList(java.util.stream.Stream<T> stream) {
         return stream.collect(Collectors.toList());

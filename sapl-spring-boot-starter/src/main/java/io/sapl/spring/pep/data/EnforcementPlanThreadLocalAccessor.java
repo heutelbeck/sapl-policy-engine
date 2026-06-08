@@ -25,22 +25,25 @@ import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 
 /**
  * Micrometer {@link ThreadLocalAccessor} that bridges the active
- * {@link EnforcementPlan} between the Reactor context (where the reactive PEP
- * stores it) and the {@link EnforcementPlanContext}'s blocking
- * {@link ThreadLocal} (read by synchronous shim interceptors).
+ * {@link EnforcementPlan} between the Reactor context
+ * (where the reactive PEP stores it) and the {@link EnforcementPlanContext}'s
+ * blocking {@link ThreadLocal} (read by
+ * synchronous shim interceptors).
  * <p>
  * Registered with {@link io.micrometer.context.ContextRegistry} by
  * {@link SaplContextPropagationActivator} so that
  * {@code Hooks.enableAutomaticContextPropagation()} copies the plan to the
- * thread on every Reactor operator boundary, lets a synchronous interceptor
- * inside a Reactor flow read it, and clears it on the way out.
+ * thread on every Reactor operator boundary,
+ * lets a synchronous interceptor inside a Reactor flow read it, and clears it
+ * on the way out.
  */
 public class EnforcementPlanThreadLocalAccessor implements ThreadLocalAccessor<EnforcementPlan> {
 
     /**
-     * The key used in Reactor {@link reactor.util.context.Context} for the
-     * plan; matches {@link EnforcementPlanContext#REACTOR_KEY} so a single
-     * Context entry is observable on both sides of the bridge.
+     * The key used in Reactor {@link reactor.util.context.Context} for the plan;
+     * matches
+     * {@link EnforcementPlanContext#REACTOR_KEY} so a single Context entry is
+     * observable on both sides of the bridge.
      */
     public static final String REACTOR_KEY = EnforcementPlanContext.REACTOR_KEY;
 

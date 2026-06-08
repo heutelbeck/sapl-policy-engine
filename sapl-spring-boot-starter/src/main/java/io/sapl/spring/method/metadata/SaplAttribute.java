@@ -27,20 +27,29 @@ import lombok.NonNull;
  * Used internally to cache and pass annotation metadata to the authorization
  * subscription builder.
  *
- * @param annotationType the annotation class (e.g., PreEnforce.class)
- * @param subjectExpression SpEL expression for the subject, or null
- * @param actionExpression SpEL expression for the action, or null
- * @param resourceExpression SpEL expression for the resource, or null
- * @param environmentExpression SpEL expression for the environment, or null
- * @param secretsExpression SpEL expression for secrets, or null
- * @param signalTransitions whether suspend/resume boundary crossings
- * surface to the subscriber as non-terminal exceptions on the error
- * channel. Effective for {@link StreamEnforce}-derived attributes;
- * always {@code false} for {@link PreEnforce} / {@link PostEnforce}.
- * @param pauseRapDuringSuspend whether the RAP subscription is disposed
- * while the PEP is in suspended state. Effective for
- * {@link StreamEnforce}-derived attributes; always {@code false} for
- * one-shot PEPs.
+ * @param annotationType
+ * the annotation class (e.g., PreEnforce.class)
+ * @param subjectExpression
+ * SpEL expression for the subject, or null
+ * @param actionExpression
+ * SpEL expression for the action, or null
+ * @param resourceExpression
+ * SpEL expression for the resource, or null
+ * @param environmentExpression
+ * SpEL expression for the environment, or null
+ * @param secretsExpression
+ * SpEL expression for secrets, or null
+ * @param signalTransitions
+ * whether suspend/resume boundary crossings surface to the subscriber as
+ * non-terminal exceptions on the
+ * error channel. Effective for {@link StreamEnforce}-derived attributes; always
+ * {@code false} for
+ * {@link PreEnforce} / {@link PostEnforce}.
+ * @param pauseRapDuringSuspend
+ * whether the RAP subscription is disposed while the PEP is in suspended state.
+ * Effective for
+ * {@link StreamEnforce}-derived attributes; always {@code false} for one-shot
+ * PEPs.
  */
 public record SaplAttribute(
         Class<?> annotationType,

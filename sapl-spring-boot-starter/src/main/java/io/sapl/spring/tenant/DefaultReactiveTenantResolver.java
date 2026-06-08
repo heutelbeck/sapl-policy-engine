@@ -22,18 +22,20 @@ import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import reactor.core.publisher.Mono;
 
 /**
- * Default {@link ReactiveTenantResolver}: reads the tenant id from the
- * Reactor Context under {@link #REACTOR_CONTEXT_PDP_ID_KEY}, falling
- * back to {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID} if no value is
- * present. The Reactor Context is typically populated by
- * {@link io.sapl.spring.config.PdpIdWebFilter} once per request.
+ * Default {@link ReactiveTenantResolver}: reads the tenant id from the Reactor
+ * Context under
+ * {@link #REACTOR_CONTEXT_PDP_ID_KEY}, falling back to
+ * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID} if no value
+ * is present. The Reactor Context is typically populated by
+ * {@link io.sapl.spring.config.PdpIdWebFilter} once per
+ * request.
  */
 public final class DefaultReactiveTenantResolver implements ReactiveTenantResolver {
 
     /**
      * Reactor Context key for the PDP identifier. Cooperates with
-     * {@link io.sapl.spring.config.PdpIdWebFilter}, which writes the
-     * authenticated tenant's id under this key.
+     * {@link io.sapl.spring.config.PdpIdWebFilter}, which
+     * writes the authenticated tenant's id under this key.
      */
     public static final String REACTOR_CONTEXT_PDP_ID_KEY = "sapl.pdp.id";
 

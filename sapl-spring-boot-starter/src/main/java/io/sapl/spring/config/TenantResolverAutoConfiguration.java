@@ -28,14 +28,15 @@ import org.springframework.context.annotation.Bean;
 
 /**
  * Registers default {@link ReactiveTenantResolver} and
- * {@link BlockingTenantResolver} beans. Applications override either
- * by providing their own bean of the matching type.
+ * {@link BlockingTenantResolver} beans. Applications override
+ * either by providing their own bean of the matching type.
  * <p>
- * The default reactive resolver reads the tenant id from the Reactor
- * Context (populated by {@link PdpIdWebFilter}). The default blocking
- * resolver reads the id from {@code SecurityContextHolder} via a
- * configured {@link PdpIdAuthenticationExtractorBlocking}; without
- * one, every call resolves to
+ * The default reactive resolver reads the tenant id from the Reactor Context
+ * (populated by {@link PdpIdWebFilter}). The
+ * default blocking resolver reads the id from {@code SecurityContextHolder} via
+ * a configured
+ * {@link PdpIdAuthenticationExtractorBlocking}; without one, every call
+ * resolves to
  * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
  */
 @AutoConfiguration

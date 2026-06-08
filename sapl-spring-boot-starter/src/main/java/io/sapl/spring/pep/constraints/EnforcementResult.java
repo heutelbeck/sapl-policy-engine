@@ -22,11 +22,12 @@ import io.sapl.spring.util.Maybe;
 /**
  * Outcome of executing the enforcement plan for one signal.
  *
- * @param value the (possibly transformed) value carried by the signal, or
- * {@link Maybe.Absent} for
- * self-contained signals
- * @param failureState {@code true} once at least one obligation handler has
- * failed during execution; once
- * {@code true} it remains {@code true} for the remainder of the enforcement run
+ * @param value
+ * the (possibly transformed) value carried by the signal, or
+ * {@link Maybe.Absent} for self-contained signals
+ * @param failureState
+ * {@code true} once at least one obligation handler has failed during
+ * execution; once {@code true} it
+ * remains {@code true} for the remainder of the enforcement run
  */
 public record EnforcementResult<T>(Maybe<T> value, boolean failureState) {}

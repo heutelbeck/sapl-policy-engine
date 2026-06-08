@@ -27,23 +27,28 @@ import org.jspecify.annotations.Nullable;
 import lombok.val;
 
 /**
- * Parsed view of the standard reverse-proxy forwarding headers, exposed to
- * SAPL policies as {@code action.http.forwarded} and
- * {@code resource.http.forwarded}. Reads RFC 7239 {@code Forwarded} first;
- * falls back to the legacy {@code X-Forwarded-*} family when the standard
- * header is absent. Pure parsing: trust judgements (e.g. only honour
- * forwarded headers when the direct peer is in a trusted proxy range)
- * belong in the policy, not here.
+ * Parsed view of the standard reverse-proxy forwarding headers, exposed to SAPL
+ * policies as
+ * {@code action.http.forwarded} and {@code resource.http.forwarded}. Reads RFC
+ * 7239 {@code Forwarded} first; falls back
+ * to the legacy {@code X-Forwarded-*} family when the standard header is
+ * absent. Pure parsing: trust judgements (e.g.
+ * only honour forwarded headers when the direct peer is in a trusted proxy
+ * range) belong in the policy, not here.
  *
- * @param forChain the {@code for} chain left-to-right; element 0 is the
- * original client when the policy trusts the chain. Empty when no
- * {@code for} parameter is present.
- * @param host the original {@code Host} the user typed, or {@code null}
- * when no forwarded host is signalled.
- * @param proto the original scheme ({@code "http"} or {@code "https"}),
- * or {@code null} when no forwarded proto is signalled.
- * @param port the explicit forwarded port, or {@code null} when none is
+ * @param forChain
+ * the {@code for} chain left-to-right; element 0 is the original client when
+ * the policy trusts the chain.
+ * Empty when no {@code for} parameter is present.
+ * @param host
+ * the original {@code Host} the user typed, or {@code null} when no forwarded
+ * host is signalled.
+ * @param proto
+ * the original scheme ({@code "http"} or {@code "https"}), or {@code null} when
+ * no forwarded proto is
  * signalled.
+ * @param port
+ * the explicit forwarded port, or {@code null} when none is signalled.
  */
 public record ForwardedHeaders(
         List<String> forChain,
@@ -71,11 +76,11 @@ public record ForwardedHeaders(
     }
 
     /**
-     * Parses the headers in {@code source} into a {@link ForwardedHeaders}
-     * view. The {@code source} function returns the values for a given
-     * lowercase header name (each header may be multi-valued). Pure
-     * parsing; never throws on malformed input - malformed segments are
-     * dropped silently.
+     * Parses the headers in {@code source} into a {@link ForwardedHeaders} view.
+     * The {@code source} function returns
+     * the values for a given lowercase header name (each header may be
+     * multi-valued). Pure parsing; never throws on
+     * malformed input - malformed segments are dropped silently.
      */
     public static ForwardedHeaders parse(Function<String, List<String>> source) {
         val rfc7239 = source.apply(FORWARDED);
@@ -114,17 +119,19 @@ public record ForwardedHeaders(
         case PARAM_FOR   -> accumulator.addForwardedFor(stripPort(value));
         case PARAM_HOST  -> accumulator.setHostIfAbsent(value);
         case PARAM_PROTO -> accumulator.setProtoIfAbsent(value.toLowerCase(Locale.ROOT));
-        default          -> { /* ignore unknown parameter */ }
+        default          -> {
+            /* ignore unknown parameter */ }
         }
     }
 
     /**
-     * RFC 7239 defines {@code for}, {@code host}, {@code proto}, and {@code by}
-     * as the standard {@code Forwarded} parameters; port is carried inside
-     * {@code for=} and {@code host=} values, not as a top-level parameter.
-     * The accumulator therefore tracks only those three. The forwarded
-     * record's {@code port} component is reserved for the legacy
-     * {@code X-Forwarded-Port} header parsed by {@link #parseLegacy}.
+     * RFC 7239 defines {@code for}, {@code host}, {@code proto}, and {@code by} as
+     * the standard {@code Forwarded}
+     * parameters; port is carried inside {@code for=} and {@code host=} values, not
+     * as a top-level parameter. The
+     * accumulator therefore tracks only those three. The forwarded record's
+     * {@code port} component is reserved for the
+     * legacy {@code X-Forwarded-Port} header parsed by {@link #parseLegacy}.
      */
     private static final class Rfc7239Accumulator {
         private final List<String> forChain = new ArrayList<>();

@@ -31,21 +31,24 @@ import io.sapl.spring.pep.data.SaplContextPropagationActivator;
 
 /**
  * Activates the R2DBC arm of the shim-signal architecture: registers the
- * {@code sql:queryManipulation} (alias {@code relational:queryManipulation})
- * constraint handler provider, declares {@code SqlShimSignal} as a supported
- * PEP signal, and wraps every {@code DatabaseClient} bean in a CGLIB proxy
- * via {@link DatabaseClientShimBeanPostProcessor} so all SQL paths fire the
- * shim before reaching the driver.
+ * {@code sql:queryManipulation} (alias
+ * {@code relational:queryManipulation}) constraint handler provider, declares
+ * {@code SqlShimSignal} as a supported PEP
+ * signal, and wraps every {@code DatabaseClient} bean in a CGLIB proxy via
+ * {@link DatabaseClientShimBeanPostProcessor}
+ * so all SQL paths fire the shim before reaching the driver.
  * <p>
- * Active when Spring R2DBC is on the classpath and not explicitly disabled
- * by {@code io.sapl.method-security.r2dbc-shim.enabled=false}.
+ * Active when Spring R2DBC is on the classpath and not explicitly disabled by
+ * {@code io.sapl.method-security.r2dbc-shim.enabled=false}.
  * <p>
  * Wrapping at the {@code DatabaseClient} level requires that the active
- * {@code EnforcementPlan} is reachable from a synchronous Java method called
- * inside a Reactor flow. To satisfy that, the auto-configuration declares
+ * {@code EnforcementPlan} is reachable from a
+ * synchronous Java method called inside a Reactor flow. To satisfy that, the
+ * auto-configuration declares
  * {@link SaplContextPropagationActivator} which enables Reactor's automatic
- * context propagation. The hook is JVM-wide; opting out via the property
- * disables both the shim and the hook activation triggered by it.
+ * context propagation. The hook is JVM-wide;
+ * opting out via the property disables both the shim and the hook activation
+ * triggered by it.
  */
 @AutoConfiguration
 @ConditionalOnClass(DatabaseClient.class)

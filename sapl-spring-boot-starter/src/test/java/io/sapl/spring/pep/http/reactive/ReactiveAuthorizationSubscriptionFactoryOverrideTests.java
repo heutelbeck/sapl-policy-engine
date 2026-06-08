@@ -53,9 +53,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Validates that the reactive {@link ReactiveAuthorizationSubscriptionFactory}
- * extension point shapes the subscription that reaches the PDP, and that
- * the factory is genuinely reactive (a {@link Mono} returning the
- * subscription is awaited before the PDP is called).
+ * extension point shapes the subscription
+ * that reaches the PDP, and that the factory is genuinely reactive (a
+ * {@link Mono} returning the subscription is
+ * awaited before the PDP is called).
  */
 class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
 

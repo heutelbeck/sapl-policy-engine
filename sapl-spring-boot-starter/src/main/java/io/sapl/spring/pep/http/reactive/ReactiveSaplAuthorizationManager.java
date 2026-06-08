@@ -46,17 +46,19 @@ import lombok.val;
 import reactor.core.publisher.Mono;
 
 /**
- * Reactive {@link ReactiveAuthorizationManager} for the WebFlux filter
- * chain. Mirrors
+ * Reactive {@link ReactiveAuthorizationManager} for the WebFlux filter chain.
+ * Mirrors
  * {@link io.sapl.spring.pep.http.servlet.SaplAuthorizationManager} for the
- * reactive runtime: delegates subscription construction to a
- * {@link ReactiveAuthorizationSubscriptionFactory}, asks the PDP for the
- * first decision, runs it through the {@link EnforcementPlanner} with the
- * full HTTP signal set, publishes the resulting plan on the exchange
+ * reactive runtime: delegates subscription
+ * construction to a {@link ReactiveAuthorizationSubscriptionFactory}, asks the
+ * PDP for the first decision, runs it
+ * through the {@link EnforcementPlanner} with the full HTTP signal set,
+ * publishes the resulting plan on the exchange
  * attribute {@link HttpEnforcementContext#PLAN_ATTRIBUTE} so the downstream
- * {@link SaplHttpPepWebFilter} and {@link SaplServerAccessDeniedHandler}
- * fire additional signals against the same plan, and translates the
- * outcome to allow/deny.
+ * {@link SaplHttpPepWebFilter} and
+ * {@link SaplServerAccessDeniedHandler} fire additional signals against the
+ * same plan, and translates the outcome to
+ * allow/deny.
  */
 @Slf4j
 @RequiredArgsConstructor

@@ -44,20 +44,21 @@ import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 /**
- * Integration tests for {@link StreamingPipeline}: drives the full
- * Reactor adapter end-to-end with controlled PDP and RAP sources to
- * validate observable subscriber behaviour, the lazy RAP subscription
- * lifecycle, and per-item enforcement plumbing.
+ * Integration tests for {@link StreamingPipeline}: drives the full Reactor
+ * adapter end-to-end with controlled PDP and
+ * RAP sources to validate observable subscriber behaviour, the lazy RAP
+ * subscription lifecycle, and per-item
+ * enforcement plumbing.
  * <p>
  * Two complementary nested suites:
  * <ul>
- * <li>{@code ItemFlow} (Layer C) -- validates events the pipeline
- * constructs from RAP payloads as a function of current FSM state.
- * Spec source: "Pre-classification B" diagram.</li>
- * <li>{@code Lifecycle} (Layer D) -- validates Reactor lifecycle
- * propagation: RAP completion / error, PDP error, DENY termination,
- * boundary signals under {@code signalTransitions}, RAP subscription
- * lazy / pause-and-resume.</li>
+ * <li>{@code ItemFlow} (Layer C) -- validates events the pipeline constructs
+ * from RAP payloads as a function of current
+ * FSM state. Spec source: "Pre-classification B" diagram.</li>
+ * <li>{@code Lifecycle} (Layer D) -- validates Reactor lifecycle propagation:
+ * RAP completion / error, PDP error, DENY
+ * termination, boundary signals under {@code signalTransitions}, RAP
+ * subscription lazy / pause-and-resume.</li>
  * </ul>
  */
 class StreamingPipelineTests {

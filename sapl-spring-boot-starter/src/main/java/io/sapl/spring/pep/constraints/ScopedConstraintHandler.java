@@ -21,8 +21,11 @@ package io.sapl.spring.pep.constraints;
  * Pairs a {@link ConstraintHandler} with the {@link SignalType} it applies to
  * and a sort priority.
  *
- * @param handler the constraint handler
- * @param signalType the signal at which {@code handler} applies
- * @param priority sort key; lower values sort first
+ * @param handler
+ * the constraint handler
+ * @param signalType
+ * the signal at which {@code handler} applies
+ * @param priority
+ * sort key; lower values sort first
  */
 public record ScopedConstraintHandler(ConstraintHandler<?> handler, SignalType signalType, int priority) {}

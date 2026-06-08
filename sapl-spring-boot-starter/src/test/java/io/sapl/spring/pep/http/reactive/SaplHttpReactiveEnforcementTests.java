@@ -66,9 +66,10 @@ import lombok.val;
 import reactor.core.publisher.Flux;
 
 /**
- * End-to-end reactive test of the SAPL HTTP authorization chain. Real
- * Spring Boot context wired through {@link SaplServerHttpSecurityConfigurer},
- * real controller, real {@link WebTestClient}. The PDP is the only mock.
+ * End-to-end reactive test of the SAPL HTTP authorization chain. Real Spring
+ * Boot context wired through
+ * {@link SaplServerHttpSecurityConfigurer}, real controller, real
+ * {@link WebTestClient}. The PDP is the only mock.
  */
 @SpringBootTest(classes = SaplHttpReactiveEnforcementTests.TestApp.class, properties = "spring.main.web-application-type=reactive")
 class SaplHttpReactiveEnforcementTests {

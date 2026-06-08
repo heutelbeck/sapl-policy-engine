@@ -37,16 +37,18 @@ import io.sapl.spring.pep.streaming.MealyMachine.Step;
 /**
  * Cell-level content tests for {@link MealyMachine#step(State, Event)}.
  * <p>
- * Each row of {@code /mealy-table.csv} is one cell of the transition
- * function: a {@code (source, event, outcome) -> (next, emissions)}
- * record. This class is one parameterised test over the table; the CSV
- * is the executable spec, the test is the witness that the implementation
- * renders the spec faithfully.
+ * Each row of {@code /mealy-table.csv} is one cell of the transition function:
+ * a
+ * {@code (source, event, outcome) -> (next, emissions)} record. This class is
+ * one parameterised test over the table;
+ * the CSV is the executable spec, the test is the witness that the
+ * implementation renders the spec faithfully.
  * <p>
- * This file performs content checks only. Semantic-subset claims
- * (Lean theorems quantified over {@code S × Σ} subsets) live in
- * {@code MealyMachineUniversalInvariantTests}; multi-step path
- * properties live in {@code MealyMachineSequenceInvariantTests}.
+ * This file performs content checks only. Semantic-subset claims (Lean theorems
+ * quantified over {@code S × Σ} subsets)
+ * live in {@code MealyMachineUniversalInvariantTests}; multi-step path
+ * properties live in
+ * {@code MealyMachineSequenceInvariantTests}.
  */
 class MealyMachineCellTests {
 

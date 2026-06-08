@@ -1028,10 +1028,10 @@ The schema mirrors the SQL provider, minus the `columns` projection feature.
 }
 ```
 
-The typed criteria language accepts the same operators as SQL except `like` and `notLike`. For pattern matching use the `conditions` escape hatch with `$regex`.
+The typed criteria language accepts the same operators as SQL except `like` and `notLike`. For pattern matching use the `conditions` escape hatch with `$regex`. Condition fragments must be valid JSON (double-quoted), not MongoDB shell syntax, so the same obligation parses identically on every SAPL MongoDB PEP.
 
 ```json
-{ "conditions": [ "{ 'name': { '$regex': '^A' } }" ] }
+{ "conditions": [ "{ \"name\": { \"$regex\": \"^A\" } }" ] }
 ```
 
 Conditions use the standard MongoDB BSON query syntax. The provider parses each fragment and intersects it with the user's query inside a top-level `$and` array. The original query is preserved. The obligation can never overwrite a field the user is already filtering on.

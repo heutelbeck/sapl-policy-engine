@@ -34,34 +34,39 @@ import lombok.val;
 
 /**
  * AOP {@link MethodInterceptor} for the R2DBC {@code DatabaseClient} proxy.
- * Synchronously substitutes the SQL argument of {@code sql(String)},
- * {@code sql(Supplier<String>)}, and {@code sql(PreparedOperation<?>)} with a
- * lazy variant that applies the SAPL shim rewrite at the moment the
- * supplier is resolved. The supplier is resolved by Spring R2DBC's internal
- * execution at subscription time, on a thread where the active
- * {@link EnforcementPlan} is reachable via the {@link EnforcementPlanContext}
- * thread-local (kept current by Reactor's automatic context propagation, which
- * the R2DBC shim auto-configuration enables).
+ * Synchronously substitutes the SQL argument
+ * of {@code sql(String)}, {@code sql(Supplier<String>)}, and
+ * {@code sql(PreparedOperation<?>)} with a lazy variant that
+ * applies the SAPL shim rewrite at the moment the supplier is resolved. The
+ * supplier is resolved by Spring R2DBC's
+ * internal execution at subscription time, on a thread where the active
+ * {@link EnforcementPlan} is reachable via the
+ * {@link EnforcementPlanContext} thread-local (kept current by Reactor's
+ * automatic context propagation, which the R2DBC
+ * shim auto-configuration enables).
  * <p>
  * Catches every R2DBC query path because all paths bottom out at
  * {@code DatabaseClient.sql(...)}:
  * <ul>
  * <li>{@code R2dbcEntityTemplate.select/...} -> internally renders the
- * structured {@code Query} and calls {@code sql(...)};</li>
+ * structured {@code Query} and calls
+ * {@code sql(...)};</li>
  * <li>derived repository queries built by {@code PartTreeR2dbcQuery} ->
- * {@code DatabaseClient.sql(PreparedOperation)} via the
- * {@code sql(Supplier<String>)} overload;</li>
+ * {@code DatabaseClient.sql(PreparedOperation)}
+ * via the {@code sql(Supplier<String>)} overload;</li>
  * <li>{@code @Query}-annotated repository methods ->
- * {@code DatabaseClient.sql(PreparedOperation)} via the same overload;</li>
+ * {@code DatabaseClient.sql(PreparedOperation)} via the same
+ * overload;</li>
  * <li>direct user calls to {@code databaseClient.sql(...)}.</li>
  * </ul>
  * <p>
  * No fluent-chain wrapping required: the user's {@code .bind(...)} /
  * {@code .fetch().all()} chain proceeds on the real
- * {@code GenericExecuteSpec}; only the SQL string the chain is built around
- * is the lazy-rewrite. JSqlParser AST manipulation only adds new conditions
- * and never reorders or removes existing parameter placeholders, so the
- * chain's bind positions remain valid against the rewritten SQL.
+ * {@code GenericExecuteSpec}; only the SQL string the chain is built around is
+ * the lazy-rewrite. JSqlParser AST
+ * manipulation only adds new conditions and never reorders or removes existing
+ * parameter placeholders, so the chain's
+ * bind positions remain valid against the rewritten SQL.
  */
 public class DatabaseClientShimMethodInterceptor implements MethodInterceptor {
 
@@ -111,11 +116,11 @@ public class DatabaseClientShimMethodInterceptor implements MethodInterceptor {
     }
 
     /**
-     * Wrapping {@link PreparedOperation} that returns the SAPL-rewritten SQL
-     * from {@link #get()} while delegating {@link #bindTo(BindTarget)} to the
-     * original. Bind positions/names stay valid because the rewrite only
-     * adds new conditions; it never reorders or removes existing parameter
-     * placeholders.
+     * Wrapping {@link PreparedOperation} that returns the SAPL-rewritten SQL from
+     * {@link #get()} while delegating
+     * {@link #bindTo(BindTarget)} to the original. Bind positions/names stay valid
+     * because the rewrite only adds new
+     * conditions; it never reorders or removes existing parameter placeholders.
      */
     private record RewritingPreparedOperation(PreparedOperation<?> delegate) implements PreparedOperation<Object> {
 

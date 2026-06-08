@@ -61,16 +61,19 @@ import reactor.test.StepVerifier;
 
 /**
  * Documents whether the
- * {@link io.sapl.spring.pep.constraints.EnforcementPlanContext}
- * propagates across Reactor scheduler hops. Reactor's {@code Context} is
- * supposed to follow the subscription regardless of which scheduler an operator
- * runs on, so the shim proxy should still see the active plan when a service's
- * downstream pipeline is published or subscribed on a different scheduler.
+ * {@link io.sapl.spring.pep.constraints.EnforcementPlanContext} propagates
+ * across Reactor
+ * scheduler hops. Reactor's {@code Context} is supposed to follow the
+ * subscription regardless of which scheduler an
+ * operator runs on, so the shim proxy should still see the active plan when a
+ * service's downstream pipeline is
+ * published or subscribed on a different scheduler.
  * <p>
  * Scenario continues from {@link RelationalShimChainTests}: same Palanthas
- * library, same Tome data, same {@code relational:queryManipulation}
- * obligation. The service method introduces a deliberate scheduler hop between
- * the {@code @PreEnforce}-annotated boundary and the repository call.
+ * library, same Tome data, same
+ * {@code relational:queryManipulation} obligation. The service method
+ * introduces a deliberate scheduler hop between the
+ * {@code @PreEnforce}-annotated boundary and the repository call.
  */
 @SpringBootTest(classes = ReactorContextPropagationTests.PalanthasLibraryTestApp.class)
 @WithMockUser(username = "raistlin", roles = "BLACK_ROBE")

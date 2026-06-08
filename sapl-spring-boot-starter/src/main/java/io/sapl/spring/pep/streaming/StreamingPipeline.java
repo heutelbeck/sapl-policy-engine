@@ -65,28 +65,30 @@ import reactor.core.publisher.SynchronousSink;
 import reactor.util.context.ContextView;
 
 /**
- * Reactor adapter for the streaming PEP. Drives the pure
- * {@link MealyMachine} from a PDP decision flux and a lazily-subscribed
- * RAP publisher; renders the resulting {@link Emission}s onto a
- * downstream {@link Flux} for the subscriber.
+ * Reactor adapter for the streaming PEP. Drives the pure {@link MealyMachine}
+ * from a PDP decision flux and a
+ * lazily-subscribed RAP publisher; renders the resulting {@link Emission}s onto
+ * a downstream {@link Flux} for the
+ * subscriber.
  * <p>
- * One pipeline per method invocation. Owns the per-subscription mutable
- * state (current FSM state, RAP subscription, sink) and serializes all
- * event delivery through a single lock so the FSM never observes
- * concurrency.
+ * One pipeline per method invocation. Owns the per-subscription mutable state
+ * (current FSM state, RAP subscription,
+ * sink) and serializes all event delivery through a single lock so the FSM
+ * never observes concurrency.
  * <p>
  * Output shape: {@code Flux.create(...)} emits {@link ProtectedPayload}
- * wrappers (private nested record) carrying either a data value or an
- * error; the chain ends with {@code .flatMap(ProtectedPayload::unwrap)}
- * which re-emits the value or raises the error from inside the per-item
- * processing of {@code flatMap}.
- * That positioning is what lets a downstream {@code onErrorContinue} catch
- * boundary signals ({@link AccessDeniedException} on suspend,
- * {@link AccessGrantedException} on resume, when {@code signalTransitions}
- * is enabled) without terminating the subscription. Errors raised
- * directly from the upstream sink (the FSM's
- * {@link Emission.EmitError}) bypass the wrapper and terminate the
- * stream as a real Reactor error.
+ * wrappers (private nested record) carrying
+ * either a data value or an error; the chain ends with
+ * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the
+ * value or raises the error from inside the per-item processing of
+ * {@code flatMap}. That positioning is what lets a
+ * downstream {@code onErrorContinue} catch boundary signals
+ * ({@link AccessDeniedException} on suspend,
+ * {@link AccessGrantedException} on resume, when {@code signalTransitions} is
+ * enabled) without terminating the
+ * subscription. Errors raised directly from the upstream sink (the FSM's
+ * {@link Emission.EmitError}) bypass the wrapper
+ * and terminate the stream as a real Reactor error.
  *
  * @since 4.1.0
  */
@@ -113,32 +115,40 @@ public final class StreamingPipeline {
     private long                               subscriberDemand;
 
     /**
-     * Creates a cold {@link Flux} that, on subscription, drives the
-     * streaming PEP's FSM from the supplied PDP decision flux and
-     * lazily-subscribed RAP. Each subscription gets a fresh pipeline
-     * instance with its own state and lifecycle.
+     * Creates a cold {@link Flux} that, on subscription, drives the streaming PEP's
+     * FSM from the supplied PDP decision
+     * flux and lazily-subscribed RAP. Each subscription gets a fresh pipeline
+     * instance with its own state and
+     * lifecycle.
      *
-     * @param pauseRapDuringSuspend whether the RAP subscription is
-     * disposed on entering suspended state and re-subscribed on resume.
-     * When {@code false} (default), the RAP stays connected and items
-     * are dropped silently by the FSM; when {@code true}, RAP-side
-     * side effects pause for the duration of the suspension.
-     * @param decisions the PDP decision flux for this subscription; an
-     * empty flux is treated as a single DENY decision.
-     * @param planner a closure that maps each {@link AuthorizationDecision}
-     * to its {@link EnforcementPlan}; typically captures the per-method
-     * supported-signal set and output type.
-     * @param rapSupplier the protected method's publisher, supplied lazily
-     * (invoked on each fresh PERMIT when {@code pauseRapDuringSuspend}
-     * is true; once on first PERMIT otherwise).
-     * @param signalTransitions whether to surface suspend/resume
-     * boundaries to the subscriber as non-terminal exceptions on the
-     * error channel.
-     * @return a flux that emits items as the FSM permits them, surfaces
-     * boundary crossings as {@link AccessDeniedException} or
-     * {@link AccessGrantedException} (when {@code signalTransitions} is
-     * enabled) on the error channel, and completes / errors when the
-     * FSM reaches {@link State.Terminated}.
+     * @param pauseRapDuringSuspend
+     * whether the RAP subscription is disposed on entering suspended state and
+     * re-subscribed on resume. When
+     * {@code false} (default), the RAP stays connected and items are dropped
+     * silently by the FSM; when
+     * {@code true}, RAP-side side effects pause for the duration of the suspension.
+     * @param decisions
+     * the PDP decision flux for this subscription; an empty flux is treated as a
+     * single DENY decision.
+     * @param planner
+     * a closure that maps each {@link AuthorizationDecision} to its
+     * {@link EnforcementPlan}; typically
+     * captures the per-method supported-signal set and output type.
+     * @param rapSupplier
+     * the protected method's publisher, supplied lazily (invoked on each fresh
+     * PERMIT when
+     * {@code pauseRapDuringSuspend} is true; once on first PERMIT otherwise).
+     * @param signalTransitions
+     * whether to surface suspend/resume boundaries to the subscriber as
+     * non-terminal exceptions on the error
+     * channel.
+     *
+     * @return a flux that emits items as the FSM permits them, surfaces boundary
+     * crossings as
+     * {@link AccessDeniedException} or {@link AccessGrantedException} (when
+     * {@code signalTransitions} is
+     * enabled) on the error channel, and completes / errors when the FSM reaches
+     * {@link State.Terminated}.
      */
     public static Flux<Object> create(boolean pauseRapDuringSuspend, Flux<AuthorizationDecision> decisions,
             Function<AuthorizationDecision, EnforcementPlan> planner, Supplier<? extends Flux<?>> rapSupplier,
@@ -177,11 +187,12 @@ public final class StreamingPipeline {
     }
 
     /**
-     * Records {@code n} additional units of subscriber demand and, if the
-     * upstream subscription has finished setup, forwards exactly those
-     * {@code n} units to it. When the upstream is not yet ready (no
-     * permit decision yet, or paused during suspend), the demand is held
-     * in {@link #subscriberDemand} and replayed on the next
+     * Records {@code n} additional units of subscriber demand and, if the upstream
+     * subscription has finished setup,
+     * forwards exactly those {@code n} units to it. When the upstream is not yet
+     * ready (no permit decision yet, or
+     * paused during suspend), the demand is held in {@link #subscriberDemand} and
+     * replayed on the next
      * {@code hookOnSubscribe}.
      */
     private void onDownstreamRequest(long n) {
@@ -198,10 +209,11 @@ public final class StreamingPipeline {
     }
 
     /**
-     * Requests one additional item from the upstream to compensate for
-     * an item that was dropped by the gate. Does not change the
-     * outstanding subscriber demand: the subscriber did not receive an
-     * item, so the demand is satisfied by the next permitted item.
+     * Requests one additional item from the upstream to compensate for an item that
+     * was dropped by the gate. Does not
+     * change the outstanding subscriber demand: the subscriber did not receive an
+     * item, so the demand is satisfied by
+     * the next permitted item.
      */
     private void requestOneMoreFromUpstream() {
         BaseSubscriber<Object> sub = null;
@@ -234,12 +246,14 @@ public final class StreamingPipeline {
     }
 
     /**
-     * Routes each PDP decision into a single FSM event under the strict
-     * fail-closed discipline. PERMIT becomes either {@link PdpPermit}
-     * (decision-scoped enforcement OK) or {@link PdpDeny} with kind
+     * Routes each PDP decision into a single FSM event under the strict fail-closed
+     * discipline. PERMIT becomes either
+     * {@link PdpPermit} (decision-scoped enforcement OK) or {@link PdpDeny} with
+     * kind
      * {@link DenyKind#PERMIT_NOT_ENFORCEABLE}. Only {@code Decision.SUSPEND}
-     * becomes {@link PdpSuspend}. INDETERMINATE, NOT_APPLICABLE, and DENY
-     * all become {@link PdpDeny} with the corresponding {@link DenyKind}.
+     * becomes {@link PdpSuspend}. INDETERMINATE,
+     * NOT_APPLICABLE, and DENY all become {@link PdpDeny} with the corresponding
+     * {@link DenyKind}.
      */
     Event classify(AuthorizationDecision decision, EnforcementPlan plan, boolean decisionScopedFailed) {
         return switch (decision.decision()) {
@@ -395,9 +409,9 @@ public final class StreamingPipeline {
     /**
      * RAP connection management on state transitions when
      * {@code pauseRapDuringSuspend} is true. Disposes the RAP
-     * subscription when the FSM enters Suspended from another state,
-     * and ensures it is re-subscribed when the FSM enters Permitting
-     * from Suspended.
+     * subscription when the FSM enters Suspended from another state, and ensures it
+     * is re-subscribed when the FSM
+     * enters Permitting from Suspended.
      */
     private void manageRapSubscription(State priorState, State nextState) {
         if (!pauseRapDuringSuspend) {
@@ -440,15 +454,16 @@ public final class StreamingPipeline {
     }
 
     /**
-     * Carries either a data value or a non-terminal error through the
-     * single {@code Flux.create} sink. The chain terminates with
-     * {@code .handle(unpackPayload)} which re-emits the value via
-     * {@link SynchronousSink#next} or raises the error via
-     * {@link SynchronousSink#error}. Raising the error from inside a
-     * handle invocation keeps the error eligible for downstream
-     * {@code onErrorContinue}. Errors raised directly from the upstream
-     * sink (e.g., {@code FluxSink.error}) are terminal and not
-     * recoverable; only errors raised inside an operator's per-item
+     * Carries either a data value or a non-terminal error through the single
+     * {@code Flux.create} sink. The chain
+     * terminates with {@code .handle(unpackPayload)} which re-emits the value via
+     * {@link SynchronousSink#next} or
+     * raises the error via {@link SynchronousSink#error}. Raising the error from
+     * inside a handle invocation keeps the
+     * error eligible for downstream {@code onErrorContinue}. Errors raised directly
+     * from the upstream sink (e.g.,
+     * {@code FluxSink.error}) are terminal and not recoverable; only errors raised
+     * inside an operator's per-item
      * processing are eligible for {@code onErrorContinue}.
      */
     private record ProtectedPayload<T>(@Nullable T value, @Nullable Throwable error) {

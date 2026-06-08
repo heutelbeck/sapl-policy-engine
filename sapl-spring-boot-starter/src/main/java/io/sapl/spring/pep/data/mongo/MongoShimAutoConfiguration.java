@@ -29,13 +29,14 @@ import io.sapl.spring.pep.constraints.providers.MongoDbQueryManipulationProvider
 
 /**
  * Activates the Mongo arm of the shim-signal architecture: registers the
- * {@code mongo:queryManipulation} constraint handler provider, declares the
- * {@code MongoDbQueryShimSignal} as a supported PEP signal, and wraps every
+ * {@code mongo:queryManipulation} constraint
+ * handler provider, declares the {@code MongoDbQueryShimSignal} as a supported
+ * PEP signal, and wraps every
  * {@code ReactiveMongoTemplate} bean in a CGLIB proxy via
- * {@link MongoShimBeanPostProcessor} so {@code find} operations and the
- * fluent {@code query(Class).matching(Query).all()} chain fire the shim.
- * Active when Spring Data MongoDB Reactive is on the classpath and not
- * explicitly disabled by
+ * {@link MongoShimBeanPostProcessor} so {@code find} operations
+ * and the fluent {@code query(Class).matching(Query).all()} chain fire the
+ * shim. Active when Spring Data MongoDB
+ * Reactive is on the classpath and not explicitly disabled by
  * {@code io.sapl.method-security.mongo-shim.enabled=false}.
  */
 @AutoConfiguration

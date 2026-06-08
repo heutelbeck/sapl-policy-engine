@@ -43,9 +43,10 @@ import io.sapl.spring.pep.method.blocking.SaplAuthorizationInterceptorsOrder;
 
 /**
  * Verifies the {@code SaplTransactionManagementConfiguration} ordering
- * adjustment in three regimes: default (SAPL adjusts), escape hatch enabled
- * (SAPL leaves the order alone), and user-supplied custom order (SAPL leaves
- * the explicit choice alone).
+ * adjustment in three regimes: default (SAPL
+ * adjusts), escape hatch enabled (SAPL leaves the order alone), and
+ * user-supplied custom order (SAPL leaves the
+ * explicit choice alone).
  */
 class TransactionAdvisorOrderingTests {
 

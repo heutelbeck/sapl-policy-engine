@@ -37,9 +37,9 @@ import lombok.val;
 
 /**
  * Servlet-backed {@link MutableHttpRequest}. Wraps an inbound
- * {@link HttpServletRequest} and exposes header and attribute mutations to
- * constraint handlers. The wrapped request is what downstream filters and
- * the controller see.
+ * {@link HttpServletRequest} and exposes header and
+ * attribute mutations to constraint handlers. The wrapped request is what
+ * downstream filters and the controller see.
  */
 public final class ServletMutableHttpRequest extends HttpServletRequestWrapper implements MutableHttpRequest {
 

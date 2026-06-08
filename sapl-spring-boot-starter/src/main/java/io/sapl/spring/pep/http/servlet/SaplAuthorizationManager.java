@@ -46,29 +46,33 @@ import lombok.val;
 
 /**
  * {@link AuthorizationManager} for the HTTP filter chain. Delegates
- * subscription construction to an {@link AuthorizationSubscriptionFactory},
- * asks the PDP for the decision, runs it through the
+ * subscription construction to an
+ * {@link AuthorizationSubscriptionFactory}, asks the PDP for the decision, runs
+ * it through the
  * {@link EnforcementPlanner} with the full HTTP signal set, publishes the
  * resulting plan on the request attribute
- * {@link HttpEnforcementContext#PLAN_ATTRIBUTE}, and translates the outcome
- * to allow/deny.
+ * {@link HttpEnforcementContext#PLAN_ATTRIBUTE}, and translates the outcome to
+ * allow/deny.
  * <p>
  * Because the access manager has no body to enforce on, it does not advertise
- * an output signal. A decision carrying a resource transformation is therefore
- * treated as inadmissible by the planner (the implicit resource mapper has no
+ * an output signal. A decision carrying a
+ * resource transformation is therefore treated as inadmissible by the planner
+ * (the implicit resource mapper has no
  * Output signal to attach to) and resolves to a denial via the planner's
  * failure-substitute mechanism.
  * <p>
- * Constraint handlers may attach to {@link HttpRequestSignal} to observe
- * the request without changing it. Typical uses are audit logging, metrics,
- * and rate limiting. The signal carries an
- * {@link org.springframework.http.HttpRequest} view of the inbound request,
- * which downcasts to {@link ServletServerHttpRequest} for servlet-specific
- * access (cookies, session, attributes).
+ * Constraint handlers may attach to {@link HttpRequestSignal} to observe the
+ * request without changing it. Typical uses
+ * are audit logging, metrics, and rate limiting. The signal carries an
+ * {@link org.springframework.http.HttpRequest}
+ * view of the inbound request, which downcasts to
+ * {@link ServletServerHttpRequest} for servlet-specific access
+ * (cookies, session, attributes).
  * <p>
- * When the security context has no {@link Authentication}, the manager
- * defaults to an anonymous token so policies can express "permit anyone" or
- * "deny anonymous" rules without the authorization machinery raising an NPE.
+ * When the security context has no {@link Authentication}, the manager defaults
+ * to an anonymous token so policies can
+ * express "permit anyone" or "deny anonymous" rules without the authorization
+ * machinery raising an NPE.
  */
 @Slf4j
 @RequiredArgsConstructor

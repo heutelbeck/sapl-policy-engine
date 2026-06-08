@@ -25,16 +25,16 @@ import reactor.core.publisher.Mono;
 
 /**
  * Builds the {@link AuthorizationSubscription} that
- * {@link ReactiveSaplAuthorizationManager} sends to the PDP for one HTTP
- * exchange.
+ * {@link ReactiveSaplAuthorizationManager} sends to the PDP for one
+ * HTTP exchange.
  * <p>
  * The default implementation
- * ({@link DefaultReactiveAuthorizationSubscriptionFactory}) places the
- * resolved {@link Authentication} on {@code subject} and the serialized
- * request on both {@code action} and {@code resource}, leaving
- * {@code environment} undefined. Applications register their own factory
- * bean of this type, or pass an inline factory through the SAPL reactive
- * configurer:
+ * ({@link DefaultReactiveAuthorizationSubscriptionFactory}) places the resolved
+ * {@link Authentication} on {@code subject} and the serialized request on both
+ * {@code action} and {@code resource},
+ * leaving {@code environment} undefined. Applications register their own
+ * factory bean of this type, or pass an inline
+ * factory through the SAPL reactive configurer:
  *
  * <pre>{@code
  * SaplServerHttpSecurityConfigurer.apply(http, context,
@@ -43,10 +43,10 @@ import reactor.core.publisher.Mono;
  * }</pre>
  * <p>
  * Returning a {@link Mono} allows asynchronous enrichment (looking up
- * additional subject attributes from a reactive store, for example) without
- * blocking the event loop. The {@link Authentication} is never
- * {@code null}: an anonymous token is supplied when the security context
- * had no authentication.
+ * additional subject attributes from a reactive
+ * store, for example) without blocking the event loop. The
+ * {@link Authentication} is never {@code null}: an anonymous
+ * token is supplied when the security context had no authentication.
  */
 @FunctionalInterface
 public interface ReactiveAuthorizationSubscriptionFactory {
@@ -54,9 +54,12 @@ public interface ReactiveAuthorizationSubscriptionFactory {
     /**
      * Returns the {@link AuthorizationSubscription} to send to the PDP.
      *
-     * @param authentication the resolved authentication (anonymous token
-     * when the security context had no authentication).
-     * @param exchange the inbound exchange.
+     * @param authentication
+     * the resolved authentication (anonymous token when the security context had no
+     * authentication).
+     * @param exchange
+     * the inbound exchange.
+     *
      * @return a Mono emitting exactly one subscription.
      */
     Mono<AuthorizationSubscription> build(Authentication authentication, ServerWebExchange exchange);

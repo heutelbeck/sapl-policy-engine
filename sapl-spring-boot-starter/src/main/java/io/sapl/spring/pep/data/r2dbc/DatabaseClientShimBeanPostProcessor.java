@@ -31,20 +31,22 @@ import io.sapl.spring.pep.data.ShimSignalContributor;
 import lombok.val;
 
 /**
- * Wraps every {@link DatabaseClient} bean in a CGLIB proxy that
- * (a) intercepts {@code sql(...)} via
- * {@link DatabaseClientShimMethodInterceptor}
- * so the produced query reflects any active {@link SqlShimSignal} obligation
- * before it leaves the JVM, and (b) introduces the
- * {@link ShimSignalContributor}
- * interface so the proxy is picked up by the PEP's contributor lookup as the
- * source of truth for which shim signals are actually fired.
+ * Wraps every {@link DatabaseClient} bean in a CGLIB proxy that (a) intercepts
+ * {@code sql(...)} via
+ * {@link DatabaseClientShimMethodInterceptor} so the produced query reflects
+ * any active {@link SqlShimSignal}
+ * obligation before it leaves the JVM, and (b) introduces the
+ * {@link ShimSignalContributor} interface so the proxy is
+ * picked up by the PEP's contributor lookup as the source of truth for which
+ * shim signals are actually fired.
  * <p>
  * Wrapping at the {@code DatabaseClient} level (rather than at the
- * {@code R2dbcEntityTemplate} level) is the single interception point that
- * covers every R2DBC dispatch path: the entity template, the derived-query
- * code path via {@code PartTreeR2dbcQuery}, {@code @Query}-annotated
- * repository methods, and direct user calls to {@code databaseClient.sql(...)}.
+ * {@code R2dbcEntityTemplate} level) is the single
+ * interception point that covers every R2DBC dispatch path: the entity
+ * template, the derived-query code path via
+ * {@code PartTreeR2dbcQuery}, {@code @Query}-annotated repository methods, and
+ * direct user calls to
+ * {@code databaseClient.sql(...)}.
  */
 public class DatabaseClientShimBeanPostProcessor implements BeanPostProcessor {
 

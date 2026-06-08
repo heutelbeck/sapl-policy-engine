@@ -31,10 +31,10 @@ import io.sapl.api.pdp.AuthorizationDecision;
 
 /**
  * AssertJ custom assertion for {@link EnforcementPlan}, exposing one chainable
- * method per paper invariant
- * plus {@link #satisfiesAllInvariants(AuthorizationDecision, Set)} that runs
- * all of them. Each invariant
- * method names its paper number in failure messages.
+ * method per paper invariant plus
+ * {@link #satisfiesAllInvariants(AuthorizationDecision, Set)} that runs all of
+ * them. Each invariant method names its
+ * paper number in failure messages.
  */
 final class EnforcementPlanAssert extends AbstractAssert<EnforcementPlanAssert, EnforcementPlan> {
 

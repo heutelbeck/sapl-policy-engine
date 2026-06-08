@@ -88,7 +88,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenMatchingConstraintWithoutSignalThenEmpty() {
             val result = provider.getConstraintHandlers(v("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """), Set.of(DECISION_SIGNAL));
             assertThat(result).isEmpty();
         }
@@ -107,7 +107,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenMatchingConstraintAndSignalThenReturnsMapper() {
             val result = provider.getConstraintHandlers(v("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """), Set.of(MONGO_SIGNAL));
             assertThat(result).singleElement().satisfies(scoped -> assertThat(scoped).satisfies(s -> {
                 assertThat(s.signalType()).isEqualTo(MONGO_SIGNAL);
@@ -193,10 +193,21 @@ class MongoDbQueryManipulationProviderTests {
         void givenOneStringConditionThenAppendedToBson() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """);
             val rendered = renderQueryDocument(mapper.apply(new Query()));
             assertThat(rendered).contains("tenantId").contains("7");
+        }
+
+        @Test
+        @DisplayName("Single-quoted shell syntax in a condition is rejected (strict JSON, parity with the Python shim)")
+        void givenSingleQuotedConditionThenMapperThrows() {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryManipulation",
+                     "conditions": ["{'tenantId': 7}"]}
+                    """);
+            val query  = new Query();
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
@@ -204,7 +215,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenMultipleStringConditionsThenAllAppended() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}", "{'age': {'$gte': 18}}"]}
+                     "conditions": ["{\\"tenantId\\": 7}", "{\\"age\\": {\\"$gte\\": 18}}"]}
                     """);
             val rendered = renderQueryDocument(mapper.apply(new Query()));
             assertThat(rendered).contains("tenantId").contains("age").contains("$gte").contains("18");
@@ -215,7 +226,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenSameFieldInOriginalAndObligationThenIntersectedViaAnd() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """);
             val original = new Query(Criteria.where("tenantId").is(99));
             val rendered = renderQueryDocument(mapper.apply(original));
@@ -230,8 +241,7 @@ class MongoDbQueryManipulationProviderTests {
                      "conditions": ["this is not bson"]}
                     """);
             val query  = new Query();
-            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(org.bson.json.JsonParseException.class)
-                    .isInstanceOf(RuntimeException.class);
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -244,7 +254,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenOriginalSortWhenStringConditionsAppliedThenSortPreserved() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """);
             val original = new Query().with(org.springframework.data.domain.Sort.by("name").ascending());
             val result   = mapper.apply(original);
@@ -256,7 +266,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenOriginalLimitWhenStringConditionsAppliedThenLimitPreserved() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """);
             val original = new Query().limit(25);
             val result   = mapper.apply(original);
@@ -268,7 +278,7 @@ class MongoDbQueryManipulationProviderTests {
         void givenOriginalSkipWhenStringConditionsAppliedThenSkipPreserved() {
             val mapper   = mapperFor("""
                     {"type": "mongo:queryManipulation",
-                     "conditions": ["{'tenantId': 7}"]}
+                     "conditions": ["{\\"tenantId\\": 7}"]}
                     """);
             val original = new Query().skip(50L);
             val result   = mapper.apply(original);

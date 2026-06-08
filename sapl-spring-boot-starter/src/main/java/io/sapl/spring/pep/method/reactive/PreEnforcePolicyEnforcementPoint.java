@@ -57,13 +57,16 @@ import java.util.Set;
 
 /**
  * Reactive variant of the @{@link PreEnforce} PEP. Detects the protected
- * method's return type and currently supports {@link Mono} returns. Wires the
- * Pre-PRAP sequence (decision, input, permit gate, proceed, output) plus the
- * reactive lifecycle signals (subscription, cancel, complete, terminate,
- * after-terminate) onto the returned Mono. Subject lookup is delegated to
- * {@link AuthorizationSubscriptionBuilderService}, which reads from
+ * method's return type and currently supports
+ * {@link Mono} returns. Wires the Pre-PRAP sequence (decision, input, permit
+ * gate, proceed, output) plus the reactive
+ * lifecycle signals (subscription, cancel, complete, terminate,
+ * after-terminate) onto the returned Mono. Subject lookup
+ * is delegated to {@link AuthorizationSubscriptionBuilderService}, which reads
+ * from
  * {@link org.springframework.security.core.context.ReactiveSecurityContextHolder}
- * with a fallback to the thread-bound holder.
+ * with a fallback to the thread-bound
+ * holder.
  *
  * @since 4.1.0
  */
@@ -187,10 +190,11 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     }
 
     /**
-     * Fires the OutputSignal per emitted item, and once with a {@code null}
-     * value when the RAP completes empty so policy still applies. Mappers
-     * returning {@code null} drop the item (matches the "value may be null"
-     * blocking semantic without violating Reactor's no-null-emission rule).
+     * Fires the OutputSignal per emitted item, and once with a {@code null} value
+     * when the RAP completes empty so
+     * policy still applies. Mappers returning {@code null} drop the item (matches
+     * the "value may be null" blocking
+     * semantic without violating Reactor's no-null-emission rule).
      */
     private static Mono<Object> applyOutput(EnforcementPlan plan, Mono<?> rap) {
         // Sentinel, not switchIfEmpty downstream of mapNotNull: enforcement may
@@ -203,10 +207,11 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     }
 
     /**
-     * Flux variant of {@link #applyOutput}. Fires the output signal once with
-     * the whole RAP {@link Flux} as the value and returns the (possibly
-     * Mapper-transformed) Flux. Falls back to {@link Flux#empty()} if a Mapper
-     * returns {@code null} or a non-Flux value.
+     * Flux variant of {@link #applyOutput}. Fires the output signal once with the
+     * whole RAP {@link Flux} as the value
+     * and returns the (possibly Mapper-transformed) Flux. Falls back to
+     * {@link Flux#empty()} if a Mapper returns
+     * {@code null} or a non-Flux value.
      */
     private static Flux<Object> applyOutputFlux(EnforcementPlan plan, Flux<?> rap) {
         if (plan.enforceOutputConstraints(rap, false) instanceof Flux<?> mapped) {
