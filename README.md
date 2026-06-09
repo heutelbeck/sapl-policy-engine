@@ -15,7 +15,7 @@
   &middot;
   <a href="https://playground.sapl.io/">Playground</a>
   &middot;
-  <a href="https://sapl.io/scenarios/spring/">Scenarios</a>
+  <a href="https://sapl.io/guides/spring/">Scenarios</a>
   &middot;
   <a href="https://sapl.io/docs/latest/">Docs</a>
   &middot;
@@ -119,7 +119,7 @@ permit
     resource == "patient";
 ```
 
-The [Spring scenario](https://sapl.io/scenarios/spring/) walks through a complete application step by step.
+The [Spring scenario](https://sapl.io/guides/spring/) walks through a complete application step by step.
 
 </details>
 
@@ -177,11 +177,11 @@ Coverage: Policy Hit 100.00%  Condition Hit 100.00%
 
 Working demos with code walkthroughs:
 
-- [Spring Security](https://sapl.io/scenarios/spring/) -- method-level ABAC in a Spring Boot application
-- [AI Tool Authorization](https://sapl.io/scenarios/ai-tools/) -- per-tool gating for Spring AI
-- [RAG Pipeline](https://sapl.io/scenarios/ai-rag/) -- dynamic query rewriting for retrieval-augmented generation
-- [Human-in-the-Loop](https://sapl.io/scenarios/ai-hitl/) -- policy-driven approval workflows for AI tool calls
-- [MCP Server](https://sapl.io/scenarios/ai-mcp/) -- authorize tool calls, resources, and prompts in MCP servers
+- [Spring Security](https://sapl.io/guides/spring/) -- method-level ABAC in a Spring Boot application
+- [AI Tool Authorization](https://sapl.io/guides/ai-tools/) -- per-tool gating for Spring AI
+- [RAG Pipeline](https://sapl.io/guides/ai-rag/) -- dynamic query rewriting for retrieval-augmented generation
+- [Human-in-the-Loop](https://sapl.io/guides/ai-hitl/) -- policy-driven approval workflows for AI tool calls
+- [MCP Server](https://sapl.io/guides/ai-mcp/) -- authorize tool calls, resources, and prompts in MCP servers
 
 ## Get involved
 
