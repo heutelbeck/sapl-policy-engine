@@ -11,10 +11,12 @@
     <logger name="io.sapl.pdp.remote.RemoteHttpDecisionPointServerIT" level="INFO"/>
 
     <!-- Code-under-test loggers: tests drive these into error/retry paths on
-         purpose and assert on captured events via a ListAppender. Detach from
-         the console so a passing run stays silent; the ListAppender still gets them. -->
-    <logger name="io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint" level="WARN" additivity="false"/>
-    <logger name="io.sapl.pdp.remote.RemotePdpRetry" level="WARN" additivity="false"/>
+         purpose and assert on captured events via a ListAppender. Temporarily
+         attached to the console (additivity=true, level kept at WARN so the
+         ListAppender assertions are unchanged) so the actual fail-close error
+         from logStreamError reaches CI while diagnosing the flaky IT. -->
+    <logger name="io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint" level="WARN"/>
+    <logger name="io.sapl.pdp.remote.RemotePdpRetry" level="WARN"/>
 
     <!-- Late buffer-release noise on stream cancel during MockWebServer teardown. -->
     <logger name="reactor.netty.channel.FluxReceive" level="OFF"/>
