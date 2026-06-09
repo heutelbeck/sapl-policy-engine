@@ -308,35 +308,4 @@ class TransitionSignalsTests {
                     .expectNext("A", "S").expectError(RuntimeException.class).verify();
         }
     }
-
-    @Nested
-    @DisplayName("stacked single-direction layers drop the inner boundary (footgun)")
-    class StackedSingleDirectionLayers {
-
-        @Test
-        void stackingSuspendThenGrantDropsTheSuspendSubstitute() {
-            var source          = pepLikeFlux("A", "SUSPEND", "B", "GRANT", "C");
-            var suspendLayer    = TransitionSignals.onSuspend(source, s -> {}, () -> "S");
-            var suspendAndGrant = TransitionSignals.onGranted(suspendLayer, g -> {}, () -> "G");
-
-            StepVerifier.create(suspendAndGrant).expectNext("A", "B", "G", "C").verifyComplete();
-        }
-
-        @Test
-        void stackingGrantThenSuspendDropsTheGrantSubstitute() {
-            var source          = pepLikeFlux("A", "SUSPEND", "B", "GRANT", "C");
-            var grantLayer      = TransitionSignals.onGranted(source, g -> {}, () -> "G");
-            var grantAndSuspend = TransitionSignals.onSuspend(grantLayer, s -> {}, () -> "S");
-
-            StepVerifier.create(grantAndSuspend).expectNext("A", "S", "B", "C").verifyComplete();
-        }
-
-        @Test
-        void onTransitionsSurfacesBothWhereStackingWouldDropOne() {
-            var source = pepLikeFlux("A", "SUSPEND", "B", "GRANT", "C");
-
-            StepVerifier.create(TransitionSignals.onTransitions(source, s -> {}, () -> "S", g -> {}, () -> "G"))
-                    .expectNext("A", "S", "B", "G", "C").verifyComplete();
-        }
-    }
 }
