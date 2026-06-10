@@ -551,7 +551,7 @@ Two integrations ship as optional subpath exports, so you install only the drive
 - **`@sapl/nestjs/mongoose`** for MongoDB on Mongoose. Register the shim and apply `createSaplMongoosePlugin(cls)` to your schemas, then add `MongoDbQueryRewritingProvider` to your module. It honours the `mongo:queryRewriting` obligation.
 - **`@sapl/nestjs/prisma`** for SQL on Prisma. Register the shim and extend your client with `createSaplPrismaExtension(cls)`, then add `SqlQueryRewritingProvider`. It honours the `sql:queryRewriting` obligation (typed `criteria` and `columns`; Prisma's structured `where` cannot lower the raw-SQL `conditions` escape hatch).
 
-The obligation format is identical across every SAPL PEP for a backend, so the same `mongo:queryRewriting` policy works unchanged on the Spring, Python, and NestJS MongoDB integrations. See [Query Rewriting](6_11_QueryRewriting.md) for the obligation schema, semantics, and setup.
+The obligation format is identical across every SAPL PEP for a backend, so the same `mongo:queryRewriting` policy works unchanged on the Spring, Python, and NestJS MongoDB integrations. See [Query Rewriting](6_12_QueryRewriting.md) for the obligation schema, semantics, and setup.
 
 ## Streaming Enforcement with @StreamEnforce
 

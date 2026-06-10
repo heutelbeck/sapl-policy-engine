@@ -25,5 +25,6 @@ SAPL provides multiple ways to connect applications to a Policy Decision Point (
 - **[Tornado](../6_8_Tornado/):** Decorators for Tornado handlers with async and streaming support.
 - **[FastMCP](../6_9_FastMCP/):** Middleware and per-component authorization for MCP servers.
 - **[.NET](../6_10_DotNet/):** Attributes and customizers for ASP.NET Core applications.
+- **[PHP](../6_11_PHP/):** Attributes for Symfony controllers and services, with Doctrine query rewriting.
 
 All SDKs and APIs expose the same authorization semantics: single subscriptions (streaming and one-shot) and multi-subscriptions (streaming and one-shot batch).

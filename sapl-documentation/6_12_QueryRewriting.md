@@ -2,7 +2,7 @@
 layout: default
 title: Query Rewriting
 parent: SDKs and APIs
-nav_order: 611
+nav_order: 612
 ---
 
 ## Query Rewriting
@@ -13,7 +13,7 @@ Two backends are supported today: relational databases (SQL) and MongoDB. The ob
 
 ## How It Works
 
-You apply enforcement (`@PreEnforce` in Spring, `@pre_enforce` in the Python SDKs) to the service or handler method as usual, and the policy attaches a query-rewriting obligation. While that decision is being enforced, the queries your code issues are intercepted, the obligation is applied, and the rewritten query is forwarded to the driver.
+You apply enforcement (`@PreEnforce` in Spring, `@pre_enforce` in the Python SDKs, `#[PreEnforce]` in PHP) to the service or handler method as usual, and the policy attaches a query-rewriting obligation. While that decision is being enforced, the queries your code issues are intercepted, the obligation is applied, and the rewritten query is forwarded to the driver.
 
 When no enforcement is active, the query passes through unchanged. There is no global filter. The obligation applies only inside the protected call, so the same repository or collection called outside an enforced method runs unfiltered.
 
@@ -99,7 +99,7 @@ Condition fragments must be valid JSON (double-quoted), not MongoDB shell syntax
 - `conditions` fragments are combined with the user's query inside a top-level `$and` (or `AND`-ed into the SQL `WHERE`); the original query is preserved.
 - The obligation can only narrow access, never widen it.
 - A malformed criterion, an unsupported statement, or (for MongoDB) a non-JSON condition causes the decision to be denied.
-- **Portability across PEPs.** Because the obligation and its behaviour are identical across SDKs, the same obligation produces the same narrowing on every PEP for that backend. A `mongo:queryRewriting` obligation authored once works unchanged on the Spring MongoDB integration, the Python `sapl_pymongo` integration, and the NestJS Mongoose integration. The same holds for `sql:queryRewriting` across the SQL integrations, with one backend caveat: the NestJS Prisma integration supports the typed `criteria` and `columns` but not the raw-SQL `conditions` escape hatch, since Prisma's `where` is structured rather than SQL.
+- **Portability across PEPs.** Because the obligation and its behaviour are identical across SDKs, the same obligation produces the same narrowing on every PEP for that backend. A `mongo:queryRewriting` obligation authored once works unchanged on the Spring MongoDB integration, the Python `sapl_pymongo` integration, the NestJS Mongoose integration, and the PHP Doctrine ODM integration. The same holds for `sql:queryRewriting` across the SQL integrations, with two integration caveats. The NestJS Prisma integration supports the typed `criteria` and `columns` but not the raw-SQL `conditions` escape hatch, since Prisma's `where` is structured rather than SQL. The PHP Doctrine ORM integration supports `criteria` and `conditions` but not `columns`, since a Doctrine query hydrates entities and cannot narrow its projection without changing the result shape.
 
 ## Integrations
 
@@ -197,3 +197,34 @@ const prisma = basePrismaClient.$extends(createSaplPrismaExtension(cls));  // cl
 The extension hooks Prisma's `$allOperations` for filter operations (`findMany`, `findFirst`, `count`, `aggregate`, `groupBy`, `updateMany`, `deleteMany`), AND-merging the obligation's `criteria` into the operation's `where` and narrowing `columns` to a `select`. Prisma's `where` is structured rather than SQL, so the `conditions` escape hatch cannot be lowered and is rejected (the decision denied); policies targeting Prisma use typed `criteria`. A unique-key operation (`findUnique`, `update`, `delete`, `upsert`) cannot be safely AND-narrowed, so it is denied while an obligation is active; use `findFirst`, `updateMany`, or `deleteMany` instead. Operations without a filter (`create`, `createMany`) pass through.
 
 Until `registerPrismaShim()` runs, a decision carrying a `sql:queryRewriting` obligation is denied. A client used without the extension is not intercepted: that is the fail-open path you must account for. Extend every client an enforced method may reach.
+
+### PHP: Doctrine (ORM and ODM)
+
+For Symfony applications the `sapl/sapl-php` bundle integrates with Doctrine. It uses the Doctrine ORM `SQLFilter` for relational backends and the Doctrine ODM `BsonFilter` for MongoDB. Unlike the other integrations, which intercept the query your code issues, the Doctrine filters are pull-based. Doctrine calls the filter and AND-merges the returned predicate into the root entity, every join, and every subquery on its own. The integration contributes a narrowing predicate rather than rewriting a query string.
+
+The bundle registers the providers automatically when the Doctrine packages are present. You register and enable the filter in your Doctrine configuration.
+
+```yaml
+# relational (Doctrine ORM)
+doctrine:
+    orm:
+        filters:
+            sapl_sql:
+                class: Sapl\Doctrine\Orm\SaplSqlFilter
+                enabled: true
+
+# MongoDB (Doctrine ODM)
+doctrine_mongodb:
+    document_managers:
+        default:
+            filters:
+                sapl_mongo:
+                    class: Sapl\Doctrine\Odm\SaplBsonFilter
+                    enabled: true
+```
+
+You annotate the calling service or controller method with `#[PreEnforce]` as usual. The filter applies only while that decision is being enforced and is inert otherwise. Both shims are PreEnforce-only.
+
+The SQL filter honours `sql:queryRewriting` (and the `relational:queryRewriting` alias) with the typed `criteria` and the raw-SQL `conditions` escape hatch. It does not support the `columns` projection. A Doctrine ORM query hydrates entities, so narrowing the SELECT list would change the result shape, and an obligation carrying `columns` is rejected (the decision denied). This matches the Python SQLAlchemy integration, which likewise rejects a column projection against an entity-typed select. The Mongo filter honours `mongo:queryRewriting` with typed `criteria` and strict-JSON `conditions`. An aggregation pipeline cannot be narrowed and is rejected (the decision denied).
+
+Until the filter is registered and enabled, a decision carrying the matching obligation is denied. Native SQL, a raw DBAL connection, or any read that bypasses the Doctrine filter is not intercepted. That is the fail-open path you must account for, the Doctrine equivalent of off-session access. Keep enforced reads on the ORM or ODM.

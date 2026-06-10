@@ -855,7 +855,7 @@ This example uses SAPL's built-in `timeBetween` and `dateOf` functions to calcul
 
 #### Query Rewriting
 
-`SqlQueryRewritingProvider` and `MongoDbQueryRewritingProvider` rewrite database queries to filter at the data layer. See [Query Rewriting](../6_11_QueryRewriting/) for details.
+`SqlQueryRewritingProvider` and `MongoDbQueryRewritingProvider` rewrite database queries to filter at the data layer. See [Query Rewriting](../6_12_QueryRewriting/) for details.
 
 ### Writing Custom Handlers
 
@@ -935,7 +935,7 @@ Spring auto-discovers any bean implementing `ConstraintHandlerProvider`. Just an
 
 Spring Data applications can filter results at the database with no changes to your repositories: apply `@PreEnforce` to the calling service method, and the policy attaches a `sql:queryRewriting` or `mongo:queryRewriting` obligation that the SAPL integration applies before the query reaches the driver. The SAPL Spring Boot starter wires this automatically for R2DBC repositories and reactive MongoDB.
 
-See [Query Rewriting](../6_11_QueryRewriting/) for the obligation format, the shared semantics, worked examples, and the per-backend opt-out properties.
+See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format, the shared semantics, worked examples, and the per-backend opt-out properties.
 
 ## Configuration
 

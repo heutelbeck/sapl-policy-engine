@@ -460,7 +460,7 @@ register_orm_listener()
 register_provider(SqlQueryRewritingProvider())
 ```
 
-See [Query Rewriting](../6_11_QueryRewriting/) for the obligation format, the shared semantics, and what the integration does and does not cover (including the off-session fail-open caveat).
+See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format, the shared semantics, and what the integration does and does not cover (including the off-session fail-open caveat).
 
 ### Streaming Authorization
 

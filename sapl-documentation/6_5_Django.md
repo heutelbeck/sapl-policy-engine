@@ -459,7 +459,7 @@ register_orm_listener()
 register_provider(DjangoQueryRewritingProvider())
 ```
 
-See [Query Rewriting](../6_11_QueryRewriting/) for the obligation format and the shared semantics. Two Django-specific points: the integration applies an obligation only to queries whose model actually has the referenced columns, so unrelated models pass through unchanged; and the `columns` projection uses `.only()`, which defers fields rather than blocking them, so pair it with content filtering when you need hard column-level security. Raw SQL and direct cursor access are not covered.
+See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format and the shared semantics. Two Django-specific points: the integration applies an obligation only to queries whose model actually has the referenced columns, so unrelated models pass through unchanged; and the `columns` projection uses `.only()`, which defers fields rather than blocking them, so pair it with content filtering when you need hard column-level security. Raw SQL and direct cursor access are not covered.
 
 ### Streaming Authorization
 
