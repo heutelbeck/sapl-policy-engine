@@ -51,6 +51,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Base64;
@@ -83,10 +84,12 @@ class RemoteHttpDecisionPointServerIT {
     private static final X509TrustManager TRUST_ALL = new X509TrustManager() {
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            // Test-only trust-all manager. Every client certificate is accepted.
         }
 
         @Override
         public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            // Test-only trust-all manager. The node's self-signed certificate is accepted.
         }
 
         @Override
@@ -119,7 +122,8 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     private static String basicAuthHeader(String username, String secret) {
-        return "Basic " + Base64.getEncoder().encodeToString((username + ":" + secret).getBytes());
+        return "Basic "
+                + Base64.getEncoder().encodeToString((username + ":" + secret).getBytes(StandardCharsets.UTF_8));
     }
 
     // HTTP Protocol
