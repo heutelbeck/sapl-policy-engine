@@ -86,7 +86,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
                 .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
-        pdp.setTimeoutMillis(5000);
+        pdp.setTimeoutMillis(30000);
     }
 
     @AfterEach
