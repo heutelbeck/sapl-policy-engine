@@ -74,8 +74,8 @@ class RemoteHttpDecisionPointServerIT {
     }
 
     private void requestDecision(ReactivePolicyDecisionPoint pdp) {
-        StepVerifier.create(pdp.decide(permittedSubscription).retry(1)).expectNext(AuthorizationDecision.PERMIT)
-                .thenCancel().verify(Duration.ofSeconds(45));
+        StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
+                .verify(Duration.ofSeconds(45));
     }
 
     private static final String WARMUP_BODY = "{\"subject\":\"_\",\"action\":\"_\",\"resource\":\"_\"}";
@@ -96,8 +96,10 @@ class RemoteHttpDecisionPointServerIT {
     };
 
     /**
-     * Issues one raw decision request with a generous timeout to absorb the node's cold-start cost.
-     * Any HTTP response counts as warm. A transport error or timeout fails the test.
+     * Issues one raw decision request with a generous timeout to absorb the node's
+     * cold-start cost.
+     * Any HTTP response counts as warm. A transport error or timeout fails the
+     * test.
      */
     private void warmUpServer(String baseUrl, String authorizationHeader) {
         try {
