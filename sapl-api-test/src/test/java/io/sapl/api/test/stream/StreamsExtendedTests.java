@@ -50,6 +50,7 @@ class StreamsExtendedTests {
                              });
 
             try (stream) {
+                stream.tryNext(); // repeat is lazy; the first read starts the loop
                 await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 3);
             }
 
@@ -65,6 +66,7 @@ class StreamsExtendedTests {
                                  return Streams.just(Value.of("v"));
                              });
 
+            stream.tryNext(); // repeat is lazy; the first read starts the loop
             await().atMost(Duration.ofSeconds(1)).until(() -> factoryCalls.get() >= 2);
             stream.close();
             val countAtClose = factoryCalls.get();

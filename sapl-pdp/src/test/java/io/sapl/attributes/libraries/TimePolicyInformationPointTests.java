@@ -42,6 +42,7 @@ import java.time.ZoneOffset;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("TimePolicyInformationPoint")
@@ -432,6 +433,21 @@ class TimePolicyInformationPointTests {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
                 f.advanceTo(nextStart);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
+        }
+
+        @Test
+        @DisplayName("schedules only the next boundary, never a past-due one, while waiting")
+        void whenStartingAfterIntervalThenSchedulesOnlyTheNextBoundary() {
+            val f = fixtureAt("2021-11-08T18:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                // The repeat loop is lazy, so while it waits only the single next-day start
+                // boundary is queued. An eager loop reading the clock too early would also
+                // queue a past-due end-of-today boundary, whose stray emission can overwrite
+                // the legitimate next transition.
+                await().during(Duration.ofMillis(100)).atMost(Duration.ofMillis(300))
+                        .until(() -> f.scheduler.pendingCount() == 1);
             }
         }
 
