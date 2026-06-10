@@ -17,16 +17,12 @@
  */
 package io.sapl.compiler.index;
 
+import io.sapl.ast.BinaryOperatorType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.ast.BinaryOperatorType;
-
-import static io.sapl.compiler.index.SemanticHashing.binaryOp;
-import static io.sapl.compiler.index.SemanticHashing.commutative;
-import static io.sapl.compiler.index.SemanticHashing.kindHash;
-import static io.sapl.compiler.index.SemanticHashing.ordered;
+import static io.sapl.compiler.index.SemanticHashing.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SemanticHashing")

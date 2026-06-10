@@ -17,18 +17,14 @@
  */
 package io.sapl.compiler.policyset;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperatorType;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
-import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler;
+import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
+import io.sapl.compiler.policy.BooleanGuardCompiler;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

@@ -18,9 +18,12 @@
 package io.sapl.node.cli.benchmark;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,14 +40,14 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("returns null latency when no samples recorded")
-        void whenNoSamples_thenToLatencyReturnsNull() {
+        void whenNoSamplesThenToLatencyReturnsNull() {
             val collector = new LatencyCollector(100);
             assertThat(collector.toLatency()).isNull();
         }
 
         @Test
         @DisplayName("count is zero when no samples recorded")
-        void whenNoSamples_thenCountIsZero() {
+        void whenNoSamplesThenCountIsZero() {
             val collector = new LatencyCollector(100);
             assertThat(collector.count()).isZero();
         }
@@ -56,7 +59,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("all percentiles equal the single sample value")
-        void whenOneSample_thenAllPercentilesEqual() {
+        void whenOneSampleThenAllPercentilesEqual() {
             val collector = new LatencyCollector(100);
             collector.addSample(5000);
             val latency = collector.toLatency();
@@ -77,7 +80,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("computes correct mean and percentiles for known distribution")
-        void whenKnownDistribution_thenPercentilesCorrect() {
+        void whenKnownDistributionThenPercentilesCorrect() {
             val collector = new LatencyCollector(1000);
             // Record 100 samples: 1000, 2000, 3000, ..., 100000
             for (int i = 1; i <= 100; i++) {
@@ -95,7 +98,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("p99 is higher than p50 for skewed distribution")
-        void whenSkewedDistribution_thenP99HigherThanP50() {
+        void whenSkewedDistributionThenP99HigherThanP50() {
             val collector = new LatencyCollector(1000);
             for (int i = 0; i < 99; i++) {
                 collector.addSample(100);
@@ -112,7 +115,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("count caps at capacity when buffer overflows")
-        void whenOverflow_thenCountCapsAtCapacity() {
+        void whenOverflowThenCountCapsAtCapacity() {
             val collector = new LatencyCollector(10);
             for (int i = 0; i < 25; i++) {
                 collector.addSample(i * 100L);
@@ -122,7 +125,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("oldest samples are overwritten on overflow")
-        void whenOverflow_thenLatencyReflectsRecentSamples() {
+        void whenOverflowThenLatencyReflectsRecentSamples() {
             val collector = new LatencyCollector(5);
             // Record 1,2,3,4,5 then 100,200,300,400,500
             for (int i = 1; i <= 5; i++) {
@@ -143,7 +146,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("reset clears count and allows reuse")
-        void whenReset_thenCountZeroAndReusable() {
+        void whenResetThenCountZeroAndReusable() {
             val collector = new LatencyCollector(100);
             collector.addSample(1000);
             collector.addSample(2000);
@@ -165,7 +168,7 @@ class LatencyCollectorTests {
 
         @Test
         @DisplayName("concurrent writers do not lose samples")
-        void whenConcurrentWriters_thenAllSamplesRecorded() throws InterruptedException {
+        void whenConcurrentWritersThenAllSamplesRecorded() throws InterruptedException {
             val collector = new LatencyCollector(100_000);
             val threads   = 8;
             val perThread = 1000;
@@ -182,6 +185,35 @@ class LatencyCollectorTests {
 
             assertThat(latch.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
             assertThat(collector.count()).isEqualTo(threads * perThread);
+        }
+    }
+
+    @Nested
+    @DisplayName("invariants")
+    class InvariantsTests {
+
+        @Test
+        @DisplayName("constructor rejects non-positive capacity")
+        void whenCapacityNotPositiveThenThrows() {
+            assertThatThrownBy(() -> new LatencyCollector(0)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("capacity");
+            assertThatThrownBy(() -> new LatencyCollector(-1)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("capacity");
+        }
+
+        @Test
+        @DisplayName("addSample does not throw when the internal counter has crossed Integer.MAX_VALUE")
+        void whenIndexPastIntegerMaxThenAddSampleStillWorks() throws Exception {
+            val collector  = new LatencyCollector(10);
+            val indexField = LatencyCollector.class.getDeclaredField("index");
+            indexField.setAccessible(true);
+            ((AtomicLong) indexField.get(collector)).set((long) Integer.MAX_VALUE + 1);
+
+            assertThatCode(() -> {
+                for (int i = 0; i < 100; i++) {
+                    collector.addSample(i);
+                }
+            }).doesNotThrowAnyException();
         }
     }
 }

@@ -20,18 +20,18 @@ package io.sapl.attributes.libraries;
 import io.sapl.api.attributes.Attribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.BooleanValue;
+import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.stream.TimeScheduler;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
 import io.sapl.functions.libraries.crypto.CryptoException;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.security.cert.CertificateException;
 import java.time.Clock;
-import java.time.Duration;
 
 /**
  * Policy Information Point for reactive X.509 certificate validity monitoring.
@@ -94,7 +94,8 @@ public class X509PolicyInformationPoint {
 
     private static final String ERROR_FAILED_TO_PARSE_CERTIFICATE = "Failed to parse certificate: %s.";
 
-    private final Clock clock;
+    private final Clock         clock;
+    private final TimeScheduler scheduler;
 
     /**
      * Reactively monitors whether an X.509 certificate is currently within its
@@ -122,7 +123,7 @@ public class X509PolicyInformationPoint {
                 subject.clientCertificate.<x509.isCurrentlyValid>;
             ```
             """)
-    public Flux<Value> isCurrentlyValid(TextValue certPem) {
+    public Stream<Value> isCurrentlyValid(TextValue certPem) {
         try {
             val certificate = CertificateUtils.parseCertificate(certPem.value());
             val notBefore   = certificate.getNotBefore().toInstant();
@@ -130,21 +131,18 @@ public class X509PolicyInformationPoint {
             val now         = clock.instant();
 
             if (now.isAfter(notAfter)) {
-                return Flux.just(Value.FALSE);
+                return Streams.just(Value.FALSE);
             }
 
             if (now.isBefore(notBefore)) {
-                val untilValid   = Duration.between(now, notBefore);
-                val validitySpan = Duration.between(notBefore, notAfter);
-                return Flux.concat(Mono.just(Value.FALSE), Mono.just(Value.TRUE).delayElement(untilValid),
-                        Mono.just(Value.FALSE).delayElement(validitySpan));
+                return Streams.concat(Streams.just(Value.FALSE), Streams.scheduledAt(Value.TRUE, notBefore, scheduler),
+                        Streams.scheduledAt(Value.FALSE, notAfter, scheduler));
             }
 
-            val untilExpired = Duration.between(now, notAfter);
-            return Flux.concat(Mono.just(Value.TRUE), Mono.just(Value.FALSE).delayElement(untilExpired));
+            return Streams.concat(Streams.just(Value.TRUE), Streams.scheduledAt(Value.FALSE, notAfter, scheduler));
 
         } catch (CertificateException | CryptoException exception) {
-            return Flux.just(Value.error(ERROR_FAILED_TO_PARSE_CERTIFICATE.formatted(exception.getMessage())));
+            return Streams.error(ERROR_FAILED_TO_PARSE_CERTIFICATE.formatted(exception.getMessage()));
         }
     }
 
@@ -174,8 +172,8 @@ public class X509PolicyInformationPoint {
                 subject.clientCertificate.<x509.isExpired>;
             ```
             """)
-    public Flux<Value> isExpired(TextValue certPem) {
-        return isCurrentlyValid(certPem).map(v -> v instanceof BooleanValue(var b) ? Value.of(!b) : v);
+    public Stream<Value> isExpired(TextValue certPem) {
+        return Streams.map(isCurrentlyValid(certPem), v -> v instanceof BooleanValue(var b) ? Value.of(!b) : v);
     }
 
 }

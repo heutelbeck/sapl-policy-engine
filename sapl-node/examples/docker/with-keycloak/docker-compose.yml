@@ -42,7 +42,7 @@ services:
       start_period: 30s
 
   sapl-node:
-    image: ghcr.io/heutelbeck/sapl-node:4.0.0
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
     container_name: sapl-node-oauth2
     ports:
       - "8443:8443"

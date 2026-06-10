@@ -1,0 +1,35 @@
+
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %clr(%-5level) %clr(%-40.-40logger{0}){cyan} %message%n%wEx"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <logger name="org.eclipse.jetty"                                                            level="WARN"/>
+    <logger name="org.springframework.boot.jetty"                                               level="WARN"/>
+    <logger name="org.springframework.boot.web"                                                 level="WARN"/>
+    <logger name="org.springframework.boot.autoconfigure"                                       level="WARN"/>
+    <logger name="org.springframework.security.config.annotation"                               level="WARN"/>
+    <logger name="org.springframework.boot.actuate.autoconfigure"                               level="WARN"/>
+    <logger name="org.springframework.context.support"                                          level="WARN"/>
+    <!-- Spring's WARN dump of the full bean-wrapping ladder on context init failure. The FailureAnalyzer prints a clean message instead. -->
+    <logger name="org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext" level="ERROR"/>
+    <logger name="org.springframework.boot.actuate.autoconfigure.logging.ConditionEvaluationReportLogger" level="ERROR"/>
+    <logger name="org.springdoc.core.events.SpringDocAppInitializer"                                      level="ERROR"/>
+    <logger name="org.springframework.boot.webmvc.autoconfigure.WelcomePageHandlerMapping"                level="WARN"/>
+    <logger name="org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver"                    level="WARN"/>
+    <logger name="org.springframework.web.servlet.DispatcherServlet"                                      level="WARN"/>
+    <logger name="org.springframework.boot.SpringApplication"                                             level="WARN"/>
+    <logger name="org.springframework.security.config.annotation.web.builders.WebSecurity"                level="ERROR"/>
+    <logger name="io.sapl.pdp.configuration.source.DirectoryPDPConfigurationSource"                      level="WARN"/>
+</configuration>

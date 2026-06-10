@@ -33,20 +33,8 @@ import org.mockito.MockedStatic;
 
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_BACKOFF_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_POLL_INTERVAL_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_RETRIES;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.DEFAULT_TIMEOUT_MS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_BACKOFF;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_FRESH;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_INITIAL_TIMEOUT;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_POLL_INTERVAL;
-import static io.sapl.compiler.expressions.AttributeOptionsCompiler.OPTION_RETRIES;
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.TestPureOperator;
-import static io.sapl.util.SaplTesting.TestStreamOperator;
-import static io.sapl.util.SaplTesting.compilationContext;
+import static io.sapl.compiler.expressions.AttributeCompiler.*;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -63,7 +51,7 @@ class AttributeOptionsCompilerTests {
         @DisplayName("with no PDP settings returns all defaults")
         void withNoPdpSettingsReturnsDefaultSettings() {
             val ctx    = compilationContext();
-            val result = AttributeOptionsCompiler.compileOptions(null, ctx);
+            val result = AttributeCompiler.compileOptions(null, ctx);
 
             assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
                 val obj = (ObjectValue) r;
@@ -82,7 +70,7 @@ class AttributeOptionsCompilerTests {
                     .put(OPTION_RETRIES, Value.of(10L)).build();
             val variables  = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpOptions).build();
             val ctx        = compilationContext(variables);
-            val result     = AttributeOptionsCompiler.compileOptions(null, ctx);
+            val result     = AttributeCompiler.compileOptions(null, ctx);
 
             assertThat(result).isInstanceOf(ObjectValue.class).satisfies(r -> {
                 val obj = (ObjectValue) r;
@@ -101,7 +89,7 @@ class AttributeOptionsCompilerTests {
             val ctx               = compilationContext(variables);
             val expr              = new Literal(Value.NULL, TEST_LOCATION);
 
-            assertThatThrownBy(() -> AttributeOptionsCompiler.compileOptions(expr, ctx))
+            assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("PDP wide defaults");
         }
     }
@@ -178,7 +166,7 @@ class AttributeOptionsCompilerTests {
             try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
                 mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(compiled);
 
-                assertThatThrownBy(() -> AttributeOptionsCompiler.compileOptions(expr, ctx))
+                assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
                         .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedMessage);
             }
         }
@@ -192,11 +180,124 @@ class AttributeOptionsCompilerTests {
         }
     }
 
+    @Nested
+    @DisplayName("when a timing option is non-positive")
+    class WhenTimingOptionIsNonPositive {
+
+        @MethodSource
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("throws SaplCompilerException")
+        void throwsException(String description, String optionKey, Value badValue, String expectedKeyFragment) {
+            val options = ObjectValue.builder().put(optionKey, badValue).build();
+            val expr    = new Literal(options, TEST_LOCATION);
+            val ctx     = compilationContext();
+
+            try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(options);
+
+                assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
+                        .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedKeyFragment)
+                        .hasMessageContaining("positive");
+            }
+        }
+
+        static Stream<Arguments> throwsException() {
+            return Stream.of(
+                    arguments("zero initialTimeOutMs", OPTION_INITIAL_TIMEOUT, Value.of(0L), "initialTimeOutMs"),
+                    arguments("negative initialTimeOutMs", OPTION_INITIAL_TIMEOUT, Value.of(-1L), "initialTimeOutMs"),
+                    arguments("zero pollIntervalMs", OPTION_POLL_INTERVAL, Value.of(0L), "pollIntervalMs"),
+                    arguments("negative pollIntervalMs", OPTION_POLL_INTERVAL, Value.of(-1L), "pollIntervalMs"),
+                    arguments("zero backoffMs", OPTION_BACKOFF, Value.of(0L), "backoffMs"),
+                    arguments("negative backoffMs", OPTION_BACKOFF, Value.of(-1L), "backoffMs"));
+        }
+    }
+
+    @Nested
+    @DisplayName("when retries option is negative")
+    class WhenRetriesIsNegative {
+
+        @Test
+        @DisplayName("throws SaplCompilerException")
+        void throwsException() {
+            val options = ObjectValue.builder().put(OPTION_RETRIES, Value.of(-1L)).build();
+            val expr    = new Literal(options, TEST_LOCATION);
+            val ctx     = compilationContext();
+
+            try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(options);
+
+                assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
+                        .isInstanceOf(SaplCompilerException.class).hasMessageContaining("retries")
+                        .hasMessageContaining("non-negative");
+            }
+        }
+
+        @Test
+        @DisplayName("zero retries is accepted")
+        void zeroRetriesIsAccepted() {
+            val options = ObjectValue.builder().put(OPTION_RETRIES, Value.of(0L)).build();
+            val expr    = new Literal(options, TEST_LOCATION);
+            val ctx     = compilationContext();
+
+            try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(options);
+
+                val result = AttributeCompiler.compileOptions(expr, ctx);
+                assertThat(((ObjectValue) result).get(OPTION_RETRIES)).isEqualTo(Value.of(0L));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("when an option has the wrong type")
+    class WhenOptionHasWrongType {
+
+        @MethodSource
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("throws SaplCompilerException")
+        void throwsException(String description, String optionKey, Value badValue, String expectedFragment) {
+            val options = ObjectValue.builder().put(optionKey, badValue).build();
+            val expr    = new Literal(options, TEST_LOCATION);
+            val ctx     = compilationContext();
+
+            try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(options);
+
+                assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
+                        .isInstanceOf(SaplCompilerException.class).hasMessageContaining(expectedFragment);
+            }
+        }
+
+        static Stream<Arguments> throwsException() {
+            return Stream.of(
+                    arguments("non-numeric initialTimeOutMs", OPTION_INITIAL_TIMEOUT, Value.of("oops"), "number"),
+                    arguments("non-numeric retries", OPTION_RETRIES, Value.TRUE, "number"),
+                    arguments("non-boolean fresh", OPTION_FRESH, Value.of("yes"), "boolean"));
+        }
+    }
+
+    @Nested
+    @DisplayName("when PDP settings carry an invalid value")
+    class WhenPdpSettingsInvalid {
+
+        @Test
+        @DisplayName("non-positive value in PDP settings throws even with no policy options")
+        void throwsOnInvalidPdpValueWithNoPolicyOptions() {
+            val pdpOptions = ObjectValue.builder().put(OPTION_INITIAL_TIMEOUT, Value.of(0L)).build();
+            val variables  = ObjectValue.builder().put(OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS, pdpOptions).build();
+            val ctx        = compilationContext(variables);
+
+            assertThatThrownBy(() -> AttributeCompiler.compileOptions(null, ctx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("initialTimeOutMs")
+                    .hasMessageContaining("positive");
+        }
+    }
+
     private static CompiledExpression compileWithMockedExpression(Expression expr, CompilationContext ctx,
             CompiledExpression returnValue) {
         try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
             mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(returnValue);
-            return AttributeOptionsCompiler.compileOptions(expr, ctx);
+            return AttributeCompiler.compileOptions(expr, ctx);
         }
     }
 }

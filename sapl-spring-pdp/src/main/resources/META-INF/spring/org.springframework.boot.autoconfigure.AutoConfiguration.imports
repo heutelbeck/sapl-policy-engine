@@ -1,0 +1,4 @@
+io.sapl.spring.pdp.embedded.PDPAutoConfiguration
+io.sapl.spring.pdp.embedded.InterceptorAutoConfiguration
+io.sapl.spring.pdp.embedded.PdpHealthIndicatorAutoConfiguration
+io.sapl.spring.pdp.embedded.PdpObjectMapperAutoConfiguration

@@ -99,7 +99,7 @@ class GithubScenarioTests {
         for (var policy : GithubScenarioGenerator.POLICIES) {
             fixture.withPolicy(policy);
         }
-        return fixture.withFunctionLibrary(GraphFunctionLibrary.class).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
+        return fixture.withFunctionLibrary(new GraphFunctionLibrary()).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
                 .givenVariable("entityGraph", ENTITY_GRAPH).givenVariable("repos", REPOS).givenVariable("orgs", ORGS);
     }
 

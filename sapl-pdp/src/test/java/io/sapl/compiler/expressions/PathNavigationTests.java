@@ -18,6 +18,7 @@
 package io.sapl.compiler.expressions;
 
 import io.sapl.api.model.Value;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,8 +30,6 @@ import static io.sapl.util.SaplTesting.assertIsErrorContaining;
 import static io.sapl.util.SaplTesting.evaluateExpression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 /**
  * Tests for path navigation algorithm in ExtendedFilterCompiler.
@@ -49,7 +48,6 @@ class PathNavigationTests {
     // @formatter:off
     private static Stream<Arguments> whenPathNavigationThenReturnsExpected() {
         return Stream.of(
-            // === KeyPath (@.key): navigate into object field ===
             arguments("keyPath_replacesDirectField",
                 """
                 {"a": 1, "b": 2} |- { @.a : filter.replace("***") }
@@ -72,7 +70,6 @@ class PathNavigationTests {
                 {"first": 1, "second": "***", "third": 3}
                 """)),
 
-            // === Blacklist semantics: type mismatches return unchanged ===
             arguments("keyPath_onNonObject_returnsUnchanged",
                 """
                 "not an object" |- { @.a : filter.replace("***") }
@@ -93,7 +90,6 @@ class PathNavigationTests {
                 {"outer": {"a": 1}}
                 """)),
 
-            // === IndexPath (@[n]): navigate into array element ===
             arguments("indexPath_replacesFirstElement",
                 """
                 [1, 2, 3] |- { @[0] : filter.replace("***") }
@@ -130,7 +126,6 @@ class PathNavigationTests {
                 [1, 2, "***", 4]
                 """)),
 
-            // === IndexPath blacklist semantics ===
             arguments("indexPath_onNonArray_returnsUnchanged",
                 """
                 {"a": 1} |- { @[0] : filter.replace("***") }
@@ -149,7 +144,6 @@ class PathNavigationTests {
                 """,
                 json("[1, 2, 3]")),
 
-            // === Combined paths: KeyPath + IndexPath ===
             arguments("keyThenIndex_replacesNestedArrayElement",
                 """
                 {"items": [1, 2, 3]} |- { @.items[1] : filter.replace("***") }
@@ -186,7 +180,6 @@ class PathNavigationTests {
                 {"items": "not an array"}
                 """)),
 
-            // === WildcardPath (@[*] / @.*): mark all children ===
             arguments("wildcardPath_marksAllArrayElements",
                 """
                 [1, 2, 3] |- { @[*] : filter.replace("***") }
@@ -212,7 +205,6 @@ class PathNavigationTests {
                 """,
                 json("{}")),
 
-            // === WildcardPath blacklist semantics ===
             arguments("wildcardPath_onScalar_returnsUnchanged",
                 """
                 42 |- { @[*] : filter.replace("***") }
@@ -224,7 +216,6 @@ class PathNavigationTests {
                 """,
                 Value.of("hello")),
 
-            // === WildcardPath + nested paths ===
             arguments("wildcardThenKey_marksFieldInAllObjects",
                 """
                 [{"name": "alice"}, {"name": "bob"}] |- { @[*].name : filter.replace("***") }
@@ -261,7 +252,6 @@ class PathNavigationTests {
                 [["***", "***"], ["***", "***"]]
                 """)),
 
-            // === AttributeUnionPath (@["a","b"]): mark multiple keys ===
             arguments("attributeUnion_marksTwoKeys",
                 """
                 {"a": 1, "b": 2, "c": 3} |- { @["a","c"] : filter.replace("***") }
@@ -298,7 +288,6 @@ class PathNavigationTests {
                 {"x": 1}
                 """)),
 
-            // === IndexUnionPath (@[0,2]): mark multiple indices ===
             arguments("indexUnion_marksTwoIndices",
                 """
                 [1, 2, 3, 4, 5] |- { @[0,2] : filter.replace("***") }
@@ -333,7 +322,6 @@ class PathNavigationTests {
                 """,
                 json("[1, 2, 3]")),
 
-            // === Union + nested paths ===
             arguments("attributeUnionThenKey_marksNestedInMultiple",
                 """
                 {"user": {"name": "alice"}, "admin": {"name": "bob"}} |- { @["user","admin"].name : filter.replace("***") }
@@ -370,7 +358,6 @@ class PathNavigationTests {
                 [{"a": "***", "b": 2, "c": "***"}, {"a": "***", "b": 5, "c": "***"}]
                 """)),
 
-            // === SlicePath (@[start:end:step]): mark array slices ===
             arguments("slicePath_basicRange_marksSlice",
                 """
                 [1, 2, 3, 4, 5] |- { @[1:4] : filter.replace("***") }
@@ -449,7 +436,6 @@ class PathNavigationTests {
                 ["***", "***", "***", "***", 5]
                 """)),
 
-            // === SlicePath blacklist semantics ===
             arguments("slicePath_onNonArray_returnsUnchanged",
                 """
                 {"a": 1} |- { @[1:3] : filter.replace("***") }
@@ -473,7 +459,6 @@ class PathNavigationTests {
                 """,
                 json("[1, 2, 3]")),
 
-            // === SlicePath + nested paths ===
             arguments("sliceThenKey_marksFieldInSlicedObjects",
                 """
                 [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}] |- { @[1:3].x : filter.replace("***") }
@@ -510,7 +495,6 @@ class PathNavigationTests {
                 [["***", "***"], ["***", "***"], [5, 6]]
                 """)),
 
-            // === ExpressionPath (@[(expr)]): dynamic index/key navigation ===
             arguments("expressionPath_literalIndex_redactsSensitiveItem",
                 """
                 ["public", "secret", "public"] |- { @[(1)] : filter.replace("***") }
@@ -582,7 +566,6 @@ class PathNavigationTests {
                 [["***", "b", "c"], ["d", "e", "***"]]
                 """)),
 
-            // === ExpressionPath blacklist semantics ===
             arguments("expressionPath_invalidExprType_returnsUnchanged",
                 """
                 [1, 2, 3] |- { @[(true)] : filter.replace("***") }
@@ -601,7 +584,6 @@ class PathNavigationTests {
                 {"a": 1}
                 """)),
 
-            // === ExpressionPath + nested paths ===
             arguments("expressionPathThenKey_redactsNestedSensitiveField",
                 """
                 {"sensitiveKey": "user2", "user1": {"data": "public"}, "user2": {"data": "secret"}} |- { @[(@.sensitiveKey)].data : filter.replace("***") }
@@ -617,7 +599,6 @@ class PathNavigationTests {
                 [[1, "***", 3], [4, "***", 6], [7, "***", 9]]
                 """)),
 
-            // === ConditionPath (@[?(cond)]): filter elements by condition ===
             arguments("conditionPath_literalTrue_redactsAllElements",
                 """
                 [1, 2, 3, 4] |- { @[?(true)] : filter.replace("***") }
@@ -680,7 +661,6 @@ class PathNavigationTests {
                 {"first": 1, "second": "***", "third": 3}
                 """)),
 
-            // === ConditionPath blacklist semantics ===
             arguments("conditionPath_onScalar_returnsUnchanged",
                 """
                 42 |- { @[?(true)] : filter.replace("***") }
@@ -692,7 +672,6 @@ class PathNavigationTests {
                 """,
                 json("[1, 2, 3]")),
 
-            // === ConditionPath + nested paths ===
             arguments("wildcardThenConditionPath_redactsMatchingInEachArray",
                 """
                 [[1, 5, 2], [10, 3, 8]] |- { @[*][?(@ > 4)] : filter.replace("***") }
@@ -722,7 +701,6 @@ class PathNavigationTests {
                 {"items": [{"keep": false, "v": 1}, "***", {"keep": false, "v": 3}]}
                 """)),
 
-            // === Additional IndexPath edge cases ===
             arguments("indexPath_outOfBoundsInPath_returnsUnchanged",
                 """
                 {"arr": [1, 2, 3]} |- { @.arr[10].field : filter.replace("***") }
@@ -757,7 +735,6 @@ class PathNavigationTests {
                 {"data": [[1, 2]]}
                 """)),
 
-            // === RecursiveKeyPath (@..key): find key at any depth ===
             arguments("recursiveKeyPath_singleMatch_marksIt",
                 """
                 {"a": {"b": {"target": "found"}}} |- { @..target : filter.replace("***") }
@@ -813,7 +790,6 @@ class PathNavigationTests {
                 """,
                 Value.of(42)),
 
-            // === RecursiveIndexPath (@..[n]): find index at any depth ===
             arguments("recursiveIndexPath_singleArray_marksIndex",
                 """
                 [1, 2, 3] |- { @..[1] : filter.replace("***") }
@@ -857,7 +833,6 @@ class PathNavigationTests {
                 {"short": [1], "long": [1, 2, "***"]}
                 """)),
 
-            // === RecursiveWildcardPath (@..*): descend into all nested values ===
             arguments("recursiveWildcardPath_flatObject_marksAllValues",
                 """
                 {"a": 1, "b": 2} |- { @..* : filter.replace("***") }
@@ -912,7 +887,6 @@ class PathNavigationTests {
     // @formatter:off
     private static Stream<Arguments> whenPathNavigationWithErrorThenReturnsError() {
         return Stream.of(
-            // === Error short-circuit tests for ExtendedFilter ===
             arguments("conditionPath_errorInCondition_bubblesUpImmediately",
                 """
                 [1, 2, 3, 4, 5] |- { @[?(1/0 == 1)] : filter.replace("***") }

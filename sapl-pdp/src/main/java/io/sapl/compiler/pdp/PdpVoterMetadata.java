@@ -17,7 +17,7 @@
  */
 package io.sapl.compiler.pdp;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import lombok.NonNull;

@@ -34,11 +34,11 @@ import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.PolicyVoterMetadata;
 import io.sapl.ast.PolicySetVoterMetadata;
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.BodyCoverage;
 import io.sapl.compiler.model.Coverage.ConditionHit;
@@ -85,7 +85,7 @@ class CoverageExtractorTests {
         val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, Map.of());
 
         assertThat(coverages).hasSize(1);
-        // Policy returned NOT_APPLICABLE instead of its entitlement (PERMIT)
+        // Policy returned NOT_APPLICABLE instead of its effect (PERMIT)
         // This is tracked via policy outcome
     }
 
@@ -137,8 +137,7 @@ class CoverageExtractorTests {
         val voter            = new PolicyVoterMetadata("error-policy", "default", "config", null, Outcome.PERMIT,
                 false);
         val policyCoverage   = new PolicyCoverage(voter, bodyCoverage);
-        val vote             = new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), List.of(), voter,
-                Outcome.PERMIT);
+        val vote             = new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), voter, Outcome.PERMIT);
         val voteWithCoverage = new VoteWithCoverage(vote, policyCoverage);
 
         val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, Map.of());
@@ -160,8 +159,7 @@ class CoverageExtractorTests {
     @DisplayName("hasCoverageData returns false when coverage is null")
     void whenCoverageNull_thenHasCoverageDataReturnsFalse() {
         val voter            = new PolicyVoterMetadata("policy", "default", "config", null, Outcome.PERMIT, false);
-        val vote             = new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), List.of(), voter,
-                Outcome.PERMIT);
+        val vote             = new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), voter, Outcome.PERMIT);
         val voteWithCoverage = new VoteWithCoverage(vote, null);
 
         assertThat(CoverageExtractor.hasCoverageData(voteWithCoverage)).isFalse();
@@ -198,8 +196,7 @@ class CoverageExtractorTests {
         val voter            = new PolicyVoterMetadata("no-loc-policy", "default", "config", null, Outcome.PERMIT,
                 false);
         val policyCoverage   = new PolicyCoverage(voter, bodyCoverage);
-        val vote             = new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), List.of(), voter,
-                Outcome.PERMIT);
+        val vote             = new Vote(AuthorizationDecision.PERMIT, List.of(), List.of(), voter, Outcome.PERMIT);
         val voteWithCoverage = new VoteWithCoverage(vote, policyCoverage);
 
         val coverages = CoverageExtractor.extractCoverage(voteWithCoverage, Map.of());
@@ -223,7 +220,7 @@ class CoverageExtractorTests {
         val voter          = new PolicyVoterMetadata(policyName, "default", "config", null, outcome, false);
         val policyCoverage = new PolicyCoverage(voter, bodyCoverage);
 
-        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), List.of(), voter, outcome);
+        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), voter, outcome);
 
         return new VoteWithCoverage(vote, policyCoverage);
     }
@@ -237,7 +234,7 @@ class CoverageExtractorTests {
 
         val setCoverage = new PolicySetCoverage(voter, targetHit, List.of());
 
-        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), List.of(), voter, outcome);
+        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), voter, outcome);
 
         return new VoteWithCoverage(vote, setCoverage);
     }
@@ -246,6 +243,7 @@ class CoverageExtractorTests {
         return switch (decision) {
         case PERMIT         -> AuthorizationDecision.PERMIT;
         case DENY           -> AuthorizationDecision.DENY;
+        case SUSPEND        -> AuthorizationDecision.SUSPEND;
         case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
         };

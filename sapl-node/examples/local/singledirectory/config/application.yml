@@ -48,11 +48,13 @@ io.sapl:
       - id: "demo-apikey-client-1"
         pdp-id: "default"
         # API key plaintext: sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j
+        api-key-id: "7A7ByyQd6U"
         api-key: "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM"
 
       - id: "demo-apikey-client-2"
         pdp-id: "default"
         # API key plaintext: sapl_oCR3QQ8fhD_XYs3x1dQ3M1NM9FJLjPHlwd1NXiMdZ1f
+        api-key-id: "oCR3QQ8fhD"
         api-key: "$argon2id$v=19$m=16384,t=2,p=1$EATdeVYu9zNEnS6cnr8x+A$z+sdYbjvms6rFXhCJ6C5a3FtnKu0NBmMSAo9KVIZ42k"
 
 spring.security.oauth2:

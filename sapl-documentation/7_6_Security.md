@@ -40,7 +40,7 @@ In both contexts, authorization requests without matching policies are denied.
 
 SAPL Node supports four authentication modes. Each mode is controlled by a boolean property under `io.sapl.node`. Multiple modes can be active at the same time. When all four modes are disabled, every request is rejected.
 
-By default, `allow-no-auth` is enabled so the node is functional out of the box for development. For production, disable `allow-no-auth` and enable one or more credential-based modes.
+By default all four modes are disabled (fail-closed) and the node refuses to start. Enable at least one mode before launching. For local exploration set `allow-no-auth: true`; for production use one or more credential-based modes.
 
 A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdp-id` from the matched credential entry selects which tenant's policies evaluate the request.
 
@@ -81,7 +81,7 @@ The command prints the plaintext password and the YAML configuration block. Stor
 
 ### API Key Authentication
 
-API keys are sent as Bearer tokens in the `Authorization` header. The client sends `Authorization: Bearer sapl_...` on each request.
+API keys are sent as Bearer tokens in the `Authorization` header. The wire format is `sapl_<id>_<secret>` and the client sends `Authorization: Bearer sapl_<id>_<secret>` on each request.
 
 ```yaml
 io.sapl.node:
@@ -89,6 +89,7 @@ io.sapl.node:
   users:
     - id: "service-b"
       pdp-id: "production"
+      api-key-id: "<from-generator>"
       api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 ```
 
@@ -98,7 +99,7 @@ Generate a key with the CLI:
 sapl generate apikey --id service-b --pdp-id production
 ```
 
-The command prints the plaintext API key and the Argon2 encoded hash. The plaintext key is shown once and cannot be recovered from the hash.
+The command prints three things: the plaintext API key, its public `api-key-id` (the middle segment of the wire format), and the Argon2 encoded hash. Both `api-key-id` and `api-key` go into the user entry; the plaintext is shown once and cannot be recovered from the hash. The `api-key-id` lets the server route incoming requests in O(1); user entries without it fall back to an O(N) Argon2 scan and are kept only for backward compatibility with older configurations.
 
 ### OAuth2 and JWT
 
@@ -118,6 +119,14 @@ spring.security.oauth2:
 
 The node fetches the JWKS endpoint from the issuer URI and validates token signatures automatically. The `pdp-id-claim` property specifies which JWT claim contains the PDP identifier for tenant routing. If the claim is absent, the `default-pdp-id` is used.
 
+### CSRF Posture
+
+The SAPL Node disables Spring's CSRF token mechanism. The API is stateless, no session cookies are issued, and the CSRF safety invariant is **Bearer-only authentication** (API key, OAuth2 JWT). Browsers do not auto-attach `Authorization: Bearer` headers, and cross-origin JavaScript cannot set them without CORS approval, so an attacker page cannot issue a credentialed request to the node.
+
+Basic authentication is the exception. Browsers cache Basic credentials for the duration of the session and re-send them on every request to the origin, which reintroduces a CSRF surface. The current PDP endpoints are decision-only, do not mutate state, and the response body is not readable cross-origin under Same-Origin Policy, so the practical payoff for an attacker is limited to triggering work on the node. The node logs a WARN at startup whenever Basic auth is enabled.
+
+For production deployments prefer API key or OAuth2 JWT. If you add state-mutating endpoints, disable Basic auth on those routes or pair them with an explicit CSRF defense.
+
 ### Multi Tenant Routing
 
 Every credential entry includes a `pdp-id` that routes the client to a specific tenant's policies. For `MULTI_DIRECTORY` sources, the `pdp-id` maps to a subdirectory name. For `BUNDLES` sources, it maps to a bundle filename without the `.saplbundle` extension.
@@ -129,9 +138,11 @@ io.sapl.node:
   users:
     - id: "prod-client"
       pdp-id: "production"
+      api-key-id: "<from-generator>"
       api-key: "$argon2id$..."
     - id: "staging-client"
       pdp-id: "staging"
+      api-key-id: "<from-generator>"
       api-key: "$argon2id$..."
 ```
 
@@ -141,7 +152,7 @@ For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oau
 
 ### TLS
 
-TLS is disabled by default so the node starts without a certificate. To enable TLS, configure a keystore:
+TLS is disabled by default so the node starts without a certificate. The HTTP server ships on port 8080 (plain HTTP); enable TLS by configuring a keystore and binding to the HTTPS-conventional port 8443:
 
 ```yaml
 server:
@@ -152,6 +163,40 @@ server:
     key-store-password: "${KEYSTORE_PASSWORD}"
     key-store-type: PKCS12
 ```
+
+#### Sharing TLS material across HTTP and RSocket via SSL bundles
+
+Spring Boot SSL bundles centralise keystore configuration so HTTP and RSocket can terminate TLS using the same material. Define the bundle once under `spring.ssl.bundle.*`, then reference it by name from each transport:
+
+```yaml
+spring:
+  ssl:
+    bundle:
+      jks:
+        sapl-bundle:
+          key:
+            alias: sapl-node
+            password: "${KEYSTORE_PASSWORD}"
+          keystore:
+            location: file:/opt/sapl/tls/keystore.p12
+            password: "${KEYSTORE_PASSWORD}"
+            type: PKCS12
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    bundle: sapl-bundle
+
+sapl:
+  pdp:
+    rsocket:
+      enabled: true
+      ssl:
+        bundle: sapl-bundle
+```
+
+CLI clients connect with `--rsocket --rsocket-tls`; the `--insecure` flag skips certificate verification against self-signed development certificates. See [Configuration](../7_2_Configuration/#rsocket-properties) for the full RSocket property reference.
 
 The default configuration restricts connections to modern cipher suites and protocol versions:
 
@@ -221,6 +266,7 @@ io.sapl:
     users:
       - id: "service-a"
         pdp-id: "default"
+        api-key-id: "<from-generator>"
         api-key: "$argon2id$v=19$m=16384,t=2,p=1$..."
 
 server:
@@ -285,7 +331,7 @@ This sends a keep-alive frame every 15 seconds. Set the proxy read timeout to a 
 
 ```nginx
 location /api/pdp/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
     proxy_buffering off;
     proxy_cache off;
     proxy_read_timeout 3600s;
@@ -295,7 +341,7 @@ location /api/pdp/ {
 }
 
 location /actuator/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
 }
 ```
 
@@ -304,14 +350,14 @@ location /actuator/ {
 Enable `mod_proxy` and `mod_proxy_http`. Disable response buffering for the PDP path:
 
 ```apache
-ProxyPass /api/pdp/ http://127.0.0.1:8443/api/pdp/
-ProxyPassReverse /api/pdp/ http://127.0.0.1:8443/api/pdp/
+ProxyPass /api/pdp/ http://127.0.0.1:8080/api/pdp/
+ProxyPassReverse /api/pdp/ http://127.0.0.1:8080/api/pdp/
 SetEnv proxy-sendchunked 1
 SetEnv proxy-sendcl 0
 ProxyTimeout 3600
 
-ProxyPass /actuator/ http://127.0.0.1:8443/actuator/
-ProxyPassReverse /actuator/ http://127.0.0.1:8443/actuator/
+ProxyPass /actuator/ http://127.0.0.1:8080/actuator/
+ProxyPassReverse /actuator/ http://127.0.0.1:8080/actuator/
 ```
 
 The non-streaming endpoints (`/api/pdp/decide-once`, `/api/pdp/multi-decide-all-once`) and actuator endpoints work with default proxy settings and do not require special configuration.

@@ -24,19 +24,23 @@ import org.springframework.security.core.Authentication;
  * Strategy interface for injecting secrets into authorization subscriptions.
  * <p>
  * Implementations extract credential material from the authentication context
- * and return it as an ObjectValue to be merged into subscription secrets.
+ * and return it as an ObjectValue to be
+ * merged into subscription secrets.
  * <p>
  * When an explicit secrets SpEL expression is provided in the annotation, the
- * SpEL expression takes precedence and the injector result is ignored.
+ * SpEL expression takes precedence and the
+ * injector result is ignored.
  */
 @FunctionalInterface
 public interface SubscriptionSecretsInjector {
 
     /**
-     * Extracts secrets from the given authentication to inject into
-     * authorization subscriptions.
+     * Extracts secrets from the given authentication to inject into authorization
+     * subscriptions.
      *
-     * @param authentication the current authentication
+     * @param authentication
+     * the current authentication
+     *
      * @return an ObjectValue containing secrets to merge, or
      * {@link io.sapl.api.model.Value#EMPTY_OBJECT} if no secrets
      * should be injected

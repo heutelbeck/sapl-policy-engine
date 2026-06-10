@@ -74,8 +74,8 @@ class SAPLSemanticTokensProvider {
             return -1;
         }
 
-        // Check for entitlements and algorithms (special macro styling)
-        if (SAPLSemanticTokenTypes.ENTITLEMENTS_AND_ALGORITHMS.contains(text)) {
+        // Check for effects and algorithms (special macro styling)
+        if (SAPLSemanticTokenTypes.EFFECTS_AND_ALGORITHMS.contains(text)) {
             return SAPLSemanticTokenTypes.MACRO;
         }
 
@@ -93,9 +93,9 @@ class SAPLSemanticTokensProvider {
             SAPLSemanticTokenTypes.KEYWORD;
 
         // Combining algorithm keywords
-        case SAPLLexer.FIRST, SAPLLexer.PRIORITY, SAPLLexer.UNANIMOUS, SAPLLexer.UNIQUE, SAPLLexer.KW_OR,
-                SAPLLexer.ERRORS, SAPLLexer.ABSTAIN,
-                SAPLLexer.PROPAGATE                                                                                                                                ->
+        case SAPLLexer.FIRST, SAPLLexer.PRIORITY, SAPLLexer.UNANIMOUS, SAPLLexer.UNIQUE, SAPLLexer.STRICT,
+                SAPLLexer.KW_OR, SAPLLexer.ERRORS, SAPLLexer.ABSTAIN,
+                SAPLLexer.PROPAGATE                                                                                                                                                  ->
             SAPLSemanticTokenTypes.MACRO;
 
         // Subscription elements as parameters

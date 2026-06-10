@@ -22,7 +22,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="${SCRIPT_DIR}/../../../.."
 SAPL_NODE_DIR="${PROJECT_ROOT}/sapl-node"
-JAR="${SAPL_NODE_DIR}/target/sapl-node-4.0.0.jar"
+JAR="${SAPL_NODE_DIR}/target/sapl-node-4.1.0-SNAPSHOT.jar"
 
 SAPL_PID=""
 LOAD_PID=""

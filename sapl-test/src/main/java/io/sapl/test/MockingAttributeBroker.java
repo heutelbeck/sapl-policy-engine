@@ -17,431 +17,262 @@
  */
 package io.sapl.test;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.AttributeSnapshot;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
 import io.sapl.test.verification.AttributeInvocationRecord;
 import io.sapl.test.verification.MockVerificationError;
 import io.sapl.test.verification.Times;
 import lombok.NonNull;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
+import lombok.val;
+import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 /**
- * An AttributeBroker decorator that intercepts attribute lookups and returns
- * mocked streams when configured.
+ * {@link AttributeBroker} mocking facility for tests. Mocks are
+ * registered against attribute name + matchers + entity matcher;
+ * values are emitted via {@link #emit(String, Value)} keyed by
+ * mockId; invocations are recorded for after-the-fact verification.
  * <p>
- * Implements a spy pattern: unmocked attributes delegate to the underlying
- * broker, while mocked attributes return test-controlled streams.
+ * PIP-aware gate semantic: mock registration acts as a PIP registration
+ * (gate stays closed until a value lands via {@link #emit}, unless an
+ * initial value was supplied at mock registration). Explicit
+ * {@link #register(String)} and {@link #register(String, Value)} cover
+ * non-mock attribute names. Keys with no mock, no delegate, and no
+ * explicit registration auto-materialise as {@link Value#UNDEFINED} so
+ * the gate opens deterministically rather than hanging silently.
  * <p>
- * Each mock is identified by a unique mockId provided at registration time.
- * This mockId is used for emitting values to specific mocks, eliminating
- * ambiguity when multiple mocks exist for the same attribute name.
+ * Re-fire on dep growth: when a callback returns expanded dependencies,
+ * any newly added auto-fills (UNDEFINED for unregistered, primed value
+ * for registered-with-initial, mock current value for matched mocks)
+ * cause the callback to fire once more so the consumer observes the
+ * new mailbox state, provided the gate is open after the new bindings.
  * <p>
- * Each mock uses a multicast sink with cache size 1 (replay latest). This
- * means:
- * <ul>
- * <li>Initial values are emitted to the sink immediately on mock
- * registration</li>
- * <li>Late subscribers receive the last emitted value (cached)</li>
- * <li>All current subscribers receive new emissions</li>
- * </ul>
- * <p>
- * Supports two types of attributes following SAPL semantics:
- * <ul>
- * <li>Environment attributes: no entity, matched by name and argument
- * arity</li>
- * <li>Regular attributes: matched by entity, name, and argument arity</li>
- * </ul>
- * <p>
- * Mock matching uses most-specific-first semantics, same as
- * {@link MockingFunctionBroker}.
+ * State mutations and reads are guarded by the broker's intrinsic lock.
+ * Callbacks fire outside the lock so consumer-side close, evaluation,
+ * or follow-on broker operations don't re-enter under the lock.
  */
 public final class MockingAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_ARGUMENTS_MUST_USE_ARGS     = "Arguments must be created via args().";
+    private static final String ERROR_INITIAL_DEPS_EMPTY          = "initialDependencies must not be empty";
     private static final String ERROR_MOCK_ID_ALREADY_REGISTERED  = "Mock ID '%s' is already registered.";
     private static final String ERROR_MOCK_ID_BLANK               = "Mock ID must not be blank.";
     private static final String ERROR_NO_MOCK_FOR_ID              = "No mock registered with ID '%s'.";
-    private static final String ERROR_NO_MOCK_MATCHED_NO_DELEGATE = "No mock matched attribute '%s' and no delegate broker configured.";
+    private static final String ERROR_RETURNED_DEPS_EMPTY         = "Subscription %s returned empty/null dependencies; close externally instead.";
+    private static final String ERROR_SUBSCRIPTION_ID_BLANK       = "subscriptionId must not be blank";
+    private static final String ERROR_SUBSCRIPTION_ID_IN_USE      = "subscriptionId already open: %s";
     private static final String ERROR_VERIFICATION_FAILED         = "Attribute verification failed for '%s'.%n";
     private static final String ERROR_VERIFICATION_NO_INVOCATIONS = "%nNo invocations of '%s' were recorded.";
     private static final String ERROR_VERIFICATION_RECORDED       = "%nRecorded invocations of '%s':";
 
-    private AttributeBroker                        delegate;
-    private final Map<String, List<AttributeMock>> mocksByName     = new HashMap<>();
-    private final Map<String, AttributeMock>       mocksById       = new HashMap<>();
-    private final Map<String, Sinks.Many<Value>>   sinks           = new HashMap<>();
-    private final List<AttributeInvocationRecord>  invocations     = new CopyOnWriteArrayList<>();
-    private final AtomicLong                       sequenceCounter = new AtomicLong(0);
+    private final Map<String, AttributeMock>              mocksById            = new HashMap<>();
+    private final Map<String, List<AttributeMock>>        mocksByName          = new HashMap<>();
+    private final Map<String, Value>                      currentValueByMockId = new HashMap<>();
+    private final Map<SubscriptionKey, AttributeSnapshot> mailbox              = new HashMap<>();
+    private final Map<SubscriptionKey, String>            keyToMockId          = new HashMap<>();
+    private final Map<SubscriptionKey, ForwardEntry>      forwards             = new HashMap<>();
+    private final Map<String, SubscriptionImpl>           subs                 = new HashMap<>();
+    private final Map<String, @Nullable Value>            registeredPips       = new HashMap<>();
+    private final List<AttributeInvocationRecord>         invocations          = new CopyOnWriteArrayList<>();
+    private final AtomicLong                              sequenceCounter      = new AtomicLong(0);
+    private AttributeBroker                               delegate;
 
-    /**
-     * Creates a mocking broker with no delegate.
-     * A delegate must be set via {@link #setDelegate(AttributeBroker)} before
-     * unmocked attributes can be resolved.
-     */
-    public MockingAttributeBroker() {
-        this.delegate = null;
-    }
-
-    /**
-     * Creates a mocking broker wrapping the given delegate.
-     *
-     * @param delegate the broker to delegate unmocked calls to
-     * @throws NullPointerException if delegate is null
-     */
-    public MockingAttributeBroker(@NonNull AttributeBroker delegate) {
+    public void setDelegate(AttributeBroker delegate) {
         this.delegate = delegate;
     }
 
     /**
-     * Sets or replaces the delegate broker for unmocked attribute lookups.
-     *
-     * @param delegate the broker to delegate unmocked calls to
-     * @throws NullPointerException if delegate is null
+     * Register a non-mock PIP for {@code attributeName}. Subsequent
+     * subscriptions whose dep set contains keys with this name leave
+     * those keys unbound (gate stays closed for that key) until a
+     * publish-equivalent value arrives.
      */
-    public void setDelegate(@NonNull AttributeBroker delegate) {
-        this.delegate = delegate;
-    }
-
-    @Override
-    public Flux<Value> attributeStream(AttributeFinderInvocation invocation) {
-        recordInvocation(invocation);
-        return findMostSpecificMatch(invocation).map(mock -> getStream(mock.mockId())).orElseGet(() -> {
-            if (delegate == null) {
-                // Return error Value - this causes policy evaluation to result in indeterminate
-                return Flux.just(Value.error(ERROR_NO_MOCK_MATCHED_NO_DELEGATE.formatted(invocation.attributeName())));
-            }
-            return delegate.attributeStream(invocation);
-        });
-    }
-
-    private void recordInvocation(AttributeFinderInvocation invocation) {
-        var invocationRecord = new AttributeInvocationRecord(invocation.attributeName(), invocation.entity(),
-                invocation.arguments(), sequenceCounter.getAndIncrement());
-        invocations.add(invocationRecord);
-    }
-
-    @Override
-    public List<Class<?>> getRegisteredLibraries() {
-        if (delegate == null) {
-            return List.of();
-        }
-        return delegate.getRegisteredLibraries();
+    public synchronized void register(String attributeName) {
+        registeredPips.put(attributeName, null);
     }
 
     /**
-     * Registers an environment attribute mock (streaming only).
-     * <p>
-     * The stream will only emit values when {@link #emit(String, Value)} is called
-     * with the same mockId. Late subscribers will wait for the first emit.
-     *
-     * @param mockId unique identifier for this mock (used for emit)
-     * @param attributeName fully qualified name (e.g., "time.now")
-     * @param arguments argument matchers defining arity
-     * @throws NullPointerException if mockId, attributeName, or arguments is null
-     * @throws IllegalArgumentException if mockId is blank, already registered, or
-     * arguments invalid
+     * Register a non-mock PIP for {@code attributeName} with an
+     * initial value. Subscriptions whose dep set contains keys with
+     * this name see the initial value in the mailbox at bind time.
      */
-    public void mockEnvironmentAttribute(String mockId, String attributeName, SaplTestFixture.Parameters arguments) {
+    public synchronized void register(String attributeName, Value initialValue) {
+        registeredPips.put(attributeName, initialValue);
+    }
+
+    public synchronized void mockEnvironmentAttribute(@NonNull String mockId, @NonNull String attributeName,
+            @NonNull SaplTestFixture.Parameters arguments) {
         mockEnvironmentAttribute(mockId, attributeName, arguments, null);
     }
 
-    /**
-     * Registers an environment attribute mock with an initial value.
-     * <p>
-     * The initial value is emitted immediately to the mock's sink and cached.
-     * All subscribers (including late ones) will receive the cached value,
-     * then any subsequent emissions via {@link #emit(String, Value)}.
-     *
-     * @param mockId unique identifier for this mock (used for emit)
-     * @param attributeName fully qualified name (e.g., "time.now")
-     * @param arguments argument matchers defining arity
-     * @param initialValue value to emit immediately (null for no initial value)
-     * @throws NullPointerException if mockId, attributeName, or arguments is null
-     * @throws IllegalArgumentException if mockId is blank, already registered, or
-     * arguments invalid
-     */
-    public void mockEnvironmentAttribute(@NonNull String mockId, @NonNull String attributeName,
+    public synchronized void mockEnvironmentAttribute(@NonNull String mockId, @NonNull String attributeName,
             @NonNull SaplTestFixture.Parameters arguments, Value initialValue) {
         validateMockId(mockId);
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
-        var mock = new AttributeMock(mockId, null, matchers, true);
-        addMock(attributeName, mock);
-
-        // Emit initial value to sink immediately (cached for late subscribers)
-        if (initialValue != null) {
-            emitToSink(mockId, initialValue);
-        }
+        registerMock(attributeName, new AttributeMock(mockId, null, matchers, true), initialValue);
     }
 
-    /**
-     * Registers a regular attribute mock (streaming only).
-     * <p>
-     * The stream will only emit values when {@link #emit(String, Value)} is called
-     * with the same mockId. Late subscribers will wait for the first emit.
-     *
-     * @param mockId unique identifier for this mock (used for emit)
-     * @param attributeName fully qualified name
-     * @param entityMatcher matcher for the entity value
-     * @param arguments argument matchers defining arity
-     * @throws NullPointerException if mockId, attributeName, or arguments is null
-     * @throws IllegalArgumentException if mockId is blank, already registered, or
-     * arguments invalid
-     */
-    public void mockAttribute(String mockId, String attributeName, ArgumentMatcher entityMatcher,
-            SaplTestFixture.Parameters arguments) {
+    public synchronized void mockAttribute(@NonNull String mockId, @NonNull String attributeName,
+            @NonNull ArgumentMatcher entityMatcher, @NonNull SaplTestFixture.Parameters arguments) {
         mockAttribute(mockId, attributeName, entityMatcher, arguments, null);
     }
 
-    /**
-     * Registers a regular attribute mock with an initial value.
-     * <p>
-     * The initial value is emitted immediately to the mock's sink and cached.
-     * All subscribers (including late ones) will receive the cached value,
-     * then any subsequent emissions via {@link #emit(String, Value)}.
-     *
-     * @param mockId unique identifier for this mock (used for emit)
-     * @param attributeName fully qualified name
-     * @param entityMatcher matcher for the entity value
-     * @param arguments argument matchers defining arity
-     * @param initialValue value to emit immediately (null for no initial value)
-     * @throws NullPointerException if mockId, attributeName, or arguments is null
-     * @throws IllegalArgumentException if mockId is blank, already registered, or
-     * arguments invalid
-     */
-    public void mockAttribute(@NonNull String mockId, @NonNull String attributeName, ArgumentMatcher entityMatcher,
-            @NonNull SaplTestFixture.Parameters arguments, Value initialValue) {
+    public synchronized void mockAttribute(@NonNull String mockId, @NonNull String attributeName,
+            @NonNull ArgumentMatcher entityMatcher, @NonNull SaplTestFixture.Parameters arguments, Value initialValue) {
         validateMockId(mockId);
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
-        var mock = new AttributeMock(mockId, entityMatcher, matchers, false);
-        addMock(attributeName, mock);
-
-        // Emit initial value to sink immediately (cached for late subscribers)
-        if (initialValue != null) {
-            emitToSink(mockId, initialValue);
-        }
+        registerMock(attributeName, new AttributeMock(mockId, entityMatcher, matchers, false), initialValue);
     }
 
-    /**
-     * Emits a value to the mock identified by mockId.
-     * <p>
-     * The value is sent to all current subscribers and cached for late subscribers
-     * (cache size 1 - only the last value is retained). To signal an error
-     * condition,
-     * emit an {@link io.sapl.api.model.ErrorValue}.
-     *
-     * @param mockId the unique identifier of the mock to emit to
-     * @param value the value to emit
-     * @throws NullPointerException if mockId or value is null
-     * @throws IllegalStateException if no mock is registered with the given mockId
-     */
     public void emit(@NonNull String mockId, @NonNull Value value) {
-        if (!mocksById.containsKey(mockId)) {
-            throw new IllegalStateException(ERROR_NO_MOCK_FOR_ID.formatted(mockId));
+        List<SubscriptionImpl> toFire;
+        synchronized (this) {
+            if (!mocksById.containsKey(mockId)) {
+                throw new IllegalStateException(ERROR_NO_MOCK_FOR_ID.formatted(mockId));
+            }
+            currentValueByMockId.put(mockId, value);
+            val now = Instant.now();
+            for (val entry : keyToMockId.entrySet()) {
+                if (entry.getValue().equals(mockId)) {
+                    mailbox.put(entry.getKey(), new AttributeSnapshot(value, now));
+                }
+            }
+            toFire = collectFireable();
         }
-        emitToSink(mockId, value);
+        for (val sub : toFire) {
+            sub.fireCallback();
+        }
     }
 
-    /**
-     * Checks if any mock is registered for the given attribute name.
-     *
-     * @param attributeName fully qualified name
-     * @return true if at least one mock exists for this attribute
-     */
-    public boolean hasMockForAttribute(String attributeName) {
-        var mockList = mocksByName.get(attributeName);
-        return mockList != null && !mockList.isEmpty();
+    @Override
+    public AttributeBroker.Subscription open(String subscriptionId, Set<SubscriptionKey> initialDependencies,
+            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
+        if (subscriptionId == null || subscriptionId.isBlank()) {
+            throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_BLANK);
+        }
+        if (initialDependencies == null || initialDependencies.isEmpty()) {
+            throw new IllegalArgumentException(ERROR_INITIAL_DEPS_EMPTY);
+        }
+        SubscriptionImpl sub;
+        boolean          fireImmediately;
+        synchronized (this) {
+            if (subs.containsKey(subscriptionId)) {
+                throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_IN_USE.formatted(subscriptionId));
+            }
+            sub = new SubscriptionImpl(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
+            // bindKeys may synchronously fire delegate callbacks that walk subs to find
+            // fireable subscriptions; defer adding this sub to the map so a sync-fire
+            // during bindKeys cannot double-fire (once via delegate, once via the
+            // explicit fire below).
+            bindKeys(initialDependencies);
+            subs.put(subscriptionId, sub);
+            fireImmediately = sub.allDepsFulfilled();
+            if (fireImmediately) {
+                sub.gateOpen = true;
+            }
+        }
+        if (fireImmediately) {
+            sub.fireCallback();
+        }
+        return sub;
     }
 
-    /**
-     * Checks if a mock with the given id is registered.
-     *
-     * @param mockId the mock identifier
-     * @return true if a mock with this id exists
-     */
-    public boolean hasMock(String mockId) {
+    @Override
+    public synchronized void close() {
+        for (val sub : subs.values()) {
+            sub.closed = true;
+        }
+        subs.clear();
+        for (val fwd : forwards.values()) {
+            fwd.delegateSub.close();
+        }
+        forwards.clear();
+        mailbox.clear();
+        keyToMockId.clear();
+        registeredPips.clear();
+    }
+
+    public synchronized boolean hasMock(String mockId) {
         return mocksById.containsKey(mockId);
     }
 
-    /**
-     * Clears all registered mocks and recorded invocations.
-     * <p>
-     * After clearing, subsequent attribute lookups will delegate to the underlying
-     * broker. Existing streams from previously registered mocks will no longer
-     * receive emissions.
-     */
-    public void clearAllMocks() {
-        sinks.clear();
-        mocksByName.clear();
+    public synchronized boolean hasMockForAttribute(String attributeName) {
+        val list = mocksByName.get(attributeName);
+        return list != null && !list.isEmpty();
+    }
+
+    public synchronized void clearAllMocks() {
         mocksById.clear();
+        mocksByName.clear();
+        currentValueByMockId.clear();
         clearInvocations();
     }
 
-    /**
-     * Clears recorded invocations without clearing mocks.
-     * <p>
-     * Useful when you want to verify invocations for a specific phase of testing
-     * while keeping mocks in place.
-     */
     public void clearInvocations() {
         invocations.clear();
         sequenceCounter.set(0);
     }
 
-    /**
-     * Returns all recorded invocations.
-     *
-     * @return unmodifiable list of invocation records
-     */
     public List<AttributeInvocationRecord> getInvocations() {
         return List.copyOf(invocations);
     }
 
-    /**
-     * Returns recorded invocations for a specific attribute.
-     *
-     * @param attributeName fully qualified attribute name
-     * @return unmodifiable list of invocation records for this attribute
-     */
     public List<AttributeInvocationRecord> getInvocations(String attributeName) {
         return invocations.stream().filter(r -> r.attributeName().equals(attributeName)).toList();
     }
 
-    /**
-     * Verifies that an environment attribute was invoked the expected number of
-     * times
-     * with arguments matching the given matchers.
-     * <p>
-     * Example:
-     *
-     * <pre>{@code
-     * broker.verifyEnvironmentAttribute("time.now", args(), Times.once());
-     * broker.verifyEnvironmentAttribute("clock.ticker", args(), Times.times(5));
-     * }</pre>
-     *
-     * @param attributeName fully qualified attribute name
-     * @param arguments argument matchers (use args() for arity matching)
-     * @param times expected invocation count
-     * @throws MockVerificationError if verification fails
-     * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
-     * instance
-     */
     public void verifyEnvironmentAttribute(@NonNull String attributeName, @NonNull SaplTestFixture.Parameters arguments,
             @NonNull Times times) {
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
-
-        var matchingCount = countMatchingInvocations(attributeName, null, matchers, true);
-        if (!times.verify(matchingCount)) {
-            throw new MockVerificationError(
-                    buildVerificationMessage(attributeName, null, matchers, true, times, matchingCount));
+        val matched = countMatchingInvocations(attributeName, null, matchers, true);
+        if (!times.verify(matched)) {
+            throw new MockVerificationError(buildVerificationMessage(attributeName, times, matched));
         }
     }
 
-    /**
-     * Verifies that a regular attribute was invoked the expected number of times
-     * with entity and arguments matching the given matchers.
-     * <p>
-     * Example:
-     *
-     * <pre>{@code
-     * broker.verifyAttribute("user.role", eq(Value.of("alice")), args(), Times.once());
-     * }</pre>
-     *
-     * @param attributeName fully qualified attribute name
-     * @param entityMatcher matcher for the entity value
-     * @param arguments argument matchers (use args() for arity matching)
-     * @param times expected invocation count
-     * @throws MockVerificationError if verification fails
-     * @throws IllegalArgumentException if arguments is not an ArgumentMatchers
-     * instance
-     */
     public void verifyAttribute(@NonNull String attributeName, @NonNull ArgumentMatcher entityMatcher,
             @NonNull SaplTestFixture.Parameters arguments, @NonNull Times times) {
         if (!(arguments instanceof ArgumentMatchers(List<ArgumentMatcher> matchers))) {
             throw new IllegalArgumentException(ERROR_ARGUMENTS_MUST_USE_ARGS);
         }
-
-        var matchingCount = countMatchingInvocations(attributeName, entityMatcher, matchers, false);
-        if (!times.verify(matchingCount)) {
-            throw new MockVerificationError(
-                    buildVerificationMessage(attributeName, entityMatcher, matchers, false, times, matchingCount));
+        val matched = countMatchingInvocations(attributeName, entityMatcher, matchers, false);
+        if (!times.verify(matched)) {
+            throw new MockVerificationError(buildVerificationMessage(attributeName, times, matched));
         }
     }
 
-    /**
-     * Verifies that an environment attribute was invoked at least once.
-     *
-     * @param attributeName fully qualified attribute name
-     * @param arguments argument matchers
-     * @throws MockVerificationError if attribute was never invoked
-     */
     public void verifyEnvironmentAttributeCalled(@NonNull String attributeName,
             @NonNull SaplTestFixture.Parameters arguments) {
         verifyEnvironmentAttribute(attributeName, arguments, Times.atLeast(1));
     }
 
-    /**
-     * Verifies that a regular attribute was invoked at least once.
-     *
-     * @param attributeName fully qualified attribute name
-     * @param entityMatcher matcher for the entity value
-     * @param arguments argument matchers
-     * @throws MockVerificationError if attribute was never invoked
-     */
     public void verifyAttributeCalled(@NonNull String attributeName, @NonNull ArgumentMatcher entityMatcher,
             @NonNull SaplTestFixture.Parameters arguments) {
         verifyAttribute(attributeName, entityMatcher, arguments, Times.atLeast(1));
-    }
-
-    private int countMatchingInvocations(String attributeName, ArgumentMatcher entityMatcher,
-            List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute) {
-        return (int) invocations.stream().filter(r -> r.attributeName().equals(attributeName))
-                .filter(r -> isEnvironmentAttribute == r.isEnvironmentAttribute())
-                .filter(r -> isEnvironmentAttribute || entityMatcher == null || entityMatcher.matches(r.entity()))
-                .filter(r -> matchesArguments(r.arguments(), argMatchers)).count();
-    }
-
-    private boolean matchesArguments(List<Value> arguments, List<ArgumentMatcher> matchers) {
-        if (arguments.size() != matchers.size()) {
-            return false;
-        }
-        for (int i = 0; i < arguments.size(); i++) {
-            if (!matchers.get(i).matches(arguments.get(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private String buildVerificationMessage(String attributeName, ArgumentMatcher entityMatcher,
-            List<ArgumentMatcher> argMatchers, boolean isEnvironmentAttribute, Times times, int actualCount) {
-        var sb = new StringBuilder();
-        sb.append(ERROR_VERIFICATION_FAILED.formatted(attributeName));
-        sb.append(times.failureMessage(actualCount));
-
-        var attributeInvocations = getInvocations(attributeName);
-        if (attributeInvocations.isEmpty()) {
-            sb.append(ERROR_VERIFICATION_NO_INVOCATIONS.formatted(attributeName));
-        } else {
-            sb.append(ERROR_VERIFICATION_RECORDED.formatted(attributeName));
-            for (var inv : attributeInvocations) {
-                sb.append("\n  - ").append(inv);
-            }
-        }
-        return sb.toString();
     }
 
     private void validateMockId(String mockId) {
@@ -453,36 +284,209 @@ public final class MockingAttributeBroker implements AttributeBroker {
         }
     }
 
-    private void addMock(String attributeName, AttributeMock mock) {
+    private void registerMock(String attributeName, AttributeMock mock, Value initialValue) {
         mocksByName.computeIfAbsent(attributeName, k -> new ArrayList<>()).add(mock);
         mocksById.put(mock.mockId(), mock);
+        if (initialValue != null) {
+            currentValueByMockId.put(mock.mockId(), initialValue);
+        }
+    }
+
+    private boolean bindKeys(Set<SubscriptionKey> keys) {
+        val     now         = Instant.now();
+        boolean mailboxGrew = false;
+        for (val key : keys) {
+            mailboxGrew |= bindKey(key, now);
+        }
+        return mailboxGrew;
+    }
+
+    private boolean bindKey(SubscriptionKey key, Instant now) {
+        if (keyToMockId.containsKey(key)) {
+            // Mock-bound: shared across consumers, no refcount needed (mocks live for the
+            // broker lifetime).
+            return false;
+        }
+        val existingForward = forwards.get(key);
+        if (existingForward != null) {
+            existingForward.refcount++;
+            return false;
+        }
+        val match = findMostSpecificMatch(key.invocation());
+        recordInvocation(key.invocation());
+        if (match.isPresent()) {
+            return seedFromMockMatch(key, match.get().mockId(), now);
+        }
+        if (registeredPips.containsKey(key.invocation().attributeName())) {
+            return seedFromRegisteredPip(key, now);
+        }
+        if (delegate != null) {
+            openDelegateForward(key);
+            return false;
+        }
+        return seedAsUndefined(key, now);
+    }
+
+    private boolean seedFromMockMatch(SubscriptionKey key, String mockId, Instant now) {
+        keyToMockId.put(key, mockId);
+        val current = currentValueByMockId.get(mockId);
+        if (current == null || mailbox.containsKey(key)) {
+            return false;
+        }
+        mailbox.put(key, new AttributeSnapshot(current, now));
+        return true;
+    }
+
+    private boolean seedFromRegisteredPip(SubscriptionKey key, Instant now) {
+        val initial = registeredPips.get(key.invocation().attributeName());
+        if (initial == null || mailbox.containsKey(key)) {
+            return false;
+        }
+        mailbox.put(key, new AttributeSnapshot(initial, now));
+        return true;
+    }
+
+    private boolean seedAsUndefined(SubscriptionKey key, Instant now) {
+        if (mailbox.containsKey(key)) {
+            return false;
+        }
+        mailbox.put(key, new AttributeSnapshot(Value.UNDEFINED, now));
+        return true;
+    }
+
+    private void releaseKeys(Set<SubscriptionKey> keys) {
+        for (val key : keys) {
+            val fwd = forwards.get(key);
+            if (fwd == null) {
+                continue;
+            }
+            fwd.refcount--;
+            if (fwd.refcount == 0) {
+                fwd.delegateSub.close();
+                forwards.remove(key);
+                mailbox.remove(key);
+            }
+        }
+    }
+
+    private void openDelegateForward(SubscriptionKey key) {
+        val singleKeyDeps = Set.of(key);
+        val forwardId     = "mock-broker-forward-" + UUID.randomUUID();
+        val delegateSub   = delegate.open(forwardId, singleKeyDeps, snap -> {
+                              onDelegateForwardUpdate(key, snap);
+                              return singleKeyDeps;
+                          });
+        forwards.put(key, new ForwardEntry(delegateSub, 1));
+    }
+
+    private void onDelegateForwardUpdate(SubscriptionKey key, Map<SubscriptionKey, AttributeSnapshot> snap) {
+        List<SubscriptionImpl> toFire;
+        synchronized (this) {
+            val incoming = snap.get(key);
+            if (incoming != null) {
+                mailbox.put(key, incoming);
+            }
+            toFire = collectFireableForKey(key);
+        }
+        for (val sub : toFire) {
+            sub.fireCallback();
+        }
+    }
+
+    private List<SubscriptionImpl> collectFireableForKey(SubscriptionKey key) {
+        val toFire = new ArrayList<SubscriptionImpl>();
+        for (val sub : subs.values()) {
+            if (sub.closed || !sub.deps.contains(key)) {
+                continue;
+            }
+            if (!sub.gateOpen && sub.allDepsFulfilled()) {
+                sub.gateOpen = true;
+                toFire.add(sub);
+            } else if (sub.gateOpen) {
+                toFire.add(sub);
+            }
+        }
+        return toFire;
     }
 
     private Optional<AttributeMock> findMostSpecificMatch(AttributeFinderInvocation invocation) {
-        var attributeMocks = mocksByName.get(invocation.attributeName());
+        val attributeMocks = mocksByName.get(invocation.attributeName());
         if (attributeMocks == null || attributeMocks.isEmpty()) {
             return Optional.empty();
         }
-
-        return attributeMocks.stream().filter(mock -> mock.matches(invocation.entity(), invocation.arguments()))
+        val isEnv = invocation.isEnvironmentAttributeInvocation();
+        return attributeMocks.stream().filter(m -> m.isEnvironmentAttribute() == isEnv)
+                .filter(m -> m.matches(invocation.entity(), invocation.arguments()))
                 .max(Comparator.comparingInt(AttributeMock::specificity));
     }
 
-    private Sinks.Many<Value> getOrCreateSink(String mockId) {
-        return sinks.computeIfAbsent(mockId, k -> Sinks.many().replay().limit(1));
+    private void recordInvocation(AttributeFinderInvocation invocation) {
+        invocations.add(new AttributeInvocationRecord(invocation.attributeName(), invocation.entity(),
+                invocation.arguments(), sequenceCounter.getAndIncrement()));
     }
 
-    private Flux<Value> getStream(String mockId) {
-        return getOrCreateSink(mockId).asFlux();
+    private List<SubscriptionImpl> collectFireable() {
+        val toFire = new ArrayList<SubscriptionImpl>();
+        for (val sub : subs.values()) {
+            if (sub.closed) {
+                continue;
+            }
+            if (!sub.gateOpen && sub.allDepsFulfilled()) {
+                sub.gateOpen = true;
+                toFire.add(sub);
+            } else if (sub.gateOpen) {
+                toFire.add(sub);
+            }
+        }
+        return toFire;
     }
 
-    private void emitToSink(String mockId, Value value) {
-        getOrCreateSink(mockId).tryEmitNext(value);
+    private int countMatchingInvocations(String name, ArgumentMatcher entityMatcher, List<ArgumentMatcher> argMatchers,
+            boolean isEnvironment) {
+        return (int) invocations.stream().filter(r -> r.attributeName().equals(name))
+                .filter(r -> isEnvironment == r.isEnvironmentAttribute())
+                .filter(r -> isEnvironment || entityMatcher == null || entityMatcher.matches(r.entity()))
+                .filter(r -> argumentsMatch(r.arguments(), argMatchers)).count();
     }
 
-    /**
-     * A registered attribute mock with entity matcher and argument matchers.
-     */
+    private boolean argumentsMatch(List<Value> arguments, List<ArgumentMatcher> matchers) {
+        if (arguments.size() != matchers.size()) {
+            return false;
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            if (!matchers.get(i).matches(arguments.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String buildVerificationMessage(String attributeName, Times times, int actualCount) {
+        val sb = new StringBuilder();
+        sb.append(ERROR_VERIFICATION_FAILED.formatted(attributeName));
+        sb.append(times.failureMessage(actualCount));
+        val attributeInvocations = getInvocations(attributeName);
+        if (attributeInvocations.isEmpty()) {
+            sb.append(ERROR_VERIFICATION_NO_INVOCATIONS.formatted(attributeName));
+        } else {
+            sb.append(ERROR_VERIFICATION_RECORDED.formatted(attributeName));
+            for (val inv : attributeInvocations) {
+                sb.append("\n  - ").append(inv);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static final class ForwardEntry {
+        final AttributeBroker.Subscription delegateSub;
+        int                                refcount;
+
+        ForwardEntry(AttributeBroker.Subscription delegateSub, int refcount) {
+            this.delegateSub = delegateSub;
+            this.refcount    = refcount;
+        }
+    }
+
     private record AttributeMock(
             String mockId,
             ArgumentMatcher entityMatcher,
@@ -494,17 +498,12 @@ public final class MockingAttributeBroker implements AttributeBroker {
         }
 
         boolean matches(Value entity, List<Value> arguments) {
-            // Check arity first
             if (arguments.size() != argumentMatchers.size()) {
                 return false;
             }
-
-            // Environment attributes don't match entity
             if (!isEnvironmentAttribute && entityMatcher != null && !entityMatcher.matches(entity)) {
                 return false;
             }
-
-            // Check argument matchers
             for (int i = 0; i < arguments.size(); i++) {
                 if (!argumentMatchers.get(i).matches(arguments.get(i))) {
                     return false;
@@ -517,6 +516,93 @@ public final class MockingAttributeBroker implements AttributeBroker {
             int entitySpecificity = (entityMatcher != null) ? entityMatcher.specificity() : 0;
             int argsSpecificity   = argumentMatchers.stream().mapToInt(ArgumentMatcher::specificity).sum();
             return entitySpecificity + argsSpecificity;
+        }
+    }
+
+    private final class SubscriptionImpl implements AttributeBroker.Subscription {
+        final String                                                                  id;
+        final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
+        Set<SubscriptionKey>                                                          deps;
+        boolean                                                                       gateOpen;
+        boolean                                                                       closed;
+
+        SubscriptionImpl(String id,
+                Set<SubscriptionKey> deps,
+                Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
+            this.id       = id;
+            this.deps     = deps;
+            this.onUpdate = onUpdate;
+        }
+
+        @Override
+        public void close() {
+            synchronized (MockingAttributeBroker.this) {
+                closed = true;
+                subs.remove(id);
+                releaseKeys(deps);
+                // Note: keyToMockId entries kept in case other subs share the key.
+                // Mocks live for the broker lifetime; only delegate forwards are refcounted.
+            }
+        }
+
+        boolean allDepsFulfilled() {
+            for (val key : deps) {
+                if (!mailbox.containsKey(key)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        Map<SubscriptionKey, AttributeSnapshot> currentSnapshot() {
+            val result = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(deps.size());
+            for (val key : deps) {
+                val v = mailbox.get(key);
+                if (v != null) {
+                    result.put(key, v);
+                }
+            }
+            return Map.copyOf(result);
+        }
+
+        void fireCallback() {
+            Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
+            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> cb;
+            synchronized (MockingAttributeBroker.this) {
+                if (closed) {
+                    return;
+                }
+                snapshot = currentSnapshot();
+                cb       = onUpdate;
+            }
+            val newDeps = cb.apply(snapshot);
+            if (newDeps == null || newDeps.isEmpty()) {
+                throw new IllegalStateException(ERROR_RETURNED_DEPS_EMPTY.formatted(id));
+            }
+            boolean refire;
+            synchronized (MockingAttributeBroker.this) {
+                if (closed) {
+                    return;
+                }
+                if (newDeps.equals(deps)) {
+                    refire = false;
+                } else {
+                    val added = new HashSet<>(newDeps);
+                    added.removeAll(deps);
+                    val removed = new HashSet<>(deps);
+                    removed.removeAll(newDeps);
+                    bindKeys(added);
+                    releaseKeys(removed);
+                    deps = new HashSet<>(newDeps);
+                    val nowFulfilled    = allDepsFulfilled();
+                    val addedHasMailbox = added.stream().anyMatch(mailbox::containsKey);
+                    refire   = addedHasMailbox && nowFulfilled;
+                    gateOpen = nowFulfilled;
+                }
+            }
+            if (refire) {
+                fireCallback();
+            }
         }
     }
 }

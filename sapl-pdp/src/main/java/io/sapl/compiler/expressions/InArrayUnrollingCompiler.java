@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
@@ -100,7 +96,7 @@ class InArrayUnrollingCompiler {
         val                neOp = BinaryOperationCompiler.BINARY_OPERATIONS.get(BinaryOperatorType.NE);
         CompiledExpression undefinedGuard;
         if (compiledNeedle instanceof StreamOperator s) {
-            undefinedGuard = new BinaryOperationCompiler.BinaryStreamValue(neOp, s, Value.UNDEFINED, location);
+            undefinedGuard = new BinaryOperationCompiler.BinaryStream(neOp, s, Value.UNDEFINED, location);
         } else {
             val p = (PureOperator) compiledNeedle;
             undefinedGuard = new BinaryOperationCompiler.BinaryPureValue(BinaryOperatorType.NE, neOp, p,

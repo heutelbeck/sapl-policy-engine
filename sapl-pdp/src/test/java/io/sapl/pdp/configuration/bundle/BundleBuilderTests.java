@@ -17,10 +17,10 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
@@ -164,6 +164,8 @@ class BundleBuilderTests {
                             ErrorHandling.PROPAGATE), "PRIORITY_DENY"),
                     arguments(new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT,
                             ErrorHandling.ABSTAIN), "PRIORITY_PERMIT"),
+                    arguments(new CombiningAlgorithm(VotingMode.PRIORITY_SUSPEND, DefaultDecision.SUSPEND,
+                            ErrorHandling.PROPAGATE), "PRIORITY_SUSPEND"),
                     arguments(new CombiningAlgorithm(VotingMode.UNANIMOUS, DefaultDecision.ABSTAIN,
                             ErrorHandling.PROPAGATE), "UNANIMOUS"),
                     arguments(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.DENY, ErrorHandling.ABSTAIN),

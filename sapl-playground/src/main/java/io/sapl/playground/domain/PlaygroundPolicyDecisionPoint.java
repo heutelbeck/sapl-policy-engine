@@ -18,15 +18,19 @@
 package io.sapl.playground.domain;
 
 import com.vaadin.flow.spring.annotation.UIScope;
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
+import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.MultiTenantPolicyDecisionPoint;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.compiler.document.TimestampedVote;
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
+import io.sapl.compiler.document.TracedVote;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.pdp.ThreadLocalRandomIdFactory;
+import io.sapl.pdp.plugins.StaticPluginsSource;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
 import io.sapl.pdp.configuration.PdpStatus;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.val;
@@ -37,7 +41,6 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * UI-scoped Policy Decision Point for the SAPL playground. Manages the embedded
@@ -52,8 +55,8 @@ import java.util.UUID;
 @Component
 public class PlaygroundPolicyDecisionPoint {
 
-    private final PlaygroundConfigurationSource configurationSource;
-    private final DynamicPolicyDecisionPoint    policyDecisionPoint;
+    private final PlaygroundConfigurationSource         configurationSource;
+    private final DelegatingReactivePolicyDecisionPoint policyDecisionPoint;
 
     /**
      * Creates a new playground policy decision point. Initializes the embedded PDP
@@ -61,14 +64,17 @@ public class PlaygroundPolicyDecisionPoint {
      * and function broker.
      *
      * @param attributeBroker
-     * broker for attribute streams and policy information points
+     * broker of attribute streams and policy information points
      * @param functionBroker
      * broker providing function libraries for policy evaluation
      */
     public PlaygroundPolicyDecisionPoint(AttributeBroker attributeBroker, FunctionBroker functionBroker) {
-        val pdpVoterSource = new PdpVoterSource(functionBroker, attributeBroker, Clock.systemUTC());
+        val pluginsSource  = new StaticPluginsSource(new PluginsBundle(functionBroker));
+        val pdpVoterSource = new PdpVoterSource(pluginsSource, Clock.systemUTC());
         this.configurationSource = new PlaygroundConfigurationSource(pdpVoterSource);
-        this.policyDecisionPoint = new DynamicPolicyDecisionPoint(pdpVoterSource, () -> UUID.randomUUID().toString());
+        val blockingPdp = new BlockingPolicyDecisionPoint(pdpVoterSource, attributeBroker,
+                new ThreadLocalRandomIdFactory());
+        this.policyDecisionPoint = new DelegatingReactivePolicyDecisionPoint(blockingPdp);
     }
 
     /**
@@ -82,9 +88,8 @@ public class PlaygroundPolicyDecisionPoint {
      *
      * @return flux of timestamped votes with evaluation details
      */
-    public Flux<TimestampedVote> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.gatherVotes(authorizationSubscription,
-                MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID);
+    public Flux<TracedVote> decide(AuthorizationSubscription authorizationSubscription) {
+        return policyDecisionPoint.gatherVotes(authorizationSubscription, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**

@@ -20,7 +20,6 @@ package io.sapl.test;
 import tools.jackson.databind.json.JsonMapper;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.ReservedIdentifiers;
@@ -28,22 +27,20 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PdpData;
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+import io.sapl.api.pdp.configuration.PdpData;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.UNIQUE;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.HeapAttributeStorage;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.*;
-import io.sapl.pdp.DynamicPolicyDecisionPoint;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -54,11 +51,13 @@ import io.sapl.test.coverage.CoverageAccumulator;
 import io.sapl.test.coverage.CoverageWriter;
 import io.sapl.test.coverage.TestCoverageRecord;
 import io.sapl.test.coverage.TestResult;
+import io.sapl.api.stream.Stream;
+import io.sapl.compiler.document.TracedVote;
+import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.val;
-import reactor.core.publisher.Flux;
-import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,6 +68,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.HashMap;
 import java.util.List;
@@ -119,9 +119,11 @@ public class SaplTestFixture {
      * <p>
      * These are the most commonly used libraries for policy evaluation.
      */
-    public static final List<Class<?>> DEFAULT_FUNCTION_LIBRARIES = List.of(StandardFunctionLibrary.class,
-            TemporalFunctionLibrary.class, FilterFunctionLibrary.class, ArrayFunctionLibrary.class,
-            StringFunctionLibrary.class, GraphFunctionLibrary.class);
+    public static final List<Object> DEFAULT_FUNCTION_LIBRARIES = List.of(new StandardFunctionLibrary(),
+            new TemporalFunctionLibrary(), new FilterFunctionLibrary(), new ArrayFunctionLibrary(),
+            new StringFunctionLibrary(), new GraphFunctionLibrary());
+
+    private static final String COMPILER_OPTION_LOW_LATENCY_MODE = "lowLatencyMode";
 
     private static final String ERROR_BUNDLE_NOT_ALLOWED_IN_SINGLE_TEST          = "withBundle not allowed in single test mode.";
     private static final String ERROR_BUNDLE_RESOURCE_NOT_FOUND                  = "Bundle resource not found: %s";
@@ -160,9 +162,8 @@ public class SaplTestFixture {
     private JsonMapper      jsonMapper;
     private Clock           clock;
 
-    private final List<Class<?>> staticFunctionLibraries       = new ArrayList<>();
-    private final List<Object>   instantiatedFunctionLibraries = new ArrayList<>();
-    private final List<Object>   policyInformationPoints       = new ArrayList<>();
+    private final List<Object> functionLibraries       = new ArrayList<>();
+    private final List<Object> policyInformationPoints = new ArrayList<>();
 
     @Getter
     private final MockingFunctionBroker mockingFunctionBroker = new MockingFunctionBroker();
@@ -174,6 +175,7 @@ public class SaplTestFixture {
     private String  testIdentifier;
     private Path    coverageOutputPath;
     private boolean coverageFileWriteEnabled = true;
+    private boolean lowLatencyMode           = true;
 
     private SaplTestFixture(boolean singleTestMode) {
         this.singleTestMode = singleTestMode;
@@ -593,16 +595,36 @@ public class SaplTestFixture {
     }
 
     /**
-     * Registers a static function library class.
+     * Sets the compiler's low-latency mode for this fixture's PDP.
      * <p>
-     * The library class must have a no-arg constructor and methods annotated with
-     * {@code @Function}.
+     * Default is {@code true}, matching the production PDP default. The
+     * coverage voter compiles to {@code Eager} (full body walk per round,
+     * gathers complete dependency set in one pass) when {@code true} and
+     * to {@code Lazy} (source-order short-circuit on first FALSE/error)
+     * when {@code false}. Tests that assert source-order short-circuit
+     * semantics on attribute subscriptions must opt out by passing
+     * {@code false}; the default mirrors what production users observe.
      *
-     * @param libraryClass the function library class
+     * @param lowLatencyMode {@code true} for Eager (default,
+     * production parity), {@code false} for Lazy
      * @return this fixture for chaining
      */
-    public SaplTestFixture withFunctionLibrary(@NonNull Class<?> libraryClass) {
-        staticFunctionLibraries.add(libraryClass);
+    public SaplTestFixture withLowLatencyMode(boolean lowLatencyMode) {
+        this.lowLatencyMode = lowLatencyMode;
+        return this;
+    }
+
+    /**
+     * Registers a function library instance.
+     * <p>
+     * The instance's class must be annotated with {@code @FunctionLibrary} and
+     * carry methods annotated with {@code @Function}.
+     *
+     * @param libraryInstance the function library instance
+     * @return this fixture for chaining
+     */
+    public SaplTestFixture withFunctionLibrary(@NonNull Object libraryInstance) {
+        functionLibraries.add(libraryInstance);
         return this;
     }
 
@@ -621,21 +643,7 @@ public class SaplTestFixture {
      * @return this fixture for chaining
      */
     public SaplTestFixture withDefaultFunctionLibraries() {
-        staticFunctionLibraries.addAll(DEFAULT_FUNCTION_LIBRARIES);
-        return this;
-    }
-
-    /**
-     * Registers an instantiated function library.
-     * <p>
-     * Use this when the library requires constructor arguments or specific
-     * configuration.
-     *
-     * @param libraryInstance the function library instance
-     * @return this fixture for chaining
-     */
-    public SaplTestFixture withFunctionLibraryInstance(@NonNull Object libraryInstance) {
-        instantiatedFunctionLibraries.add(libraryInstance);
+        functionLibraries.addAll(DEFAULT_FUNCTION_LIBRARIES);
         return this;
     }
 
@@ -801,7 +809,7 @@ public class SaplTestFixture {
         var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper, effectiveClock);
 
         configureFunctionBroker();
-        configureAttributeBroker(effectiveClock);
+        configureAttributeStore();
         pdpBuilder.withPolicyInformationPoints(policyInformationPoints);
 
         var effectivePolicies = resolvePolicies();
@@ -813,43 +821,32 @@ public class SaplTestFixture {
 
     private void configureFunctionBroker() {
         var functionBrokerDelegate = customFunctionBroker;
-        if (functionBrokerDelegate == null && hasFunctionLibraries()) {
+        if (functionBrokerDelegate == null) {
             functionBrokerDelegate = buildDefaultFunctionBroker();
         }
-        if (functionBrokerDelegate != null) {
-            mockingFunctionBroker.setDelegate(functionBrokerDelegate);
-        }
-    }
-
-    private boolean hasFunctionLibraries() {
-        return !staticFunctionLibraries.isEmpty() || !instantiatedFunctionLibraries.isEmpty();
+        mockingFunctionBroker.setDelegate(functionBrokerDelegate);
     }
 
     private DefaultFunctionBroker buildDefaultFunctionBroker() {
         var defaultBroker = new DefaultFunctionBroker();
-        for (var libraryClass : staticFunctionLibraries) {
-            defaultBroker.loadStaticFunctionLibrary(libraryClass);
-        }
-        for (var libraryInstance : instantiatedFunctionLibraries) {
-            defaultBroker.loadInstantiatedFunctionLibrary(libraryInstance);
+        for (var library : functionLibraries) {
+            defaultBroker.load(library);
         }
         return defaultBroker;
     }
 
-    private void configureAttributeBroker(Clock effectiveClock) {
+    private void configureAttributeStore() {
         if (customAttributeBroker != null) {
             mockingAttributeBroker.setDelegate(customAttributeBroker);
         } else if (!policyInformationPoints.isEmpty()) {
-            mockingAttributeBroker.setDelegate(buildAttributeBrokerFromPips(effectiveClock));
+            mockingAttributeBroker.setDelegate(buildAttributeStoreFromPips());
         }
     }
 
-    private CachingAttributeBroker buildAttributeBrokerFromPips(Clock effectiveClock) {
-        var storage             = new HeapAttributeStorage();
-        var attributeRepository = new InMemoryAttributeRepository(effectiveClock, storage);
-        var attributeBroker     = new CachingAttributeBroker(attributeRepository);
+    private PolicyInformationPointAttributeBroker buildAttributeStoreFromPips() {
+        var attributeBroker = new PolicyInformationPointAttributeBroker();
         for (var pip : policyInformationPoints) {
-            attributeBroker.loadPolicyInformationPointLibrary(pip);
+            attributeBroker.load(pip);
         }
         return attributeBroker;
     }
@@ -859,8 +856,10 @@ public class SaplTestFixture {
         var effectiveVariables = resolveVariables();
         var effectiveSecrets   = resolveSecrets();
         var pdpData            = new PdpData(toObjectValue(effectiveVariables), toObjectValue(effectiveSecrets));
+        var compilerOptions    = ObjectValue.builder().put(COMPILER_OPTION_LOW_LATENCY_MODE, Value.of(lowLatencyMode))
+                .build();
         var configuration      = new PDPConfiguration("default", "test-security-" + System.currentTimeMillis(),
-                effectiveAlgorithm, effectivePolicies, pdpData);
+                effectiveAlgorithm, compilerOptions, effectivePolicies, pdpData);
 
         return pdpBuilder.withFunctionBroker(mockingFunctionBroker).withAttributeBroker(mockingAttributeBroker)
                 .withConfiguration(configuration).build();
@@ -891,16 +890,11 @@ public class SaplTestFixture {
 
     private DecisionResult createDecisionResult(AuthorizationSubscription subscription, PDPComponents components,
             CoverageContext coverageContext) {
-        Flux<AuthorizationDecision> decisionFlux;
-        Flux<VoteWithCoverage>      voteWithCoverageFlux = null;
-        if (components.pdp() instanceof DynamicPolicyDecisionPoint tracedPdp) {
-            voteWithCoverageFlux = tracedPdp.coverageStream(subscription, "default");
-            decisionFlux         = voteWithCoverageFlux.map(vwc -> vwc.vote().authorizationDecision());
-        } else {
-            decisionFlux = components.pdp().decide(subscription);
-        }
+        val blockingPdp            = new BlockingPolicyDecisionPoint(components.pdpVoterSource(),
+                components.attributeBroker(), new ThreadLocalRandomIdFactory());
+        val voteWithCoverageStream = blockingPdp.decideWithCoverage(subscription, "default");
 
-        return new DecisionResult(decisionFlux, voteWithCoverageFlux, mockingAttributeBroker, components,
+        return new DecisionResult(voteWithCoverageStream, mockingAttributeBroker, components,
                 coverageContext.accumulator(), coverageContext.writer(), coverageFileWriteEnabled);
     }
 
@@ -1140,11 +1134,12 @@ public class SaplTestFixture {
     }
 
     /**
-     * Result of a policy decision providing step-by-step verification using
-     * StepVerifier.
+     * Result of a policy decision providing step-by-step verification.
      * <p>
-     * Each expect method adds a verification step, and terminal operations execute
-     * them:
+     * Each expect/then method adds an action to a queue; terminal
+     * {@link #verify()} drives the underlying {@link Stream} of
+     * coverage-instrumented decisions, executing each action in order
+     * against the next emission or against the mock attribute broker.
      *
      * <pre>{@code
      * fixture.whenDecide(subscription).expectPermit().thenEmit("timeMock", newValue).expectDeny().verify();
@@ -1157,130 +1152,78 @@ public class SaplTestFixture {
 
         private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
-        private StepVerifier.Step<AuthorizationDecision>       step;
-        private final MockingAttributeBroker                   attributeBroker;
-        private final PolicyDecisionPointBuilder.PDPComponents components;
-        private final CoverageAccumulator                      coverageAccumulator;
-        private final CoverageWriter                           coverageWriter;
-        private final boolean                                  coverageFileWriteEnabled;
-        private final AtomicReference<VoteWithCoverage>        lastVoteWithCoverage = new AtomicReference<>();
+        private final Stream<VoteWithCoverage>    voteWithCoverageStream;
+        private final List<Action>                actions        = new ArrayList<>();
+        private final MockingAttributeBroker      attributeBroker;
+        private final PDPComponents               components;
+        private final CoverageAccumulator         coverageAccumulator;
+        private final CoverageWriter              coverageWriter;
+        private final boolean                     coverageFileWriteEnabled;
+        private final AtomicReference<TracedVote> lastTracedVote = new AtomicReference<>();
 
-        DecisionResult(Flux<AuthorizationDecision> decisionFlux,
-                Flux<VoteWithCoverage> voteWithCoverageFlux,
+        DecisionResult(Stream<VoteWithCoverage> voteWithCoverageStream,
                 MockingAttributeBroker attributeBroker,
-                PolicyDecisionPointBuilder.PDPComponents components,
+                PDPComponents components,
                 CoverageAccumulator coverageAccumulator,
                 CoverageWriter coverageWriter,
                 boolean coverageFileWriteEnabled) {
+            this.voteWithCoverageStream   = voteWithCoverageStream;
             this.attributeBroker          = attributeBroker;
             this.components               = components;
             this.coverageAccumulator      = coverageAccumulator;
             this.coverageWriter           = coverageWriter;
             this.coverageFileWriteEnabled = coverageFileWriteEnabled;
-
-            // Use traced flux for coverage collection if available
-            Flux<AuthorizationDecision> wrappedFlux;
-            if (voteWithCoverageFlux != null && coverageAccumulator != null) {
-                // Record coverage from traced decisions, then map to authorization decisions
-                wrappedFlux = voteWithCoverageFlux.doOnNext(this::recordCoverage)
-                        .map(vAndC -> vAndC.vote().authorizationDecision());
-            } else if (coverageAccumulator != null) {
-                // Fallback: just record decision outcomes without coverage data
-                wrappedFlux = decisionFlux
-                        .doOnNext(decision -> coverageAccumulator.getRecord().recordDecision(decision.decision()));
-            } else {
-                wrappedFlux = decisionFlux;
-            }
-            this.step = StepVerifier.create(wrappedFlux);
-        }
-
-        private void recordCoverage(VoteWithCoverage voteWithCoverage) {
-            lastVoteWithCoverage.set(voteWithCoverage);
-            if (coverageAccumulator != null) {
-                coverageAccumulator.recordCoverage(voteWithCoverage);
-            }
         }
 
         /**
          * Expects the next decision to match the given decision exactly.
-         *
-         * @param expected the expected authorization decision
-         * @return this result for chaining
          */
         public DecisionResult expectDecision(@NonNull AuthorizationDecision expected) {
-            step = step.expectNextMatches(expected::equals);
+            actions.add(
+                    new ExpectDecision(expected::equals, actual -> "Expected: " + expected + "\nActual:   " + actual));
             return this;
         }
 
         /**
          * Expects the next decision to match the given matcher.
-         *
-         * @param matcher the decision matcher
-         * @return this result for chaining
          */
         public DecisionResult expectDecisionMatches(@NonNull DecisionMatcher matcher) {
-            step = step.assertNext(decision -> {
-                if (!matcher.test(decision)) {
-                    throw new AssertionError("Expected: " + matcher.describe() + "\n" + "Actual:   " + decision + "\n"
-                            + "Reason:   " + matcher.describeMismatch(decision));
-                }
-            });
+            actions.add(new ExpectDecision(matcher::test, actual -> "Expected: " + matcher.describe() + "\nActual:   "
+                    + actual + "\nReason:   " + matcher.describeMismatch(actual)));
             return this;
         }
 
         /**
          * Expects the next decision to match the given predicate.
          * <p>
-         * This is a more flexible variant that accepts any predicate, useful for
-         * custom matching logic that doesn't fit the DecisionMatcher fluent API.
-         *
-         * @param predicate the predicate to match against decisions
-         * @return this result for chaining
+         * Flexible variant for custom matching logic that doesn't fit the
+         * DecisionMatcher fluent API.
          */
         public DecisionResult expectDecisionMatches(
                 @NonNull java.util.function.Predicate<AuthorizationDecision> predicate) {
-            step = step.assertNext(decision -> {
-                if (!predicate.test(decision)) {
-                    throw new AssertionError("Decision did not match predicate.\nActual: " + decision);
-                }
-            });
+            actions.add(
+                    new ExpectDecision(predicate, actual -> "Decision did not match predicate.\nActual: " + actual));
             return this;
         }
 
-        /**
-         * Expects the next decision to be PERMIT.
-         *
-         * @return this result for chaining
-         */
         public DecisionResult expectPermit() {
             return expectDecisionMatches(Matchers.isPermit());
         }
 
-        /**
-         * Expects the next decision to be DENY.
-         *
-         * @return this result for chaining
-         */
         public DecisionResult expectDeny() {
             return expectDecisionMatches(Matchers.isDeny());
         }
 
-        /**
-         * Expects the next decision to be INDETERMINATE.
-         *
-         * @return this result for chaining
-         */
         public DecisionResult expectIndeterminate() {
             return expectDecisionMatches(Matchers.isIndeterminate());
         }
 
-        /**
-         * Expects the next decision to be NOT_APPLICABLE.
-         *
-         * @return this result for chaining
-         */
         public DecisionResult expectNotApplicable() {
             return expectDecisionMatches(Matchers.isNotApplicable());
+        }
+
+        public DecisionResult expectSuspend() {
+            return expectDecisionMatches(Matchers.isSuspend());
         }
 
         /**
@@ -1289,28 +1232,24 @@ public class SaplTestFixture {
          * @param mockId the mock identifier from
          * givenAttribute/givenEnvironmentAttribute
          * @param value the value to emit
-         * @return this result for chaining
          */
         public DecisionResult thenEmit(@NonNull String mockId, @NonNull Value value) {
-            step = step.then(() -> attributeBroker.emit(mockId, value));
+            actions.add(new Emit(mockId, value));
             return this;
         }
 
         /**
          * Waits for the specified duration before continuing.
-         *
-         * @param duration the duration to wait
-         * @return this result for chaining
          */
         public DecisionResult thenAwait(@NonNull Duration duration) {
-            step = step.thenAwait(duration);
+            actions.add(new Await(duration));
             return this;
         }
 
         /**
          * Returns the coverage record accumulated during evaluation.
          * <p>
-         * This method can be called even if {@link #verify()} throws, to retrieve
+         * Can be called even if {@link #verify()} throws, to retrieve
          * partial coverage data from evaluations that completed before the failure.
          *
          * @return the coverage record, or null if coverage collection is disabled
@@ -1320,31 +1259,26 @@ public class SaplTestFixture {
         }
 
         /**
-         * Executes verification, cancels the subscription, and disposes resources.
+         * Executes verification, releases the underlying subscription, and
+         * disposes resources.
          * <p>
          * Coverage data is written to disk after verification completes (unless
          * file writing is disabled via {@code withCoverageFileWriteDisabled()}).
-         *
-         * @return the test result containing pass/fail status and coverage data
          */
         public TestResult verify() {
             return verify(DEFAULT_TIMEOUT);
         }
 
         /**
-         * Executes verification with timeout, cancels the subscription, and disposes
-         * resources.
-         * <p>
-         * Coverage data is written to disk after verification completes (unless
-         * file writing is disabled via {@code withCoverageFileWriteDisabled()}).
-         *
-         * @param timeout maximum time to wait for decisions
-         * @return the test result containing pass/fail status and coverage data
+         * Executes verification with the given total timeout.
          */
         public TestResult verify(@NonNull Duration timeout) {
-            var coverageRecord = coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
-            try {
-                step.thenCancel().verify(timeout);
+            val coverageRecord = coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
+            val deadlineNanos  = System.nanoTime() + timeout.toNanos();
+            try (val stream = voteWithCoverageStream) {
+                for (val action : actions) {
+                    action.execute(this, stream, deadlineNanos);
+                }
                 writeCoverage();
                 return TestResult.success(coverageRecord);
             } catch (AssertionError e) {
@@ -1358,6 +1292,13 @@ public class SaplTestFixture {
             }
         }
 
+        private void recordCoverage(VoteWithCoverage voteWithCoverage) {
+            lastTracedVote.set(TracedVote.of(voteWithCoverage.vote(), Instant.now()));
+            if (coverageAccumulator != null) {
+                coverageAccumulator.recordCoverage(voteWithCoverage);
+            }
+        }
+
         private void writeCoverage() {
             if (coverageFileWriteEnabled && coverageAccumulator != null && coverageWriter != null
                     && coverageAccumulator.hasCoverage()) {
@@ -1367,25 +1308,70 @@ public class SaplTestFixture {
 
         private void dispose() {
             if (components != null) {
-                components.dispose();
+                components.close();
             }
         }
 
         private AssertionError enhanceWithVoteTrace(AssertionError original) {
-            var voteWithCoverage = lastVoteWithCoverage.get();
-            if (voteWithCoverage == null) {
+            val tracedVote = lastTracedVote.get();
+            if (tracedVote == null) {
                 return original;
             }
-            var vote       = voteWithCoverage.vote();
-            var report     = VoteReport.from(vote, Instant.now().toString(), "test",
-                    AuthorizationSubscription.of("", "", ""));
-            var textReport = ReportTextRenderUtil.textReport(report);
-            var jsonTrace  = ValueJsonMarshaller.toPrettyString(vote.toTrace());
+            val report     = VoteReport.from(tracedVote, "test", AuthorizationSubscription.of("", "", ""));
+            val textReport = ReportTextRenderUtil.textReport(report);
+            val jsonTrace  = ValueJsonMarshaller.toPrettyString(tracedVote.vote().toTrace());
 
-            var enhanced = original.getMessage() + "\n\n" + textReport + "\n=== Full Vote Trace (JSON) ===\n"
+            val enhanced = original.getMessage() + "\n\n" + textReport + "\n=== Full Vote Trace (JSON) ===\n"
                     + jsonTrace;
 
             return new AssertionError(enhanced, original);
+        }
+
+        private sealed interface Action {
+            void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos)
+                    throws InterruptedException, TimeoutException;
+        }
+
+        private record ExpectDecision(
+                java.util.function.Predicate<AuthorizationDecision> matcher,
+                java.util.function.Function<AuthorizationDecision, String> describeMismatch) implements Action {
+            @Override
+            public void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos)
+                    throws InterruptedException, TimeoutException {
+                val remaining = remainingTimeout(deadlineNanos);
+                val emission  = stream.awaitNext(remaining);
+                if (emission == null) {
+                    throw new AssertionError("Stream completed before expected decision arrived.");
+                }
+                ctx.recordCoverage(emission);
+                val decision = emission.vote().authorizationDecision();
+                if (!matcher.test(decision)) {
+                    throw new AssertionError(describeMismatch.apply(decision));
+                }
+            }
+        }
+
+        private record Emit(String mockId, Value value) implements Action {
+            @Override
+            public void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos) {
+                ctx.attributeBroker.emit(mockId, value);
+            }
+        }
+
+        private record Await(Duration duration) implements Action {
+            @Override
+            public void execute(DecisionResult ctx, Stream<VoteWithCoverage> stream, long deadlineNanos)
+                    throws InterruptedException {
+                Thread.sleep(duration.toMillis(), duration.toNanosPart() % 1_000_000);
+            }
+        }
+
+        private static Duration remainingTimeout(long deadlineNanos) {
+            val remaining = deadlineNanos - System.nanoTime();
+            if (remaining <= 0L) {
+                throw new AssertionError("Timeout reached before expected decision arrived.");
+            }
+            return Duration.ofNanos(remaining);
         }
     }
 }

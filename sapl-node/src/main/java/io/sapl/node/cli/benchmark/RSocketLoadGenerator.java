@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.netty.channel.unix.DomainSocketAddress;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -33,9 +34,9 @@ import io.rsocket.util.DefaultPayload;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.netty.tcp.TcpClient;
 
 /**
  * Reactive RSocket/protobuf load generator using multiple TCP connections.
@@ -51,12 +52,12 @@ import reactor.core.scheduler.Schedulers;
 @UtilityClass
 public class RSocketLoadGenerator {
 
-    private static final int    MAX_LATENCY_SAMPLES   = 5_000_000;
     private static final int    CONVERGENCE_THRESHOLD = 5;
     private static final int    CONVERGENCE_WINDOW    = 3;
+    private static final int    MAX_LATENCY_SAMPLES   = 5_000_000;
     private static final int    MAX_WARMUP_ITERATIONS = 15;
-    private static final int    WARMUP_INTERVAL_SECS  = 3;
     private static final String ROUTE                 = "decide-once";
+    private static final int    WARMUP_INTERVAL_SECS  = 3;
 
     /**
      * Runs an RSocket load test against a SAPL PDP server.
@@ -77,8 +78,6 @@ public class RSocketLoadGenerator {
 
     public static BenchmarkResult run(String host, int port, String socketPath, byte[] protoPayload, int connections,
             int concurrencyPerConnection, int warmupSeconds, int measureSeconds, int targetRate, PrintWriter out) {
-        Hooks.onErrorDropped(e -> {});
-
         val totalConcurrency = connections * concurrencyPerConnection;
         val sockets          = connectAll(host, port, socketPath, connections, out);
 
@@ -135,8 +134,8 @@ public class RSocketLoadGenerator {
         val sockets = new ArrayList<RSocket>(connections);
         for (int i = 0; i < connections; i++) {
             val transport = socketPath != null
-                    ? TcpClientTransport.create(reactor.netty.tcp.TcpClient.create()
-                            .remoteAddress(() -> new io.netty.channel.unix.DomainSocketAddress(socketPath)))
+                    ? TcpClientTransport
+                            .create(TcpClient.create().remoteAddress(() -> new DomainSocketAddress(socketPath)))
                     : TcpClientTransport.create(host, port);
             val rsocket   = RSocketConnector.create().connect(transport).block();
             val endpoint  = socketPath != null ? "unix://" + socketPath : "rsocket://" + host + ":" + port;
@@ -152,7 +151,7 @@ public class RSocketLoadGenerator {
 
     private static Mono<Void> sendOnce(LoadResources res, int workerIndex) {
         val rsocket = res.sockets().get(workerIndex % res.sockets().size());
-        val payload = DefaultPayload.create(res.protoPayload().clone(), res.routeBytes().clone());
+        val payload = DefaultPayload.create(res.protoPayload(), res.routeBytes());
         return rsocket.requestResponse(payload).doOnNext(r -> r.release()).then();
     }
 

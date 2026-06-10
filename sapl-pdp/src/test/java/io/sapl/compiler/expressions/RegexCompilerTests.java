@@ -22,6 +22,7 @@ import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.compiler.util.Stratum;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,17 +31,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.assertCompilesTo;
-import static io.sapl.util.SaplTesting.assertCompilesToError;
-import static io.sapl.util.SaplTesting.assertEvaluatesTo;
-import static io.sapl.util.SaplTesting.assertStratumOfCompiledExpression;
-import static io.sapl.util.SaplTesting.compileExpression;
-import static io.sapl.util.SaplTesting.evaluationContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("RegexCompiler")
 class RegexCompilerTests {
@@ -122,6 +116,31 @@ class RegexCompilerTests {
         var compiled     = compileExpression("\"hello\" =~ environment");
         assertThat(compiled).isInstanceOf(PureOperator.class);
         assertThat(((PureOperator) compiled).evaluate(evalCtx)).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    @DisplayName("Pure input + literal pattern selects RegexPrecompiledPure with captured matcher")
+    void whenPureInputWithLiteralPatternThenProducesPrecompiledRecord() {
+        var compiled = compileExpression("subject =~ \"^a.*\"");
+        assertThat(compiled).isInstanceOf(RegexCompiler.RegexPrecompiledPure.class);
+        var precompiled = (RegexCompiler.RegexPrecompiledPure) compiled;
+        // Matcher Predicate is captured at compile time; same reference reused per
+        // evaluate call.
+        assertThat(precompiled.matcher()).isNotNull().isSameAs(precompiled.matcher())
+                .satisfies(m -> assertThat(m.test("apple")).isTrue())
+                .satisfies(m -> assertThat(m.test("banana")).isFalse());
+        assertThat(precompiled.patternSource()).isEqualTo("^a.*");
+    }
+
+    @Test
+    @DisplayName("Stream input + literal pattern selects RegexPrecompiledStream with captured matcher")
+    void whenStreamInputWithLiteralPatternThenProducesPrecompiledRecord() {
+        var compiled = compileExpression("subject.<test.name> =~ \"^a.*\"");
+        assertThat(compiled).isInstanceOf(RegexCompiler.RegexPrecompiledStream.class);
+        var precompiled = (RegexCompiler.RegexPrecompiledStream) compiled;
+        assertThat(precompiled.matcher()).isNotNull().isSameAs(precompiled.matcher())
+                .satisfies(m -> assertThat(m.test("apple")).isTrue())
+                .satisfies(m -> assertThat(m.test("banana")).isFalse());
     }
 
 }

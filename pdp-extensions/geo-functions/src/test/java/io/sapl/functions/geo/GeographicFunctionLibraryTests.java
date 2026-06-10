@@ -159,8 +159,7 @@ class GeographicFunctionLibraryTests {
     @Test
     void libraryLoadsWithoutErrors() {
         var functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GeographicFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new GeographicFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test

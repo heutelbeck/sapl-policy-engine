@@ -17,23 +17,17 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.compiler.index.SemanticHashing;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
+
+import java.util.HashMap;
+import java.util.List;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiler for SAPL subtemplate expressions (:: operator).
@@ -305,27 +299,26 @@ public class SubtemplateCompiler {
     record SubtemplateStreamValue(StreamOperator parent, Value template, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return parent.stream().map(tv -> {
-                val parentValue = tv.value();
-                val result      = applyConstantTemplate(parentValue, template);
-                return new TracedValue(result, tv.contributingAttributes());
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(parent, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyConstantTemplate(v, template), deps);
         }
     }
 
     record SubtemplateStreamPure(StreamOperator parent, PureOperator template, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(reactorCtx -> {
-                val ctx = reactorCtx.get(EvaluationContext.class);
-                return parent.stream().map(tv -> {
-                    val parentValue = tv.value();
-                    val result      = applyPureTemplate(parentValue, template, ctx);
-                    return new TracedValue(result, tv.contributingAttributes());
-                });
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(parent, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
+            }
+            return new ExpressionResult(applyPureTemplate(v, template, ctx), deps);
         }
     }
 

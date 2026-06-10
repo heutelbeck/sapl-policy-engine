@@ -19,182 +19,14 @@ package io.sapl.compiler.document;
 
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
-import io.sapl.ast.ArrayExpression;
-import io.sapl.ast.AstNode;
-import io.sapl.ast.AttributeStep;
-import io.sapl.ast.AttributeUnionPath;
-import io.sapl.ast.AttributeUnionStep;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.Condition;
-import io.sapl.ast.ConditionPath;
-import io.sapl.ast.ConditionStep;
-import io.sapl.ast.Conjunction;
-import io.sapl.ast.Disjunction;
-import io.sapl.ast.Entitlement;
-import io.sapl.ast.EnvironmentAttribute;
-import io.sapl.ast.ExclusiveDisjunction;
-import io.sapl.ast.Expression;
-import io.sapl.ast.ExpressionPath;
-import io.sapl.ast.ExpressionStep;
-import io.sapl.ast.ExtendedFilter;
-import io.sapl.ast.FilterPath;
-import io.sapl.ast.FunctionCall;
-import io.sapl.ast.Identifier;
-import io.sapl.ast.Import;
-import io.sapl.ast.IndexPath;
-import io.sapl.ast.IndexStep;
-import io.sapl.ast.IndexUnionPath;
-import io.sapl.ast.IndexUnionStep;
-import io.sapl.ast.KeyPath;
-import io.sapl.ast.KeyStep;
-import io.sapl.ast.Literal;
-import io.sapl.ast.ObjectEntry;
-import io.sapl.ast.ObjectExpression;
-import io.sapl.ast.Outcome;
-
-import io.sapl.ast.PathElement;
-import io.sapl.ast.Policy;
-import io.sapl.ast.PolicyBody;
-import io.sapl.ast.PolicySet;
-import io.sapl.ast.PolicySetVoterMetadata;
-import io.sapl.ast.PolicyVoterMetadata;
-import io.sapl.ast.Product;
-import io.sapl.ast.QualifiedName;
-import io.sapl.ast.RecursiveIndexPath;
-import io.sapl.ast.RecursiveIndexStep;
-import io.sapl.ast.RecursiveKeyPath;
-import io.sapl.ast.RecursiveKeyStep;
-import io.sapl.ast.RecursiveWildcardPath;
-import io.sapl.ast.RecursiveWildcardStep;
-import io.sapl.ast.RelativeReference;
-import io.sapl.ast.RelativeType;
-import io.sapl.ast.SaplDocument;
-import io.sapl.ast.SchemaCondition;
-import io.sapl.ast.SchemaStatement;
-import io.sapl.ast.SimpleFilter;
-import io.sapl.ast.SlicePath;
-import io.sapl.ast.SliceStep;
-import io.sapl.ast.Statement;
-import io.sapl.ast.Step;
-import io.sapl.ast.SubscriptionElement;
-import io.sapl.ast.UnaryOperator;
-import io.sapl.ast.UnaryOperatorType;
-import io.sapl.ast.VarDef;
-import io.sapl.ast.WildcardPath;
-import io.sapl.ast.WildcardStep;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.grammar.antlr.SAPLParser;
-import io.sapl.grammar.antlr.SAPLParser.AbstainDefaultContext;
-import io.sapl.grammar.antlr.SAPLParser.AbstainErrorsContext;
-import io.sapl.grammar.antlr.SAPLParser.ActionIdContext;
-import io.sapl.grammar.antlr.SAPLParser.AdditionContext;
-import io.sapl.grammar.antlr.SAPLParser.ArgumentsContext;
-import io.sapl.grammar.antlr.SAPLParser.ArrayContext;
-import io.sapl.grammar.antlr.SAPLParser.ArrayValueContext;
-import io.sapl.grammar.antlr.SAPLParser.AttributeFinderDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.AttributeUnionSubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.BasicExprContext;
-import io.sapl.grammar.antlr.SAPLParser.BasicExpressionContext;
-import io.sapl.grammar.antlr.SAPLParser.BasicRelativeContext;
-import io.sapl.grammar.antlr.SAPLParser.BooleanValueContext;
-import io.sapl.grammar.antlr.SAPLParser.BracketStepContext;
-import io.sapl.grammar.antlr.SAPLParser.CombiningAlgorithmContext;
-import io.sapl.grammar.antlr.SAPLParser.ComparisonContext;
-import io.sapl.grammar.antlr.SAPLParser.ConditionStatementContext;
-import io.sapl.grammar.antlr.SAPLParser.ConditionSubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.DefaultDecisionContext;
-import io.sapl.grammar.antlr.SAPLParser.DenyDefaultContext;
-import io.sapl.grammar.antlr.SAPLParser.DenyEntitlementContext;
-import io.sapl.grammar.antlr.SAPLParser.EagerAndContext;
-import io.sapl.grammar.antlr.SAPLParser.EagerOrContext;
-import io.sapl.grammar.antlr.SAPLParser.EntitlementContext;
-import io.sapl.grammar.antlr.SAPLParser.EnvAttributeBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.EnvHeadAttributeBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.EnvironmentIdContext;
-import io.sapl.grammar.antlr.SAPLParser.EqualityContext;
-import io.sapl.grammar.antlr.SAPLParser.ErrorHandlingContext;
-import io.sapl.grammar.antlr.SAPLParser.EscapedKeyDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.EscapedKeySubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.ExclusiveOrContext;
-import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
-import io.sapl.grammar.antlr.SAPLParser.ExpressionSubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.FalseLiteralContext;
-import io.sapl.grammar.antlr.SAPLParser.FilterComponentContext;
-import io.sapl.grammar.antlr.SAPLParser.FilterExtendedContext;
-import io.sapl.grammar.antlr.SAPLParser.FilterSimpleContext;
-import io.sapl.grammar.antlr.SAPLParser.FilterStatementContext;
-import io.sapl.grammar.antlr.SAPLParser.FirstContext;
-import io.sapl.grammar.antlr.SAPLParser.FunctionBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.FunctionIdentifierContext;
-import io.sapl.grammar.antlr.SAPLParser.GroupBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.HasExpressionContext;
-import io.sapl.grammar.antlr.SAPLParser.HeadAttributeFinderDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.IdPairKeyContext;
-import io.sapl.grammar.antlr.SAPLParser.IdentifierBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.ImportStatementContext;
-import io.sapl.grammar.antlr.SAPLParser.IndexSubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.IndexUnionSubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.KeyDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.LazyAndContext;
-import io.sapl.grammar.antlr.SAPLParser.LazyOrContext;
-import io.sapl.grammar.antlr.SAPLParser.MultiplicationContext;
-import io.sapl.grammar.antlr.SAPLParser.NotExpressionContext;
-import io.sapl.grammar.antlr.SAPLParser.NullLiteralContext;
-import io.sapl.grammar.antlr.SAPLParser.NullValueContext;
-import io.sapl.grammar.antlr.SAPLParser.NumberLiteralContext;
-import io.sapl.grammar.antlr.SAPLParser.NumberValueContext;
-import io.sapl.grammar.antlr.SAPLParser.ObjectContext;
-import io.sapl.grammar.antlr.SAPLParser.ObjectValueContext;
-import io.sapl.grammar.antlr.SAPLParser.PairKeyContext;
-import io.sapl.grammar.antlr.SAPLParser.PermitDefaultContext;
-import io.sapl.grammar.antlr.SAPLParser.PermitEntitlementContext;
-import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
-import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
-import io.sapl.grammar.antlr.SAPLParser.PolicySetContext;
-import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
-import io.sapl.grammar.antlr.SAPLParser.PriorityDenyContext;
-import io.sapl.grammar.antlr.SAPLParser.PriorityPermitContext;
-import io.sapl.grammar.antlr.SAPLParser.PropagateErrorsContext;
-import io.sapl.grammar.antlr.SAPLParser.RecursiveIdKeyStepContext;
-import io.sapl.grammar.antlr.SAPLParser.RecursiveIndexDotDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.RecursiveKeyDotDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.RecursiveKeyStepContext;
-import io.sapl.grammar.antlr.SAPLParser.RecursiveStringKeyStepContext;
-import io.sapl.grammar.antlr.SAPLParser.RecursiveWildcardDotDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.RelativeBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.RelativeLocationBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.ReservedIdContext;
-import io.sapl.grammar.antlr.SAPLParser.ResourceIdContext;
-import io.sapl.grammar.antlr.SAPLParser.SaplContext;
-import io.sapl.grammar.antlr.SAPLParser.SaplIdContext;
-import io.sapl.grammar.antlr.SAPLParser.SchemaStatementContext;
-import io.sapl.grammar.antlr.SAPLParser.SignedNumberContext;
-import io.sapl.grammar.antlr.SAPLParser.SlicingSubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.StepContext;
-import io.sapl.grammar.antlr.SAPLParser.StringLiteralContext;
-import io.sapl.grammar.antlr.SAPLParser.StringPairKeyContext;
-import io.sapl.grammar.antlr.SAPLParser.StringValueContext;
-import io.sapl.grammar.antlr.SAPLParser.SubjectIdContext;
-import io.sapl.grammar.antlr.SAPLParser.SubscriptContext;
-import io.sapl.grammar.antlr.SAPLParser.TrueLiteralContext;
-import io.sapl.grammar.antlr.SAPLParser.UnanimousContext;
-import io.sapl.grammar.antlr.SAPLParser.UnanimousStrictContext;
-import io.sapl.grammar.antlr.SAPLParser.UnaryMinusExpressionContext;
-import io.sapl.grammar.antlr.SAPLParser.UnaryPlusExpressionContext;
-import io.sapl.grammar.antlr.SAPLParser.UndefinedLiteralContext;
-import io.sapl.grammar.antlr.SAPLParser.UndefinedValueContext;
-import io.sapl.grammar.antlr.SAPLParser.UniqueContext;
-import io.sapl.grammar.antlr.SAPLParser.ValueBasicContext;
-import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionContext;
-import io.sapl.grammar.antlr.SAPLParser.ValueDefinitionStatementContext;
-import io.sapl.grammar.antlr.SAPLParser.VotingModeContext;
-import io.sapl.grammar.antlr.SAPLParser.WildcardDotStepContext;
-import io.sapl.grammar.antlr.SAPLParser.WildcardSubscriptContext;
+import io.sapl.grammar.antlr.SAPLParser.*;
 import io.sapl.grammar.antlr.SAPLParserBaseVisitor;
 import lombok.val;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -222,7 +54,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
     private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
-    private static final String ERROR_UNKNOWN_ENTITLEMENT          = "Unknown entitlement.";
+    private static final String ERROR_UNKNOWN_EFFECT               = "Unknown effect.";
     private static final String ERROR_UNKNOWN_ERROR_HANDLING       = "Unknown error handling.";
     private static final String ERROR_UNKNOWN_FILTER_TYPE          = "Unknown filter type: %s";
     private static final String ERROR_UNKNOWN_VOTING_MODE          = "Unknown voting mode.";
@@ -424,6 +256,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case ABSTAIN -> null;
         case DENY    -> Outcome.DENY;
         case PERMIT  -> Outcome.PERMIT;
+        case SUSPEND -> Outcome.SUSPEND;
         };
         for (val policy : policies) {
             val policyOutcome = policy.metadata().outcome();
@@ -440,8 +273,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     public Policy visitPolicy(PolicyContext ctx) {
         val name           = unquoteString(ctx.saplName.getText());
         val documentId     = toDocumentId(name);
-        val entitlement    = toEntitlement(ctx.entitlement());
-        val outcome        = entitlement == Entitlement.DENY ? Outcome.DENY : Outcome.PERMIT;
+        val effect         = toEffect(ctx.effect());
+        val outcome        = switch (effect) {
+                           case PERMIT  -> Outcome.PERMIT;
+                           case DENY    -> Outcome.DENY;
+                           case SUSPEND -> Outcome.SUSPEND;
+                           };
         val hasConstraints = !ctx.obligations.isEmpty() || !ctx.adviceExpressions.isEmpty()
                 || ctx.transformation != null;
         val metadata       = new PolicyVoterMetadata(name, pdpId, configurationId, documentId, outcome, hasConstraints);
@@ -468,8 +305,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         // Use currentImports (empty if inside PolicySet, actual imports if standalone)
         val policyImports = currentImports != null ? currentImports : List.<Import>of();
 
-        return new Policy(policyImports, metadata, entitlement, body, obligations, advice, transformation,
-                fromContext(ctx));
+        return new Policy(policyImports, metadata, effect, body, obligations, advice, transformation, fromContext(ctx));
     }
 
     @Override
@@ -1000,12 +836,12 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         };
     }
 
-    private Entitlement toEntitlement(EntitlementContext ctx) {
+    private Effect toEffect(EffectContext ctx) {
         return switch (ctx) {
-        case PermitEntitlementContext ignored -> Entitlement.PERMIT;
-        case DenyEntitlementContext ignored   -> Entitlement.DENY;
-        default                               ->
-            throw new SaplCompilerException(ERROR_UNKNOWN_ENTITLEMENT, fromContext(ctx));
+        case PermitEffectContext ignored  -> Effect.PERMIT;
+        case DenyEffectContext ignored    -> Effect.DENY;
+        case SuspendEffectContext ignored -> Effect.SUSPEND;
+        default                           -> throw new SaplCompilerException(ERROR_UNKNOWN_EFFECT, fromContext(ctx));
         };
     }
 
@@ -1022,6 +858,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case FirstContext ignored           -> VotingMode.FIRST;
         case PriorityDenyContext ignored    -> VotingMode.PRIORITY_DENY;
         case PriorityPermitContext ignored  -> VotingMode.PRIORITY_PERMIT;
+        case PrioritySuspendContext ignored -> VotingMode.PRIORITY_SUSPEND;
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
         case UniqueContext ignored          -> VotingMode.UNIQUE;
@@ -1035,6 +872,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         case DenyDefaultContext ignored    -> DefaultDecision.DENY;
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
+        case SuspendDefaultContext ignored -> DefaultDecision.SUSPEND;
         default                            ->
             throw new SaplCompilerException(ERROR_UNKNOWN_DEFAULT_VOTE, fromContext(ctx));
         };

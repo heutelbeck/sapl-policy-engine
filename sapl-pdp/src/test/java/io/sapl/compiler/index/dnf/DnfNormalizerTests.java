@@ -31,10 +31,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static io.sapl.compiler.index.IndexTestFixtures.*;
 import static io.sapl.compiler.index.dnf.DnfNormalizer.normalize;
-import static io.sapl.compiler.index.IndexTestFixtures.atom;
-import static io.sapl.compiler.index.IndexTestFixtures.negativeLiteral;
-import static io.sapl.compiler.index.IndexTestFixtures.positiveLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 

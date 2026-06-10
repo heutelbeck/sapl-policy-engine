@@ -17,84 +17,47 @@
  */
 package io.sapl.functions;
 
-import io.sapl.functions.libraries.ArrayFunctionLibrary;
-import io.sapl.functions.libraries.BitwiseFunctionLibrary;
-import io.sapl.functions.libraries.CidrFunctionLibrary;
-import io.sapl.functions.libraries.CsvFunctionLibrary;
-import io.sapl.functions.libraries.DigestFunctionLibrary;
-import io.sapl.functions.libraries.EncodingFunctionLibrary;
-import io.sapl.functions.libraries.FilterFunctionLibrary;
-import io.sapl.functions.libraries.GraphFunctionLibrary;
-import io.sapl.functions.libraries.GraphQLFunctionLibrary;
-
-import io.sapl.functions.libraries.JsonFunctionLibrary;
-import io.sapl.functions.libraries.KeysFunctionLibrary;
-import io.sapl.functions.libraries.MacFunctionLibrary;
-import io.sapl.functions.libraries.MathFunctionLibrary;
-import io.sapl.functions.libraries.NumeralFunctionLibrary;
-import io.sapl.functions.libraries.ObjectFunctionLibrary;
-import io.sapl.functions.libraries.PatternsFunctionLibrary;
-import io.sapl.functions.libraries.PermissionsFunctionLibrary;
-import io.sapl.functions.libraries.ReflectionFunctionLibrary;
-import io.sapl.functions.libraries.SanitizationFunctionLibrary;
-import io.sapl.functions.libraries.SaplFunctionLibrary;
-import io.sapl.functions.libraries.SchemaValidationLibrary;
-import io.sapl.functions.libraries.SemVerFunctionLibrary;
-import io.sapl.functions.libraries.SignatureFunctionLibrary;
-import io.sapl.functions.libraries.StandardFunctionLibrary;
-import io.sapl.functions.libraries.StringFunctionLibrary;
-import io.sapl.functions.libraries.TemporalFunctionLibrary;
-import io.sapl.functions.libraries.TomlFunctionLibrary;
-import io.sapl.functions.libraries.UnitsFunctionLibrary;
-import io.sapl.functions.libraries.UuidFunctionLibrary;
-import io.sapl.functions.libraries.X509FunctionLibrary;
-import io.sapl.functions.libraries.XmlFunctionLibrary;
-import io.sapl.functions.libraries.YamlFunctionLibrary;
+import io.sapl.functions.libraries.*;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides the default set of function libraries available in the SAPL
- * compiler. These libraries are automatically
- * registered when creating a PDP with default configuration.
+ * compiler. The instances are constructed on the first call to
+ * {@link #defaults()} and cached. Callers that never invoke
+ * {@code defaults()} pay no allocation cost.
  */
 @UtilityClass
 public class DefaultLibraries {
-    // @formatter:off
-    public static final List<Class<?>> STATIC_LIBRARIES = List.of(
-            ArrayFunctionLibrary.class,
-            BitwiseFunctionLibrary.class,
-            CidrFunctionLibrary.class,
-            CsvFunctionLibrary.class,
-            DigestFunctionLibrary.class,
-            EncodingFunctionLibrary.class,
-            FilterFunctionLibrary.class,
-            GraphFunctionLibrary.class,
-            GraphQLFunctionLibrary.class,
-            JsonFunctionLibrary.class,
 
-            KeysFunctionLibrary.class,
-            MacFunctionLibrary.class,
-            MathFunctionLibrary.class,
-            NumeralFunctionLibrary.class,
-            ObjectFunctionLibrary.class,
-            PatternsFunctionLibrary.class,
-            PermissionsFunctionLibrary.class,
-            ReflectionFunctionLibrary.class,
-            SanitizationFunctionLibrary.class,
-            SaplFunctionLibrary.class,
-            SchemaValidationLibrary.class,
-            SemVerFunctionLibrary.class,
-            SignatureFunctionLibrary.class,
-            StandardFunctionLibrary.class,
-            StringFunctionLibrary.class,
-            TemporalFunctionLibrary.class,
-            TomlFunctionLibrary.class,
-            UnitsFunctionLibrary.class,
-            UuidFunctionLibrary.class,
-            X509FunctionLibrary.class,
-            XmlFunctionLibrary.class,
-            YamlFunctionLibrary.class);
-    // @formatter:on
+    private static final AtomicReference<List<Object>> CACHE = new AtomicReference<>();
+
+    /**
+     * Returns the cached list of default library instances, building
+     * it on first call.
+     */
+    public static List<Object> defaults() {
+        var current = CACHE.get();
+        if (current != null) {
+            return current;
+        }
+        var fresh = build();
+        return CACHE.compareAndSet(null, fresh) ? fresh : CACHE.get();
+    }
+
+    private static List<Object> build() {
+        return List.of(new ArrayFunctionLibrary(), new BitwiseFunctionLibrary(), new CidrFunctionLibrary(),
+                new CsvFunctionLibrary(), new DigestFunctionLibrary(), new EncodingFunctionLibrary(),
+                new FilterFunctionLibrary(), new GraphFunctionLibrary(), new GraphQLFunctionLibrary(),
+                new JsonFunctionLibrary(), new KeysFunctionLibrary(), new MacFunctionLibrary(),
+                new MathFunctionLibrary(), new NumeralFunctionLibrary(), new ObjectFunctionLibrary(),
+                new PatternsFunctionLibrary(), new PermissionsFunctionLibrary(), new ReflectionFunctionLibrary(),
+                new SanitizationFunctionLibrary(), new SaplFunctionLibrary(), new SchemaValidationLibrary(),
+                new SemVerFunctionLibrary(), new SignatureFunctionLibrary(), new StandardFunctionLibrary(),
+                new StringFunctionLibrary(), new TemporalFunctionLibrary(), new TomlFunctionLibrary(),
+                new UnitsFunctionLibrary(), new UuidFunctionLibrary(), new X509FunctionLibrary(),
+                new XmlFunctionLibrary(), new YamlFunctionLibrary());
+    }
 }

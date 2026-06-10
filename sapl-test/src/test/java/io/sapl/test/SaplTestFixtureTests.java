@@ -19,12 +19,12 @@ package io.sapl.test;
 
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.Value;
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -263,15 +263,7 @@ class SaplTestFixtureTests {
 
     @Test
     void whenAddingFunctionLibrary_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withFunctionLibrary(Object.class)
-                .withPolicy(PERMIT_ALL_POLICY);
-
-        assertThat(fixture).isNotNull();
-    }
-
-    @Test
-    void whenAddingFunctionLibraryInstance_thenReturnsFixtureForChaining() {
-        var fixture = SaplTestFixture.createSingleTest().withFunctionLibraryInstance(new Object())
+        var fixture = SaplTestFixture.createSingleTest().withFunctionLibrary(new Object())
                 .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
@@ -291,8 +283,8 @@ class SaplTestFixtureTests {
         var fixedClock = Clock.fixed(Instant.parse("2025-01-06T10:00:00Z"), ZoneOffset.UTC);
 
         var fixture = SaplTestFixture.createSingleTest().withJsonMapper(jsonMapper).withClock(fixedClock)
-                .withFunctionLibrary(Object.class).withFunctionLibraryInstance(new Object())
-                .withPolicyInformationPoint(new Object()).withPolicy(PERMIT_ALL_POLICY);
+                .withFunctionLibrary(new Object()).withPolicyInformationPoint(new Object())
+                .withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
     }

@@ -20,6 +20,7 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Effect;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.document.Vote;
@@ -28,29 +29,40 @@ import lombok.val;
 
 import java.util.List;
 
-import static io.sapl.compiler.combining.CombiningUtils.appendToList;
-import static io.sapl.compiler.combining.CombiningUtils.combineOutcomes;
-import static io.sapl.compiler.combining.CombiningUtils.indeterminateResult;
-import static io.sapl.compiler.combining.CombiningUtils.mergeConstraints;
+import static io.sapl.compiler.combining.CombiningUtils.*;
 
 /**
  * Combines multiple policy votes into a single authorization decision using
- * priority-based logic with extended indeterminate semantics.
+ * priority-based logic with extended indeterminate semantics (XACML 3.0 style).
  * <p>
- * Extended indeterminate tracking allows smarter error handling. Each
- * INDETERMINATE vote carries an {@link Outcome} indicating what the decision
- * "would have been" without the error:
- * <ul>
- * <li>{@code Outcome.PERMIT} - would have been PERMIT</li>
- * <li>{@code Outcome.DENY} - would have been DENY</li>
- * <li>{@code Outcome.PERMIT_OR_DENY} - could be either</li>
- * </ul>
+ * Each vote carries an {@link Outcome} that encodes which effect set the vote
+ * is or could have been. For an INDETERMINATE vote the outcome is the
+ * "would-have-been" marker (the set of effects the policy could have produced
+ * had it not errored). For a concrete vote the outcome is the single-bit
+ * representation of its decision.
  * <p>
- * <b>Key principle:</b> The priority decision (PERMIT for permit-overrides,
- * DENY for deny-overrides) wins over everything, including errors. An error
- * only matters if it could have produced the priority decision.
+ * The outcome field is consulted only when the read-target vote is
+ * INDETERMINATE: {@link #isCritical(Outcome, Decision)} answers whether the
+ * could-have-been set includes the priority effect, and that drives whether
+ * the error blocks an otherwise-winning concrete decision.
  * <p>
- * Transformation uncertainty: If multiple votes define resource
+ * <b>Outcome shape principle:</b> concrete results carry single-bit outcomes
+ * (the decision itself); INDETERMINATE results carry multi-bit outcomes
+ * (the union of contributing votes' could-have-beens). Combining two
+ * matching concrete outcomes via {@link CombiningUtils#combineOutcomes}
+ * is idempotent and preserves the single-bit shape.
+ * <p>
+ * <b>Priority principle:</b> the priority decision (PERMIT for
+ * permit-overrides,
+ * DENY for deny-overrides, SUSPEND for suspend-overrides) wins over everything,
+ * including errors. An error only matters if it could have produced the
+ * priority decision.
+ * <p>
+ * <b>Non-priority chain:</b> when no priority vote arrives and two non-priority
+ * concretes disagree, a per-priority chain decides the winner. See
+ * {@link #nonPriorityChainHead(Decision)} for the chain semantics.
+ * <p>
+ * Transformation uncertainty: if multiple votes define resource
  * transformations, the result is INDETERMINATE since the correct transformation
  * cannot be determined.
  */
@@ -131,8 +143,7 @@ public class PriorityBasedVoteCombiner {
      * @return accumulator vote containing the original as a contributing vote
      */
     public Vote accumulatorVoteFrom(Vote vote, VoterMetadata voterMetadata) {
-        return new Vote(vote.authorizationDecision(), vote.errors(), vote.contributingAttributes(), List.of(vote),
-                voterMetadata, vote.outcome());
+        return new Vote(vote.authorizationDecision(), vote.errors(), List.of(vote), voterMetadata, vote.outcome());
     }
 
     /**
@@ -213,9 +224,9 @@ public class PriorityBasedVoteCombiner {
                     return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
                 }
                 if (accDec != Decision.INDETERMINATE) {
-                    // Accumulated non-priority wins - error would have been same or opposite
-                    return concreteResult(accAuthz, combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
-                            contributingVotes, voterMetadata);
+                    // Accumulated non-priority concrete wins. Winner-only
+                    // outcome: concrete result carries single-bit outcome.
+                    return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
                 }
             }
             // Critical error or accumulated INDETERMINATE - error dominates
@@ -228,20 +239,49 @@ public class PriorityBasedVoteCombiner {
         // Accumulated INDETERMINATE: check if error is critical
         if (accDec == Decision.INDETERMINATE) {
             if (!isCritical(accumulatorVote.outcome(), priorityDecision)) {
-                // Non-critical error loses to concrete non-priority decision
-                return concreteResult(newAuthz, combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
-                        contributingVotes, voterMetadata);
+                // Non-critical error loses to concrete non-priority decision.
+                // Winner-only outcome: concrete result carries single-bit outcome.
+                return concreteResult(newAuthz, newVote.outcome(), contributingVotes, voterMetadata);
             }
             // Critical error blocks - stays INDETERMINATE
             return indeterminateResult(combineOutcomes(accumulatorVote.outcome(), newVote.outcome()),
                     accumulatorVote.errors(), contributingVotes, voterMetadata);
         }
 
-        // Both are concrete PERMIT/DENY - must be same decision
-        // (different decisions would mean one is priority, handled above)
-        return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
+        // New vote is NOT_APPLICABLE - accumulator wins. Symmetric counterpart
+        // of the accDec NOT_APPLICABLE branch at the top of this method.
+        if (newDec == Decision.NOT_APPLICABLE) {
+            return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
+        }
+
+        // Same concrete decision - merge constraints
+        if (accDec == newDec) {
+            return handleSameDecision(accAuthz, newAuthz, contributingVotes, accumulatorVote, newVote, voterMetadata);
+        }
+
+        // Priority via accumulator wins. Winner-only authz and outcome,
+        // counterpart of the priority-via-new branch above.
+        if (accDec == priorityDecision) {
+            return concreteResult(accAuthz, accumulatorVote.outcome(), contributingVotes, voterMetadata);
+        }
+
+        // Two distinct concrete non-priority decisions disagree. The
+        // per-priority chain selects the winner (see nonPriorityChainHead).
+        // Winner-only authz and outcome; both votes remain in contributingVotes.
+        val winner = (accDec == nonPriorityChainHead(priorityDecision)) ? accumulatorVote : newVote;
+        return concreteResult(winner.authorizationDecision(), winner.outcome(), contributingVotes, voterMetadata);
     }
 
+    /**
+     * Merges two votes that share the same concrete decision. Caller invariant:
+     * both votes are concrete and
+     * {@code accAuthz.decision() == newAuthz.decision()}.
+     * Under this invariant {@code combineOutcomes} is idempotent on the
+     * matching single-bit outcomes, so the result outcome remains single-bit
+     * for both the concrete merge result and the transformation-uncertainty
+     * INDETERMINATE result (the would-have-been marker correctly equals the
+     * agreed decision).
+     */
     private static Vote handleSameDecision(AuthorizationDecision accAuthz, AuthorizationDecision newAuthz,
             List<Vote> contributingVotes, Vote accVote, Vote newVote, VoterMetadata voterMetadata) {
         val resourceA = accAuthz.resource();
@@ -259,16 +299,50 @@ public class PriorityBasedVoteCombiner {
 
     private static Vote concreteResult(AuthorizationDecision authz, Outcome outcome, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
-        return new Vote(authz, List.of(), List.of(), contributingVotes, voterMetadata, outcome);
+        return new Vote(authz, List.of(), contributingVotes, voterMetadata, outcome);
     }
 
     private static boolean isCritical(Outcome outcome, Decision priorityDecision) {
         if (outcome == null)
             return true; // Unknown = assume critical (safe default)
-        return switch (outcome) {
-        case PERMIT         -> priorityDecision == Decision.PERMIT;
-        case DENY           -> priorityDecision == Decision.DENY;
-        case PERMIT_OR_DENY -> true; // Always critical
+        return outcome.contains(priorityEffect(priorityDecision));
+    }
+
+    /**
+     * Maps a priority decision to its corresponding effect for outcome-bit lookup.
+     * Priority decisions are restricted to PERMIT, DENY, or SUSPEND by the
+     * compile-time dispatch in PdpCompiler / PolicySetCompiler.
+     */
+    private static Effect priorityEffect(Decision priorityDecision) {
+        return switch (priorityDecision) {
+        case PERMIT  -> Effect.PERMIT;
+        case DENY    -> Effect.DENY;
+        case SUSPEND -> Effect.SUSPEND;
+        default      -> throw new IllegalArgumentException(
+                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
+        };
+    }
+
+    /**
+     * Returns the decision that wins among non-priority concretes when they
+     * disagree. This encodes the per-priority chain:
+     * <ul>
+     * <li>priority deny chain: DENY &gt; SUSPEND &gt; PERMIT, so SUSPEND wins
+     * the non-priority subchain</li>
+     * <li>priority permit chain: PERMIT &gt; SUSPEND &gt; DENY, so SUSPEND wins
+     * the non-priority subchain</li>
+     * <li>priority suspend chain: SUSPEND &gt; DENY &gt; PERMIT, so DENY wins
+     * the non-priority subchain</li>
+     * </ul>
+     * The valid disagreement pair under each priority is always
+     * {chain-head, chain-tail}, so returning the chain head is sufficient.
+     */
+    private static Decision nonPriorityChainHead(Decision priorityDecision) {
+        return switch (priorityDecision) {
+        case PERMIT, DENY -> Decision.SUSPEND;
+        case SUSPEND      -> Decision.DENY;
+        default           -> throw new IllegalArgumentException(
+                "Priority decision must be PERMIT, DENY, or SUSPEND; got " + priorityDecision);
         };
     }
 

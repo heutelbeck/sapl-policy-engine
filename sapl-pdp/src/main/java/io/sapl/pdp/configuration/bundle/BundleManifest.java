@@ -20,10 +20,10 @@ package io.sapl.pdp.configuration.bundle;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
-import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

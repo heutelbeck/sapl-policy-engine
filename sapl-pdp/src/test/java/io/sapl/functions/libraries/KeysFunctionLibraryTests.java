@@ -17,12 +17,7 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.databind.node.JsonNodeFactory;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -32,11 +27,13 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.math.BigInteger;
 import java.security.KeyPair;
@@ -53,18 +50,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import org.junit.jupiter.api.DisplayName;
-
 @DisplayName("KeysFunctionLibrary")
 class KeysFunctionLibraryTests {
 
-    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+    private static final JsonNodeFactory     JSON      = JsonNodeFactory.instance;
+    private static final KeysFunctionLibrary KEYS      = new KeysFunctionLibrary();
+    private static final Instant             REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(KeysFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new KeysFunctionLibrary())).doesNotThrowAnyException();
     }
 
     private static String rsa2048PublicKeyPem;
@@ -128,7 +124,7 @@ class KeysFunctionLibraryTests {
     @MethodSource("keyTypeTestCases")
     void whenParsePublicKeyWithVariousKeyTypesThenReturnsCorrectKeyObject(String keyPem, String expectedAlgorithm,
             String expectedFormat, int expectedSize, String expectedCurve) {
-        val result = KeysFunctionLibrary.publicKeyFromPem(Value.of(keyPem));
+        val result = KEYS.publicKeyFromPem(Value.of(keyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val keyObject = (ObjectValue) result;
@@ -155,7 +151,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "{1}")
     @MethodSource("invalidKeyInputs")
     void whenParsePublicKeyWithInvalidInputThenReturnsError(String invalidInput, String description) {
-        val result = KeysFunctionLibrary.publicKeyFromPem(Value.of(invalidInput));
+        val result = KEYS.publicKeyFromPem(Value.of(invalidInput));
 
         assertThat(result).as("Should fail for: " + description).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Failed to parse public key");
@@ -172,14 +168,14 @@ class KeysFunctionLibraryTests {
     void whenExtractPublicKeyFromCertificateWithValidCertThenReturnsValidPem(String certFieldName,
             String expectedAlgorithm) throws Exception {
         val certPem = (String) KeysFunctionLibraryTests.class.getDeclaredField(certFieldName).get(null);
-        val result  = KeysFunctionLibrary.publicKeyFromCertificate(Value.of(certPem));
+        val result  = KEYS.publicKeyFromCertificate(Value.of(certPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val pemText = (TextValue) result;
         assertThat(pemText.value()).contains("BEGIN PUBLIC KEY").contains("END PUBLIC KEY");
 
         // Verify extracted key can be parsed
-        val parsedKey = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem(pemText);
+        val parsedKey = (ObjectValue) KEYS.publicKeyFromPem(pemText);
         assertThat(parsedKey).isNotInstanceOf(ErrorValue.class).containsEntry("algorithm", Value.of(expectedAlgorithm));
     }
 
@@ -195,7 +191,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "[{index}] {0}")
     @MethodSource("invalidCertificates")
     void whenExtractPublicKeyFromCertificateWithInvalidCertThenReturnsError(String invalidCert) {
-        val result = KeysFunctionLibrary.publicKeyFromCertificate(Value.of(invalidCert));
+        val result = KEYS.publicKeyFromCertificate(Value.of(invalidCert));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Failed to extract public key");
@@ -203,16 +199,16 @@ class KeysFunctionLibraryTests {
 
     @Test
     void whenExtractPublicKeyFromCertificateRoundTripThenMaintainsKeyProperties() {
-        val extractedKey = KeysFunctionLibrary.publicKeyFromCertificate(Value.of(rsaCertificatePem));
-        val parsedKey    = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem((TextValue) extractedKey);
+        val extractedKey = KEYS.publicKeyFromCertificate(Value.of(rsaCertificatePem));
+        val parsedKey    = (ObjectValue) KEYS.publicKeyFromPem((TextValue) extractedKey);
 
         assertThat(parsedKey).containsEntry("algorithm", Value.of("RSA")).containsEntry("size", Value.of(2048));
     }
 
     @Test
     void whenExtractPublicKeyFromCertificateWithEcCertificateThenExtractsEcKey() {
-        val extractedKey = KeysFunctionLibrary.publicKeyFromCertificate(Value.of(ecCertificatePem));
-        val parsedKey    = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem((TextValue) extractedKey);
+        val extractedKey = KEYS.publicKeyFromCertificate(Value.of(ecCertificatePem));
+        val parsedKey    = (ObjectValue) KEYS.publicKeyFromPem((TextValue) extractedKey);
 
         assertThat(parsedKey).isNotInstanceOf(ErrorValue.class).containsEntry("algorithm", Value.of("EC"))
                 .containsEntry("size", Value.of(256)).containsEntry("curve", Value.of("secp256r1"));
@@ -224,7 +220,7 @@ class KeysFunctionLibraryTests {
     @MethodSource("keyTypeTestCases")
     void whenExtractKeyAlgorithmWithVariousKeysThenReturnsCorrectAlgorithm(String keyPem, String expectedAlgorithm,
             String ignored1, int ignored2, String ignored3) {
-        val result = KeysFunctionLibrary.algorithmFromKey(Value.of(keyPem));
+        val result = KEYS.algorithmFromKey(Value.of(keyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expectedAlgorithm));
     }
@@ -233,7 +229,7 @@ class KeysFunctionLibraryTests {
     @MethodSource("keyTypeTestCases")
     void whenExtractKeySizeWithVariousKeysThenReturnsCorrectSize(String keyPem, String ignored1, String ignored2,
             int expectedSize, String ignored3) {
-        val result = KeysFunctionLibrary.sizeFromKey(Value.of(keyPem));
+        val result = KEYS.sizeFromKey(Value.of(keyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expectedSize));
     }
@@ -246,7 +242,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "Extract curve {1}")
     @MethodSource("ecCurveTestCases")
     void whenExtractEcCurveWithEcKeysThenReturnsCorrectCurve(String keyPem, String expectedCurve) {
-        val result = KeysFunctionLibrary.curveFromKey(Value.of(keyPem));
+        val result = KEYS.curveFromKey(Value.of(keyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class).isEqualTo(Value.of(expectedCurve));
     }
@@ -258,7 +254,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("nonEcKeys")
     void whenExtractEcCurveWithNonEcKeyThenReturnsError(String nonEcKeyPem) {
-        val result = KeysFunctionLibrary.curveFromKey(Value.of(nonEcKeyPem));
+        val result = KEYS.curveFromKey(Value.of(nonEcKeyPem));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).containsIgnoringCase("not an EC key");
@@ -267,16 +263,16 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = { "", "invalid", "The sign of Hastur" })
     void whenExtractKeyInformationWithInvalidKeyThenReturnsError(String invalidKey) {
-        assertThat(KeysFunctionLibrary.algorithmFromKey(Value.of(invalidKey))).isInstanceOf(ErrorValue.class);
-        assertThat(KeysFunctionLibrary.sizeFromKey(Value.of(invalidKey))).isInstanceOf(ErrorValue.class);
-        assertThat(KeysFunctionLibrary.curveFromKey(Value.of(invalidKey))).isInstanceOf(ErrorValue.class);
+        assertThat(KEYS.algorithmFromKey(Value.of(invalidKey))).isInstanceOf(ErrorValue.class);
+        assertThat(KEYS.sizeFromKey(Value.of(invalidKey))).isInstanceOf(ErrorValue.class);
+        assertThat(KEYS.curveFromKey(Value.of(invalidKey))).isInstanceOf(ErrorValue.class);
     }
 
     /* JWK Conversion Tests - PEM to JWK */
 
     @Test
     void whenPublicKeyToJwkWithRsaKeyThenReturnsValidJwk() {
-        val result = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
+        val result = KEYS.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val jwk = (ObjectValue) result;
@@ -294,7 +290,7 @@ class KeysFunctionLibraryTests {
     @ParameterizedTest(name = "EC key with curve {1}")
     @MethodSource("ecJwkTestCases")
     void whenPublicKeyToJwkWithEcKeyThenReturnsValidJwk(String keyPem, String expectedCurve) {
-        val result = KeysFunctionLibrary.jwkFromPublicKey(Value.of(keyPem));
+        val result = KEYS.jwkFromPublicKey(Value.of(keyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val jwk = (ObjectValue) result;
@@ -307,7 +303,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void whenPublicKeyToJwkWithEd25519KeyThenReturnsValidJwk() {
-        val result = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
+        val result = KEYS.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         val jwk = (ObjectValue) result;
@@ -324,41 +320,41 @@ class KeysFunctionLibraryTests {
 
     @Test
     void whenJwkToPublicKeyWithRsaJwkThenReturnsValidPem() {
-        val originalJwk = KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
-        val result      = (TextValue) KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) originalJwk);
+        val originalJwk = KEYS.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
+        val result      = (TextValue) KEYS.publicKeyFromJwk((ObjectValue) originalJwk);
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         assertThat(result.value()).contains("BEGIN PUBLIC KEY").contains("END PUBLIC KEY");
 
         // Verify the key can be parsed
-        val parsedKey = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem(result);
+        val parsedKey = (ObjectValue) KEYS.publicKeyFromPem(result);
         assertThat(parsedKey).containsEntry("algorithm", Value.of("RSA"));
     }
 
     @ParameterizedTest(name = "EC key with curve {1}")
     @MethodSource("ecJwkTestCases")
     void whenJwkToPublicKeyWithEcJwkThenReturnsValidPem(String keyPem, String expectedCurve) {
-        val originalJwk = KeysFunctionLibrary.jwkFromPublicKey(Value.of(keyPem));
-        val result      = (TextValue) KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) originalJwk);
+        val originalJwk = KEYS.jwkFromPublicKey(Value.of(keyPem));
+        val result      = (TextValue) KEYS.publicKeyFromJwk((ObjectValue) originalJwk);
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         assertThat(result.value()).contains("BEGIN PUBLIC KEY").contains("END PUBLIC KEY");
 
         // Verify the key can be parsed and has correct curve
-        val parsedKey = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem(result);
+        val parsedKey = (ObjectValue) KEYS.publicKeyFromPem(result);
         assertThat(parsedKey).containsEntry("algorithm", Value.of("EC"));
     }
 
     @Test
     void whenJwkToPublicKeyWithEd25519JwkThenReturnsValidPem() {
-        val originalJwk = KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
-        val result      = (TextValue) KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) originalJwk);
+        val originalJwk = KEYS.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
+        val result      = (TextValue) KEYS.publicKeyFromJwk((ObjectValue) originalJwk);
 
         assertThat(result).isNotInstanceOf(ErrorValue.class);
         assertThat(result.value()).contains("BEGIN PUBLIC KEY").contains("END PUBLIC KEY");
 
         // Verify the key can be parsed
-        val parsedKey = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem(result);
+        val parsedKey = (ObjectValue) KEYS.publicKeyFromPem(result);
         assertThat(parsedKey).containsEntry("algorithm", Value.of("EdDSA"));
     }
 
@@ -397,7 +393,7 @@ class KeysFunctionLibraryTests {
     @MethodSource("invalidJwkTestCases")
     void whenJwkToPublicKeyWithInvalidJwkThenReturnsError(tools.jackson.databind.node.ObjectNode invalidJwk,
             String description) {
-        val result = KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(invalidJwk));
+        val result = KEYS.publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(invalidJwk));
 
         assertThat(result).as("Should fail for: " + description).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).containsIgnoringCase("failed");
@@ -416,9 +412,9 @@ class KeysFunctionLibraryTests {
     @MethodSource("roundTripTestCases")
     void whenKeyRoundTripPemToJwkToPemThenMaintainsKeyMaterial(String originalPem, String keyType, String param1,
             String param2) {
-        val originalJwkValue = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(originalPem));
-        val convertedPem     = KeysFunctionLibrary.publicKeyFromJwk(originalJwkValue);
-        val finalJwkValue    = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey((TextValue) convertedPem);
+        val originalJwkValue = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(originalPem));
+        val convertedPem     = KEYS.publicKeyFromJwk(originalJwkValue);
+        val finalJwkValue    = (ObjectValue) KEYS.jwkFromPublicKey((TextValue) convertedPem);
 
         assertThat(originalJwkValue).isNotInstanceOf(ErrorValue.class);
         assertThat(convertedPem).isNotInstanceOf(ErrorValue.class);
@@ -437,15 +433,15 @@ class KeysFunctionLibraryTests {
 
         // Perform 5 round-trips
         for (int i = 0; i < 5; i++) {
-            val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(currentPem));
-            val pem = (TextValue) KeysFunctionLibrary.publicKeyFromJwk(jwk);
+            val jwk = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(currentPem));
+            val pem = (TextValue) KEYS.publicKeyFromJwk(jwk);
             assertThat(pem).as("Round-trip " + i + " failed").isNotInstanceOf(ErrorValue.class);
             currentPem = pem.value();
         }
 
         // Verify final key still matches original
-        val finalJwk    = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(currentPem));
-        val originalJwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
+        val finalJwk    = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(currentPem));
+        val originalJwk = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
 
         assertThat(finalJwk).satisfies(jwk -> {
             assertThat(jwk.get("n")).isEqualTo(originalJwk.get("n"));
@@ -457,9 +453,9 @@ class KeysFunctionLibraryTests {
 
     @Test
     void whenCertificateExtractionConvertedToJwkAndBackThenSucceeds() {
-        val extractedKey = KeysFunctionLibrary.publicKeyFromCertificate(Value.of(rsaCertificatePem));
-        val jwk          = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey((TextValue) extractedKey);
-        val reconverted  = KeysFunctionLibrary.publicKeyFromJwk(jwk);
+        val extractedKey = KEYS.publicKeyFromCertificate(Value.of(rsaCertificatePem));
+        val jwk          = (ObjectValue) KEYS.jwkFromPublicKey((TextValue) extractedKey);
+        val reconverted  = KEYS.publicKeyFromJwk(jwk);
 
         assertThat(jwk).isNotInstanceOf(ErrorValue.class).containsEntry("kty", Value.of("RSA"));
         assertThat(reconverted).isNotInstanceOf(ErrorValue.class);
@@ -468,35 +464,35 @@ class KeysFunctionLibraryTests {
     @Test
     void whenAllKeyOperationsUsedTogetherThenWorksSeamlessly() {
         // Parse original key
-        val parsedKey = (ObjectValue) KeysFunctionLibrary.publicKeyFromPem(Value.of(ecP256PublicKeyPem));
+        val parsedKey = (ObjectValue) KEYS.publicKeyFromPem(Value.of(ecP256PublicKeyPem));
         assertThat(parsedKey).containsEntry("algorithm", Value.of("EC"));
 
         // Extract information
-        val algorithm = KeysFunctionLibrary.algorithmFromKey(Value.of(ecP256PublicKeyPem));
-        val size      = KeysFunctionLibrary.sizeFromKey(Value.of(ecP256PublicKeyPem));
-        val curve     = KeysFunctionLibrary.curveFromKey(Value.of(ecP256PublicKeyPem));
+        val algorithm = KEYS.algorithmFromKey(Value.of(ecP256PublicKeyPem));
+        val size      = KEYS.sizeFromKey(Value.of(ecP256PublicKeyPem));
+        val curve     = KEYS.curveFromKey(Value.of(ecP256PublicKeyPem));
 
         assertThat(algorithm).isEqualTo(Value.of("EC"));
         assertThat(size).isEqualTo(Value.of(256));
         assertThat(curve).isEqualTo(Value.of("secp256r1"));
 
         // Convert to JWK and back to PEM
-        val jwk       = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
-        val converted = (TextValue) KeysFunctionLibrary.publicKeyFromJwk(jwk);
+        val jwk       = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
+        val converted = (TextValue) KEYS.publicKeyFromJwk(jwk);
 
         assertThat(jwk).containsEntry("kty", Value.of("EC")).containsEntry("crv", Value.of("P-256"));
         assertThat(converted).isNotInstanceOf(ErrorValue.class);
 
         // Verify converted key has same properties
-        assertThat(KeysFunctionLibrary.algorithmFromKey(converted)).isEqualTo(algorithm);
-        assertThat(KeysFunctionLibrary.sizeFromKey(converted)).isEqualTo(size);
-        assertThat(KeysFunctionLibrary.curveFromKey(converted)).isEqualTo(curve);
+        assertThat(KEYS.algorithmFromKey(converted)).isEqualTo(algorithm);
+        assertThat(KEYS.sizeFromKey(converted)).isEqualTo(size);
+        assertThat(KEYS.curveFromKey(converted)).isEqualTo(curve);
     }
 
     @Test
     void whenRsaWithLargeExponentThenHandlesCorrectly() {
         // RSA keys typically use 65537 (0x10001) as exponent, but can use larger values
-        val jwk      = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
+        val jwk      = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(rsa2048PublicKeyPem));
         val exponent = getTextFieldValue(jwk, "e");
 
         // Verify exponent is properly base64url encoded without padding
@@ -507,7 +503,7 @@ class KeysFunctionLibraryTests {
     @Test
     void whenEcCoordinatesThenHandleLeadingZeros() {
         // EC coordinates should handle leading zeros properly (no sign byte issues)
-        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
+        val jwk = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(ecP256PublicKeyPem));
 
         // Decode and verify proper unsigned representation - P-256 coordinates should
         // be 32 bytes each
@@ -517,7 +513,7 @@ class KeysFunctionLibraryTests {
 
     @Test
     void whenEd25519RawKeyThenIsExactly32Bytes() {
-        val jwk = (ObjectValue) KeysFunctionLibrary.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
+        val jwk = (ObjectValue) KEYS.jwkFromPublicKey(Value.of(ed25519PublicKeyPem));
 
         assertThat(Base64.getUrlDecoder().decode(getTextFieldValue(jwk, "x")))
                 .as("Ed25519 raw key must be exactly 32 bytes").hasSize(32);
@@ -527,17 +523,17 @@ class KeysFunctionLibraryTests {
 
     @Test
     void whenErrorMessagesThenEndWithPeriod() {
-        var errors = Stream.of(KeysFunctionLibrary.publicKeyFromPem(Value.of("invalid")),
-                KeysFunctionLibrary.publicKeyFromCertificate(Value.of("invalid")),
-                KeysFunctionLibrary.publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(JSON.objectNode())),
-                KeysFunctionLibrary.curveFromKey(Value.of(rsa2048PublicKeyPem)));
+        var errors = Stream.of(KEYS.publicKeyFromPem(Value.of("invalid")),
+                KEYS.publicKeyFromCertificate(Value.of("invalid")),
+                KEYS.publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(JSON.objectNode())),
+                KEYS.curveFromKey(Value.of(rsa2048PublicKeyPem)));
 
         errors.forEach(error -> assertThat(((ErrorValue) error).message()).endsWith("."));
     }
 
     @Test
     void whenErrorMessagesThenAreActionable() {
-        val missingModulus = KeysFunctionLibrary
+        val missingModulus = KEYS
                 .publicKeyFromJwk((ObjectValue) ValueJsonMarshaller.fromJsonNode(JSON.objectNode().put("kty", "RSA")));
 
         assertThat(missingModulus).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
@@ -569,7 +565,7 @@ class KeysFunctionLibraryTests {
     }
 
     private static X509Certificate generateCertificate(KeyPair keyPair, String algorithm) throws Exception {
-        val now       = Instant.now();
+        val now       = REFERENCE;
         val notBefore = now.minus(1, ChronoUnit.DAYS);
         val notAfter  = now.plus(365, ChronoUnit.DAYS);
 

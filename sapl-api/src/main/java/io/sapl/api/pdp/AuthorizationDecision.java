@@ -17,9 +17,13 @@
  */
 package io.sapl.api.pdp;
 
+import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
 import lombok.NonNull;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * Represents the result of a policy evaluation by the PDP.
@@ -27,8 +31,8 @@ import lombok.NonNull;
  * Contains the authorization decision along with optional obligations, advice,
  * and a potentially transformed resource.
  *
- * @param decision the authorization decision (PERMIT, DENY, INDETERMINATE,
- * NOT_APPLICABLE)
+ * @param decision the authorization decision (PERMIT, DENY, SUSPEND,
+ * INDETERMINATE, NOT_APPLICABLE)
  * @param obligations constraints that must be fulfilled for the decision to be
  * valid
  * @param advice optional recommendations that should be considered
@@ -38,7 +42,10 @@ public record AuthorizationDecision(
         @NonNull Decision decision,
         @NonNull ArrayValue obligations,
         @NonNull ArrayValue advice,
-        @NonNull Value resource) {
+        @NonNull Value resource) implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
      * Singleton for a simple PERMIT decision without obligations, advice, or
@@ -52,6 +59,13 @@ public record AuthorizationDecision(
      * transformation.
      */
     public static final AuthorizationDecision DENY = new AuthorizationDecision(Decision.DENY, Value.EMPTY_ARRAY,
+            Value.EMPTY_ARRAY, Value.UNDEFINED);
+
+    /**
+     * Singleton for a simple SUSPEND decision without obligations, advice, or
+     * resource transformation.
+     */
+    public static final AuthorizationDecision SUSPEND = new AuthorizationDecision(Decision.SUSPEND, Value.EMPTY_ARRAY,
             Value.EMPTY_ARRAY, Value.UNDEFINED);
 
     /**

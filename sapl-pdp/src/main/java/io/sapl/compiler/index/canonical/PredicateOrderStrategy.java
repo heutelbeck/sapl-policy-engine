@@ -17,16 +17,12 @@
  */
 package io.sapl.compiler.index.canonical;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-
-import io.sapl.compiler.index.dnf.ConjunctiveClause;
 import io.sapl.api.model.IndexPredicate;
+import io.sapl.compiler.index.dnf.ConjunctiveClause;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Orders predicates by evaluation priority using the heuristic from Definition

@@ -17,26 +17,9 @@
  */
 package io.sapl.functions.libraries;
 
-import graphql.language.Argument;
+import graphql.language.*;
 import graphql.language.BooleanValue;
-import graphql.language.Definition;
-import graphql.language.Directive;
-import graphql.language.DirectivesContainer;
-import graphql.language.Document;
-import graphql.language.EnumValue;
-import graphql.language.Field;
-import graphql.language.FloatValue;
-import graphql.language.FragmentDefinition;
-import graphql.language.FragmentSpread;
-import graphql.language.InlineFragment;
-import graphql.language.IntValue;
 import graphql.language.NullValue;
-import graphql.language.OperationDefinition;
-import graphql.language.Selection;
-import graphql.language.SelectionSet;
-import graphql.language.StringValue;
-import graphql.language.VariableDefinition;
-import graphql.language.VariableReference;
 import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.GraphQLSchema;
@@ -47,28 +30,16 @@ import graphql.schema.idl.errors.SchemaProblem;
 import graphql.validation.Validator;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.*;
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * GraphQL query parsing and analysis for authorization policies.
@@ -77,7 +48,6 @@ import java.util.Set;
  * calculation, and security metrics for
  * authorization decisions based on GraphQL query characteristics.
  */
-@UtilityClass
 @FunctionLibrary(name = GraphQLFunctionLibrary.NAME, description = GraphQLFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphQLFunctionLibrary.DOCUMENTATION)
 public class GraphQLFunctionLibrary {
 

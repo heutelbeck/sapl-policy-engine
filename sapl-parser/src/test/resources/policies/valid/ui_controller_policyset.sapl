@@ -12,7 +12,7 @@ policy "all authenticated users may see patient list"
 permit
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "getPatients";
-    resource.http.requestedURI == "/patients";
+    resource.http.path == "/patients";
 	!("ROLE_ANONYMOUS" in subject..authority);
 
 /*
@@ -24,7 +24,7 @@ policy "all authenticated users may access patient records"
 permit
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "getPatient";
-    resource.http.requestedURI =~ "^/patients/[0-9]+$";
+    resource.http.path =~ "^/patients/[0-9]+$";
 	!("ROLE_ANONYMOUS" in subject..authority);
 
 /*
@@ -34,7 +34,7 @@ policy "delete controller for doctors and administrators"
 permit
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "deletePatient";
-    resource.http.requestedURI =~ "^/patients/[0-9]+$";
+    resource.http.path =~ "^/patients/[0-9]+$";
 	("ROLE_DOCTOR" in subject..authority) || ("ROLE_ADMIN" in subject..authority);
 
 /*
@@ -44,7 +44,7 @@ policy "doctors may register new patients"
 permit
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "newPatient";
-    resource.http.requestedURI =~ "^/patients/new.*";
+    resource.http.path =~ "^/patients/new.*";
 	("ROLE_DOCTOR" in subject..authority);
 
 
@@ -55,7 +55,7 @@ policy "doctors may register new patients POST"
 permit
     "UIController" in action.java.instanceof..simpleName;
     action.http.method == "POST";
-    resource.http.requestedURI == "/patients";
+    resource.http.path == "/patients";
 	("ROLE_DOCTOR" in subject..authority);
 
 /*
@@ -65,6 +65,6 @@ policy "staff may access update patient view"
 permit
     "UIController" in action.java.instanceof..simpleName;
     action.java.name == "updatePatient";
-    resource.http.requestedURI =~ "^/patients/[0-9]+/update.*"
-		| resource.http.requestedURI =~ "^/patients/[0-9]+$";
+    resource.http.path =~ "^/patients/[0-9]+/update.*"
+		| resource.http.path =~ "^/patients/[0-9]+$";
 	("ROLE_DOCTOR" in subject..authority) || ("ROLE_NURSE" in subject..authority) || ("ROLE_ADMIN" in subject..authority);

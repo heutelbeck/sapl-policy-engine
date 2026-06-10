@@ -34,8 +34,8 @@ public class SaplReactiveJacksonModule extends SimpleModule {
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
     /**
-     * Creates a new reactive Jackson module with serializers for
-     * ServerHttpRequest and MethodInvocation.
+     * Creates a new reactive Jackson module with serializers for ServerHttpRequest
+     * and MethodInvocation.
      */
     public SaplReactiveJacksonModule() {
         super("SaplReactiveJacksonModule");

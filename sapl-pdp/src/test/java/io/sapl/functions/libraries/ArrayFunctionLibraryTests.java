@@ -46,8 +46,7 @@ class ArrayFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(ArrayFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new ArrayFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test

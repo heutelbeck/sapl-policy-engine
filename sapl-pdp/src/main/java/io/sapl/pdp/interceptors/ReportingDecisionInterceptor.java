@@ -19,17 +19,23 @@ package io.sapl.pdp.interceptors;
 
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
+import io.sapl.api.pdp.TracedDecision;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.compiler.document.Vote;
-import io.sapl.pdp.VoteInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.time.Instant;
+
 /**
- * Interceptor that logs authorization decisions for debugging and auditing.
+ * Logs authorization decisions for debugging and auditing. Implements both
+ * {@link DecisionInterceptor} (renders the decision and trace) and
+ * {@link SubscriptionLifecycleListener} (logs subscribe/unsubscribe events).
  * <p>
- * Supports multiple output formats:
+ * Output formats are independently toggleable:
  * <ul>
  * <li>Full trace - the complete trace structure as JSON via
  * {@link Vote#toTrace()}</li>
@@ -37,12 +43,14 @@ import lombok.val;
  * <li>Text report - human-readable formatted output for console/logs</li>
  * </ul>
  * <p>
- * This interceptor executes with the lowest priority (last) to ensure all other
- * interceptors have had a chance to modify the decision before logging.
+ * The rich JSON / text reports require dependency and snapshot data only
+ * present on engine-internal {@link TracedVote}; for non-engine
+ * {@link TracedDecision} implementations the rich render is skipped and only
+ * the trace is logged when enabled.
  */
 @Slf4j
 @RequiredArgsConstructor
-public class ReportingDecisionInterceptor implements VoteInterceptor {
+public class ReportingDecisionInterceptor implements DecisionInterceptor, SubscriptionLifecycleListener {
 
     private final boolean prettyPrint;
     private final boolean printTrace;
@@ -52,19 +60,13 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     private final boolean printUnsubscriptionEvents;
 
     @Override
-    public int priority() {
-        return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public void intercept(TimestampedVote vote, String subscriptionId,
+    public void onDecision(TracedDecision decision, Instant timestamp, String subscriptionId,
             AuthorizationSubscription authorizationSubscription) {
         if (printTrace) {
-            logTrace(vote);
+            logTrace(decision, timestamp);
         }
-        if (printJsonReport || printTextReport) {
-            val report = ReportBuilderUtil.extractReport(vote.vote(), vote.timestamp(), subscriptionId,
-                    authorizationSubscription);
+        if ((printJsonReport || printTextReport) && decision instanceof TracedVote tracedVote) {
+            val report = ReportBuilderUtil.extractReport(tracedVote, subscriptionId, authorizationSubscription);
             if (printJsonReport) {
                 logJsonReport(report);
             }
@@ -75,9 +77,9 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
     }
 
     @Override
-    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription) {
+    public void onSubscribe(String subscriptionId, AuthorizationSubscription authorizationSubscription, String pdpId) {
         if (printSubscriptionEvents) {
-            log.info("Subscription [{}]: {}", subscriptionId, authorizationSubscription);
+            log.info("Subscription [{}] (pdp={}): {}", subscriptionId, pdpId, authorizationSubscription);
         }
     }
 
@@ -88,11 +90,11 @@ public class ReportingDecisionInterceptor implements VoteInterceptor {
         }
     }
 
-    private void logTrace(TimestampedVote vote) {
-        val trace     = vote.vote().toTrace();
-        val output    = prettyPrint ? ValueJsonMarshaller.toPrettyString(trace) : trace.toString();
-        val timestamp = ReportTextRenderUtil.formatTimestamp(vote.timestamp());
-        multiLineLog(timestamp + ": New Decision (trace): " + output);
+    private void logTrace(TracedDecision decision, Instant timestamp) {
+        val trace           = decision.trace();
+        val output          = prettyPrint ? ValueJsonMarshaller.toPrettyString(trace) : trace.toString();
+        val timestampString = ReportTextRenderUtil.formatTimestamp(timestamp);
+        multiLineLog(timestampString + ": New Decision (trace): " + output);
     }
 
     private void logJsonReport(VoteReport report) {

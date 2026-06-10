@@ -30,7 +30,7 @@ import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -57,7 +57,7 @@ class SemanticAnalysisDiagnosticTests {
         // ourselves
         val components = scenario.buildPdp(flags);
         val pdpData    = new PdpData(scenario.variables(), Value.EMPTY_OBJECT);
-        val ctx        = new CompilationContext(pdpData, components.functionBroker(), components.attributeBroker());
+        val ctx        = new CompilationContext(pdpData, components.functionBroker());
         ctx.setCompilerOptions(flags);
 
         val policies  = scenario.policies().get();
@@ -65,7 +65,7 @@ class SemanticAnalysisDiagnosticTests {
         for (val source : policies) {
             documents.add(DocumentCompiler.compileDocument(source, ctx));
         }
-        components.dispose();
+        components.close();
 
         val allPredicatesPerFormula = new ArrayList<List<IndexPredicate>>();
         var formulaCount            = 0;

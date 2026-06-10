@@ -17,41 +17,42 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import tools.jackson.databind.node.JsonNodeFactory;
-import com.hivemq.client.internal.mqtt.message.subscribe.MqttSubscription;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAckReasonCode;
+import io.sapl.api.model.Value;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-
+@DisplayName("SubscriptionUtility")
 class SubscriptionUtilityTests {
 
     @Test
-    void when_addingSubscriptionsToSubscriptionListAndSubAckReasonCodeIsError_then_doNotAddSubscription() {
-        // GIVEN
-        val mqtt5SubscribeMock   = mock(Mqtt5Subscribe.class);
-        val mqttSubscriptionMock = mock(MqttSubscription.class);
-        val mqttSubscriptionList = List.of(mqttSubscriptionMock);
-        doReturn(mqttSubscriptionList).when(mqtt5SubscribeMock).getSubscriptions();
+    @DisplayName("single text topic produces one filter")
+    void whenSingleTextTopicThenOneFilter() {
+        val filters = SubscriptionUtility.topicFilters(Value.of("home/livingroom/temperature"));
 
-        val mqttClientValues = new MqttClientValues("clientId", null, JsonNodeFactory.instance.objectNode(), null);
+        assertThat(filters).hasSize(1);
+        assertThat(filters.getFirst().toString()).isEqualTo("home/livingroom/temperature");
+    }
 
-        val mqtt5SubAckMock           = mock(Mqtt5SubAck.class);
-        val mqtt5SubAckReasonCodeList = List.of(Mqtt5SubAckReasonCode.NOT_AUTHORIZED);
-        doReturn(mqtt5SubAckReasonCodeList).when(mqtt5SubAckMock).getReasonCodes();
+    @Test
+    @DisplayName("array of topics produces one filter per element, in order")
+    void whenArrayOfTopicsThenOneFilterPerElement() {
+        val filters = SubscriptionUtility
+                .topicFilters(Value.ofArray(Value.of("sensors/temperature"), Value.of("sensors/humidity")));
 
-        // WHEN
-        SubscriptionUtility.addSubscriptionsCountToSubscriptionList(mqttClientValues, mqtt5SubAckMock,
-                mqtt5SubscribeMock);
+        assertThat(filters).hasSize(2);
+        assertThat(filters.get(0).toString()).isEqualTo("sensors/temperature");
+        assertThat(filters.get(1).toString()).isEqualTo("sensors/humidity");
+    }
 
-        // THEN
-        assertTrue(mqttClientValues.isTopicSubscriptionsCountMapEmpty());
+    @Test
+    @DisplayName("MQTT wildcard syntax is preserved in the filter")
+    void whenWildcardTopicThenWildcardPreserved() {
+        val filters = SubscriptionUtility.topicFilters(Value.of("building/+/temperature"));
+
+        assertThat(filters).hasSize(1);
+        assertThat(filters.getFirst().toString()).isEqualTo("building/+/temperature");
     }
 }

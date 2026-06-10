@@ -1,0 +1,19 @@
+{
+  "realm": "sapl-it",
+  "enabled": true,
+  "accessTokenLifespan": 60,
+  "clients": [
+    {
+      "clientId": "sapl-pdp-client",
+      "secret": "sapl-pdp-secret",
+      "enabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ]
+}

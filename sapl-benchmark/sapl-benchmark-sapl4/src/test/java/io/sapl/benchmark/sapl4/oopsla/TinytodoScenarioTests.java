@@ -71,7 +71,7 @@ class TinytodoScenarioTests {
         for (var policy : TinytodoScenarioGenerator.POLICIES) {
             fixture.withPolicy(policy);
         }
-        return fixture.withFunctionLibrary(GraphFunctionLibrary.class).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
+        return fixture.withFunctionLibrary(new GraphFunctionLibrary()).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
                 .givenVariable("entityGraph", ENTITY_GRAPH).givenVariable("lists", LISTS);
     }
 

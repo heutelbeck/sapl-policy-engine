@@ -72,7 +72,7 @@ Start the server:
 cd demo && ./sapl
 ```
 
-The node starts on `localhost:8443` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
+The node starts on `localhost:8080` with no TLS and no authentication required. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
 
 In a separate terminal, request a one-shot decision:
 
@@ -88,7 +88,7 @@ sapl decide-once --remote -s '"anyone"' -a '"read"' -r '"clock"'
 <summary>curl</summary>
 
 ```shell
-curl -s http://localhost:8443/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+curl -s http://localhost:8080/api/pdp/decide-once -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
 </details>
@@ -109,7 +109,7 @@ sapl decide --remote -s '"anyone"' -a '"read"' -r '"clock"'
 <summary>curl</summary>
 
 ```shell
-curl -N http://localhost:8443/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
+curl -N http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json' -d '{"subject":"anyone","action":"read","resource":"clock"}'
 ```
 
 </details>
@@ -123,15 +123,15 @@ Try editing `tick.sapl` while the stream is running. Change `% 5` to `% 10` and 
 While the server is running, you can also check its operational state. The health endpoint shows whether policies loaded successfully:
 
 ```shell
-curl -s http://localhost:8443/actuator/health | jq .
+curl -s http://localhost:8080/actuator/health | jq .
 ```
 
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
-The info endpoint shows PDP configuration (this endpoint requires authentication in production, but works unauthenticated in this setup since `allow-no-auth` is enabled by default):
+The info endpoint shows PDP configuration (this endpoint requires authentication in production; the snippet below assumes you started the node with `--io.sapl.node.allow-no-auth=true` for local exploration):
 
 ```shell
-curl -s http://localhost:8443/actuator/info | jq .
+curl -s http://localhost:8080/actuator/info | jq .
 ```
 
 For Prometheus metrics, Kubernetes probes, and decision logging, see [Monitoring](../7_7_Monitoring/).
@@ -164,13 +164,13 @@ Spring Boot automatically loads `config/application.yml` on startup. The `config
 Download the package for your distribution from the [releases page](https://github.com/heutelbeck/sapl-policy-engine/releases).
 
 ```shell
-sudo dpkg -i sapl_4.0.0_amd64.deb
+sudo dpkg -i sapl_4.1.0-SNAPSHOT_amd64.deb
 ```
 
 Or for RPM-based distributions:
 
 ```shell
-sudo rpm -i sapl-4.0.0.x86_64.rpm
+sudo rpm -i sapl-4.1.0-SNAPSHOT.x86_64.rpm
 ```
 
 #### What the Package Installs
@@ -240,7 +240,7 @@ Enable evaluation diagnostics by setting `print-text-report: true` in `/etc/sapl
 #### Verifying
 
 ```shell
-curl -s http://localhost:8443/actuator/health | jq .
+curl -s http://localhost:8080/actuator/health | jq .
 ```
 
 You should see `"status": "UP"`. The PDP watches `/var/lib/sapl/` for bundle changes and reloads automatically.
@@ -255,7 +255,7 @@ The systemd unit runs with strict security restrictions: `NoNewPrivileges`, `Pro
 
 For container deployments, the server runs inside Docker while you use the local `sapl` binary for CLI operations like bundle creation and credential generation.
 
-The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.0.0`). The examples below use the current development tag `4.0.0`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
+The container image is `ghcr.io/heutelbeck/sapl-node`. Released versions use the version tag (e.g., `ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT`). The examples below use the current development tag `4.1.0-SNAPSHOT`. The Docker image defaults to `BUNDLES` mode with signature verification enabled. The node will not start until bundle security is configured.
 
 To get started with signed bundles:
 
@@ -270,19 +270,19 @@ sapl bundle create -i ./policies -o ./bundles/default.saplbundle -k signing.pem
 Run the container, mounting the bundles directory and the public key:
 
 ```shell
-docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -v ./signing.pub:/pdp/signing.pub:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_PUBLICKEYPATH=/pdp/signing.pub ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 For development or evaluation without signing, disable signature verification:
 
 ```shell
-docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_BUNDLESECURITY_ALLOWUNSIGNED=true ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 To use raw `.sapl` files instead of bundles (for learning or demos), override the policy source type:
 
 ```shell
-docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./policies:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 -e IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE=DIRECTORY ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 The `SERVER_ADDRESS=0.0.0.0` override is required so Docker's port mapping can reach the server. The default `127.0.0.1` only accepts connections from within the container.
@@ -292,7 +292,7 @@ Environment variables follow Spring Boot's naming convention: dots become unders
 You can also mount a full `application.yml` instead of using individual environment variables:
 
 ```shell
-docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:4.0.0
+docker run -p 8443:8443 -v ./config:/pdp/config:ro -v ./bundles:/pdp/data:ro -e SERVER_ADDRESS=0.0.0.0 ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
 ```
 
 ### CLI Reference
@@ -324,7 +324,7 @@ All evaluation commands accept `--remote` to connect to a running SAPL Node inst
 
 | Flag | Environment Variable | Default |
 |------|---------------------|---------|
-| `--url` | `SAPL_URL` | `http://localhost:8443` |
+| `--url` | `SAPL_URL` | `http://localhost:8080` |
 | `--token` | `SAPL_BEARER_TOKEN` | |
 | `--basic-auth` | `SAPL_BASIC_AUTH` | |
 

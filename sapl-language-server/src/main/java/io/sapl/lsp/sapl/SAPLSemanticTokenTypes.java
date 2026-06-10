@@ -57,26 +57,8 @@ final class SAPLSemanticTokenTypes {
     public static final List<String> TOKEN_MODIFIERS = List.of();
 
     /**
-     * SAPL keywords that should be highlighted.
+     * Effects and combining algorithms - get special macro styling.
      */
-    public static final Set<String> KEYWORDS = Set.of("import", "as", "schema", "enforced", "set", "for", "policy",
-            "var", "obligation", "advice", "transform", "in", "each", "true", "false", "null", "undefined");
-
-    /**
-     * Entitlements and combining algorithms - get special macro styling.
-     */
-    public static final Set<String> ENTITLEMENTS_AND_ALGORITHMS = Set.of("permit", "deny", "deny-overrides",
-            "permit-overrides", "first-applicable", "only-one-applicable", "deny-unless-permit", "permit-unless-deny");
-
-    /**
-     * Authorization subscription element names.
-     */
-    public static final Set<String> SUBSCRIPTION_ELEMENTS = Set.of("subject", "action", "resource", "environment");
-
-    /**
-     * SAPL operator.
-     */
-    public static final Set<String> OPERATORS = Set.of("||", "&&", "|", "^", "&", "==", "!=", "=~", "<", "<=", ">",
-            ">=", "+", "-", "*", "/", "%", "!", "|-", "::", "@", ".", "..", ":", ",", "|<", "#");
+    public static final Set<String> EFFECTS_AND_ALGORITHMS = Set.of("permit", "deny", "suspend");
 
 }

@@ -15,8 +15,8 @@ This directory contains bash scripts for manually testing and experimenting with
 Tests SAPL Node without authentication (for development/testing environments).
 
 ```bash
-./test-no-auth.sh                        # Default: http://localhost:8443
-./test-no-auth.sh http://localhost:8443  # Custom URL
+./test-no-auth.sh                        # Default: http://localhost:8080
+./test-no-auth.sh http://localhost:8080  # Custom URL
 ```
 
 ### test-basic-auth.sh
@@ -47,8 +47,8 @@ Tests streaming subscriptions that receive live policy updates.
 
 ```bash
 ./test-streaming.sh noauth
-./test-streaming.sh basic "username:password" http://localhost:8443
-./test-streaming.sh apikey "sapl_..." http://localhost:8443
+./test-streaming.sh basic "username:password" http://localhost:8080
+./test-streaming.sh apikey "sapl_..." http://localhost:8080
 ```
 
 **Tip:** Run this script and then modify a policy file. You should see the updated decision streamed to your terminal.
@@ -74,27 +74,22 @@ This script prompts for credentials for two different tenants and demonstrates t
    ```bash
    # For no-auth testing (using a local example):
    cd sapl-node/examples/local/singledirectory
-   java -jar ../../../target/sapl-node-4.0.0.jar
+   java -jar ../../../target/sapl-node-4.1.0-SNAPSHOT.jar
 
    # Or with Docker:
-   docker run -p 8443:8443 \
+   docker run -p 8080:8080 \
      -v ./policies:/pdp/data:ro \
      -e IO_SAPL_NODE_ALLOWNOAUTH=true \
      -e IO_SAPL_PDP_EMBEDDED_POLICIESPATH=/pdp/data \
      -e SERVER_SSL_ENABLED=false \
-     -e SERVER_PORT=8443 \
      -e SERVER_ADDRESS=0.0.0.0 \
      -e JAVA_TOOL_OPTIONS=-XX:MaxDirectMemorySize=256M \
-     ghcr.io/heutelbeck/sapl-node:4.0.0
+     ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
    ```
 
 3. Run a test script:
    ```bash
-   # Against local example (port 8080):
    ./test-no-auth.sh http://localhost:8080
-
-   # Against Docker (port 8443):
-   ./test-no-auth.sh http://localhost:8443
    ```
 
 ## Common Test Subscription
@@ -123,7 +118,7 @@ The scripts use `-k` flag to skip SSL verification for self-signed certificates.
 
 Verify SAPL Node is running and listening on the expected port:
 ```bash
-curl http://localhost:8443/actuator/health
+curl http://localhost:8080/actuator/health
 ```
 
 ### Authentication Failures

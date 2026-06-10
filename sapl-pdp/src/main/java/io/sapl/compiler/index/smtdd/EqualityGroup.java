@@ -17,18 +17,14 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Accumulates equality/inequality predicates sharing the same PureOperator

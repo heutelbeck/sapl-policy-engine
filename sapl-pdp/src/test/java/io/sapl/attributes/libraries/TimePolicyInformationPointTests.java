@@ -20,8 +20,10 @@ package io.sapl.attributes.libraries;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.api.test.stream.MutableClock;
+import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.api.test.stream.TestTimeScheduler;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +32,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.test.StepVerifier;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -41,23 +42,42 @@ import java.time.ZoneOffset;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @DisplayName("TimePolicyInformationPoint")
 class TimePolicyInformationPointTests {
 
-    private static Clock clockAt(String instantIso) {
-        return clockAt(instantIso, ZoneOffset.UTC);
+    private static Fixture fixtureAt(String instantIso) {
+        return fixtureAt(instantIso, ZoneOffset.UTC);
     }
 
-    private static Clock clockAt(String instantIso, ZoneId zone) {
-        val clock = mock(Clock.class);
-        when(clock.instant()).thenReturn(Instant.parse(instantIso));
-        when(clock.getZone()).thenReturn(zone);
-        return clock;
+    private static Fixture fixtureAt(String instantIso, ZoneId zone) {
+        val instant   = Instant.parse(instantIso);
+        val clock     = new MutableClock(instant, zone);
+        val scheduler = new TestTimeScheduler(instant);
+        val sut       = new TimePolicyInformationPoint(clock, scheduler);
+        return new Fixture(clock, scheduler, sut);
+    }
+
+    private record Fixture(MutableClock clock, TestTimeScheduler scheduler, TimePolicyInformationPoint sut) {
+        /**
+         * Advances clock and scheduler together so PIPs that
+         * re-compute boundaries from the clock on each cycle
+         * (weekdayIn, monthIn, etc.) see consistent state.
+         */
+        void advanceTo(Instant target) {
+            clock.setInstant(target);
+            scheduler.advanceTo(target);
+        }
+    }
+
+    private static void awaitsErrorAndCompletes(io.sapl.api.stream.Stream<Value> stream) {
+        StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(2)).awaitsNext(v -> {
+            if (!(v instanceof ErrorValue)) {
+                throw new AssertionError("Expected ErrorValue, got: " + v);
+            }
+        }).awaitsCompletion();
     }
 
     static Stream<Arguments> monthBetweenRangeArgs() {
@@ -73,25 +93,46 @@ class TimePolicyInformationPointTests {
     class Now {
 
         @Test
-        @DisplayName("emits updates at default interval")
+        @DisplayName("emits the current ISO timestamp immediately and again at each scheduled tick")
         void whenNowThenEmitsUpdates() {
-            val now        = Instant.parse("2021-11-08T13:00:00Z");
-            val nowPlusOne = Instant.parse("2021-11-08T13:00:01Z");
-            val nowPlusTwo = Instant.parse("2021-11-08T13:00:02Z");
-            val clock      = mock(Clock.class);
-            when(clock.instant()).thenReturn(now, nowPlusOne, nowPlusTwo);
-            val sut = new TimePolicyInformationPoint(clock);
-            StepVerifier.withVirtualTime(sut::now).expectNext(Value.of(now.toString())).thenAwait(Duration.ofSeconds(2))
-                    .expectNext(Value.of(nowPlusOne.toString()), Value.of(nowPlusTwo.toString())).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.now()) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.of("2021-11-08T13:00:00Z"));
+                f.advanceTo(Instant.parse("2021-11-08T13:00:01Z"));
+                StreamAssertions.assertThat(stream).awaitsNext(Value.of("2021-11-08T13:00:01Z"));
+                f.advanceTo(Instant.parse("2021-11-08T13:00:02Z"));
+                StreamAssertions.assertThat(stream).awaitsNext(Value.of("2021-11-08T13:00:02Z"));
+            }
         }
 
         @Test
         @DisplayName("returns error for zero delay")
         void whenNowWithZeroDelayThenFails() {
-            val clock = mock(Clock.class);
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.now(Value.of(0L)))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.now(Value.of(0L))) {
+                awaitsErrorAndCompletes(stream);
+            }
+        }
+
+        @Test
+        @DisplayName("emits an error value when the clock returns null")
+        void whenClockReturnsNullThenEmitsErrorValue() {
+            val instant   = Instant.parse("2021-11-08T13:00:00Z");
+            val clock     = nullReturningClock();
+            val scheduler = new TestTimeScheduler(instant);
+            val sut       = new TimePolicyInformationPoint(clock, scheduler);
+
+            try (val stream = sut.now()) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    if (!(v instanceof ErrorValue err)) {
+                        throw new AssertionError("Expected ErrorValue, got: " + v);
+                    }
+                    if (!err.message().contains("Clock returned null")) {
+                        throw new AssertionError(
+                                "Expected message containing 'Clock returned null', got: " + err.message());
+                    }
+                });
+            }
         }
     }
 
@@ -100,720 +141,668 @@ class TimePolicyInformationPointTests {
     class SystemTimeZone {
 
         @Test
-        @DisplayName("retrieves system timezone")
-        void whenSystemTimeZoneThenIsRetrieved() {
-            val sut = new TimePolicyInformationPoint(mock(Clock.class)).systemTimeZone().next();
-            StepVerifier.create(sut).expectNextMatches(TextValue.class::isInstance).verifyComplete();
+        @DisplayName("emits a TextValue describing the JVM default timezone")
+        void whenSystemTimeZoneThenEmitsTextValue() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.systemTimeZone()) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                    if (!(v instanceof TextValue)) {
+                        throw new AssertionError("Expected TextValue, got: " + v);
+                    }
+                });
+            }
         }
     }
 
     @Nested
-    @DisplayName("nowIsAfter and nowIsBefore")
-    class NowIsAfterAndBefore {
+    @DisplayName("nowIsAfter")
+    class NowIsAfter {
 
         @Test
-        @DisplayName("nowIsAfter emits false then true when checkpoint is in the future")
-        void whenNowIsAfterThenEmitsCorrectValues() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.nowIsAfter(Value.of("2021-11-08T14:30:00Z")))
-                    .expectNext(Value.FALSE).thenAwait(Duration.ofMinutes(91L)).expectNext(Value.TRUE).verifyComplete();
+        @DisplayName("emits false then true when checkpoint is in the future")
+        void whenCheckpointInFutureThenEmitsFalseThenTrueAtCheckpoint() {
+            val f          = fixtureAt("2021-11-08T13:00:00Z");
+            val checkpoint = Instant.parse("2021-11-08T14:30:00Z");
+            try (val stream = f.sut.nowIsAfter(Value.of(checkpoint.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.advanceTo(checkpoint);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("nowIsAfter returns true when checkpoint is in the past")
-        void whenNowIsAlwaysAfterCheckpointThenReturnsTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.nowIsAfter(Value.of("2021-11-01T14:30:00Z")))
-                    .expectNext(Value.TRUE).verifyComplete();
+        @DisplayName("returns true when checkpoint is in the past")
+        void whenCheckpointInPastThenEmitsTrueAndCompletes() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.nowIsAfter(Value.of("2021-11-01T14:30:00Z"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("nowIsBefore transitions from true to false")
-        void whenNowIsBeforeThenTransitionsCorrectly() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.nowIsBefore(Value.of("2021-11-08T14:30:00Z")))
-                    .expectNext(Value.TRUE).thenAwait(Duration.ofMinutes(91L)).expectNext(Value.FALSE).verifyComplete();
+        @DisplayName("emits an error when checkpoint is not a valid ISO instant")
+        void whenCheckpointMalformedThenEmitsError() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.nowIsAfter(Value.of("not-an-instant"))) {
+                awaitsErrorAndCompletes(stream);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("nowIsBefore")
+    class NowIsBefore {
+
+        @Test
+        @DisplayName("emits true then false when checkpoint is in the future")
+        void whenCheckpointInFutureThenEmitsTrueThenFalseAtCheckpoint() {
+            val f          = fixtureAt("2021-11-08T13:00:00Z");
+            val checkpoint = Instant.parse("2021-11-08T14:30:00Z");
+            try (val stream = f.sut.nowIsBefore(Value.of(checkpoint.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(checkpoint);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
+        }
+
+        @Test
+        @DisplayName("returns false when checkpoint is in the past")
+        void whenCheckpointInPastThenEmitsFalse() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.nowIsBefore(Value.of("2021-11-01T14:30:00Z"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
     }
 
     @Nested
     @DisplayName("nowIsBetween")
-    class NowIsBetweenTests {
+    class NowIsBetween {
 
         @Test
-        @DisplayName("returns false when now is after interval")
-        void whenNowIsBetweenStartAfterIntervalThenReturnsFalse() {
-            val clock = clockAt("2021-11-08T13:00:40Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.nowIsBetween(Value.of("2021-11-08T13:00:05Z"), Value.of("2021-11-08T13:00:10Z")))
-                    .expectNext(Value.FALSE).verifyComplete();
+        @DisplayName("returns false when now is after the interval")
+        void whenAfterIntervalThenEmitsFalse() {
+            val f = fixtureAt("2021-11-08T13:00:40Z");
+            try (val stream = f.sut.nowIsBetween(Value.of("2021-11-08T13:00:05Z"), Value.of("2021-11-08T13:00:10Z"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("transitions from true to false when now is inside interval")
-        void whenNowIsBetweenStartBetweenThenTransitionsCorrectly() {
-            val clock = clockAt("2021-11-08T13:00:05Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.nowIsBetween(Value.of("2021-11-08T13:00:00Z"), Value.of("2021-11-08T13:00:10Z")))
-                    .expectNext(Value.TRUE).thenAwait(Duration.ofSeconds(5L)).expectNext(Value.FALSE).verifyComplete();
+        @DisplayName("transitions from true to false when now is inside the interval")
+        void whenInsideIntervalThenEmitsTrueThenFalseAtEnd() {
+            val f   = fixtureAt("2021-11-08T13:00:05Z");
+            val end = Instant.parse("2021-11-08T13:00:10Z");
+            try (val stream = f.sut.nowIsBetween(Value.of("2021-11-08T13:00:00Z"), Value.of(end.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(end);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("transitions false-true-false when now is before interval")
-        void whenNowIsBetweenStartBeforeThenTransitionsCorrectly() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.nowIsBetween(Value.of("2021-11-08T13:00:05Z"), Value.of("2021-11-08T13:00:10Z")))
-                    .expectNext(Value.FALSE).thenAwait(Duration.ofSeconds(5L)).expectNext(Value.TRUE)
-                    .thenAwait(Duration.ofSeconds(5L)).expectNext(Value.FALSE).verifyComplete();
+        @DisplayName("transitions false-true-false when now is before the interval")
+        void whenBeforeIntervalThenEmitsAllThreePhases() {
+            val f     = fixtureAt("2021-11-08T13:00:00Z");
+            val start = Instant.parse("2021-11-08T13:00:05Z");
+            val end   = Instant.parse("2021-11-08T13:00:10Z");
+            try (val stream = f.sut.nowIsBetween(Value.of(start.toString()), Value.of(end.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.advanceTo(start);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(end);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
     }
 
     @Nested
     @DisplayName("localTimeIsAfter")
-    class LocalTimeIsAfterTests {
+    class LocalTimeIsAfter {
 
         @Test
-        @DisplayName("always true when checkpoint is midnight")
-        void whenLocalTimeIsAfterMidnightThenAlwaysTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of(LocalTime.MIN.toString())))
-                    .expectNext(Value.TRUE).verifyComplete();
+        @DisplayName("always true when checkpoint is midnight (LocalTime.MIN)")
+        void whenCheckpointMinThenAlwaysTrue() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsAfter(Value.of(LocalTime.MIN.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("never true when checkpoint is max time")
-        void whenLocalTimeIsAfterMaxTimeThenNeverTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of(LocalTime.MAX.toString())))
-                    .expectNext(Value.FALSE).verifyComplete();
+        @DisplayName("never true when checkpoint is end of day (LocalTime.MAX)")
+        void whenCheckpointMaxThenNeverTrue() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsAfter(Value.of(LocalTime.MAX.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("emits correct sequence when starting after checkpoint")
-        void whenStartingTimeIsAfterCheckpointThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of("12:00")))
-                .expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(11L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenCancel().verify();
-            // @formatter:on
+        @DisplayName("emits TRUE when starting after checkpoint, transitions FALSE at midnight")
+        void whenStartingAfterCheckpointThenEmitsTrueThenFalseAtMidnight() {
+            val f        = fixtureAt("2021-11-08T13:00:00Z");
+            val midnight = Instant.parse("2021-11-09T00:00:00Z");
+            try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(midnight);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
-        @DisplayName("emits correct sequence when starting before checkpoint")
-        void whenStartingTimeIsBeforeCheckpointThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T11:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of("12:00")))
-                .expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenCancel().verify();
-            // @formatter:on
+        @DisplayName("emits FALSE when starting before checkpoint, transitions TRUE at checkpoint")
+        void whenStartingBeforeCheckpointThenEmitsFalseThenTrueAtCheckpoint() {
+            val f          = fixtureAt("2021-11-08T11:00:00Z");
+            val checkpoint = Instant.parse("2021-11-08T12:00:00Z");
+            try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.advanceTo(checkpoint);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("with timezone produces different result than UTC")
-        void whenTimezoneProducesDifferentResultThanUtc() {
-            // 23:00 UTC in Europe/Paris (CET, UTC+1) = 00:00 next day
-            // localTimeIsAfter("22:00") at UTC: 23:00 > 22:00 -> TRUE
-            // localTimeIsAfter("22:00") at Europe/Paris: 00:00 < 22:00 -> FALSE
-            val clock = clockAt("2021-11-08T23:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of("22:00"))).expectNext(Value.TRUE)
-                    .thenCancel().verify();
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of("22:00"), Value.of("Europe/Paris")))
-                    .expectNext(Value.FALSE).thenCancel().verify();
+        void whenTimezoneOverrideProducesDifferentResultThanUtc() {
+            val f = fixtureAt("2021-11-08T23:00:00Z");
+            try (val streamUtc = f.sut.localTimeIsAfter(Value.of("22:00"))) {
+                StreamAssertions.assertThat(streamUtc).awaitsNext(Value.TRUE);
+            }
+            try (val streamParis = f.sut.localTimeIsAfter(Value.of("22:00"), Value.of("Europe/Paris"))) {
+                StreamAssertions.assertThat(streamParis).awaitsNext(Value.FALSE);
+            }
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         @DisplayName("returns error for invalid timezone")
+        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         void whenInvalidTimezoneThenReturnsError(String invalidZone) {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsAfter(Value.of("12:00"), Value.of(invalidZone)))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"), Value.of(invalidZone))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
     }
 
     @Nested
     @DisplayName("localTimeIsBefore")
-    class LocalTimeIsBeforeTests {
+    class LocalTimeIsBefore {
 
         @Test
-        @DisplayName("emits correct sequence when starting before checkpoint")
-        void whenStartingBeforeCheckpointThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T11:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBefore(Value.of("12:00")))
-                .expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(12L)).expectNext(Value.TRUE)
-                .thenCancel().verify();
-            // @formatter:on
+        @DisplayName("emits TRUE when starting before checkpoint, transitions FALSE at checkpoint")
+        void whenStartingBeforeCheckpointThenEmitsTrueThenFalseAtCheckpoint() {
+            val f          = fixtureAt("2021-11-08T11:00:00Z");
+            val checkpoint = Instant.parse("2021-11-08T12:00:00Z");
+            try (val stream = f.sut.localTimeIsBefore(Value.of("12:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(checkpoint);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
         @DisplayName("with timezone produces different result than UTC")
-        void whenTimezoneProducesDifferentResultThanUtc() {
-            // 23:00 UTC in Europe/Paris = 00:00 next day
-            // localTimeIsBefore("22:00") at UTC: 23:00 NOT before 22:00 -> FALSE
-            // localTimeIsBefore("22:00") at Europe/Paris: 00:00 IS before 22:00 -> TRUE
-            val clock = clockAt("2021-11-08T23:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBefore(Value.of("22:00"))).expectNext(Value.FALSE)
-                    .thenCancel().verify();
-            StepVerifier
-                    .<Value>withVirtualTime(() -> sut.localTimeIsBefore(Value.of("22:00"), Value.of("Europe/Paris")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+        void whenTimezoneOverrideProducesDifferentResultThanUtc() {
+            val f = fixtureAt("2021-11-08T23:00:00Z");
+            try (val streamUtc = f.sut.localTimeIsBefore(Value.of("22:00"))) {
+                StreamAssertions.assertThat(streamUtc).awaitsNext(Value.FALSE);
+            }
+            try (val streamParis = f.sut.localTimeIsBefore(Value.of("22:00"), Value.of("Europe/Paris"))) {
+                StreamAssertions.assertThat(streamParis).awaitsNext(Value.TRUE);
+            }
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         @DisplayName("returns error for invalid timezone")
+        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         void whenInvalidTimezoneThenReturnsError(String invalidZone) {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBefore(Value.of("12:00"), Value.of(invalidZone)))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsBefore(Value.of("12:00"), Value.of(invalidZone))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
     }
 
     @Nested
     @DisplayName("localTimeIsBetween")
-    class LocalTimeIsBetweenTests {
+    class LocalTimeIsBetween {
 
         @Test
         @DisplayName("returns false for zero-size interval")
-        void whenNullSizeIntervalThenNeverTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of("12:00"), Value.of("12:00")))
-                    .expectNext(Value.FALSE).verifyComplete();
+        void whenZeroSizeIntervalThenAlwaysFalse() {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("12:00"), Value.of("12:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("always true for MIN-MAX interval")
         void whenMinMaxIntervalThenAlwaysTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of(LocalTime.MIN.toString()),
-                    Value.of(LocalTime.MAX.toString()))).expectNext(Value.TRUE).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of(LocalTime.MIN.toString()),
+                    Value.of(LocalTime.MAX.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("always true for MAX-MIN interval")
+        @DisplayName("always true for MAX-MIN interval (wraps full day)")
         void whenMaxMinIntervalThenAlwaysTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of(LocalTime.MAX.toString()),
-                    Value.of(LocalTime.MIN.toString()))).expectNext(Value.TRUE).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of(LocalTime.MAX.toString()),
+                    Value.of(LocalTime.MIN.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
-        @DisplayName("returns true when start is MIN and now is inside interval")
-        void whenIntervalStartsAtMinThenReturnsTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.localTimeIsBetween(Value.of(LocalTime.MIN.toString()), Value.of("22:00")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+        @DisplayName("emits FALSE then TRUE then FALSE when starting before interval")
+        void whenStartingBeforeIntervalThenEmitsFalseTrueFalse() {
+            val f     = fixtureAt("2021-11-08T13:00:00Z");
+            val start = Instant.parse("2021-11-08T14:00:00Z");
+            val end   = Instant.parse("2021-11-08T15:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("15:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.advanceTo(start);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(end);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
-        @DisplayName("returns true when start is MAX (wrapping interval)")
-        void whenIntervalStartsAtMaxThenReturnsTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.localTimeIsBetween(Value.of(LocalTime.MAX.toString()), Value.of("14:00")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+        @DisplayName("emits TRUE then FALSE when starting inside interval")
+        void whenStartingInsideIntervalThenEmitsTrueThenFalse() {
+            val f   = fixtureAt("2021-11-08T15:00:00Z");
+            val end = Instant.parse("2021-11-08T16:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(end);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
-        @DisplayName("emits correct sequence when starting before interval")
-        void whenStartingBeforeIntervalThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("15:00")))
-                .expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(23L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(23L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(23L)).expectNext(Value.TRUE)
-                .thenCancel().verify();
-            // @formatter:on
+        @DisplayName("emits FALSE then TRUE when starting after interval (next day)")
+        void whenStartingAfterIntervalThenEmitsFalseThenTrueNextDay() {
+            val f         = fixtureAt("2021-11-08T18:00:00Z");
+            val nextStart = Instant.parse("2021-11-09T14:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.advanceTo(nextStart);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
-        @DisplayName("emits correct sequence when interval wraps around midnight")
-        void whenReversedIntervalThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of("15:00"), Value.of("14:00:00")))
-                .expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(23L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(23L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(23L)).expectNext(Value.FALSE)
-                .thenCancel().verify();
-            // @formatter:on
+        @DisplayName("schedules only the next boundary, never a past-due one, while waiting")
+        void whenStartingAfterIntervalThenSchedulesOnlyTheNextBoundary() {
+            val f = fixtureAt("2021-11-08T18:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                // The repeat loop is lazy, so while it waits only the single next-day start
+                // boundary is queued. An eager loop reading the clock too early would also
+                // queue a past-due end-of-today boundary, whose stray emission can overwrite
+                // the legitimate next transition.
+                await().during(Duration.ofMillis(100)).atMost(Duration.ofMillis(300))
+                        .until(() -> f.scheduler.pendingCount() == 1);
+            }
         }
 
         @Test
-        @DisplayName("emits correct sequence when starting inside interval")
-        void whenStartingInsideIntervalThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T15:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00")))
-                .expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(22L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(2L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(22L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(2L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(22L)).expectNext(Value.TRUE)
-                .thenCancel().verify();
-            // @formatter:on
-        }
-
-        @Test
-        @DisplayName("emits correct sequence when starting after interval")
-        void whenStartingAfterIntervalThenEmitsCorrectSequence() {
-            val clock = clockAt("2021-11-08T18:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // @formatter:off
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00")))
-                .expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(20L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(2L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(22L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(2L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(22L)).expectNext(Value.TRUE)
-                .thenAwait(Duration.ofHours(2L)).expectNext(Value.FALSE)
-                .thenAwait(Duration.ofHours(22L)).expectNext(Value.TRUE)
-                .thenCancel().verify();
-            // @formatter:on
+        @DisplayName("emits TRUE for wrapping interval when starting outside the gap")
+        void whenWrappingIntervalAndStartingOutsideGapThenEmitsTrue() {
+            // Interval 15:00-14:00 (wraps midnight) at 13:00 is inside the interval
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("15:00"), Value.of("14:00:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("with timezone override")
         void whenTimezoneOverrideThenUsesCorrectZone() {
-            // 22:30 UTC = 23:30 in Europe/Paris (CET)
-            // Between 23:00-23:59 in Europe/Paris -> true
-            // Between 23:00-23:59 in UTC -> false (22:30 is before 23:00)
-            val clock = clockAt("2021-11-08T22:30:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.localTimeIsBetween(Value.of("23:00"), Value.of("23:59")))
-                    .expectNext(Value.FALSE).thenCancel().verify();
-            StepVerifier.<Value>withVirtualTime(
-                    () -> sut.localTimeIsBetween(Value.of("23:00"), Value.of("23:59"), Value.of("Europe/Paris")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T22:30:00Z");
+            try (val streamUtc = f.sut.localTimeIsBetween(Value.of("23:00"), Value.of("23:59"))) {
+                StreamAssertions.assertThat(streamUtc).awaitsNext(Value.FALSE);
+            }
+            try (val streamParis = f.sut.localTimeIsBetween(Value.of("23:00"), Value.of("23:59"),
+                    Value.of("Europe/Paris"))) {
+                StreamAssertions.assertThat(streamParis).awaitsNext(Value.TRUE);
+            }
         }
 
         @ParameterizedTest
-        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         @DisplayName("returns error for invalid timezone")
+        @ValueSource(strings = { "Invalid/Zone", "Not_A_Zone" })
         void whenInvalidTimezoneThenReturnsError(String invalidZone) {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.localTimeIsBetween(Value.of("12:00"), Value.of("14:00"), Value.of(invalidZone)))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("12:00"), Value.of("14:00"), Value.of(invalidZone))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
     }
 
     @Nested
     @DisplayName("weekdayIn")
-    class WeekdayInTests {
+    class WeekdayIn {
 
         @Test
-        @DisplayName("returns true when current day is in set")
+        @DisplayName("returns true when current day is in the set")
         void whenCurrentDayInSetThenTrue() {
-            // 2021-11-08 is a Monday
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.weekdayIn(Value.ofArray(Value.of("MONDAY"), Value.of("WEDNESDAY"))))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.weekdayIn(Value.ofArray(Value.of("MONDAY"), Value.of("WEDNESDAY")))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
-        @DisplayName("returns false when current day is not in set")
+        @DisplayName("returns false when current day is not in the set")
         void whenCurrentDayNotInSetThenFalse() {
-            // 2021-11-08 is a Monday
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.weekdayIn(Value.ofArray(Value.of("TUESDAY"), Value.of("WEDNESDAY"))))
-                    .expectNext(Value.FALSE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.weekdayIn(Value.ofArray(Value.of("TUESDAY"), Value.of("WEDNESDAY")))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
-        @DisplayName("always true when all 7 days in set")
+        @DisplayName("always true when all 7 days are in the set")
         void whenAllDaysInSetThenAlwaysTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(
-                    () -> sut.weekdayIn(Value.ofArray(Value.of("MONDAY"), Value.of("TUESDAY"), Value.of("WEDNESDAY"),
-                            Value.of("THURSDAY"), Value.of("FRIDAY"), Value.of("SATURDAY"), Value.of("SUNDAY"))))
-                    .expectNext(Value.TRUE).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut
+                    .weekdayIn(Value.ofArray(Value.of("MONDAY"), Value.of("TUESDAY"), Value.of("WEDNESDAY"),
+                            Value.of("THURSDAY"), Value.of("FRIDAY"), Value.of("SATURDAY"), Value.of("SUNDAY")))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("returns error for empty array")
         void whenEmptyArrayThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.weekdayIn(Value.EMPTY_ARRAY))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.weekdayIn(Value.EMPTY_ARRAY)) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @Test
         @DisplayName("returns error for invalid day name")
         void whenInvalidDayNameThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.weekdayIn(Value.ofArray(Value.of("NOTADAY"))))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.weekdayIn(Value.ofArray(Value.of("NOTADAY")))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @Test
-        @DisplayName("transitions at midnight boundary")
+        @DisplayName("transitions at midnight when day passes out of the set")
         void whenMidnightBoundaryThenTransitions() {
-            // 2021-11-08 Monday, 23:00 UTC. Monday is in set, Tuesday is not.
-            val clock = clockAt("2021-11-08T23:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.weekdayIn(Value.ofArray(Value.of("MONDAY"))))
-                    .expectNext(Value.TRUE).thenAwait(Duration.ofHours(1L)).expectNext(Value.FALSE).thenCancel()
-                    .verify();
-        }
-
-        @Test
-        @DisplayName("skips consecutive same-state days")
-        void whenConsecutiveSameStateDaysThenSkips() {
-            // 2021-11-08 Monday. Set: MON, TUE, WED. Thursday is first non-member.
-            // Should emit TRUE and then after 3 days (to Thursday midnight) emit FALSE.
-            val clock = clockAt("2021-11-08T00:00:01Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(() -> sut
-                            .weekdayIn(Value.ofArray(Value.of("MONDAY"), Value.of("TUESDAY"), Value.of("WEDNESDAY"))))
-                    .expectNext(Value.TRUE).thenAwait(Duration.ofDays(3).minusSeconds(1)).expectNext(Value.FALSE)
-                    .thenCancel().verify();
+            val f        = fixtureAt("2021-11-08T23:00:00Z");
+            val midnight = Instant.parse("2021-11-09T00:00:00Z");
+            try (val stream = f.sut.weekdayIn(Value.ofArray(Value.of("MONDAY")))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(midnight);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
         @DisplayName("with timezone override changes day evaluation")
         void whenTimezoneOverrideThenUsesCorrectDay() {
-            // 2021-11-08 Monday 23:30 UTC = 2021-11-09 Tuesday 00:30 in Europe/Paris
-            val clock = clockAt("2021-11-08T23:30:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            // At UTC it's Monday -> in set
-            StepVerifier.<Value>withVirtualTime(() -> sut.weekdayIn(Value.ofArray(Value.of("MONDAY"))))
-                    .expectNext(Value.TRUE).thenCancel().verify();
-            // At Europe/Paris it's Tuesday -> not in set
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.weekdayIn(Value.ofArray(Value.of("MONDAY")), Value.of("Europe/Paris")))
-                    .expectNext(Value.FALSE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T23:30:00Z");
+            try (val streamUtc = f.sut.weekdayIn(Value.ofArray(Value.of("MONDAY")))) {
+                StreamAssertions.assertThat(streamUtc).awaitsNext(Value.TRUE);
+            }
+            try (val streamParis = f.sut.weekdayIn(Value.ofArray(Value.of("MONDAY")), Value.of("Europe/Paris"))) {
+                StreamAssertions.assertThat(streamParis).awaitsNext(Value.FALSE);
+            }
         }
     }
 
     @Nested
     @DisplayName("dayOfWeekBetween")
-    class DayOfWeekBetweenTests {
+    class DayOfWeekBetween {
 
         @Test
         @DisplayName("non-wrapping range: inside is true")
         void whenInsideNonWrappingRangeThenTrue() {
-            // 2021-11-08 Monday, range MON-FRI
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("FRIDAY")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("FRIDAY"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("non-wrapping range: outside is false")
         void whenOutsideNonWrappingRangeThenFalse() {
-            // 2021-11-13 Saturday, range MON-FRI
-            val clock = clockAt("2021-11-13T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("FRIDAY")))
-                    .expectNext(Value.FALSE).thenCancel().verify();
+            val f = fixtureAt("2021-11-13T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("FRIDAY"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
         @DisplayName("wrapping range FRI-MON: Friday is true")
-        void whenWrappingRangeFridayThenTrue() {
-            // 2021-11-12 Friday, range FRI-MON
-            val clock = clockAt("2021-11-12T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("FRIDAY"), Value.of("MONDAY")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+        void whenWrappingRangeAndDayInsideThenTrue() {
+            val f = fixtureAt("2021-11-12T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("FRIDAY"), Value.of("MONDAY"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("wrapping range FRI-MON: Wednesday is false")
-        void whenWrappingRangeWednesdayThenFalse() {
-            // 2021-11-10 Wednesday, range FRI-MON
-            val clock = clockAt("2021-11-10T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("FRIDAY"), Value.of("MONDAY")))
-                    .expectNext(Value.FALSE).thenCancel().verify();
+        void whenWrappingRangeAndDayOutsideThenFalse() {
+            val f = fixtureAt("2021-11-10T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("FRIDAY"), Value.of("MONDAY"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
         @DisplayName("same start and end means single day")
         void whenSameStartAndEndThenSingleDay() {
-            // 2021-11-08 Monday, range MON-MON = just Monday
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("MONDAY")))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("MONDAY"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
         @DisplayName("returns error for invalid start day")
         void whenInvalidStartDayThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("NOTADAY"), Value.of("FRIDAY")))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("NOTADAY"), Value.of("FRIDAY"))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @Test
         @DisplayName("returns error for invalid end day")
         void whenInvalidEndDayThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("NOTADAY")))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.dayOfWeekBetween(Value.of("MONDAY"), Value.of("NOTADAY"))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
     }
 
     @Nested
     @DisplayName("monthIn")
-    class MonthInTests {
+    class MonthIn {
 
         @Test
-        @DisplayName("returns true when current month is in set by name")
+        @DisplayName("returns true when current month is in the set by name")
         void whenCurrentMonthInSetByNameThenTrue() {
-            // 2021-11-08 is November
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(
-                            () -> sut.monthIn(Value.ofArray(Value.of("NOVEMBER"), Value.of("DECEMBER"))))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.ofArray(Value.of("NOVEMBER"), Value.of("DECEMBER")))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
-        @DisplayName("returns true when current month is in set by number")
+        @DisplayName("returns true when current month is in the set by number")
         void whenCurrentMonthInSetByNumberThenTrue() {
-            // 2021-11-08 is November = 11
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthIn(Value.ofArray(Value.of(11L), Value.of(12L))))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.ofArray(Value.of(11L), Value.of(12L)))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
 
         @Test
-        @DisplayName("returns false when current month is not in set")
+        @DisplayName("returns false when current month is not in the set")
         void whenCurrentMonthNotInSetThenFalse() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier
-                    .<Value>withVirtualTime(() -> sut.monthIn(Value.ofArray(Value.of("JANUARY"), Value.of("FEBRUARY"))))
-                    .expectNext(Value.FALSE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.ofArray(Value.of("JANUARY"), Value.of("FEBRUARY")))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
         }
 
         @Test
-        @DisplayName("always true when all 12 months in set")
+        @DisplayName("always true when all 12 months are in the set")
         void whenAllMonthsInSetThenAlwaysTrue() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthIn(
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(
                     Value.ofArray(Value.of(1L), Value.of(2L), Value.of(3L), Value.of(4L), Value.of(5L), Value.of(6L),
-                            Value.of(7L), Value.of(8L), Value.of(9L), Value.of(10L), Value.of(11L), Value.of(12L))))
-                    .expectNext(Value.TRUE).verifyComplete();
+                            Value.of(7L), Value.of(8L), Value.of(9L), Value.of(10L), Value.of(11L), Value.of(12L)))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
         }
 
         @Test
         @DisplayName("returns error for empty array")
         void whenEmptyArrayThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthIn(Value.EMPTY_ARRAY))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.EMPTY_ARRAY)) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @Test
         @DisplayName("returns error for invalid month name")
         void whenInvalidMonthNameThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthIn(Value.ofArray(Value.of("NOTAMONTH"))))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.ofArray(Value.of("NOTAMONTH")))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @Test
         @DisplayName("returns error for out-of-range month number")
         void whenOutOfRangeMonthNumberThenError() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthIn(Value.ofArray(Value.of(13L))))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.ofArray(Value.of(13L)))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @Test
-        @DisplayName("mixed names and numbers")
+        @DisplayName("supports mixed names and numbers in the same set")
         void whenMixedNamesAndNumbersThenWorks() {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthIn(Value.ofArray(Value.of("OCTOBER"), Value.of(11L))))
-                    .expectNext(Value.TRUE).thenCancel().verify();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthIn(Value.ofArray(Value.of("OCTOBER"), Value.of(11L)))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
     }
 
     @Nested
     @DisplayName("monthBetween")
-    class MonthBetweenTests {
+    class MonthBetween {
 
         @ParameterizedTest(name = "{4}")
         @MethodSource("io.sapl.attributes.libraries.TimePolicyInformationPointTests#monthBetweenRangeArgs")
         void whenMonthBetweenRangeThenExpected(String clockTime, long start, long end, Value expected,
                 String description) {
-            val clock = clockAt(clockTime);
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(start), Value.of(end)))
-                    .expectNext(expected).thenCancel().verify();
+            val f = fixtureAt(clockTime);
+            try (val stream = f.sut.monthBetween(Value.of(start), Value.of(end))) {
+                StreamAssertions.assertThat(stream).awaitsNext(expected);
+            }
         }
 
         @ParameterizedTest
-        @ValueSource(longs = { 0, 13, -1 })
+        @ValueSource(longs = { 0L, 13L, -1L })
         @DisplayName("returns error for invalid start month")
         void whenInvalidStartMonthThenError(long invalidMonth) {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(invalidMonth), Value.of(12L)))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthBetween(Value.of(invalidMonth), Value.of(12L))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
 
         @ParameterizedTest
-        @ValueSource(longs = { 0, 13, -1 })
+        @ValueSource(longs = { 0L, 13L, -1L })
         @DisplayName("returns error for invalid end month")
         void whenInvalidEndMonthThenError(long invalidMonth) {
-            val clock = clockAt("2021-11-08T13:00:00Z");
-            val sut   = new TimePolicyInformationPoint(clock);
-            StepVerifier.<Value>withVirtualTime(() -> sut.monthBetween(Value.of(1L), Value.of(invalidMonth)))
-                    .expectNextMatches(ErrorValue.class::isInstance).verifyComplete();
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.monthBetween(Value.of(1L), Value.of(invalidMonth))) {
+                awaitsErrorAndCompletes(stream);
+            }
         }
     }
 
     @Nested
     @DisplayName("toggle")
-    class ToggleTests {
+    class Toggle {
 
         @Test
-        @DisplayName("alternates between true and false")
+        @DisplayName("alternates between true and false at scheduled boundaries")
         void whenToggleThenAlternatesCorrectly() {
-            val sut = new TimePolicyInformationPoint(mock(Clock.class));
-            StepVerifier.<Value>withVirtualTime(() -> sut.toggle(Value.of(5_000L), Value.of(1_000L)))
-                    .expectNext(Value.TRUE).thenAwait(Duration.ofMillis(5_000L)).expectNext(Value.FALSE)
-                    .thenAwait(Duration.ofMillis(1_000L)).expectNext(Value.TRUE).thenCancel().verify();
+            val t0         = Instant.parse("2021-11-08T12:00:00Z");
+            val firstFalse = t0.plusMillis(5_000L);
+            val nextTrue   = firstFalse.plusMillis(1_000L);
+            val clock      = new MutableClock(t0);
+            val scheduler  = new TestTimeScheduler(t0);
+            val sut        = new TimePolicyInformationPoint(clock, scheduler);
+            try (val stream = sut.toggle(Value.of(5_000L), Value.of(1_000L))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                clock.setInstant(firstFalse);
+                scheduler.advanceTo(firstFalse);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                clock.setInstant(nextTrue);
+                scheduler.advanceTo(nextTrue);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
         }
     }
 
     @Nested
-    @DisplayName("broker integration")
-    class BrokerIntegrationTests {
+    @DisplayName("broker registration")
+    class StoreRegistration {
 
         @Test
-        @DisplayName("library is available after loading")
-        void whenBrokerLoadsTimePipThenLibraryIsAvailable() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-            val pip        = new TimePolicyInformationPoint(Clock.systemUTC());
+        @DisplayName("loads under the time namespace without errors")
+        void whenLoadedIntoStoreThenRegistersUnderTimeNamespace() {
+            try (val broker = new PolicyInformationPointAttributeBroker()) {
+                val now    = Instant.parse("2025-06-15T12:00:00Z");
+                val handle = broker
+                        .load(new TimePolicyInformationPoint(new MutableClock(now), new TestTimeScheduler(now)));
 
-            broker.loadPolicyInformationPointLibrary(pip);
-
-            assertThat(broker.getLoadedLibraryNames()).contains("time");
+                assertThat(handle.pipName()).isEqualTo(TimePolicyInformationPoint.NAME);
+                assertThat(handle.isLoaded()).isTrue();
+                assertThat(broker.catalog()).containsExactly(handle);
+            }
         }
+    }
 
-        @Test
-        @DisplayName("throws when loading class without annotation")
-        void whenLoadLibraryWithoutAnnotationThenThrowsException() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-
-            class NotAnnotated {
-                @SuppressWarnings("unused")
-                public Value someAttribute() {
-                    return Value.of("test");
-                }
+    private static Clock nullReturningClock() {
+        return new Clock() {
+            @Override
+            public ZoneId getZone() {
+                return ZoneOffset.UTC;
             }
 
-            assertThatThrownBy(() -> broker.loadPolicyInformationPointLibrary(new NotAnnotated()))
-                    .hasMessageContaining("must be annotated with @PolicyInformationPoint");
-        }
+            @Override
+            public Clock withZone(ZoneId zone) {
+                return this;
+            }
 
-        @Test
-        @DisplayName("throws when loading duplicate library")
-        void whenLoadDuplicateLibraryThenThrowsException() {
-            val repository = new InMemoryAttributeRepository(Clock.systemUTC());
-            val broker     = new CachingAttributeBroker(repository);
-            val pip        = new TimePolicyInformationPoint(Clock.systemUTC());
-
-            broker.loadPolicyInformationPointLibrary(pip);
-
-            assertThatThrownBy(
-                    () -> broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC())))
-                    .hasMessageContaining("Library already loaded: time");
-        }
+            @Override
+            public Instant instant() {
+                return null;
+            }
+        };
     }
 }

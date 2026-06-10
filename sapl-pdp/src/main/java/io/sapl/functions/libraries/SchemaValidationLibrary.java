@@ -17,28 +17,16 @@
  */
 package io.sapl.functions.libraries;
 
+import com.networknt.schema.*;
 import com.networknt.schema.Error;
-import com.networknt.schema.SchemaException;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.experimental.UtilityClass;
+import io.sapl.api.model.*;
 import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
 
-@UtilityClass
 @FunctionLibrary(name = SchemaValidationLibrary.NAME, description = SchemaValidationLibrary.DESCRIPTION, libraryDocumentation = SchemaValidationLibrary.DOCUMENTATION)
 public class SchemaValidationLibrary {
 

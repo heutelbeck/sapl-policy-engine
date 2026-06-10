@@ -17,9 +17,12 @@
  */
 package io.sapl.node;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
+import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -43,17 +46,21 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @EnableCaching
+@ComponentScan({ "io.sapl.node", "io.sapl.server" })
+@EnableConfigurationProperties(SaplNodeProperties.class)
 @ImportRuntimeHints(SaplNodeApplication.NativeResourceHints.class)
-@SpringBootApplication(excludeName = { "io.sapl.spring.config.AuthorizationManagerConfiguration",
-        "io.sapl.spring.config.ConstraintsHandlerAutoconfiguration",
+// Transaction + persistence autoconfigure classes live in transitive Spring Boot
+// jars not on this module's compile classpath. excludeName by string is the
+// only way to reference them without forcing a transitive-to-compile bump.
+@SpringBootApplication(excludeName = {
         "org.springframework.boot.transaction.autoconfigure.TransactionAutoConfiguration",
         "org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizationAutoConfiguration",
         "org.springframework.boot.persistence.autoconfigure.PersistenceExceptionTranslationAutoConfiguration" })
-@ComponentScan({ "io.sapl.node", "io.sapl.server" })
-@EnableConfigurationProperties(SaplNodeProperties.class)
 public class SaplNodeApplication {
 
-    private static final String SERVER_COMMAND = "server";
+    private static final String SERVER_COMMAND   = "server";
+    private static final String NO_AUTH_FLAG     = "--no-auth";
+    private static final String NO_AUTH_PROPERTY = "--io.sapl.node.allow-no-auth=true";
 
     private static final Set<String> HELP_FLAGS = Set.of("--help", "-h", "--version", "-V");
 
@@ -69,20 +76,35 @@ public class SaplNodeApplication {
      */
     static int run(String[] args) {
         if (isServerMode(args)) {
-            val springArgs = args.length > 0 && SERVER_COMMAND.equals(args[0])
+            val stripped   = args.length > 0 && SERVER_COMMAND.equals(args[0])
                     ? Arrays.copyOfRange(args, 1, args.length)
                     : args;
+            val springArgs = expandNoAuthShortcut(stripped);
             SpringApplication.run(SaplNodeApplication.class, springArgs);
             return 0;
         }
         configureCliLogging();
-        return new CommandLine(new SaplNodeCli()).execute(args);
+        val cli         = new SaplNodeCli();
+        val commandLine = new CommandLine(cli);
+        commandLine.setExecutionStrategy(parseResult -> {
+            cli.applyVerbosityToLogging();
+            return new CommandLine.RunLast().execute(parseResult);
+        });
+        return commandLine.execute(args);
     }
 
     /**
      * Configures logback to route all log output to stderr at ERROR level.
      * This prevents CLI commands from polluting stdout, which is reserved
      * for command output (JSON decisions, bundle info, etc.).
+     * <p>
+     * Called after {@link #isServerMode} but before any subcommand runs. Any
+     * log statement emitted between {@link #main} entry and this call uses
+     * Logback's bootstrap defaults (root INFO to stdout) and is therefore
+     * not subject to the stderr routing above. In practice nothing in
+     * {@link #isServerMode} or {@link #run} logs before this method, so the
+     * gap is empty; callers adding new code in that window should keep it
+     * silent or expect those messages to escape the stderr discipline.
      */
     static void configureCliLogging() {
         val context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -105,6 +127,20 @@ public class SaplNodeApplication {
         root.addAppender(appender);
     }
 
+    private static String[] expandNoAuthShortcut(String[] args) {
+        val     out      = new ArrayList<String>(args.length + 1);
+        boolean expanded = false;
+        for (val arg : args) {
+            if (!expanded && NO_AUTH_FLAG.equals(arg)) {
+                out.add(NO_AUTH_PROPERTY);
+                expanded = true;
+            } else {
+                out.add(arg);
+            }
+        }
+        return out.toArray(new String[0]);
+    }
+
     private static boolean isServerMode(String[] args) {
         if (args.length == 0) {
             return true;
@@ -118,18 +154,15 @@ public class SaplNodeApplication {
         return !new CommandLine(new SaplNodeCli()).getSubcommands().containsKey(args[0]);
     }
 
+    /**
+     * GraalVM native-image hints for resources, reflection, and serialization
+     * that Spring Boot's AOT processor cannot infer automatically. Covers
+     * version banner, Logback version probes, the Scalar configuration types
+     * accessed reflectively, the Jetty servlet stack components Boot
+     * instantiates by name, and the springdoc actuator handler whose private
+     * field it reads via reflection.
+     */
     static class NativeResourceHints implements RuntimeHintsRegistrar {
-
-        private static final String   COMMANDS_PACKAGE           = "io.sapl.node.cli.commands.";
-        private static final String   OPTIONS_PACKAGE            = "io.sapl.node.cli.options.";
-        private static final String[] PICOCLI_REFLECTION_CLASSES = { COMMANDS_PACKAGE + "BenchmarkCommand",
-                COMMANDS_PACKAGE + "LoadtestCommand", OPTIONS_PACKAGE + "BenchmarkOptions",
-                OPTIONS_PACKAGE + "BundleVerificationOptions", COMMANDS_PACKAGE + "CheckCommand",
-                COMMANDS_PACKAGE + "DecideCommand", COMMANDS_PACKAGE + "DecideOnceCommand",
-                OPTIONS_PACKAGE + "NamedSubscriptionOptions", OPTIONS_PACKAGE + "PdpOptions",
-                OPTIONS_PACKAGE + "PolicySourceOptions", OPTIONS_PACKAGE + "RemoteConnectionOptions",
-                OPTIONS_PACKAGE + "RemoteConnectionOptions$AuthOptions", COMMANDS_PACKAGE + "ServerCommand",
-                OPTIONS_PACKAGE + "SubscriptionInputOptions", COMMANDS_PACKAGE + "TestCommand" };
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
@@ -138,10 +171,65 @@ public class SaplNodeApplication {
             hints.resources().registerPattern("git.properties");
             hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
             hints.resources().registerPattern("ch/qos/logback/classic/logback-classic-version.properties");
+            hints.resources().registerPattern("static/css/sapl-scalar-theme.css");
+            registerScalarReflection(hints, classLoader);
+        }
 
-            for (val className : PICOCLI_REFLECTION_CLASSES) {
-                hints.reflection().registerTypeIfPresent(classLoader, className,
-                        MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.ACCESS_DECLARED_FIELDS);
+        private static void registerScalarReflection(RuntimeHints hints, ClassLoader classLoader) {
+            val binder = new BindingReflectionHintsRegistrar();
+            for (val className : List.of("com.scalar.maven.core.internal.ScalarConfiguration",
+                    "com.scalar.maven.core.ScalarProperties", "com.scalar.maven.webmvc.SpringBootScalarProperties",
+                    "com.scalar.maven.core.config.ScalarSource", "com.scalar.maven.core.config.ScalarServer",
+                    "com.scalar.maven.core.config.ScalarServerVariable",
+                    "com.scalar.maven.core.config.ScalarAgentOptions", "com.scalar.maven.core.config.DefaultHttpClient",
+                    "com.scalar.maven.core.authentication.ScalarAuthenticationOptions",
+                    "com.scalar.maven.core.authentication.schemes.ScalarSecurityScheme",
+                    "com.scalar.maven.core.authentication.schemes.ScalarApiKeySecurityScheme",
+                    "com.scalar.maven.core.authentication.schemes.ScalarHttpSecurityScheme",
+                    "com.scalar.maven.core.authentication.schemes.ScalarOAuth2SecurityScheme",
+                    "com.scalar.maven.core.authentication.flows.ScalarFlows",
+                    "com.scalar.maven.core.authentication.flows.OAuthFlow",
+                    "com.scalar.maven.core.authentication.flows.AuthorizationCodeFlow",
+                    "com.scalar.maven.core.authentication.flows.ClientCredentialsFlow",
+                    "com.scalar.maven.core.authentication.flows.ImplicitFlow",
+                    "com.scalar.maven.core.authentication.flows.PasswordFlow",
+                    "com.scalar.maven.core.enums.ScalarTheme", "com.scalar.maven.core.enums.ThemeMode",
+                    "com.scalar.maven.core.enums.Pkce", "com.scalar.maven.core.enums.CredentialsLocation",
+                    "com.scalar.maven.core.enums.DeveloperToolsVisibility",
+                    "com.scalar.maven.core.enums.DocumentDownloadType", "com.scalar.maven.core.enums.Layout",
+                    "com.scalar.maven.core.enums.OperationSorter", "com.scalar.maven.core.enums.OperationTitleSource",
+                    "com.scalar.maven.core.enums.SchemaPropertyOrder", "com.scalar.maven.core.enums.TagSorter")) {
+                try {
+                    binder.registerReflectionHints(hints.reflection(), Class.forName(className, false, classLoader));
+                } catch (ClassNotFoundException ignored) {
+                    // Optional Scalar type not on the classpath.
+                }
+            }
+
+            // Jetty servlet stack: Spring Boot's JettyServletWebServerFactory uses
+            // reflection on these types' no-arg constructors. Without these hints
+            // the native binary fails at startup with NoSuchMethodException for
+            // ConstraintSecurityHandler.<init>().
+            hints.reflection().registerTypeIfPresent(classLoader,
+                    "org.eclipse.jetty.ee11.servlet.security.ConstraintSecurityHandler",
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+            hints.reflection().registerTypeIfPresent(classLoader, "org.eclipse.jetty.ee11.servlet.SessionHandler",
+                    MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+
+            // springdoc's ActuatorOperationCustomizer reflects on the private
+            // 'operation' field of OperationHandler when show-actuator is on.
+            hints.reflection().registerTypeIfPresent(classLoader,
+                    "org.springframework.boot.webmvc.actuate.endpoint.web.AbstractWebMvcEndpointHandlerMapping$OperationHandler",
+                    MemberCategory.ACCESS_DECLARED_FIELDS);
+
+            // Passay reflects on its CharacterData / CharacterRule types when
+            // building generators. SAPL's `generate basic`/`generate apikey`
+            // CLI commands depend on this; without the hints the native
+            // binary fails at first credential generation.
+            for (val passayClass : List.of("org.passay.PasswordGenerator", "org.passay.CharacterRule",
+                    "org.passay.EnglishCharacterData")) {
+                hints.reflection().registerTypeIfPresent(classLoader, passayClass,
+                        MemberCategory.INVOKE_DECLARED_CONSTRUCTORS, MemberCategory.INVOKE_DECLARED_METHODS);
             }
         }
 

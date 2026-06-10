@@ -18,6 +18,7 @@
 package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.parallel.Resources.SYSTEM_OUT;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -25,7 +26,10 @@ import java.io.PrintStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
+@ResourceLock(value = SYSTEM_OUT, mode = ResourceAccessMode.READ_WRITE)
 class SaplNodeMainTests {
 
     private PrintStream originalOut;
@@ -42,13 +46,13 @@ class SaplNodeMainTests {
     }
 
     @Test
-    void whenExecutingRun_withGenerateApiKeyCommand_thenReturnsZero() {
+    void whenExecutingRunWithGenerateApiKeyCommandThenReturnsZero() {
         int exitCode = SaplNodeApplication.run(new String[] { "generate", "apikey" });
         assertThat(exitCode).isZero();
     }
 
     @Test
-    void whenExecutingRun_withGenerateBasicCommand_thenReturnsZero() {
+    void whenExecutingRunWithGenerateBasicCommandThenReturnsZero() {
         int exitCode = SaplNodeApplication.run(new String[] { "generate", "basic" });
         assertThat(exitCode).isZero();
     }

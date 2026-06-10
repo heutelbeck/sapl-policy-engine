@@ -21,6 +21,8 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLException;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.node.it.BaseIntegrationTest;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
 import reactor.test.StepVerifier;
 
@@ -58,7 +61,7 @@ import reactor.test.StepVerifier;
  */
 @Testcontainers
 @DisplayName("RSocket Transport Integration Tests")
-@Timeout(value = 10, unit = TimeUnit.MINUTES)
+@Timeout(value = 2, unit = TimeUnit.MINUTES)
 class RSocketTransportIT extends BaseIntegrationTest {
 
     private static final int    RSOCKET_PORT  = 7000;
@@ -71,6 +74,8 @@ class RSocketTransportIT extends BaseIntegrationTest {
     private static final String API_KEY_ENCODED      = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
     private static final String DEFAULT_PDP_ID       = "default";
 
+    private static final Duration STEP_TIMEOUT = Duration.ofSeconds(30);
+
     private static final AuthorizationSubscription PERMIT_SUBSCRIPTION = AuthorizationSubscription.of("Willi", "eat",
             "apple");
     private static final AuthorizationSubscription DENY_SUBSCRIPTION   = AuthorizationSubscription.of("Nobody",
@@ -82,8 +87,43 @@ class RSocketTransportIT extends BaseIntegrationTest {
                 .withEnv("SAPL_PDP_RSOCKET_PORT", String.valueOf(RSOCKET_PORT));
     }
 
-    private int getRSocketPort(GenericContainer<?> container) {
-        return container.getMappedPort(RSOCKET_PORT);
+    private GenericContainer<?> withNoAuth(GenericContainer<?> container) {
+        return container.withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true");
+    }
+
+    private GenericContainer<?> withBasicUser(GenericContainer<?> container, String id, String pdpId, String username,
+            String encodedSecret) {
+        return container.withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false").withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
+                .withEnv("IO_SAPL_NODE_USERS_0_ID", id).withEnv("IO_SAPL_NODE_USERS_0_PDPID", pdpId)
+                .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", username)
+                .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", encodedSecret);
+    }
+
+    private GenericContainer<?> withApiKeyUser(GenericContainer<?> container, String id, String pdpId,
+            String encodedApiKey) {
+        return container.withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false").withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
+                .withEnv("IO_SAPL_NODE_USERS_0_ID", id).withEnv("IO_SAPL_NODE_USERS_0_PDPID", pdpId)
+                .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", encodedApiKey);
+    }
+
+    private ReactivePolicyDecisionPoint connectNoAuth(GenericContainer<?> container) {
+        return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                .port(container.getMappedPort(RSOCKET_PORT)).build();
+    }
+
+    private ReactivePolicyDecisionPoint connectBasic(GenericContainer<?> container, String username, String password) {
+        return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                .port(container.getMappedPort(RSOCKET_PORT)).basicAuth(username, password).build();
+    }
+
+    private ReactivePolicyDecisionPoint connectApiKey(GenericContainer<?> container, String apiKey) {
+        return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                .port(container.getMappedPort(RSOCKET_PORT)).apiKey(apiKey).build();
+    }
+
+    private void expectDecision(ReactivePolicyDecisionPoint pdp, AuthorizationSubscription subscription,
+            AuthorizationDecision expected) {
+        StepVerifier.create(pdp.decide(subscription)).expectNext(expected).thenCancel().verify(STEP_TIMEOUT);
     }
 
     @Nested
@@ -93,28 +133,18 @@ class RSocketTransportIT extends BaseIntegrationTest {
         @Test
         @DisplayName("returns PERMIT when policy matches over RSocket without auth")
         void whenNoAuthAndPolicyMatchesThenPermit() {
-            try (val container = createRSocketContainer(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")) {
+            try (val container = withNoAuth(createRSocketContainer(POLICIES_PATH))) {
                 container.start();
-
-                val pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                        .port(getRSocketPort(container)).build();
-
-                StepVerifier.create(pdp.decide(PERMIT_SUBSCRIPTION)).expectNext(AuthorizationDecision.PERMIT)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                expectDecision(connectNoAuth(container), PERMIT_SUBSCRIPTION, AuthorizationDecision.PERMIT);
             }
         }
 
         @Test
         @DisplayName("returns DENY when policy does not match over RSocket without auth")
         void whenNoAuthAndPolicyDoesNotMatchThenDeny() {
-            try (val container = createRSocketContainer(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")) {
+            try (val container = withNoAuth(createRSocketContainer(POLICIES_PATH))) {
                 container.start();
-
-                val pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                        .port(getRSocketPort(container)).build();
-
-                StepVerifier.create(pdp.decide(DENY_SUBSCRIPTION)).expectNext(AuthorizationDecision.DENY).thenCancel()
-                        .verify(Duration.ofSeconds(30));
+                expectDecision(connectNoAuth(container), DENY_SUBSCRIPTION, AuthorizationDecision.DENY);
             }
         }
     }
@@ -126,38 +156,22 @@ class RSocketTransportIT extends BaseIntegrationTest {
         @Test
         @DisplayName("returns PERMIT with valid basic credentials over RSocket")
         void whenValidBasicCredentialsThenPermit() {
-            try (val container = createRSocketContainer(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false")
-                    .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
-                    .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-basic-client")
-                    .withEnv("IO_SAPL_NODE_USERS_0_PDPID", DEFAULT_PDP_ID)
-                    .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", BASIC_USERNAME)
-                    .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", BASIC_SECRET_ENCODED)) {
+            try (val container = withBasicUser(createRSocketContainer(POLICIES_PATH), "test-basic-client",
+                    DEFAULT_PDP_ID, BASIC_USERNAME, BASIC_SECRET_ENCODED)) {
                 container.start();
-
-                val pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                        .port(getRSocketPort(container)).basicAuth(BASIC_USERNAME, BASIC_SECRET).build();
-
-                StepVerifier.create(pdp.decide(PERMIT_SUBSCRIPTION)).expectNext(AuthorizationDecision.PERMIT)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                expectDecision(connectBasic(container, BASIC_USERNAME, BASIC_SECRET), PERMIT_SUBSCRIPTION,
+                        AuthorizationDecision.PERMIT);
             }
         }
 
         @Test
         @DisplayName("rejects connection with invalid basic credentials over RSocket")
         void whenInvalidBasicCredentialsThenError() {
-            try (val container = createRSocketContainer(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false")
-                    .withEnv("IO_SAPL_NODE_ALLOWBASICAUTH", "true")
-                    .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-basic-client")
-                    .withEnv("IO_SAPL_NODE_USERS_0_PDPID", DEFAULT_PDP_ID)
-                    .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", BASIC_USERNAME)
-                    .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", BASIC_SECRET_ENCODED)) {
+            try (val container = withBasicUser(createRSocketContainer(POLICIES_PATH), "test-basic-client",
+                    DEFAULT_PDP_ID, BASIC_USERNAME, BASIC_SECRET_ENCODED)) {
                 container.start();
-
-                val pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                        .port(getRSocketPort(container)).basicAuth(BASIC_USERNAME, "wrongPassword").build();
-
-                StepVerifier.create(pdp.decide(PERMIT_SUBSCRIPTION)).expectNext(AuthorizationDecision.INDETERMINATE)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                expectDecision(connectBasic(container, BASIC_USERNAME, "wrongPassword"), PERMIT_SUBSCRIPTION,
+                        AuthorizationDecision.INDETERMINATE);
             }
         }
     }
@@ -169,37 +183,21 @@ class RSocketTransportIT extends BaseIntegrationTest {
         @Test
         @DisplayName("returns PERMIT with valid API key over RSocket")
         void whenValidApiKeyThenPermit() {
-            try (val container = createRSocketContainer(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false")
-                    .withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
-                    .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-apikey-client")
-                    .withEnv("IO_SAPL_NODE_USERS_0_PDPID", DEFAULT_PDP_ID)
-                    .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", API_KEY_ENCODED)) {
+            try (val container = withApiKeyUser(createRSocketContainer(POLICIES_PATH), "test-apikey-client",
+                    DEFAULT_PDP_ID, API_KEY_ENCODED)) {
                 container.start();
-
-                val pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                        .port(getRSocketPort(container)).apiKey(API_KEY).build();
-
-                StepVerifier.create(pdp.decide(PERMIT_SUBSCRIPTION)).expectNext(AuthorizationDecision.PERMIT)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                expectDecision(connectApiKey(container, API_KEY), PERMIT_SUBSCRIPTION, AuthorizationDecision.PERMIT);
             }
         }
 
         @Test
         @DisplayName("rejects connection with invalid API key over RSocket")
         void whenInvalidApiKeyThenError() {
-            try (val container = createRSocketContainer(POLICIES_PATH).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false")
-                    .withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
-                    .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-apikey-client")
-                    .withEnv("IO_SAPL_NODE_USERS_0_PDPID", DEFAULT_PDP_ID)
-                    .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", API_KEY_ENCODED)) {
+            try (val container = withApiKeyUser(createRSocketContainer(POLICIES_PATH), "test-apikey-client",
+                    DEFAULT_PDP_ID, API_KEY_ENCODED)) {
                 container.start();
-
-                val pdp = RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                        .port(getRSocketPort(container)).apiKey("sapl_invalidKeyThatWillNotMatchAnything123456")
-                        .build();
-
-                StepVerifier.create(pdp.decide(PERMIT_SUBSCRIPTION)).expectNext(AuthorizationDecision.INDETERMINATE)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+                expectDecision(connectApiKey(container, "sapl_invalidKeyThatWillNotMatchAnything123456"),
+                        PERMIT_SUBSCRIPTION, AuthorizationDecision.INDETERMINATE);
             }
         }
     }
@@ -208,48 +206,45 @@ class RSocketTransportIT extends BaseIntegrationTest {
     @DisplayName("OAuth2/JWT Authentication")
     class OAuth2JwtAuthenticationTests {
 
-        private static final Path   OAUTH_POLICIES_DIR = Path.of("examples/docker/with-keycloak/policies")
-                .toAbsolutePath();
-        private static final Path   REALM_EXPORT       = Path
-                .of("examples/docker/with-keycloak/keycloak/realm-export.json").toAbsolutePath();
+        private static final Path   OAUTH_POLICIES_DIR = requireExists(
+                Path.of("examples/docker/with-keycloak/policies").toAbsolutePath());
+        private static final Path   REALM_EXPORT       = requireExists(
+                Path.of("examples/docker/with-keycloak/keycloak/realm-export.json").toAbsolutePath());
         private static final String KEYCLOAK_IMAGE     = "quay.io/keycloak/keycloak:25.0";
+
+        private static Path requireExists(Path path) {
+            if (!java.nio.file.Files.exists(path)) {
+                throw new IllegalStateException("RSocketTransportIT requires the sapl-node module's working directory; "
+                        + "expected to find " + path + ". Run from the sapl-node module root, e.g. "
+                        + "'mvn -pl sapl-node test' from the engine repo root.");
+            }
+            return path;
+        }
 
         @Test
         @DisplayName("returns PERMIT with valid JWT over RSocket")
         void whenValidJwtThenPermit() {
-            try (val network = Network.newNetwork(); val keycloak = createKeycloakContainer(network)) {
-                keycloak.start();
-
-                try (val saplNode = createSaplNodeOnNetwork(network)) {
-                    saplNode.start();
-
-                    val token        = acquireToken(keycloak, "default-user", "default123");
-                    val pdp          = RemotePolicyDecisionPoint.builder().rsocket().host(saplNode.getHost())
-                            .port(saplNode.getMappedPort(RSOCKET_PORT)).apiKey(token).build();
-                    val subscription = AuthorizationSubscription.of("user", "read", "document");
-
-                    StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
-                            .verify(Duration.ofSeconds(30));
-                }
-            }
+            runOauthTest("default-user", "default123", AuthorizationSubscription.of("user", "read", "document"),
+                    AuthorizationDecision.PERMIT);
         }
 
         @Test
         @DisplayName("returns DENY with valid JWT when policy does not match over RSocket")
         void whenValidJwtAndPolicyDoesNotMatchThenDeny() {
+            runOauthTest("default-user", "default123", AuthorizationSubscription.of("user", "delete", "secret"),
+                    AuthorizationDecision.DENY);
+        }
+
+        private void runOauthTest(String username, String password, AuthorizationSubscription subscription,
+                AuthorizationDecision expected) {
             try (val network = Network.newNetwork(); val keycloak = createKeycloakContainer(network)) {
                 keycloak.start();
-
                 try (val saplNode = createSaplNodeOnNetwork(network)) {
                     saplNode.start();
-
-                    val token        = acquireToken(keycloak, "default-user", "default123");
-                    val pdp          = RemotePolicyDecisionPoint.builder().rsocket().host(saplNode.getHost())
+                    val token = acquireToken(keycloak, username, password);
+                    val pdp   = RemotePolicyDecisionPoint.builder().rsocket().host(saplNode.getHost())
                             .port(saplNode.getMappedPort(RSOCKET_PORT)).apiKey(token).build();
-                    val subscription = AuthorizationSubscription.of("user", "delete", "secret");
-
-                    StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
-                            .verify(Duration.ofSeconds(30));
+                    expectDecision(pdp, subscription, expected);
                 }
             }
         }
@@ -286,7 +281,15 @@ class RSocketTransportIT extends BaseIntegrationTest {
                             .with("password", password))
                     .retrieve().bodyToMono(JsonNode.class).block(Duration.ofSeconds(30));
 
-            return response.get("access_token").asString();
+            if (response == null) {
+                throw new IllegalStateException("Keycloak token endpoint at " + tokenUrl + " returned no body");
+            }
+            val accessToken = response.get("access_token");
+            if (accessToken == null) {
+                throw new IllegalStateException(
+                        "Keycloak token endpoint response did not contain 'access_token': " + response);
+            }
+            return accessToken.asString();
         }
     }
 
@@ -317,21 +320,64 @@ class RSocketTransportIT extends BaseIntegrationTest {
                     .withEnv("IO_SAPL_NODE_USERS_1_BASIC_SECRET", BASIC_SECRET_ENCODED)) {
                 container.start();
 
-                val rsocketPort  = container.getMappedPort(RSOCKET_PORT);
-                val host         = container.getHost();
                 val subscription = AuthorizationSubscription.of("anyone", "anything", "anywhere");
+                expectDecision(connectBasic(container, "prodUser", BASIC_SECRET), subscription,
+                        AuthorizationDecision.DENY);
+                expectDecision(connectBasic(container, "stagingUser", BASIC_SECRET), subscription,
+                        AuthorizationDecision.PERMIT);
+            }
+        }
+    }
 
-                val prodPdp = RemotePolicyDecisionPoint.builder().rsocket().host(host).port(rsocketPort)
-                        .basicAuth("prodUser", BASIC_SECRET).build();
+    @Nested
+    @DisplayName("TLS Termination (SSL Bundle)")
+    class TlsTests {
 
-                StepVerifier.create(prodPdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
-                        .verify(Duration.ofSeconds(30));
+        private GenericContainer<?> createRSocketTlsContainer() {
+            return createSaplNodeContainerWithoutTls(POLICIES_PATH).withExposedPorts(SAPL_SERVER_PORT, RSOCKET_PORT)
+                    .withEnv("SAPL_PDP_RSOCKET_ENABLED", "true")
+                    .withEnv("SAPL_PDP_RSOCKET_PORT", String.valueOf(RSOCKET_PORT))
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEY_ALIAS", "netty")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEY_PASSWORD", "changeme")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEYSTORE_LOCATION", "file:/pdp/data/keystore.p12")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEYSTORE_PASSWORD", "changeme")
+                    .withEnv("SPRING_SSL_BUNDLE_JKS_SAPLBUNDLE_KEYSTORE_TYPE", "PKCS12")
+                    .withEnv("SAPL_PDP_RSOCKET_SSL_BUNDLE", "saplbundle").withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true");
+        }
 
-                val stagingPdp = RemotePolicyDecisionPoint.builder().rsocket().host(host).port(rsocketPort)
-                        .basicAuth("stagingUser", BASIC_SECRET).build();
+        private ReactivePolicyDecisionPoint connectRsocketTls(GenericContainer<?> container) {
+            try {
+                return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
+                        .port(container.getMappedPort(RSOCKET_PORT)).withUnsecureSSL().build();
+            } catch (SSLException e) {
+                throw new IllegalStateException("Failed to build insecure SSL context for RSocket TLS test", e);
+            }
+        }
 
-                StepVerifier.create(stagingPdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT)
-                        .thenCancel().verify(Duration.ofSeconds(30));
+        @Test
+        @DisplayName("returns PERMIT when policy matches over RSocket TLS via shared SSL bundle")
+        void whenRsocketTlsAndPolicyMatchesThenPermit() {
+            try (val container = createRSocketTlsContainer()) {
+                container.start();
+                expectDecision(connectRsocketTls(container), PERMIT_SUBSCRIPTION, AuthorizationDecision.PERMIT);
+            }
+        }
+
+        @Test
+        @DisplayName("returns DENY when policy does not match over RSocket TLS")
+        void whenRsocketTlsAndPolicyDoesNotMatchThenDeny() {
+            try (val container = createRSocketTlsContainer()) {
+                container.start();
+                expectDecision(connectRsocketTls(container), DENY_SUBSCRIPTION, AuthorizationDecision.DENY);
+            }
+        }
+
+        @Test
+        @DisplayName("rejects plain-TCP connection when RSocket server requires TLS")
+        void whenPlainConnectionAgainstTlsServerThenIndeterminate() {
+            try (val container = createRSocketTlsContainer()) {
+                container.start();
+                expectDecision(connectNoAuth(container), PERMIT_SUBSCRIPTION, AuthorizationDecision.INDETERMINATE);
             }
         }
     }

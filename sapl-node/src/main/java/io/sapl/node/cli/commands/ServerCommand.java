@@ -39,9 +39,10 @@ import java.util.concurrent.Callable;
         send authorization subscriptions via the HTTP API and receive
         decisions as JSON responses or Server-Sent Event streams.
 
-        Optionally, a high-performance RSocket endpoint with protobuf
-        serialization can be enabled for lower-latency authorization.
-        Enable with --sapl.pdp.rsocket.enabled=true (default port: 7000).
+        A high-performance RSocket endpoint with protobuf serialization is
+        enabled by default on port 7000 for lower-latency authorization.
+        Disable it explicitly with --sapl.pdp.rsocket.enabled=false when
+        only the HTTP transport is needed.
 
         The server is configured via application.yml. Place it in a config/
         subdirectory of the working directory, or specify a custom location
@@ -49,8 +50,12 @@ import java.util.concurrent.Callable;
 
         Any Spring Boot property can be overridden on the command line:
           --server.port=9090
-          --sapl.pdp.rsocket.enabled=true
+          --sapl.pdp.rsocket.enabled=false
           --sapl.pdp.rsocket.port=7000
+
+        Shortcut for local development:
+          --no-auth   accept unauthenticated requests
+                      (alias for --io.sapl.node.allow-no-auth=true)
 
         Key configuration areas: policy source type (DIRECTORY, BUNDLES),
         authentication (no-auth, basic, API key, OAuth2), TLS, RSocket,
@@ -65,6 +70,9 @@ import java.util.concurrent.Callable;
     footer = { """
           # Start with default settings
           sapl server
+
+          # Local development without authentication
+          sapl server --no-auth
 
           # Start on a custom port
           sapl server --server.port=9090

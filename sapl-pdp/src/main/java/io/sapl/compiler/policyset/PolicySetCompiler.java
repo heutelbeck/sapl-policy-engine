@@ -62,6 +62,8 @@ public class PolicySetCompiler {
                                      isApplicable, metadata, Decision.DENY, defaultDecision, errorHandling, ctx);
                              case PRIORITY_PERMIT  -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
                                      isApplicable, metadata, Decision.PERMIT, defaultDecision, errorHandling, ctx);
+                             case PRIORITY_SUSPEND -> PriorityVoteCompiler.compilePolicySet(policySet, compiledPolicies,
+                                     isApplicable, metadata, Decision.SUSPEND, defaultDecision, errorHandling, ctx);
                              case UNANIMOUS        ->
                                  UnanimousVoteCompiler.compilePolicySet(policySet, compiledPolicies, isApplicable,
                                          metadata, defaultDecision, errorHandling, false, ctx);
@@ -75,11 +77,11 @@ public class PolicySetCompiler {
         val applicabilityAndVoter = PolicySetUtil.compileApplicabilityAndVoter(isApplicable, voterAndCoverage.voter(),
                 metadata);
         return new CompiledPolicySet(isApplicable, voterAndCoverage.voter(), applicabilityAndVoter,
-                voterAndCoverage.coverage(), metadata);
+                voterAndCoverage.coverageVoter(), metadata);
     }
 
     private static void assertPolicyNamesAreUnique(List<? extends CompiledDocument> compiledDocuments) {
-        val usedNames = new HashSet<>(compiledDocuments.size());
+        val usedNames = HashSet.<String>newHashSet(compiledDocuments.size());
         for (val compiledPolicy : compiledDocuments) {
             val name = compiledPolicy.metadata().name();
             if (!usedNames.add(name)) {

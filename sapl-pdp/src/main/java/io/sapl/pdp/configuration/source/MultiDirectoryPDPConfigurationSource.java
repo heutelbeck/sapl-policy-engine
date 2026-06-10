@@ -18,21 +18,21 @@
 package io.sapl.pdp.configuration.source;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PdpVoterSource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
-import reactor.core.Disposable;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * PDP configuration source that loads multiple PDP configurations from
@@ -59,21 +59,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * </pre>
  * <p>
  * This source delegates to {@link DirectoryPDPConfigurationSource} for each
- * subdirectory, providing full hot-reload
- * support. When subdirectories are added or removed, corresponding sources are
- * created or disposed.
+ * subdirectory, providing full hot-reload support. When subdirectories are
+ * added or removed, corresponding sources are created or closed and
+ * {@link ConfigurationEvent.Remove} is emitted for removed PDPs.
  * </p>
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. Child sources are managed in a ConcurrentHashMap,
- * and directory monitoring runs on a
- * background thread.
+ * and directory monitoring runs on a background thread.
  * </p>
  *
  * @see DirectoryPDPConfigurationSource
  */
 @Slf4j
-public final class MultiDirectoryPDPConfigurationSource implements Disposable {
+public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurationSource {
 
     private static final long POLL_INTERVAL_MS        = 500;
     private static final long MONITOR_STOP_TIMEOUT_MS = 5000;
@@ -84,60 +83,80 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
 
     private final Path                                         directoryPath;
     private final boolean                                      includeRootFiles;
-    private final PdpVoterSource                               pdpVoterSource;
     private final FileAlterationMonitor                        monitor;
     private final Map<String, DirectoryPDPConfigurationSource> childSources = new ConcurrentHashMap<>();
-    private final AtomicBoolean                                disposed     = new AtomicBoolean(false);
+    private final Set<Consumer<ConfigurationEvent>>            subscribers  = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                                activated    = new AtomicBoolean(false);
+    private final AtomicBoolean                                closed       = new AtomicBoolean(false);
 
     /**
-     * Creates a source loading from subdirectories, excluding root-level files.
+     * Creates a source for the specified root directory, excluding root-level
+     * files.
      *
-     * @param directoryPath
-     * the root directory containing PDP subdirectories
-     * @param pdpVoterSource
-     * the voter source to load configurations into
+     * @param directoryPath the root directory containing PDP subdirectories
      */
-    public MultiDirectoryPDPConfigurationSource(@NonNull Path directoryPath, @NonNull PdpVoterSource pdpVoterSource) {
-        this(directoryPath, false, pdpVoterSource);
+    public MultiDirectoryPDPConfigurationSource(@NonNull Path directoryPath) {
+        this(directoryPath, false);
     }
 
     /**
      * Creates a source with control over root-level file handling.
      *
-     * @param directoryPath
-     * the root directory containing PDP subdirectories
-     * @param includeRootFiles
-     * if true, root-level .sapl and pdp.json files are loaded as
-     * "default" PDP
-     * @param pdpVoterSource
-     * the voter source to load configurations into
+     * @param directoryPath the root directory containing PDP subdirectories
+     * @param includeRootFiles if true, root-level .sapl and pdp.json files
+     * are loaded as "default" PDP
      */
-    public MultiDirectoryPDPConfigurationSource(@NonNull Path directoryPath,
-            boolean includeRootFiles,
-            @NonNull PdpVoterSource pdpVoterSource) {
+    public MultiDirectoryPDPConfigurationSource(@NonNull Path directoryPath, boolean includeRootFiles) {
         this.directoryPath    = PdpIdValidator.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath().normalize();
         this.includeRootFiles = includeRootFiles;
-        this.pdpVoterSource   = pdpVoterSource;
         this.monitor          = new FileAlterationMonitor(POLL_INTERVAL_MS);
+    }
 
-        log.info("Loading PDP configurations from multi-directory source: '{}'.", this.directoryPath);
+    @Override
+    public void subscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        if (closed.get()) {
+            return;
+        }
+        subscribers.add(listener);
+        if (activated.compareAndSet(false, true)) {
+            activate();
+        }
+    }
+
+    @Override
+    public void unsubscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        subscribers.remove(listener);
+    }
+
+    @Override
+    public void close() {
+        if (closed.compareAndSet(false, true)) {
+            stopMonitorSafely();
+            closeAllChildSources();
+            subscribers.clear();
+            log.debug("Closed multi-directory configuration source.");
+        }
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    private void activate() {
+        log.info("Loading PDP configurations from multi-directory source: '{}'.", directoryPath);
         validateDirectory();
         loadInitialSources();
         startDirectoryMonitor();
     }
 
-    @Override
-    public void dispose() {
-        if (disposed.compareAndSet(false, true)) {
-            stopMonitorSafely();
-            disposeAllChildSources();
-            log.debug("Disposed multi-directory configuration source.");
+    private void emit(ConfigurationEvent event) {
+        if (closed.get()) {
+            return;
         }
-    }
-
-    @Override
-    public boolean isDisposed() {
-        return disposed.get();
+        for (val subscriber : subscribers) {
+            subscriber.accept(event);
+        }
     }
 
     private void validateDirectory() {
@@ -185,8 +204,8 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, pdpVoterSource,
-                    () -> removeChildSource(pdpId));
+            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, () -> removeChildSource(pdpId));
+            source.subscribe(this::emit);
             childSources.put(pdpId, source);
             log.debug("Created child source for PDP '{}'.", pdpId);
         } catch (Exception e) {
@@ -201,8 +220,8 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(directoryPath, PdpIdValidator.DEFAULT_PDP_ID,
-                    pdpVoterSource);
+            val source = new DirectoryPDPConfigurationSource(directoryPath, PdpIdValidator.DEFAULT_PDP_ID);
+            source.subscribe(this::emit);
             childSources.put(PdpIdValidator.DEFAULT_PDP_ID, source);
             log.debug("Created root source for default PDP.");
         } catch (Exception e) {
@@ -240,18 +259,18 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
     private void removeChildSource(String pdpId) {
         val source = childSources.remove(pdpId);
         if (source != null) {
-            source.dispose();
-            pdpVoterSource.removeConfigurationForPdp(pdpId);
-            log.debug("Removed and disposed child source for PDP '{}'.", pdpId);
+            source.close();
+            emit(new ConfigurationEvent.Remove(pdpId));
+            log.debug("Removed and closed child source for PDP '{}'.", pdpId);
         }
     }
 
-    private void disposeAllChildSources() {
+    private void closeAllChildSources() {
         for (val entry : childSources.entrySet()) {
             try {
-                entry.getValue().dispose();
+                entry.getValue().close();
             } catch (Exception e) {
-                log.warn("Error disposing child source for PDP '{}': {}.", entry.getKey(), e.getMessage());
+                log.warn("Error closing child source for PDP '{}': {}.", entry.getKey(), e.getMessage());
             }
         }
         childSources.clear();
@@ -264,7 +283,7 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
 
         @Override
         public void onDirectoryCreate(File directory) {
-            if (disposed.get()) {
+            if (closed.get()) {
                 return;
             }
             val path = directory.toPath();
@@ -274,7 +293,7 @@ public final class MultiDirectoryPDPConfigurationSource implements Disposable {
 
         @Override
         public void onDirectoryDelete(File directory) {
-            if (disposed.get()) {
+            if (closed.get()) {
                 return;
             }
             val pdpId = directory.getName();

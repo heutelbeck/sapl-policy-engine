@@ -247,7 +247,7 @@ class CoverageAccumulatorTests {
         val voter          = new PolicyVoterMetadata(policyName, "default", "config", null, outcome, false);
         val policyCoverage = new PolicyCoverage(voter, bodyCoverage);
 
-        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), List.of(), voter, outcome);
+        val vote = new Vote(toAuthorizationDecision(decision), List.of(), List.of(), voter, outcome);
 
         return new VoteWithCoverage(vote, policyCoverage);
     }
@@ -256,6 +256,7 @@ class CoverageAccumulatorTests {
         return switch (decision) {
         case PERMIT                        -> Outcome.PERMIT;
         case DENY                          -> Outcome.DENY;
+        case SUSPEND                       -> Outcome.SUSPEND;
         case INDETERMINATE, NOT_APPLICABLE -> Outcome.PERMIT; // Default for test purposes
         };
     }
@@ -264,6 +265,7 @@ class CoverageAccumulatorTests {
         return switch (decision) {
         case PERMIT         -> AuthorizationDecision.PERMIT;
         case DENY           -> AuthorizationDecision.DENY;
+        case SUSPEND        -> AuthorizationDecision.SUSPEND;
         case INDETERMINATE  -> AuthorizationDecision.INDETERMINATE;
         case NOT_APPLICABLE -> AuthorizationDecision.NOT_APPLICABLE;
         };

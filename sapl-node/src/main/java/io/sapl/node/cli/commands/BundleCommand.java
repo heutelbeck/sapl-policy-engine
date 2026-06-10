@@ -32,7 +32,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
@@ -77,8 +82,8 @@ public class BundleCommand {
     private static final String ERROR_GENERATING_KEYPAIR  = "Error generating keypair: %s.";
     private static final String ERROR_INSPECTING_BUNDLE   = "Error inspecting bundle: %s.";
     private static final String ERROR_KEY_NOT_FOUND       = "Error: Key file not found: %s.";
-    private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s.";
     private static final String ERROR_NOT_A_DIRECTORY     = "Error: Input path is not a directory: %s.";
+    private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s.";
     private static final String ERROR_SIGNING_BUNDLE      = "Error signing bundle: %s.";
     private static final String ERROR_VERIFICATION_FAILED = "Verification FAILED: %s.";
     private static final String ERROR_VERIFYING_BUNDLE    = "Error verifying bundle: %s.";
@@ -542,20 +547,43 @@ public class BundleCommand {
 
     }
 
+    private static final long MAX_BUNDLE_ENTRY_BYTES = 16L * 1024 * 1024;
+    private static final long MAX_BUNDLE_TOTAL_BYTES = 256L * 1024 * 1024;
+
     private static Map<String, String> extractBundleContents(Path bundlePath) throws IOException {
-        val contents = new HashMap<String, String>();
+        val  contents   = new HashMap<String, String>();
+        long totalBytes = 0;
         try (val zipStream = new ZipInputStream(Files.newInputStream(bundlePath))) {
             ZipEntry entry;
             while ((entry = zipStream.getNextEntry()) != null) {
                 if (entry.isDirectory()) {
                     continue;
                 }
-                val name    = entry.getName();
-                val content = new String(zipStream.readAllBytes(), StandardCharsets.UTF_8);
-                contents.put(name, content);
+                val bytes = readBoundedEntry(zipStream, entry.getName(), MAX_BUNDLE_ENTRY_BYTES);
+                totalBytes += bytes.length;
+                if (totalBytes > MAX_BUNDLE_TOTAL_BYTES) {
+                    throw new IOException("Bundle exceeds total size cap of " + MAX_BUNDLE_TOTAL_BYTES + " bytes");
+                }
+                contents.put(entry.getName(), new String(bytes, StandardCharsets.UTF_8));
             }
         }
         return contents;
+    }
+
+    private static byte[] readBoundedEntry(ZipInputStream in, String entryName, long maxBytes) throws IOException {
+        val  out    = new java.io.ByteArrayOutputStream();
+        val  buffer = new byte[8192];
+        long total  = 0;
+        int  read;
+        while ((read = in.read(buffer)) != -1) {
+            total += read;
+            if (total > maxBytes) {
+                throw new IOException(
+                        "Bundle entry " + entryName + " exceeds per-entry size cap of " + maxBytes + " bytes");
+            }
+            out.write(buffer, 0, read);
+        }
+        return out.toByteArray();
     }
 
     private static PrivateKey loadEd25519PrivateKey(Path keyFile) throws IOException, GeneralSecurityException {

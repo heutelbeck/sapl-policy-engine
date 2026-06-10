@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -27,6 +25,8 @@ import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.BitSet;
 
 /**
  * Evaluates an SMTDD against a request context.

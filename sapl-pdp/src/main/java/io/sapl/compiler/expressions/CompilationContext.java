@@ -17,14 +17,9 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.model.*;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Document;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.Getter;
@@ -37,7 +32,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * Mutable context for SAPL compilation. Tracks imports, variable scopes, and
@@ -56,60 +50,48 @@ import java.util.function.Supplier;
 @Setter
 @ToString
 public class CompilationContext {
+    public static final String OPTION_INDEXING                  = "indexing";
+    public static final String OPTION_LOW_LATENCY_MODE          = "lowLatencyMode";
+    public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
+    public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
+    public static final String OPTION_MIN_POLICIES_FOR_INDEXING = "minPoliciesForIndexing";
+    public static final String OPTION_UNROLL_IN_OPERATOR        = "unrollInOperator";
+
+    public static final String DEFAULT_INDEXING                  = "AUTO";
+    public static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
+    public static final int    DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
+    public static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
+
     private String                          pdpId                    = "defaultPdp";
     private String                          configurationId          = "defaultConfiguration";
     private Document                        document;
     private String                          documentSource;
     final FunctionBroker                    functionBroker;
-    final AttributeBroker                   attributeBroker;
     final PdpData                           data;
     private Map<String, CompiledExpression> documentVariablesInScope = new HashMap<>();
     private Set<String>                     localVariableNames       = new HashSet<>();
     private final Map<Value, Value>         valueDedup               = new HashMap<>();
-    private Supplier<String>                timestampSupplier        = () -> String.valueOf(System.currentTimeMillis());
     private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
     private Map<Long, Value>                foldingCache             = new HashMap<>();
 
-    public CompilationContext(String pdpId,
-            String configurationId,
-            PdpData data,
-            FunctionBroker functionBroker,
-            AttributeBroker attributeBroker) {
+    public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
         this.configurationId = configurationId;
         this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
         this.data            = data;
     }
 
-    public CompilationContext(String pdpId,
-            String configurationId,
-            PdpData data,
-            FunctionBroker functionBroker,
-            AttributeBroker attributeBroker,
-            Supplier<String> timestampSupplier) {
-        this.pdpId             = pdpId;
-        this.configurationId   = configurationId;
-        this.functionBroker    = functionBroker;
-        this.attributeBroker   = attributeBroker;
-        this.timestampSupplier = timestampSupplier;
-        this.data              = data;
-    }
-
-    public CompilationContext(PdpData data, FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
-        this.data            = data;
+    public CompilationContext(PdpData data, FunctionBroker functionBroker) {
+        this.functionBroker = functionBroker;
+        this.data           = data;
     }
 
     /**
      * @param functionBroker the function broker for resolving functions
-     * @param attributeBroker the attribute broker for resolving attributes
      */
-    public CompilationContext(FunctionBroker functionBroker, AttributeBroker attributeBroker) {
-        this.functionBroker  = functionBroker;
-        this.attributeBroker = attributeBroker;
-        this.data            = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    public CompilationContext(FunctionBroker functionBroker) {
+        this.functionBroker = functionBroker;
+        this.data           = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
     /**
@@ -215,6 +197,161 @@ public class CompilationContext {
         val result         = dedupeValue(po.evaluate(foldingContext));
         foldingCache.put(hash, result);
         return result;
+    }
+
+    /**
+     * Reads a boolean-valued option from any {@link ObjectValue}, returning the
+     * supplied default when the key is absent or the stored value is not a
+     * {@link BooleanValue}. Forgiving by design: a misconfigured non-boolean
+     * value behaves as if the option were not set.
+     *
+     * @param options the options object to read from
+     * @param key the option key
+     * @param defaultValue the value returned when the option is absent or
+     * malformed
+     * @return the option's boolean value, or {@code defaultValue}
+     */
+    public static boolean booleanOption(ObjectValue options, String key, boolean defaultValue) {
+        return options.getOrDefault(key, Value.of(defaultValue)) instanceof BooleanValue(var v) ? v : defaultValue;
+    }
+
+    /**
+     * Reads an integer-valued option from any {@link ObjectValue}, returning the
+     * supplied default when the key is absent or the stored value is not a
+     * {@link NumberValue}.
+     *
+     * @param options the options object to read from
+     * @param key the option key
+     * @param defaultValue the value returned when the option is absent or
+     * malformed
+     * @return the option's integer value, or {@code defaultValue}
+     */
+    public static int intOption(ObjectValue options, String key, int defaultValue) {
+        return options.get(key) instanceof NumberValue(var n) ? n.intValue() : defaultValue;
+    }
+
+    /**
+     * Reads a string-valued option from any {@link ObjectValue}, returning the
+     * supplied default when the key is absent or the stored value is not a
+     * {@link TextValue}.
+     *
+     * @param options the options object to read from
+     * @param key the option key
+     * @param defaultValue the value returned when the option is absent or
+     * malformed
+     * @return the option's string value, or {@code defaultValue}
+     */
+    public static String stringOption(ObjectValue options, String key, String defaultValue) {
+        return options.get(key) instanceof TextValue(var t) ? t : defaultValue;
+    }
+
+    /**
+     * Instance shortcut for {@link #booleanOption(ObjectValue, String, boolean)}
+     * bound to this context's {@code compilerOptions}.
+     *
+     * @param key the option key
+     * @param defaultValue the value returned when the option is absent or
+     * malformed
+     * @return the option's boolean value, or {@code defaultValue}
+     */
+    public boolean booleanCompilerOption(String key, boolean defaultValue) {
+        return booleanOption(compilerOptions, key, defaultValue);
+    }
+
+    /**
+     * Instance shortcut for {@link #intOption(ObjectValue, String, int)} bound
+     * to this context's {@code compilerOptions}.
+     *
+     * @param key the option key
+     * @param defaultValue the value returned when the option is absent or
+     * malformed
+     * @return the option's integer value, or {@code defaultValue}
+     */
+    public int intCompilerOption(String key, int defaultValue) {
+        return intOption(compilerOptions, key, defaultValue);
+    }
+
+    /**
+     * Instance shortcut for
+     * {@link #stringOption(ObjectValue, String, String)} bound to this context's
+     * {@code compilerOptions}.
+     *
+     * @param key the option key
+     * @param defaultValue the value returned when the option is absent or
+     * malformed
+     * @return the option's string value, or {@code defaultValue}
+     */
+    public String stringCompilerOption(String key, String defaultValue) {
+        return stringOption(compilerOptions, key, defaultValue);
+    }
+
+    /**
+     * Whether the compiler should emit eager operator variants that subscribe
+     * all children in parallel for the lowest end-to-end decision latency, at
+     * the cost of subscribing to children whose values may turn out to be
+     * unneeded (after errors or short-circuit values resolve later children).
+     * <p>
+     * When {@code true} (default): operators emit eager variants. Per
+     * evaluation pass they walk every child to accumulate the maximum
+     * subscription set, so the trigger loop can subscribe everything in
+     * parallel and converge in a single round.
+     * <p>
+     * When {@code false}: operators emit lazy variants. Per evaluation pass
+     * they short-circuit on the first {@code null} (incomplete) or
+     * {@link io.sapl.api.model.ErrorValue} child without subscribing later
+     * children. Smaller subscription set per round; convergence may take
+     * multiple rounds for independent missing dependencies but never
+     * subscribes to children whose values turn out to be unneeded.
+     * <p>
+     * Observable result is identical across both modes; the difference is
+     * the per-pass subscription set size and the number of trigger-loop
+     * rounds to reach a stable answer.
+     *
+     * @return {@code true} for eager subscription (low end-to-end latency),
+     * {@code false} for lazy subscription (minimal subscription cost)
+     */
+    public boolean lowLatencyMode() {
+        return booleanCompilerOption(OPTION_LOW_LATENCY_MODE, true);
+    }
+
+    /**
+     * Whether the {@code in} operator should attempt array-unrolling at compile
+     * time when its right-hand operand is an array literal.
+     *
+     * @return {@code true} to enable in-array unrolling, {@code false} otherwise
+     */
+    public boolean unrollInOperator() {
+        return booleanCompilerOption(OPTION_UNROLL_IN_OPERATOR, false);
+    }
+
+    /**
+     * The selected policy-indexing strategy name (e.g. {@code "AUTO"},
+     * {@code "NAIVE"}, {@code "CANONICAL"}, {@code "SMTDD"}).
+     *
+     * @return the indexing strategy name
+     */
+    public String indexing() {
+        return stringCompilerOption(OPTION_INDEXING, DEFAULT_INDEXING);
+    }
+
+    /**
+     * Minimum policy count below which the AUTO indexing strategy stays on the
+     * naive index instead of building the full structured index.
+     *
+     * @return the minimum-policy threshold
+     */
+    public int minPoliciesForIndexing() {
+        return intCompilerOption(OPTION_MIN_POLICIES_FOR_INDEXING, DEFAULT_MIN_POLICIES_FOR_INDEXING);
+    }
+
+    /**
+     * Maximum SMTDD index-node budget; exceeding this triggers fallback to the
+     * canonical index.
+     *
+     * @return the SMTDD node budget
+     */
+    public int maxIndexNodes() {
+        return intCompilerOption(OPTION_MAX_INDEX_NODES, DEFAULT_MAX_INDEX_NODES);
     }
 
     /**

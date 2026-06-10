@@ -17,22 +17,15 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static io.sapl.functions.libraries.SchemaValidationLibrary.isCompliant;
-import static io.sapl.functions.libraries.SchemaValidationLibrary.isCompliantWithExternalSchemas;
-import static io.sapl.functions.libraries.SchemaValidationLibrary.validate;
+import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
@@ -40,8 +33,7 @@ class SchemaValidationLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SchemaValidationLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SchemaValidationLibrary())).doesNotThrowAnyException();
     }
 
     @Test

@@ -15,7 +15,7 @@ cd sapl-policy-engine
 mvn install -DskipTests
 ```
 
-The executable JAR is at `sapl-node/target/sapl-node-4.0.0.jar`.
+The executable JAR is at `sapl-node/target/sapl-node-4.1.0-SNAPSHOT.jar`.
 
 ## Quick Start
 
@@ -178,10 +178,9 @@ io.sapl.node:
 Usage (curl):
 -------------
 curl -H 'Authorization: Bearer sapl_t18oOMEJp8_...' \
-  -X POST https://localhost:8443/api/pdp/decide-once \
+  -X POST http://localhost:8080/api/pdp/decide-once \
   -H 'Content-Type: application/json' \
-  -d '{"subject":"alice","action":"read","resource":"document"}' \
-  --cacert server.crt
+  -d '{"subject":"alice","action":"read","resource":"document"}'
 ```
 
 Or generate Basic Auth credentials:
@@ -461,7 +460,7 @@ spec:
     spec:
       containers:
         - name: sapl
-          image: ghcr.io/heutelbeck/sapl-node:4.0.0
+          image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
           ports:
             - containerPort: 8080
           livenessProbe:
@@ -622,7 +621,7 @@ Start a server in one terminal and benchmark against it from another:
 
 ```shell
 sapl server --dir ./policies
-sapl benchmark --remote --url http://localhost:8443 -s '"alice"' -a '"read"' -r '"document"'
+sapl benchmark --remote --url http://localhost:8080 -s '"alice"' -a '"read"' -r '"document"'
 ```
 
 ### Generating benchmark policy corpus
@@ -651,9 +650,9 @@ Benchmark scripts are in `sapl-node/benchmarks/`. See `benchmarks/README.md` for
 
 ```shell
 cd sapl-node/benchmarks
-./run-sapl4.sh "java -jar ../target/sapl-node-4.0.0.jar" /tmp/bench-jvm
+./run-sapl4.sh "java -jar ../target/sapl-node-4.1.0-SNAPSHOT.jar" /tmp/bench-jvm
 ./run-sapl4.sh ../target/sapl /tmp/bench-native quick
-./run-all.sh "java -jar ../target/sapl-node-4.0.0.jar" /tmp/bench-full standard
+./run-all.sh "java -jar ../target/sapl-node-4.1.0-SNAPSHOT.jar" /tmp/bench-full standard
 ```
 
 Each scenario produces a results subdirectory with JSON (JMH-compatible), Markdown, and CSV files.

@@ -20,7 +20,6 @@ package io.sapl.pdp.configuration.source;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import org.jspecify.annotations.Nullable;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
 import java.util.List;
@@ -59,8 +58,6 @@ import java.util.Objects;
  * initial backoff duration after a fetch failure
  * @param maxBackoff
  * maximum backoff duration after repeated failures
- * @param webClientBuilder
- * the WebClient builder to use for HTTP requests (injected for testability)
  */
 public record RemoteBundleSourceConfig(
         String baseUrl,
@@ -74,8 +71,7 @@ public record RemoteBundleSourceConfig(
         BundleSecurityPolicy securityPolicy,
         Map<String, Duration> pdpIdPollIntervals,
         Duration firstBackoff,
-        Duration maxBackoff,
-        WebClient.Builder webClientBuilder) {
+        Duration maxBackoff) {
 
     private static final String ERROR_AUTH_HEADER_INCOMPLETE = "Both authHeaderName and authHeaderValue must be provided together, or both must be null.";
     private static final String ERROR_BASE_URL_BLANK = "baseUrl must not be null or blank.";
@@ -108,7 +104,6 @@ public record RemoteBundleSourceConfig(
         Objects.requireNonNull(pollInterval, "pollInterval");
         Objects.requireNonNull(longPollTimeout, "longPollTimeout");
         Objects.requireNonNull(securityPolicy, "securityPolicy");
-        Objects.requireNonNull(webClientBuilder, "webClientBuilder");
         if (pollInterval.isNegative() || pollInterval.isZero()) {
             throw new PDPConfigurationException(ERROR_POLL_INTERVAL_NON_POSITIVE);
         }
@@ -118,7 +113,7 @@ public record RemoteBundleSourceConfig(
         if (maxBackoff == null || maxBackoff.isNegative() || maxBackoff.isZero()) {
             throw new PDPConfigurationException(ERROR_MAX_BACKOFF_NON_POSITIVE);
         }
-        if ((authHeaderName != null) != (authHeaderValue != null)) {
+        if ((authHeaderName == null) == (authHeaderValue != null)) {
             throw new PDPConfigurationException(ERROR_AUTH_HEADER_INCOMPLETE);
         }
         pdpIds             = List.copyOf(pdpIds);

@@ -18,24 +18,32 @@
 package io.sapl.node.auth;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.SaplNodeProperties.UserEntry;
-import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 /**
  * Service for looking up users by their credentials.
  */
 @Service
-@RequiredArgsConstructor
 public class UserLookupService {
+
+    private static final String SAPL_PREFIX = "sapl_";
 
     private final SaplNodeProperties properties;
     private final PasswordEncoder    passwordEncoder;
+    private final String             dummyArgon2Hash;
+
+    public UserLookupService(SaplNodeProperties properties, PasswordEncoder passwordEncoder) {
+        this.properties      = properties;
+        this.passwordEncoder = passwordEncoder;
+        this.dummyArgon2Hash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
     /**
      * Finds a user by Basic Auth username.
@@ -52,7 +60,16 @@ public class UserLookupService {
     }
 
     /**
-     * Finds a user by API key, matching against encoded keys.
+     * Finds a user by API key.
+     * <p>
+     * Wire format: {@code sapl_<id>_<secret>}. When the {@code id} segment is
+     * present in the user configuration's {@code api-key-id} index, lookup is
+     * O(1) plus a single Argon2 verification. Configurations that pre-date
+     * the {@code api-key-id} field fall back to an O(N) scan so existing
+     * deployments keep working until keys are rotated.
+     * <p>
+     * The miss path performs a dummy Argon2 verify so response latency does
+     * not reveal whether a given {@code api-key-id} exists in the config.
      *
      * @param rawApiKey the raw (unencoded) API key
      * @return the user entry if found and credentials match
@@ -61,13 +78,38 @@ public class UserLookupService {
         if (rawApiKey == null) {
             return Optional.empty();
         }
+        val apiKeyId = extractApiKeyId(rawApiKey);
+        if (apiKeyId != null) {
+            val candidate = properties.getApiKeyIdIndex().get(apiKeyId);
+            if (candidate != null && candidate.getApiKey() != null
+                    && passwordEncoder.matches(rawApiKey, candidate.getApiKey())) {
+                return Optional.of(candidate);
+            }
+            // Constant-time padding: a missing api-key-id must take the same
+            // wall-clock time as a present-but-wrong one. Otherwise an
+            // attacker can enumerate the configured ids by timing alone.
+            passwordEncoder.matches(rawApiKey, dummyArgon2Hash);
+        }
+        // Backward-compatible fallback: scan users without api-key-id wired up
+        // (older configurations). Same O(N * Argon2) shape as before.
         for (val user : properties.getUsers()) {
             val encodedKey = user.getApiKey();
-            if (encodedKey != null && passwordEncoder.matches(rawApiKey, encodedKey)) {
+            if (user.getApiKeyId() == null && encodedKey != null && passwordEncoder.matches(rawApiKey, encodedKey)) {
                 return Optional.of(user);
             }
         }
         return Optional.empty();
+    }
+
+    private static String extractApiKeyId(String rawApiKey) {
+        if (!rawApiKey.startsWith(SAPL_PREFIX)) {
+            return null;
+        }
+        val firstSep = rawApiKey.indexOf('_', SAPL_PREFIX.length());
+        if (firstSep <= SAPL_PREFIX.length()) {
+            return null;
+        }
+        return rawApiKey.substring(SAPL_PREFIX.length(), firstSep);
     }
 
     /**

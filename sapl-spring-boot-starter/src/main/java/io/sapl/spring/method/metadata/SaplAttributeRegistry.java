@@ -22,7 +22,7 @@ import lombok.val;
 import org.aopalliance.intercept.MethodInvocation;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.core.MethodClassKey;
-import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.expression.Expression;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
@@ -42,8 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class SaplAttributeRegistry {
 
-    public static final List<Class<? extends Annotation>> SAPL_ANNOTATIONS = List.of(EnforceRecoverableIfDenied.class,
-            EnforceTillDenied.class, EnforceDropWhileDenied.class, PreEnforce.class, PostEnforce.class);
+    public static final List<Class<? extends Annotation>> SAPL_ANNOTATIONS = List.of(StreamEnforce.class,
+            PreEnforce.class, PostEnforce.class);
 
     private final Map<Class<?>, Map<MethodClassKey, SaplAttribute>> cachedAttributes = new ConcurrentHashMap<>();
 
@@ -59,7 +59,8 @@ public final class SaplAttributeRegistry {
     /**
      * Creates a new registry with the specified expression handler.
      *
-     * @param expressionHandler the expression handler for parsing SpEL expressions
+     * @param expressionHandler
+     * the expression handler for parsing SpEL expressions
      */
     public SaplAttributeRegistry(@NonNull MethodSecurityExpressionHandler expressionHandler) {
         this.expressionHandler = expressionHandler;
@@ -69,9 +70,13 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the
      * {@link MethodInvocation}.
      *
-     * @param <T> the annotation type
-     * @param mi the {@link MethodInvocation} to use
-     * @param annotationType the annotation type.
+     * @param <T>
+     * the annotation type
+     * @param mi
+     * the {@link MethodInvocation} to use
+     * @param annotationType
+     * the annotation type.
+     *
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
     public <T extends Annotation> Optional<SaplAttribute> getSaplAttributeForAnnotationType(MethodInvocation mi,
@@ -85,7 +90,9 @@ public final class SaplAttributeRegistry {
     /**
      * Checks if the method has any Spring Security annotations.
      *
-     * @param mi the {@link MethodInvocation} to check
+     * @param mi
+     * the {@link MethodInvocation} to check
+     *
      * @return true if any Spring Security annotation is present
      */
     public boolean hasSpringAnnotations(MethodInvocation mi) {
@@ -101,7 +108,9 @@ public final class SaplAttributeRegistry {
     /**
      * Returns a Map of all SaplAttributes by annotation type.
      *
-     * @param mi the {@link MethodInvocation} to use
+     * @param mi
+     * the {@link MethodInvocation} to use
+     *
      * @return a Map of all SaplAttributes by type
      */
     public Map<Class<? extends Annotation>, SaplAttribute> getAllSaplAttributes(MethodInvocation mi) {
@@ -116,10 +125,15 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the method and the
      * target class.
      *
-     * @param <T> the annotation type
-     * @param method the method
-     * @param targetClass the target class
-     * @param annotationType the annotation type
+     * @param <T>
+     * the annotation type
+     * @param method
+     * the method
+     * @param targetClass
+     * the target class
+     * @param annotationType
+     * the annotation type
+     *
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
     public <T extends Annotation> Optional<SaplAttribute> getAttribute(Method method, Class<?> targetClass,
@@ -137,10 +151,15 @@ public final class SaplAttributeRegistry {
     /**
      * Resolves and creates a {@link SaplAttribute} from annotation metadata.
      *
-     * @param <T> the annotation type
-     * @param method the method
-     * @param targetClass the target class
-     * @param annotationType the annotation type
+     * @param <T>
+     * the annotation type
+     * @param method
+     * the method
+     * @param targetClass
+     * the target class
+     * @param annotationType
+     * the annotation type
+     *
      * @return the resolved {@link SaplAttribute} or
      * {@link SaplAttribute#NULL_ATTRIBUTE}
      */
@@ -148,24 +167,21 @@ public final class SaplAttributeRegistry {
             Class<T> annotationType) {
         val annotation = findAnnotation(method, targetClass, annotationType);
         return switch (annotation) {
-        case PreEnforce a                 -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case PostEnforce a                -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case EnforceRecoverableIfDenied a -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case EnforceTillDenied a          -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case EnforceDropWhileDenied a     -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(),
-                a.environment(), a.secrets(), a.genericsType());
-        case null, default                -> SaplAttribute.NULL_ATTRIBUTE;
+        case PreEnforce a    -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
+                a.secrets(), false, false);
+        case PostEnforce a   -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
+                a.secrets(), false, false);
+        case StreamEnforce a -> buildAttribute(annotationType, a.subject(), a.action(), a.resource(), a.environment(),
+                a.secrets(), a.signalTransitions(), a.pauseRapDuringSuspend());
+        case null, default   -> SaplAttribute.NULL_ATTRIBUTE;
         };
     }
 
     private SaplAttribute buildAttribute(Class<?> annotationType, String subject, String action, String resource,
-            String environment, String secrets, Class<?> genericsType) {
+            String environment, String secrets, boolean signalTransitions, boolean pauseRapDuringSuspend) {
         return new SaplAttribute(annotationType, parseExpression(subject), parseExpression(action),
-                parseExpression(resource), parseExpression(environment), parseExpression(secrets), genericsType);
+                parseExpression(resource), parseExpression(environment), parseExpression(secrets), signalTransitions,
+                pauseRapDuringSuspend);
     }
 
     private <T extends Annotation> boolean hasAnnotation(Method method, Class<?> targetClass, Class<T> annotationType) {
@@ -178,14 +194,15 @@ public final class SaplAttributeRegistry {
     private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
         // The method may be on an interface, but we need attributes from the target
         // class. If the target class is null, the method will be unchanged.
+        // findMergedAnnotation walks meta-annotations and resolves @AliasFor so
+        // future meta-annotation wrappers carry their attributes through to the
+        // resolved annotation instance.
         val specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
-        val annotation     = AnnotationUtils.findAnnotation(specificMethod, annotationClass);
+        val annotation     = AnnotatedElementUtils.findMergedAnnotation(specificMethod, annotationClass);
         if (annotation != null) {
             return annotation;
         }
-        // Check the class-level (note declaringClass, not targetClass, which may not
-        // actually implement the method)
-        return AnnotationUtils.findAnnotation(specificMethod.getDeclaringClass(), annotationClass);
+        return AnnotatedElementUtils.findMergedAnnotation(specificMethod.getDeclaringClass(), annotationClass);
     }
 
     private Expression parseExpression(String source) {

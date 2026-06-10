@@ -108,6 +108,16 @@
             <Bug pattern="DLS_DEAD_LOCAL_STORE" />
             <!-- Lombok @Delegate generates methods with arg0, arg1 parameter names -->
             <Bug pattern="IMC_IMMATURE_CLASS_IDE_GENERATED_PARAMETER_NAMES" />
+            <!-- Compiler classes share a recursive AST dispatch graph by construction. -->
+            <Bug pattern="CD_CIRCULAR_DEPENDENCY" />
+            <!-- StreamAttributeMethodSignatureProcessor builds positional Object[] for
+                 reflection invocation; mixing slot types is by design. -->
+            <Bug pattern="URV_UNRELATED_RETURN_VALUES" />
+            <Bug pattern="UCC_UNRELATED_COLLECTION_CONTENTS" />
+            <!-- FunctionLibrary classes hold no state but are instantiated by the
+                 broker's instance-only load(Object) API; the would-be private default
+                 constructor warning does not apply. -->
+            <Bug pattern="IMC_IMMATURE_CLASS_NO_PRIVATE_DEFAULT_CONSTRUCTOR" />
 		</Or>
 	</Match>
 </FindBugsFilter>

@@ -19,14 +19,15 @@ package io.sapl.test.plain;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.test.DecisionMatcher;
 import io.sapl.test.MockingFunctionBroker.ArgumentMatchers;
 import io.sapl.test.SaplTestFixture;
+import io.sapl.test.grammar.antlr.SAPLTestParser;
 import io.sapl.test.grammar.antlr.SAPLTestParser.*;
 import io.sapl.test.verification.Times;
 import lombok.RequiredArgsConstructor;
@@ -126,6 +127,8 @@ public class ScenarioInterpreter {
 
             // Load configuration if specified, otherwise apply document selection
             applyConfigurationOrDocuments(fixture, mergedGiven, documentSpec, isUnitTest);
+
+            fixture.withLowLatencyMode(mergedGiven.lowLatencyMode);
 
             // Apply combining algorithm (if specified or use defaults)
             applyCombiningAlgorithm(fixture, mergedGiven, isUnitTest && !usesConfigDirective);
@@ -352,6 +355,7 @@ public class ScenarioInterpreter {
         case FirstContext ignored           -> VotingMode.FIRST;
         case PriorityDenyContext ignored    -> VotingMode.PRIORITY_DENY;
         case PriorityPermitContext ignored  -> VotingMode.PRIORITY_PERMIT;
+        case PrioritySuspendContext ignored -> VotingMode.PRIORITY_SUSPEND;
         case UnanimousStrictContext ignored -> VotingMode.UNANIMOUS_STRICT;
         case UnanimousContext ignored       -> VotingMode.UNANIMOUS;
         case UniqueContext ignored          -> VotingMode.UNIQUE;
@@ -365,6 +369,7 @@ public class ScenarioInterpreter {
         case DenyDefaultContext ignored    -> DefaultDecision.DENY;
         case AbstainDefaultContext ignored -> DefaultDecision.ABSTAIN;
         case PermitDefaultContext ignored  -> DefaultDecision.PERMIT;
+        case SuspendDefaultContext ignored -> DefaultDecision.SUSPEND;
         default                            ->
             throw new IllegalArgumentException(ERROR_UNKNOWN_DEFAULT_DECISION.formatted(ctx.getText()));
         };
@@ -785,6 +790,7 @@ public class ScenarioInterpreter {
         return switch (decision) {
         case PERMIT         -> isPermit();
         case DENY           -> isDeny();
+        case SUSPEND        -> isSuspend();
         case INDETERMINATE  -> isIndeterminate();
         case NOT_APPLICABLE -> isNotApplicable();
         };
@@ -797,6 +803,7 @@ public class ScenarioInterpreter {
         return switch (ctx) {
         case PermitDecisionContext ignored        -> Decision.PERMIT;
         case DenyDecisionContext ignored          -> Decision.DENY;
+        case SuspendDecisionContext ignored       -> Decision.SUSPEND;
         case IndeterminateDecisionContext ignored -> Decision.INDETERMINATE;
         case NotApplicableDecisionContext ignored -> Decision.NOT_APPLICABLE;
         default                                   ->
@@ -875,10 +882,11 @@ public class ScenarioInterpreter {
         String                       pdpConfigurationPath;
         List<FunctionMockContext>    functionMocks  = new ArrayList<>();
         List<AttributeMockContext>   attributeMocks = new ArrayList<>();
+        boolean                      lowLatencyMode = true;
 
         void addItem(GivenItemContext item, boolean isScenarioLevel) {
             switch (item) {
-            case DocumentGivenItemContext docItem            -> {
+            case DocumentGivenItemContext docItem              -> {
                 // Only reject single document ('document') at scenario level - unit tests
                 // should have
                 // document at requirement level. Multiple documents ('documents') are allowed
@@ -889,15 +897,19 @@ public class ScenarioInterpreter {
                 }
                 this.documentSpecification = docItem.documentSpecification();
             }
-            case AlgorithmGivenItemContext algItem           -> this.combiningAlgorithm = algItem.combiningAlgorithm();
-            case VariablesGivenItemContext varItem           -> this.variables = varItem.variablesDefinition();
-            case SecretsGivenItemContext secItem             -> this.secrets = secItem.secretsDefinition();
-            case MockGivenItemContext mockItem               -> addMock(mockItem.mockDefinition());
-            case ConfigurationGivenItemContext cfgItem       ->
+            case AlgorithmGivenItemContext algItem             ->
+                this.combiningAlgorithm = algItem.combiningAlgorithm();
+            case VariablesGivenItemContext varItem             -> this.variables = varItem.variablesDefinition();
+            case SecretsGivenItemContext secItem               -> this.secrets = secItem.secretsDefinition();
+            case MockGivenItemContext mockItem                 -> addMock(mockItem.mockDefinition());
+            case ConfigurationGivenItemContext cfgItem         ->
                 this.configurationPath = unquoteString(cfgItem.configurationSpecification().path.getText());
-            case PdpConfigurationGivenItemContext pdpCfgItem ->
+            case PdpConfigurationGivenItemContext pdpCfgItem   ->
                 this.pdpConfigurationPath = unquoteString(pdpCfgItem.pdpConfigurationSpecification().path.getText());
-            default                                          -> { /* NO-OP */ }
+            case LowLatencyModeGivenItemContext lowLatencyItem ->
+                this.lowLatencyMode = lowLatencyItem.lowLatencyModeSpecification().flag
+                        .getType() == SAPLTestParser.TRUE;
+            default                                            -> { /* NO-OP */ }
             }
         }
 

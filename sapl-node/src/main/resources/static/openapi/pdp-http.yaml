@@ -1,0 +1,271 @@
+openapi: 3.1.0
+info:
+  title: SAPL PDP HTTP API
+  version: "1"
+  description: |
+    The SAPL Policy Decision Point HTTP transport at `/api/pdp/*`.
+
+    Five routes are exposed:
+
+    | Path | Body | Response | Shape |
+    |---|---|---|---|
+    | `POST /api/pdp/decide-once` | `AuthorizationSubscription` | `AuthorizationDecision` | one-shot |
+    | `POST /api/pdp/multi-decide-all-once` | `MultiAuthorizationSubscription` | `MultiAuthorizationDecision` | one-shot bundle |
+    | `POST /api/pdp/decide` | `AuthorizationSubscription` | stream of `AuthorizationDecision` | SSE |
+    | `POST /api/pdp/multi-decide` | `MultiAuthorizationSubscription` | stream of `IdentifiableAuthorizationDecision` | SSE per sub |
+    | `POST /api/pdp/multi-decide-all` | `MultiAuthorizationSubscription` | stream of `MultiAuthorizationDecision` | SSE bundled |
+
+    Streaming responses use `text/event-stream`. Each event is one line of
+    `data:<json>\n\n`. Idle connections may receive `: keep-alive\n\n`
+    comment frames at the configured interval. The stream stays open until
+    the client disconnects or the underlying SAPL stream terminates.
+
+    Supported authentication mechanisms are HTTP Basic, API key, and JWT.
+
+tags:
+  - name: SAPL Authorization API
+    description: |
+      SAPL PDP HTTP transport at `/api/pdp/*`. One-shot routes return
+      a single JSON response. Streaming routes hold the connection
+      open and emit `text/event-stream` events as decisions change.
+
+paths:
+
+  /api/pdp/decide-once:
+    post:
+      tags: [SAPL Authorization API]
+      summary: Evaluate a single authorization subscription and return one decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizationSubscription"
+      responses:
+        "200":
+          description: Authorization decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationDecision"
+        "400": { $ref: "#/components/responses/MalformedSubscription" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/pdp/multi-decide-all-once:
+    post:
+      tags: [SAPL Authorization API]
+      summary: Evaluate a bundle of subscriptions and return one decision per subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MultiAuthorizationSubscription"
+      responses:
+        "200":
+          description: Bundle of decisions keyed by subscription id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MultiAuthorizationDecision"
+        "400": { $ref: "#/components/responses/MalformedSubscription" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/pdp/decide:
+    post:
+      tags: [SAPL Authorization API]
+      summary: Open a Server-Sent Event stream of decisions for a single subscription
+      description: |
+        Each event is a JSON-serialised `AuthorizationDecision`. A new
+        event is emitted whenever the decision changes. The stream stays
+        open until the client disconnects.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizationSubscription"
+      responses:
+        "200":
+          description: |
+            Server-Sent Event stream. Each `data:` event carries one
+            `AuthorizationDecision` JSON document. Idle connections receive
+            `: keep-alive\n\n` comment frames at the configured interval.
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/AuthorizationDecision"
+        "400": { $ref: "#/components/responses/MalformedSubscription" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/pdp/multi-decide:
+    post:
+      tags: [SAPL Authorization API]
+      summary: SSE stream of per-subscription decision changes for a subscription bundle
+      description: |
+        Each event carries an `IdentifiableAuthorizationDecision` so the
+        client can correlate the decision with the originating
+        subscription id. The same subscription id may emit multiple times
+        as its decision changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MultiAuthorizationSubscription"
+      responses:
+        "200":
+          description: |
+            Server-Sent Event stream. Each `data:` event carries one
+            `IdentifiableAuthorizationDecision` JSON document. The same
+            subscription id may emit multiple times as its decision
+            changes.
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/IdentifiableAuthorizationDecision"
+        "400": { $ref: "#/components/responses/MalformedSubscription" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/pdp/multi-decide-all:
+    post:
+      tags: [SAPL Authorization API]
+      summary: SSE stream of bundled decisions for a subscription bundle
+      description: |
+        Each event carries a `MultiAuthorizationDecision` with the
+        current decision for every subscription in the bundle. Each
+        event represents one consistent snapshot of the bundle.
+        Simultaneous attribute changes are coalesced into a single
+        event reflecting the resulting state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MultiAuthorizationSubscription"
+      responses:
+        "200":
+          description: |
+            Server-Sent Event stream. Each `data:` event carries one
+            `MultiAuthorizationDecision` JSON document representing the
+            current decision for every subscription in the bundle.
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/MultiAuthorizationDecision"
+        "400": { $ref: "#/components/responses/MalformedSubscription" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+
+  responses:
+    MalformedSubscription:
+      description: Request body is not a valid subscription JSON document
+    Unauthorized:
+      description: Authentication required or invalid credentials
+
+  schemas:
+
+    Decision:
+      type: string
+      enum: [PERMIT, DENY, SUSPEND, INDETERMINATE, NOT_APPLICABLE]
+      description: |
+        Authorization verb. `PERMIT` and `DENY` grant or refuse access.
+        `SUSPEND` defers the decision. The client should re-evaluate
+        later. `INDETERMINATE` signals an evaluation error.
+        `NOT_APPLICABLE` indicates no policy matched.
+
+    AuthorizationSubscription:
+      type: object
+      required: [subject, action, resource]
+      properties:
+        subject:
+          description: Entity requesting permission. Any JSON value.
+        action:
+          description: Operation the subject wants to perform. Any JSON value.
+        resource:
+          description: Target of the operation. Any JSON value.
+        environment:
+          description: Optional contextual information. Any JSON value or omitted.
+        secrets:
+          type: object
+          description: Optional object whose entries are accessible to policies via `secrets()` and not echoed back in responses.
+      example:
+        subject: "alice"
+        action: "read"
+        resource: "doc-42"
+        environment:
+          ip: "10.0.0.1"
+
+    AuthorizationDecision:
+      type: object
+      required: [decision, obligations, advice, resource]
+      properties:
+        decision:
+          $ref: "#/components/schemas/Decision"
+        obligations:
+          type: array
+          description: Constraints the PEP must enforce. If any obligation cannot be enforced, access must not be granted.
+          items: {}
+        advice:
+          type: array
+          description: Recommendations the PEP may act on.
+          items: {}
+        resource:
+          description: |
+            Potentially transformed resource. Absent/undefined when the policy
+            did not rewrite the resource.
+      example:
+        decision: PERMIT
+        obligations: []
+        advice: []
+        resource: {}
+
+    MultiAuthorizationSubscription:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/AuthorizationSubscription"
+      description: Bare map of subscription id to subscription, sent with no envelope.
+      example:
+        alice-read:
+          subject: "alice"
+          action: "read"
+          resource: "doc-42"
+        bob-write:
+          subject: "bob"
+          action: "write"
+          resource: "doc-42"
+
+    MultiAuthorizationDecision:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/AuthorizationDecision"
+      description: Bare map of subscription id to decision, returned with no envelope.
+      example:
+        alice-read:
+          decision: PERMIT
+          obligations: []
+          advice: []
+          resource: {}
+        bob-write:
+          decision: DENY
+          obligations: []
+          advice: []
+          resource: {}
+
+    IdentifiableAuthorizationDecision:
+      type: object
+      required: [subscriptionId, decision]
+      properties:
+        subscriptionId:
+          type: string
+          description: Id of the originating subscription within the bundle.
+        decision:
+          $ref: "#/components/schemas/AuthorizationDecision"
+      example:
+        subscriptionId: "alice-read"
+        decision:
+          decision: PERMIT
+          obligations: []
+          advice: []
+          resource: {}

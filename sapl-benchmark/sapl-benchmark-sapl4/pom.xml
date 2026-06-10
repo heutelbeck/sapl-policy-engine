@@ -25,16 +25,15 @@
 	<parent>
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
-		<version>4.0.0</version>
+		<version>4.1.0-SNAPSHOT</version>
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>sapl-benchmark-sapl4</artifactId>
 	<packaging>jar</packaging>
-	<name>SAPL Benchmark (SAPL 4.0)</name>
-	<description>Rigorous JMH benchmarks for SAPL 4.0 PDP evaluation
-		performance. Uses forks(1) with convergence warmup and 45-second
-		iterations for reproducible results.</description>
+	<name>SAPL Benchmark</name>
+	<description>Rigorous JMH benchmarks for SAPL PDP evaluation
+		performance.</description>
 
 	<organization>
 		<name>Dominic Heutelbeck</name>
@@ -58,6 +57,11 @@
 			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-pdp-reactive</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 		<dependency>
 			<groupId>org.openjdk.jmh</groupId>
 			<artifactId>jmh-core</artifactId>

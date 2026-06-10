@@ -22,7 +22,6 @@ import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import javax.crypto.Mac;
@@ -46,7 +45,6 @@ import java.util.HexFormat;
  * The library includes timing-safe comparison functions to prevent timing
  * attacks when verifying MACs.
  */
-@UtilityClass
 @FunctionLibrary(name = MacFunctionLibrary.NAME, description = MacFunctionLibrary.DESCRIPTION, libraryDocumentation = MacFunctionLibrary.DOCUMENTATION)
 public class MacFunctionLibrary {
 

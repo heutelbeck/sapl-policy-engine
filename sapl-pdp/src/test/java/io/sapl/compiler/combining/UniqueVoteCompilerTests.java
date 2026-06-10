@@ -33,13 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.assertStreamPathEquivalence;
-import static io.sapl.util.SaplTesting.attributeBroker;
-import static io.sapl.util.SaplTesting.compilePolicySet;
-import static io.sapl.util.SaplTesting.evaluatePolicySetWithPathEquivalenceCheck;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.parseSubscription;
-import static io.sapl.util.SaplTesting.subscriptionContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -69,13 +63,13 @@ class UniqueVoteCompilerTests {
         @ParameterizedTest(name = "single {0} policy returns {1}")
         @MethodSource("singlePolicyCases")
         @DisplayName("single policy returns its decision")
-        void whenSinglePolicyThenReturnsItsDecision(String entitlement, Decision expectedDecision) {
+        void whenSinglePolicyThenReturnsItsDecision(String effect, Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "p1" %s
-                    """.formatted(entitlement));
+                    """.formatted(effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
@@ -303,193 +297,172 @@ class UniqueVoteCompilerTests {
         @Test
         @DisplayName("stream policies return StreamUniqueVoter")
         void streamPoliciesReturnStreamVoter() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "p1" permit <test.attr>;
-                    """, attrBroker);
+                    """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
 
         @Test
         @DisplayName("stream voter with constant TRUE applicability")
         void streamVoterWithConstantTrueApplicability() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.PERMIT);
         }
 
         @Test
         @DisplayName("stream voter with runtime applicability")
         void streamVoterWithRuntimeApplicability() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "stream" permit subject == "alice" && <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.PERMIT);
         }
 
         @Test
         @DisplayName("stream voter with error in applicability")
         void streamVoterWithErrorInApplicability() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain errors propagate
 
                     policy "stream" permit subject.missing.field && <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "simple-string", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.INDETERMINATE);
         }
 
         @Test
         @DisplayName("stream voter with FALSE applicability skips stream")
         void streamVoterWithFalseApplicabilitySkipsStream() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "skipped" permit subject == "bob" && <test.attr>;
                     policy "active" deny
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.DENY);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.DENY);
         }
 
         @Test
         @DisplayName("mixed pure and stream policies")
         void mixedPureAndStreamPolicies() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "pure" deny subject == "bob";
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.PERMIT);
         }
 
         @Test
         @DisplayName("collision detection with stream policies")
         void collisionWithStreamPolicies() {
-            val attrBroker   = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain errors propagate
 
                     policy "stream1" permit <test.attr1>;
                     policy "stream2" deny <test.attr2>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr1", Value.TRUE, "test.attr2", Value.TRUE), ctx,
+                    Decision.INDETERMINATE);
         }
 
         @Test
         @DisplayName("stream voter with foldable accumulator collision")
         void streamVoterWithFoldableAccumulatorCollision() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain errors propagate
 
                     policy "foldable" deny
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.INDETERMINATE);
         }
 
         @Test
         @DisplayName("single stream policy returns its decision")
         void singleStreamPolicyReturnsDecision() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain
 
                     policy "only" deny <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.DENY);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.DENY);
         }
 
         @Test
         @DisplayName("pure collision short-circuits before evaluating streams")
         void pureCollisionShortCircuitsBeforeStreams() {
-            val attrBroker   = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain errors propagate
 
                     policy "pure1" permit subject == "alice";
                     policy "pure2" deny subject == "alice";
                     policy "stream" permit <test.attr>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "alice", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "alice", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.INDETERMINATE);
         }
 
         @Test
         @DisplayName("error in stream applicability causes short-circuit")
         void errorInStreamApplicabilityCausesShortCircuit() {
-            val attrBroker   = attributeBroker(
-                    Map.of("test.attr1", new Value[] { Value.TRUE }, "test.attr2", new Value[] { Value.TRUE }));
-            val compiled     = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unique or abstain errors propagate
 
                     policy "error" permit subject.missing && <test.attr1>;
                     policy "stream" deny <test.attr2>;
-                    """, attrBroker);
-            val subscription = parseSubscription("""
-                    { "subject": "simple-string", "action": "read", "resource": "data" }
                     """);
-            val ctx          = evaluationContext(subscription, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+            val ctx      = evaluationContext(parseSubscription("""
+                    { "subject": "simple-string", "action": "read", "resource": "data" }
+                    """));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr1", Value.TRUE, "test.attr2", Value.TRUE), ctx,
+                    Decision.INDETERMINATE);
         }
     }
 
@@ -499,7 +472,8 @@ class UniqueVoteCompilerTests {
 
         static Stream<Arguments> defaultDecisionCases() {
             return Stream.of(arguments("unique or deny", Decision.DENY), arguments("unique or permit", Decision.PERMIT),
-                    arguments("unique or abstain", Decision.NOT_APPLICABLE));
+                    arguments("unique or abstain", Decision.NOT_APPLICABLE),
+                    arguments("unique or suspend", Decision.SUSPEND));
         }
 
         @ParameterizedTest(name = "{0}: all NOT_APPLICABLE returns {1}")
@@ -609,6 +583,182 @@ class UniqueVoteCompilerTests {
             val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
             assertThat(result.contributingVotes()).hasSize(2).extracting(v -> v.voter().name()).containsExactly("p1",
                     "p2");
+        }
+    }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        private static final String DEFAULT_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("single SUSPEND policy returns SUSPEND")
+        void whenSinglePolicySuspendsThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "only-one" suspend
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with NOT_APPLICABLE policies remains the unique applicable")
+        void whenSuspendAmongNotApplicableThenSuspendIsUnique() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "skip-1" permit false;
+                    policy "suspending" suspend
+                    policy "skip-2" deny false;
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> suspendCollisionCases() {
+            return Stream.of(arguments("suspend + permit", "suspend", "permit"),
+                    arguments("suspend + deny", "suspend", "deny"),
+                    arguments("suspend + suspend", "suspend", "suspend"),
+                    arguments("permit + suspend", "permit", "suspend"), arguments("deny + suspend", "deny", "suspend"));
+        }
+
+        @ParameterizedTest(name = "collision {0} returns INDETERMINATE")
+        @MethodSource("suspendCollisionCases")
+        @DisplayName("two applicable SUSPEND-bearing policies collide to INDETERMINATE")
+        void whenTwoSuspendBearingApplicablesThenReturnsIndeterminate(String description, String p1Effect,
+                String p2Effect) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain errors propagate
+
+                    policy "p1" %s
+                    policy "p2" %s
+                    """.formatted(p1Effect, p2Effect));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with obligation - constraint preserved")
+        void whenSuspendWithObligationThenObligationPreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "suspending"
+                    suspend
+                    obligation
+                        { "type": "logSuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with advice - constraint preserved")
+        void whenSuspendWithAdviceThenAdvicePreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "suspending"
+                    suspend
+                    advice
+                        { "type": "notifySuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().advice()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with transform - resource transformed")
+        void whenSuspendWithTransformThenResourceTransformed() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "suspending"
+                    suspend
+                    transform
+                        { "redacted": true }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().resource()).isNotEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("static SUSPEND policy compiles to constant Vote")
+        void whenStaticSuspendPolicyThenCompilesToVote() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain
+
+                    policy "static-suspend" suspend
+                    """);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(Vote.class);
+            assertThat(((Vote) compiled.applicabilityAndVote()).authorizationDecision().decision())
+                    .isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("streaming SUSPEND policy emits SUSPEND when applicable")
+        void whenStreamingSuspendApplicableThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unique or abstain errors propagate
+
+                    policy "stream-suspend"
+                    suspend
+                      <test.attr>;
+                    """);
+            val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> errorHandlingCases() {
+            return Stream.of(arguments("errors abstain", "unique or abstain"),
+                    arguments("errors propagate", "unique or abstain errors propagate"));
+        }
+
+        @ParameterizedTest(name = "{0} passes SUSPEND through unchanged")
+        @MethodSource("errorHandlingCases")
+        @DisplayName("error handling does not affect a SUSPEND vote")
+        void whenSuspendVoteUnderAnyErrorHandlingThenReturnsSuspend(String description, String algorithm) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    policy "suspending" suspend
+                    """.formatted(algorithm));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
         }
     }
 }

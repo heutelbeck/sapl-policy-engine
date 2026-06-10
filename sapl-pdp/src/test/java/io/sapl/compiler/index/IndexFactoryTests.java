@@ -17,9 +17,6 @@
  */
 package io.sapl.compiler.index;
 
-import java.util.List;
-import java.util.stream.Stream;
-
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -33,6 +30,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 import static io.sapl.compiler.index.IndexTestFixtures.stubDocument;
 import static org.assertj.core.api.Assertions.assertThat;

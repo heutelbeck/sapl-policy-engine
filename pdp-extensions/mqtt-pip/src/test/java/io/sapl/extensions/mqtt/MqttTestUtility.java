@@ -17,110 +17,47 @@
  */
 package io.sapl.extensions.mqtt;
 
-import tools.jackson.databind.json.JsonMapper;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.message.connect.connack.Mqtt5ConnAckReasonCode;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PayloadFormatIndicator;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
-import com.hivemq.configuration.service.InternalConfigurations;
-import com.hivemq.embedded.EmbeddedHiveMQ;
-import com.hivemq.migration.meta.PersistenceType;
-import io.sapl.api.attributes.AttributeAccessContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.Value;
-import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.concurrent.ExecutionException;
+import java.time.Duration;
 
-import static io.sapl.api.model.ValueJsonMarshaller.json;
-
+/**
+ * Test helpers for the MQTT IT: a Testcontainer-managed Eclipse
+ * Mosquitto MQTT broker, MQTT publish helpers, and a small client
+ * builder.
+ */
 @UtilityClass
 class MqttTestUtility {
 
-    static final String     CLIENT_ID   = "SAPL_MQTT_CLIENT";
-    static final String     BROKER_HOST = "localhost";
-    static final int        BROKER_PORT = 1883;
-    static final JsonMapper MAPPER      = JsonMapper.builder().build();
+    static final String CLIENT_ID       = "SAPL_MQTT_TEST_PUBLISHER";
+    static final String MOSQUITTO_IMAGE = "eclipse-mosquitto:2.0";
 
-    public static EmbeddedHiveMQ buildBroker(Path configDir, Path dataDir, Path extensionsDir) {
-        InternalConfigurations.PAYLOAD_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-        InternalConfigurations.RETAINED_MESSAGE_PERSISTENCE_TYPE.set(PersistenceType.FILE);
-        InternalConfigurations.PERSISTENCE_SHUTDOWN_GRACE_PERIOD_MSEC.set(500);
-        InternalConfigurations.PERSISTENCE_CLOSE_RETRIES.set(3);
-        InternalConfigurations.PERSISTENCE_CLOSE_RETRY_INTERVAL_MSEC.set(500);
-
-        return EmbeddedHiveMQ.builder().withConfigurationFolder(configDir).withDataFolder(dataDir)
-                .withExtensionsFolder(extensionsDir).build();
+    public static GenericContainer<?> newMosquittoContainer() {
+        return new GenericContainer<>(DockerImageName.parse(MOSQUITTO_IMAGE)).withExposedPorts(1883)
+                .withCommand("mosquitto", "-c", "/mosquitto-no-auth.conf")
+                .waitingFor(Wait.forLogMessage(".*mosquitto version.*", 1).withStartupTimeout(Duration.ofMinutes(2L)));
     }
 
-    @SneakyThrows
-    public static void startBroker(EmbeddedHiveMQ broker) {
-        try {
-            broker.start().get();
-        } catch (ExecutionException | InterruptedException e) {
-            broker.close();
-            throw e;
-        }
-    }
-
-    public static EmbeddedHiveMQ buildAndStartBroker(Path configDir, Path dataDir, Path extensionsDir) {
-        var broker = buildBroker(configDir, dataDir, extensionsDir);
-        startBroker(broker);
-        return broker;
-    }
-
-    public static void stopBroker(EmbeddedHiveMQ broker) {
-        try {
-            broker.stop().get();
-            broker.close();
-        } catch (ExecutionException | IllegalStateException | InterruptedException e) {
-            // NOP ignore if broker already closed
-        }
-    }
-
-    public static Mqtt5BlockingClient startClient() {
-        val mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(BROKER_HOST).serverPort(BROKER_PORT)
+    public static Mqtt5BlockingClient startPublisher(String host, int port) {
+        val mqttClient     = Mqtt5Client.builder().identifier(CLIENT_ID).serverHost(host).serverPort(port)
                 .buildBlocking();
         val connAckMessage = mqttClient.connect();
         if (connAckMessage.getReasonCode() != Mqtt5ConnAckReasonCode.SUCCESS) {
             throw new IllegalStateException(
-                    "Connection to the mqtt broker couldn't be established:" + connAckMessage.getReasonCode());
+                    "Connection to the mqtt broker couldn't be established: " + connAckMessage.getReasonCode());
         }
         return mqttClient;
-    }
-
-    public static Value defaultMqttPipConfig() {
-        return json("""
-                {
-                  "defaultBrokerConfigName" : "production",
-                  "emitAtRetry" : "false",
-                  "brokerConfig" : [ {
-                    "name" : "production",
-                    "brokerAddress" : "localhost",
-                    "brokerPort" : 1883,
-                    "clientId" : "mqttPipDefault"
-                  } ]
-                }
-                """);
-    }
-
-    static AttributeAccessContext buildContext() {
-        return buildContext(Value.EMPTY_OBJECT);
-    }
-
-    static AttributeAccessContext buildContext(ObjectValue pdpSecrets) {
-        val variables = ObjectValue.builder().put("mqttPipConfig", defaultMqttPipConfig()).build();
-        return new AttributeAccessContext(variables, pdpSecrets, Value.EMPTY_OBJECT);
-    }
-
-    static AttributeAccessContext buildContextFromVariables(ObjectValue variables) {
-        return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     }
 
     public static Mqtt5Publish buildMqttPublishMessage(String topic, String payload, boolean retain) {
@@ -128,5 +65,4 @@ class MqttTestUtility {
                 .payloadFormatIndicator(Mqtt5PayloadFormatIndicator.UTF_8)
                 .payload(payload.getBytes(StandardCharsets.UTF_8)).build();
     }
-
 }

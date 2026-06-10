@@ -79,15 +79,15 @@ Detail fields are only visible to authenticated users. The default configuration
 
 ### Actuator Endpoints
 
-| Endpoint | Auth Required | Description |
-|----------|---------------|-------------|
-| `/actuator/health` | No | Overall health status. Returns UP or DOWN for load balancers. |
-| `/actuator/health/liveness` | No | Kubernetes liveness probe. Reports whether the JVM process is alive. |
-| `/actuator/health/readiness` | No | Kubernetes readiness probe. Reports whether the node is ready to accept traffic. |
-| `/actuator/info` | Yes | PDP configuration details: `configType`, `configPath`, `policiesPath`. |
-| `/actuator/prometheus` | Yes | Prometheus metrics scrape endpoint. |
+| Endpoint | Unauthenticated returns | Authenticated additionally returns |
+|----------|--------------------------|------------------------------------|
+| `/actuator/health` | `{"status":"UP","groups":["liveness","readiness"]}` | full per-component breakdown (diskSpace, ssl, pdp, livenessState, readinessState, ping) with the details described above |
+| `/actuator/health/liveness` | `{"status":"UP"}` | same |
+| `/actuator/health/readiness` | `{"status":"UP"}` | same |
+| `/actuator/info` | `401` | `{git:{branch, commit.id}, sapl:{configType, configPath, policiesPath}}` |
+| `/actuator/prometheus` | `401` | all Prometheus metrics |
 
-Health endpoints are unauthenticated so Kubernetes probes work without credentials. The info and prometheus endpoints require authentication to prevent information disclosure.
+The split is driven by `management.endpoint.health.show-details: when-authorized` (Spring Boot default) and `management.endpoints.web.exposure.include: health,info,prometheus`. Health endpoints are unauthenticated so Kubernetes probes work without credentials; authentication only widens the response, never gates the probe itself. Info and Prometheus require authentication to prevent information disclosure of policy-source layout and metric labels.
 
 ### Kubernetes Probes
 
@@ -101,7 +101,7 @@ spec:
     spec:
       containers:
         - name: sapl
-          image: ghcr.io/heutelbeck/sapl-node:4.0.0
+          image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
           ports:
             - containerPort: 8443
           livenessProbe:
@@ -135,7 +135,7 @@ SAPL Node exposes four custom Prometheus metrics covering the golden signals for
 
 | Metric | Type | Tags | Description |
 |--------|------|------|-------------|
-| `sapl.decisions` | Counter | `decision` (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE) | Total authorization decisions by outcome. |
+| `sapl.decisions` | Counter | `decision` (PERMIT, DENY, SUSPEND, INDETERMINATE, NOT_APPLICABLE) | Total authorization decisions by outcome. |
 | `sapl.decision.first.latency` | Timer | | Time from subscription to first decision. |
 | `sapl.subscriptions.active` | Gauge | | Currently active SSE streaming subscriptions. |
 | `sapl.subscription.duration` | Timer | | Total lifetime of completed subscriptions. |
@@ -184,7 +184,7 @@ This endpoint requires authentication and is intended for operational dashboards
 
 ### Decision Logging
 
-The PDP emits structured JSON log entries via the reporting interceptor. Each entry contains the authorization subscription (subject, action, resource, environment), the decision (PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE), and any obligations or advice attached to the decision.
+The PDP emits structured JSON log entries via the reporting interceptor. Each entry contains the authorization subscription (subject, action, resource, environment), the decision (PERMIT, DENY, SUSPEND, INDETERMINATE, NOT_APPLICABLE), and any obligations or advice attached to the decision.
 
 Enable subscription lifecycle logging with two properties:
 

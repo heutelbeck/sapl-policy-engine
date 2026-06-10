@@ -78,4 +78,4 @@ The `compilerFlags` object is optional. All fields within it are optional and de
 
 The `configurationId` is a version identifier for the configuration. It appears in health endpoints and decision logs, enabling operators to correlate authorization decisions with the exact policy set that produced them. For bundles, this field is **required**. For directory and resource sources, it is optional and auto-generated from the source path and content hash when absent.
 
-For deployment details, see [SAPL Node](../7_0_Deployment/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).
+For deployment details, see [SAPL Node](../7_0_SaplNode/). For the bundle structure that packages `pdp.json` with policy documents, see [Bundle Wire Protocol](../7_5_BundleWireProtocol/).

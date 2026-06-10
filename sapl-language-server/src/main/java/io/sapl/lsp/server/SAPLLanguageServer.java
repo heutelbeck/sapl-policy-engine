@@ -49,7 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SAPLLanguageServer implements LanguageServer, LanguageClientAware {
 
     private static final String SERVER_NAME    = "SAPL Language Server (ANTLR)";
-    private static final String SERVER_VERSION = "4.0.0";
+    private static final String SERVER_VERSION = "4.1.0-SNAPSHOT";
 
     @Getter
     private LanguageClient client;

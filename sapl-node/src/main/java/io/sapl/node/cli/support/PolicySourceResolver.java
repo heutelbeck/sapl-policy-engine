@@ -88,9 +88,23 @@ public class PolicySourceResolver {
         }
 
         try (val stream = Files.list(saplHome)) {
-            val files          = stream.toList();
-            val hasSaplFiles   = files.stream().anyMatch(p -> p.getFileName().toString().endsWith(".sapl"));
-            val hasBundleFiles = files.stream().anyMatch(p -> p.getFileName().toString().endsWith(".saplbundle"));
+            boolean hasSaplFiles   = false;
+            boolean hasBundleFiles = false;
+            for (val path : (Iterable<Path>) stream::iterator) {
+                val fileName = path.getFileName();
+                if (fileName == null) {
+                    continue;
+                }
+                val name = fileName.toString();
+                if (name.endsWith(".sapl")) {
+                    hasSaplFiles = true;
+                } else if (name.endsWith(".saplbundle")) {
+                    hasBundleFiles = true;
+                }
+                if (hasSaplFiles && hasBundleFiles) {
+                    break;
+                }
+            }
 
             if (hasSaplFiles && hasBundleFiles) {
                 err.println(ERROR_BOTH_POLICY_TYPES_FOUND.formatted(saplHome));

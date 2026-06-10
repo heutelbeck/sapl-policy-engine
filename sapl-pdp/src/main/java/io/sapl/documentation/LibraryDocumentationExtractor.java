@@ -18,22 +18,13 @@
 package io.sapl.documentation;
 
 import io.sapl.api.attributes.Attribute;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.api.documentation.EntryDocumentation;
-import io.sapl.api.documentation.EntryType;
-import io.sapl.api.documentation.LibraryDocumentation;
-import io.sapl.api.documentation.LibraryType;
-import io.sapl.api.documentation.ParameterDocumentation;
-import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.documentation.*;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 

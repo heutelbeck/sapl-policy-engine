@@ -32,7 +32,7 @@ A PDP decision looks like this:
 }
 ```
 
-`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the action's return value entirely.
+`decision` is always present (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the action's return value entirely.
 
 For a deeper introduction to SAPL's subscription model and policy language, see the [SAPL documentation](https://sapl.io/docs/latest/).
 
@@ -49,13 +49,15 @@ dotnet add package Sapl.AspNetCore
 
 The library requires .NET 9.0 or later.
 
+An RSocket transport is available in the separate `Sapl.Rsocket` package as an alternative to HTTP for the PDP connection. `AddSapl` wires the HTTP client; the RSocket client is registered explicitly. See the demo and integration tests for the RSocket setup.
+
 A complete working demo with constraint handlers, service-layer enforcement, and streaming authorization is available at [sapl-dotnet-demos](https://github.com/heutelbeck/sapl-dotnet-demos).
 
 ### Setup
 
 #### Service Registration
 
-Call `AddSapl` on your `IServiceCollection` in `Program.cs`. This registers the PDP client, constraint enforcement service, enforcement engine, and MVC filters.
+Call `AddSapl` on your `IServiceCollection` in `Program.cs`. This registers the PDP client, the enforcement engine and planner, the subscription resolver, and the MVC filters.
 
 ```csharp
 using Sapl.AspNetCore.Extensions;
@@ -112,13 +114,12 @@ With the corresponding `appsettings.json`:
 
 #### Local Development (HTTP)
 
-For local development without TLS:
+For local development without TLS, point `BaseUrl` at an `http://` URL:
 
 ```csharp
 builder.Services.AddSapl(options =>
 {
     options.BaseUrl = "http://localhost:8443";
-    options.AllowInsecureConnections = true;
 });
 ```
 
@@ -134,7 +135,7 @@ This middleware should be registered before `app.MapControllers()`. Without it, 
 
 ### Enforcement Attributes
 
-All enforcement attributes can be placed on controller action methods or on the controller class itself. The attributes work through ASP.NET Core's MVC filter pipeline, so they require standard controller routing (`[ApiController]`, `MapControllers()`).
+`[PreEnforce]` and `[PostEnforce]` can be placed on controller action methods or on the controller class itself. `[StreamEnforce]` applies to methods only and targets actions returning `IAsyncEnumerable<T>`. The attributes work through ASP.NET Core's MVC filter pipeline, so they require standard controller routing (`[ApiController]`, `MapControllers()`).
 
 #### [PreEnforce]
 
@@ -236,27 +237,49 @@ The customizer receives a `SubscriptionContext` with access to the `ClaimsPrinci
 
 #### Streaming Enforcement
 
-For SSE endpoints, three streaming attributes provide continuous authorization where the PDP streams decisions over time. Access may flip between PERMIT and DENY based on time, location, or context changes.
+For SSE endpoints, the single `[StreamEnforce]` attribute provides continuous authorization. The PDP streams decisions over time and the PEP drives them through a four-state machine (Pending, Permitting, Suspended, Terminated). The decision verb chooses the behaviour, not a client-side attribute choice:
 
-**[EnforceTillDenied]**
+- **DENY** terminates the stream.
+- **SUSPEND** pauses it: items are dropped while suspended and forwarding resumes on the next PERMIT. The subscription stays alive.
+- **PERMIT** forwards items, transformed by any output handlers.
 
-Streaming enforcement that terminates permanently on the first non-PERMIT decision.
+`[StreamEnforce]` carries the same subscription properties as the other attributes (`Subject`, `Action`, `Resource`, `Environment`, `Secrets`, `Customizer`) plus one streaming flag:
 
-**[EnforceDropWhileDenied]**
+| Property            | Effect                                                                                                                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SignalTransitions` | When `true`, each suspend/resume boundary surfaces an out-of-band frame to the subscriber (`ACCESS_SUSPENDED` on entering suspended, `ACCESS_GRANTED` on resuming). When `false` (default) transitions are silent and items simply drop while suspended. |
 
-Silently drops data during DENY periods. The stream stays alive and resumes forwarding when a new PERMIT decision arrives.
+The three streaming semantics the old library expressed with three separate attributes are now expressed with one attribute plus the policy's decision verb:
 
-**[EnforceRecoverableIfDenied]**
+| Goal                                  | Policy decision in the closed window | `SignalTransitions` |
+| ------------------------------------- | ------------------------------------ | ------------------- |
+| Terminate on access loss              | `deny`                               | (any)               |
+| Pause silently, resume on permit      | `suspend`                            | `false`             |
+| Pause with client-visible status      | `suspend`                            | `true`              |
 
-Sends in-band suspend/resume signals on policy transitions. Edge-triggered: the `onDeny` callback fires on PERMIT-to-DENY transitions, the `onRecover` callback fires on DENY-to-PERMIT transitions.
+```csharp
+[ApiController]
+[Route("api/streaming")]
+public sealed class StreamingController(IStreamingService streamingService) : ControllerBase
+{
+    [HttpGet("heartbeat/till-denied")]
+    [StreamEnforce(Action = "stream:terminate", Resource = "heartbeat")]
+    public IAsyncEnumerable<Heartbeat> HeartbeatTillDenied() =>
+        streamingService.Heartbeats(HttpContext.RequestAborted);
 
-| Scenario                                      | Strategy                     |
-| --------------------------------------------- | ---------------------------- |
-| Access loss is permanent (revoked credentials) | `[EnforceTillDenied]`        |
-| Client does not need to know about gaps        | `[EnforceDropWhileDenied]`   |
-| Client should show suspended/restored status   | `[EnforceRecoverableIfDenied]` |
+    [HttpGet("heartbeat/silent-suspending")]
+    [StreamEnforce(Action = "stream:suspend", Resource = "heartbeat")]
+    public IAsyncEnumerable<Heartbeat> HeartbeatSilentSuspending() =>
+        streamingService.Heartbeats(HttpContext.RequestAborted);
 
-Streaming attributes apply to methods returning `IAsyncEnumerable<T>` or `Task<IAsyncEnumerable<T>>`. In ASP.NET Core, SSE output is written manually since there is no built-in SSE framework. The demo application shows how to write `text/event-stream` responses from `IAsyncEnumerable<T>` streams.
+    [HttpGet("heartbeat/observed-suspending")]
+    [StreamEnforce(Action = "stream:suspend", Resource = "heartbeat", SignalTransitions = true)]
+    public IAsyncEnumerable<Heartbeat> HeartbeatObservedSuspending() =>
+        streamingService.Heartbeats(HttpContext.RequestAborted);
+}
+```
+
+`[StreamEnforce]` applies to methods returning `IAsyncEnumerable<T>`. The filter renders the enforced stream as `text/event-stream`; on a terminal denial it writes a final `ACCESS_DENIED` frame before closing.
 
 ### How Enforcement Works
 
@@ -264,7 +287,7 @@ The attributes above are convenient, but to use them well it helps to understand
 
 #### The Deny Invariant
 
-Only `PERMIT` grants access. The PDP can return four possible decisions (`PERMIT`, `DENY`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your action running or your stream forwarding data. Everything else means denial.
+Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your action running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive; one-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
 
 A `PERMIT` with obligations is not a free pass. The enforcement engine checks that every obligation in the decision has a registered handler. If even one obligation cannot be fulfilled, the engine treats the decision as a denial. If a handler accepts responsibility but fails during execution, that also results in denial. Advice is softer: if an advice handler fails, the engine logs the failure and moves on. Advice never causes denial.
 
@@ -288,7 +311,7 @@ For request-response actions (`[PreEnforce]` and `[PostEnforce]`), constraints c
 | On return value       | After the action returns             | Transform, filter, or replace the result            |
 | On error              | If the action throws                 | Transform or observe the error                      |
 
-For streaming actions (`[EnforceTillDenied]`, `[EnforceDropWhileDenied]`, `[EnforceRecoverableIfDenied]`), constraints can run at five points:
+For streaming actions (`[StreamEnforce]`), constraints can run at these points:
 
 | Location           | When it happens                              | What constraints do here                |
 |--------------------|----------------------------------------------|-----------------------------------------|
@@ -322,51 +345,64 @@ If the decision is `PERMIT`, constraint handlers proceed through the same stages
 
 Because the action runs before the PDP is consulted, if the action itself throws an exception, that exception propagates directly. The PDP is never called, because there is no return value to include in the subscription.
 
-For a complete formal specification of all enforcement modes, including state machines, teardown invariants, and handler resolution timing, see the [PEP Implementation Specification](../8_1_PEPImplementationSpecification/).
+SAPL PEP libraries share a single unified enforcement model. It is a strict fail-closed state machine over the five decision verbs, where only `PERMIT` grants access and only an explicit `SUSPEND` pauses a stream without terminating it. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the decision-verb semantics.
 
 ### Constraint Handlers
 
-When the PDP returns a decision with `obligations` or `advice`, the constraint enforcement service resolves and executes all matching handlers.
+When the PDP returns a decision with `obligations` or `advice`, the `EnforcementPlanner` asks every registered `IConstraintHandlerProvider` to translate each constraint into the handlers that enforce it, then schedules those handlers against the points of the request or stream lifecycle.
 
-#### When to Use Which Handler
+#### The Provider Model
 
-| You want to...                            | Use this interface                              |
-| ----------------------------------------- | ----------------------------------------------- |
-| Log or notify on a decision               | `IRunnableConstraintHandlerProvider`            |
-| Record/inspect the response (side-effect) | `IConsumerConstraintHandlerProvider`            |
-| Transform the response                    | `IMappingConstraintHandlerProvider`             |
-| Filter array elements from the response   | `IFilterPredicateConstraintHandlerProvider`     |
-| Modify request or action arguments        | `IMethodInvocationConstraintHandlerProvider`    |
-| Log/notify on errors (side-effect)        | `IErrorHandlerProvider`                         |
-| Transform errors                          | `IErrorMappingConstraintHandlerProvider`        |
+A constraint handler provider implements a single method:
 
-#### Handler Interfaces Reference
+```csharp
+public interface IConstraintHandlerProvider
+{
+    IReadOnlyList<ScopedHandler> GetConstraintHandlers(
+        JsonElement constraint, IReadOnlySet<SignalType> supportedSignals);
+}
+```
 
-All constraint handler providers implement `IConstraintHandlerProvider`, which defines `IsResponsible(JsonElement constraint)` for dispatch and an optional `Signal` property (defaults to `Signal.OnDecision`).
+Given one constraint, the provider returns an empty list if it does not recognise it, or one or more `ScopedHandler`s. Each `ScopedHandler` binds a handler to the lifecycle point (`SignalType`) it runs at, with a priority:
 
-| Interface                                    | Handler Signature                          | When It Runs                          |
-| -------------------------------------------- | ------------------------------------------ | ------------------------------------- |
-| `IRunnableConstraintHandlerProvider`         | `Action GetHandler(JsonElement)`           | On decision (side effects)            |
-| `IMethodInvocationConstraintHandlerProvider` | `Action<MethodInvocationContext> GetHandler(JsonElement)` | Before action (`[PreEnforce]` only) |
-| `IConsumerConstraintHandlerProvider`         | `Action<object> GetHandler(JsonElement)`   | After action, inspects response       |
-| `IMappingConstraintHandlerProvider`          | `Func<object, object> GetHandler(JsonElement)` | After action, transforms response |
-| `IFilterPredicateConstraintHandlerProvider`  | `Func<object, bool> GetHandler(JsonElement)` | After action, filters list elements |
-| `IErrorHandlerProvider`                      | `Action<Exception> GetHandler(JsonElement)` | On error, inspects                   |
-| `IErrorMappingConstraintHandlerProvider`     | `Func<Exception, Exception> GetHandler(JsonElement)` | On error, transforms          |
+```csharp
+public sealed record ScopedHandler(ConstraintHandler Handler, SignalType SignalType, int Priority);
+```
 
-`IMappingConstraintHandlerProvider` and `IErrorMappingConstraintHandlerProvider` also expose `int Priority` (default 0). When multiple mapping handlers match the same constraint, they execute in descending priority order (higher number runs first).
+Because a provider returns a list, one obligation can drive several handlers across different lifecycle points.
 
-#### Signal Timing
+#### Handler Shapes
 
-The `Signal` property on `IConstraintHandlerProvider` controls when a runnable handler fires during streaming enforcement:
+`ConstraintHandler` is one of three shapes:
 
-| Signal             | Fires when                                       |
-| ------------------ | ------------------------------------------------ |
-| `Signal.OnDecision`  | A new authorization decision arrives             |
-| `Signal.OnComplete`  | The data stream completes normally               |
-| `Signal.OnCancel`    | The client disconnects or enforcement terminates |
+| Shape                        | Signature                  | Use                                                      |
+| ---------------------------- | -------------------------- | -------------------------------------------------------- |
+| `ConstraintHandler.Runner`   | `Action Run`               | A side effect with no value (log, notify, audit).        |
+| `ConstraintHandler.Consumer` | `Action<object?> Accept`   | Inspect the signal value without changing it.            |
+| `ConstraintHandler.Mapper`   | `Func<object?, object?> Apply` | Transform the signal value (filter, redact, cap, replace). |
 
-For request-response enforcement (`[PreEnforce]` and `[PostEnforce]`), only `Signal.OnDecision` applies.
+#### Lifecycle Points (SignalType)
+
+A handler is scheduled against one `SignalType`. The value it sees depends on the point:
+
+| SignalType                 | Fires when                                        | Value the handler sees                          |
+| -------------------------- | ------------------------------------------------- | ----------------------------------------------- |
+| `SignalType.Decision`      | A decision arrives                                | the `AuthorizationDecision`                     |
+| `SignalType.Input`         | Before the protected method runs (`[PreEnforce]`) | the argument dictionary (keyed by parameter name) |
+| `SignalType.Output(type)`  | After the method returns, or per stream item      | the return value or item                        |
+| `SignalType.Error`         | The method throws                                 | the exception                                   |
+| `SignalType.Complete`      | A stream completes normally                       | (none)                                          |
+| `SignalType.Cancel`        | The subscriber cancels                            | (none)                                          |
+| `SignalType.Termination`   | A stream terminates by enforcement                | (none)                                          |
+
+Each enforcement point advertises which signals it supports. `GetConstraintHandlers` receives that `supportedSignals` set, so a provider can bind to the right one (for example, only attach an output mapper when an `Output` signal is available). When several mappers bind to the same signal, the `Priority` on each `ScopedHandler` orders them (higher runs first).
+
+#### Static Helpers
+
+`IConstraintHandlerProvider` exposes two static helpers for the common dispatch pattern:
+
+- `ConstraintIsOfType(constraint, "typeName")` -- true when the constraint object's `type` field matches.
+- `StringField(constraint, "field")` -- the string value of a named field, or null.
 
 #### Registering Custom Handlers
 
@@ -384,155 +420,121 @@ This method inspects the type and automatically registers it under all applicabl
 
 Handlers are resolved from the DI container, so they can have constructor-injected dependencies like `ILogger<T>`.
 
-#### Writing a Runnable Handler
+#### Writing a Runner on the Decision
 
-A runnable handler performs side effects when a decision arrives. This is the simplest handler type:
+A runner performs a side effect when a decision arrives. This `logAccess` handler is the simplest shape:
 
 ```csharp
 using System.Text.Json;
-using Sapl.Core.Constraints.Api;
+using Sapl.Core.Pep.Constraints;
 
-public sealed class LogAccessHandler : IRunnableConstraintHandlerProvider
+public sealed class LogAccessHandler(ILogger<LogAccessHandler> logger) : IConstraintHandlerProvider
 {
-    private readonly ILogger<LogAccessHandler> _logger;
-
-    public LogAccessHandler(ILogger<LogAccessHandler> logger)
+    public IReadOnlyList<ScopedHandler> GetConstraintHandlers(
+        JsonElement constraint, IReadOnlySet<SignalType> supportedSignals)
     {
-        _logger = logger;
-    }
+        if (!IConstraintHandlerProvider.ConstraintIsOfType(constraint, "logAccess"))
+            return [];
 
-    public bool IsResponsible(JsonElement constraint)
-    {
-        return constraint.TryGetProperty("type", out var t)
-            && t.GetString() == "logAccess";
-    }
-
-    public Signal Signal => Signal.OnDecision;
-
-    public Action GetHandler(JsonElement constraint)
-    {
-        var message = constraint.TryGetProperty("message", out var m)
-            ? m.GetString() ?? "Access logged"
-            : "Access logged";
-
-        return () => _logger.LogInformation("[POLICY] {Message}", message);
+        var message = IConstraintHandlerProvider.StringField(constraint, "message") ?? "Access logged";
+        return [new ScopedHandler(
+            new ConstraintHandler.Runner(() => logger.LogInformation("[POLICY] {Message}", message)),
+            SignalType.Decision, 0)];
     }
 }
 ```
 
-#### Writing a Method Invocation Handler
+#### Writing a Mapper on the Input
 
-A method invocation handler modifies action arguments before execution. This runs only with `[PreEnforce]`:
+An input mapper rewrites method arguments before execution. This runs only with `[PreEnforce]`. The handler receives the argument dictionary keyed by parameter name and returns it (possibly mutated):
 
 ```csharp
 using System.Text.Json;
-using Sapl.Core.Constraints.Api;
+using Sapl.Core.Pep.Constraints;
 
-public sealed class CapTransferHandler : IMethodInvocationConstraintHandlerProvider
+public sealed class CapTransferHandler(ILogger<CapTransferHandler> logger) : IConstraintHandlerProvider
 {
-    private readonly ILogger<CapTransferHandler> _logger;
-
-    public CapTransferHandler(ILogger<CapTransferHandler> logger)
+    public IReadOnlyList<ScopedHandler> GetConstraintHandlers(
+        JsonElement constraint, IReadOnlySet<SignalType> supportedSignals)
     {
-        _logger = logger;
+        if (!IConstraintHandlerProvider.ConstraintIsOfType(constraint, "capTransferAmount"))
+            return [];
+
+        var maxAmount = constraint.TryGetProperty("maxAmount", out var max)
+            && max.TryGetDouble(out var value) ? value : 5000d;
+        return [new ScopedHandler(
+            new ConstraintHandler.Mapper(args => Cap(args, maxAmount)), SignalType.Input, 0)];
     }
 
-    public bool IsResponsible(JsonElement constraint)
+    private object? Cap(object? args, double maxAmount)
     {
-        return constraint.TryGetProperty("type", out var t)
-            && t.GetString() == "capTransferAmount";
-    }
-
-    public Action<MethodInvocationContext> GetHandler(JsonElement constraint)
-    {
-        var maxAmount = constraint.TryGetProperty("maxAmount", out var m)
-            ? m.GetDouble() : 5000;
-
-        return context =>
+        if (args is IDictionary<string, object?> arguments
+            && arguments.TryGetValue("amount", out var raw) && raw is double requested
+            && requested > maxAmount)
         {
-            if (context.Args.Length > 0
-                && context.Args[0] is double requested
-                && requested > maxAmount)
-            {
-                context.Args[0] = maxAmount;
-            }
-        };
+            logger.LogInformation("[CAP] transfer amount {Requested} -> {Max}", requested, maxAmount);
+            arguments["amount"] = maxAmount;
+        }
+
+        return args;
     }
 }
 ```
 
-#### Writing a Mapping Handler
+#### Writing a Mapper on the Output
 
-A mapping handler transforms the return value. This example redacts named fields from the JSON response:
+An output mapper transforms the return value. This `redactFields` handler binds to whichever `Output` signal the enforcement point advertises, then redacts named fields from the JSON response:
 
 ```csharp
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Sapl.Core.Constraints.Api;
+using Sapl.Core.Pep.Constraints;
 
-public sealed class RedactFieldsHandler : IMappingConstraintHandlerProvider
+public sealed class RedactFieldsHandler : IConstraintHandlerProvider
 {
-    public bool IsResponsible(JsonElement constraint)
+    public IReadOnlyList<ScopedHandler> GetConstraintHandlers(
+        JsonElement constraint, IReadOnlySet<SignalType> supportedSignals)
     {
-        return constraint.TryGetProperty("type", out var t)
-            && t.GetString() == "redactFields";
+        if (!IConstraintHandlerProvider.ConstraintIsOfType(constraint, "redactFields"))
+            return [];
+
+        var output = supportedSignals.FirstOrDefault(signal => signal.Kind == SignalKind.Output);
+        if (output is null)
+            return [];
+
+        var fields = ReadFields(constraint);
+        return [new ScopedHandler(new ConstraintHandler.Mapper(value => Redact(value, fields)), output, 0)];
     }
 
-    public int Priority => 0;
+    private static object? Redact(object? value, IReadOnlyList<string> fields)
+    {
+        var json = value is JsonElement el ? el.GetRawText() : JsonSerializer.Serialize(value);
+        if (JsonNode.Parse(json) is not JsonObject obj)
+            return value;
 
-    public Func<object, object> GetHandler(JsonElement constraint)
+        foreach (var field in fields.Where(obj.ContainsKey))
+            obj[field] = "[REDACTED]";
+
+        return JsonDocument.Parse(obj.ToJsonString()).RootElement.Clone();
+    }
+
+    private static List<string> ReadFields(JsonElement constraint)
     {
         var fields = new List<string>();
-        if (constraint.TryGetProperty("fields", out var f)
-            && f.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var field in f.EnumerateArray())
-            {
-                var name = field.GetString();
-                if (name is not null)
-                    fields.Add(name);
-            }
-        }
-
-        return value =>
-        {
-            var json = value is JsonElement el
-                ? el.GetRawText()
-                : JsonSerializer.Serialize(value);
-            var node = JsonNode.Parse(json);
-            if (node is JsonObject obj)
-            {
-                foreach (var field in fields)
-                {
-                    if (obj.ContainsKey(field))
-                        obj[field] = "[REDACTED]";
-                }
-                return JsonDocument.Parse(obj.ToJsonString()).RootElement.Clone();
-            }
-            return value;
-        };
+        if (constraint.TryGetProperty("fields", out var array) && array.ValueKind == JsonValueKind.Array)
+            fields.AddRange(array.EnumerateArray().Select(f => f.GetString()).OfType<string>());
+        return fields;
     }
 }
 ```
 
-#### MethodInvocationContext
-
-The `MethodInvocationContext` provides:
-
-| Field        | Type         | Description                                                          |
-| ------------ | ------------ | -------------------------------------------------------------------- |
-| `Args`       | `object?[]`  | Positional arguments. Handlers can mutate or replace entries.         |
-| `MethodName` | `string`     | The intercepted method name                                          |
-| `ClassName`  | `string?`    | The class name (null for free-standing methods)                      |
-| `Request`    | `object?`    | The HTTP request object, or null for service-layer calls             |
-
 ### Built-in Constraint Handlers
 
-#### ContentFilteringProvider
+#### ContentFilteringConstraintHandlerProvider
 
 **Constraint type:** `filterJsonContent`
 
-Transforms response values by deleting, replacing, or blackening fields.
+Transforms response values by deleting, replacing, or blackening fields. When the value is a list, each action is applied to every element.
 
 A policy can attach this obligation:
 
@@ -556,30 +558,15 @@ The `blacken` action supports these options:
 
 | Option          | Type   | Default                | Description                                 |
 | --------------- | ------ | ---------------------- | ------------------------------------------- |
-| `path`          | string | (required)             | Dot-notation path to a string field         |
+| `path`          | string | (required)             | JSONPath to a string field                  |
 | `replacement`   | string | `"*"`                  | Character used for masking                  |
 | `discloseLeft`  | number | `0`                    | Characters to leave unmasked from the left  |
 | `discloseRight` | number | `0`                    | Characters to leave unmasked from the right |
 | `length`        | number | (masked section length)| Override the length of the masked section   |
 
-#### ContentFilterPredicateProvider
+#### Path Syntax
 
-**Constraint type:** `jsonContentFilterPredicate`
-
-Filters array elements or nullifies single values that do not meet conditions.
-
-```json
-{
-  "type": "jsonContentFilterPredicate",
-  "conditions": [
-    { "path": "$.classification", "type": "!=", "value": "top-secret" }
-  ]
-}
-```
-
-#### ContentFilter Limitations
-
-The built-in content filter supports simple dot-notation paths only (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported.
+Paths are resolved with Newtonsoft `SelectToken`, so JSONPath is supported: simple dot paths (`$.field.nested`), recursive descent (`$..ssn`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`). `blacken` targets a single text node (the first match); a path that does not resolve is left unchanged.
 
 ### Service-Layer Enforcement
 
@@ -599,7 +586,7 @@ Methods without SAPL attributes pass through to the real implementation unmodifi
 
 #### Decorating Interface Methods
 
-Place SAPL attributes directly on the interface methods. All five enforcement attributes are supported: `[PreEnforce]`, `[PostEnforce]`, `[EnforceTillDenied]`, `[EnforceDropWhileDenied]`, and `[EnforceRecoverableIfDenied]`.
+Place SAPL attributes directly on the interface methods. All three enforcement attributes are supported: `[PreEnforce]`, `[PostEnforce]`, and `[StreamEnforce]`.
 
 ```csharp
 using Sapl.Core.Attributes;
@@ -643,7 +630,7 @@ public sealed class PatientService : IPatientService
 
 `SaplProxy<T>` extends `DispatchProxy`, a built-in .NET mechanism for creating interface-based runtime proxies. When a proxied method is called, the proxy reads the SAPL attribute from the interface method via reflection and delegates to the `SaplMethodInterceptor`, which builds the authorization subscription, calls the PDP, resolves constraint handlers, and executes the real method at the appropriate point in the enforcement lifecycle.
 
-The proxy supports both synchronous and async return types. For `Task<T>` methods, the proxy correctly awaits the underlying method. For `IAsyncEnumerable<T>` methods (streaming), the proxy wraps the source stream with the appropriate streaming enforcement strategy.
+The proxy supports both synchronous and async return types. For `Task<T>` methods, the proxy correctly awaits the underlying method. For `IAsyncEnumerable<T>` methods carrying `[StreamEnforce]`, the proxy drives the source stream through the streaming enforcement engine.
 
 On denial, the proxy throws `AccessDeniedException`. When called from a controller with `UseSaplAccessDenied()` middleware registered, this is caught and translated to HTTP 403 automatically.
 
@@ -656,39 +643,12 @@ using Sapl.Core.Attributes;
 
 public interface IStreamingService
 {
-    [EnforceTillDenied(Action = "stream:heartbeat", Resource = "heartbeat")]
-    IAsyncEnumerable<Heartbeat> HeartbeatTillDenied(CancellationToken ct = default);
-
-    [EnforceDropWhileDenied(Action = "stream:heartbeat", Resource = "heartbeat")]
-    IAsyncEnumerable<Heartbeat> HeartbeatDropWhileDenied(CancellationToken ct = default);
-
-    [EnforceRecoverableIfDenied(Action = "stream:heartbeat", Resource = "heartbeat")]
-    IAsyncEnumerable<object> HeartbeatRecoverable(CancellationToken ct = default);
+    [StreamEnforce(Action = "stream:suspend", Resource = "heartbeat")]
+    IAsyncEnumerable<Heartbeat> Heartbeats(CancellationToken ct = default);
 }
 ```
 
-The recoverable stream returns `IAsyncEnumerable<object>` instead of a concrete type because the enforcement interceptor injects `AccessSignal` items into the stream to notify consumers of deny/recover transitions. Using a concrete type would make signal injection impossible.
-
-#### Recoverable Streams and Access Signals
-
-For `[EnforceRecoverableIfDenied]`, the stream may contain `AccessSignal` items mixed with regular data items. The `RecoverableStreams` extension methods help process these:
-
-```csharp
-using Sapl.Core.Interception;
-
-// Filter out signals, invoke a callback on each transition:
-var filtered = stream.Recover(onSignal: signal =>
-{
-    Console.WriteLine(signal.Kind == AccessSignalKind.Denied
-        ? "Access suspended"
-        : "Access restored");
-});
-
-// Replace signals with custom items:
-var withItems = stream.RecoverWith(
-    onDenyItem: () => (object)new { type = "ACCESS_SUSPENDED" },
-    onRecoverItem: () => (object)new { type = "ACCESS_RESTORED" });
-```
+At the service (proxy) layer the enforced stream keeps yielding the concrete element type; boundary frames (`ACCESS_SUSPENDED` / `ACCESS_GRANTED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, so `SignalTransitions` applies to controller-level streaming.
 
 ### Manual PDP Access
 
@@ -727,10 +687,17 @@ The `IPolicyDecisionPoint` interface exposes both one-shot and streaming endpoin
 | ---------------------- | -------------------------------------------- | -------------------------------------------- |
 | `DecideOnceAsync`      | `Task<AuthorizationDecision>`                | One-shot single subscription                 |
 | `Decide`               | `IAsyncEnumerable<AuthorizationDecision>`    | Streaming single subscription                |
-| `MultiDecideOnceAsync` | `Task<MultiAuthorizationDecision>`           | One-shot multi subscription                  |
 | `MultiDecideAllOnceAsync` | `Task<MultiAuthorizationDecision>`        | One-shot multi subscription (all decisions)  |
 | `MultiDecide`          | `IAsyncEnumerable<IdentifiableAuthorizationDecision>` | Streaming multi subscription    |
 | `MultiDecideAll`       | `IAsyncEnumerable<MultiAuthorizationDecision>` | Streaming multi subscription (all decisions) |
+
+### Client Resilience
+
+The PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`DecideOnceAsync`, `MultiDecideAllOnceAsync`) fail closed to `INDETERMINATE` immediately, with no retry, and never throw. The returned `Task` always completes with a decision. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (the streaming `Decide`) never terminate on a transport problem or on a server-side stream completion. The returned `IAsyncEnumerable<AuthorizationDecision>` never throws or ends for a transport condition. Either condition yields one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer cancels it or the client shuts down. This contract holds identically across the HTTP and RSocket transports and across every SAPL PEP client.
 
 ### Demo Application
 
@@ -739,8 +706,8 @@ A complete working demo is available at [sapl-dotnet-demos](https://github.com/h
 - Manual PDP access (no attributes)
 - `[PreEnforce]` and `[PostEnforce]` with content filtering and field redaction
 - Service-layer enforcement using `DispatchProxy` and interface attributes
-- All 7 constraint handler types (runnable, consumer, mapping, filter predicate, method invocation, error handler, error mapping)
-- SSE streaming with all three enforcement strategies (till-denied, drop-while-denied, recoverable-if-denied)
+- Constraint handlers across every signal and shape (decision/input/output/error; runner/consumer/mapper)
+- SSE streaming with the three semantics (till-denied, silent-suspending, observed-suspending)
 - JWT-based ABAC
 
 ### Configuration Reference
@@ -754,8 +721,6 @@ All options are set via `PdpClientOptions`, either inline or from configuration:
 | `Username`                    | `string?` | `null`                    | Basic auth username (mutually exclusive with `Token`)     |
 | `Secret`                      | `string?` | `null`                    | Basic auth password                                       |
 | `TimeoutMs`                   | `int`   | `5000`                     | PDP request timeout in milliseconds                       |
-| `AllowInsecureConnections`    | `bool`  | `false`                    | Allow HTTP connections (never use in production)          |
-| `StreamingMaxRetries`         | `int`   | `0` (unlimited)            | Maximum reconnection attempts for streaming subscriptions |
 | `StreamingRetryBaseDelayMs`   | `int`   | `1000`                     | Base delay for exponential backoff on reconnection        |
 | `StreamingRetryMaxDelayMs`    | `int`   | `30000`                    | Maximum delay between reconnection attempts               |
 
@@ -766,10 +731,10 @@ Streaming retries use exponential backoff with jitter. The delay doubles on each
 | Symptom                              | Likely Cause                          | Fix                                                               |
 | ------------------------------------ | ------------------------------------- | ----------------------------------------------------------------- |
 | All decisions are INDETERMINATE       | PDP unreachable                       | Check `BaseUrl` and that the PDP is running                       |
-| 403 despite PERMIT decision           | Unhandled obligation                  | Check handler `IsResponsible()` matches the obligation `type`     |
+| 403 despite PERMIT decision           | Unhandled obligation                  | Check a provider's `GetConstraintHandlers` returns a handler for the obligation `type` |
 | Handler not firing                    | Missing registration                  | Call `AddSaplConstraintHandler<T>()` in `Program.cs`              |
 | Subject is `"anonymous"`              | No authenticated user                 | Configure ASP.NET Core authentication middleware and JWT validation |
-| Content filter throws                 | Unsupported path syntax               | Only simple dot paths supported (`$.field.nested`)                 |
+| Content filter throws                 | Invalid JSONPath                      | Paths resolve through Newtonsoft `SelectToken`; check the JSONPath syntax (recursive descent, array indexing, wildcards, and filter expressions are all supported) |
 | Service method throws `AccessDeniedException` | Normal denial behavior       | Register `UseSaplAccessDenied()` middleware for automatic 403      |
 | Streaming SSE empty                   | Action does not return `IAsyncEnumerable` | Ensure streaming methods return `IAsyncEnumerable<T>`          |
 | HTTP 500 on service denial            | Missing middleware                    | Add `app.UseSaplAccessDenied()` before `app.MapControllers()`      |

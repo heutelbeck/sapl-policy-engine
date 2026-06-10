@@ -85,14 +85,15 @@ public class SAPLTestSemanticTokensProvider {
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Decision keywords (macro styling)
-        case SAPLTestLexer.PERMIT, SAPLTestLexer.DENY, SAPLTestLexer.INDETERMINATE, SAPLTestLexer.NOT_APPLICABLE,
-                SAPLTestLexer.DECISION                                                                                                   ->
+        case SAPLTestLexer.PERMIT, SAPLTestLexer.DENY, SAPLTestLexer.SUSPEND, SAPLTestLexer.INDETERMINATE,
+                SAPLTestLexer.NOT_APPLICABLE,
+                SAPLTestLexer.DECISION                                                                                                                          ->
             SAPLTestSemanticTokenTypes.MACRO;
 
         // Combining algorithm keywords (macro styling)
         case SAPLTestLexer.FIRST, SAPLTestLexer.PRIORITY, SAPLTestLexer.UNANIMOUS, SAPLTestLexer.UNIQUE,
-                SAPLTestLexer.KW_OR, SAPLTestLexer.ERRORS, SAPLTestLexer.ABSTAIN,
-                SAPLTestLexer.PROPAGATE                                                                                                                                                            ->
+                SAPLTestLexer.STRICT, SAPLTestLexer.KW_OR, SAPLTestLexer.ERRORS, SAPLTestLexer.ABSTAIN,
+                SAPLTestLexer.PROPAGATE                                                                                                                                                                                  ->
             SAPLTestSemanticTokenTypes.MACRO;
 
         // Authorization keywords

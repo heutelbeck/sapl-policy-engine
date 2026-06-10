@@ -63,6 +63,7 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.io.Serial;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -75,6 +76,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthorizationSubscriptionBuilderServiceServletTests {
+
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner().withConfiguration(
             AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
@@ -155,15 +158,15 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         val defaultsProvider               = new Provider<>(defaults);
         val webBuilderUnderTest            = new AuthorizationSubscriptionBuilderService(emptyExpressionHandlerProvider,
                 mockMapperProvider, defaultsProvider, mockContext);
-        val attribute                      = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'",
-                Object.class);
+        val attribute                      = attribute("'a subject'", "'an action'", "'a resource'",
+                "'an environment'");
         webBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation, attribute);
         verify(defaults, times(1)).getRolePrefix();
     }
 
     @Test
     void when_expressionsAreProvided_then_SubscriptionContainsResult() {
-        val attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
+        val attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'");
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                 attribute);
         assertThat(toJson(subscription.subject()).asString()).isEqualTo("a subject");
@@ -175,7 +178,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     @Test
     @SuppressWarnings("unchecked")
     void when_expressionResultCannotBeMarshalledToJson_then_FactoryThrows() {
-        val attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'", Object.class);
+        val attribute  = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'");
         val mockMapper = mock(ObjectMapper.class);
         when(mockMapper.valueToTree(any())).thenThrow(new EvaluationException("ERROR"));
 
@@ -198,7 +201,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     void when_nullParameters_then_FactoryConstructsFromContext() {
         val user         = new AnonymousAuthenticationToken("anon", "anonymous",
                 AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-        val attribute    = attribute(null, null, null, null, Object.class);
+        val attribute    = attribute(null, null, null, null);
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(user, invocation, attribute);
 
         var subject = toJson(subscription.subject());
@@ -234,7 +237,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
                 val requestAttributes = mock(ServletRequestAttributes.class);
                 when(requestAttributes.getRequest()).thenReturn(request);
                 theMock.when(RequestContextHolder::getRequestAttributes).thenReturn(requestAttributes);
-                val attribute    = attribute(null, null, null, null, Object.class);
+                val attribute    = attribute(null, null, null, null);
                 val subscription = sut.constructAuthorizationSubscription(auth, inv, attribute);
 
                 var subject = toJson(subscription.subject());
@@ -256,7 +259,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
     @Test
     void when_nullParametersInvocationHasArguments_then_FactoryConstructsFromContextIncludingArguments() {
-        val attribute          = attribute(null, null, null, null, Object.class);
+        val attribute          = attribute(null, null, null, null);
         val invocationWithArgs = MethodInvocationUtils.create(new TestClass(), "publicVoidArgs", 1);
         val subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                 invocationWithArgs, attribute);
@@ -298,7 +301,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         val sut                  = new AuthorizationSubscriptionBuilderService(mockExpressionHandlerProvider,
                 mockMapperProvider, mockDefaultsProvider, mockContext);
 
-        val attribute             = attribute(null, null, null, null, Object.class);
+        val attribute             = attribute(null, null, null, null);
         val invocationWithBadArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicVoidProblemArg", new Class<?>[] { BadForJackson.class }, new Object[] { new BadForJackson() });
         val subscription          = sut.constructAuthorizationSubscription(authentication, invocationWithBadArgs,
@@ -319,15 +322,15 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         assertThat(toJson(subscription.environment()).isNull()).isTrue();
     }
 
-    private SaplAttribute attribute(String subject, String action, String resource, String environment, Class<?> type) {
-        return attributeWithSecrets(subject, action, resource, environment, null, type);
+    private SaplAttribute attribute(String subject, String action, String resource, String environment) {
+        return attributeWithSecrets(subject, action, resource, environment, null);
     }
 
     private SaplAttribute attributeWithSecrets(String subject, String action, String resource, String environment,
-            String secrets, Class<?> type) {
+            String secrets) {
         return new SaplAttribute(PreEnforce.class, parameterToExpression(subject), parameterToExpression(action),
                 parameterToExpression(resource), parameterToExpression(environment), parameterToExpression(secrets),
-                type);
+                false, false);
     }
 
     private Expression parameterToExpression(String parameter) {
@@ -343,12 +346,11 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @DisplayName("when JwtAuthenticationToken, then tokenValue is stripped from subject.token and subject.principal")
         void whenJwtAuthentication_thenTokenValueStrippedFromSubject() {
             var jwt           = new org.springframework.security.oauth2.jwt.Jwt(
-                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", java.time.Instant.now(),
-                    java.time.Instant.now().plusSeconds(3600), java.util.Map.of("alg", "RS256"),
-                    java.util.Map.of("sub", "user"));
+                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", REFERENCE, REFERENCE.plusSeconds(3600),
+                    java.util.Map.of("alg", "RS256"), java.util.Map.of("sub", "user"));
             var jwtAuth       = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(
                     jwt, AuthorityUtils.createAuthorityList("ROLE_USER"));
-            val attribute     = attribute(null, null, null, null, Object.class);
+            val attribute     = attribute(null, null, null, null);
             val subscription  = defaultWebBuilderUnderTest.constructAuthorizationSubscription(jwtAuth, invocation,
                     attribute);
             val subject       = toJson(subscription.subject());
@@ -367,12 +369,11 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @DisplayName("when JwtAuthenticationToken without injector then secrets are empty and token stripped")
         void whenJwtAuthWithoutInjectorThenSecretsEmptyAndTokenStripped() {
             var jwt          = new org.springframework.security.oauth2.jwt.Jwt(
-                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", java.time.Instant.now(),
-                    java.time.Instant.now().plusSeconds(3600), java.util.Map.of("alg", "RS256"),
-                    java.util.Map.of("sub", "user"));
+                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", REFERENCE, REFERENCE.plusSeconds(3600),
+                    java.util.Map.of("alg", "RS256"), java.util.Map.of("sub", "user"));
             var jwtAuth      = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(
                     jwt, AuthorityUtils.createAuthorityList("ROLE_USER"));
-            val attribute    = attribute(null, null, null, null, Object.class);
+            val attribute    = attribute(null, null, null, null);
             val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(jwtAuth, invocation,
                     attribute);
             val subject      = toJson(subscription.subject());
@@ -391,7 +392,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @ParameterizedTest(name = "when secrets expression is ''{0}'', then secrets default to empty object")
         @NullAndEmptySource
         void whenSecretsNullOrEmpty_thenSecretsAreEmptyObject(String secretsExpr) {
-            val attribute    = attributeWithSecrets(null, null, null, null, secretsExpr, Object.class);
+            val attribute    = attributeWithSecrets(null, null, null, null, secretsExpr);
             val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                     attribute);
             assertThat(subscription.secrets()).isEqualTo(Value.EMPTY_OBJECT);
@@ -400,8 +401,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @Test
         @DisplayName("when secrets expression evaluates to object, then secrets are passed correctly")
         void whenSecretsProvidedAsObject_thenSecretsArePassedToSubscription() {
-            val attribute    = attributeWithSecrets(null, null, null, null, "{apiKey: 'abc123', token: 'xyz'}",
-                    Object.class);
+            val attribute    = attributeWithSecrets(null, null, null, null, "{apiKey: 'abc123', token: 'xyz'}");
             val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
                     attribute);
             assertThat(subscription.secrets()).containsEntry("apiKey", new TextValue("abc123")).containsEntry("token",
@@ -411,7 +411,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @Test
         @DisplayName("when secrets expression evaluates to non-object, then exception is thrown")
         void whenSecretsEvaluateToNonObject_thenThrowsException() {
-            val attribute = attributeWithSecrets(null, null, null, null, "'not an object'", Object.class);
+            val attribute = attributeWithSecrets(null, null, null, null, "'not an object'");
             assertThatThrownBy(() -> defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
                     invocation, attribute)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Secrets expression must evaluate to an object");
@@ -429,7 +429,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
                          };
             val sut      = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
                     mapper, injector);
-            val attr     = attribute(null, null, null, null, Object.class);
+            val attr     = attribute(null, null, null, null);
             val sub      = sut.constructAuthorizationSubscription(authentication, invocation, attr);
             assertThat(sub.secrets()).containsEntry("jwt", new TextValue("test-token"));
         }
@@ -446,7 +446,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
                          };
             val sut      = new AuthorizationSubscriptionBuilderService(new DefaultMethodSecurityExpressionHandler(),
                     mapper, injector);
-            val attr     = attributeWithSecrets(null, null, null, null, "{jwt: 'spel-value'}", Object.class);
+            val attr     = attributeWithSecrets(null, null, null, null, "{jwt: 'spel-value'}");
             val sub      = sut.constructAuthorizationSubscription(authentication, invocation, attr);
             assertThat(sub.secrets()).containsEntry("jwt", new TextValue("spel-value"));
         }

@@ -17,32 +17,22 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.AttributeRecord;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.TracedValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.PureBooleanTypeCheck;
-import io.sapl.compiler.policy.policybody.BooleanGuardCompiler.StreamBooleanTypeCheck;
+import io.sapl.compiler.policy.BooleanGuardCompiler.PureBooleanTypeCheck;
+import io.sapl.compiler.policy.BooleanGuardCompiler.StreamBooleanTypeCheck;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.compiler.policy.policybody.BooleanGuardCompiler.applyBooleanGuard;
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.TestPureOperator;
-import static io.sapl.util.SaplTesting.TestStreamOperator;
-import static io.sapl.util.SaplTesting.TestStreamOperatorWithTraced;
-import static io.sapl.util.SaplTesting.array;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.obj;
-import static io.sapl.util.SaplTesting.verifyStream;
-import static io.sapl.util.SaplTesting.verifyStreamEmits;
+import static io.sapl.compiler.policy.BooleanGuardCompiler.applyBooleanGuard;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("BooleanGuardCompiler")
@@ -162,7 +152,7 @@ class BooleanGuardCompilerTests {
     void streamBooleanTypeCheckWhenStreamEmitsBooleanThenPassesThrough(BooleanValue input) {
         val streamOp = new TestStreamOperator(input);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
-        verifyStreamEmits(guard, evaluationContext(), input);
+        assertThat(guard.evaluate(evaluationContext()).result()).isEqualTo(input);
     }
 
     @Test
@@ -171,7 +161,7 @@ class BooleanGuardCompilerTests {
         val error    = Value.error("stream errors");
         val streamOp = new TestStreamOperator(error);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
-        verifyStream(guard, evaluationContext(), tv -> assertThat(tv.value()).isSameAs(error));
+        assertThat(guard.evaluate(evaluationContext()).result()).isSameAs(error);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -180,34 +170,38 @@ class BooleanGuardCompilerTests {
     void streamBooleanTypeCheckWhenStreamEmitsNonBooleanThenMapsToError(Value nonBoolean) {
         val streamOp = new TestStreamOperator(nonBoolean);
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
-        verifyStream(guard, evaluationContext(), tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            assertThat(((ErrorValue) tv.value()).message()).contains(nonBoolean.toString());
-        });
+        val result   = guard.evaluate(evaluationContext()).result();
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(nonBoolean.toString());
+    }
+
+    @ParameterizedTest(name = "input={0} expectError={1}")
+    @MethodSource("typeCheckCases")
+    @DisplayName("StreamBooleanTypeCheck: each input is type-checked independently")
+    void streamBooleanTypeCheckEachInputTypeChecked(Value input, boolean expectError) {
+        val streamOp = new TestStreamOperator(input);
+        val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
+        val result   = guard.evaluate(evaluationContext()).result();
+        if (expectError) {
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        } else {
+            assertThat(result).isEqualTo(input);
+        }
+    }
+
+    static Stream<Arguments> typeCheckCases() {
+        return Stream.of(Arguments.of(Value.TRUE, false), Arguments.of(Value.FALSE, false),
+                Arguments.of(Value.of("bad"), true), Arguments.of(Value.TRUE, false));
     }
 
     @Test
-    @DisplayName("StreamBooleanTypeCheck: when stream emits multiple values then each is type-checked")
-    void streamBooleanTypeCheckWhenStreamEmitsMultipleValuesThenEachIsTypeChecked() {
-        val streamOp = new TestStreamOperator(Value.TRUE, Value.FALSE, Value.of("bad"), Value.TRUE);
+    @DisplayName("StreamBooleanTypeCheck: preserves child dependencies through type-check")
+    void streamBooleanTypeCheckPreservesDependencies() {
+        val streamOp = new TestStreamOperator(Value.of("not boolean"));
         val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
-        verifyStream(guard, evaluationContext(), tv -> assertThat(tv.value()).isEqualTo(Value.TRUE),
-                tv -> assertThat(tv.value()).isEqualTo(Value.FALSE),
-                tv -> assertThat(tv.value()).isInstanceOf(ErrorValue.class),
-                tv -> assertThat(tv.value()).isEqualTo(Value.TRUE));
-    }
-
-    @Test
-    @DisplayName("StreamBooleanTypeCheck: preserves contributing attributes from traced value")
-    void streamBooleanTypeCheckPreservesContributingAttributes() {
-        val attrs    = List.<AttributeRecord>of();
-        val traced   = new TracedValue(Value.of("not boolean"), attrs);
-        val streamOp = new TestStreamOperatorWithTraced(traced);
-        val guard    = new StreamBooleanTypeCheck(streamOp, TEST_LOCATION, ERROR_TEMPLATE);
-        verifyStream(guard, evaluationContext(), tv -> {
-            assertThat(tv.value()).isInstanceOf(ErrorValue.class);
-            assertThat(tv.contributingAttributes()).isSameAs(attrs);
-        });
+        val out      = guard.evaluate(evaluationContext());
+        assertThat(out.result()).isInstanceOf(ErrorValue.class);
+        assertThat(out.dependencies()).isEmpty();
     }
 
     @Test

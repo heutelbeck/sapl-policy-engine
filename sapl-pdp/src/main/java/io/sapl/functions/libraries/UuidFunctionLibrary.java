@@ -19,20 +19,16 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.Random;
 import java.util.UUID;
 
 /**
  * Utility functions for UUID handling.
  */
-@UtilityClass
 @FunctionLibrary(name = UuidFunctionLibrary.NAME, description = UuidFunctionLibrary.DESCRIPTION, libraryDocumentation = UuidFunctionLibrary.DOCUMENTATION)
 public class UuidFunctionLibrary {
 
@@ -40,26 +36,9 @@ public class UuidFunctionLibrary {
     public static final String DESCRIPTION = "Utility functions for UUID handling.";
 
     public static final String DOCUMENTATION = """
-            The UUID library provides functions for generating and parsing Universally Unique Identifiers.
-            Use it when you need unique identifiers for correlation, tracking, or deduplication in policies.
-
-            Common use cases include generating request IDs for audit trails, creating unique session tokens,
-            or parsing UUID-based resource identifiers from requests. The library supports both cryptographically
-            secure random UUIDs for production and deterministic seeded UUIDs for testing.
-
-            **Example:**
-            ```sapl
-            policy "audit_with_request_id"
-            permit
-              var requestId = uuid.random();
-              // Use requestId for audit correlation
-            obligation
-              {
-                "type": "log",
-                "requestId": requestId,
-                "action": action.method
-              }
-            ```
+            The UUID library provides functions for parsing Universally Unique Identifiers.
+            Use it to inspect UUID-based resource identifiers from requests and extract their
+            constituent parts for use in policy conditions.
             """;
 
     private static final String ERROR_INVALID_UUID = "Invalid UUID: %s.";
@@ -119,9 +98,6 @@ public class UuidFunctionLibrary {
             }
             """;
 
-    private static final int UUID_BYTE_SIZE          = 16;
-    private static final int UUID_MOST_SIG_BYTE_SIZE = 8;
-
     /**
      * Parses a text representation of a UUID and returns an object containing its
      * constituent parts. Returns an error
@@ -179,95 +155,5 @@ public class UuidFunctionLibrary {
         }
 
         return resultBuilder.build();
-    }
-
-    /**
-     * Generates a cryptographically strong random version 4 UUID. This method uses
-     * a secure random number generator to
-     * produce unpredictable UUIDs suitable for production use and
-     * security-sensitive contexts.
-     *
-     * @return a TextValue containing a randomly generated UUID string
-     */
-    @Function(docs = """
-            ```uuid.random()```: Generates a cryptographically strong random version 4 UUID using a secure
-            random number generator. Returns the UUID as a text string. This function produces unpredictable
-            UUIDs suitable for production use and security-sensitive contexts.
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              var randomUuid = uuid.random();
-              // Generates a new random UUID like "a3bb189e-8bf9-3888-9912-ace4e6543002"
-
-              var anotherUuid = uuid.random();
-              // Generates a different random UUID
-
-              randomUuid != anotherUuid;  // true, each call produces a unique UUID
-            ```
-            """)
-    public static Value random() {
-        return Value.of(UUID.randomUUID().toString());
-    }
-
-    /**
-     * Creates a version 4 (pseudo-random) UUID using a seeded random number
-     * generator. This method produces
-     * deterministic UUIDs based on the provided seed, making it suitable for
-     * testing or scenarios requiring
-     * reproducible UUID generation.
-     *
-     * @param seed
-     * the seed value for the random number generator
-     *
-     * @return a TextValue containing a UUID generated using the seeded random
-     * number generator
-     */
-    @Function(docs = """
-            ```uuid.seededRandom(INT seed)```: Generates a deterministic version 4 (pseudo-random) UUID using
-            a seeded random number generator. Returns the UUID as a text string. This function produces
-            reproducible UUIDs based on the provided seed, making it suitable for testing or scenarios
-            requiring deterministic UUID generation.
-
-            **Attention:** This function uses a seeded random number generator and produces predictable results.
-            It is NOT cryptographically secure and should not be used for security-sensitive contexts.
-            For production use requiring true randomness, use uuid.random() instead.
-
-            **Example:**
-            ```sapl
-            policy "example"
-            permit
-              var testUuid = uuid.seededRandom(12345);
-              // Always generates the same UUID for seed 12345
-
-              var anotherUuid = uuid.seededRandom(67890);
-              // Generates a different but deterministic UUID for seed 67890
-
-              testUuid == uuid.seededRandom(12345);  // true, same seed produces same UUID
-            ```
-            """)
-    public static Value seededRandom(NumberValue seed) {
-        val random      = new Random(seed.value().longValue());
-        val randomBytes = new byte[UUID_BYTE_SIZE];
-        random.nextBytes(randomBytes);
-        randomBytes[6] &= 0x0f; // clear version
-        randomBytes[6] |= 0x40; // set to version 4
-        randomBytes[8] &= 0x3f; // clear variant
-        randomBytes[8] |= (byte) 0x80; // set to IETF variant
-
-        var mostSigBits  = 0L;
-        var leastSigBits = 0L;
-
-        // Convert first 8 bytes to most significant bits
-        for (int i = 0; i < UUID_MOST_SIG_BYTE_SIZE; i++) {
-            mostSigBits = (mostSigBits << 8) | (randomBytes[i] & 0xff);
-        }
-        // Convert last 8 bytes to least significant bits
-        for (int i = UUID_MOST_SIG_BYTE_SIZE; i < UUID_BYTE_SIZE; i++) {
-            leastSigBits = (leastSigBits << 8) | (randomBytes[i] & 0xff);
-        }
-
-        return Value.of(new UUID(mostSigBits, leastSigBits).toString());
     }
 }

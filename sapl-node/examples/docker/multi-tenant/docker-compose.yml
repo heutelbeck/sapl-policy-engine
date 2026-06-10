@@ -18,7 +18,7 @@
 
 services:
   sapl-node:
-    image: ghcr.io/heutelbeck/sapl-node:4.0.0
+    image: ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT
     container_name: sapl-node-multitenant
     ports:
       - "8080:8080"

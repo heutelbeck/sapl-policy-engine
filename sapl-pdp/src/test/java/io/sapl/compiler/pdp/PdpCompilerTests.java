@@ -17,16 +17,19 @@
  */
 package io.sapl.compiler.pdp;
 
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,17 +37,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.FIRST;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.*;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,6 +51,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PdpCompiler")
 class PdpCompilerTests {
+
+    private static Vote evaluate(CompiledPdp compiledPdp, AuthorizationSubscription subscription) {
+        val ctx = EvaluationContext.of(compiledPdp.metadata().pdpId(), compiledPdp.metadata().configurationId(),
+                "test-sub", subscription, SaplTesting.FUNCTION_BROKER);
+        return compiledPdp.voter().evaluate(ctx).vote();
+    }
 
     private static final String VALID_POLICY = """
             policy "test-policy"
@@ -74,6 +79,9 @@ class PdpCompilerTests {
             """;
 
     private static final String INVALID_POLICY = "this is not valid SAPL syntax!!!";
+
+    private static final AuthorizationSubscription DEFAULT_SUBSCRIPTION = AuthorizationSubscription.of(Value.NULL,
+            Value.NULL, Value.NULL, Value.NULL);
 
     @Nested
     @DisplayName("error handling")
@@ -136,7 +144,7 @@ class PdpCompilerTests {
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 
-            assertThat(compiledVoter.pdpVoter()).satisfies(voter -> {
+            assertThat(compiledVoter.voter()).satisfies(voter -> {
                 assertThat(voter).isInstanceOf(Vote.class);
                 assertThat(((Vote) voter).authorizationDecision().decision()).isEqualTo(expected);
             });
@@ -154,10 +162,9 @@ class PdpCompilerTests {
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            StepVerifier.create(compiledVoter.coverageStream())
-                    .assertNext(vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(expected))
-                    .verifyComplete();
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(expected);
         }
 
         @Test
@@ -168,11 +175,9 @@ class PdpCompilerTests {
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            StepVerifier.create(compiledVoter.coverageStream())
-                    .assertNext(
-                            vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -183,10 +188,9 @@ class PdpCompilerTests {
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            StepVerifier.create(compiledVoter.coverageStream()).assertNext(
-                    vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
         }
     }
 

@@ -85,7 +85,7 @@ class PortedDemoTests {
      */
     @Test
     void whenUsingRealTemporalFunctionLibrary_thenPermit() {
-        SaplTestFixture.createSingleTest().withFunctionLibrary(TemporalFunctionLibrary.class)
+        SaplTestFixture.createSingleTest().withFunctionLibrary(new TemporalFunctionLibrary())
                 .withPolicy(POLICY_WITH_FUNCTION).whenDecide(AuthorizationSubscription.of("willi", "read", "something"))
                 .expectPermit().verify();
     }

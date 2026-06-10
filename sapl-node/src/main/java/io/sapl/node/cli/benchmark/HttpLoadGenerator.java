@@ -31,12 +31,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+
 import org.jspecify.annotations.Nullable;
 
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -52,12 +58,12 @@ import reactor.core.scheduler.Schedulers;
 @UtilityClass
 public class HttpLoadGenerator {
 
-    private static final int    MAX_LATENCY_SAMPLES   = 2_000_000;
     private static final int    CONVERGENCE_THRESHOLD = 5;
     private static final int    CONVERGENCE_WINDOW    = 3;
+    private static final String ENDPOINT              = "/api/pdp/decide-once";
+    private static final int    MAX_LATENCY_SAMPLES   = 2_000_000;
     private static final int    MAX_WARMUP_ITERATIONS = 15;
     private static final int    WARMUP_INTERVAL_SECS  = 3;
-    private static final String ENDPOINT              = "/api/pdp/decide-once";
 
     /**
      * Runs an HTTP load test against a SAPL PDP server.
@@ -72,15 +78,17 @@ public class HttpLoadGenerator {
      * @return the benchmark result with throughput and latency distribution
      */
     public static BenchmarkResult run(String baseUrl, byte[] body, int concurrency, int warmupSeconds,
-            int measureSeconds, int targetRate, PrintWriter out) {
+            int measureSeconds, int targetRate, boolean insecure, PrintWriter out) {
         val url     = baseUrl + ENDPOINT;
         val request = HttpRequest.newBuilder().uri(URI.create(url)).header("Content-Type", "application/json")
                 .POST(BodyPublishers.ofByteArray(body)).version(Version.HTTP_1_1).build();
 
-        Hooks.onErrorDropped(e -> {});
-
-        try (val client = HttpClient.newBuilder().version(Version.HTTP_1_1)
-                .executor(Executors.newVirtualThreadPerTaskExecutor()).build()) {
+        val builder = HttpClient.newBuilder().version(Version.HTTP_1_1)
+                .executor(Executors.newVirtualThreadPerTaskExecutor());
+        if (insecure) {
+            builder.sslContext(insecureSslContext());
+        }
+        try (val client = builder.build()) {
 
             if (warmupSeconds > 0) {
                 warmupUntilConverged(client, request, concurrency, out);
@@ -135,8 +143,12 @@ public class HttpLoadGenerator {
 
     private static void runPacedPhase(HttpClient client, HttpRequest request, int concurrency, int seconds,
             int targetRate, AtomicLong ops, LatencyCollector latency) {
-        val workerCount      = Math.min(concurrency, Runtime.getRuntime().availableProcessors());
-        val ratePerWorker    = Math.max(1, targetRate / workerCount);
+        val workerCount = Math.min(concurrency, Runtime.getRuntime().availableProcessors());
+        // Round up so the aggregate rate covers the target. Plain integer division
+        // silently caps
+        // below the requested rate (e.g. target=100 / 8 workers => 12 each => 96
+        // total).
+        val ratePerWorker    = Math.max(1, Math.ceilDiv(targetRate, workerCount));
         val workerIntervalNs = 1_000_000_000L / ratePerWorker;
         val ticksPerWorker   = (long) ratePerWorker * seconds;
         val concPerWorker    = Math.max(1, concurrency / workerCount);
@@ -185,6 +197,30 @@ public class HttpLoadGenerator {
             }
         }
         return true;
+    }
+
+    private static SSLContext insecureSslContext() {
+        try {
+            val ctx      = SSLContext.getInstance("TLS");
+            val trustAll = new X509TrustManager[] { new X509TrustManager() {
+                     @Override
+                     public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                     }
+
+                     @Override
+                     public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                     }
+
+                     @Override
+                     public X509Certificate[] getAcceptedIssuers() {
+                         return new X509Certificate[0];
+                     }
+                 } };
+            ctx.init(null, trustAll, new SecureRandom());
+            return ctx;
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Failed to build insecure TLS context for --insecure", e);
+        }
     }
 
 }

@@ -25,7 +25,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.UndefinedValue;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.compiler.document.TracedVote;
 import lombok.val;
 
 import java.io.Serial;
@@ -37,7 +37,7 @@ import java.io.Serial;
  * badges to visually indicate presence of
  * optional fields.
  */
-public class DecisionsGrid extends Grid<TimestampedVote> {
+public class DecisionsGrid extends Grid<TracedVote> {
     @Serial
     private static final long serialVersionUID = SaplVersion.VERSION_UID;
 
@@ -60,7 +60,7 @@ public class DecisionsGrid extends Grid<TimestampedVote> {
      * Extracts the decision string from a timestamped vote. Converts the decision
      * enum to its string representation.
      */
-    private String extractDecisionString(TimestampedVote timestampedVote) {
+    private String extractDecisionString(TracedVote timestampedVote) {
         return timestampedVote.vote().authorizationDecision().decision().toString();
     }
 
@@ -69,7 +69,7 @@ public class DecisionsGrid extends Grid<TimestampedVote> {
      * obligations are present, otherwise
      * shows "-/-".
      */
-    private ComponentRenderer<Span, TimestampedVote> renderObligationsBadge() {
+    private ComponentRenderer<Span, TracedVote> renderObligationsBadge() {
         return Badger.badgeRenderer(tv -> !tv.vote().authorizationDecision().obligations().isEmpty(), Badger.PRIMARY,
                 Badger.SUCCESS, "Obligations", "-/-");
     }
@@ -78,7 +78,7 @@ public class DecisionsGrid extends Grid<TimestampedVote> {
      * Creates renderer for advice badge column. Shows "Advice" badge if advice is
      * present, otherwise shows "-/-".
      */
-    private ComponentRenderer<Span, TimestampedVote> renderAdviceBadge() {
+    private ComponentRenderer<Span, TracedVote> renderAdviceBadge() {
         return Badger.badgeRenderer(tv -> !tv.vote().authorizationDecision().advice().isEmpty(), Badger.PRIMARY,
                 Badger.SUCCESS, "Advice", "-/-");
     }
@@ -88,7 +88,7 @@ public class DecisionsGrid extends Grid<TimestampedVote> {
      * resource transformation is present,
      * otherwise shows "-/-".
      */
-    private ComponentRenderer<Span, TimestampedVote> renderResourceBadge() {
+    private ComponentRenderer<Span, TracedVote> renderResourceBadge() {
         return Badger.badgeRenderer(tv -> {
             val resource = tv.vote().authorizationDecision().resource();
             return !(resource instanceof UndefinedValue) && !(resource instanceof ErrorValue);

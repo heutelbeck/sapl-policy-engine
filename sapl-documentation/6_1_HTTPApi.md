@@ -106,8 +106,8 @@ Every endpoint returns authorization decisions as JSON objects:
 }
 ```
 
-- **decision** (always present): One of `PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`.
-- **obligations** (optional): An array of JSON objects. Instructions the PEP **must** enforce before granting access. If a PEP cannot fulfill any obligation, it must deny access regardless of the decision.
+- **decision** (always present): One of `PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, or `NOT_APPLICABLE`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the per-decision PEP semantics, including the `SUSPEND` pause-vs-terminal distinction.
+- **obligations** (optional): An array of JSON objects. Instructions the PEP **must** enforce before acting on the decision. If a PEP cannot fulfill any obligation, it must deny access regardless of the decision.
 - **advice** (optional): An array of JSON objects. Suggestions the PEP **should** follow but may ignore without affecting the authorization outcome.
 - **resource** (optional): A JSON value that replaces the original resource data (e.g., with fields redacted or transformed).
 
@@ -156,7 +156,7 @@ data: {"decision":"DENY","obligations":[{"type":"log_access","reason":"policy ch
 **Example with curl:**
 
 ```shell
-curl -N -X POST https://localhost:8443/api/pdp/decide \
+curl -N -X POST http://localhost:8080/api/pdp/decide \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer sapl_..." \
   -d '{"subject":"alice","action":"read","resource":"document"}'
@@ -165,7 +165,7 @@ curl -N -X POST https://localhost:8443/api/pdp/decide \
 **Example with the SAPL CLI** (streams decisions as NDJSON):
 
 ```shell
-sapl decide --remote --url https://localhost:8443 --token sapl_... \
+sapl decide --remote --url http://localhost:8080 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"'
 ```
 
@@ -206,14 +206,14 @@ Returns a single authorization decision and closes the connection. Use this for 
 **Example with the SAPL CLI:**
 
 ```shell
-sapl decide-once --remote --url https://localhost:8443 --token sapl_... \
+sapl decide-once --remote --url http://localhost:8080 --token sapl_... \
   -s '{"username":"alice","role":"doctor"}' -a '"read"' -r '{"type":"patient_record","patientId":123}'
 ```
 
 The `sapl check` command returns an exit code instead of JSON output, making it suitable for shell scripts and CI/CD pipelines:
 
 ```shell
-sapl check --remote --url https://localhost:8443 --token sapl_... \
+sapl check --remote --url http://localhost:8080 --token sapl_... \
   -s '"alice"' -a '"read"' -r '"document"' && echo "PERMIT"
 ```
 
@@ -325,6 +325,14 @@ Returns all decisions as a single JSON object and closes the connection. The for
 
 All multi-subscription decisions may include optional `resource`, `obligations`, and `advice` fields, as described in [Authorization Decisions](../2_3_AuthorizationDecisions/).
 
+### OpenID Authorization API 1.0
+
+In addition to the native endpoints above, the node exposes `POST /access/v1/evaluation` as a binding for the [OpenID Authorization API 1.0](https://openid.net/specs/authorization-api-1_0-01.html). It is a strict subset of the native API: a single one-shot evaluation per request, boolean decision, no streaming or batching.
+
+The boolean is `true` only for a `PERMIT` that carries no obligations and no transformed resource. `DENY`, `INDETERMINATE`, `NOT_APPLICABLE`, `SUSPEND` and any `PERMIT` carrying obligations or a transformed resource all map to `false`, so a vanilla OpenID PEP that ignores the response `context` cannot accidentally grant access that depended on PEP-side enforcement. Whenever the boolean is `false` the response also carries a `reason_admin` (technical: `INDETERMINATE`, `PERMIT`-needs-enforcement) or `reason_user` (subject-facing: `DENY`, `NOT_APPLICABLE`, `SUSPEND`) field per the OpenID spec.
+
+SAPL-aware clients read the response `context.sapl.*` for the full picture: the SAPL verb under `context.sapl.decision`, and any `context.sapl.{obligations,advice,resource}` slots that were populated.
+
 ### Error Handling
 
 A PEP encountering connectivity issues or errors with the PDP server must treat this as an `INDETERMINATE` decision and deny access. The PEP should reconnect using an exponential backoff strategy to avoid overloading the PDP.
@@ -357,7 +365,7 @@ Set the proxy read timeout above this interval (e.g., 60 seconds). See [Configur
 
 ```nginx
 location /api/pdp/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
     proxy_buffering off;
     proxy_cache off;
     proxy_read_timeout 3600s;
@@ -367,7 +375,7 @@ location /api/pdp/ {
 }
 
 location /actuator/ {
-    proxy_pass http://127.0.0.1:8443;
+    proxy_pass http://127.0.0.1:8080;
 }
 ```
 
@@ -376,14 +384,14 @@ location /actuator/ {
 Enable `mod_proxy` and `mod_proxy_http`. Disable response buffering for the PDP path:
 
 ```apache
-ProxyPass /api/pdp/ http://127.0.0.1:8443/api/pdp/
-ProxyPassReverse /api/pdp/ http://127.0.0.1:8443/api/pdp/
+ProxyPass /api/pdp/ http://127.0.0.1:8080/api/pdp/
+ProxyPassReverse /api/pdp/ http://127.0.0.1:8080/api/pdp/
 SetEnv proxy-sendchunked 1
 SetEnv proxy-sendcl 0
 ProxyTimeout 3600
 
-ProxyPass /actuator/ http://127.0.0.1:8443/actuator/
-ProxyPassReverse /actuator/ http://127.0.0.1:8443/actuator/
+ProxyPass /actuator/ http://127.0.0.1:8080/actuator/
+ProxyPassReverse /actuator/ http://127.0.0.1:8080/actuator/
 ```
 
 The one-shot endpoints (`/api/pdp/decide-once`, `/api/pdp/multi-decide-all-once`) and actuator endpoints work with default proxy settings.
@@ -444,6 +452,7 @@ enum Decision {
   PERMIT = 1;
   DENY = 2;
   NOT_APPLICABLE = 3;
+  SUSPEND = 4;
 }
 
 message Value {

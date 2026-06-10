@@ -19,7 +19,7 @@ package io.sapl.pdp.remote;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PolicyDecisionPoint;
+import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -34,15 +34,27 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.wait.strategy.WaitAllStrategy;
 import org.testcontainers.images.ImagePullPolicy;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -52,8 +64,8 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest
 @ActiveProfiles(profiles = "quiet")
 class RemoteHttpDecisionPointServerIT {
-    private static final int             SAPL_SERVER_PORT = 8443;
-    private static final String          SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-node:4.0.0";
+    private static final int             SAPL_SERVER_PORT = 8080;
+    private static final String          SAPL_SERVER_LT   = "ghcr.io/heutelbeck/sapl-node:4.1.0-SNAPSHOT";
     private static final ImagePullPolicy NEVER_PULL       = imageName -> false;
 
     final AuthorizationSubscription permittedSubscription = AuthorizationSubscription.of("Willi", "eat", "apple");
@@ -62,9 +74,56 @@ class RemoteHttpDecisionPointServerIT {
     static class TestConfiguration {
     }
 
-    private void requestDecision(PolicyDecisionPoint pdp) {
+    private void requestDecision(ReactivePolicyDecisionPoint pdp) {
         StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
-                .verify();
+                .verify(Duration.ofSeconds(45));
+    }
+
+    private static final String WARMUP_BODY = "{\"subject\":\"_\",\"action\":\"_\",\"resource\":\"_\"}";
+
+    private static final X509TrustManager TRUST_ALL = new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            // Test-only trust-all manager. Every client certificate is accepted.
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            // Test-only trust-all manager. The node's self-signed certificate is accepted.
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+
+    /**
+     * Issues one raw decision request with a generous timeout to absorb the node's
+     * cold-start cost.
+     * Any HTTP response counts as warm. A transport error or timeout fails the
+     * test.
+     */
+    private void warmUpServer(String baseUrl, String authorizationHeader) {
+        try {
+            val sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[] { TRUST_ALL }, null);
+            val client  = HttpClient.newBuilder().sslContext(sslContext).connectTimeout(Duration.ofSeconds(30)).build();
+            val request = HttpRequest.newBuilder(URI.create(baseUrl + "/api/pdp/decide-once"))
+                    .timeout(Duration.ofSeconds(30)).header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(WARMUP_BODY));
+            if (authorizationHeader != null) {
+                request.header("Authorization", authorizationHeader);
+            }
+            client.send(request.build(), HttpResponse.BodyHandlers.discarding());
+        } catch (Exception e) {
+            throw new IllegalStateException("Server warm-up precondition failed for " + baseUrl, e);
+        }
+    }
+
+    private static String basicAuthHeader(String username, String secret) {
+        return "Basic "
+                + Base64.getEncoder().encodeToString((username + ":" + secret).getBytes(StandardCharsets.UTF_8));
     }
 
     // HTTP Protocol
@@ -81,13 +140,16 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTRACE","true")
                         .withEnv("IO_SAPL_PDP_EMBEDDED_PRINTTEXTREPORT","true")
                         .withExposedPorts(SAPL_SERVER_PORT)
-                        .waitingFor(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)))) {
+                        .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("sapl-node"))
+                        .waitingFor(new WaitAllStrategy()
+                                .withStrategy(Wait.forLogMessage(".*SAPL Node ready.*\\n", 1))
+                                .withStrategy(Wait.forListeningPort())
+                                .withStartupTimeout(Duration.ofMinutes(2)))) {
         // @formatter:on
             container.start();
-            log.debug("connecting to: " + "http://" + container.getHost() + ":"
-                    + container.getMappedPort(SAPL_SERVER_PORT));
-            val pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("http://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT)).build();
+            val baseUrl = "http://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
+            warmUpServer(baseUrl, null);
+            val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl).build();
             requestDecision(pdp);
         }
     }
@@ -98,9 +160,9 @@ class RemoteHttpDecisionPointServerIT {
         try (var baseContainer = new GenericContainer<>(DockerImageName.parse(SAPL_SERVER_LT));
                 val container = saplServerWithTls(baseContainer).withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "true")) {
             container.start();
-            val pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
-                    .withUnsecureSSL().build();
+            val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
+            warmUpServer(baseUrl, null);
+            val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl).withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
         }
@@ -111,7 +173,11 @@ class RemoteHttpDecisionPointServerIT {
         return baseContainer.withImagePullPolicy(NEVER_PULL)
                 .withClasspathResourceMapping("policies/", "/pdp/data/", BindMode.READ_ONLY)
                 .withExposedPorts(SAPL_SERVER_PORT)
-                .waitingFor(Wait.forLogMessage(".*Started SaplNodeApplication.*\\n", 1).withStartupTimeout(Duration.ofMinutes(2)))
+                .withLogConsumer(new Slf4jLogConsumer(log).withPrefix("sapl-node"))
+                .waitingFor(new WaitAllStrategy()
+                        .withStrategy(Wait.forLogMessage(".*SAPL Node ready.*\\n", 1))
+                        .withStrategy(Wait.forListeningPort())
+                        .withStartupTimeout(Duration.ofMinutes(2)))
                 .withEnv("IO_SAPL_PDP_EMBEDDED_PDPCONFIGTYPE", "DIRECTORY")
                 .withEnv("IO_SAPL_PDP_EMBEDDED_POLICIESPATH", "/pdp/data")
                 .withEnv("SERVER_ADDRESS", "0.0.0.0")
@@ -137,9 +203,10 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", username)
                         .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", encodedSecret)) {
             container.start();
-            val pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
-                    .basicAuth(username, secret).withUnsecureSSL().build();
+            val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
+            warmUpServer(baseUrl, basicAuthHeader(username, secret));
+            val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl).basicAuth(username, secret)
+                    .withUnsecureSSL().build();
             requestDecision(pdp);
             container.stop();
         }
@@ -159,11 +226,12 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_NODE_USERS_0_BASIC_USERNAME", username)
                         .withEnv("IO_SAPL_NODE_USERS_0_BASIC_SECRET", encodedSecret)) {
             container.start();
-            val pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
-                    .basicAuth(username, secret).withUnsecureSSL().build();
+            val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
+            warmUpServer(baseUrl, basicAuthHeader(username, secret));
+            val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl).basicAuth(username, secret)
+                    .withUnsecureSSL().build();
             StepVerifier.create(pdp.decide(permittedSubscription)).expectNext(AuthorizationDecision.INDETERMINATE)
-                    .thenCancel().verify();
+                    .thenCancel().verify(Duration.ofSeconds(30));
             container.stop();
         }
     }
@@ -178,9 +246,10 @@ class RemoteHttpDecisionPointServerIT {
                         .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default")
                         .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", encodedApiKey)) {
             container.start();
-            val pdp = RemotePolicyDecisionPoint.builder().http()
-                    .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
-                    .apiKey(apiKey).withUnsecureSSL().build();
+            val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
+            warmUpServer(baseUrl, "Bearer " + apiKey);
+            val pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl).apiKey(apiKey).withUnsecureSSL()
+                    .build();
             requestDecision(pdp);
             container.stop();
         }
@@ -206,6 +275,8 @@ class RemoteHttpDecisionPointServerIT {
                             .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
                                     "http://auth-host:8080/default")) {
                 container.start();
+                val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);
+                warmUpServer(baseUrl, null);
 
                 val clientRegistrationRepository = new ReactiveClientRegistrationRepository() {
                                                      @Override
@@ -224,8 +295,7 @@ class RemoteHttpDecisionPointServerIT {
                                                                          .scope("sapl").build());
                                                      }
                                                  };
-                val pdp                          = RemotePolicyDecisionPoint.builder().http()
-                        .baseUrl("https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT))
+                val pdp                          = RemotePolicyDecisionPoint.builder().http().baseUrl(baseUrl)
                         .withUnsecureSSL().oauth2(clientRegistrationRepository, "saplPdp").build();
                 requestDecision(pdp);
                 oauth2Container.stop();

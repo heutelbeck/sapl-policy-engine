@@ -21,7 +21,6 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.spring.method.metadata.QueryEnforce;
 import io.sapl.spring.method.metadata.SaplAttribute;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,12 +28,9 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.expression.BeanFactoryResolver;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -42,9 +38,7 @@ import org.springframework.security.authorization.DefaultAuthorizationManagerFac
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
@@ -66,23 +60,18 @@ import static java.lang.reflect.Modifier.isSynchronized;
 
 /**
  * Unified service for building {@link AuthorizationSubscription} instances from
- * method invocations and security annotations.
- * <p>
- * Supports both Servlet (blocking) and WebFlux (reactive) contexts, as well as
- * method-level security ({@link SaplAttribute}) and data repository security
- * ({@link QueryEnforce}) annotations.
+ * method invocations and
+ * {@link SaplAttribute} security annotations. Supports both Servlet (blocking)
+ * and WebFlux (reactive) contexts.
  */
 @Slf4j
 public class AuthorizationSubscriptionBuilderService {
 
-    private static final String ERROR_EXPRESSION_EVALUATION_FAILED  = "Failed to evaluate expression '";
-    private static final String ERROR_QUERY_ENFORCE_ANNOTATION_NULL = "QueryEnforce annotation must not be null";
-    private static final String ERROR_SECRETS_MUST_BE_OBJECT        = "Secrets expression must evaluate to an object, but got: ";
+    private static final String ERROR_EXPRESSION_EVALUATION_FAILED = "Failed to evaluate expression '";
+    private static final String ERROR_SECRETS_MUST_BE_OBJECT       = "Secrets expression must evaluate to an object, but got: ";
 
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-
-    private static final SpelExpressionParser PARSER = new SpelExpressionParser();
 
     public static final String AUTHENTICATION    = "authentication";
     public static final String METHOD_INVOCATION = "methodInvocation";
@@ -99,8 +88,10 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructor for reactive method security context with resolved beans.
      *
-     * @param expressionHandler the method security expression handler
-     * @param mapper the object mapper for JSON serialization
+     * @param expressionHandler
+     * the method security expression handler
+     * @param mapper
+     * the object mapper for JSON serialization
      */
     public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
             ObjectMapper mapper) {
@@ -108,12 +99,15 @@ public class AuthorizationSubscriptionBuilderService {
     }
 
     /**
-     * Constructor for reactive method security context with resolved beans
-     * and optional secrets injector.
+     * Constructor for reactive method security context with resolved beans and
+     * optional secrets injector.
      *
-     * @param expressionHandler the method security expression handler
-     * @param mapper the object mapper for JSON serialization
-     * @param secretsInjector optional injector for subscription secrets
+     * @param expressionHandler
+     * the method security expression handler
+     * @param mapper
+     * the object mapper for JSON serialization
+     * @param secretsInjector
+     * optional injector for subscription secrets
      */
     public AuthorizationSubscriptionBuilderService(MethodSecurityExpressionHandler expressionHandler,
             ObjectMapper mapper,
@@ -130,10 +124,14 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructor for lazy bean resolution via ObjectProviders.
      *
-     * @param expressionHandlerProvider provider for the expression handler
-     * @param mapperProvider provider for the object mapper
-     * @param defaultsProvider provider for granted authority defaults
-     * @param applicationContext the application context
+     * @param expressionHandlerProvider
+     * provider for the expression handler
+     * @param mapperProvider
+     * provider for the object mapper
+     * @param defaultsProvider
+     * provider for granted authority defaults
+     * @param applicationContext
+     * the application context
      */
     public AuthorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
@@ -147,11 +145,16 @@ public class AuthorizationSubscriptionBuilderService {
      * Constructor for lazy bean resolution via ObjectProviders with optional
      * secrets injector.
      *
-     * @param expressionHandlerProvider provider for the expression handler
-     * @param mapperProvider provider for the object mapper
-     * @param defaultsProvider provider for granted authority defaults
-     * @param applicationContext the application context
-     * @param secretsInjector optional injector for subscription secrets
+     * @param expressionHandlerProvider
+     * provider for the expression handler
+     * @param mapperProvider
+     * provider for the object mapper
+     * @param defaultsProvider
+     * provider for granted authority defaults
+     * @param applicationContext
+     * the application context
+     * @param secretsInjector
+     * optional injector for subscription secrets
      */
     public AuthorizationSubscriptionBuilderService(
             ObjectProvider<MethodSecurityExpressionHandler> expressionHandlerProvider,
@@ -169,9 +172,13 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructs an authorization subscription for Servlet/blocking context.
      *
-     * @param authentication the current authentication
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
+     * @param authentication
+     * the current authentication
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     *
      * @return the constructed authorization subscription
      */
     public AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
@@ -186,10 +193,15 @@ public class AuthorizationSubscriptionBuilderService {
      * Constructs an authorization subscription for Servlet/blocking context with
      * return object.
      *
-     * @param authentication the current authentication
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
-     * @param returnObject the return object from the method
+     * @param authentication
+     * the current authentication
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     * @param returnObject
+     * the return object from the method
+     *
      * @return the constructed authorization subscription
      */
     public AuthorizationSubscription constructAuthorizationSubscriptionWithReturnObject(Authentication authentication,
@@ -204,8 +216,11 @@ public class AuthorizationSubscriptionBuilderService {
     /**
      * Constructs a reactive authorization subscription for WebFlux context.
      *
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     *
      * @return a Mono emitting the constructed authorization subscription
      */
     public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
@@ -218,44 +233,19 @@ public class AuthorizationSubscriptionBuilderService {
      * Constructs a reactive authorization subscription for WebFlux context with
      * return object.
      *
-     * @param methodInvocation the method invocation
-     * @param attribute the SAPL attribute containing expressions
-     * @param returnedObject the return object from the method
+     * @param methodInvocation
+     * the method invocation
+     * @param attribute
+     * the SAPL attribute containing expressions
+     * @param returnedObject
+     * the return object from the method
+     *
      * @return a Mono emitting the constructed authorization subscription
      */
     public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
             SaplAttribute attribute, Object returnedObject) {
         return Mono.deferContextual(contextView -> constructAuthorizationSubscriptionFromContextView(methodInvocation,
                 attribute, contextView, returnedObject));
-    }
-
-    /**
-     * Builds a reactive {@link AuthorizationSubscription} from a
-     * {@link QueryEnforce} annotation.
-     *
-     * @param methodInvocation the method invocation
-     * @param queryEnforce the QueryEnforce annotation
-     * @param domainType the domain type for the query
-     * @return a Mono emitting the constructed authorization subscription
-     */
-    public Mono<AuthorizationSubscription> reactiveConstructAuthorizationSubscription(MethodInvocation methodInvocation,
-            QueryEnforce queryEnforce, Class<?> domainType) {
-        if (queryEnforce == null) {
-            return Mono.error(new IllegalArgumentException(ERROR_QUERY_ENFORCE_ANNOTATION_NULL));
-        }
-
-        return ReactiveSecurityContextHolder.getContext().flatMap(ctx -> Mono.justOrEmpty(ctx.getAuthentication()))
-                .switchIfEmpty(Mono.fromCallable(SecurityContextHolder::getContext)
-                        .flatMap(ctx -> Mono.justOrEmpty(ctx.getAuthentication())))
-                .defaultIfEmpty(ANONYMOUS).map(authentication -> {
-                    val evaluationCtx = createQueryEnforceEvaluationContext(authentication, methodInvocation);
-                    return constructAuthorizationSubscription(authentication, evaluationCtx,
-                            parseExpressionIfNotEmpty(queryEnforce.subject()),
-                            parseExpressionIfNotEmpty(queryEnforce.action()),
-                            parseExpressionIfNotEmpty(queryEnforce.resource()),
-                            parseExpressionIfNotEmpty(queryEnforce.environment()),
-                            parseExpressionIfNotEmpty(queryEnforce.secrets()), methodInvocation, null, domainType);
-                });
     }
 
     private MethodSecurityExpressionHandler expressionHandler() {
@@ -327,24 +317,6 @@ public class AuthorizationSubscriptionBuilderService {
         });
     }
 
-    private EvaluationContext createQueryEnforceEvaluationContext(Authentication authentication,
-            MethodInvocation methodInvocation) {
-        val evaluationCtx = new StandardEvaluationContext(methodInvocation);
-        if (applicationContext != null) {
-            evaluationCtx.setBeanResolver(new BeanFactoryResolver(applicationContext));
-        }
-        evaluationCtx.setVariable(AUTHENTICATION, authentication);
-        evaluationCtx.setVariable(METHOD_INVOCATION, methodInvocation);
-
-        val params = methodInvocation.getMethod().getParameters();
-        val args   = methodInvocation.getArguments();
-        for (int i = 0; i < params.length; i++) {
-            evaluationCtx.setVariable(params[i].getName(), args[i]);
-        }
-
-        return evaluationCtx;
-    }
-
     private AuthorizationSubscription constructAuthorizationSubscription(Authentication authentication,
             EvaluationContext evaluationCtx, Expression subjectExpr, Expression actionExpr, Expression resourceExpr,
             Expression environmentExpr, Expression secretsExpr, MethodInvocation methodInvocation,
@@ -362,8 +334,8 @@ public class AuthorizationSubscriptionBuilderService {
 
     /**
      * Retrieves the subject for the authorization subscription. When no explicit
-     * subject expression is provided, serializes the authentication object and
-     * strips sensitive fields:
+     * subject expression is provided,
+     * serializes the authentication object and strips sensitive fields:
      * <ul>
      * <li>{@code credentials} - removed from the root authentication object</li>
      * <li>{@code token.tokenValue} - raw encoded token removed from token
@@ -480,13 +452,6 @@ public class AuthorizationSubscriptionBuilderService {
             throw new IllegalArgumentException(ERROR_EXPRESSION_EVALUATION_FAILED + expr.getExpressionString() + "'",
                     e);
         }
-    }
-
-    private Expression parseExpressionIfNotEmpty(String expressionString) {
-        if (expressionString == null || expressionString.isEmpty()) {
-            return null;
-        }
-        return PARSER.parseExpression(expressionString);
     }
 
     private ObjectValue toValue(MethodInvocation invocation) {

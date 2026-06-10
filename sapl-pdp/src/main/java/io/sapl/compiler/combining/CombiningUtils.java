@@ -17,12 +17,7 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
@@ -118,19 +113,31 @@ public class CombiningUtils {
         return (List<T>) (List<?>) Arrays.asList(array);
     }
 
+    private static final String ERROR_NON_CONCRETE_DECISION = "Cannot map non-concrete decision %s to an outcome.";
+
     /**
-     * Converts a concrete decision (PERMIT or DENY) to its corresponding outcome.
+     * Converts a concrete decision (PERMIT, DENY, or SUSPEND) to its corresponding
+     * outcome.
      *
-     * @param decision the decision to convert (must be PERMIT or DENY)
-     * @return Outcome.PERMIT for PERMIT, Outcome.DENY for DENY
+     * @param decision the decision to convert (must be PERMIT, DENY, or SUSPEND)
+     * @return Outcome.PERMIT for PERMIT, Outcome.DENY for DENY, Outcome.SUSPEND
+     * for SUSPEND
+     * @throws IllegalArgumentException if the decision is INDETERMINATE or
+     * NOT_APPLICABLE
      */
     public static Outcome decisionToOutcome(Decision decision) {
-        return decision == Decision.PERMIT ? Outcome.PERMIT : Outcome.DENY;
+        return switch (decision) {
+        case PERMIT                        -> Outcome.PERMIT;
+        case DENY                          -> Outcome.DENY;
+        case SUSPEND                       -> Outcome.SUSPEND;
+        case INDETERMINATE, NOT_APPLICABLE ->
+            throw new IllegalArgumentException(ERROR_NON_CONCRETE_DECISION.formatted(decision));
+        };
     }
 
     /**
      * Merges constraints from two authorization decisions with the same
-     * entitlement.
+     * effect.
      * <p>
      * Assumes transformation uncertainty has been checked before calling.
      *
@@ -158,28 +165,23 @@ public class CombiningUtils {
      */
     public static Vote indeterminateResult(Outcome outcome, List<ErrorValue> errors, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, errors, List.of(), contributingVotes, voterMetadata,
-                outcome);
+        return new Vote(AuthorizationDecision.INDETERMINATE, errors, contributingVotes, voterMetadata, outcome);
     }
 
     /**
-     * Combines two outcomes into a single outcome.
-     * <p>
-     * If both are the same, returns that outcome. If different, returns
-     * PERMIT_OR_DENY.
+     * Combines two outcomes into the union of their effect sets, tolerating null
+     * inputs by treating null as "no contribution".
      *
      * @param a first outcome (may be null)
      * @param b second outcome (may be null)
-     * @return combined outcome
+     * @return the union outcome, or whichever input is non-null when one is null
      */
     public static Outcome combineOutcomes(Outcome a, Outcome b) {
         if (a == null)
             return b;
         if (b == null)
             return a;
-        if (a == b)
-            return a;
-        return Outcome.PERMIT_OR_DENY;
+        return Outcome.combine(a, b);
     }
 
 }
