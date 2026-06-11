@@ -17,6 +17,9 @@
  */
 package io.sapl.ast;
 
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import lombok.val;
+
 /**
  * The set of effects a vote may carry. Each constant is the union of one or
  * more {@link Effect} values, encoded as a bitmask over
@@ -58,6 +61,30 @@ public enum Outcome {
      */
     public static Outcome combine(Outcome a, Outcome b) {
         return BY_MASK[a.mask | b.mask];
+    }
+
+    /**
+     * Computes the union of the potential effects of a default decision and a
+     * sequence of member outcomes. A concrete default decision contributes its
+     * single effect, ABSTAIN contributes nothing. With no contributions at all
+     * the full effect set is returned as the conservative fallback, so that
+     * error criticality checks treat the unknown potential as critical.
+     *
+     * @param defaultDecision the default decision contributing its effect
+     * @param outcomes the member outcomes folded into the union
+     * @return the outcome carrying the union of all contributed effect sets
+     */
+    public static Outcome union(DefaultDecision defaultDecision, Iterable<Outcome> outcomes) {
+        var union = switch (defaultDecision) {
+        case ABSTAIN -> null;
+        case DENY    -> DENY;
+        case PERMIT  -> PERMIT;
+        case SUSPEND -> SUSPEND;
+        };
+        for (val outcome : outcomes) {
+            union = union == null ? outcome : combine(union, outcome);
+        }
+        return union == null ? PERMIT_OR_DENY_OR_SUSPEND : union;
     }
 
     /**

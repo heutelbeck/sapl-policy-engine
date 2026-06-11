@@ -100,9 +100,6 @@ public class PdpCompiler {
 
     public static CompiledPdp compilePDPConfiguration(PDPConfiguration pdpConfiguration, CompilationContext ctx,
             PluginsBundle plugins) {
-        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
-                pdpConfiguration.combiningAlgorithm(), Outcome.PERMIT_OR_DENY, true);
-
         val compiledDocuments = new ArrayList<CompiledDocument>(pdpConfiguration.saplDocuments().size());
         for (val saplDocument : pdpConfiguration.saplDocuments()) {
             compiledDocuments.add(compileDocument(saplDocument, ctx));
@@ -116,6 +113,11 @@ public class PdpCompiler {
         val algorithm       = pdpConfiguration.combiningAlgorithm();
         val defaultDecision = algorithm.defaultDecision();
         val errorHandling   = algorithm.errorHandling();
+
+        val outcome       = Outcome.union(defaultDecision,
+                compiledDocuments.stream().map(CompiledDocument::outcome).toList());
+        val voterMetadata = new PdpVoterMetadata("pdp voter", pdpConfiguration.pdpId(), pdpConfiguration.pdpId(),
+                algorithm, outcome, true);
 
         val voter = switch (algorithm.votingMode()) {
         case FIRST            ->

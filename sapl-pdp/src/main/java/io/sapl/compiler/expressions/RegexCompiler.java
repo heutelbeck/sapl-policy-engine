@@ -140,7 +140,7 @@ public class RegexCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, input.semanticHash(), patternSource.hashCode());
+            return SemanticHashing.ordered(KIND, input.semanticHash(), SemanticHashing.textHash(patternSource));
         }
     }
 
@@ -205,8 +205,9 @@ public class RegexCompiler {
 
         @Override
         public long semanticHash() {
-            val ih = input instanceof Value v ? (long) v.hashCode() : ((PureOperator) input).semanticHash();
-            val ph = pattern instanceof Value v ? (long) v.hashCode() : ((PureOperator) pattern).semanticHash();
+            val ih = input instanceof Value v ? SemanticHashing.valueHash(v) : ((PureOperator) input).semanticHash();
+            val ph = pattern instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) pattern).semanticHash();
             return SemanticHashing.ordered(KIND, ih, ph);
         }
     }

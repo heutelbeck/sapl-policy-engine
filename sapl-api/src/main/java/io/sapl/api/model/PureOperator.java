@@ -17,6 +17,12 @@
  */
 package io.sapl.api.model;
 
+import lombok.val;
+import org.jspecify.annotations.Nullable;
+
+import java.lang.reflect.InaccessibleObjectException;
+import java.util.List;
+
 public non-sealed interface PureOperator extends CompiledExpression {
     Value evaluate(EvaluationContext ctx);
 
@@ -48,6 +54,88 @@ public non-sealed interface PureOperator extends CompiledExpression {
      * @return semantic hash of this operator
      */
     long semanticHash();
+
+    /**
+     * Tests whether this operator is semantically equal to another, ignoring
+     * source location and other non-semantic fields. This verifies the
+     * identity that {@link #semanticHash()} only approximates, so that a hash
+     * collision between two structurally different operators cannot merge them
+     * into one predicate in the policy index and change which documents apply.
+     * <p>
+     * Record implementations are compared component by component: child
+     * operators recursively, constant {@link Value}s by value equality,
+     * identifiers and operator kinds by equality. Source locations and
+     * compiled lambdas (which are derived from the semantic fields) are
+     * ignored. Implementations that are not records fall back to hash
+     * identity, so they must keep their {@link #semanticHash()} unique.
+     *
+     * @param other the operator to compare with
+     * @return true if both operators denote the same computation
+     */
+    default boolean semanticEquals(@Nullable PureOperator other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        val components = getClass().getRecordComponents();
+        if (components == null) {
+            // Not a record: no structural view, trust the semantic hash.
+            return semanticHash() == other.semanticHash();
+        }
+        try {
+            for (val component : components) {
+                val accessor = component.getAccessor();
+                accessor.setAccessible(true);
+                if (!semanticComponentEquals(accessor.invoke(this), accessor.invoke(other))) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException ignored) {
+            // Cannot read components: keep the operators distinct (safe).
+            return false;
+        }
+    }
+
+    private static boolean semanticComponentEquals(@Nullable Object mine, @Nullable Object yours) {
+        if (mine == yours) {
+            return true;
+        }
+        if (mine == null || yours == null) {
+            return false;
+        }
+        if (mine instanceof SourceLocation) {
+            return true; // Position is not semantic.
+        }
+        if (mine.getClass().isSynthetic()) {
+            return true; // Compiled lambda, derived from the semantic fields.
+        }
+        if (mine instanceof PureOperator minePure && yours instanceof PureOperator yoursPure) {
+            return minePure.semanticEquals(yoursPure);
+        }
+        if (mine instanceof Value || yours instanceof Value) {
+            return mine.equals(yours);
+        }
+        if (mine instanceof List<?> mineList && yours instanceof List<?> yoursList) {
+            if (mineList.size() != yoursList.size()) {
+                return false;
+            }
+            for (var i = 0; i < mineList.size(); i++) {
+                if (!semanticComponentEquals(mineList.get(i), yoursList.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (mine instanceof CharSequence || mine instanceof Number || mine instanceof Boolean
+                || mine instanceof Character || mine instanceof Enum<?>) {
+            return mine.equals(yours);
+        }
+        // Unknown non-semantic type: keep the operators distinct (safe).
+        return false;
+    }
 
     /**
      * Returns the boolean expression structure of this operator for the

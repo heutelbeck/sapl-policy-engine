@@ -181,7 +181,7 @@ public class NaryBooleanCompiler {
         @Override
         public long semanticHash() {
             val childHashes = operands.stream().mapToLong(PureOperator::semanticHash).toArray();
-            return SemanticHashing.commutative(shortCircuitValue.hashCode(), childHashes);
+            return SemanticHashing.commutative(SemanticHashing.valueHash(shortCircuitValue), childHashes);
         }
 
         @Override

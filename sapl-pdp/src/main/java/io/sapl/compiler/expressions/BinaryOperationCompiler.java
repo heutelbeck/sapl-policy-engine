@@ -181,7 +181,7 @@ public class BinaryOperationCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.binaryOp(opType, lv.hashCode(), rp.semanticHash());
+            return SemanticHashing.binaryOp(opType, SemanticHashing.valueHash(lv), rp.semanticHash());
         }
     }
 
@@ -204,7 +204,7 @@ public class BinaryOperationCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.binaryOp(opType, lp.semanticHash(), rv.hashCode());
+            return SemanticHashing.binaryOp(opType, lp.semanticHash(), SemanticHashing.valueHash(rv));
         }
     }
 

@@ -17,10 +17,22 @@
  */
 package io.sapl.compiler.index;
 
+import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.NullValue;
+import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
+import io.sapl.api.model.Value;
 import io.sapl.ast.BinaryOperatorType;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Utility for computing semantic hashes of compiled expressions. These hashes
@@ -59,6 +71,100 @@ public class SemanticHashing {
      */
     public static long kindHash(Class<?> clazz) {
         return fmix64(clazz.getName().hashCode());
+    }
+
+    private static final long TEXT_KIND         = kindHash(TextValue.class);
+    private static final long NUMBER_KIND       = kindHash(NumberValue.class);
+    private static final long BOOLEAN_KIND      = kindHash(BooleanValue.class);
+    private static final long NULL_KIND         = kindHash(NullValue.class);
+    private static final long UNDEFINED_KIND    = kindHash(UndefinedValue.class);
+    private static final long ERROR_KIND        = kindHash(ErrorValue.class);
+    private static final long ARRAY_KIND        = kindHash(ArrayValue.class);
+    private static final long OBJECT_KIND       = kindHash(ObjectValue.class);
+    private static final long OBJECT_ENTRY_KIND = fmix64(OBJECT_KIND);
+    private static final long ZERO_NUMBER_HASH  = ordered(NUMBER_KIND, 0L);
+
+    /**
+     * Computes a full 64-bit content hash of a constant value, consistent with
+     * {@link Value#equals(Object)}. Equal values produce equal hashes. Unlike
+     * the 32-bit {@link Object#hashCode()} of the value records, this folds the
+     * entire content through {@link #fmix64} so that distinct constants do not
+     * share identity in the policy index through dense 32-bit collisions (for
+     * example {@code "Aa"} and {@code "BB"}, which collide under
+     * {@link String#hashCode()}).
+     *
+     * @param value the constant value to hash
+     * @return a 64-bit content hash consistent with value equality
+     */
+    public static long valueHash(Value value) {
+        return switch (value) {
+        case TextValue(var text)     -> ordered(TEXT_KIND, textHash(text));
+        case NumberValue(var number) -> numberHash(number);
+        case BooleanValue(var bool)  -> ordered(BOOLEAN_KIND, bool ? 1L : 0L);
+        case NullValue ignored       -> NULL_KIND;
+        case UndefinedValue ignored  -> UNDEFINED_KIND;
+        case ErrorValue error        -> ordered(ERROR_KIND, textHash(error.message()),
+                error.cause() == null ? 0L : textHash(error.cause().getClass().getName()));
+        case ArrayValue array        -> arrayHash(array);
+        case ObjectValue object      -> objectHash(object);
+        };
+    }
+
+    /**
+     * Computes a full 64-bit content hash of a string, avoiding the dense
+     * collisions of {@link String#hashCode()}. Every character is folded
+     * through {@link #fmix64}, so short equal-length strings do not collide.
+     *
+     * @param text the string to hash, may be null
+     * @return a 64-bit content hash, a fixed constant for null
+     */
+    public static long textHash(String text) {
+        if (text == null) {
+            return NULL_KIND;
+        }
+        long hash = fmix64(text.length());
+        for (var i = 0; i < text.length(); i++) {
+            hash = combine(hash, text.charAt(i));
+        }
+        return hash;
+    }
+
+    private static long numberHash(BigDecimal number) {
+        if (number.signum() == 0) {
+            return ZERO_NUMBER_HASH;
+        }
+        BigDecimal normalized;
+        try {
+            // Numerical equality treats 1.0 and 1.00 as equal, so hash the
+            // canonical form. Extreme scales can overflow stripping; the raw
+            // value then keeps the hash defined and equal for equal inputs.
+            normalized = number.stripTrailingZeros();
+        } catch (ArithmeticException ignored) {
+            normalized = number;
+        }
+        long hash = ordered(NUMBER_KIND, normalized.scale());
+        for (val b : normalized.unscaledValue().toByteArray()) {
+            hash = combine(hash, b);
+        }
+        return hash;
+    }
+
+    private static long arrayHash(Iterable<Value> array) {
+        long hash = fmix64(ARRAY_KIND);
+        for (val element : array) {
+            hash = combine(hash, valueHash(element));
+        }
+        return hash;
+    }
+
+    private static long objectHash(Map<String, Value> object) {
+        // Object equality is order-independent, so accumulate entry hashes
+        // through a commutative sum before mixing.
+        long entries = 0L;
+        for (val entry : object.entrySet()) {
+            entries += ordered(OBJECT_ENTRY_KIND, textHash(entry.getKey()), valueHash(entry.getValue()));
+        }
+        return ordered(OBJECT_KIND, entries);
     }
 
     /**

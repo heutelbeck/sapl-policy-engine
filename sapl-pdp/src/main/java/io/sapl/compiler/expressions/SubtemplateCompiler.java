@@ -241,7 +241,7 @@ public class SubtemplateCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, parent.hashCode(), template.semanticHash());
+            return SemanticHashing.ordered(KIND, SemanticHashing.valueHash(parent), template.semanticHash());
         }
     }
 
@@ -266,7 +266,7 @@ public class SubtemplateCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, parent.semanticHash(), template.hashCode());
+            return SemanticHashing.ordered(KIND, parent.semanticHash(), SemanticHashing.valueHash(template));
         }
     }
 

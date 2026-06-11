@@ -140,7 +140,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
+            return SemanticHashing.ordered(KIND, base.semanticHash(), SemanticHashing.textHash(key));
         }
     }
 
@@ -615,7 +615,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            long baseHash = baseValue != null ? baseValue.hashCode() : baseOp.semanticHash();
+            long baseHash = baseValue != null ? SemanticHashing.valueHash(baseValue) : baseOp.semanticHash();
             long exprHash = expr instanceof PureOperator po ? po.semanticHash() : expr.hashCode();
             return SemanticHashing.ordered(KIND, baseHash, exprHash);
         }
@@ -794,7 +794,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.hashCode(), condition.semanticHash());
+            return SemanticHashing.ordered(KIND, SemanticHashing.valueHash(base), condition.semanticHash());
         }
     }
 
@@ -820,7 +820,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.semanticHash(), condition.hashCode());
+            return SemanticHashing.ordered(KIND, base.semanticHash(), SemanticHashing.valueHash(condition));
         }
     }
 
@@ -948,7 +948,7 @@ public class StepCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.semanticHash(), key.hashCode());
+            return SemanticHashing.ordered(KIND, base.semanticHash(), SemanticHashing.textHash(key));
         }
     }
 
