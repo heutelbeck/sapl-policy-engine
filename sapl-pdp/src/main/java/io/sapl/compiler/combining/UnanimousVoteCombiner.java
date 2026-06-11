@@ -152,8 +152,13 @@ public class UnanimousVoteCombiner {
         // INDETERMINATE propagates
         if (accDec == Decision.INDETERMINATE || newDec == Decision.INDETERMINATE) {
             val source = accDec == Decision.INDETERMINATE ? accumulatorVote : newVote;
-            return indeterminateResult(combineOutcomes(accumulatorVote.outcome(), newVote.outcome()), source.errors(),
-                    contributingVotes, voterMetadata);
+            // A NOT_APPLICABLE side carries its voter's potential effect, which is
+            // not a could-have-been of this INDETERMINATE result. Folding it in
+            // would inflate the outcome and spuriously raise criticality upstream,
+            // so take only the INDETERMINATE source's outcome (as UniqueVoteCombiner does).
+            val outcome = (accDec == Decision.NOT_APPLICABLE || newDec == Decision.NOT_APPLICABLE) ? source.outcome()
+                    : combineOutcomes(accumulatorVote.outcome(), newVote.outcome());
+            return indeterminateResult(outcome, source.errors(), contributingVotes, voterMetadata);
         }
 
         // Both NOT_APPLICABLE

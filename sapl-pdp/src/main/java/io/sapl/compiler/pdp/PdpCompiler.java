@@ -129,11 +129,11 @@ public class PdpCompiler {
         case PRIORITY_SUSPEND -> PriorityVoteCompiler.compileVoter(compiledDocuments, voterMetadata, Decision.SUSPEND,
                 defaultDecision, errorHandling, ctx);
         case UNANIMOUS        -> UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
-                errorHandling, false, ctx);
+                errorHandling, false, false, ctx);
         case UNANIMOUS_STRICT -> UnanimousVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
-                errorHandling, true, ctx);
-        case UNIQUE           ->
-            UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision, errorHandling, ctx);
+                errorHandling, true, false, ctx);
+        case UNIQUE           -> UniqueVoteCompiler.compileVoter(compiledDocuments, voterMetadata, defaultDecision,
+                errorHandling, false, ctx);
         };
 
         val coverageVoter = switch (algorithm.votingMode()) {

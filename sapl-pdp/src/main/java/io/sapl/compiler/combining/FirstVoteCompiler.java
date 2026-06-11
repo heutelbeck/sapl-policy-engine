@@ -118,14 +118,17 @@ public class FirstVoteCompiler {
         // 1. Short-circuit: collect static decisions, return first non-NOT_APPLICABLE
         val contributingVotes = new ArrayList<Vote>();
         var firstNonStatic    = 0;
-        for (var policy : policies) {
+        for (var i = 0; i < policies.size(); i++) {
+            val policy = policies.get(i);
             if (!(policy.applicabilityAndVote() instanceof Vote policyVote)) {
                 break; // non-static, stop short-circuit scan
             }
             contributingVotes.add(policyVote);
             if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {
+                val outcome  = firstApplicableOutcome(policyVote, policies.subList(i + 1, policies.size()),
+                        defaultDecision);
                 val combined = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, contributingVotes,
-                        policyVote.outcome());
+                        outcome);
                 return finalizeVote(combined, errorHandling, voterMetadata);
             }
             firstNonStatic++;
@@ -190,12 +193,14 @@ public class FirstVoteCompiler {
         @Override
         public Vote vote(EvaluationContext ctx) {
             val allVotes = new ArrayList<>(contributingVotes);
-            for (var policy : policies) {
-                val policyVote = PolicySetUtil.evaluatePure(policy, ctx, location);
+            for (var i = 0; i < policies.size(); i++) {
+                val policyVote = PolicySetUtil.evaluatePure(policies.get(i), ctx, location);
                 allVotes.add(policyVote);
                 if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {
+                    val outcome  = firstApplicableOutcome(policyVote, policies.subList(i + 1, policies.size()),
+                            defaultDecision);
                     val combined = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, allVotes,
-                            policyVote.outcome());
+                            outcome);
                     return finalizeVote(combined, errorHandling, voterMetadata);
                 }
             }
@@ -228,16 +233,18 @@ public class FirstVoteCompiler {
         public VoteResult evaluate(EvaluationContext ctx) {
             val deps     = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
             val allVotes = new ArrayList<>(contributingVotes);
-            for (val policy : policies) {
-                val sub = policy.applicabilityAndVote().evaluate(ctx);
+            for (var i = 0; i < policies.size(); i++) {
+                val sub = policies.get(i).applicabilityAndVote().evaluate(ctx);
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
                 if (sub.vote() == null) {
                     return new VoteResult(null, deps);
                 }
                 allVotes.add(sub.vote());
                 if (sub.vote().authorizationDecision().decision() != NOT_APPLICABLE) {
+                    val outcome  = firstApplicableOutcome(sub.vote(), policies.subList(i + 1, policies.size()),
+                            defaultDecision);
                     val combined = Vote.combinedVote(sub.vote().authorizationDecision(), voterMetadata, allVotes,
-                            sub.vote().outcome());
+                            outcome);
                     return new VoteResult(finalizeVote(combined, errorHandling, voterMetadata), deps);
                 }
             }
@@ -294,8 +301,8 @@ public class FirstVoteCompiler {
             val deps              = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
             val allVotes          = new ArrayList<Vote>();
             val perPolicyCoverage = new ArrayList<Coverage.DocumentCoverage>();
-            for (val policy : policies) {
-                val sub = policy.coverageVoter().evaluate(ctx);
+            for (var i = 0; i < policies.size(); i++) {
+                val sub = policies.get(i).coverageVoter().evaluate(ctx);
                 StreamOperator.mergeDependencies(deps, sub.voteResult().dependencies());
                 if (sub.voteResult().vote() == null) {
                     val partial = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
@@ -305,8 +312,10 @@ public class FirstVoteCompiler {
                 allVotes.add(policyVote);
                 perPolicyCoverage.add(sub.coverage());
                 if (policyVote.authorizationDecision().decision() != NOT_APPLICABLE) {
+                    val outcome   = firstApplicableOutcome(policyVote, policies.subList(i + 1, policies.size()),
+                            defaultDecision);
                     val combined  = Vote.combinedVote(policyVote.authorizationDecision(), voterMetadata, allVotes,
-                            policyVote.outcome());
+                            outcome);
                     val finalVote = finalizeVote(combined, errorHandling, voterMetadata);
                     val coverage  = new Coverage.PolicySetCoverage(voterMetadata, targetHit, perPolicyCoverage);
                     return new VoteResultWithCoverage(new VoteResult(finalVote, deps), coverage);
@@ -337,5 +346,36 @@ public class FirstVoteCompiler {
             return Vote.abstain(voterMetadata, vote.contributingVotes());
         }
         return vote;
+    }
+
+    /**
+     * Computes the could-have-been outcome for the first-applicable result.
+     * <p>
+     * A concrete decision carries only its own potential: first-applicable
+     * stopped there with certainty. An {@code INDETERMINATE} (erroring)
+     * first-applicable policy, however, might have been {@code NOT_APPLICABLE}
+     * had it not errored, in which case evaluation would have fallen through to
+     * a later policy. Its could-have-been outcome therefore also includes the
+     * potential of every {@code remaining} policy and the default decision.
+     * Without this the set under-reports its potential, and an error that could
+     * have produced the priority effect would be wrongly treated as
+     * non-critical by the enclosing combiner (a fail-open).
+     *
+     * @param firstApplicable the first non-NOT_APPLICABLE policy vote
+     * @param remaining the policies after the first-applicable one
+     * @param defaultDecision the set's default decision
+     * @return the outcome carrying the full could-have-been effect set
+     */
+    private static Outcome firstApplicableOutcome(Vote firstApplicable, List<CompiledPolicy> remaining,
+            CombiningAlgorithm.DefaultDecision defaultDecision) {
+        if (firstApplicable.authorizationDecision().decision() != INDETERMINATE) {
+            return firstApplicable.outcome();
+        }
+        val potentials = new ArrayList<Outcome>(remaining.size() + 1);
+        potentials.add(firstApplicable.outcome());
+        for (val policy : remaining) {
+            potentials.add(policy.metadata().outcome());
+        }
+        return Outcome.union(defaultDecision, potentials);
     }
 }

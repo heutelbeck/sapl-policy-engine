@@ -20,6 +20,7 @@ package io.sapl.compiler.combining;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Outcome;
 import io.sapl.attributes.broker.api.TestAttributeBroker;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
@@ -1627,6 +1628,80 @@ class FirstVoteCompilerTests {
                     assertVoteHasAllTheseContributing(vote, List.of("policy-a", "policy-b", "policy-c"));
                 }
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("Erroring first-applicable includes the tail potential in the outcome")
+    class ErroringFirstApplicableOutcome {
+
+        private static final String ERRORING_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("erroring permit then deny yields INDETERMINATE with PERMIT_OR_DENY potential")
+        void whenErroringPermitThenDenyThenOutcomeIncludesTailDeny() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or permit errors propagate
+
+                    policy "errors"
+                    permit
+                        subject.missing.field;
+
+                    policy "tail-deny"
+                    deny
+                    """);
+            val result   = evaluatePolicySet(compiled, subscriptionContext(ERRORING_SUBSCRIPTION));
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY);
+            });
+        }
+
+        @Test
+        @DisplayName("erroring permit then suspend yields INDETERMINATE with PERMIT_OR_SUSPEND potential")
+        void whenErroringPermitThenSuspendThenOutcomeIncludesTailSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or permit errors propagate
+
+                    policy "errors"
+                    permit
+                        subject.missing.field;
+
+                    policy "tail-suspend"
+                    suspend
+                    """);
+            val result   = evaluatePolicySet(compiled, subscriptionContext(ERRORING_SUBSCRIPTION));
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("a concrete (non-erroring) first-applicable carries only its own outcome, tail excluded")
+        void whenConcreteFirstApplicableThenTailExcluded() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or permit errors propagate
+
+                    policy "applies"
+                    permit
+
+                    policy "tail-deny"
+                    deny
+                    """);
+            val result   = evaluatePolicySet(compiled, subscriptionContext(ERRORING_SUBSCRIPTION));
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT);
+            });
         }
     }
 }
