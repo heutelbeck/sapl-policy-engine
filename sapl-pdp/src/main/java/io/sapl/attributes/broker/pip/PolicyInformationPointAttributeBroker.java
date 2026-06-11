@@ -791,6 +791,40 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
         replacement.start();
         old.close();
+        reclaimIfOrphaned(replacement);
+    }
+
+    /**
+     * Caller must not hold the broker lock. If {@code invocation} has no
+     * subscribers, applies the same teardown policy as a refcount-zero drop:
+     * schedules a grace-period teardown, or removes and closes it when there is
+     * no grace window. {@link #migrate} transfers the old invocation's
+     * subscribers to the replacement, but when the old invocation was in its
+     * refcount-zero grace window there are none to transfer, so the replacement
+     * is promoted with no subscribers. Because {@code handleRefcountZero} only
+     * fires on a consumer detach, such a born-orphaned replacement would never
+     * be reclaimed and its pump would run for the life of the broker. This
+     * closes that gap defensively.
+     */
+    private void reclaimIfOrphaned(ActiveInvocation invocation) {
+        lock.lock();
+        try {
+            if (invocation.refcount() > 0) {
+                return;
+            }
+            val list        = subscriptions.get(invocation.invocation());
+            val teardownNow = (list != null && list.size() > 1) || gracePeriodDuration.isZero();
+            if (!teardownNow) {
+                if (!pendingTeardowns.containsKey(invocation)) {
+                    scheduleTeardown(invocation);
+                }
+                return;
+            }
+            removeFromList(invocation);
+        } finally {
+            lock.unlock();
+        }
+        invocation.close();
     }
 
     /**

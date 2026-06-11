@@ -96,7 +96,8 @@ public class RSocketSecurityConfiguration {
             try {
                 val authType = AuthMetadataCodec.readWellKnownAuthType(metadataBuf);
                 return switch (authType) {
-                case SIMPLE -> authenticateBasic(metadataBuf);
+                case SIMPLE -> properties.isAllowBasicAuth() ? authenticateBasic(metadataBuf)
+                        : Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
                 case BEARER -> authenticateBearer(metadataBuf);
                 default     -> Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
                 };
@@ -130,6 +131,9 @@ public class RSocketSecurityConfiguration {
         // Route by prefix: sapl_ marks API keys, JWTs lack it. Prevents
         // a JWT signature failure from silently retrying as an API key.
         if (token.startsWith(SAPL_API_KEY_PREFIX)) {
+            if (!properties.isAllowApiKeyAuth()) {
+                return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
+            }
             return authenticateApiKey(token);
         }
         if (jwtDecoder != null && properties.isAllowOauth2Auth()) {

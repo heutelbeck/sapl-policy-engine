@@ -28,6 +28,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -144,6 +146,31 @@ class ArithmeticOperatorsTests {
             arguments("unary plus with boolean", UPLUS, Value.TRUE),
             arguments("unary minus with text", UMINUS, Value.of("text")),
             arguments("unary minus with null", UMINUS, Value.NULL));
+    }
+    // @formatter:on
+
+    // Number literals can carry extreme exponents (the grammar allows an
+    // unbounded exponent), producing BigDecimals whose combined scale overflows
+    // int. Such operands must never throw out of the evaluation path.
+    private static final Value HUGE_NEGATIVE_SCALE = Value.of(new BigDecimal(BigInteger.ONE, Integer.MAX_VALUE));
+    private static final Value HUGE_POSITIVE_SCALE = Value.of(new BigDecimal(BigInteger.ONE, Integer.MIN_VALUE));
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenExtremeScaleOperandsThenReturnsErrorNotThrow(String description, BiFunction<Value, Value, Value> op,
+            Value a, Value b) {
+        assertThat(op.apply(a, b)).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("range"));
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenExtremeScaleOperandsThenReturnsErrorNotThrow() {
+        return Stream.of(
+            arguments("add overflowing scales", ADD, HUGE_NEGATIVE_SCALE, HUGE_POSITIVE_SCALE),
+            arguments("subtract overflowing scales", SUB, HUGE_NEGATIVE_SCALE, HUGE_POSITIVE_SCALE),
+            arguments("multiply overflowing scales", MUL, HUGE_NEGATIVE_SCALE, HUGE_NEGATIVE_SCALE),
+            arguments("divide overflowing scales", DIV, HUGE_NEGATIVE_SCALE, HUGE_POSITIVE_SCALE),
+            arguments("modulo overflowing scales", MOD, HUGE_POSITIVE_SCALE, HUGE_NEGATIVE_SCALE));
     }
     // @formatter:on
 

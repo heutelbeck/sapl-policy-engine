@@ -32,6 +32,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -59,19 +60,22 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
 
     @Override
     public Mono<AuthorizationDecision> decideOnce(AuthorizationSubscription authorizationSubscription, String pdpId) {
-        return Mono.create(sink -> Thread.startVirtualThread(() -> {
-            try {
-                sink.success(blocking.decideOnce(authorizationSubscription, pdpId));
-            } catch (Throwable failure) {
-                sink.error(failure);
-            }
-        }));
+        return Mono.create(sink -> {
+            val worker = Thread.startVirtualThread(() -> {
+                try {
+                    sink.success(blocking.decideOnce(authorizationSubscription, pdpId));
+                } catch (Throwable failure) {
+                    sink.error(failure);
+                }
+            });
+            sink.onCancel(worker::interrupt);
+        });
     }
 
     @Override
     public Flux<IdentifiableAuthorizationDecision> decide(MultiAuthorizationSubscription multiSubscription,
             String pdpId) {
-        return adapt(() -> blocking.decide(multiSubscription, pdpId));
+        return conflateBySubscription(() -> blocking.decide(multiSubscription, pdpId));
     }
 
     @Override
@@ -111,6 +115,71 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
                 stream.close();
             });
         }, FluxSink.OverflowStrategy.LATEST);
+    }
+
+    /**
+     * Bridges a multi-subscription decision {@link Stream} to a {@link Flux}
+     * with per-subscription latest-wins conflation. A slow consumer never loses
+     * the latest decision of any individual subscription: only an older decision
+     * for the SAME {@code subscriptionId} is superseded. Distinct subscriptions
+     * never evict one another, so the pending buffer is bounded by the number of
+     * subscriptions in the multi-subscription.
+     * <p>
+     * Emission is demand-gated: a decision is pushed only while the downstream
+     * has outstanding request, so the global {@code LATEST} overflow strategy
+     * (which conflates across all subscriptions and would drop other
+     * subscriptions' decisions) is not used here.
+     */
+    static Flux<IdentifiableAuthorizationDecision> conflateBySubscription(
+            Supplier<Stream<IdentifiableAuthorizationDecision>> streamFactory) {
+        return Flux.create(sink -> {
+            val pending = new LinkedHashMap<String, IdentifiableAuthorizationDecision>();
+            val stream  = streamFactory.get();
+            val pump    = Thread.startVirtualThread(() -> pumpConflating(stream, sink, pending));
+            sink.onRequest(requested -> drainConflating(sink, pending));
+            sink.onCancel(() -> {
+                pump.interrupt();
+                stream.close();
+            });
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
+    private static void pumpConflating(Stream<IdentifiableAuthorizationDecision> stream,
+            FluxSink<IdentifiableAuthorizationDecision> sink,
+            LinkedHashMap<String, IdentifiableAuthorizationDecision> pending) {
+        try (stream) {
+            while (!Thread.interrupted()) {
+                val value = stream.awaitNext();
+                if (value == null) {
+                    drainConflating(sink, pending);
+                    sink.complete();
+                    return;
+                }
+                synchronized (pending) {
+                    pending.put(value.subscriptionId(), value);
+                }
+                drainConflating(sink, pending);
+            }
+        } catch (InterruptedException expected) {
+            Thread.currentThread().interrupt();
+        } catch (Throwable failure) {
+            sink.error(failure);
+        }
+    }
+
+    private static void drainConflating(FluxSink<IdentifiableAuthorizationDecision> sink,
+            LinkedHashMap<String, IdentifiableAuthorizationDecision> pending) {
+        synchronized (pending) {
+            while (sink.requestedFromDownstream() > 0) {
+                val iterator = pending.entrySet().iterator();
+                if (!iterator.hasNext()) {
+                    return;
+                }
+                val next = iterator.next().getValue();
+                iterator.remove();
+                sink.next(next);
+            }
+        }
     }
 
     private static <T> void pumpStreamToSink(Stream<T> stream, FluxSink<T> sink) {
