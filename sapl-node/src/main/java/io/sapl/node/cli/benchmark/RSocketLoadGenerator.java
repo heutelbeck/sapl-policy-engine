@@ -76,13 +76,13 @@ public class RSocketLoadGenerator {
      */
     private record LoadResources(List<RSocket> sockets, byte[] protoPayload, byte[] routeBytes) {}
 
-    public static BenchmarkResult run(String host, int port, String socketPath, byte[] protoPayload, int connections,
+    public static LoadtestOutcome run(String host, int port, String socketPath, byte[] protoPayload, int connections,
             int concurrencyPerConnection, int warmupSeconds, int measureSeconds, int targetRate, PrintWriter out) {
         val totalConcurrency = connections * concurrencyPerConnection;
         val sockets          = connectAll(host, port, socketPath, connections, out);
 
         if (sockets.isEmpty()) {
-            return emptyResult(connections, concurrencyPerConnection);
+            return new LoadtestOutcome(null, 0);
         }
 
         val res = new LoadResources(sockets, protoPayload, ROUTE.getBytes(StandardCharsets.UTF_8));
@@ -96,14 +96,15 @@ public class RSocketLoadGenerator {
                 warmupUntilConverged(res, totalConcurrency, out);
             }
 
-            val ops     = new AtomicLong(0);
-            val latency = new LatencyCollector(MAX_LATENCY_SAMPLES);
-            val start   = System.nanoTime();
+            val ops      = new AtomicLong(0);
+            val failures = new AtomicLong(0);
+            val latency  = new LatencyCollector(MAX_LATENCY_SAMPLES);
+            val start    = System.nanoTime();
 
             if (targetRate > 0) {
-                runPacedPhase(res, totalConcurrency, measureSeconds, targetRate, ops, latency);
+                runPacedPhase(res, totalConcurrency, measureSeconds, targetRate, ops, failures, latency);
             } else {
-                runSaturationPhase(res, totalConcurrency, measureSeconds, ops, latency);
+                runSaturationPhase(res, totalConcurrency, measureSeconds, ops, failures, latency);
             }
 
             val elapsed    = (System.nanoTime() - start) / 1_000_000_000.0;
@@ -116,12 +117,16 @@ public class RSocketLoadGenerator {
                 out.printf("  %d conns x %d concurrent: %.0f req/s%n", connections, concurrencyPerConnection,
                         throughput);
             }
+            if (failures.get() > 0) {
+                out.printf("  %d request(s) failed (error response or transport error)%n", failures.get());
+            }
             out.flush();
 
             val label = targetRate > 0
                     ? "rsocket-%dc-%dw-%dr".formatted(connections, concurrencyPerConnection, targetRate)
                     : "rsocket-%dc-%dw".formatted(connections, concurrencyPerConnection);
-            return BenchmarkResult.fromIterations(label, 1, List.of(throughput), latency.toLatency());
+            return new LoadtestOutcome(
+                    BenchmarkResult.fromIterations(label, 1, List.of(throughput), latency.toLatency()), failures.get());
         } finally {
             for (val s : sockets) {
                 s.dispose();
@@ -131,16 +136,24 @@ public class RSocketLoadGenerator {
 
     private static List<RSocket> connectAll(String host, int port, String socketPath, int connections,
             PrintWriter out) {
-        val sockets = new ArrayList<RSocket>(connections);
+        val endpoint = socketPath != null ? "unix://" + socketPath : "rsocket://" + host + ":" + port;
+        val sockets  = new ArrayList<RSocket>(connections);
         for (int i = 0; i < connections; i++) {
-            val transport = socketPath != null
+            val     transport = socketPath != null
                     ? TcpClientTransport
                             .create(TcpClient.create().remoteAddress(() -> new DomainSocketAddress(socketPath)))
                     : TcpClientTransport.create(host, port);
-            val rsocket   = RSocketConnector.create().connect(transport).block();
-            val endpoint  = socketPath != null ? "unix://" + socketPath : "rsocket://" + host + ":" + port;
+            RSocket rsocket;
+            try {
+                rsocket = RSocketConnector.create().connect(transport).block();
+            } catch (Exception ignored) {
+                // A refused or unreachable endpoint surfaces as a connect
+                // exception. Report it as a clean message instead of letting a
+                // stack trace reach the operator.
+                rsocket = null;
+            }
             if (rsocket == null || rsocket.isDisposed()) {
-                out.println("  ERROR: Failed to connect to " + endpoint);
+                out.println("  ERROR: could not connect to " + endpoint + ". Is the server running and reachable?");
                 sockets.forEach(RSocket::dispose);
                 return List.of();
             }
@@ -156,21 +169,24 @@ public class RSocketLoadGenerator {
     }
 
     private static void runSaturationPhase(LoadResources res, int totalConcurrency, int seconds, AtomicLong ops,
-            LatencyCollector latency) {
+            AtomicLong failures, LatencyCollector latency) {
         val running = new AtomicBoolean(true);
         Schedulers.parallel().schedule(() -> running.set(false), seconds, TimeUnit.SECONDS);
 
         Flux.range(0, totalConcurrency).flatMap(worker -> Mono.defer(() -> {
             val sendTime = System.nanoTime();
-            return sendOnce(res, worker).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
+            return sendOnce(res, worker).doOnSuccess(ignored -> {
                 latency.addSample(System.nanoTime() - sendTime);
                 ops.incrementAndGet();
+            }).onErrorResume(e -> {
+                failures.incrementAndGet();
+                return Mono.empty();
             });
         }).repeat(running::get), totalConcurrency).blockLast();
     }
 
     private static void runPacedPhase(LoadResources res, int totalConcurrency, int seconds, int targetRate,
-            AtomicLong ops, LatencyCollector latency) {
+            AtomicLong ops, AtomicLong failures, LatencyCollector latency) {
         val workerCount      = res.sockets().size();
         val ratePerWorker    = Math.max(1, targetRate / workerCount);
         val workerIntervalNs = 1_000_000_000L / ratePerWorker;
@@ -182,9 +198,12 @@ public class RSocketLoadGenerator {
                         .interval(Duration.ofNanos(workerIntervalNs), Schedulers.newSingle("pacer-" + worker, true))
                         .take(ticksPerWorker).onBackpressureDrop().flatMap(tick -> Mono.defer(() -> {
                             val sendTime = System.nanoTime();
-                            return sendOnce(res, worker).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
+                            return sendOnce(res, worker).doOnSuccess(ignored -> {
                                 latency.addSample(System.nanoTime() - sendTime);
                                 ops.incrementAndGet();
+                            }).onErrorResume(e -> {
+                                failures.incrementAndGet();
+                                return Mono.empty();
                             });
                         }), concPerWorker), workerCount)
                 .blockLast();
@@ -196,7 +215,7 @@ public class RSocketLoadGenerator {
         for (int i = 0; i < MAX_WARMUP_ITERATIONS; i++) {
             val ops     = new AtomicLong(0);
             val discard = new LatencyCollector(1);
-            runSaturationPhase(res, totalConcurrency, WARMUP_INTERVAL_SECS, ops, discard);
+            runSaturationPhase(res, totalConcurrency, WARMUP_INTERVAL_SECS, ops, new AtomicLong(0), discard);
             val rps = ops.get() / WARMUP_INTERVAL_SECS;
             out.printf("%d/s ", rps);
             out.flush();
@@ -222,11 +241,6 @@ public class RSocketLoadGenerator {
             }
         }
         return true;
-    }
-
-    private static BenchmarkResult emptyResult(int connections, int concurrencyPerConnection) {
-        val label = "rsocket-%dc-%dw".formatted(connections, concurrencyPerConnection);
-        return BenchmarkResult.fromIterations(label, 1, List.of());
     }
 
 }

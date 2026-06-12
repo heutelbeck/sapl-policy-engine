@@ -18,12 +18,15 @@
 package io.sapl.node.auth;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.metadata.AuthMetadataCodec;
 import io.sapl.node.SaplNodeProperties;
+import io.sapl.node.SaplNodeProperties.UserEntry;
 import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -96,5 +99,57 @@ class RSocketSecurityConfigurationTests {
 
         StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
         verify(userLookupService).findByBasicUsername("alice");
+    }
+
+    @Nested
+    @DisplayName("when unauthenticated access is allowed")
+    class AllowNoAuth {
+
+        @Test
+        @DisplayName("a connection with no credentials is accepted as the default PDP")
+        void whenNoCredentialsThenDefaultPdp() {
+            val properties = new SaplNodeProperties();
+            properties.setAllowNoAuth(true);
+            properties.setDefaultPdpId("default");
+
+            val result = authenticatorFor(properties).authenticate(setupWith(Unpooled.EMPTY_BUFFER));
+
+            StepVerifier.create(result).expectNextMatches(r -> "default".equals(r.pdpId())).verifyComplete();
+            verifyNoInteractions(userLookupService);
+        }
+
+        @Test
+        @DisplayName("a presented API key is still honored and routed to its tenant")
+        void whenValidApiKeyPresentedThenRoutedToTenant() {
+            val properties = new SaplNodeProperties();
+            properties.setAllowNoAuth(true);
+            properties.setAllowApiKeyAuth(true);
+            val user = new UserEntry();
+            user.setId("prod-client");
+            user.setPdpId("production");
+            when(userLookupService.findByApiKey("sapl_prod_secret")).thenReturn(Optional.of(user));
+            val metadata = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT,
+                    "sapl_prod_secret".toCharArray());
+
+            val result = authenticatorFor(properties).authenticate(setupWith(metadata));
+
+            StepVerifier.create(result).expectNextMatches(r -> "production".equals(r.pdpId())).verifyComplete();
+            verify(userLookupService).findByApiKey("sapl_prod_secret");
+        }
+
+        @Test
+        @DisplayName("a presented but invalid credential is rejected, not silently defaulted")
+        void whenInvalidApiKeyPresentedThenRejected() {
+            val properties = new SaplNodeProperties();
+            properties.setAllowNoAuth(true);
+            properties.setAllowApiKeyAuth(true);
+            when(userLookupService.findByApiKey("sapl_bad_secret")).thenReturn(Optional.empty());
+            val metadata = AuthMetadataCodec.encodeBearerMetadata(ByteBufAllocator.DEFAULT,
+                    "sapl_bad_secret".toCharArray());
+
+            val result = authenticatorFor(properties).authenticate(setupWith(metadata));
+
+            StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
+        }
     }
 }

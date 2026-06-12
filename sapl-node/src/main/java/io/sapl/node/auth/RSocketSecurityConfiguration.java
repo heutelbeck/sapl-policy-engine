@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.metadata.AuthMetadataCodec;
 import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.auth.UserLookupService;
@@ -83,29 +84,36 @@ public class RSocketSecurityConfiguration {
         if (!rsocketEnabled) {
             return null;
         }
-        if (properties.isAllowNoAuth()) {
+        val allowNoAuth = properties.isAllowNoAuth();
+        if (allowNoAuth) {
             log.warn("RSocket endpoint accepts unauthenticated connections");
-            return setup -> Mono.just(new AuthenticationResult(properties.getDefaultPdpId(), null));
         }
-        return setup -> Mono.defer(() -> {
-            val metadata = setup.metadata();
-            if (metadata.readableBytes() == 0) {
-                return Mono.error(new BadCredentialsException(ERROR_NO_CREDENTIALS));
-            }
-            val metadataBuf = Unpooled.wrappedBuffer(metadata.nioBuffer());
-            try {
-                val authType = AuthMetadataCodec.readWellKnownAuthType(metadataBuf);
-                return switch (authType) {
-                case SIMPLE -> properties.isAllowBasicAuth() ? authenticateBasic(metadataBuf)
-                        : Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
-                case BEARER -> authenticateBearer(metadataBuf);
-                default     -> Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
-                };
-            } catch (Exception e) {
-                log.debug("RSocket setup auth failed: {}", e.getMessage());
-                return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED, e));
-            }
-        });
+        return setup -> Mono.defer(() -> authenticateSetup(setup, allowNoAuth));
+    }
+
+    private Mono<AuthenticationResult> authenticateSetup(ConnectionSetupPayload setup, boolean allowNoAuth) {
+        val metadata = setup.metadata();
+        if (metadata.readableBytes() == 0) {
+            // A connection with no credentials is accepted as the default PDP
+            // only when unauthenticated access is allowed. A presented
+            // credential is always verified and routed to its tenant, matching
+            // the HTTP authentication handler.
+            return allowNoAuth ? Mono.just(new AuthenticationResult(properties.getDefaultPdpId(), null))
+                    : Mono.error(new BadCredentialsException(ERROR_NO_CREDENTIALS));
+        }
+        val metadataBuf = Unpooled.wrappedBuffer(metadata.nioBuffer());
+        try {
+            val authType = AuthMetadataCodec.readWellKnownAuthType(metadataBuf);
+            return switch (authType) {
+            case SIMPLE -> properties.isAllowBasicAuth() ? authenticateBasic(metadataBuf)
+                    : Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
+            case BEARER -> authenticateBearer(metadataBuf);
+            default     -> Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
+            };
+        } catch (Exception e) {
+            log.debug("RSocket setup auth failed: {}", e.getMessage());
+            return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED, e));
+        }
     }
 
     private Mono<AuthenticationResult> authenticateBasic(ByteBuf metadata) {

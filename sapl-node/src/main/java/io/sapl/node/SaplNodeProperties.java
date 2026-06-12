@@ -54,6 +54,17 @@ public class SaplNodeProperties implements InitializingBean {
 
             then replace the duplicates.""";
 
+    private static final String ERROR_MISSING_API_KEY_ID  = "SAPL Node refused to start. User '%s' has an api-key but no api-key-id configured.";
+    private static final String ACTION_MISSING_API_KEY_ID = """
+            Every api-key user entry needs an api-key-id, the middle segment of
+            the wire token sapl_<id>_<secret>, so the server can find the entry.
+
+            Generate fresh credentials with:
+
+              sapl generate apikey --id <user-id>
+
+            then copy both the api-key-id and api-key into the user entry.""";
+
     private static final String ERROR_MISSING_PDP_ID  = "SAPL Node refused to start. User '%s' has no pdp-id configured and reject-on-missing-pdp-id is enabled.";
     private static final String ACTION_MISSING_PDP_ID = """
             Either set a pdp-id on the user entry:
@@ -134,6 +145,7 @@ public class SaplNodeProperties implements InitializingBean {
         for (UserEntry user : users) {
             if (user.getApiKey() != null) {
                 assertIsValidApiKey(user.getApiKey());
+                requireApiKeyId(user);
                 warnIfApiKeyLooksPlaintext(user);
             }
             normalizeOrRejectPdpId(user);
@@ -203,6 +215,14 @@ public class SaplNodeProperties implements InitializingBean {
         if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
             throw new SaplStartupConfigurationException(
                     ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH), ACTION_SHORT_API_KEY);
+        }
+    }
+
+    private static void requireApiKeyId(UserEntry user) {
+        val apiKeyId = user.getApiKeyId();
+        if (apiKeyId == null || apiKeyId.isBlank()) {
+            throw new SaplStartupConfigurationException(ERROR_MISSING_API_KEY_ID.formatted(user.getId()),
+                    ACTION_MISSING_API_KEY_ID);
         }
     }
 

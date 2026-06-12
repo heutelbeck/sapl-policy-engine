@@ -170,7 +170,7 @@ public class LoadtestCommand implements Callable<Integer> {
                 Files.createDirectories(output);
             }
 
-            BenchmarkResult result;
+            LoadtestOutcome outcome;
             LoadtestContext ctx;
 
             try (PrintWriter silent = machineReadable
@@ -189,7 +189,7 @@ public class LoadtestCommand implements Callable<Integer> {
                             out.println("RSocket load test: rsocket://%s:%d".formatted(rsocketHost, rsocketPort));
                         }
                     }
-                    result = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
+                    outcome = RSocketLoadGenerator.run(rsocketHost, rsocketPort, socketPath, protoPayload, connections,
                             vtPerConnection, warmupSeconds, measureSeconds, rate, progressOut);
                 } else {
                     val body = mapper.writeValueAsString(subscription).getBytes(StandardCharsets.UTF_8);
@@ -197,9 +197,14 @@ public class LoadtestCommand implements Callable<Integer> {
                     if (!machineReadable) {
                         out.println("HTTP load test: %s".formatted(url));
                     }
-                    result = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, rate,
+                    outcome = HttpLoadGenerator.run(url, body, concurrency, warmupSeconds, measureSeconds, rate,
                             insecure, progressOut);
                 }
+            }
+
+            val result = outcome.result();
+            if (result == null) {
+                return 1;
             }
 
             val results = new ArrayList<BenchmarkResult>();
@@ -218,7 +223,7 @@ public class LoadtestCommand implements Callable<Integer> {
                 }
             }
 
-            return 0;
+            return outcome.failures() > 0 ? 1 : 0;
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
             return 1;

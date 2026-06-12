@@ -18,6 +18,7 @@
 package io.sapl.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -25,8 +26,12 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.node.SaplNodeProperties.UserEntry;
+import io.sapl.node.boot.SaplStartupConfigurationException;
 
 @DisplayName("SaplNodeProperties")
 class SaplNodePropertiesTests {
@@ -126,6 +131,50 @@ class SaplNodePropertiesTests {
 
             assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("user-1").hasMessageContaining("no pdp-id configured");
+        }
+
+    }
+
+    @Nested
+    @DisplayName("apiKey requires apiKeyId")
+    class ApiKeyIdRequirementTests {
+
+        private static final String VALID_API_KEY = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
+
+        @ParameterizedTest(name = "api-key-id = \"{0}\"")
+        @NullSource
+        @ValueSource(strings = { "", "   " })
+        @DisplayName("throws when a user has an api-key but no usable api-key-id")
+        void whenApiKeySetButApiKeyIdMissingThenThrows(String apiKeyId) {
+            var user = createUserEntry("api-user", "default");
+            user.setApiKey(VALID_API_KEY);
+            user.setApiKeyId(apiKeyId);
+            var properties = new SaplNodeProperties();
+            properties.setUsers(List.of(user));
+
+            assertThatThrownBy(properties::afterPropertiesSet).isInstanceOf(SaplStartupConfigurationException.class)
+                    .hasMessageContaining("api-user").hasMessageContaining("api-key-id");
+        }
+
+        @Test
+        @DisplayName("accepts a user that has both an api-key and an api-key-id")
+        void whenApiKeyAndApiKeyIdSetThenAccepts() {
+            var user = createUserEntry("api-user", "default");
+            user.setApiKey(VALID_API_KEY);
+            user.setApiKeyId("7A7ByyQd6U");
+            var properties = new SaplNodeProperties();
+            properties.setUsers(List.of(user));
+
+            assertThatCode(properties::afterPropertiesSet).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("accepts a user with no api-key, so the requirement does not affect basic auth")
+        void whenUserHasNoApiKeyThenAccepts() {
+            var properties = new SaplNodeProperties();
+            properties.setUsers(List.of(createUserEntry("basic-user", "default")));
+
+            assertThatCode(properties::afterPropertiesSet).doesNotThrowAnyException();
         }
 
     }
