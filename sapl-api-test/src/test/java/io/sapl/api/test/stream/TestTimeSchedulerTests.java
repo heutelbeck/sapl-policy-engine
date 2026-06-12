@@ -87,13 +87,24 @@ class TestTimeSchedulerTests {
     @Test
     @DisplayName("advancing to a past time is a no-op")
     void whenAdvanceBackwardThenNothingHappens() {
+        val scheduler = new TestTimeScheduler(T0);
+        val ran       = new AtomicBoolean(false);
+        scheduler.scheduleAt(T0.plusSeconds(10), () -> ran.set(true));
+
+        scheduler.advanceTo(T0.minusSeconds(60));
+
+        assertThat(ran).isFalse();
+        assertThat(scheduler.pendingCount()).isOne();
+    }
+
+    @Test
+    @DisplayName("a task scheduled for an instant already in the past fires immediately")
+    void whenScheduledForPastInstantThenFiresImmediately() {
         val scheduler = new TestTimeScheduler(T0.plusSeconds(60));
         val ran       = new AtomicBoolean(false);
         scheduler.scheduleAt(T0.plusSeconds(10), () -> ran.set(true));
 
-        scheduler.advanceTo(T0);
-
-        assertThat(ran).isFalse();
-        assertThat(scheduler.pendingCount()).isOne();
+        assertThat(ran).isTrue();
+        assertThat(scheduler.pendingCount()).isZero();
     }
 }
