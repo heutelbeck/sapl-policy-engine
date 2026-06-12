@@ -86,7 +86,7 @@ public class SemanticHashing {
 
     /**
      * Computes a full 64-bit content hash of a constant value, consistent with
-     * {@link Value#equals(Object)}. Equal values produce equal hashes. Unlike
+     * {@link Value} equality. Equal values produce equal hashes. Unlike
      * the 32-bit {@link Object#hashCode()} of the value records, this folds the
      * entire content through {@link #fmix64} so that distinct constants do not
      * share identity in the policy index through dense 32-bit collisions (for

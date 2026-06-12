@@ -17,8 +17,13 @@
  */
 package io.sapl.api.proto;
 
+import static com.google.protobuf.WireFormat.WIRETYPE_LENGTH_DELIMITED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.protobuf.CodedOutputStream;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.stream.Stream;
@@ -57,6 +62,42 @@ class SaplProtobufCodecTests {
             var bytes        = SaplProtobufCodec.writeValue(original);
             var deserialized = SaplProtobufCodec.readValue(bytes);
             assertThat(deserialized).isEqualTo(original);
+        }
+
+        @Test
+        @DisplayName("decoding a value nested beyond the maximum depth fails closed with an IOException")
+        void whenValueNestedBeyondMaxDepthThenReadFailsClosed() throws IOException {
+            // Built directly on the wire rather than via writeValue: a hostile
+            // payload would not pass through the encoder, and each wrap here is
+            // O(1), avoiding the encoder's own deep-nesting cost.
+            byte[] bytes = SaplProtobufCodec.writeValue(Value.of("leaf"));
+            for (int i = 0; i < 150; i++) {
+                bytes = wrapInArrayValue(bytes);
+            }
+            final byte[] nested = bytes;
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readValue(nested)).isInstanceOf(IOException.class)
+                    .hasMessageContaining("maximum depth");
+        }
+
+        private static byte[] wrapInArrayValue(byte[] innerValueBytes) throws IOException {
+            // ArrayValue content: one ARRAY_ELEMENTS (field 1) holding the inner value.
+            var elementBuffer = new ByteArrayOutputStream();
+            var elementOut    = CodedOutputStream.newInstance(elementBuffer);
+            elementOut.writeTag(1, WIRETYPE_LENGTH_DELIMITED);
+            elementOut.writeUInt32NoTag(innerValueBytes.length);
+            elementOut.writeRawBytes(innerValueBytes);
+            elementOut.flush();
+            var elementBytes = elementBuffer.toByteArray();
+
+            // Value fields: one VALUE_ARRAY (field 5) holding the array content.
+            var valueBuffer = new ByteArrayOutputStream();
+            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            valueOut.writeTag(5, WIRETYPE_LENGTH_DELIMITED);
+            valueOut.writeUInt32NoTag(elementBytes.length);
+            valueOut.writeRawBytes(elementBytes);
+            valueOut.flush();
+            return valueBuffer.toByteArray();
         }
 
         static Stream<Arguments> valueTestCases() {
