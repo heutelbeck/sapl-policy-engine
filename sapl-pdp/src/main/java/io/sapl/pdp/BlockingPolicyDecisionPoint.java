@@ -505,8 +505,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                                                   out.put(Optional.empty());
                                               }
                                           };
+        // subscribeToUpdates delivers the current configuration to the listener
+        // under the source lock, so the initial value and any concurrent update
+        // arrive in order and a stale configuration cannot latch here.
         pdpConfigurationSource.subscribeToUpdates(pdpId, listener);
-        out.put(pdpConfigurationSource.getCurrentConfiguration(pdpId));
         out.onClose(() -> pdpConfigurationSource.unsubscribeFromUpdates(pdpId, listener));
         return out;
     }

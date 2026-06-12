@@ -23,6 +23,8 @@ import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -464,7 +466,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val result = compiledPattern.matcher(value.value()).replaceAll(replacement.value());
+            val result = BoundedRegex.matcher(compiledPattern, value.value()).replaceAll(replacement.value());
             return Value.of(result);
         } catch (Exception e) {
             return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
@@ -508,7 +510,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val parts  = compiledPattern.split(value.value(), MAX_MATCHES);
+            val parts  = compiledPattern.split(BoundedRegex.guarded(value.value()), MAX_MATCHES);
             val result = ArrayValue.builder();
             for (val part : parts) {
                 result.add(Value.of(part));
@@ -589,7 +591,9 @@ public class PatternsFunctionLibrary {
 
         try {
             val pattern = Pattern.compile(regexPattern);
-            return Value.of(pattern.matcher(valueText).matches());
+            return Value.of(BoundedRegex.matches(pattern, valueText));
+        } catch (RegexBudgetExceededException e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         } catch (PatternSyntaxException e) {
             return Value.error(ERROR_INVALID_TEMPLATE.formatted(e.getMessage()));
         }
@@ -711,7 +715,9 @@ public class PatternsFunctionLibrary {
         try {
             val regex           = convertGlobToRegex(pattern, delimiters, 0);
             val compiledPattern = Pattern.compile(regex);
-            return Value.of(compiledPattern.matcher(value).matches());
+            return Value.of(BoundedRegex.matches(compiledPattern, value));
+        } catch (RegexBudgetExceededException e) {
+            return Value.error(ERROR_MATCHING_FAILED.formatted(e.getMessage()));
         } catch (IllegalStateException e) {
             return Value.error(e.getMessage());
         } catch (PatternSyntaxException e) {
@@ -1070,7 +1076,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val matcher = compiledPattern.matcher(value.value());
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val matches = ArrayValue.builder();
 
             var count = 0;
@@ -1098,7 +1104,7 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val matcher = compiledPattern.matcher(value.value());
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
             val results = ArrayValue.builder();
 
             var count = 0;

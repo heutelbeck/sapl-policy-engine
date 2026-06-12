@@ -69,6 +69,18 @@ class AttributeStreamTests {
         return poll instanceof Poll.Value(Value v) ? v : null;
     }
 
+    @Test
+    @DisplayName("backoff stays non-negative and bounded across all retry indices")
+    void whenRetryIndexGrowsThenBackoffNeverOverflows() {
+        val base     = Duration.ofMillis(1000);
+        val maxDelay = Duration.ofMinutes(90);
+        for (int retryIndex = 0; retryIndex <= 64; retryIndex++) {
+            val delay = AttributeStream.jitteredBackoff(base, retryIndex);
+            assertThat(delay).as("retryIndex %d", retryIndex).isGreaterThanOrEqualTo(Duration.ZERO)
+                    .isLessThanOrEqualTo(maxDelay);
+        }
+    }
+
     @Nested
     @DisplayName("happy path")
     class HappyPath {
@@ -202,6 +214,31 @@ class AttributeStreamTests {
 
                 val recovered = stream.awaitNext();
                 assertThat(recovered).isEqualTo(Value.of("supplier-ok"));
+            }
+        }
+
+        @Test
+        @org.junit.jupiter.api.Timeout(10)
+        @DisplayName("an Error that escapes the retry guard does not kill the pump: error value published, then recovery")
+        void whenSupplierThrowsErrorThenPumpSurvivesAndRecovers() throws Exception {
+            val                     attempts = new AtomicInteger();
+            Supplier<Stream<Value>> source   = () -> {
+                                                 if (attempts.getAndIncrement() == 0) {
+                                                     // An Error is not caught by attemptWithRetries, so it escapes
+                                                     // to the pump loop; the immortal guard must contain it.
+                                                     throw new AssertionError("pump-error");
+                                                 }
+                                                 val good = new ScriptedStream();
+                                                 good.emit(Value.of("recovered"));
+                                                 good.complete();
+                                                 return good;
+                                             };
+
+            try (val stream = new AttributeStream(invocation("pumpError", INITIAL_TIMEOUT, POLL_INTERVAL, BACKOFF, 1L),
+                    source)) {
+
+                assertThat(stream.awaitNext()).isInstanceOf(ErrorValue.class);
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("recovered"));
             }
         }
     }

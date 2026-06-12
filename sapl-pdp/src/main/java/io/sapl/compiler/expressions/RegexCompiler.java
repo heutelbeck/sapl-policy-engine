@@ -25,7 +25,8 @@ import lombok.val;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Predicate;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -44,6 +45,7 @@ public class RegexCompiler {
 
     private static final String          ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
     private static final String          ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
+    private static final String          ERROR_REGEX_TIMEOUT        = "Regular expression evaluation exceeded its time budget.";
     private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
@@ -60,20 +62,20 @@ public class RegexCompiler {
 
         // Pre-compile regex when pattern is a literal string.
         if (right instanceof TextValue(String value)) {
-            Predicate<String> matcher;
+            final Pattern compiled;
             try {
-                matcher = Pattern.compile(value).asMatchPredicate();
+                compiled = Pattern.compile(value);
             } catch (PatternSyntaxException e) {
                 throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getMessage()), e,
                         binaryOperation);
             }
             if (left instanceof Value lv) {
-                return matchRegex(lv, matcher);
+                return matchRegex(lv, compiled, loc);
             }
             if (left instanceof StreamOperator ls) {
-                return new RegexPrecompiledStream(ls, matcher, loc);
+                return new RegexPrecompiledStream(ls, compiled, loc);
             }
-            return new RegexPrecompiledPure((PureOperator) left, value, matcher, loc);
+            return new RegexPrecompiledPure((PureOperator) left, value, compiled, loc);
         }
 
         // Runtime path: pattern is not a literal. Reject non-Pure/non-Stream.
@@ -86,11 +88,15 @@ public class RegexCompiler {
         return new RegexPure(left, right, loc);
     }
 
-    static Value matchRegex(Value input, Predicate<String> matcher) {
+    static Value matchRegex(Value input, Pattern pattern, SourceLocation loc) {
         if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
-        return matcher.test(value) ? Value.TRUE : Value.FALSE;
+        try {
+            return BoundedRegex.matches(pattern, value) ? Value.TRUE : Value.FALSE;
+        } catch (RegexBudgetExceededException | StackOverflowError e) {
+            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
+        }
     }
 
     static Value matchRegex(Value input, Value pattern, SourceLocation loc) {
@@ -100,10 +106,16 @@ public class RegexCompiler {
         if (!(input instanceof TextValue(String inputText))) {
             return Value.FALSE; // Non-text doesn't match
         }
+        final Pattern compiled;
         try {
-            return Pattern.matches(patternText, inputText) ? Value.TRUE : Value.FALSE;
+            compiled = Pattern.compile(patternText);
         } catch (PatternSyntaxException e) {
             return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getMessage());
+        }
+        try {
+            return BoundedRegex.matches(compiled, inputText) ? Value.TRUE : Value.FALSE;
+        } catch (RegexBudgetExceededException | StackOverflowError e) {
+            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
         }
     }
 
@@ -112,11 +124,8 @@ public class RegexCompiler {
      * {@link Predicate} cached at compile time bypasses per-evaluation
      * pattern compilation.
      */
-    record RegexPrecompiledPure(
-            PureOperator input,
-            String patternSource,
-            Predicate<String> matcher,
-            SourceLocation location) implements PureOperator {
+    record RegexPrecompiledPure(PureOperator input, String patternSource, Pattern pattern, SourceLocation location)
+            implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(RegexPrecompiledPure.class);
 
         @Override
@@ -125,7 +134,7 @@ public class RegexCompiler {
             if (v instanceof ErrorValue) {
                 return v;
             }
-            return matchRegex(v, matcher);
+            return matchRegex(v, pattern, location);
         }
 
         @Override
@@ -147,7 +156,7 @@ public class RegexCompiler {
     /**
      * Pre-compiled regex against a {@link StreamOperator} input.
      */
-    record RegexPrecompiledStream(StreamOperator input, Predicate<String> matcher, SourceLocation location)
+    record RegexPrecompiledStream(StreamOperator input, Pattern pattern, SourceLocation location)
             implements StreamOperator {
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
@@ -156,7 +165,7 @@ public class RegexCompiler {
             if (v == null || v instanceof ErrorValue) {
                 return new ExpressionResult(v, deps);
             }
-            return new ExpressionResult(matchRegex(v, matcher), deps);
+            return new ExpressionResult(matchRegex(v, pattern, location), deps);
         }
     }
 

@@ -17,27 +17,35 @@
  */
 package io.sapl.node.http;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
 
 /**
- * Caps inbound HTTP request body size by rejecting requests whose declared
- * {@code Content-Length} exceeds the configured limit before any body bytes
- * are read. Mirrors the {@code sapl.pdp.rsocket.max-inbound-payload-size}
- * guard on the RSocket transport.
- * <p>
- * Requests sent with chunked transfer encoding (no {@code Content-Length})
- * are passed through to the handler. Path scoping is the responsibility of
- * the registration.
+ * Caps inbound HTTP request body size. Requests whose declared
+ * {@code Content-Length} exceeds the configured limit are rejected before any
+ * body bytes are read. Requests without a {@code Content-Length} (chunked
+ * transfer encoding) are wrapped so that the actual number of body bytes read
+ * is counted and reading aborts once the limit is exceeded, so chunked uploads
+ * cannot bypass the cap. Mirrors the
+ * {@code sapl.pdp.rsocket.max-inbound-payload-size} guard on the RSocket
+ * transport. Path scoping is the responsibility of the registration.
  */
 public final class RequestBodySizeLimitFilter extends OncePerRequestFilter {
 
@@ -59,6 +67,81 @@ public final class RequestBodySizeLimitFilter extends OncePerRequestFilter {
                     "Request body exceeds the configured limit of " + maxRequestBodyBytes + " bytes.");
             return;
         }
-        chain.doFilter(request, response);
+        chain.doFilter(new LimitingRequest(request, maxRequestBodyBytes), response);
+    }
+
+    private static ResponseStatusException tooLarge(long maxRequestBodyBytes) {
+        return new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE,
+                "Request body exceeds the configured limit of " + maxRequestBodyBytes + " bytes.");
+    }
+
+    private static final class LimitingRequest extends HttpServletRequestWrapper {
+
+        private final long limit;
+
+        LimitingRequest(HttpServletRequest request, long limit) {
+            super(request);
+            this.limit = limit;
+        }
+
+        @Override
+        public ServletInputStream getInputStream() throws IOException {
+            return new LimitingServletInputStream(getRequest().getInputStream(), limit);
+        }
+
+        @Override
+        public BufferedReader getReader() throws IOException {
+            val encoding = getCharacterEncoding();
+            val charset  = encoding != null ? Charset.forName(encoding) : StandardCharsets.UTF_8;
+            return new BufferedReader(new InputStreamReader(getInputStream(), charset));
+        }
+    }
+
+    private static final class LimitingServletInputStream extends ServletInputStream {
+
+        private final ServletInputStream delegate;
+        private final long               limit;
+        private long                     count;
+
+        LimitingServletInputStream(ServletInputStream delegate, long limit) {
+            this.delegate = delegate;
+            this.limit    = limit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            val read = delegate.read();
+            if (read != -1 && ++count > limit) {
+                throw tooLarge(limit);
+            }
+            return read;
+        }
+
+        @Override
+        public int read(@NonNull byte[] buffer, int offset, int length) throws IOException {
+            val read = delegate.read(buffer, offset, length);
+            if (read > 0) {
+                count += read;
+                if (count > limit) {
+                    throw tooLarge(limit);
+                }
+            }
+            return read;
+        }
+
+        @Override
+        public boolean isFinished() {
+            return delegate.isFinished();
+        }
+
+        @Override
+        public boolean isReady() {
+            return delegate.isReady();
+        }
+
+        @Override
+        public void setReadListener(ReadListener readListener) {
+            delegate.setReadListener(readListener);
+        }
     }
 }

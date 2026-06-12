@@ -402,7 +402,7 @@ The SAPL Policy Engine ships with **SAPL Node**, a standalone PDP server. SAPL N
 
 ## RSocket API
 
-The RSocket API provides the same five operations as HTTP using protobuf serialization over persistent TCP or Unix domain socket (UDS) connections. It is significantly faster than HTTP/JSON for high-throughput workloads. RSocket is disabled by default. For server configuration, see [Configuration](../7_2_Configuration/#rsocket-properties).
+The RSocket API provides the same five operations as HTTP using protobuf serialization over persistent TCP or Unix domain socket (UDS) connections. It is significantly faster than HTTP/JSON for high-throughput workloads. RSocket is enabled by default on port 7000, bound to `127.0.0.1`. For server configuration, see [Configuration](../7_2_Configuration/#rsocket-properties).
 
 ### Wire Format
 

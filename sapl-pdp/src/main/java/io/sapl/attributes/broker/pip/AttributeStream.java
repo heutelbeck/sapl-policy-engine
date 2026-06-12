@@ -66,7 +66,12 @@ final class AttributeStream implements Stream<Value> {
 
     private static final String DEBUG_ATTEMPT_FAILED    = "Attribute '{}' attempt failed: {}";
     private static final String DEBUG_INNER_CLOSE_THREW = "Inner stream close threw: {}";
+    private static final String ERROR_PUMP_FAILURE      = "Attribute '%s' pump encountered an unexpected failure: %s.";
+    private static final String ERROR_PUMP_FAILURE_LOG  = "Attribute '{}' pump caught an unexpected failure; surfacing an error and retrying after backoff.";
     private static final String ERROR_RETRIES_EXHAUSTED = "Attribute '%s' transient failure: retries exhausted, last cause: %s.";
+
+    private static final Duration PUMP_FAILURE_BACKOFF      = Duration.ofSeconds(1);
+    private static final long     PUMP_FAILURE_LOG_INTERVAL = Duration.ofMinutes(1).toNanos();
 
     private final AttributeFinderInvocation      invocation;
     private final Supplier<Stream<Value>>        innerSupplier;
@@ -74,6 +79,10 @@ final class AttributeStream implements Stream<Value> {
 
     private final LatestSlotStream<Value> output = new LatestSlotStream<>();
     private volatile boolean              closed = false;
+
+    // Touched only on the pump thread; rate-limits the unexpected-failure log.
+    private long    lastFailureLogNanos;
+    private boolean failureLogged;
 
     AttributeStream(@NonNull AttributeFinderInvocation invocation, @NonNull Supplier<Stream<Value>> innerSupplier) {
         this.invocation    = invocation;
@@ -125,8 +134,40 @@ final class AttributeStream implements Stream<Value> {
 
     private void runLoop() {
         while (!closed) {
-            attemptWithRetries();
-            sleepIfNotClosed(invocation.pollInterval());
+            try {
+                attemptWithRetries();
+                sleepIfNotClosed(invocation.pollInterval());
+            } catch (Throwable t) {
+                // The pump thread must be immortal. attemptWithRetries already
+                // turns transient PIP failures into bounded retries, so reaching
+                // here means an unexpected fault: an Error the retry guard does
+                // not catch, or a regression that throws outside it. Surface it
+                // as an error value, rate-limit the log, and retry after a fixed
+                // backoff so a deterministic fault degrades to a slow heartbeat
+                // rather than a hot loop or a dead stream. Recovery is automatic
+                // once the cause clears.
+                recoverFromPumpFailure(t);
+            }
+        }
+    }
+
+    private void recoverFromPumpFailure(Throwable failure) {
+        logPumpFailure(failure);
+        try {
+            publish(Value.error(ERROR_PUMP_FAILURE.formatted(invocation.attributeName(), failure.toString())));
+        } catch (Throwable ignored) {
+            // Recovery itself must never throw out of the loop; if even the error
+            // publication fails, drop it and keep the pump alive.
+        }
+        sleepIfNotClosed(PUMP_FAILURE_BACKOFF);
+    }
+
+    private void logPumpFailure(Throwable failure) {
+        val now = System.nanoTime();
+        if (!failureLogged || now - lastFailureLogNanos >= PUMP_FAILURE_LOG_INTERVAL) {
+            log.error(ERROR_PUMP_FAILURE_LOG, invocation.attributeName(), failure);
+            lastFailureLogNanos = now;
+            failureLogged       = true;
         }
     }
 
@@ -165,15 +206,24 @@ final class AttributeStream implements Stream<Value> {
      * Exponential backoff with 50% jitter. Delay for retry index
      * {@code n} is {@code base * 2^n}, then offset by a uniform
      * random in {@code [-50%, +50%]}. Capped at one hour to avoid
-     * overflow on very large indices.
+     * overflow on very large indices. Total by contract: it returns a
+     * non-negative {@link Duration} for every {@code retryIndex >= 0}
+     * and never throws, so the pump's retry path cannot fail here.
      */
-    private static Duration jitteredBackoff(Duration base, int retryIndex) {
+    static Duration jitteredBackoff(Duration base, int retryIndex) {
         long baseMillis = base.toMillis();
         if (baseMillis <= 0) {
             return Duration.ZERO;
         }
-        long capMillis   = Duration.ofHours(1).toMillis();
-        long shifted     = retryIndex >= 62 ? capMillis : Math.min(capMillis, baseMillis << retryIndex);
+        long capMillis = Duration.ofHours(1).toMillis();
+        long shifted;
+        if (retryIndex >= 62 || baseMillis > (capMillis >> retryIndex)) {
+            // The shift would overflow a long or exceed the cap; clamp to the
+            // cap without computing the overflowing value.
+            shifted = capMillis;
+        } else {
+            shifted = baseMillis << retryIndex;
+        }
         long jitterRange = shifted / 2;
         if (jitterRange == 0) {
             return Duration.ofMillis(shifted);
@@ -237,8 +287,11 @@ final class AttributeStream implements Stream<Value> {
         if (closed) {
             return false;
         }
+        // Thread.sleep rejects a negative duration; a misconfigured negative
+        // pollInterval or backoff must not be able to throw out of the pump.
+        val sleep = duration.isNegative() ? Duration.ZERO : duration;
         try {
-            Thread.sleep(duration);
+            Thread.sleep(sleep);
             return !closed;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

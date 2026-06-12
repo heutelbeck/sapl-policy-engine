@@ -102,6 +102,7 @@ public class ProtobufRSocketServerConfiguration {
 
     @Bean
     ProtobufRSocketServerLifecycle protobufRSocketServer(@Value("${sapl.pdp.rsocket.enabled:true}") boolean enabled,
+            @Value("${sapl.pdp.rsocket.address:127.0.0.1}") String bindAddress,
             @Value("${sapl.pdp.rsocket.port:7000}") int port,
             @Value("${sapl.pdp.rsocket.socket-path:#{null}}") @Nullable String socketPath,
             @Value("${sapl.pdp.rsocket.max-inbound-payload-size:16777215}") int maxInboundPayloadSize,
@@ -109,8 +110,8 @@ public class ProtobufRSocketServerConfiguration {
             BlockingPolicyDecisionPoint blockingPdp, ReactivePolicyDecisionPoint pdp,
             ObjectProvider<RSocketConnectionAuthenticator> authenticator, ObjectProvider<SslBundles> sslBundles) {
         val sslContext = resolveSslContext(sslBundleName, sslBundles.getIfAvailable());
-        return new ProtobufRSocketServerLifecycle(enabled, port, socketPath, maxInboundPayloadSize, blockingPdp, pdp,
-                authenticator.getIfAvailable(), sslContext);
+        return new ProtobufRSocketServerLifecycle(enabled, bindAddress, port, socketPath, maxInboundPayloadSize,
+                blockingPdp, pdp, authenticator.getIfAvailable(), sslContext);
     }
 
     private static @Nullable SslContext resolveSslContext(@Nullable String bundleName,

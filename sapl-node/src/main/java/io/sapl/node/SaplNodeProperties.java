@@ -79,7 +79,7 @@ public class SaplNodeProperties implements InitializingBean {
 
     // Authentication methods
     private boolean allowNoAuth     = false;
-    private boolean allowBasicAuth  = true;
+    private boolean allowBasicAuth  = false;
     private boolean allowApiKeyAuth = false;
     private boolean allowOauth2Auth = false;
 

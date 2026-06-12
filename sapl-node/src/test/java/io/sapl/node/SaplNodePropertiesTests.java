@@ -31,6 +31,19 @@ import io.sapl.node.SaplNodeProperties.UserEntry;
 @DisplayName("SaplNodeProperties")
 class SaplNodePropertiesTests {
 
+    @Test
+    @DisplayName("every authentication mode defaults to disabled so the node fails closed")
+    void whenConstructedThenAllAuthenticationModesDefaultToDisabled() {
+        var properties = new SaplNodeProperties();
+
+        assertThat(properties).satisfies(p -> {
+            assertThat(p.isAllowNoAuth()).isFalse();
+            assertThat(p.isAllowBasicAuth()).isFalse();
+            assertThat(p.isAllowApiKeyAuth()).isFalse();
+            assertThat(p.isAllowOauth2Auth()).isFalse();
+        });
+    }
+
     @Nested
     @DisplayName("pdpId normalization")
     class PdpIdNormalizationTests {

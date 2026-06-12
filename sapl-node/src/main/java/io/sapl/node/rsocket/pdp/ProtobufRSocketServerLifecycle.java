@@ -60,6 +60,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             because a single decision frame can already reach that size.""";
 
     private final boolean                                  enabled;
+    private final String                                   bindAddress;
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final int                                      maxInboundPayloadSize;
@@ -102,13 +103,13 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             if (socketPath != null) {
                 log.debug("Protobuf RSocket PDP server started on Unix socket {} ({})", socketPath, scheme);
             } else {
-                log.debug("Protobuf RSocket PDP server started on port {} ({})", port, scheme);
+                log.debug("Protobuf RSocket PDP server started on {}:{} ({})", bindAddress, port, scheme);
             }
             if (sslContext == null && socketPath == null) {
-                log.warn("RSocket server bound on port {} without TLS. Connection-setup credentials "
+                log.warn("RSocket server bound on {}:{} without TLS. Connection-setup credentials "
                         + "(basic auth, API key, JWT) and decision payloads traverse the network in cleartext. "
                         + "Configure sapl.pdp.rsocket.ssl.bundle, or terminate TLS at an upstream load balancer.",
-                        port);
+                        bindAddress, port);
             }
         } finally {
             lifecycleLock.unlock();
@@ -154,7 +155,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             val path = socketPath;
             tcpServer = TcpServer.create().bindAddress(() -> new DomainSocketAddress(path));
         } else {
-            tcpServer = TcpServer.create().port(port);
+            tcpServer = TcpServer.create().host(bindAddress).port(port);
         }
         if (sslContext != null) {
             tcpServer = tcpServer.secure(spec -> spec.sslContext(sslContext));

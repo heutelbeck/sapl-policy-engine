@@ -126,7 +126,9 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
+    private static final String ERROR_NO_PLUGINS_AVAILABLE      = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
+    private static final String WARN_ERROR_CLOSING_RESOURCE     = "Error closing {} during failed PDP build: {}.";
 
     private PolicyDecisionPointBuilder(JsonMapper mapper, Clock clock) {
         this.mapper = mapper;
@@ -721,29 +723,52 @@ public class PolicyDecisionPointBuilder {
         val timestampClock  = new LazyFastClock();
         val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(), clock);
 
-        // Create default configuration from collected policies
-        if (!policyDocuments.isEmpty()) {
-            val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
-            val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
-                    List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-            initialConfigurations.add(config);
-        }
+        try {
+            // Create default configuration from collected policies
+            if (!policyDocuments.isEmpty()) {
+                val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
+                val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
+                        List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+                initialConfigurations.add(config);
+            }
 
-        // Load initial configurations: false signals fail-fast on compile error,
-        // propagating PDPConfigurationException to the build() caller.
-        for (val config : initialConfigurations) {
-            voterSource.loadConfiguration(config, false);
-        }
+            // Load initial configurations: false signals fail-fast on compile error,
+            // propagating PDPConfigurationException to the build() caller.
+            for (val config : initialConfigurations) {
+                voterSource.loadConfiguration(config, false);
+            }
 
-        if (configurationSource != null) {
-            // Subscribe propagates source-side compile errors via the same
-            // fail-fast path when the source emits Load with keepOldOnError=false.
-            configurationSource.subscribe(voterSource::handle);
-        }
+            if (configurationSource != null) {
+                // Subscribe propagates source-side compile errors via the same
+                // fail-fast path when the source emits Load with keepOldOnError=false.
+                configurationSource.subscribe(voterSource::handle);
+            }
 
-        val plugins = voterSource.getPlugins();
-        return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
-                configurationSource, timestampClock, plugins.decisionInterceptors(), plugins.lifecycleListeners());
+            val plugins = voterSource.getPlugins();
+            if (plugins == null) {
+                throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
+            }
+            return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
+                    configurationSource, timestampClock, plugins.decisionInterceptors(), plugins.lifecycleListeners());
+        } catch (RuntimeException e) {
+            // A failed build never transfers ownership to PDPComponents, so close
+            // the resources this builder created to avoid leaking the fast-clock
+            // thread, the voter-source scheduler, or a builder-created broker.
+            closeQuietly(voterSource);
+            closeQuietly(timestampClock);
+            if (externalAttributeBroker == null) {
+                closeQuietly(attributeBroker);
+            }
+            throw e;
+        }
+    }
+
+    private void closeQuietly(AutoCloseable resource) {
+        try {
+            resource.close();
+        } catch (Exception e) {
+            log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
+        }
     }
 
     private PluginsSource resolvePluginsSource() {

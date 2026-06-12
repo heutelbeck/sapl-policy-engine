@@ -208,6 +208,25 @@ class BundleParserTests {
     }
 
     @Test
+    @DisplayName("a compression bomb hidden in a subdirectory entry is still counted toward the ratio limit")
+    void whenSubdirectoryEntryExceedsCompressionRatioThenThrowsException() throws IOException {
+        val largeRepetitiveContent = "A".repeat(500_000);
+        val baos                   = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+            // A subdirectory entry is skipped from the document set, but its
+            // bytes must still be read and counted against the bomb limits.
+            zos.putNextEntry(new ZipEntry("nested/eldritch-tome.sapl"));
+            zos.write(("policy \"forbidden-knowledge\" permit true; /* " + largeRepetitiveContent + " */")
+                    .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        assertThatThrownBy(() -> BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Compression ratio");
+    }
+
+    @Test
     void whenUncompressedSizeExceedsLimitThenThrowsException() throws IOException {
         val hugeContent = "X".repeat(11 * 1024 * 1024);
         val bundleBytes = createBundleWithEntryAndConfig("necronomicon.sapl", hugeContent);

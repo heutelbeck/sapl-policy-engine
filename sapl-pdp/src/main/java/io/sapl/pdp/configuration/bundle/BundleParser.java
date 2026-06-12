@@ -280,15 +280,18 @@ public class BundleParser {
 
                 val entryName = normalizeEntryName(entry.getName());
 
-                if (isSkippableEntry(entry, entryName)) {
-                    continue;
-                }
-
+                // Read and count every entry, including skipped ones, so a zip
+                // bomb hidden in a directory or subdirectory entry cannot bypass
+                // the uncompressed-size and compression-ratio limits.
                 val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize);
                 totalUncompressed += entryContent.length();
 
                 if (compressedSize > 0) {
                     validateCompressionRatio(compressedSize, totalUncompressed, sourceDescription);
+                }
+
+                if (isSkippableEntry(entry, entryName)) {
+                    continue;
                 }
 
                 content.put(entryName, entryContent);
