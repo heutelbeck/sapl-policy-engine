@@ -131,7 +131,7 @@ Use `@pre_enforce` for endpoints with side effects (database writes, emails) tha
 
 #### @post_enforce
 
-Authorizes **after** the endpoint executes. The endpoint always runs; its return value is available to the subscription builder via the `return_value` argument of callable fields.
+Authorizes **after** the endpoint executes. The endpoint always runs. Its return value is available to the subscription builder via the `return_value` argument of callable fields.
 
 ```python
 from fastapi import Request
@@ -200,7 +200,7 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 
 #### @stream_enforce
 
-Streaming enforcement applies an authorization decision continuously to a stream of items your endpoint produces. The decorated endpoint returns an **async iterator** of data items; SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
+Streaming enforcement applies an authorization decision continuously to a stream of items your endpoint produces. The decorated endpoint returns an **async iterator** of data items. SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
 
 `@stream_enforce` is the ready-made binding for **Server-Sent Events**: it wraps the enforced iterator in a Starlette `StreamingResponse` that renders each item as an SSE `data:` frame on `text/event-stream`. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`: it takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 

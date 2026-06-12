@@ -147,7 +147,7 @@ The annotations are convenient. To use them well, it helps to understand what ha
 
 #### The Deny Invariant
 
-One rule governs all enforcement. Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`). Only `PERMIT` ever results in access being granted; everything else means denial. Streaming PEPs that honour `SUSPEND` pause the data flow without terminating the subscription, so a later `PERMIT` resumes it; one-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the per-decision PEP semantics.
+One rule governs all enforcement. Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`). Only `PERMIT` ever results in access being granted. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the data flow without terminating the subscription, so a later `PERMIT` resumes it. One-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the per-decision PEP semantics.
 
 A decision from the PDP looks like this.
 
@@ -316,7 +316,7 @@ Per-item obligation failure also terminates the subscription, with an `AccessDen
 
 **`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal exception on the error channel. When `false` (the default), boundary transitions are silent: the subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessDeniedException` (with the suspend reason) every time the subscription is silenced, and an `AccessGrantedException` every time it resumes. Both directions are gated symmetrically by the same flag. Terminal denies bypass the gate entirely and surface as a normal Reactor terminal error regardless. Subscribers that want to render UI state changes per transition (e.g. "stream paused, waiting for access") opt in to `signalTransitions=true`.
 
-**`pauseRapDuringSuspend`**. Controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period; items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume; preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
+**`pauseRapDuringSuspend`**. Controls the underlying connection while the subscription is silenced. With the default `false`, the protected method's `Flux` stays subscribed throughout the silenced period. Items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume. Preserves whatever state upstream holds (subscription IDs, message offsets, etc.). With `true`, the upstream subscription is disposed when the subscription is silenced and re-established when the subscription resumes. Stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run when the subscriber is denied access.
 
 #### Backpressure Transparency
 
@@ -342,7 +342,7 @@ Defaults are sufficient. A `DENY` from the PDP terminates the subscription with 
 public Flux<TelemetryEvent> telemetry() { ... }
 ```
 
-Same defaults; the difference is in the policy: use the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open. When the policy returns `PERMIT` again, items resume. Useful for legacy clients that cannot renegotiate connections, or when revealing the deny condition itself would leak information.
+Same defaults. The difference is in the policy, use the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open. When the policy returns `PERMIT` again, items resume. Useful for legacy clients that cannot renegotiate connections, or when revealing the deny condition itself would leak information.
 
 **Survive deny with explicit transition signals.** The subscription should survive, and the subscriber wants to know about every boundary.
 
@@ -351,9 +351,9 @@ Same defaults; the difference is in the policy: use the `suspend` verb instead o
 public Flux<MarketData> marketData() { ... }
 ```
 
-The PDP returns `SUSPEND` for windows where access should pause; the PEP emits a non-terminal `AccessDeniedException` every time the subscription is silenced and an `AccessGrantedException` every time it resumes. The subscriber observes these on the error channel and can update UI state, log the boundary, or trigger client-side replay logic. The subscription itself stays open across all transitions until either the client cancels or the PDP issues a terminal `DENY`.
+The PDP returns `SUSPEND` for windows where access should pause. The PEP emits a non-terminal `AccessDeniedException` every time the subscription is silenced and an `AccessGrantedException` every time it resumes. The subscriber observes these on the error channel and can update UI state, log the boundary, or trigger client-side replay logic. The subscription itself stays open across all transitions until either the client cancels or the PDP issues a terminal `DENY`.
 
-For the third pattern, a helper class `TransitionSignals` ships with the PEP for translating those non-terminal exceptions into application-level callbacks; see [Streaming Constraint Handlers](#streaming-constraint-handlers) below.
+For the third pattern, a helper class `TransitionSignals` ships with the PEP for translating those non-terminal exceptions into application-level callbacks. See [Streaming Constraint Handlers](#streaming-constraint-handlers) below.
 
 #### Subscription, Action, and Resource
 
@@ -372,7 +372,7 @@ When omitted, defaults are derived from the method invocation as for the request
 
 #### Streaming Constraint Handlers
 
-The same `ConstraintHandlerProvider` mechanism that powers `@PreEnforce` and `@PostEnforce` applies. Per-item handlers attach to the `OutputSignal` and run on every emitted item; decision-scoped handlers attach to the `DecisionSignal` and run once per decision arrival. See [Constraints](#constraints) below.
+The same `ConstraintHandlerProvider` mechanism that powers `@PreEnforce` and `@PostEnforce` applies. Per-item handlers attach to the `OutputSignal` and run on every emitted item. Decision-scoped handlers attach to the `DecisionSignal` and run once per decision arrival. See [Constraints](#constraints) below.
 
 For the recoverable pattern, the helper:
 
@@ -582,7 +582,7 @@ A typical request behind a TLS-terminating reverse proxy serialises to:
 #### Forwarded chain
 
 When standard reverse-proxy forwarding headers are present, a parsed
-view sits at `forwarded`. RFC 7239 `Forwarded` is preferred; the legacy
+view sits at `forwarded`. RFC 7239 `Forwarded` is preferred. The legacy
 `X-Forwarded-{For,Host,Proto,Port}` family is the fallback. The
 `forwarded` block is omitted entirely when no relevant header is
 present.
@@ -595,7 +595,7 @@ present.
 | `forwarded.port` | The explicit forwarded port, when signalled. |
 
 The serializer parses these headers but does not judge whether to
-trust them. Whether to honour the chain is a policy decision; typical
+trust them. Whether to honour the chain is a policy decision. Typical
 patterns gate on `client.address` being in a trusted proxy range.
 For SAPL to receive Spring's own rewritten request URI/host/scheme
 (based on these headers), wire `ForwardedHeaderTransformer` (reactive)
@@ -692,7 +692,7 @@ The authorization manager stores the active `EnforcementPlan` on a request or ex
 
 ### MutableHttpRequest and MutableHttpResponse
 
-`MutableHttpRequest` and `MutableHttpResponse` are SAPL abstractions over the underlying request and response on either backend. Handlers see this interface and write portable code. Servlet implementations live under `io.sapl.spring.pep.http.servlet`, reactive implementations under `io.sapl.spring.pep.http.reactive`; cast to a backend type only when a feature outside the interface is required.
+`MutableHttpRequest` and `MutableHttpResponse` are SAPL abstractions over the underlying request and response on either backend. Handlers see this interface and write portable code. Servlet implementations live under `io.sapl.spring.pep.http.servlet`, reactive implementations under `io.sapl.spring.pep.http.reactive`. Cast to a backend type only when a feature outside the interface is required.
 
 ```java
 public interface MutableHttpRequest {
@@ -727,7 +727,7 @@ public interface MutableHttpResponse {
 
 The HTTP PEP filter wraps the request and response only when it has work to do. It checks the active plan for handlers scheduled at `HttpRequestMutationSignal` and `HttpResponseSignal` before installing either wrapper. The common case (a permit decision with no HTTP signal handlers) runs against the raw request and response with no extra copy.
 
-When response-side handlers are scheduled, the filter installs a buffering wrapper that captures every controller byte in memory and re-emits it on commit. This makes body inspection and rewrite possible but is unsuitable for unbounded streaming bodies. Constraint handler authors who need response shaping should be aware of the in-memory capture; routes that intentionally stream large payloads should not register response-signal handlers.
+When response-side handlers are scheduled, the filter installs a buffering wrapper that captures every controller byte in memory and re-emits it on commit. This makes body inspection and rewrite possible but is unsuitable for unbounded streaming bodies. Constraint handler authors who need response shaping should be aware of the in-memory capture. Routes that intentionally stream large payloads should not register response-signal handlers.
 
 When request-side handlers are scheduled, the filter installs a header-override wrapper, fires the mutation signal, and only forwards the wrapper to the chain when at least one handler actually called a setter. Pure observation handlers cost nothing beyond the signal dispatch.
 
@@ -1085,7 +1085,7 @@ spring.security.oauth2.client:
     issuer-uri: https://idp.example.org/realms/sapl
 ```
 
-The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. On the RSocket transport, each (re)connect mints a fresh BEARER setup-frame metadata payload from the current token; when the SAPL Node disposes the connection on JWT `exp`, the client reconnects with a freshly issued token. End-to-end this is transparent to the consumer's controllers.
+The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. On the RSocket transport, each (re)connect mints a fresh BEARER setup-frame metadata payload from the current token. When the SAPL Node disposes the connection on JWT `exp`, the client reconnects with a freshly issued token. End-to-end this is transparent to the consumer's controllers.
 
 #### Property reference
 
@@ -1107,7 +1107,7 @@ The token is cached and refreshed by Spring's `OAuth2AuthorizedClientManager`. O
 | `io.sapl.pdp.remote.oauth2.principal-name` | empty (defaults to `client-registration-id`) | Principal name used as cache key in Spring's `OAuth2AuthorizedClientManager`. Override only when you need distinct cached clients for the same registration. |
 | `io.sapl.pdp.remote.ignore-certificates` | `false` | Skip TLS certificate validation. Not for production. |
 
-You must configure exactly one authentication mechanism. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime; use `oauth2.client-registration-id` for managed service-account JWTs over RSocket.
+You must configure exactly one authentication mechanism. Token relay is useful when each request to the PDP should carry the caller's identity, so the PDP can apply its own user-aware policies. The RSocket transport authenticates once at connection setup, so a single connection is bound to a single identity for its lifetime. Use `oauth2.client-registration-id` for managed service-account JWTs over RSocket.
 
 #### Client Resilience
 

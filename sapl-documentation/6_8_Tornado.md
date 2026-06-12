@@ -143,7 +143,7 @@ When the decorated method returns a value (dict, list, or string), the decorator
 
 #### @post_enforce
 
-Authorizes **after** the handler method executes. The method always runs; its return value is available to the subscription builder via the `return_value` field of the `SubscriptionContext`.
+Authorizes **after** the handler method executes. The method always runs. Its return value is available to the subscription builder via the `return_value` field of the `SubscriptionContext`.
 
 ```python
 from sapl_tornado import post_enforce
@@ -211,7 +211,7 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 
 #### @stream_enforce
 
-Streaming enforcement applies an authorization decision continuously to a stream of items your handler produces. The decorated handler method returns an async iterator of data items; SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses the flow while keeping the subscription open, and `DENY` ends it. The enforced result is itself an async iterator of authorised items, so it is independent of how you deliver them.
+Streaming enforcement applies an authorization decision continuously to a stream of items your handler produces. The decorated handler method returns an async iterator of data items. SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses the flow while keeping the subscription open, and `DENY` ends it. The enforced result is itself an async iterator of authorised items, so it is independent of how you deliver them.
 
 `@stream_enforce` is the ready-made binding for Server-Sent Events: it renders the enforced stream as SSE `data:` frames on `text/event-stream`, sets `Content-Type: text/event-stream` and `Cache-Control: no-cache`, and calls `handler.finish()` when the stream ends. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`: it takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 
@@ -495,7 +495,7 @@ See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format, the sh
 
 For SSE endpoints returning async iterators, `@stream_enforce` provides continuous authorization where the PDP streams decisions over time. Access may flip between permitted, suspended, and denied based on time, location, or context changes.
 
-Tornado streaming responses are written directly to the response via `handler.write()` and `handler.flush()`. The decorator sets the SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`) and calls `handler.finish()` when the stream ends. Each yielded item is rendered as an SSE `data:` event (dicts are JSON-serialized). With `signal_transitions=True`, suspend and resume boundaries arrive as `ACCESS_SUSPENDED` and `ACCESS_GRANTED` frames; a terminating `DENY` arrives as a final `ACCESS_DENIED` frame.
+Tornado streaming responses are written directly to the response via `handler.write()` and `handler.flush()`. The decorator sets the SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`) and calls `handler.finish()` when the stream ends. Each yielded item is rendered as an SSE `data:` event (dicts are JSON-serialized). With `signal_transitions=True`, suspend and resume boundaries arrive as `ACCESS_SUSPENDED` and `ACCESS_GRANTED` frames. A terminating `DENY` arrives as a final `ACCESS_DENIED` frame.
 
 A time-based policy that cycles between `PERMIT` and `SUSPEND`, so the stream pauses and resumes without terminating:
 

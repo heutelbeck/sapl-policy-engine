@@ -117,7 +117,7 @@ The PDP client and the `EnforcementPlanner` are created lazily on first use from
 
 ### Enforcement Decorators
 
-The `@pre_enforce` and `@post_enforce` decorators work on both synchronous (`def`) and asynchronous (`async def`) Django view functions; `@stream_enforce` requires an async view served under ASGI. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
+The `@pre_enforce` and `@post_enforce` decorators work on both synchronous (`def`) and asynchronous (`async def`) Django view functions. `@stream_enforce` requires an async view served under ASGI. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
 
 The decorators auto-detect the view kind, so you write the view in whichever style suits it. An async view runs on the async enforcement core. A sync view runs on the blocking core, which executes the view off the event loop, so synchronous Django ORM access works normally with no `SynchronousOnlyOperation`. When you configure a transaction provider (see [Database Transactions](#database-transactions)) it must match the view kind: a sync context-manager factory such as `transaction.atomic` for sync views, an async one for async views.
 
@@ -139,7 +139,7 @@ Use `@pre_enforce` for views with side effects (database writes, emails) that sh
 
 #### @post_enforce
 
-Authorizes **after** the view executes. The view always runs; its return value is available to the subscription builder via the `return_value` argument.
+Authorizes **after** the view executes. The view always runs. Its return value is available to the subscription builder via the `return_value` argument.
 
 ```python
 from django.http import HttpRequest, JsonResponse
@@ -205,9 +205,9 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 
 #### @stream_enforce
 
-Streaming enforcement applies an authorization decision continuously to a stream of items your view produces. The decorated view returns an **async iterator** of data items; SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
+Streaming enforcement applies an authorization decision continuously to a stream of items your view produces. The decorated view returns an **async iterator** of data items. SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
 
-`@stream_enforce` is the ready-made binding for **Server-Sent Events**: it wraps the enforced iterator in a Django `StreamingHttpResponse` that renders each item as an SSE `data:` frame on `text/event-stream`. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`: it takes your async iterator and returns the enforced async iterator, with no transport assumptions.
+`@stream_enforce` is the ready-made binding for **Server-Sent Events**. It wraps the enforced iterator in a Django `StreamingHttpResponse` that renders each item as an SSE `data:` frame on `text/event-stream`. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`. It takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 
 ```python
 import asyncio
@@ -459,7 +459,7 @@ register_orm_listener()
 register_provider(DjangoQueryRewritingProvider())
 ```
 
-See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format and the shared semantics. Two Django-specific points: the integration applies an obligation only to queries whose model actually has the referenced columns, so unrelated models pass through unchanged; and the `columns` projection uses `.only()`, which defers fields rather than blocking them, so pair it with content filtering when you need hard column-level security. Raw SQL and direct cursor access are not covered.
+See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format and the shared semantics. Two Django-specific points. The integration applies an obligation only to queries whose model actually has the referenced columns, so unrelated models pass through unchanged. The `columns` projection uses `.only()`, which defers fields rather than blocking them, so pair it with content filtering when you need hard column-level security. Raw SQL and direct cursor access are not covered.
 
 ### Streaming Authorization
 

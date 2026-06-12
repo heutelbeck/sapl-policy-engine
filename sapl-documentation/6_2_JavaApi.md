@@ -223,9 +223,9 @@ ReactivePolicyDecisionPoint pdp = RemotePolicyDecisionPoint.builder().rsocket()
         .build();
 ```
 
-Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication, and `secure()` / `secure(SslContext)` / `withUnsecureSSL()` for TLS. The HTTP builder defaults `baseUrl` to `https://localhost:8443`; the RSocket builder defaults `port` to `7000` and also accepts `socketPath(...)` and `keepAlive(...)`.
+Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication, and `secure()` / `secure(SslContext)` / `withUnsecureSSL()` for TLS. The HTTP builder defaults `baseUrl` to `https://localhost:8443`. The RSocket builder defaults `port` to `7000` and also accepts `socketPath(...)` and `keepAlive(...)`.
 
-Consume decisions reactively. A streaming subscription keeps receiving updated decisions until you unsubscribe; use `blockFirst()` or `take(1)` to consume just the first:
+Consume decisions reactively. A streaming subscription keeps receiving updated decisions until you unsubscribe. Use `blockFirst()` or `take(1)` to consume just the first:
 
 ```java
 var subscription = AuthorizationSubscription.of("willi", "read", "something");

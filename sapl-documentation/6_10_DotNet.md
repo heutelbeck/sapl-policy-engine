@@ -49,7 +49,7 @@ dotnet add package Sapl.AspNetCore
 
 The library requires .NET 9.0 or later.
 
-An RSocket transport is available in the separate `Sapl.Rsocket` package as an alternative to HTTP for the PDP connection. `AddSapl` wires the HTTP client; the RSocket client is registered explicitly. See the demo and integration tests for the RSocket setup.
+An RSocket transport is available in the separate `Sapl.Rsocket` package as an alternative to HTTP for the PDP connection. `AddSapl` wires the HTTP client. The RSocket client is registered explicitly. See the demo and integration tests for the RSocket setup.
 
 A complete working demo with constraint handlers, service-layer enforcement, and streaming authorization is available at [sapl-dotnet-demos](https://github.com/heutelbeck/sapl-dotnet-demos).
 
@@ -162,7 +162,7 @@ Use `[PreEnforce]` for actions with side effects (database writes, emails) that 
 
 #### [PostEnforce]
 
-Authorizes **after** the action executes. The action always runs; its return value is available to the subscription builder and to constraint handlers for transformation.
+Authorizes **after** the action executes. The action always runs. Its return value is available to the subscription builder and to constraint handlers for transformation.
 
 ```csharp
 [HttpGet("patients")]
@@ -279,7 +279,7 @@ public sealed class StreamingController(IStreamingService streamingService) : Co
 }
 ```
 
-`[StreamEnforce]` applies to methods returning `IAsyncEnumerable<T>`. The filter renders the enforced stream as `text/event-stream`; on a terminal denial it writes a final `ACCESS_DENIED` frame before closing.
+`[StreamEnforce]` applies to methods returning `IAsyncEnumerable<T>`. The filter renders the enforced stream as `text/event-stream`. On a terminal denial it writes a final `ACCESS_DENIED` frame before closing.
 
 ### How Enforcement Works
 
@@ -287,7 +287,7 @@ The attributes above are convenient, but to use them well it helps to understand
 
 #### The Deny Invariant
 
-Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your action running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive; one-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
+Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your action running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive. One-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
 
 A `PERMIT` with obligations is not a free pass. The enforcement engine checks that every obligation in the decision has a registered handler. If even one obligation cannot be fulfilled, the engine treats the decision as a denial. If a handler accepts responsibility but fails during execution, that also results in denial. Advice is softer: if an advice handler fails, the engine logs the failure and moves on. Advice never causes denial.
 
@@ -401,8 +401,8 @@ Each enforcement point advertises which signals it supports. `GetConstraintHandl
 
 `IConstraintHandlerProvider` exposes two static helpers for the common dispatch pattern:
 
-- `ConstraintIsOfType(constraint, "typeName")` -- true when the constraint object's `type` field matches.
-- `StringField(constraint, "field")` -- the string value of a named field, or null.
+- `ConstraintIsOfType(constraint, "typeName")` returns true when the constraint object's `type` field matches.
+- `StringField(constraint, "field")` returns the string value of a named field, or null.
 
 #### Registering Custom Handlers
 
@@ -566,7 +566,7 @@ The `blacken` action supports these options:
 
 #### Path Syntax
 
-Paths are resolved with Newtonsoft `SelectToken`, so JSONPath is supported: simple dot paths (`$.field.nested`), recursive descent (`$..ssn`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`). `blacken` targets a single text node (the first match); a path that does not resolve is left unchanged.
+Paths are resolved with Newtonsoft `SelectToken`, so JSONPath is supported: simple dot paths (`$.field.nested`), recursive descent (`$..ssn`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`). `blacken` targets a single text node (the first match). A path that does not resolve is left unchanged.
 
 ### Service-Layer Enforcement
 
@@ -648,7 +648,7 @@ public interface IStreamingService
 }
 ```
 
-At the service (proxy) layer the enforced stream keeps yielding the concrete element type; boundary frames (`ACCESS_SUSPENDED` / `ACCESS_GRANTED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, so `SignalTransitions` applies to controller-level streaming.
+At the service (proxy) layer the enforced stream keeps yielding the concrete element type. Boundary frames (`ACCESS_SUSPENDED` / `ACCESS_GRANTED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, and so `SignalTransitions` applies to controller-level streaming.
 
 ### Manual PDP Access
 
@@ -706,7 +706,7 @@ A complete working demo is available at [sapl-dotnet-demos](https://github.com/h
 - Manual PDP access (no attributes)
 - `[PreEnforce]` and `[PostEnforce]` with content filtering and field redaction
 - Service-layer enforcement using `DispatchProxy` and interface attributes
-- Constraint handlers across every signal and shape (decision/input/output/error; runner/consumer/mapper)
+- Constraint handlers across every signal and shape (decision/input/output/error, runner/consumer/mapper)
 - SSE streaming with the three semantics (till-denied, silent-suspending, observed-suspending)
 - JWT-based ABAC
 

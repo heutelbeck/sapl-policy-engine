@@ -258,7 +258,7 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
 The `has` operator checks whether an object contains a key or keys.
 
-1. `exp1 has exp2` evaluates to `true` if the object `exp1` contains the string key `exp2`. Non-object left-hand sides (arrays, strings, numbers, booleans, null, undefined) return `false`. The right-hand side must be a string; non-string values produce an error. If either side is `undefined`, the result is `false`.
+1. `exp1 has exp2` evaluates to `true` if the object `exp1` contains the string key `exp2`. Non-object left-hand sides (arrays, strings, numbers, booleans, null, undefined) return `false`. The right-hand side must be a string. Non-string values produce an error. If either side is `undefined`, the result is `false`.
 
 2. `exp1 has any exp2` evaluates to `true` if the object `exp1` contains at least one key from the string array `exp2`. Returns `false` for an empty array.
 

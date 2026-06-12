@@ -7,7 +7,7 @@ nav_order: 612
 
 ## Query Rewriting
 
-Many applications want to filter results at the database, not in memory. SAPL supports this with query rewriting: a policy attaches a query-rewriting obligation, and the SAPL integration for your database intercepts the query your application issues, applies the obligation, and sends the rewritten query to the driver. Your data-access code does not change. You enforce on the calling method as usual; the obligation does the rest.
+Many applications want to filter results at the database, not in memory. SAPL supports this with query rewriting: a policy attaches a query-rewriting obligation, and the SAPL integration for your database intercepts the query your application issues, applies the obligation, and sends the rewritten query to the driver. Your data-access code does not change. You enforce on the calling method as usual, and the obligation does the rest.
 
 Two backends are supported today: relational databases (SQL) and MongoDB. The obligation is identical across every SDK that supports a backend, so the same policy works unchanged on every SAPL Policy Enforcement Point (PEP) for that backend.
 
@@ -62,7 +62,7 @@ The `conditions` array carries raw SQL fragments for features the typed language
 { "conditions": [ "created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'" ] }
 ```
 
-The `columns` array narrows the `SELECT` projection. For `SELECT *` the obligation columns become the projection; for an explicit projection they intersect with it. `columns` applies only to `SELECT`; for `UPDATE` and `DELETE` it is ignored.
+The `columns` array narrows the `SELECT` projection. For `SELECT *` the obligation columns become the projection, and for an explicit projection they intersect with it. `columns` applies only to `SELECT`. For `UPDATE` and `DELETE` it is ignored.
 
 ### MongoDB: `mongo:queryRewriting`
 
@@ -96,7 +96,7 @@ Condition fragments must be valid JSON (double-quoted), not MongoDB shell syntax
 ### Shared Semantics
 
 - Typed criteria are added as extra conditions combined with the user's query using `AND`, so they never conflict with a field the user is already filtering on.
-- `conditions` fragments are combined with the user's query inside a top-level `$and` (or `AND`-ed into the SQL `WHERE`); the original query is preserved.
+- `conditions` fragments are combined with the user's query inside a top-level `$and` (or `AND`-ed into the SQL `WHERE`). The original query is preserved.
 - The obligation can only narrow access, never widen it.
 - A malformed criterion, an unsupported statement, or (for MongoDB) a non-JSON condition causes the decision to be denied.
 - **Portability across PEPs.** Because the obligation and its behaviour are identical across SDKs, the same obligation produces the same narrowing on every PEP for that backend. A `mongo:queryRewriting` obligation authored once works unchanged on the Spring MongoDB integration, the Python `sapl_pymongo` integration, the NestJS Mongoose integration, and the PHP Doctrine ODM integration. The same holds for `sql:queryRewriting` across the SQL integrations, with two integration caveats. The NestJS Prisma integration supports the typed `criteria` and `columns` but not the raw-SQL `conditions` escape hatch, since Prisma's `where` is structured rather than SQL. The PHP Doctrine ORM integration supports `criteria` and `conditions` but not `columns`, since a Doctrine query hydrates entities and cannot narrow its projection without changing the result shape.
@@ -105,7 +105,7 @@ Condition fragments must be valid JSON (double-quoted), not MongoDB shell syntax
 
 ### Spring (R2DBC and MongoDB)
 
-The SAPL Spring Boot starter activates a transparent integration when it sees `R2dbcRepository` or `ReactiveMongoTemplate` on the classpath. It wraps `DatabaseClient` for R2DBC and `ReactiveMongoTemplate` for MongoDB; every query path (derived queries, `@Query` methods, direct `databaseClient.sql(...)` or template calls) ultimately runs through the wrapped bean. You annotate the calling service method with `@PreEnforce`; no repository annotations are needed.
+The SAPL Spring Boot starter activates a transparent integration when it sees `R2dbcRepository` or `ReactiveMongoTemplate` on the classpath. It wraps `DatabaseClient` for R2DBC and `ReactiveMongoTemplate` for MongoDB. Every query path (derived queries, `@Query` methods, direct `databaseClient.sql(...)` or template calls) ultimately runs through the wrapped bean. You annotate the calling service method with `@PreEnforce`, and no repository annotations are needed.
 
 Each integration has its own opt-out property, both default `true`.
 
@@ -146,9 +146,9 @@ register_orm_listener()
 register_provider(DjangoQueryRewritingProvider())
 ```
 
-The provider translates `criteria` into Django `Q` objects, `conditions` into a raw `WHERE` via `add_extra`, and `columns` into `.only()`. It hooks into `SQLCompiler.execute_sql`, which fires for every query in an enforced call, including prefetch and cascade-delete selects against other models. A query is a target only when its model carries the columns the criteria reference (or the projection columns); non-target queries pass through unchanged, so an unrelated model is never given a column it lacks.
+The provider translates `criteria` into Django `Q` objects, `conditions` into a raw `WHERE` via `add_extra`, and `columns` into `.only()`. It hooks into `SQLCompiler.execute_sql`, which fires for every query in an enforced call, including prefetch and cascade-delete selects against other models. A query is a target only when its model carries the columns the criteria reference (or the projection columns). Non-target queries pass through unchanged, so an unrelated model is never given a column it lacks.
 
-A column projection through `.only()` defers the other fields rather than blocking them, and a deferred field still loads lazily on first access. Treat `columns` as a projection for efficiency, not as hard column-level access control; for hard column security, pair it with content filtering on the response.
+A column projection through `.only()` defers the other fields rather than blocking them, and a deferred field still loads lazily on first access. Treat `columns` as a projection for efficiency, not as hard column-level access control. For hard column security, pair it with content filtering on the response.
 
 ### Python: MongoDB (PyMongo)
 
@@ -162,7 +162,7 @@ register_provider(MongoDbQueryRewritingProvider())
 widgets = wrap_async_collection(database["widgets"])  # wraps and registers the integration
 ```
 
-Use `wrap_collection` for a synchronous `Collection` (the blocking enforcement path) and `wrap_async_collection` for an `AsyncCollection`. The wrapper covers `find`, `find_one`, `aggregate`, `count_documents`, `update_*`, and `delete_*`; each applies the obligation to the query before passing it to the driver. An aggregation pipeline cannot be narrowed by this obligation, so it is rejected (and the decision denied), as is a malformed condition.
+Use `wrap_collection` for a synchronous `Collection` (the blocking enforcement path) and `wrap_async_collection` for an `AsyncCollection`. The wrapper covers `find`, `find_one`, `aggregate`, `count_documents`, `update_*`, and `delete_*`. Each applies the obligation to the query before passing it to the driver. An aggregation pipeline cannot be narrowed by this obligation, so it is rejected (and the decision denied), as is a malformed condition.
 
 Because wrapping the collection is what registers the integration, you cannot enable it without also installing the interception. A collection used without wrapping, or a raw `database.command(...)`, is not intercepted: that is the fail-open path you must account for, the MongoDB equivalent of off-session SQL access. Wrap every collection an enforced method may reach.
 
@@ -178,7 +178,7 @@ mongoose.plugin(createSaplMongoosePlugin(cls));  // or schema.plugin(...) per sc
 // add MongoDbQueryRewritingProvider to your SAPL module's providers
 ```
 
-The plugin hooks Mongoose query middleware for `find`, `findOne`, `countDocuments`, `update*`, and `delete*`, applying the obligation to the filter before the driver runs it. An aggregation pipeline cannot be narrowed by this obligation, so it is rejected (and the decision denied), as is a malformed condition. The plugin reads the active enforcement plan from the request-scoped CLS context the `@PreEnforce` PEP populates, so no repository changes are needed; you annotate the calling service method with `@PreEnforce` as usual.
+The plugin hooks Mongoose query middleware for `find`, `findOne`, `countDocuments`, `update*`, and `delete*`, applying the obligation to the filter before the driver runs it. An aggregation pipeline cannot be narrowed by this obligation, so it is rejected (and the decision denied), as is a malformed condition. The plugin reads the active enforcement plan from the request-scoped CLS context the `@PreEnforce` PEP populates, so no repository changes are needed. You annotate the calling service method with `@PreEnforce` as usual.
 
 Until `registerMongooseShim()` runs, a decision carrying a `mongo:queryRewriting` obligation is denied. A schema without the plugin is not intercepted: that is the fail-open path you must account for. Apply the plugin to every schema an enforced method may reach.
 
@@ -194,7 +194,7 @@ const prisma = basePrismaClient.$extends(createSaplPrismaExtension(cls));  // cl
 // add SqlQueryRewritingProvider to your SAPL module's providers
 ```
 
-The extension hooks Prisma's `$allOperations` for filter operations (`findMany`, `findFirst`, `count`, `aggregate`, `groupBy`, `updateMany`, `deleteMany`), AND-merging the obligation's `criteria` into the operation's `where` and narrowing `columns` to a `select`. Prisma's `where` is structured rather than SQL, so the `conditions` escape hatch cannot be lowered and is rejected (the decision denied); policies targeting Prisma use typed `criteria`. A unique-key operation (`findUnique`, `update`, `delete`, `upsert`) cannot be safely AND-narrowed, so it is denied while an obligation is active; use `findFirst`, `updateMany`, or `deleteMany` instead. Operations without a filter (`create`, `createMany`) pass through.
+The extension hooks Prisma's `$allOperations` for filter operations (`findMany`, `findFirst`, `count`, `aggregate`, `groupBy`, `updateMany`, `deleteMany`), AND-merging the obligation's `criteria` into the operation's `where` and narrowing `columns` to a `select`. Prisma's `where` is structured rather than SQL, so the `conditions` escape hatch cannot be lowered and is rejected (the decision denied). Policies targeting Prisma use typed `criteria`. A unique-key operation (`findUnique`, `update`, `delete`, `upsert`) cannot be safely AND-narrowed, so it is denied while an obligation is active. Use `findFirst`, `updateMany`, or `deleteMany` instead. Operations without a filter (`create`, `createMany`) pass through.
 
 Until `registerPrismaShim()` runs, a decision carrying a `sql:queryRewriting` obligation is denied. A client used without the extension is not intercepted: that is the fail-open path you must account for. Extend every client an enforced method may reach.
 

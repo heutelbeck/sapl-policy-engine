@@ -48,7 +48,7 @@ The action downloads the correct binary for the runner platform and adds it to t
 
 ### Quick Start
 
-This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP. No configuration files are needed. The built-in defaults keep setup minimal: no TLS and policies loaded from the current directory. The node ships fail-closed and requires choosing an authentication mode before it starts; this walkthrough passes `--no-auth` to accept unauthenticated requests for local exploration.
+This walkthrough sets up a working node from scratch, deploys a policy, and queries the PDP. No configuration files are needed. The built-in defaults keep setup minimal: no TLS and policies loaded from the current directory. The node ships fail-closed and requires choosing an authentication mode before it starts. This walkthrough passes `--no-auth` to accept unauthenticated requests for local exploration.
 
 Create a working directory and a policy file:
 
@@ -72,7 +72,7 @@ Start the server:
 cd demo && ./sapl --no-auth
 ```
 
-The node starts on `localhost:8080` with no TLS. The `--no-auth` flag accepts unauthenticated requests for local exploration; without an authentication choice the node fails closed and refuses to start. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
+The node starts on `localhost:8080` with no TLS. The `--no-auth` flag accepts unauthenticated requests for local exploration. Without an authentication choice the node fails closed and refuses to start. No `pdp.json` is needed. When absent, the PDP uses the default combining algorithm (`PRIORITY_DENY` with `DENY` default and `PROPAGATE` error handling).
 
 In a separate terminal, request a one-shot decision:
 
@@ -128,7 +128,7 @@ curl -s http://localhost:8080/actuator/health | jq .
 
 You should see `"status": "UP"` with a `pdps` detail block showing the state `LOADED`, the active combining algorithm, and the number of loaded documents. If a policy has a syntax error, the state changes to `ERROR` and the health status drops to `DOWN`.
 
-The info endpoint shows PDP configuration (this endpoint requires authentication in production; here it is reachable because the node was started with `--no-auth`):
+The info endpoint shows PDP configuration. This endpoint requires authentication in production. Here it is reachable because the node was started with `--no-auth`:
 
 ```shell
 curl -s http://localhost:8080/actuator/info | jq .

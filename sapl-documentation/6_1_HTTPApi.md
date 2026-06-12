@@ -13,7 +13,7 @@ The SAPL PDP server exposes two network APIs for authorization decisions: HTTP/J
 
 The HTTP API requires no SDK. Any application that can make HTTP requests can use the PDP.
 
-All endpoints accept `POST` requests with `application/json` bodies. Streaming endpoints return `text/event-stream` (Server-Sent Events); one-shot endpoints return `application/json`. All endpoints are located under a shared base URL, typically `https://<host>:<port>/api/pdp/`.
+All endpoints accept `POST` requests with `application/json` bodies. Streaming endpoints return `text/event-stream` (Server-Sent Events). One-shot endpoints return `application/json`. All endpoints are located under a shared base URL, typically `https://<host>:<port>/api/pdp/`.
 
 ### Endpoint Overview
 
@@ -504,7 +504,7 @@ If authentication fails, the server rejects the setup with a `REJECTED_SETUP` er
 
 ### Connection Lifecycle
 
-RSocket connections are persistent. Connection lifetime is bounded by credential expiry (JWT `exp` claim) and an optional server-configured maximum. The effective lifetime is the minimum of these two bounds. Expired connections are disposed by the server; clients must reconnect.
+RSocket connections are persistent. Connection lifetime is bounded by credential expiry (JWT `exp` claim) and an optional server-configured maximum. The effective lifetime is the minimum of these two bounds. Expired connections are disposed by the server. Clients must reconnect.
 
 ### Error Handling
 

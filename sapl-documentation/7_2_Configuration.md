@@ -85,7 +85,7 @@ All properties live under the prefix `sapl.pdp.rsocket`. The RSocket endpoint is
 | `max-inbound-payload-size` | `int` | `16777215` | Maximum size in bytes of an inbound RSocket payload. The RSocket protocol fixes the per-frame ceiling at 16 MB; the configured value must be at least that, since any single frame must fit. Per-IP and per-account caps belong at an upstream load balancer or firewall. |
 | `ssl.bundle` | `String` | | Name of a Spring Boot SSL bundle (configured under `spring.ssl.bundle.*`) used to terminate TLS on the RSocket transport. When unset, the server speaks plain TCP. The same bundle definition can be shared with the HTTP server, so a single keystore covers both transports. |
 
-Connection lifetime is soft. JWT credentials are validated at every decision call; expired tokens are then rejected, and the client is expected to reconnect with a refreshed credential. The server does not maintain a separate hard-disconnect timer.
+Connection lifetime is soft. JWT credentials are validated at every decision call. Expired tokens are then rejected, and the client is expected to reconnect with a refreshed credential. The server does not maintain a separate hard-disconnect timer.
 
 Connection counts are bounded by the OS file-descriptor limit (`ulimit -n` on Linux). Per-IP or per-account caps are not enforced inside the node and need to be applied at an upstream load balancer or firewall.
 

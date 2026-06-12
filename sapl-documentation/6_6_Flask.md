@@ -146,7 +146,7 @@ Use `@pre_enforce` for views with side effects (database writes, emails) that sh
 
 #### @post_enforce
 
-Authorizes **after** the view executes. The view always runs; its return value is available to the subscription builder via the `return_value` parameter.
+Authorizes **after** the view executes. The view always runs. Its return value is available to the subscription builder via the `return_value` parameter.
 
 ```python
 from sapl_flask import post_enforce
@@ -216,7 +216,7 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 
 #### @stream_enforce
 
-Streaming enforcement applies an authorization decision continuously to a stream of items your view produces. The decorated view returns an **async iterator** of data items; SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
+Streaming enforcement applies an authorization decision continuously to a stream of items your view produces. The decorated view returns an **async iterator** of data items. SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
 
 `@stream_enforce` is the ready-made binding for **Server-Sent Events**: it wraps the enforced iterator in a Flask `Response` that renders each item as an SSE `data:` frame on `text/event-stream`. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`: it takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 
