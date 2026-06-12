@@ -242,8 +242,14 @@ class DeduplicationTests {
             voterSource.loadConfiguration(config, false);
             voterSource.loadConfiguration(config, false);
 
-            assertThat(received).hasSize(2)
-                    .allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
+            // Subscribing delivers the current state first; with no configuration
+            // loaded yet that is a Removed event, then one Voter per reload
+            // (duplicate reloads are not deduplicated at the source).
+            assertThat(received).hasSize(3).satisfies(events -> {
+                assertThat(events.getFirst()).isInstanceOf(PdpUpdateEvent.Removed.class);
+                assertThat(events.subList(1, events.size()))
+                        .allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
+            });
         }
 
         @Test

@@ -263,6 +263,15 @@ public class PdpVoterSource implements AutoCloseable {
     /**
      * Registers a listener that is invoked synchronously whenever the
      * configuration for the given pdpId changes.
+     * <p>
+     * On subscription the listener is delivered the current state once, under
+     * the source lock, so the initial value and any concurrent update arrive in
+     * order and no stale configuration can latch downstream. The current state
+     * is a {@link PdpUpdateEvent.Voter} when a configuration is loaded, or a
+     * {@link PdpUpdateEvent.Removed} when none is. Because the event type has no
+     * dedicated "absent" case, {@code Removed} on this initial delivery means
+     * "no current configuration" rather than "a configuration was deleted";
+     * both map to a fail-closed no-config decision downstream.
      *
      * @param pdpId the PDP identifier
      * @param listener the callback to invoke on configuration change
