@@ -329,7 +329,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
 
         private TcpClient     tcpClient   = TcpClient.create();
         private Duration      keepAlive   = Duration.ofSeconds(20);
-        private Duration      maxLifeTime = Duration.ofSeconds(90);
+        private Duration      maxLifeTime = Duration.ofSeconds(60);
         private Mono<Payload> setupPayloadMono;
 
         /**

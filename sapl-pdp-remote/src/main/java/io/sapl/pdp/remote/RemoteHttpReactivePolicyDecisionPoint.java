@@ -118,6 +118,10 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
     @Getter
     private int timeoutMillis = 5000;
 
+    @Setter
+    @Getter
+    private int inactivityTimeoutMillis = 60_000;
+
     public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
             String clientKey,
             String clientSecret,
@@ -163,9 +167,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // configured credentials of this client.
         val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(DECIDE, type, authzSubscription)
-                        .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
-                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(DECIDE, type, authzSubscription).doOnError(this::logStreamError)
+                        .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
     }
@@ -192,9 +195,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // configured credentials of this client.
         val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription)
-                        .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
-                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription).doOnError(this::logStreamError)
+                        .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE),
                         Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
@@ -209,9 +211,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // configured credentials of this client.
         val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
-                        .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
-                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription).doOnError(this::logStreamError)
+                        .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(
                         error -> Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error)))
                 .retryWhen(createRetrySpec()).distinctUntilChanged();
@@ -237,8 +238,14 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
 
     private <T> Flux<T> streamSse(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
             Object authzSubscription) {
+        // Liveness runs before mapNotNull drops keep-alive frames. Total silence
+        // (no decision and no keep-alive) past inactivityTimeoutMillis fails the
+        // stream closed and reconnects. Keep-alives keep a quiet stream alive.
         return client.post().uri(path).accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(authzSubscription).retrieve().bodyToFlux(type).mapNotNull(ServerSentEvent::data);
+                .bodyValue(authzSubscription).retrieve().bodyToFlux(type)
+                .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)),
+                        ignored -> Mono.delay(Duration.ofMillis(inactivityTimeoutMillis)))
+                .mapNotNull(ServerSentEvent::data);
     }
 
     private Retry createRetrySpec() {
