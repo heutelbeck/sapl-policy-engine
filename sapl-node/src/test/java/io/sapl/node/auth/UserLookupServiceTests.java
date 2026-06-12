@@ -18,6 +18,7 @@
 package io.sapl.node.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -140,27 +141,8 @@ class UserLookupServiceTests {
         }
 
         @Test
-        @DisplayName("returns user via fallback scan when api-key-id is absent")
-        void whenApiKeyIdMissingThenReturnsUserViaFallback() {
-            val userEntry = new UserEntry();
-            userEntry.setId("api-user");
-            userEntry.setPdpId("staging");
-            userEntry.setApiKey(ENCODED_API_KEY);
-
-            when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
-            when(properties.getUsers()).thenReturn(List.of(userEntry));
-
-            val result = service.findByApiKey(RAW_API_KEY);
-
-            assertThat(result).isPresent().hasValueSatisfying(user -> {
-                assertThat(user.getId()).isEqualTo("api-user");
-                assertThat(user.getPdpId()).isEqualTo("staging");
-            });
-        }
-
-        @Test
-        @DisplayName("indexed users are not also scanned in the fallback path")
-        void whenApiKeyIdIndexedThenFallbackSkipsThem() {
+        @DisplayName("returns empty when the key's api-key-id is not in the index")
+        void whenApiKeyIdNotInIndexThenReturnsEmpty() {
             val userEntry = new UserEntry();
             userEntry.setId("api-user");
             userEntry.setPdpId("staging");
@@ -168,7 +150,6 @@ class UserLookupServiceTests {
             userEntry.setApiKeyId("DIFFERENT");
 
             when(properties.getApiKeyIdIndex()).thenReturn(Map.of("DIFFERENT", userEntry));
-            when(properties.getUsers()).thenReturn(List.of(userEntry));
 
             val result = service.findByApiKey(RAW_API_KEY);
 
@@ -176,14 +157,27 @@ class UserLookupServiceTests {
         }
 
         @Test
-        @DisplayName("returns empty when API key not found")
-        void whenApiKeyNotFoundThenReturnsEmpty() {
+        @DisplayName("an entry without api-key-id is not authenticated, even if its key matches")
+        void whenEntryHasNoApiKeyIdThenReturnsEmpty() {
             val userEntry = new UserEntry();
             userEntry.setId("api-user");
             userEntry.setApiKey(ENCODED_API_KEY);
 
-            when(properties.getUsers()).thenReturn(List.of(userEntry));
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
+            // API-key authentication resolves entries only through the
+            // api-key-id index, never by scanning the user list. An entry
+            // without an api-key-id is absent from the index, so stubbing the
+            // user list proves the lookup ignores it even when its key matches.
+            lenient().when(properties.getUsers()).thenReturn(List.of(userEntry));
 
+            val result = service.findByApiKey(RAW_API_KEY);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("returns empty when the API key is malformed (no sapl_ prefix)")
+        void whenApiKeyMalformedThenReturnsEmpty() {
             val result = service.findByApiKey("wrong-api-key");
 
             assertThat(result).isEmpty();

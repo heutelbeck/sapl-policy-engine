@@ -99,7 +99,7 @@ Generate a key with the CLI:
 sapl generate apikey --id service-b --pdp-id production
 ```
 
-The command prints three things: the plaintext API key, its public `api-key-id` (the middle segment of the wire format), and the Argon2 encoded hash. Both `api-key-id` and `api-key` go into the user entry. The plaintext is shown once and cannot be recovered from the hash. The `api-key-id` lets the server route incoming requests in O(1). User entries without it fall back to an O(N) Argon2 scan and are kept only for backward compatibility with older configurations.
+The command prints three things: the plaintext API key, its public `api-key-id` (the middle segment of the wire format), and the Argon2 encoded hash. Both `api-key-id` and `api-key` go into the user entry. The plaintext is shown once and cannot be recovered from the hash. The `api-key-id` is what the server uses to find the matching user entry. An API key whose id is not configured is rejected.
 
 ### OAuth2 and JWT
 
