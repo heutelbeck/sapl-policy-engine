@@ -28,11 +28,16 @@ import org.bouncycastle.util.io.pem.PemWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.Key;
+import java.security.PrivateKey;
 import java.util.Base64;
+import java.util.EnumSet;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.ERROR_INVALID_BASE64;
 
@@ -182,8 +187,28 @@ public class PemUtils {
         try (val pemWriter = new JcaPEMWriter(stringWriter)) {
             pemWriter.writeObject(key);
         }
-        val pem = stringWriter.toString().replace("\r\n", "\n");
-        Files.write(file, pem.getBytes(StandardCharsets.UTF_8));
+        val pem   = stringWriter.toString().replace("\r\n", "\n");
+        val bytes = pem.getBytes(StandardCharsets.UTF_8);
+        if (key instanceof PrivateKey && file.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+            writeOwnerOnly(file, bytes);
+        } else {
+            Files.write(file, bytes);
+        }
+    }
+
+    /**
+     * Writes a private key on a POSIX filesystem with owner-only permissions
+     * (0600), created restricted from the start so it is never momentarily
+     * world-readable under the process umask. On non-POSIX filesystems the
+     * caller uses the default write, since the umask exposure does not apply.
+     */
+    private static void writeOwnerOnly(Path file, byte[] bytes) throws IOException {
+        val ownerOnly = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"));
+        Files.deleteIfExists(file);
+        try (val channel = Files.newByteChannel(file,
+                EnumSet.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), ownerOnly)) {
+            channel.write(ByteBuffer.wrap(bytes));
+        }
     }
 
     private static byte[] decodeBase64(String content, String context) {
