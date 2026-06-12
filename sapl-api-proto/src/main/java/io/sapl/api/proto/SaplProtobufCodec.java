@@ -79,9 +79,11 @@ public class SaplProtobufCodec {
     private static final int ERROR_MESSAGE   = 1;
     private static final int ERROR_ARGUMENTS = 2;
 
-    // Bounds value nesting so a maliciously deep payload fails closed with an
-    // IOException rather than overflowing the stack while decoding.
-    private static final int    MAX_VALUE_DEPTH          = 100;
+    // Bounds value nesting on decode so a maliciously deep wire payload (which
+    // bypasses any JSON parser) fails closed with an IOException rather than
+    // overflowing the stack. Matches the JSON parser's default nesting limit so
+    // the transports accept the same legitimately-deep values.
+    private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
 
     // AuthorizationSubscription field numbers
@@ -301,12 +303,17 @@ public class SaplProtobufCodec {
         case BooleanValue ignored      -> 1 + 1; // tag + bool
         case NumberValue(BigDecimal n) -> CodedOutputStream.computeStringSize(VALUE_NUMBER, n.toPlainString());
         case TextValue(String s)       -> CodedOutputStream.computeStringSize(VALUE_TEXT, s);
-        case ArrayValue arr            ->
-            1 + CodedOutputStream.computeUInt32SizeNoTag(computeArrayValueContentSize(arr))
-                    + computeArrayValueContentSize(arr);
-        case ObjectValue obj           ->
-            1 + CodedOutputStream.computeUInt32SizeNoTag(computeObjectValueContentSize(obj))
-                    + computeObjectValueContentSize(obj);
+        case ArrayValue arr            -> {
+            // Compute the content size once and reuse it. Calling the content
+            // sizer twice doubles the work at every nesting level, which is
+            // exponential in the value's depth.
+            val content = computeArrayValueContentSize(arr);
+            yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
+        }
+        case ObjectValue obj           -> {
+            val content = computeObjectValueContentSize(obj);
+            yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
+        }
         case UndefinedValue ignored    -> 1 + 1; // tag + bool
         case ErrorValue err            -> 1
                 + CodedOutputStream

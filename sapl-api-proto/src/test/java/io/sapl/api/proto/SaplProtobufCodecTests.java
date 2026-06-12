@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -71,13 +72,27 @@ class SaplProtobufCodecTests {
             // payload would not pass through the encoder, and each wrap here is
             // O(1), avoiding the encoder's own deep-nesting cost.
             byte[] bytes = SaplProtobufCodec.writeValue(Value.of("leaf"));
-            for (int i = 0; i < 150; i++) {
+            for (int i = 0; i < 1100; i++) {
                 bytes = wrapInArrayValue(bytes);
             }
             final byte[] nested = bytes;
 
             assertThatThrownBy(() -> SaplProtobufCodec.readValue(nested)).isInstanceOf(IOException.class)
                     .hasMessageContaining("maximum depth");
+        }
+
+        @Test
+        @Timeout(10)
+        @DisplayName("a deeply nested value within the limit encodes without exponential blow-up")
+        void whenDeeplyNestedValueWithinLimitThenEncodesInLinearTime() throws IOException {
+            Value value = Value.of("leaf");
+            for (int i = 0; i < 90; i++) {
+                value = ArrayValue.builder().add(value).build();
+            }
+
+            var bytes = SaplProtobufCodec.writeValue(value);
+
+            assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
         }
 
         private static byte[] wrapInArrayValue(byte[] innerValueBytes) throws IOException {
