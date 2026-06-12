@@ -19,8 +19,13 @@ package io.sapl.pdp.configuration.source;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +64,7 @@ import java.util.Objects;
  * @param maxBackoff
  * maximum backoff duration after repeated failures
  */
+@Slf4j
 public record RemoteBundleSourceConfig(
         String baseUrl,
         List<String> pdpIds,
@@ -79,6 +85,7 @@ public record RemoteBundleSourceConfig(
     private static final String ERROR_MAX_BACKOFF_NON_POSITIVE = "maxBackoff must be positive.";
     private static final String ERROR_PDP_IDS_EMPTY = "pdpIds must not be null or empty.";
     private static final String ERROR_POLL_INTERVAL_NON_POSITIVE = "pollInterval must be positive.";
+    private static final String WARN_CREDENTIALS_OVER_PLAINTEXT = "Bundle source sends an authentication credential to '{}' over an unencrypted (http) connection. The credential travels in cleartext and can be read by anything on the network path. Use an https URL, or keep this connection on a trusted network such as behind a TLS-terminating proxy.";
 
     /**
      * Change detection mode for remote bundle fetching.
@@ -116,8 +123,43 @@ public record RemoteBundleSourceConfig(
         if ((authHeaderName == null) == (authHeaderValue != null)) {
             throw new PDPConfigurationException(ERROR_AUTH_HEADER_INCOMPLETE);
         }
+        if (authHeaderValue != null) {
+            warnIfCredentialExposed(baseUrl);
+        }
         pdpIds             = List.copyOf(pdpIds);
         pdpIdPollIntervals = pdpIdPollIntervals != null ? Map.copyOf(pdpIdPollIntervals) : Map.of();
+    }
+
+    private static void warnIfCredentialExposed(String baseUrl) {
+        if (credentialIsExposed(baseUrl)) {
+            log.warn(WARN_CREDENTIALS_OVER_PLAINTEXT, baseUrl);
+        }
+    }
+
+    /**
+     * True when a credential sent to {@code baseUrl} would travel in cleartext.
+     * That is the case when the scheme is not https and the host is not
+     * loopback. A malformed URL is treated as not exposed here and surfaces
+     * when the bundle fetch is attempted.
+     */
+    static boolean credentialIsExposed(String baseUrl) {
+        try {
+            val uri = URI.create(baseUrl);
+            return !("https".equalsIgnoreCase(uri.getScheme()) || isLoopback(uri.getHost()));
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    private static boolean isLoopback(@Nullable String host) {
+        if (host == null || host.isBlank()) {
+            return false;
+        }
+        try {
+            return InetAddress.getByName(host).isLoopbackAddress();
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
 }
