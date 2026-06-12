@@ -133,12 +133,26 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
             String clientKey,
             String clientSecret,
             HttpClient httpClient) {
-        client = WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl)
+        client = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
+                .clientConnector(new ReactorClientHttpConnector(httpClient)).baseUrl(baseUrl)
                 .defaultHeaders(header -> header.setBasicAuth(clientKey, clientSecret)).build();
     }
 
     private RemoteHttpReactivePolicyDecisionPoint(WebClient client) {
         this.client = client;
+    }
+
+    /**
+     * Exchange strategies whose JSON codecs register {@link SaplJacksonModule}
+     * so SAPL {@link Value} types in subscriptions and decisions serialize and
+     * deserialize correctly. Used by every WebClient this class builds.
+     */
+    private static ExchangeStrategies saplExchangeStrategies() {
+        val mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        return ExchangeStrategies.builder().codecs(configurer -> {
+            configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
+            configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
+        }).build();
     }
 
     @Override
@@ -346,12 +360,7 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         }
 
         public RemoteHttpReactivePolicyDecisionPoint build() {
-            val mapper     = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
-            val strategies = ExchangeStrategies.builder().codecs(configurer -> {
-                               configurer.defaultCodecs().jacksonJsonEncoder(new JacksonJsonEncoder(mapper));
-                               configurer.defaultCodecs().jacksonJsonDecoder(new JacksonJsonDecoder(mapper));
-                           }).build();
-            var builder    = WebClient.builder().exchangeStrategies(strategies)
+            var builder = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
             if (this.authenticationCustomizer != null) {

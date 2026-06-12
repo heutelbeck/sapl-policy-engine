@@ -88,6 +88,20 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
 
     @Test
     @Timeout(10)
+    @DisplayName("A connect that never completes times out to INDETERMINATE instead of hanging the client")
+    void whenConnectNeverCompletesThenDecideOnceTimesOutToIndeterminate() {
+        // A dead or unreachable PDP whose connect never completes must not hang
+        // the client; the connection timeout converts it to a fail-closed
+        // INDETERMINATE within the budget.
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.never(), 1, 2);
+        pdp.setTimeoutMillis(200);
+
+        StepVerifier.create(pdp.decideOnce(SUBSCRIPTION, "default")).expectNext(AuthorizationDecision.INDETERMINATE)
+                .verifyComplete();
+    }
+
+    @Test
+    @Timeout(10)
     @DisplayName("Transport error triggers a reconnect rather than terminating the stream")
     void whenTransportErrorsThenClientReconnectsAndContinues() throws IOException {
         val attempt = new AtomicInteger();
