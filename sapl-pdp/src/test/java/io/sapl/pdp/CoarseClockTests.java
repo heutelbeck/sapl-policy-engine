@@ -50,19 +50,20 @@ class CoarseClockTests {
     }
 
     @Test
-    void whenTimestampUpdatedThenInstantAndStringAdvance() throws InterruptedException {
+    void whenTimestampUpdatedThenInstantAndStringAdvance() {
         try (var clock = new CoarseClock()) {
             var initialInstant = clock.instant();
             var initialString  = clock.now();
 
-            // Let the wall clock advance past the millisecond resolution, then drive the
-            // update directly so the assertion is deterministic and does not race the
-            // background scheduler (which can be starved under CPU/JVM-warmup load).
-            Thread.sleep(2);
-            clock.updateTimestamp();
-
-            assertThat(clock.instant()).isAfter(initialInstant);
-            assertThat(clock.now()).isNotEqualTo(initialString);
+            // Drive the update directly (rather than racing the background scheduler,
+            // which can be starved under CPU/JVM-warmup load) and poll until the wall
+            // clock has advanced past the millisecond resolution. Polling lets real
+            // time pass without a fixed Thread.sleep, keeping the assertion deterministic.
+            await().atMost(Duration.ofSeconds(1)).pollInterval(Duration.ofMillis(1)).untilAsserted(() -> {
+                clock.updateTimestamp();
+                assertThat(clock.instant()).isAfter(initialInstant);
+                assertThat(clock.now()).isNotEqualTo(initialString);
+            });
         }
     }
 

@@ -222,7 +222,8 @@ class BundleParserTests {
             zos.closeEntry();
         }
 
-        assertThatThrownBy(() -> BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, developmentPolicy))
+        val bundleBytes = baos.toByteArray();
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Compression ratio");
     }
 

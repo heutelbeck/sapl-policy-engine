@@ -82,8 +82,7 @@ class IndexPredicateTests {
             val predicate = new IndexPredicate(operator.semanticHash(), operator);
             val other     = new IndexPredicate(duplicate.semanticHash(), duplicate);
 
-            assertThat(predicate).isEqualTo(other);
-            assertThat(predicate).hasSameHashCodeAs(other);
+            assertThat(predicate).isEqualTo(other).hasSameHashCodeAs(other);
         }
 
         @Test
@@ -95,8 +94,7 @@ class IndexPredicateTests {
             val predicate     = new IndexPredicate(collidingHash, admin);
             val collision     = new IndexPredicate(collidingHash, user);
 
-            assertThat(predicate).hasSameHashCodeAs(collision);
-            assertThat(predicate).isNotEqualTo(collision);
+            assertThat(predicate).hasSameHashCodeAs(collision).isNotEqualTo(collision);
         }
     }
 }

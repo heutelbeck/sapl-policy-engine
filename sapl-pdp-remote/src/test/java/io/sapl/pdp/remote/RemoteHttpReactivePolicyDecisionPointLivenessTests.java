@@ -49,7 +49,7 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
 
     @FunctionalInterface
     private interface SseScript {
-        void write(OutputStream out) throws Exception;
+        void write(OutputStream out) throws IOException, InterruptedException;
     }
 
     private ServerSocket server;
@@ -76,7 +76,7 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
                                              .getBytes(UTF_8));
                              out.flush();
                              script.write(out);
-                         } catch (Exception ignored) {
+                         } catch (IOException | InterruptedException ignored) {
                              // The client cancels or the test tears down; nothing to recover.
                          }
                      });

@@ -190,7 +190,7 @@ public class NaryBooleanCompiler {
             if (pendingError == null) {
                 return base;
             }
-            return SemanticHashing.commutative(base, new long[] { SemanticHashing.valueHash(pendingError) });
+            return SemanticHashing.commutative(base, SemanticHashing.valueHash(pendingError));
         }
 
         @Override

@@ -152,15 +152,13 @@ public class SmtddPolicyIndex implements PolicyIndex {
     private static void collectNonGroupablePredicates(BooleanExpression node, boolean conjunctive,
             Set<IndexPredicate> nonGroupable) {
         switch (node) {
-        case Constant ignored    -> { /* no predicate */ }
-        case Atom(var predicate) -> {
-            if (!conjunctive) {
-                nonGroupable.add(predicate);
-            }
-        }
-        case Not(var operand)    -> collectNonGroupablePredicates(operand, false, nonGroupable);
-        case Or(var operands)    -> operands.forEach(op -> collectNonGroupablePredicates(op, false, nonGroupable));
-        case And(var operands)   ->
+        case Constant ignored                      -> { /* no predicate */ }
+        case Atom(var predicate) when !conjunctive -> nonGroupable.add(predicate);
+        case Atom ignored                          -> { /* conjunctive, groupable */ }
+        case Not(var operand)                      -> collectNonGroupablePredicates(operand, false, nonGroupable);
+        case Or(var operands)                      ->
+            operands.forEach(op -> collectNonGroupablePredicates(op, false, nonGroupable));
+        case And(var operands)                     ->
             operands.forEach(op -> collectNonGroupablePredicates(op, conjunctive, nonGroupable));
         }
     }
