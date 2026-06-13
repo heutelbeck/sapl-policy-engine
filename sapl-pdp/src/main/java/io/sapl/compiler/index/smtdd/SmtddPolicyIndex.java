@@ -33,7 +33,9 @@ import lombok.val;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -76,6 +78,11 @@ public class SmtddPolicyIndex implements PolicyIndex {
         val formulaDocuments  = new ArrayList<List<CompiledDocument>>();
         val formulaPredicates = new ArrayList<List<IndexPredicate>>();
 
+        // Predicates that occur under a disjunction or negation in some formula and
+        // therefore cannot be grouped (grouping treats a predicate as a conjunctive
+        // constraint, which only holds for predicates in pure conjunctive position).
+        val nonGroupablePredicates = new HashSet<IndexPredicate>();
+
         // Deduplicate formulas and collect predicates
         val alreadySeenFormulas = new HashMap<BooleanExpression, Integer>();
         for (val document : documents) {
@@ -97,6 +104,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
                     formulas.add(formula);
                     formulaDocuments.add(new ArrayList<>(List.of(document)));
                     formulaPredicates.add(collectPredicates(formula));
+                    collectNonGroupablePredicates(formula, true, nonGroupablePredicates);
                 }
             }
             default                         ->
@@ -112,7 +120,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
             return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorVotes);
         }
 
-        val analysis = SemanticVariableOrder.analyze(formulaPredicates);
+        val analysis = SemanticVariableOrder.analyze(formulaPredicates, nonGroupablePredicates);
         log.debug("SMTDD index analysis:\n{}", analysis.toAnalysisReport());
 
         val root        = SmtddBuilder.build(analysis, formulas, maxIndexNodes);
@@ -138,6 +146,22 @@ public class SmtddPolicyIndex implements PolicyIndex {
             operands.forEach(op -> collectPredicatesRecursive(op, result));
         case And(var operands)                                    ->
             operands.forEach(op -> collectPredicatesRecursive(op, result));
+        }
+    }
+
+    private static void collectNonGroupablePredicates(BooleanExpression node, boolean conjunctive,
+            Set<IndexPredicate> nonGroupable) {
+        switch (node) {
+        case Constant ignored    -> { /* no predicate */ }
+        case Atom(var predicate) -> {
+            if (!conjunctive) {
+                nonGroupable.add(predicate);
+            }
+        }
+        case Not(var operand)    -> collectNonGroupablePredicates(operand, false, nonGroupable);
+        case Or(var operands)    -> operands.forEach(op -> collectNonGroupablePredicates(op, false, nonGroupable));
+        case And(var operands)   ->
+            operands.forEach(op -> collectNonGroupablePredicates(op, conjunctive, nonGroupable));
         }
     }
 
