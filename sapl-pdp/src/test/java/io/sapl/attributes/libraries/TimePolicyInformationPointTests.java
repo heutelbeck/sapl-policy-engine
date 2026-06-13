@@ -43,6 +43,8 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("TimePolicyInformationPoint")
@@ -321,6 +323,32 @@ class TimePolicyInformationPointTests {
             val f = fixtureAt("2021-11-08T13:00:00Z");
             try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"), Value.of(invalidZone))) {
                 awaitsErrorAndCompletes(stream);
+            }
+        }
+
+        @Test
+        @DisplayName("a midnight crossing between the two clock reads still schedules FALSE for the end of the starting day, not a day later")
+        void whenClockCrossesMidnightBetweenReadsThenFalseFiresAtEndOfStartingDay() {
+            // The time-of-day decision and the date used to schedule the midnight
+            // boundary must come from a single clock read. A clock that ticks past
+            // midnight between the two reads must not push the FALSE transition a
+            // full day into the future.
+            val startOfReadWindow = Instant.parse("2021-11-08T23:59:59.999Z");
+            val afterMidnight     = Instant.parse("2021-11-09T00:00:00Z");
+            val clock             = mock(Clock.class);
+            when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+            // First read decides the time of day; the second read supplies the date
+            // for the midnight boundary - it must not see a later day.
+            when(clock.instant()).thenReturn(startOfReadWindow, afterMidnight);
+            val scheduler = new TestTimeScheduler(startOfReadWindow);
+            val sut       = new TimePolicyInformationPoint(clock, scheduler);
+
+            try (val stream = sut.localTimeIsAfter(Value.of("17:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                // Well past the end of the starting day (2021-11-08) but long before
+                // the end of the next day; FALSE must already be due.
+                scheduler.advanceTo(Instant.parse("2021-11-09T12:00:00Z"));
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
         }
     }
