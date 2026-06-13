@@ -23,9 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,236 +45,231 @@ import lombok.val;
 
 /**
  * The canonical and SMTDD indexes are optimizations of the naive linear scan,
- * so for every subscription they must report exactly the same applicable
- * documents and error votes as naive. This is exercised on the real production
- * structure: documents are compiled policies, so each body condition is a
- * type-checked atom and a policy is the conjunction of its conditions. Many
- * policies share conditions, so an erroring shared condition must not poison
- * sibling policies that a dominating {@code false} condition keeps
- * inapplicable,
- * and must not be reported as a match where it genuinely errors.
+ * so for every subscription they must report exactly the same matched documents
+ * and error votes as naive. This is the fast, index-level companion to the
+ * benchmark's end-to-end decision-agreement test: it builds policies through
+ * the
+ * real compiler (so conditions decompose and equality predicates group exactly
+ * as in production) and deliberately stresses the corners a realistic generator
+ * does not reliably hit.
  * <p>
- * Three corpora are stressed: conditions that can only error (division by
- * zero), conditions that can only be undefined (a missing field, which the body
- * type-check turns into an error), and a mix of both. Each is driven by many
- * seeded subscriptions, and naive is the oracle.
+ * Conditions are drawn from a shared operand pool so equality predicates
+ * collapse
+ * into multi-way branches: {@code subject.rN == "vK"},
+ * {@code subject.rN in [..]},
+ * and {@code subject.rN != "vK"} over the same operands with different values;
+ * decomposed {@code ||} over those; a division predicate that can error; and a
+ * bare field that can be undefined or non-boolean. Subscriptions drive each
+ * operand to a matching value, a non-matching value, an error, undefined, or a
+ * type mismatch. Naive is the oracle.
  */
-@DisplayName("Index backends agree with naive over realistic policy corpora")
+@DisplayName("Index backends agree with naive over a decomposed, equality-grouped corpus")
 class IndexDifferentialTests {
 
-    private static final int CONDITION_COUNT    = 12;
-    private static final int POLICY_COUNT       = 60;
-    private static final int SUBSCRIPTION_COUNT = 40;
+    private static final int    POLICY_COUNT       = 80;
+    private static final int    SUBSCRIPTION_COUNT = 60;
+    private static final int[]  STRING_OPERANDS    = { 1, 2, 3, 4 };  // subject.rN, equality-grouped
+    private static final int[]  NUMBER_OPERANDS    = { 1, 2, 3 };     // subject.nN, division (can error)
+    private static final int[]  BOOL_OPERANDS      = { 1, 2, 3 };     // subject.bN, bare (can be undefined/non-boolean)
+    private static final String VALUES             = "vw";            // equality constants v0..v2 are "v","w","x"
 
-    private enum K {
-        TRUE,
-        FALSE,
-        ERROR,
-        UNDEFINED
+    private static final List<CompiledDocument> CORPUS = buildCorpus();
+    private static final NaivePolicyIndex       NAIVE  = NaivePolicyIndex.create(CORPUS);
+    private static final CanonicalPolicyIndex   CANON  = CanonicalPolicyIndex.create(CORPUS);
+    private static final SmtddPolicyIndex       SMTDD  = SmtddPolicyIndex.create(CORPUS, 0);
+
+    @ParameterizedTest(name = "subscription {0}")
+    @MethodSource("subscriptions")
+    @DisplayName("canonical and SMTDD match naive on every subscription")
+    void backendsAgreeWithNaive(int index, String subjectJson) {
+        val ctx   = subscriptionContext(wrap(subjectJson));
+        val naive = NAIVE.match(ctx);
+        val canon = CANON.match(ctx);
+        val smtdd = SMTDD.match(ctx);
+        assertThat(matched(canon)).as("canonical matched | subscription %d", index).isEqualTo(matched(naive));
+        assertThat(errored(canon)).as("canonical errored | subscription %d", index).isEqualTo(errored(naive));
+        assertThat(matched(smtdd)).as("smtdd matched | subscription %d", index).isEqualTo(matched(naive));
+        assertThat(errored(smtdd)).as("smtdd errored | subscription %d", index).isEqualTo(errored(naive));
     }
 
-    /**
-     * A shared body condition. An error-type condition evaluates to true, false,
-     * or a division-by-zero error depending on {@code subject.eN}. An
-     * undefined-type condition evaluates to true, false, or undefined depending
-     * on {@code subject.uN}; undefined reaches the body type-check and becomes an
-     * error there.
-     */
-    private record Condition(int id, boolean errorType) {
-
-        String source() {
-            return errorType ? "(10 / subject.e%d > 0)".formatted(id) : "subject.u%d".formatted(id);
+    private static Stream<Arguments> subscriptions() {
+        val random  = new Random(987654321L);
+        val streams = new ArrayList<Arguments>();
+        for (var s = 0; s < SUBSCRIPTION_COUNT; s++) {
+            streams.add(arguments(s, randomSubject(random)));
         }
-
-        String field() {
-            return (errorType ? "e" : "u") + id;
-        }
-
-        K[] valueDomain() {
-            return errorType ? new K[] { K.TRUE, K.FALSE, K.ERROR } : new K[] { K.TRUE, K.FALSE, K.UNDEFINED };
-        }
-    }
-
-    private record Corpus(String label, List<Condition> conditions, List<CompiledDocument> documents) {}
-
-    private static final Corpus ERROR_ONLY     = corpus("error-only", 101L, id -> true);
-    private static final Corpus UNDEFINED_ONLY = corpus("undefined-only", 202L, id -> false);
-    private static final Corpus BOTH           = corpus("both", 303L, id -> id % 2 == 0);
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("corpusSubscriptions")
-    @DisplayName("canonical and SMTDD match naive for a large shared-condition corpus")
-    void backendsAgreeWithNaiveAcrossSubscriptions(String label, List<CompiledDocument> documents, String subjectJson) {
-        assertBackendsAgreeWithNaive(label, documents, context(subjectJson));
-    }
-
-    private static Stream<Arguments> corpusSubscriptions() {
-        val scenarios = new ArrayList<Arguments>();
-        for (val corpus : List.of(ERROR_ONLY, UNDEFINED_ONLY, BOTH)) {
-            val random = new Random(corpus.label().length() * 31L + 7L);
-            for (var s = 0; s < SUBSCRIPTION_COUNT; s++) {
-                val valuation = randomValuation(random, corpus.conditions());
-                scenarios.add(arguments(corpus.label() + " #" + s, corpus.documents(),
-                        subjectJson(corpus.conditions(), valuation)));
-            }
-        }
-        return scenarios.stream();
+        return streams.stream();
     }
 
     @Nested
-    @DisplayName("a shared erroring condition does not poison sibling policies")
-    class SharedErrorIsolation {
+    @DisplayName("equality grouping")
+    class EqualityGrouping {
 
         @Test
-        @DisplayName("error condition dominated by a false sibling leaves the policy inapplicable")
-        void whenErrorDominatedByFalseThenInapplicable() {
-            final List<CompiledDocument> documents = List
-                    .of(compilePolicyFull("policy \"p\" permit (10 / subject.e1 > 0); (10 / subject.e2 > 0)"));
-            val                          ctx       = context("{\"e1\": 0, \"e2\": -5}");
-            assertBackendsAgreeWithNaive("error dominated by false", documents, ctx);
-            assertThat(matched(naive(documents, ctx))).isEmpty();
-            assertThat(errored(naive(documents, ctx))).isEmpty();
+        @DisplayName("an undefined operand makes every equality on it false, not an error")
+        void whenOperandUndefinedThenAllEqualitiesFalse() {
+            val documents = policies("policy \"a\" permit subject.r1 == \"v\"",
+                    "policy \"b\" permit subject.r1 == \"w\"", "policy \"c\" permit subject.r1 != \"v\"");
+            val ctx       = subscriptionContext(wrap("{}")); // r1 missing -> undefined
+            assertAgreesWithNaive("undefined operand", documents, ctx);
+            // undefined == X is false; undefined != X is true.
+            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("c");
         }
 
         @Test
-        @DisplayName("error condition with no dominating sibling makes the policy indeterminate")
-        void whenErrorNotDominatedThenErrorVote() {
-            final List<CompiledDocument> documents = List
-                    .of(compilePolicyFull("policy \"p\" permit (10 / subject.e1 > 0); (10 / subject.e2 > 0)"));
-            val                          ctx       = context("{\"e1\": 0, \"e2\": 5}");
-            assertBackendsAgreeWithNaive("error not dominated", documents, ctx);
-            assertThat(errored(naive(documents, ctx))).containsExactly("p");
+        @DisplayName("a matching value selects exactly the matching equality branch")
+        void whenOperandMatchesThenOnlyThatBranchMatches() {
+            val documents = policies("policy \"a\" permit subject.r1 == \"v\"",
+                    "policy \"b\" permit subject.r1 == \"w\"", "policy \"c\" permit subject.r1 in [\"w\", \"x\"]");
+            val ctx       = subscriptionContext(wrap("{\"r1\": \"w\"}"));
+            assertAgreesWithNaive("matching value", documents, ctx);
+            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactlyInAnyOrder("b", "c");
+        }
+    }
+
+    @Nested
+    @DisplayName("decomposed boolean structure")
+    class DecomposedStructure {
+
+        @Test
+        @DisplayName("a true equality dominates an erroring division in a decomposed OR")
+        void whenOrHasTrueEqualityAndErrorThenMatches() {
+            val documents = policies("policy \"p\" permit (10 / subject.n1 > 0) || subject.r1 == \"v\"");
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"v\"}")); // division errors, equality true
+            assertAgreesWithNaive("true dominates error in OR", documents, ctx);
+            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
         }
 
         @Test
-        @DisplayName("a shared erroring condition errors one policy and drops another in the same evaluation")
+        @DisplayName("an erroring division with no dominating sibling makes the policy indeterminate")
+        void whenOrHasErrorAndNoDominatorThenErrors() {
+            val documents = policies("policy \"p\" permit (10 / subject.n1 > 0) || subject.r1 == \"v\"");
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\"}")); // error, equality false
+            assertAgreesWithNaive("error with no dominator in OR", documents, ctx);
+            assertThat(errored(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
+        }
+    }
+
+    @Nested
+    @DisplayName("non-boolean and shared-error corners")
+    class NonBooleanAndSharedError {
+
+        @Test
+        @DisplayName("a non-boolean bare field condition makes the policy indeterminate")
+        void whenBareFieldNonBooleanThenErrors() {
+            val documents = policies("policy \"p\" permit subject.b1");
+            val ctx       = subscriptionContext(wrap("{\"b1\": \"not a boolean\"}"));
+            assertAgreesWithNaive("non-boolean bare field", documents, ctx);
+            assertThat(errored(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
+        }
+
+        @Test
+        @DisplayName("a shared erroring division drops one policy and errors another in the same evaluation")
         void whenSharedErrorThenEachSiblingResolvesIndependently() {
-            final List<CompiledDocument> documents = List.of(
-                    compilePolicyFull("policy \"drops\" permit (10 / subject.e1 > 0); (10 / subject.e2 > 0)"),
-                    compilePolicyFull("policy \"errors\" permit (10 / subject.e1 > 0); (10 / subject.e3 > 0)"));
-            val                          ctx       = context("{\"e1\": 0, \"e2\": -5, \"e3\": 5}");
-            assertBackendsAgreeWithNaive("shared error", documents, ctx);
-            assertThat(matched(naive(documents, ctx))).isEmpty();
-            assertThat(errored(naive(documents, ctx))).containsExactly("errors");
-        }
-    }
-
-    @Nested
-    @DisplayName("an undefined condition behaves like an error at the policy boundary")
-    class UndefinedConditions {
-
-        @Test
-        @DisplayName("undefined condition dominated by a false sibling leaves the policy inapplicable")
-        void whenUndefinedDominatedByFalseThenInapplicable() {
-            final List<CompiledDocument> documents = List
-                    .of(compilePolicyFull("policy \"p\" permit subject.u1; subject.u2"));
-            val                          ctx       = context("{\"u2\": false}"); // u1 missing -> undefined
-            assertBackendsAgreeWithNaive("undefined dominated by false", documents, ctx);
-            assertThat(matched(naive(documents, ctx))).isEmpty();
-            assertThat(errored(naive(documents, ctx))).isEmpty();
-        }
-
-        @Test
-        @DisplayName("undefined condition with no dominating sibling makes the policy indeterminate")
-        void whenUndefinedNotDominatedThenErrorVote() {
-            final List<CompiledDocument> documents = List
-                    .of(compilePolicyFull("policy \"p\" permit subject.u1; subject.u2"));
-            val                          ctx       = context("{\"u2\": true}"); // u1 missing -> undefined
-            assertBackendsAgreeWithNaive("undefined not dominated", documents, ctx);
-            assertThat(errored(naive(documents, ctx))).containsExactly("p");
-        }
-
-        @Test
-        @DisplayName("a shared undefined condition errors one policy and drops another in the same evaluation")
-        void whenSharedUndefinedThenEachSiblingResolvesIndependently() {
-            final List<CompiledDocument> documents = List.of(
-                    compilePolicyFull("policy \"drops\" permit subject.u1; subject.u2"),
-                    compilePolicyFull("policy \"errors\" permit subject.u1; subject.u3"));
-            val                          ctx       = context("{\"u2\": false, \"u3\": true}"); // u1 missing ->
-                                                                                               // undefined
-            assertBackendsAgreeWithNaive("shared undefined", documents, ctx);
-            assertThat(matched(naive(documents, ctx))).isEmpty();
-            assertThat(errored(naive(documents, ctx))).containsExactly("errors");
+            val documents = policies("policy \"drops\" permit (10 / subject.n1 > 0); subject.r1 == \"v\"",
+                    "policy \"errors\" permit (10 / subject.n1 > 0); subject.r2 == \"w\"");
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\", \"r2\": \"w\"}"));
+            assertAgreesWithNaive("shared error", documents, ctx);
+            val naive = NaivePolicyIndex.create(documents).match(ctx);
+            assertThat(matched(naive)).isEmpty();
+            assertThat(errored(naive)).containsExactly("errors");
         }
     }
 
     // --- corpus construction --------------------------------------------------
 
-    private interface ConditionTypeChooser {
-        boolean isErrorType(int id);
-    }
-
-    private static Corpus corpus(String label, long seed, ConditionTypeChooser chooser) {
-        val conditions = new ArrayList<Condition>();
-        for (var id = 1; id <= CONDITION_COUNT; id++) {
-            conditions.add(new Condition(id, chooser.isErrorType(id)));
-        }
-        val random    = new Random(seed);
-        val documents = new ArrayList<CompiledDocument>();
-        for (var n = 0; n < POLICY_COUNT; n++) {
-            val size = 1 + random.nextInt(4);
-            val body = pickDistinct(random, conditions, size).stream().map(Condition::source)
-                    .collect(Collectors.joining("; "));
-            documents.add(compilePolicyFull("policy \"%s_p%d\" permit %s".formatted(label, n, body)));
-        }
-        return new Corpus(label, conditions, documents);
-    }
-
-    private static List<Condition> pickDistinct(Random random, List<Condition> conditions, int size) {
-        val pool   = new ArrayList<>(conditions);
-        val picked = new ArrayList<Condition>();
-        for (var i = 0; i < size && !pool.isEmpty(); i++) {
-            picked.add(pool.remove(random.nextInt(pool.size())));
-        }
-        return picked;
-    }
-
-    private static Map<Integer, K> randomValuation(Random random, List<Condition> conditions) {
-        val valuation = new LinkedHashMap<Integer, K>();
-        for (val condition : conditions) {
-            val domain = condition.valueDomain();
-            valuation.put(condition.id(), domain[random.nextInt(domain.length)]);
-        }
-        return valuation;
-    }
-
-    private static String subjectJson(List<Condition> conditions, Map<Integer, K> valuation) {
-        val fields = new ArrayList<String>();
-        for (val condition : conditions) {
-            val k = valuation.get(condition.id());
-            if (condition.errorType()) {
-                val number = switch (k) {
-                case TRUE  -> 5;
-                case FALSE -> -5;
-                default    -> 0;
-                };
-                fields.add("\"%s\": %d".formatted(condition.field(), number));
-            } else if (k == K.TRUE) {
-                fields.add("\"%s\": true".formatted(condition.field()));
-            } else if (k == K.FALSE) {
-                fields.add("\"%s\": false".formatted(condition.field()));
+    private static List<CompiledDocument> buildCorpus() {
+        val random   = new Random(123456789L);
+        val policies = new ArrayList<CompiledDocument>(POLICY_COUNT);
+        for (var p = 0; p < POLICY_COUNT; p++) {
+            val conditionCount = 1 + random.nextInt(4);
+            val body           = new ArrayList<String>(conditionCount);
+            for (var c = 0; c < conditionCount; c++) {
+                body.add(randomCondition(random));
             }
-            // UNDEFINED: the field is omitted, so subject.uN evaluates to undefined.
+            policies.add(compilePolicyFull("policy \"p%d\" permit %s".formatted(p, String.join("; ", body))));
         }
-        return "{\"subject\": {%s}, \"action\": \"a\", \"resource\": \"r\", \"environment\": \"e\"}"
-                .formatted(String.join(", ", fields));
+        return policies;
+    }
+
+    private static String randomCondition(Random random) {
+        val r = stringOperand(random);
+        return switch (random.nextInt(7)) {
+        case 0  -> "subject.r%d == \"%s\"".formatted(r, value(random));
+        case 1  -> "subject.r%d != \"%s\"".formatted(r, value(random));
+        case 2  -> "subject.r%d in [\"v\", \"w\"]".formatted(r);
+        case 3  -> "(subject.r%d == \"%s\" || subject.r%d == \"%s\")".formatted(r, value(random), stringOperand(random),
+                value(random));
+        case 4  -> "(10 / subject.n%d > 0)".formatted(numberOperand(random));
+        case 5  -> "subject.b%d".formatted(boolOperand(random));
+        default -> "(subject.r%d == \"%s\" && subject.b%d)".formatted(r, value(random), boolOperand(random));
+        };
+    }
+
+    private static String randomSubject(Random random) {
+        val fields = new ArrayList<String>();
+        for (val i : STRING_OPERANDS) {
+            switch (random.nextInt(5)) {
+            case 0  -> fields.add("\"r%d\": \"v\"".formatted(i));
+            case 1  -> fields.add("\"r%d\": \"w\"".formatted(i));
+            case 2  -> fields.add("\"r%d\": \"x\"".formatted(i));
+            case 3  -> fields.add("\"r%d\": \"other\"".formatted(i));
+            default -> { /* undefined: omit */ }
+            }
+        }
+        for (val i : NUMBER_OPERANDS) {
+            val n = switch (random.nextInt(3)) {
+            case 0  -> 5;
+            case 1  -> -5;
+            default -> 0;
+            };
+            fields.add("\"n%d\": %d".formatted(i, n));
+        }
+        for (val i : BOOL_OPERANDS) {
+            switch (random.nextInt(4)) {
+            case 0  -> fields.add("\"b%d\": true".formatted(i));
+            case 1  -> fields.add("\"b%d\": false".formatted(i));
+            case 2  -> fields.add("\"b%d\": \"str\"".formatted(i));
+            default -> { /* undefined: omit */ }
+            }
+        }
+        return "{%s}".formatted(String.join(", ", fields));
+    }
+
+    private static int stringOperand(Random random) {
+        return STRING_OPERANDS[random.nextInt(STRING_OPERANDS.length)];
+    }
+
+    private static int numberOperand(Random random) {
+        return NUMBER_OPERANDS[random.nextInt(NUMBER_OPERANDS.length)];
+    }
+
+    private static int boolOperand(Random random) {
+        return BOOL_OPERANDS[random.nextInt(BOOL_OPERANDS.length)];
+    }
+
+    private static String value(Random random) {
+        return String.valueOf(VALUES.charAt(random.nextInt(VALUES.length())));
     }
 
     // --- assertions and helpers ----------------------------------------------
 
-    private static void assertBackendsAgreeWithNaive(String label, List<CompiledDocument> documents,
-            EvaluationContext ctx) {
-        val expected = naive(documents, ctx);
-        val canon    = CanonicalPolicyIndex.create(documents).match(ctx);
-        val smtdd    = SmtddPolicyIndex.create(documents, 0).match(ctx);
-        assertThat(matched(canon)).as("canonical matched | %s", label).isEqualTo(matched(expected));
-        assertThat(errored(canon)).as("canonical errored | %s", label).isEqualTo(errored(expected));
-        assertThat(matched(smtdd)).as("smtdd matched | %s", label).isEqualTo(matched(expected));
-        assertThat(errored(smtdd)).as("smtdd errored | %s", label).isEqualTo(errored(expected));
+    private static List<CompiledDocument> policies(String... sources) {
+        val documents = new ArrayList<CompiledDocument>(sources.length);
+        for (val source : sources) {
+            documents.add(compilePolicyFull(source));
+        }
+        return documents;
     }
 
-    private static PolicyIndexResult naive(List<CompiledDocument> documents, EvaluationContext ctx) {
-        return NaivePolicyIndex.create(documents).match(ctx);
+    private static void assertAgreesWithNaive(String label, List<CompiledDocument> documents, EvaluationContext ctx) {
+        val naive = NaivePolicyIndex.create(documents).match(ctx);
+        val canon = CanonicalPolicyIndex.create(documents).match(ctx);
+        val smtdd = SmtddPolicyIndex.create(documents, 0).match(ctx);
+        assertThat(matched(canon)).as("canonical matched | %s", label).isEqualTo(matched(naive));
+        assertThat(errored(canon)).as("canonical errored | %s", label).isEqualTo(errored(naive));
+        assertThat(matched(smtdd)).as("smtdd matched | %s", label).isEqualTo(matched(naive));
+        assertThat(errored(smtdd)).as("smtdd errored | %s", label).isEqualTo(errored(naive));
     }
 
     private static Set<String> matched(PolicyIndexResult result) {
@@ -288,10 +281,8 @@ class IndexDifferentialTests {
         return result.errorVotes().stream().map(vote -> vote.voter().name()).collect(Collectors.toSet());
     }
 
-    private static EvaluationContext context(String subjectFields) {
-        val json = subjectFields.startsWith("{\"subject\"") ? subjectFields
-                : "{\"subject\": %s, \"action\": \"a\", \"resource\": \"r\", \"environment\": \"e\"}"
-                        .formatted(subjectFields);
-        return subscriptionContext(json);
+    private static String wrap(String subjectJson) {
+        return "{\"subject\": %s, \"action\": \"a\", \"resource\": \"r\", \"environment\": \"e\"}"
+                .formatted(subjectJson);
     }
 }
