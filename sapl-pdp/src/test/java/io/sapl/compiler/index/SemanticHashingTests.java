@@ -168,7 +168,7 @@ class SemanticHashingTests {
         @DisplayName("strings colliding under String.hashCode do not collide")
         void whenStringsCollideUnderJavaHashCodeThenTextHashDiffers() {
             // "Aa" and "BB" share the same 32-bit String.hashCode (2112).
-            assertThat("Aa".hashCode()).isEqualTo("BB".hashCode());
+            assertThat("Aa").hasSameHashCodeAs("BB");
             assertThat(textHash("Aa")).isNotEqualTo(textHash("BB"));
         }
 

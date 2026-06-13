@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 
 import org.junit.jupiter.api.DisplayName;
@@ -49,7 +50,7 @@ class RSocketLoadGeneratorTests {
     }
 
     private static int freePort() throws Exception {
-        try (val socket = new ServerSocket(0)) {
+        try (val socket = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
             return socket.getLocalPort();
         }
     }

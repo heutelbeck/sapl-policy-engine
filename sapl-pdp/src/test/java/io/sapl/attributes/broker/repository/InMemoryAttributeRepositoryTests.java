@@ -73,8 +73,7 @@ class InMemoryAttributeRepositoryTests {
     @DisplayName("concurrent same-key publishes never leave an observer on a stale value")
     void whenConcurrentPublishesThenObserverConvergesToRepositoryState() throws InterruptedException {
         for (int round = 0; round < 300; round++) {
-            val repo = new InMemoryAttributeRepository();
-            try {
+            try (val repo = new InMemoryAttributeRepository()) {
                 val observed = new AtomicReference<Value>();
                 // A read-park-write consumer widens the delivery window, so a
                 // stale racing delivery would clobber the latest value.
@@ -95,8 +94,6 @@ class InMemoryAttributeRepositoryTests {
                 val authoritative = new AtomicReference<Value>();
                 repo.observe(invocation("env.race"), authoritative::set);
                 assertThat(observed.get()).as("round %d", round).isEqualTo(authoritative.get());
-            } finally {
-                repo.close();
             }
         }
     }

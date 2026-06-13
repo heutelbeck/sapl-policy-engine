@@ -76,8 +76,7 @@ class MigrateGraceWindowReclaimTests {
     void whenSwapDuringGraceThenStreamsBalance() {
         CountingPip.OPENS.set(0);
         CountingPip.CLOSES.set(0);
-        val broker = new PolicyInformationPointAttributeBroker(Duration.ofMillis(200));
-        try {
+        try (val broker = new PolicyInformationPointAttributeBroker(Duration.ofMillis(200))) {
             val handle = broker.load(new CountingPip());
             val key    = envKey("reclaim.latest");
 
@@ -89,8 +88,6 @@ class MigrateGraceWindowReclaimTests {
 
             Awaitility.await().atMost(Duration.ofSeconds(3))
                     .untilAsserted(() -> assertThat(CountingPip.CLOSES.get()).isEqualTo(CountingPip.OPENS.get()));
-        } finally {
-            broker.close();
         }
     }
 }

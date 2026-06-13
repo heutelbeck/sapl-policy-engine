@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.time.Duration;
 
@@ -65,7 +66,7 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
     }
 
     private RemoteHttpReactivePolicyDecisionPoint startServer(SseScript script) throws IOException {
-        server       = new ServerSocket(0);
+        server       = new ServerSocket(0, 0, InetAddress.getLoopbackAddress());
         serverThread = new Thread(() -> {
                          try (val socket = server.accept()) {
                              drainRequestHeaders(socket.getInputStream());
