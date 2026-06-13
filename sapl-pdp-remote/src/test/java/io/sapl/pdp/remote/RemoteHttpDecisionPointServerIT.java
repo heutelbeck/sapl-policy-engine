@@ -244,6 +244,7 @@ class RemoteHttpDecisionPointServerIT {
                 val container = saplServerWithTls(baseContainer).withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
                         .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-apikey-client")
                         .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default")
+                        .withEnv("IO_SAPL_NODE_USERS_0_APIKEYID", "7A7ByyQd6U")
                         .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", encodedApiKey)) {
             container.start();
             val baseUrl = "https://" + container.getHost() + ":" + container.getMappedPort(SAPL_SERVER_PORT);

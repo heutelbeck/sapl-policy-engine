@@ -84,7 +84,7 @@ class RemotePDPRSocketIT {
                 .withEnv("SAPL_PDP_RSOCKET_PORT", String.valueOf(RSOCKET_PORT))
                 .withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false").withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
                 .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-apikey-client")
-                .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default")
+                .withEnv("IO_SAPL_NODE_USERS_0_PDPID", "default").withEnv("IO_SAPL_NODE_USERS_0_APIKEYID", "7A7ByyQd6U")
                 .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", API_KEY_ENCODED)
                 .waitingFor(Wait.forLogMessage(STARTUP_LOG, 1).withStartupTimeout(STARTUP));
     }
