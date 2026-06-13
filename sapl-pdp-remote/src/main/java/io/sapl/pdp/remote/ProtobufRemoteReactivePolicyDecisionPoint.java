@@ -44,7 +44,6 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import javax.net.ssl.SSLException;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -100,15 +99,21 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     // Bounds a connection attempt so a dead or unreachable PDP cannot hang the
     // client. Mirrors the HTTP client's timeout. A live cached socket is reused
     // without re-timing; only a fresh connect is bounded.
-    @Setter
     @Getter
-    private int timeoutMillis = 5000;
+    private final int timeoutMillis;
 
     // Reconnecting cache: reuses the RSocket while alive, reconnects after
     // connection drop. Mono.defer() re-evaluates on each subscription, so
     // retryWhen in decide() naturally triggers reconnection when the cached
     // socket is disposed.
     ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
+        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, 5000);
+    }
+
+    ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono,
+            int firstBackoffMillis,
+            int maxBackOffMillis,
+            int timeoutMillis) {
         val connectMono = rSocketMono;
         this.rSocketMono        = Mono.defer(() -> {
                                     val existing = cachedSocket.get();
@@ -125,6 +130,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                                 });
         this.firstBackoffMillis = firstBackoffMillis;
         this.maxBackOffMillis   = maxBackOffMillis;
+        this.timeoutMillis      = timeoutMillis;
     }
 
     private Retry createRetrySpec() {

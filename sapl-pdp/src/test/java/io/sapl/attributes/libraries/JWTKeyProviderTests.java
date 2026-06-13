@@ -29,6 +29,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +46,8 @@ class JWTKeyProviderTests {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
+
     private static final String KEY_SERVER_CONFIG = "{\"uri\":\"https://keyserver.example/keys/{kid}\"}";
 
     @ParameterizedTest(name = "kid \"{0}\" is rejected")
@@ -52,7 +56,7 @@ class JWTKeyProviderTests {
     @DisplayName("an unsafe kid yields no key and never contacts the key server")
     void whenKidContainsUnsafeCharactersThenNoRequestAndEmpty(String maliciousKid) throws Exception {
         val httpClient = mock(HttpClient.class);
-        val provider   = new JWTKeyProvider(httpClient, Clock.systemUTC());
+        val provider   = new JWTKeyProvider(httpClient, FIXED_CLOCK);
 
         val key = provider.provide(maliciousKid, MAPPER.readTree(KEY_SERVER_CONFIG));
 
@@ -68,7 +72,7 @@ class JWTKeyProviderTests {
         val response   = (HttpResponse<String>) mock(HttpResponse.class);
         when(response.statusCode()).thenReturn(404);
         doReturn(response).when(httpClient).send(any(HttpRequest.class), any());
-        val provider = new JWTKeyProvider(httpClient, Clock.systemUTC());
+        val provider = new JWTKeyProvider(httpClient, FIXED_CLOCK);
 
         val key = provider.provide("abc-123_XY.Z", MAPPER.readTree(KEY_SERVER_CONFIG));
 

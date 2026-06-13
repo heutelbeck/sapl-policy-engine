@@ -43,28 +43,30 @@ public class JWTTestUtility {
     static final long TIME_UNIT             = 2000L; // two seconds in millis
     static final long SYNCHRONOUS_TIME_UNIT = 50L; // fifty milliseconds
 
+    static final Instant BASE_INSTANT = Instant.parse("2026-01-01T00:00:00Z");
+
     static final String EC  = "EC";
     static final String RSA = "RSA";
 
     /**
-     * @return timestamp one unit ago as Date object
+     * @return timestamp one unit before the fixed base instant as Date object
      */
     public static Date timeOneUnitBeforeNow() {
-        return Date.from(Instant.now().minusMillis(TIME_UNIT));
+        return Date.from(BASE_INSTANT.minusMillis(TIME_UNIT));
     }
 
     /**
-     * @return timestamp one unit in the future as Date object
+     * @return timestamp one unit after the fixed base instant as Date object
      */
     public static Date timeOneUnitAfterNow() {
-        return Date.from(Instant.now().plusMillis(TIME_UNIT));
+        return Date.from(BASE_INSTANT.plusMillis(TIME_UNIT));
     }
 
     /**
-     * @return timestamp three units in the future as Date object
+     * @return timestamp three units after the fixed base instant as Date object
      */
     static Date timeThreeUnitsAfterNow() {
-        return Date.from(Instant.now().plusMillis(3 * TIME_UNIT));
+        return Date.from(BASE_INSTANT.plusMillis(3 * TIME_UNIT));
     }
 
     /**

@@ -106,35 +106,35 @@ public non-sealed interface PureOperator extends CompiledExpression {
         if (mine == null || yours == null) {
             return false;
         }
-        if (mine instanceof SourceLocation) {
-            return true; // Position is not semantic.
-        }
-        if (mine.getClass().isSynthetic()) {
-            return true; // Compiled lambda, derived from the semantic fields.
-        }
-        if (mine instanceof PureOperator minePure && yours instanceof PureOperator yoursPure) {
-            return minePure.semanticEquals(yoursPure);
-        }
-        if (mine instanceof Value || yours instanceof Value) {
-            return mine.equals(yours);
-        }
-        if (mine instanceof List<?> mineList && yours instanceof List<?> yoursList) {
-            if (mineList.size() != yoursList.size()) {
-                return false;
-            }
-            for (var i = 0; i < mineList.size(); i++) {
-                if (!semanticComponentEquals(mineList.get(i), yoursList.get(i))) {
-                    return false;
-                }
-            }
+        // Source locations are not semantic, and compiled lambdas are derived from
+        // the semantic fields, so neither distinguishes two operators.
+        if (mine instanceof SourceLocation || mine.getClass().isSynthetic()) {
             return true;
         }
-        if (mine instanceof CharSequence || mine instanceof Number || mine instanceof Boolean
-                || mine instanceof Character || mine instanceof Enum<?>) {
-            return mine.equals(yours);
+        return switch (mine) {
+        case PureOperator minePure -> yours instanceof PureOperator yoursPure && minePure.semanticEquals(yoursPure);
+        case List<?> mineList      -> yours instanceof List<?> yoursList && semanticListEquals(mineList, yoursList);
+        case Value ignored         -> mine.equals(yours);
+        // A known leaf compares by value; any other type is kept distinct (safe).
+        default -> isSemanticLeaf(mine) && mine.equals(yours);
+        };
+    }
+
+    private static boolean semanticListEquals(List<?> mine, List<?> yours) {
+        if (mine.size() != yours.size()) {
+            return false;
         }
-        // Unknown non-semantic type: keep the operators distinct (safe).
-        return false;
+        for (var i = 0; i < mine.size(); i++) {
+            if (!semanticComponentEquals(mine.get(i), yours.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isSemanticLeaf(Object value) {
+        return value instanceof CharSequence || value instanceof Number || value instanceof Boolean
+                || value instanceof Character || value instanceof Enum<?>;
     }
 
     /**

@@ -70,11 +70,6 @@ public final class RequestBodySizeLimitFilter extends OncePerRequestFilter {
         chain.doFilter(new LimitingRequest(request, maxRequestBodyBytes), response);
     }
 
-    private static ResponseStatusException tooLarge(long maxRequestBodyBytes) {
-        return new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE,
-                "Request body exceeds the configured limit of " + maxRequestBodyBytes + " bytes.");
-    }
-
     private static final class LimitingRequest extends HttpServletRequestWrapper {
 
         private final long limit;
@@ -142,6 +137,11 @@ public final class RequestBodySizeLimitFilter extends OncePerRequestFilter {
         @Override
         public void setReadListener(ReadListener readListener) {
             delegate.setReadListener(readListener);
+        }
+
+        private static ResponseStatusException tooLarge(long maxRequestBodyBytes) {
+            return new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE,
+                    "Request body exceeds the configured limit of " + maxRequestBodyBytes + " bytes.");
         }
     }
 }

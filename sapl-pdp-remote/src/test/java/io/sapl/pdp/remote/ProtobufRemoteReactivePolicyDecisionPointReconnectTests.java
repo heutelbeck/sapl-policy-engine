@@ -94,8 +94,7 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
         // A dead or unreachable PDP whose connect never completes must not hang
         // the client; the connection timeout converts it to a fail-closed
         // INDETERMINATE within the budget.
-        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.never(), 1, 2);
-        pdp.setTimeoutMillis(200);
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.never(), 1, 2, 200);
 
         StepVerifier.create(pdp.decideOnce(SUBSCRIPTION, "default")).expectNext(AuthorizationDecision.INDETERMINATE)
                 .verifyComplete();
@@ -132,8 +131,7 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
             ((Payload) invocation.getArgument(0)).release();
             return Flux.never();
         });
-        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.just(rSocket), 1, 2);
-        pdp.setTimeoutMillis(200);
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.just(rSocket), 1, 2, 200);
 
         StepVerifier.create(pdp.decide(SUBSCRIPTION).take(1)).expectNext(AuthorizationDecision.INDETERMINATE)
                 .verifyComplete();
