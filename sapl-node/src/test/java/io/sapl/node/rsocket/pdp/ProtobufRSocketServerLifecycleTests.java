@@ -21,6 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
+import java.net.BindException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.sapl.node.boot.SaplStartupConfigurationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.val;
@@ -47,10 +53,11 @@ import lombok.val;
 @ExtendWith(MockitoExtension.class)
 class ProtobufRSocketServerLifecycleTests {
 
-    private static final String BIND_ADDRESS    = "127.0.0.1";
-    private static final int    PORT            = 7000;
-    private static final int    VALID_PAYLOAD   = 65_536;
-    private static final int    INVALID_PAYLOAD = 0;
+    private static final String BIND_ADDRESS             = "127.0.0.1";
+    private static final int    PORT                     = 7000;
+    private static final int    VALID_PAYLOAD            = 65_536;
+    private static final int    INVALID_PAYLOAD          = 0;
+    private static final int    PROTOCOL_PAYLOAD_CEILING = 16_777_215;
 
     @Mock
     private BlockingPolicyDecisionPoint blockingPdp;
@@ -128,6 +135,53 @@ class ProtobufRSocketServerLifecycleTests {
                     pdp, authenticator, null);
 
             assertThat(sut.isAutoStartup()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("port already in use")
+    class PortInUse {
+
+        @Test
+        @DisplayName("binding an occupied port yields a clean actionable error naming the port and remedy, not a raw bind exception")
+        void whenPortOccupiedThenStartThrowsActionableStartupError() throws IOException {
+            try (val occupier = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
+                val occupiedPort = occupier.getLocalPort();
+                val sut          = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, occupiedPort, null,
+                        PROTOCOL_PAYLOAD_CEILING, blockingPdp, pdp, authenticator, null);
+
+                assertThatThrownBy(sut::start).isInstanceOf(SaplStartupConfigurationException.class)
+                        .hasMessageContaining("RSocket").hasMessageContaining(String.valueOf(occupiedPort))
+                        .hasMessageContaining("already in use")
+                        .satisfies(e -> assertThat(((SaplStartupConfigurationException) e).getAction())
+                                .contains("sapl.pdp.rsocket.port").contains("SAPL_PDP_RSOCKET_PORT")
+                                .contains("free-port"));
+            }
+        }
+
+        @Test
+        @DisplayName("a bind failure that is not address-in-use is not masked as a startup configuration error")
+        void whenBindFailsForOtherReasonThenNotReportedAsAddressInUse() {
+            val unrelated = new IllegalStateException("transport handshake failed",
+                    new IOException("connection reset"));
+
+            assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(unrelated)).isFalse();
+        }
+
+        @Test
+        @DisplayName("a BindException anywhere in the cause chain is recognised as address-in-use regardless of transport")
+        void whenCauseChainHasBindExceptionThenRecognisedAsAddressInUse() {
+            val wrapped = new IllegalStateException("failed to bind", new BindException("Address already in use"));
+
+            assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(wrapped)).isTrue();
+        }
+
+        @Test
+        @DisplayName("the native epoll errno 98 message is recognised as address-in-use even without a BindException type")
+        void whenCauseMessageCarriesErrno98ThenRecognisedAsAddressInUse() {
+            val nativeStyle = new RuntimeException("bind(..) failed with error(-98): Address already in use");
+
+            assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(nativeStyle)).isTrue();
         }
     }
 
