@@ -20,6 +20,7 @@ package io.sapl.pdp;
 import lombok.val;
 
 import java.time.Instant;
+import java.time.InstantSource;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -39,14 +40,18 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p>
  * The {@link #now()} method is a simple atomic read with no allocation, making
  * it ideal for hot paths in policy
- * evaluation where timestamps are needed for tracing or logging.
+ * evaluation where timestamps are needed for tracing or logging. The same
+ * cached
+ * tick is available as an {@link Instant} through {@link #instant()}, so the
+ * clock can serve as an {@link InstantSource} on hot paths that need an
+ * {@code Instant} rather than a string.
  * <p>
  * Thread-safe for concurrent access. Implements {@link AutoCloseable} for
  * proper resource cleanup.
  *
  * <pre>{@code
  * // Create with default 10ms update interval
- * var clock = new LazyFastClock();
+ * var clock = new CoarseClock();
  *
  * // Use in hot path - very cheap operation
  * String timestamp = clock.now();
@@ -55,17 +60,18 @@ import java.util.concurrent.atomic.AtomicReference;
  * clock.close();
  * }</pre>
  */
-public final class LazyFastClock implements AutoCloseable {
+public final class CoarseClock implements InstantSource, AutoCloseable {
 
     private static final long DEFAULT_UPDATE_INTERVAL_MS = 10;
 
+    private final AtomicReference<Instant> cachedInstant   = new AtomicReference<>();
     private final AtomicReference<String>  cachedTimestamp = new AtomicReference<>();
     private final ScheduledExecutorService scheduler;
 
     /**
      * Creates a clock with the default 10ms update interval.
      */
-    public LazyFastClock() {
+    public CoarseClock() {
         this(DEFAULT_UPDATE_INTERVAL_MS);
     }
 
@@ -77,10 +83,10 @@ public final class LazyFastClock implements AutoCloseable {
      * precision but add CPU
      * overhead
      */
-    public LazyFastClock(long updateIntervalMilliseconds) {
-        cachedTimestamp.set(Instant.ofEpochMilli(System.currentTimeMillis()).toString());
+    public CoarseClock(long updateIntervalMilliseconds) {
+        updateTimestamp();
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            val thread = new Thread(runnable, "LazyFastClock-updater");
+            val thread = new Thread(runnable, "CoarseClock-updater");
             thread.setDaemon(true);
             return thread;
         });
@@ -104,8 +110,24 @@ public final class LazyFastClock implements AutoCloseable {
         return cachedTimestamp.get();
     }
 
-    private void updateTimestamp() {
-        cachedTimestamp.set(Instant.ofEpochMilli(System.currentTimeMillis()).toString());
+    /**
+     * Returns the current cached tick as an {@link Instant}.
+     * <p>
+     * Like {@link #now()}, this is a cheap atomic read with no system call;
+     * precision is limited by the configured update interval. The returned
+     * instant is the same tick that backs {@link #now()}.
+     *
+     * @return the cached UTC instant
+     */
+    @Override
+    public Instant instant() {
+        return cachedInstant.get();
+    }
+
+    void updateTimestamp() {
+        val instant = Instant.ofEpochMilli(System.currentTimeMillis());
+        cachedInstant.set(instant);
+        cachedTimestamp.set(instant.toString());
     }
 
     /**

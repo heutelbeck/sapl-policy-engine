@@ -40,6 +40,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -702,6 +704,58 @@ class PolicyInformationPointAttributeBrokerTests {
 
             assertThat(concurrencyDetected).isFalse();
             assertThat(maxConcurrent.get()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("Snapshot freshness")
+    class SnapshotFreshness {
+
+        /** Controllable timestamp source so arrival stamping is deterministic. */
+        private static final class SettableClock implements InstantSource {
+            private volatile Instant now;
+
+            SettableClock(Instant start) {
+                this.now = start;
+            }
+
+            void set(Instant instant) {
+                this.now = instant;
+            }
+
+            @Override
+            public Instant instant() {
+                return now;
+            }
+        }
+
+        @Test
+        @DisplayName("each value-arrival is stamped with the timestamp source at the moment it arrived, "
+                + "not when the snapshot is read")
+        void whenValuesArriveAtDifferentTimesThenEachStampedAtItsArrival() {
+            val firstArrival  = Instant.parse("2026-01-01T00:00:00Z");
+            val secondArrival = firstArrival.plusSeconds(300);
+            val clock         = new SettableClock(firstArrival);
+
+            try (val freshnessBroker = new PolicyInformationPointAttributeBroker(Duration.ZERO, null, clock)) {
+                freshnessBroker.load(new ControllablePip());
+                val key      = envKey("ctrl.latest");
+                val recorder = new Recorder(Set.of(key));
+
+                try (val sub = freshnessBroker.open("freshness", Set.of(key), recorder.asCallback())) {
+                    ControllablePip.emitToAll(Value.of("v1"));
+                    Awaitility.await().atMost(Duration.ofSeconds(2))
+                            .untilAsserted(() -> assertThat(recorder.snapshots).hasSizeGreaterThanOrEqualTo(1));
+
+                    clock.set(secondArrival);
+                    ControllablePip.emitToAll(Value.of("v2"));
+                    Awaitility.await().atMost(Duration.ofSeconds(2))
+                            .untilAsserted(() -> assertThat(recorder.snapshots).hasSizeGreaterThanOrEqualTo(2));
+
+                    assertThat(recorder.snapshots.get(0).get(key).timestamp()).isEqualTo(firstArrival);
+                    assertThat(recorder.snapshots.get(1).get(key).timestamp()).isEqualTo(secondArrival);
+                }
+            }
         }
     }
 

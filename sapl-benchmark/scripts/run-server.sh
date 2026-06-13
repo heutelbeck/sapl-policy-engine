@@ -242,6 +242,7 @@ for runtime in "${RUNTIMES[@]}"; do
 
                 taskset -c "$cpu_range" $server_cmd server \
                     --io.sapl.node.allow-no-auth=true \
+                    --io.sapl.pdp.embedded.coarse-timestamps=true \
                     --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                     --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
                     --logging.level.root=WARN \

@@ -25,7 +25,7 @@ import io.sapl.attributes.broker.EvaluationException;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.time.Clock;
+import java.time.InstantSource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -69,15 +69,15 @@ public class Voters {
      * Traced variant of {@link #awaitFirstVote}. Returns the first
      * snapshot round whose {@link VoteResult#vote()} is non-null,
      * wrapped as a {@link TracedVote} carrying the emit timestamp
-     * (read from {@code clock}) and the dependency-filtered snapshot.
+     * (read from {@code timestampSource}) and the dependency-filtered snapshot.
      */
     public static TracedVote awaitFirstTracedVote(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDependencies,
-            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, Clock clock)
+            Function<Map<SubscriptionKey, AttributeSnapshot>, VoteResult> evaluator, InstantSource timestampSource)
             throws InterruptedException, EvaluationException {
         return BrokerEvalLoops.awaitFirstResult(broker, subscriptionId, initialDependencies, evaluator,
                 (r, snap) -> r.vote() == null ? null
-                        : new TracedVote(r.vote(), clock.instant(), r.dependencies(), readSnapshot(r, snap)),
+                        : new TracedVote(r.vote(), timestampSource.instant(), r.dependencies(), readSnapshot(r, snap)),
                 r -> r.dependencies().keySet());
     }
 

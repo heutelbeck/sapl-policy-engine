@@ -18,7 +18,7 @@
 package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.BrokerSubscription;
 import org.jspecify.annotations.Nullable;
 
@@ -53,7 +53,13 @@ sealed interface ActiveInvocation permits ActivePolicyInformationPointInvocation
     @Nullable
     StreamAttributeFinderSpecification sourceSpec();
 
-    Optional<Value> snapshot();
+    /**
+     * The latest value paired with the instant it arrived in this
+     * invocation's mailbox, or {@link Optional#empty()} if no value has
+     * arrived yet. The timestamp is the value's arrival time, not the
+     * time a consumer reads the snapshot.
+     */
+    Optional<AttributeSnapshot> snapshot();
 
     int attach(BrokerSubscription subscriber);
 

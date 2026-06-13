@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.time.InstantSource;
 import java.util.List;
 
 /**
@@ -52,7 +53,8 @@ public record PDPComponents(
         FunctionBroker functionBroker,
         AttributeBroker attributeBroker,
         @Nullable PDPConfigurationSource source,
-        LazyFastClock timestampClock,
+        InstantSource timestampSource,
+        boolean ownsTimestampSource,
         List<DecisionInterceptor> decisionInterceptors,
         List<SubscriptionLifecycleListener> lifecycleListeners) implements AutoCloseable {
 
@@ -66,8 +68,13 @@ public record PDPComponents(
      */
     @Override
     public void close() {
-        closeAll(timestampClock, source, pdpVoterSource, attributeBroker, functionBroker, decisionInterceptors,
-                lifecycleListeners);
+        // Close the timestamp source only when this bundle owns it (the builder
+        // created it). A caller-supplied source is the caller's to close, even if
+        // it is AutoCloseable.
+        if (ownsTimestampSource) {
+            closeQuietly(timestampSource);
+        }
+        closeAll(source, pdpVoterSource, attributeBroker, functionBroker, decisionInterceptors, lifecycleListeners);
     }
 
     private static void closeAll(Object... resources) {

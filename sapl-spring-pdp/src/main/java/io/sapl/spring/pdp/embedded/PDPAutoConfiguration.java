@@ -34,6 +34,7 @@ import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.pdp.IdFactory;
+import io.sapl.pdp.CoarseClock;
 import io.sapl.pdp.ThreadLocalRandomIdFactory;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -75,6 +76,7 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -135,6 +137,25 @@ public class PDPAutoConfiguration {
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     Clock clock() {
         return Clock.systemUTC();
+    }
+
+    /**
+     * Source for observability timestamps (decision trace, attribute value
+     * freshness). Defaults to the temporal {@code clock}. When
+     * {@code io.sapl.pdp.embedded.coarse-timestamps=true}, a coarse-resolution
+     * cached clock is used instead, which is cheaper per decision at high
+     * throughput at the cost of coarser timestamp precision. The coarse clock is
+     * owned by the application context and closed on shutdown.
+     */
+    @Bean
+    @ConditionalOnMissingBean(name = "timestampSource")
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    InstantSource timestampSource(EmbeddedPDPProperties properties, Clock clock) {
+        if (properties.isCoarseTimestamps()) {
+            log.debug("Using coarse-resolution clock for observability timestamps.");
+            return new CoarseClock();
+        }
+        return clock;
     }
 
     @Bean
@@ -228,9 +249,9 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     BlockingPolicyDecisionPoint blockingPolicyDecisionPoint(PdpVoterSource pdpVoterSource,
-            AttributeBroker attributeBroker, IdFactory idFactory) {
+            AttributeBroker attributeBroker, IdFactory idFactory, InstantSource timestampSource) {
         log.debug("Deploying embedded Policy Decision Point.");
-        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeBroker, idFactory);
+        return new BlockingPolicyDecisionPoint(pdpVoterSource, attributeBroker, idFactory, timestampSource);
     }
 
     /**
@@ -256,10 +277,12 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper, Clock clock,
-            ApplicationContext applicationContext, InMemoryAttributeRepository inMemoryAttributeRepository) {
+            InstantSource timestampSource, ApplicationContext applicationContext,
+            InMemoryAttributeRepository inMemoryAttributeRepository) {
         val pips = collectPolicyInformationPoints(applicationContext);
         log.debug("Building catalog AttributeBroker: SAPL default PIPs plus {} custom PIP instances.", pips.size());
-        return buildPolicyInformationPointAttributeBroker(clock, mapper, true, pips, inMemoryAttributeRepository);
+        return buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper, true, pips,
+                inMemoryAttributeRepository);
     }
 
     @Bean

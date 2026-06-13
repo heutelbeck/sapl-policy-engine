@@ -88,6 +88,15 @@ public class EmbeddedPDPProperties {
     private String policiesPath = "/policies";
 
     /**
+     * Use a coarse-resolution cached clock for observability timestamps (decision
+     * trace and attribute value freshness) instead of the accurate system clock.
+     * Cheaper per decision at high throughput, at the cost of coarser timestamp
+     * precision. Temporal policy reasoning (time PIP, certificate validity, JWT
+     * expiry, scheduling) always uses the accurate clock. Defaults to false.
+     */
+    private boolean coarseTimestamps = false;
+
+    /**
      * Security configuration for bundle signature verification.
      * Used when pdpConfigType is BUNDLES or REMOTE_BUNDLES.
      */

@@ -806,7 +806,7 @@ public class SaplTestFixture {
 
         var effectiveMapper = jsonMapper != null ? jsonMapper : JsonMapper.builder().build();
         var effectiveClock  = clock != null ? clock : Clock.systemUTC();
-        var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper, effectiveClock);
+        var pdpBuilder      = PolicyDecisionPointBuilder.withoutDefaults(effectiveMapper).withClock(effectiveClock);
 
         configureFunctionBroker();
         configureAttributeStore();

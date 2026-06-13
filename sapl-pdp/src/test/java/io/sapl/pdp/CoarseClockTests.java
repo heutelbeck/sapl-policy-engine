@@ -27,12 +27,12 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@DisplayName("LazyFastClock")
-class LazyFastClockTests {
+@DisplayName("CoarseClock")
+class CoarseClockTests {
 
     @Test
     void whenCreatedThenReturnsValidIsoTimestamp() {
-        try (var clock = new LazyFastClock()) {
+        try (var clock = new CoarseClock()) {
             var timestamp = clock.now();
 
             assertThat(timestamp).isNotNull().isNotEmpty().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z");
@@ -41,7 +41,7 @@ class LazyFastClockTests {
 
     @Test
     void whenCalledMultipleTimesThenReturnsConsistentFormat() {
-        try (var clock = new LazyFastClock()) {
+        try (var clock = new CoarseClock()) {
             for (int i = 0; i < 1000; i++) {
                 var timestamp = clock.now();
                 assertThat(Instant.parse(timestamp)).isNotNull();
@@ -50,18 +50,25 @@ class LazyFastClockTests {
     }
 
     @Test
-    void whenWaitingForUpdateIntervalThenTimestampChanges() {
-        try (var clock = new LazyFastClock(5)) {
-            var initial = clock.now();
+    void whenTimestampUpdatedThenInstantAndStringAdvance() throws InterruptedException {
+        try (var clock = new CoarseClock()) {
+            var initialInstant = clock.instant();
+            var initialString  = clock.now();
 
-            await().atMost(Duration.ofMillis(100)).pollInterval(Duration.ofMillis(2))
-                    .untilAsserted(() -> assertThat(clock.now()).isNotEqualTo(initial));
+            // Let the wall clock advance past the millisecond resolution, then drive the
+            // update directly so the assertion is deterministic and does not race the
+            // background scheduler (which can be starved under CPU/JVM-warmup load).
+            Thread.sleep(2);
+            clock.updateTimestamp();
+
+            assertThat(clock.instant()).isAfter(initialInstant);
+            assertThat(clock.now()).isNotEqualTo(initialString);
         }
     }
 
     @Test
     void whenClosedThenStillReturnsLastCachedValue() {
-        var clock     = new LazyFastClock();
+        var clock     = new CoarseClock();
         var timestamp = clock.now();
 
         clock.close();
@@ -71,7 +78,7 @@ class LazyFastClockTests {
 
     @Test
     void whenAccessedFromMultipleThreadsThenNoExceptions() throws InterruptedException {
-        try (var clock = new LazyFastClock(1)) {
+        try (var clock = new CoarseClock(1)) {
             var threads = new Thread[10];
             var errors  = new boolean[1];
 
@@ -103,7 +110,7 @@ class LazyFastClockTests {
 
     @Test
     void whenCustomIntervalProvidedThenUsesCustomInterval() {
-        try (var clock = new LazyFastClock(50)) {
+        try (var clock = new CoarseClock(50)) {
             var initial = clock.now();
 
             await().atMost(Duration.ofMillis(200)).pollInterval(Duration.ofMillis(10))
