@@ -61,8 +61,6 @@ import static io.sapl.api.model.StreamOperator.evalChild;
 @UtilityClass
 public class NaryBooleanCompiler {
 
-    private static final String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
-
     /**
      * Compiles a Conjunction ({@code a && b && c && ...} or
      * {@code a & b & c & ...}). Short-circuits on first {@code false}.
@@ -94,20 +92,28 @@ public class NaryBooleanCompiler {
     private static CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
             Value shortCircuitValue, Value identityValue, boolean isEager) {
 
-        // 1. Fold values at compile time, split remainder into pure and stream buckets
-        val pures   = new ArrayList<PureOperator>();
-        val streams = new ArrayList<StreamOperator>();
+        // Fold values at compile time, split remainder into pure and stream buckets.
+        // Kleene strong 3-valued logic: only the dominator (shortCircuitValue) folds
+        // the whole node. A constant error or non-boolean does not fold. It is kept
+        // as a pending error so a later pure or stream dominator can still win.
+        val   pures        = new ArrayList<PureOperator>();
+        val   streams      = new ArrayList<StreamOperator>();
+        Value pendingError = null;
         for (var op : operands) {
             switch (op) {
-            case ErrorValue e                                    -> {
-                return e;
-            }
             case BooleanValue b when shortCircuitValue.equals(b) -> {
                 return shortCircuitValue;
             }
+            case ErrorValue e                                    -> {
+                if (pendingError == null) {
+                    pendingError = e;
+                }
+            }
             case BooleanValue ignored                            -> { /* identity - fold away */ }
             case Value v                                         -> {
-                return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+                if (pendingError == null) {
+                    pendingError = typeError(v, location);
+                }
             }
             case PureOperator pure                               -> pures.add(pure);
             case StreamOperator stream                           -> streams.add(stream);
@@ -115,21 +121,20 @@ public class NaryBooleanCompiler {
         }
 
         if (pures.isEmpty() && streams.isEmpty()) {
-            return identityValue;
+            return pendingError != null ? pendingError : identityValue;
         }
 
-        // 3. Pure-only: simple loop at runtime
         if (streams.isEmpty()) {
             val dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
             val isRelative            = pures.stream().anyMatch(PureOperator::isRelativeExpression);
             return new NaryBooleanPure(pures, shortCircuitValue, identityValue, location, dependsOnSubscription,
-                    isRelative);
+                    isRelative, pendingError);
         }
 
         if (isEager) {
-            return new NaryBooleanStreamEager(pures, streams, shortCircuitValue, identityValue, location);
+            return new NaryBooleanStreamEager(pures, streams, shortCircuitValue, identityValue, location, pendingError);
         }
-        return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location);
+        return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location, pendingError);
     }
 
     public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
@@ -156,23 +161,23 @@ public class NaryBooleanCompiler {
             Value identityValue,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
+            boolean isRelativeExpression,
+            @Nullable Value pendingError) implements PureOperator {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
+            Value firstError = pendingError;
             for (var op : operands) {
                 val v = op.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return v;
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
-                }
                 if (shortCircuitValue.equals(v)) {
                     return shortCircuitValue;
                 }
+                val error = errorOf(v, location);
+                if (error != null && firstError == null) {
+                    firstError = error;
+                }
             }
-            return identityValue;
+            return firstError != null ? firstError : identityValue;
         }
 
         // Eager and lazy AND/OR produce the same hash because on the pure
@@ -181,12 +186,20 @@ public class NaryBooleanCompiler {
         @Override
         public long semanticHash() {
             val childHashes = operands.stream().mapToLong(PureOperator::semanticHash).toArray();
-            return SemanticHashing.commutative(SemanticHashing.valueHash(shortCircuitValue), childHashes);
+            val base        = SemanticHashing.commutative(SemanticHashing.valueHash(shortCircuitValue), childHashes);
+            if (pendingError == null) {
+                return base;
+            }
+            return SemanticHashing.commutative(base, new long[] { SemanticHashing.valueHash(pendingError) });
         }
 
         @Override
         public BooleanExpression booleanExpression() {
-            val children = operands.stream().map(PureOperator::booleanExpression).toList();
+            val children = new ArrayList<BooleanExpression>(
+                    operands.stream().map(PureOperator::booleanExpression).toList());
+            if (pendingError != null) {
+                children.add(new ConstantErrorPredicate(pendingError, location).booleanExpression());
+            }
             if (Value.FALSE.equals(shortCircuitValue)) {
                 return new BooleanExpression.And(children);
             }
@@ -206,26 +219,31 @@ public class NaryBooleanCompiler {
             List<StreamOperator> streams,
             Value shortCircuitValue,
             Value identityValue,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location,
+            @Nullable Value pendingError) implements StreamOperator {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
-            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, deps);
-            if (pureResult != null) {
-                return pureResult;
+            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, deps, pendingError);
+            if (pureResult.shortCircuit() != null) {
+                return pureResult.shortCircuit();
             }
+            Value firstError = pureResult.firstError();
             for (val s : streams) {
                 val v = evalChild(s, ctx, deps);
                 if (v == null) {
                     return new ExpressionResult(null, deps);
                 }
-                val classified = classifyStreamValue(v, shortCircuitValue, location, deps);
-                if (classified != null) {
-                    return classified;
+                if (shortCircuitValue.equals(v)) {
+                    return new ExpressionResult(shortCircuitValue, deps);
+                }
+                val error = errorOf(v, location);
+                if (error != null && firstError == null) {
+                    firstError = error;
                 }
             }
-            return new ExpressionResult(identityValue, deps);
+            return new ExpressionResult(firstError != null ? firstError : identityValue, deps);
         }
     }
 
@@ -242,17 +260,19 @@ public class NaryBooleanCompiler {
             List<StreamOperator> streams,
             Value shortCircuitValue,
             Value identityValue,
-            SourceLocation location) implements StreamOperator {
+            SourceLocation location,
+            @Nullable Value pendingError) implements StreamOperator {
 
         @Override
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
-            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, deps);
-            if (pureResult != null) {
-                return pureResult;
+            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, deps, pendingError);
+            if (pureResult.shortCircuit() != null) {
+                return pureResult.shortCircuit();
             }
-            val     resolved = new Value[streams.size()];
-            boolean seenNull = false;
+            Value   firstError = pureResult.firstError();
+            val     resolved   = new Value[streams.size()];
+            boolean seenNull   = false;
             for (int i = 0; i < streams.size(); i++) {
                 resolved[i] = evalChild(streams.get(i), ctx, deps);
                 if (resolved[i] == null) {
@@ -263,65 +283,67 @@ public class NaryBooleanCompiler {
                 if (v == null) {
                     continue;
                 }
-                val classified = classifyStreamValue(v, shortCircuitValue, location, deps);
-                if (classified != null) {
-                    return classified;
+                if (shortCircuitValue.equals(v)) {
+                    return new ExpressionResult(shortCircuitValue, deps);
+                }
+                val error = errorOf(v, location);
+                if (error != null && firstError == null) {
+                    firstError = error;
                 }
             }
             if (seenNull) {
                 return new ExpressionResult(null, deps);
             }
-            return new ExpressionResult(identityValue, deps);
+            return new ExpressionResult(firstError != null ? firstError : identityValue, deps);
         }
     }
 
     /**
-     * Walks the pure stratum in order. On {@link ErrorValue}, type mismatch,
-     * or short-circuit value, returns the corresponding terminal
-     * {@link ExpressionResult}. Returns {@code null} when every pure passes
-     * (caller proceeds to the stream stratum). The {@code deps} parameter is
-     * threaded through so the terminal result carries the caller's
-     * accumulator (typically empty at this point).
+     * Walks the pure stratum in order under Kleene semantics. Returns a
+     * short-circuit terminal only when the dominating {@code shortCircuitValue}
+     * is seen. Otherwise it returns no terminal and the first error encountered
+     * (or the pending error carried from folding), so the caller proceeds to
+     * the stream stratum. A pure error must not skip the streams, because a
+     * stream may still yield the dominator.
      */
-    private static @Nullable ExpressionResult evaluatePures(List<PureOperator> pures, Value shortCircuitValue,
-            SourceLocation location, EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+    private static PureStratumResult evaluatePures(List<PureOperator> pures, Value shortCircuitValue,
+            SourceLocation location, EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps,
+            @Nullable Value pendingError) {
+        Value firstError = pendingError;
         for (val p : pures) {
             val v = p.evaluate(ctx);
-            if (v instanceof ErrorValue) {
-                return new ExpressionResult(v, deps);
-            }
-            if (!(v instanceof BooleanValue)) {
-                return new ExpressionResult(typeError(v, location), deps);
-            }
             if (shortCircuitValue.equals(v)) {
-                return new ExpressionResult(shortCircuitValue, deps);
+                return new PureStratumResult(new ExpressionResult(shortCircuitValue, deps), null);
+            }
+            val error = errorOf(v, location);
+            if (error != null && firstError == null) {
+                firstError = error;
             }
         }
-        return null;
+        return new PureStratumResult(null, firstError);
     }
 
+    private record PureStratumResult(@Nullable ExpressionResult shortCircuit, @Nullable Value firstError) {}
+
     /**
-     * Classifies a single resolved stream value. Returns the corresponding
-     * terminal {@link ExpressionResult} on {@link ErrorValue}, type
-     * mismatch, or short-circuit value; returns {@code null} when the value
-     * is a non-short-circuit {@link BooleanValue} (caller continues).
+     * Classifies a single resolved value: returns the error it represents (an
+     * {@link ErrorValue} as-is, a non-boolean as a type-mismatch error), or
+     * {@code null} when it is a boolean that is not the dominator. The
+     * dominator is handled by the caller before this is reached.
      */
-    private static @Nullable ExpressionResult classifyStreamValue(Value v, Value shortCircuitValue,
-            SourceLocation location, Map<SubscriptionKey, List<Occurrence>> deps) {
+    private static @Nullable Value errorOf(Value v, SourceLocation location) {
         if (v instanceof ErrorValue) {
-            return new ExpressionResult(v, deps);
+            return v;
         }
         if (!(v instanceof BooleanValue)) {
-            return new ExpressionResult(typeError(v, location), deps);
-        }
-        if (shortCircuitValue.equals(v)) {
-            return new ExpressionResult(shortCircuitValue, deps);
+            return typeError(v, location);
         }
         return null;
     }
 
     private static Value typeError(Value v, SourceLocation location) {
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+        return Value.errorAt(location, StratifiedBooleanOperationCompiler.ERROR_TYPE_MISMATCH,
+                v.getClass().getSimpleName());
     }
 
 }

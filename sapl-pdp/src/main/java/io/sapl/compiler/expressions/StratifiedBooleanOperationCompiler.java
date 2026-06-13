@@ -23,6 +23,7 @@ import io.sapl.ast.BinaryOperatorType;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -60,30 +61,16 @@ public class StratifiedBooleanOperationCompiler {
 
     public static CompiledExpression compile(CompiledExpression left, CompiledExpression right, BinaryOperatorType op,
             SourceLocation location) {
-        val isAnd = op == BinaryOperatorType.LAZY_AND || op == BinaryOperatorType.EAGER_AND;
-        if (left instanceof ErrorValue) {
-            return left;
-        }
+        val isAnd     = op == BinaryOperatorType.LAZY_AND || op == BinaryOperatorType.EAGER_AND;
+        val dominator = isAnd ? Value.FALSE : Value.TRUE;
 
-        // Check if left (Value) short-circuits - if so, return early WITHOUT compiling
-        // right
-        // This ensures that lower-stratum short-circuit swallows higher-stratum errors
-        // (LTR within stratum)
-        if (left instanceof Value leftValue) {
-            if (leftValue instanceof BooleanValue(var b)) {
-                boolean shortCircuits = isAnd != b;
-                if (shortCircuits) {
-                    return b ? Value.TRUE : Value.FALSE;
-                }
-                // Not short-circuiting, fall through to compile right
-            } else {
-                // Non-boolean Value - type errors
-                return Value.errorAt(location, ERROR_TYPE_MISMATCH, leftValue.getClass().getSimpleName());
-            }
-        }
-
-        if (right instanceof ErrorValue) {
-            return right;
+        // Kleene strong 3-valued logic: only the dominator (FALSE for AND, TRUE for OR)
+        // short-circuits. A constant left dominator folds the whole expression and
+        // skips the right entirely, so no subscriptions are opened for it. A constant
+        // left error or non-boolean does not short-circuit, because the right may still
+        // yield the dominator.
+        if (dominator.equals(left)) {
+            return dominator;
         }
 
         return switch (left) {
@@ -106,44 +93,36 @@ public class StratifiedBooleanOperationCompiler {
     }
 
     private CompiledExpression compileValueValue(Value v1, Value v2, boolean isAnd, SourceLocation location) {
-        if (v1 instanceof BooleanValue(var b1) && v2 instanceof BooleanValue(var b2)) {
-            var result = isAnd ? (b1 && b2) : (b1 || b2);
-            return result ? Value.TRUE : Value.FALSE;
-        }
-        if (v1 instanceof ErrorValue) {
-            return v1;
-        }
-        if (v2 instanceof ErrorValue) {
-            return v2;
-        }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH,
-                !(v1 instanceof BooleanValue) ? v1.getClass().getSimpleName() : v2.getClass().getSimpleName());
+        return combine(v1, v2, isAnd, location);
     }
 
     private CompiledExpression compileValuePure(Value v, PureOperator p, boolean isAnd, SourceLocation location) {
-        if (v instanceof BooleanValue(var b)) {
-            if ((isAnd && !b) || (!isAnd && b)) {
-                return b ? Value.TRUE : Value.FALSE;
+        val dominator = isAnd ? Value.FALSE : Value.TRUE;
+        if (v instanceof BooleanValue) {
+            if (dominator.equals(v)) {
+                return dominator;
             }
+            // v is the identity boolean: the result is the right operand as a boolean.
             return new LazyValuePure(p, location, p.isDependingOnSubscription(), p.isRelativeExpression());
         }
-        if (v instanceof ErrorValue) {
-            return v;
-        }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+        // v is a constant error or non-boolean: it cannot fold, so combine it with the
+        // pure operand at runtime. A dominating pure value still wins.
+        val constant = new ConstantErrorPredicate(asError(v, location), location);
+        return isAnd
+                ? new LazyAndPurePure(constant, p, location, p.isDependingOnSubscription(), p.isRelativeExpression())
+                : new LazyOrPurePure(constant, p, location, p.isDependingOnSubscription(), p.isRelativeExpression());
     }
 
     private CompiledExpression compileValueStream(Value v, StreamOperator s, boolean isAnd, SourceLocation location) {
-        if (v instanceof BooleanValue(var b)) {
-            if ((isAnd && !b) || (!isAnd && b)) {
-                return b ? Value.TRUE : Value.FALSE;
+        val dominator = isAnd ? Value.FALSE : Value.TRUE;
+        if (v instanceof BooleanValue) {
+            if (dominator.equals(v)) {
+                return dominator;
             }
             return new LazyValueStream(s, location);
         }
-        if (v instanceof ErrorValue) {
-            return v;
-        }
-        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+        val constant = new ConstantErrorPredicate(asError(v, location), location);
+        return isAnd ? new LazyAndPureStream(constant, s, location) : new LazyOrPureStream(constant, s, location);
     }
 
     private CompiledExpression compilePurePure(PureOperator p1, PureOperator p2, boolean isAnd,
@@ -170,10 +149,55 @@ public class StratifiedBooleanOperationCompiler {
         };
     }
 
-    private static Value asBoolean(Value v, SourceLocation location) {
+    /**
+     * Coerces a value used in a boolean position to boolean-or-error: a boolean
+     * or an existing error passes through, any other (non-boolean) value becomes
+     * a type-mismatch error. Shared by the operators, the policy index, and the
+     * coverage evaluator so they all agree on the same rule and message.
+     */
+    public static Value asBoolean(Value v, SourceLocation location) {
         if (v instanceof BooleanValue) {
             return v;
         }
+        if (v instanceof ErrorValue) {
+            return v;
+        }
+        return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+    }
+
+    /**
+     * Kleene strong combination of two resolved values. The dominator (FALSE
+     * for AND, TRUE for OR) wins regardless of position. Otherwise the first
+     * error (an {@link ErrorValue}, or a non-boolean as a type mismatch) is
+     * returned, and only when neither operand errors is the identity returned.
+     */
+    private static Value combine(Value a, Value b, boolean isAnd, SourceLocation location) {
+        val dominator = isAnd ? Value.FALSE : Value.TRUE;
+        if (dominator.equals(a) || dominator.equals(b)) {
+            return dominator;
+        }
+        val errorA = kleeneError(a, location);
+        if (errorA != null) {
+            return errorA;
+        }
+        val errorB = kleeneError(b, location);
+        if (errorB != null) {
+            return errorB;
+        }
+        return isAnd ? Value.TRUE : Value.FALSE;
+    }
+
+    private static @Nullable Value kleeneError(Value v, SourceLocation location) {
+        if (v instanceof ErrorValue) {
+            return v;
+        }
+        if (!(v instanceof BooleanValue)) {
+            return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+        }
+        return null;
+    }
+
+    private static Value asError(Value v, SourceLocation location) {
         if (v instanceof ErrorValue) {
             return v;
         }
@@ -211,16 +235,10 @@ public class StratifiedBooleanOperationCompiler {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val v1 = p1.evaluate(ctx);
-            if (v1 instanceof ErrorValue) {
-                return v1;
+            if (Value.FALSE.equals(v1)) {
+                return Value.FALSE;
             }
-            if (v1 instanceof BooleanValue(var b1)) {
-                if (!b1) {
-                    return Value.FALSE;
-                }
-                return asBoolean(p2.evaluate(ctx), location);
-            }
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, v1.getClass().getSimpleName());
+            return combine(v1, p2.evaluate(ctx), true, location);
         }
 
         @Override
@@ -246,16 +264,10 @@ public class StratifiedBooleanOperationCompiler {
         @Override
         public Value evaluate(EvaluationContext ctx) {
             val v1 = p1.evaluate(ctx);
-            if (v1 instanceof ErrorValue) {
-                return v1;
+            if (Value.TRUE.equals(v1)) {
+                return Value.TRUE;
             }
-            if (v1 instanceof BooleanValue(var b1)) {
-                if (b1) {
-                    return Value.TRUE;
-                }
-                return asBoolean(p2.evaluate(ctx), location);
-            }
-            return Value.errorAt(location, ERROR_TYPE_MISMATCH, v1.getClass().getSimpleName());
+            return combine(v1, p2.evaluate(ctx), false, location);
         }
 
         @Override
@@ -286,21 +298,14 @@ public class StratifiedBooleanOperationCompiler {
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val pv   = p.evaluate(ctx);
-            if (pv instanceof ErrorValue) {
-                return new ExpressionResult(pv, deps);
-            }
-            if (!(pv instanceof BooleanValue(var b))) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
-                        deps);
-            }
-            if (!b) {
+            if (Value.FALSE.equals(pv)) {
                 return new ExpressionResult(Value.FALSE, deps);
             }
             val sv = evalChild(s, ctx, deps);
-            if (sv == null || sv instanceof ErrorValue) {
-                return new ExpressionResult(sv, deps);
+            if (sv == null) {
+                return new ExpressionResult(null, deps);
             }
-            return new ExpressionResult(asBoolean(sv, location), deps);
+            return new ExpressionResult(combine(pv, sv, true, location), deps);
         }
     }
 
@@ -309,21 +314,14 @@ public class StratifiedBooleanOperationCompiler {
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
             val pv   = p.evaluate(ctx);
-            if (pv instanceof ErrorValue) {
-                return new ExpressionResult(pv, deps);
-            }
-            if (!(pv instanceof BooleanValue(var b))) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, pv.getClass().getSimpleName()),
-                        deps);
-            }
-            if (b) {
+            if (Value.TRUE.equals(pv)) {
                 return new ExpressionResult(Value.TRUE, deps);
             }
             val sv = evalChild(s, ctx, deps);
-            if (sv == null || sv instanceof ErrorValue) {
-                return new ExpressionResult(sv, deps);
+            if (sv == null) {
+                return new ExpressionResult(null, deps);
             }
-            return new ExpressionResult(asBoolean(sv, location), deps);
+            return new ExpressionResult(combine(pv, sv, false, location), deps);
         }
     }
 
@@ -333,21 +331,17 @@ public class StratifiedBooleanOperationCompiler {
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
-            if (lv == null || lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, deps);
+            if (lv == null) {
+                return new ExpressionResult(null, deps);
             }
-            if (!(lv instanceof BooleanValue(var b))) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        deps);
-            }
-            if (!b) {
+            if (Value.FALSE.equals(lv)) {
                 return new ExpressionResult(Value.FALSE, deps);
             }
             val rv = evalChild(s2, ctx, deps);
-            if (rv == null || rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, deps);
+            if (rv == null) {
+                return new ExpressionResult(null, deps);
             }
-            return new ExpressionResult(asBoolean(rv, location), deps);
+            return new ExpressionResult(combine(lv, rv, true, location), deps);
         }
     }
 
@@ -356,21 +350,17 @@ public class StratifiedBooleanOperationCompiler {
         public ExpressionResult evaluate(EvaluationContext ctx) {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
-            if (lv == null || lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, deps);
+            if (lv == null) {
+                return new ExpressionResult(null, deps);
             }
-            if (!(lv instanceof BooleanValue(var b))) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        deps);
-            }
-            if (b) {
+            if (Value.TRUE.equals(lv)) {
                 return new ExpressionResult(Value.TRUE, deps);
             }
             val rv = evalChild(s2, ctx, deps);
-            if (rv == null || rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, deps);
+            if (rv == null) {
+                return new ExpressionResult(null, deps);
             }
-            return new ExpressionResult(asBoolean(rv, location), deps);
+            return new ExpressionResult(combine(lv, rv, false, location), deps);
         }
     }
 
@@ -381,26 +371,13 @@ public class StratifiedBooleanOperationCompiler {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
             val rv   = evalChild(s2, ctx, deps);
-            if (lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, deps);
-            }
-            if (rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, deps);
-            }
-            if (lv != null && !(lv instanceof BooleanValue)) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        deps);
-            }
-            if (rv != null && !(rv instanceof BooleanValue)) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, rv.getClass().getSimpleName()),
-                        deps);
+            if (Value.FALSE.equals(lv) || Value.FALSE.equals(rv)) {
+                return new ExpressionResult(Value.FALSE, deps);
             }
             if (lv == null || rv == null) {
                 return new ExpressionResult(null, deps);
             }
-            val b1 = ((BooleanValue) lv).value();
-            val b2 = ((BooleanValue) rv).value();
-            return new ExpressionResult(b1 && b2 ? Value.TRUE : Value.FALSE, deps);
+            return new ExpressionResult(combine(lv, rv, true, location), deps);
         }
     }
 
@@ -411,26 +388,13 @@ public class StratifiedBooleanOperationCompiler {
             val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             val lv   = evalChild(s1, ctx, deps);
             val rv   = evalChild(s2, ctx, deps);
-            if (lv instanceof ErrorValue) {
-                return new ExpressionResult(lv, deps);
-            }
-            if (rv instanceof ErrorValue) {
-                return new ExpressionResult(rv, deps);
-            }
-            if (lv != null && !(lv instanceof BooleanValue)) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, lv.getClass().getSimpleName()),
-                        deps);
-            }
-            if (rv != null && !(rv instanceof BooleanValue)) {
-                return new ExpressionResult(Value.errorAt(location, ERROR_TYPE_MISMATCH, rv.getClass().getSimpleName()),
-                        deps);
+            if (Value.TRUE.equals(lv) || Value.TRUE.equals(rv)) {
+                return new ExpressionResult(Value.TRUE, deps);
             }
             if (lv == null || rv == null) {
                 return new ExpressionResult(null, deps);
             }
-            val b1 = ((BooleanValue) lv).value();
-            val b2 = ((BooleanValue) rv).value();
-            return new ExpressionResult(b1 || b2 ? Value.TRUE : Value.FALSE, deps);
+            return new ExpressionResult(combine(lv, rv, false, location), deps);
         }
     }
 

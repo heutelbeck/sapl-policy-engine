@@ -324,6 +324,8 @@ false & <pip.a> & <pip.b>
 
 Neither PIP is ever contacted. The constant `false` short-circuits the AND across strata, regardless of whether `&` or `&&` is used.
 
+Only the dominating value short-circuits: `false` for AND, `true` for OR. An operand that is not `true` or `false`, an error, `undefined`, or any other non-boolean value, does not short-circuit. AND and OR follow Kleene strong three-valued logic, in which errors and undefined are treated alike as a third value, *unknown*. A dominating `false` (AND) or `true` (OR) in any operand wins regardless of position or stratum, so `(1/0 > 0) || true` is `true`, not an error. The result is an error only when no operand carries the dominating value.
+
 For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 
 #### Lazy vs Eager: Subscription Strategy Within the Streaming Stratum

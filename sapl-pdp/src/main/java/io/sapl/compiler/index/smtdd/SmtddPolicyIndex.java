@@ -22,6 +22,7 @@ import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.index.IndexReclassification;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
 import lombok.AccessLevel;
@@ -30,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Predicate;
@@ -146,24 +148,32 @@ public class SmtddPolicyIndex implements PolicyIndex {
         val errorVotes        = new ArrayList<>(alwaysErrorVotes);
 
         if (binaryOrder != null) {
-            val result = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+            val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+            val errored = result.errored();
 
             for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
                     .nextSetBit(formulaIndex + 1)) {
-                matchingDocuments.addAll(formulaDocuments.get(formulaIndex));
-            }
-
-            if (result.firstError() != null) {
-                for (var formulaIndex = result.errored().nextSetBit(0); formulaIndex >= 0; formulaIndex = result
-                        .errored().nextSetBit(formulaIndex + 1)) {
-                    for (val doc : formulaDocuments.get(formulaIndex)) {
-                        errorVotes.add(Vote.error(result.firstError(), doc.metadata()));
-                    }
+                if (!errored.get(formulaIndex)) {
+                    matchingDocuments.addAll(formulaDocuments.get(formulaIndex));
                 }
             }
+
+            // A formula whose evaluation touched an error branch is an over-approximate
+            // suspect: a dominating sibling may still make it true or false. Reconcile
+            // each suspect through Kleene naive instead of voting it an error outright.
+            IndexReclassification.reclassifySuspects(suspectDocuments(errored), ctx, matchingDocuments, errorVotes);
         }
 
         return new PolicyIndexResult(matchingDocuments, errorVotes);
+    }
+
+    private List<CompiledDocument> suspectDocuments(BitSet errored) {
+        val suspects = new ArrayList<CompiledDocument>();
+        for (var formulaIndex = errored.nextSetBit(0); formulaIndex >= 0; formulaIndex = errored
+                .nextSetBit(formulaIndex + 1)) {
+            suspects.addAll(formulaDocuments.get(formulaIndex));
+        }
+        return suspects;
     }
 
     /** {@inheritDoc} */
@@ -184,25 +194,32 @@ public class SmtddPolicyIndex implements PolicyIndex {
             return;
         }
 
-        val result = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+        val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+        val errored = result.errored();
 
         for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
                 .nextSetBit(formulaIndex + 1)) {
-            if (!shouldContinue.test(new PolicyIndexResult(formulaDocuments.get(formulaIndex), List.of()))) {
+            if (!errored.get(formulaIndex)
+                    && !shouldContinue.test(new PolicyIndexResult(formulaDocuments.get(formulaIndex), List.of()))) {
                 return;
             }
         }
 
-        if (result.firstError() != null) {
-            for (var formulaIndex = result.errored().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.errored()
-                    .nextSetBit(formulaIndex + 1)) {
-                val votes = new ArrayList<Vote>();
-                for (val doc : formulaDocuments.get(formulaIndex)) {
-                    votes.add(Vote.error(result.firstError(), doc.metadata()));
-                }
-                if (!shouldContinue.test(new PolicyIndexResult(List.of(), votes))) {
-                    return;
-                }
+        val suspects = suspectDocuments(errored);
+        if (suspects.isEmpty()) {
+            return;
+        }
+        val matching = new ArrayList<CompiledDocument>();
+        val errors   = new ArrayList<Vote>();
+        IndexReclassification.reclassifySuspects(suspects, ctx, matching, errors);
+        for (val vote : errors) {
+            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(vote)))) {
+                return;
+            }
+        }
+        for (val document : matching) {
+            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+                return;
             }
         }
     }

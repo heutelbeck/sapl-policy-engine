@@ -20,7 +20,6 @@ package io.sapl.compiler.index.smtdd;
 import io.sapl.api.model.*;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryPureValue;
 import io.sapl.compiler.expressions.BinaryOperationCompiler.BinaryValuePure;
-import io.sapl.compiler.policy.BooleanGuardCompiler.PureBooleanTypeCheck;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -72,18 +71,11 @@ public class SemanticVariableOrder {
             report.append("Remaining binary predicates: ").append(remainingPredicates.size()).append('\n');
             for (val pred : remainingPredicates) {
                 val count     = formulasPerRemainingPredicate.get(pred).size();
-                val innerType = unwrapInnerType(pred.operator());
+                val innerType = pred.operator().getClass().getSimpleName();
                 report.append("  predicate hash=").append(pred.semanticHash()).append(" -> ").append(count)
                         .append(" formulas (").append(innerType).append(")\n");
             }
             return report.toString();
-        }
-
-        private static String unwrapInnerType(PureOperator operator) {
-            if (operator instanceof PureBooleanTypeCheck typeCheck) {
-                return typeCheck.operator().getClass().getSimpleName();
-            }
-            return operator.getClass().getSimpleName();
         }
     }
 
@@ -146,7 +138,7 @@ public class SemanticVariableOrder {
      */
     private static boolean classifyIntoGroup(IndexPredicate predicate, int formulaIndex,
             Map<Long, EqualityGroup> groupsByOperandHash) {
-        val operator = unwrapTypeCheck(predicate.operator());
+        val operator = predicate.operator();
         if (operator instanceof BinaryPureValue pv) {
             return classifyBinaryPureValue(pv, pv.lp(), pv.rv(), predicate, formulaIndex, groupsByOperandHash);
         }
@@ -227,13 +219,6 @@ public class SemanticVariableOrder {
             return true;
         }
         return false;
-    }
-
-    private static PureOperator unwrapTypeCheck(PureOperator operator) {
-        if (operator instanceof PureBooleanTypeCheck typeCheck) {
-            return typeCheck.operator();
-        }
-        return operator;
     }
 
 }

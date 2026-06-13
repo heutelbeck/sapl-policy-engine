@@ -107,8 +107,10 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @Test
-        void whenTypeMismatchInValuesThenCompileTimeError() {
-            assertCompilesToError("true && 5 && false", "BOOLEAN");
+        void whenTypeMismatchDominatedByFalseThenFoldsToFalse() {
+            // Kleene: a FALSE operand makes the conjunction false regardless of a
+            // type mismatch elsewhere, so the whole expression folds to FALSE.
+            assertCompilesTo("true && 5 && false", Value.FALSE);
         }
 
         @Test
@@ -178,8 +180,10 @@ class LazyNaryBooleanCompilerTests {
         }
 
         @Test
-        void whenTypeMismatchInValuesThenCompileTimeError() {
-            assertCompilesToError("false || \"string\" || true", "BOOLEAN");
+        void whenTypeMismatchDominatedByTrueThenFoldsToTrue() {
+            // Kleene: a TRUE operand makes the disjunction true regardless of a type
+            // mismatch elsewhere, so the whole expression folds to TRUE.
+            assertCompilesTo("false || \"string\" || true", Value.TRUE);
         }
 
         @Test

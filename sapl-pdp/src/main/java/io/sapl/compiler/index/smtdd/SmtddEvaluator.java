@@ -88,7 +88,13 @@ class SmtddEvaluator {
                     node = errorChild;
                 }
                 case BooleanValue(var b) when b -> node = trueChild;
-                default                         -> node = falseChild;
+                case BooleanValue ignored       -> node = falseChild;
+                default                         -> {
+                    // Non-boolean (type error now that the body type-check is gone):
+                    // route to the error branch and reconcile through Kleene naive.
+                    accumulatedErrors.or(binaryOrder.erroredFormulas(level));
+                    node = errorChild;
+                }
                 }
             }
             case Terminal ignored                                                                          ->
