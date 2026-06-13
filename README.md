@@ -199,6 +199,7 @@ The SAPL language server provides syntax highlighting, diagnostics, content assi
 
 | SAPL  | Java  | Spring Boot |
 |-------|-------|-------------|
+| 4.1.x | 21+   | 4.1.x       |
 | 4.0.x | 21+   | 4.0.x       |
 | 3.0.x | 17+   | 3.x         |
 
