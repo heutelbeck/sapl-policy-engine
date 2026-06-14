@@ -38,7 +38,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,22 +50,16 @@ class BlockingWebClientTests {
             {"message":"success"}""";
     private static final MockResponse DEFAULT_RESPONSE = new MockResponse().setBody(DEFAULT_BODY)
             .addHeader("Content-Type", "application/json");
-    private static final Instant      T0               = Instant.parse("2026-05-08T12:00:00Z");
-
-    private MockWebServer     server;
-    private String            baseUrl;
-    private MutableClock      clock;
-    private TestTimeScheduler scheduler;
-    private BlockingWebClient client;
+    private MockWebServer             server;
+    private String                    baseUrl;
+    private BlockingWebClient         client;
 
     @BeforeEach
     void setUp() throws IOException {
         server = new MockWebServer();
         server.start();
-        baseUrl   = String.format("http://localhost:%s", server.getPort());
-        clock     = new MutableClock(T0);
-        scheduler = new TestTimeScheduler(T0);
-        client    = new BlockingWebClient(MAPPER, HttpClient.newHttpClient(), clock, scheduler);
+        baseUrl = String.format("http://localhost:%s", server.getPort());
+        client  = new BlockingWebClient(MAPPER, HttpClient.newHttpClient());
     }
 
     @AfterEach
@@ -86,30 +79,24 @@ class BlockingWebClientTests {
         val template = """
                 {
                     "baseUrl" : "%s",
-                    "accept" : "%s",
-                    "pollingIntervalMs" : 1000
+                    "accept" : "%s"
                 }
                 """;
         return (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl, mimeType));
     }
 
-    private void advanceOnePollingInterval() {
-        clock.setInstant(clock.instant().plusSeconds(1));
-        scheduler.advanceTo(clock.instant());
-    }
-
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "GET", "POST", "PUT", "PATCH", "DELETE" })
-    @DisplayName("HTTP method emits the JSON body, then again at the polling interval")
-    void whenHttpMethodCalledThenEmitsResponseAndPolls(String method) {
-        server.enqueue(DEFAULT_RESPONSE);
+    @DisplayName("an HTTP method issues exactly one request, emits the response, then completes")
+    void whenHttpMethodCalledThenEmitsResponseOnceAndCompletes(String method) throws InterruptedException {
         server.enqueue(DEFAULT_RESPONSE);
 
         try (val stream = client.httpRequest(method, defaultRequest("application/json"))) {
             StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
-            advanceOnePollingInterval();
-            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
         }
+
+        assertThat(server.takeRequest(2, TimeUnit.SECONDS)).isNotNull();
+        assertThat(server.getRequestCount()).isEqualTo(1);
     }
 
     @Test
@@ -261,13 +248,13 @@ class BlockingWebClientTests {
     }
 
     @Test
-    @DisplayName("non-numeric polling interval emits an error value")
-    void whenIntervalNotANumberThenError() {
+    @DisplayName("non-numeric maxResponseBytes emits an error value")
+    void whenMaxResponseBytesNotANumberThenError() {
         val template = """
                 {
                     "baseUrl" : "%s",
                     "accept" : "application/json",
-                    "pollingIntervalMs" : null
+                    "maxResponseBytes" : null
                 }
                 """;
         val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl));
@@ -277,7 +264,7 @@ class BlockingWebClientTests {
                 if (!(v instanceof ErrorValue err)) {
                     throw new AssertionError("Expected ErrorValue, got: " + v);
                 }
-                assertThat(err.message()).contains("pollingIntervalMs").contains("number");
+                assertThat(err.message()).contains("maxResponseBytes").contains("number");
             });
         }
     }
@@ -312,5 +299,29 @@ class BlockingWebClientTests {
         val drained = StreamAssertions.assertThat(client.httpRequest("GET", request))
                 .withinTimeout(Duration.ofSeconds(2L)).drain();
         assertThat(drained).isNotEmpty().allSatisfy(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
+    }
+
+    @Test
+    @DisplayName("an SSE event exceeding maxResponseBytes fails closed to an error value")
+    void whenServerSentEventExceedsMaxResponseBytesThenErrorValue() {
+        val eventStream = "data:" + "x".repeat(5000) + "\n\n";
+        server.enqueue(new MockResponse().setBody(eventStream).addHeader("Content-Type", "text/event-stream"));
+        val template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "text/event-stream",
+                    "maxResponseBytes" : 64
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl));
+
+        val drained = StreamAssertions.assertThat(client.httpRequest("GET", request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+        assertThat(drained).anySatisfy(v -> {
+            if (!(v instanceof ErrorValue err)) {
+                throw new AssertionError("Expected ErrorValue, got: " + v);
+            }
+            assertThat(err.message()).contains("64");
+        });
     }
 }

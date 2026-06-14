@@ -40,7 +40,6 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.Locale;
@@ -60,13 +59,17 @@ import java.util.function.Supplier;
  * Spring dependency.
  * <p>
  * For request-response media types ({@code application/json} and
- * arbitrary text), each emission corresponds to a complete HTTP
- * exchange. Polling is driven by {@link Streams#scheduledPoll} so
- * tests can advance time deterministically. For
- * {@code text/event-stream}, the connection is held open and SSE
- * events are emitted as parsed values. For WebSocket, incoming
- * text frames are emitted as parsed values until the session is
- * closed.
+ * arbitrary text), the request is issued once and the response is
+ * emitted as a single value, then the stream completes; repetition is
+ * the caller's concern (the attribute broker re-invokes per its
+ * configured poll interval). For {@code text/event-stream}, the
+ * connection is held open and SSE events are emitted as parsed values.
+ * For WebSocket, incoming text frames are emitted as parsed values
+ * until the session is closed.
+ * <p>
+ * The response body, each SSE event, and each WebSocket message are
+ * capped at a configurable size; an oversized payload fails closed to
+ * an error value rather than buffering without bound.
  * <p>
  * Read and connect timeouts protect against slow or unresponsive
  * servers.
@@ -74,19 +77,15 @@ import java.util.function.Supplier;
 @Slf4j
 public class BlockingWebClient {
 
-    public static final String ACCEPT_MEDIATYPE            = "accept";
-    public static final String BASE_URL                    = "baseUrl";
-    public static final String BODY                        = "body";
-    public static final String CONTENT_MEDIATYPE           = "contentType";
-    public static final String HEADERS                     = "headers";
-    public static final String MAX_RESPONSE_BYTES          = "maxResponseBytes";
-    public static final String PATH                        = "path";
-    public static final String POLLING_INTERVAL            = "pollingIntervalMs";
-    public static final String REPEAT_TIMES                = "repetitions";
-    public static final String URL_PARAMS                  = "urlParameters";
-    static final long          DEFAULT_POLLING_INTERVAL_MS = 1000L;
-    static final long          DEFAULT_REPETITIONS         = Long.MAX_VALUE;
-    static final long          DEFAULT_MAX_RESPONSE_BYTES  = 1_048_576L;
+    public static final String ACCEPT_MEDIATYPE           = "accept";
+    public static final String BASE_URL                   = "baseUrl";
+    public static final String BODY                       = "body";
+    public static final String CONTENT_MEDIATYPE          = "contentType";
+    public static final String HEADERS                    = "headers";
+    public static final String MAX_RESPONSE_BYTES         = "maxResponseBytes";
+    public static final String PATH                       = "path";
+    public static final String URL_PARAMS                 = "urlParameters";
+    static final long          DEFAULT_MAX_RESPONSE_BYTES = 1_048_576L;
 
     private static final String ERROR_BASE_URL_MUST_BE_TEXT                 = "baseUrl must be a text value.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
@@ -104,34 +103,28 @@ public class BlockingWebClient {
     private static final JsonNodeFactory JSON             = JsonNodeFactory.instance;
     private static final JsonNode        APPLICATION_JSON = JSON.stringNode(MEDIATYPE_APPLICATION_JSON);
 
-    private final JsonMapper    mapper;
-    private final HttpClient    httpClient;
-    private final Clock         clock;
-    private final TimeScheduler scheduler;
-    private final long          maxResponseBytes;
+    private final JsonMapper mapper;
+    private final HttpClient httpClient;
+    private final long       maxResponseBytes;
 
-    public BlockingWebClient(JsonMapper mapper, HttpClient httpClient, Clock clock, TimeScheduler scheduler) {
-        this(mapper, httpClient, clock, scheduler, DEFAULT_MAX_RESPONSE_BYTES);
+    public BlockingWebClient(JsonMapper mapper, HttpClient httpClient) {
+        this(mapper, httpClient, DEFAULT_MAX_RESPONSE_BYTES);
     }
 
-    public BlockingWebClient(JsonMapper mapper,
-            HttpClient httpClient,
-            Clock clock,
-            TimeScheduler scheduler,
-            long maxResponseBytes) {
+    public BlockingWebClient(JsonMapper mapper, HttpClient httpClient, long maxResponseBytes) {
         this.mapper           = mapper;
         this.httpClient       = httpClient;
-        this.clock            = clock;
-        this.scheduler        = scheduler;
         this.maxResponseBytes = maxResponseBytes;
     }
 
     /**
-     * Issues an HTTP request and emits the response as a
-     * {@link Stream}{@code <Value>}. Polling is repeated up to
-     * {@code repetitions} times at {@code pollingIntervalMs}.
-     * Server-sent events are emitted as they arrive on a held-open
-     * connection.
+     * Issues an HTTP request once and emits the response as a single
+     * {@link Stream}{@code <Value>} that completes after the exchange;
+     * the attribute broker re-invokes per its poll interval. The
+     * response body is capped at the {@code maxResponseBytes} request
+     * setting (default {@value #DEFAULT_MAX_RESPONSE_BYTES}); an
+     * oversized body fails closed to an error value. Server-sent events
+     * are emitted as they arrive on a held-open connection.
      */
     public Stream<Value> httpRequest(String httpMethod, ObjectValue requestSettings) {
         try {
@@ -139,20 +132,22 @@ public class BlockingWebClient {
             val path          = textOrDefault(requestSettings, PATH, "");
             val urlParameters = toStringMap(jsonOrDefault(requestSettings, URL_PARAMS, JSON.objectNode()));
             val headers       = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
-            val pollingMs     = longOrDefault(requestSettings, POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL_MS);
             val accept        = jsonOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON).asString();
             val contentType   = jsonOrDefault(requestSettings, CONTENT_MEDIATYPE, APPLICATION_JSON).asString();
             val body          = jsonOrDefault(requestSettings, BODY, null);
+            val maxBytes      = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
 
             val uri     = buildUri(baseUrl, path, urlParameters);
             val request = buildRequest(uri, httpMethod, headers, accept, contentType, body);
 
             if (MEDIATYPE_TEXT_EVENT_STREAM.equals(accept)) {
-                return openServerSentEventStream(request);
+                return openServerSentEventStream(request, maxBytes);
             }
-            val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
-            val supplier = jsonRequestSupplier(request, accept, maxBytes);
-            return Streams.scheduledPoll(Duration.ofMillis(pollingMs), supplier, clock, scheduler);
+            // One asynchronous request-response, then complete. The attribute
+            // broker re-invokes per its poll interval, so the PIP never loops.
+            val supplier  = jsonRequestSupplier(request, accept, maxBytes);
+            val delivered = new AtomicBoolean(false);
+            return Streams.fromBlockingSource(() -> delivered.compareAndSet(false, true) ? supplier.get() : null);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));
         }
@@ -165,12 +160,13 @@ public class BlockingWebClient {
      */
     public Stream<Value> consumeWebSocket(ObjectValue requestSettings) {
         try {
-            val baseUrl = baseUrl(requestSettings);
-            val path    = textOrDefault(requestSettings, PATH, "");
-            val headers = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
-            val body    = jsonOrDefault(requestSettings, BODY, null);
-            val uri     = URI.create(baseUrl + path);
-            return openWebSocket(uri, headers, body);
+            val baseUrl  = baseUrl(requestSettings);
+            val path     = textOrDefault(requestSettings, PATH, "");
+            val headers  = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
+            val body     = jsonOrDefault(requestSettings, BODY, null);
+            val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
+            val uri      = URI.create(baseUrl + path);
+            return openWebSocket(uri, headers, body, maxBytes);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));
         }
@@ -206,7 +202,7 @@ public class BlockingWebClient {
         };
     }
 
-    private Stream<Value> openServerSentEventStream(HttpRequest request) {
+    private Stream<Value> openServerSentEventStream(HttpRequest request, long maxBytes) {
         return Streams.fromCallback((emit, complete) -> {
             val stopped = new AtomicBoolean(false);
             val bodyRef = new AtomicReference<java.util.stream.Stream<String>>();
@@ -220,7 +216,7 @@ public class BlockingWebClient {
                                 }
                                 try (val lines = response.body()) {
                                     bodyRef.set(lines);
-                                    pumpServerSentEvents(lines.iterator(), emit, stopped);
+                                    pumpServerSentEvents(lines.iterator(), emit, stopped, maxBytes);
                                 }
                             } catch (IOException e) {
                                 emit.accept(Value.error(messageOf(e)));
@@ -241,7 +237,8 @@ public class BlockingWebClient {
         });
     }
 
-    private void pumpServerSentEvents(Iterator<String> iterator, Consumer<Value> emit, AtomicBoolean stopped) {
+    private void pumpServerSentEvents(Iterator<String> iterator, Consumer<Value> emit, AtomicBoolean stopped,
+            long maxBytes) {
         val data = new StringBuilder();
         while (!stopped.get() && iterator.hasNext()) {
             val line = iterator.next();
@@ -257,6 +254,11 @@ public class BlockingWebClient {
                     data.append('\n');
                 }
                 data.append(line.substring(5).stripLeading());
+                if (data.length() > maxBytes) {
+                    emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+                    stopped.set(true);
+                    return;
+                }
             }
         }
         if (!stopped.get() && !data.isEmpty()) {
@@ -268,17 +270,17 @@ public class BlockingWebClient {
         try {
             return ValueJsonMarshaller.fromJsonNode(mapper.readTree(data));
         } catch (JacksonException e) {
-            return Value.error(e.getMessage());
+            return Value.error(messageOf(e));
         }
     }
 
-    private Stream<Value> openWebSocket(URI uri, JsonNode headers, JsonNode body) {
+    private Stream<Value> openWebSocket(URI uri, JsonNode headers, JsonNode body, long maxBytes) {
         return Streams.fromCallback((emit, complete) -> {
             val accumulator = new StringBuilder();
             val builder     = httpClient.newWebSocketBuilder();
             applyWebSocketHeaders(builder, headers);
 
-            val listener = new WebSocketListener(accumulator, emit, complete, mapper);
+            val listener = new WebSocketListener(accumulator, emit, complete, mapper, maxBytes);
             val wsRef    = new AtomicReference<WebSocket>();
             try {
                 CompletableFuture<WebSocket> future = builder.buildAsync(uri, listener).toCompletableFuture();
@@ -439,13 +441,11 @@ public class BlockingWebClient {
     }
 
     /**
-     * Static factory using the system clock and a real
-     * {@link RealTimeScheduler}; intended for production wiring
-     * outside of tests.
+     * Static factory intended for production wiring outside of tests.
      */
     public static BlockingWebClient withDefaults(JsonMapper mapper) {
         val client = HttpClient.newBuilder().connectTimeout(CONNECTION_TIMEOUT).build();
-        return new BlockingWebClient(mapper, client, Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        return new BlockingWebClient(mapper, client);
     }
 
     /**
@@ -459,6 +459,7 @@ public class BlockingWebClient {
         private final Consumer<Value> emit;
         private final Runnable        complete;
         private final JsonMapper      mapper;
+        private final long            maxBytes;
 
         @Override
         public void onOpen(WebSocket webSocket) {
@@ -468,6 +469,13 @@ public class BlockingWebClient {
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
             accumulator.append(data);
+            if (accumulator.length() > maxBytes) {
+                emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+                accumulator.setLength(0);
+                complete.run();
+                webSocket.abort();
+                return null;
+            }
             if (last) {
                 emit.accept(parsePayload(accumulator.toString()));
                 accumulator.setLength(0);
@@ -492,7 +500,7 @@ public class BlockingWebClient {
             try {
                 return ValueJsonMarshaller.fromJsonNode(mapper.readTree(payload));
             } catch (JacksonException e) {
-                return Value.error(e.getMessage());
+                return Value.error(messageOf(e));
             }
         }
     }

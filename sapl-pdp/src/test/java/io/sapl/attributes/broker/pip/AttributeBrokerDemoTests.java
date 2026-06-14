@@ -196,7 +196,7 @@ class AttributeBrokerDemoTests {
         val clock       = CLOCK;
         val scheduler   = new RealTimeScheduler(clock);
         val httpClient  = HttpClient.newHttpClient();
-        val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
+        val webClient   = new BlockingWebClient(mapper, httpClient);
         val keyProvider = new JWTKeyProvider(httpClient, clock);
 
         try (val broker = new PolicyInformationPointAttributeBroker()) {

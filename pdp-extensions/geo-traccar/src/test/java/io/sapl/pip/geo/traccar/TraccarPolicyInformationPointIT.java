@@ -24,9 +24,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.BlockingWebClient;
 import io.sapl.api.stream.Streams;
-import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
-import io.sapl.api.test.stream.TestTimeScheduler;
 import io.sapl.functions.geo.GeographicFunctionLibrary;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -48,7 +46,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -60,10 +57,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TraccarPolicyInformationPointIT {
-    private static final Instant                       REFERENCE   = Instant.parse("2025-01-01T00:00:00Z");
     private static final JsonMapper                    MAPPER      = JsonMapper.builder().build();
     private static final BlockingWebClient             CLIENT      = new BlockingWebClient(MAPPER,
-            HttpClient.newHttpClient(), new MutableClock(REFERENCE), new TestTimeScheduler(REFERENCE));
+            HttpClient.newHttpClient());
     private static final TraccarPolicyInformationPoint TRACCAR_PIP = new TraccarPolicyInformationPoint(CLIENT);
 
     private static TextValue   deviceId;
@@ -85,8 +81,7 @@ class TraccarPolicyInformationPointIT {
     private static ObjectValue config(String host, int port) {
         return (ObjectValue) json("""
                 {
-                    "baseUrl": "http://%s:%d",
-                    "pollingIntervalMs": 250
+                    "baseUrl": "http://%s:%d"
                 }""".formatted(host, port));
     }
 
@@ -136,17 +131,9 @@ class TraccarPolicyInformationPointIT {
     class ServerTests {
 
         static java.util.stream.Stream<Arguments> serverSettingsVariations() {
-            return Stream.of(arguments("with polling interval", """
-                    {
-                        "baseUrl": "http://%s:%d",
-                        "pollingIntervalMs": 250
-                    }"""), arguments("without polling interval", """
+            return Stream.of(arguments("default config", """
                     {
                         "baseUrl": "http://%s:%d"
-                    }"""), arguments("with repetitions", """
-                    {
-                        "baseUrl": "http://%s:%d",
-                        "repetitions": 250
                     }"""));
         }
 

@@ -950,7 +950,7 @@ public class PolicyDecisionPointBuilder {
             // 5 second TCP connect cap so a stalled remote PIP host does not
             // hang the calling decision indefinitely.
             val httpClient  = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-            val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
+            val webClient   = new BlockingWebClient(mapper, httpClient);
             val keyProvider = new JWTKeyProvider(httpClient, clock);
 
             broker.load(new TimePolicyInformationPoint(clock, scheduler));
