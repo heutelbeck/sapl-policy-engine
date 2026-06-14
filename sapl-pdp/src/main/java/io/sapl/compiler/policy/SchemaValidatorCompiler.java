@@ -26,6 +26,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegularExpressionFactory;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -127,7 +128,8 @@ public class SchemaValidatorCompiler {
     private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
         val schemasValue = ctx.getData().variables().get("schemas");
         if (!(schemasValue instanceof ArrayValue schemas)) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+                    BoundedRegularExpressionFactory::applyTo);
         }
         val schemaMap = new HashMap<String, String>();
         for (val schema : schemas) {
@@ -140,10 +142,13 @@ public class SchemaValidatorCompiler {
             }
         }
         if (schemaMap.isEmpty()) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+                    BoundedRegularExpressionFactory::applyTo);
         }
-        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                builder -> builder.schemas(schemaMap));
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
+            builder.schemas(schemaMap);
+            BoundedRegularExpressionFactory.applyTo(builder);
+        });
     }
 
     record PrecompiledSchemaValidator(

@@ -18,14 +18,17 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
@@ -34,6 +37,18 @@ class SchemaValidationLibraryTests {
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.load(new SchemaValidationLibrary())).doesNotThrowAnyException();
+    }
+
+    @Test
+    @Timeout(15)
+    @DisplayName("a catastrophically backtracking schema pattern aborts under the match budget instead of hanging the evaluation thread")
+    void whenSchemaPatternIsCatastrophicallyBacktrackingThenBoundedAbort() {
+        val schema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
+                .build();
+        val hostile = Value.of("a".repeat(50));
+
+        assertThatThrownBy(() -> isCompliant(hostile, schema))
+                .isInstanceOf(BoundedRegex.RegexBudgetExceededException.class);
     }
 
     @Test

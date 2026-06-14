@@ -22,6 +22,7 @@ import com.networknt.schema.Error;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
+import io.sapl.compiler.util.BoundedRegularExpressionFactory;
 import lombok.val;
 
 import java.util.HashMap;
@@ -189,7 +190,7 @@ public class SchemaValidationLibrary {
             """;
 
     private static final SchemaRegistry SCHEMA_REGISTRY = SchemaRegistry
-            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+            .withDefaultDialect(SpecificationVersion.DRAFT_2020_12, BoundedRegularExpressionFactory::applyTo);
 
     @Function(docs = """
             ```isCompliant(validationSubject, OBJECT schema)```:
@@ -423,8 +424,10 @@ public class SchemaValidationLibrary {
         if (schemaMap.isEmpty()) {
             return SCHEMA_REGISTRY;
         }
-        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                builder -> builder.schemas(schemaMap));
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
+            builder.schemas(schemaMap);
+            BoundedRegularExpressionFactory.applyTo(builder);
+        });
     }
 
     private static Value createValidationResult(boolean valid, List<Error> errors) {

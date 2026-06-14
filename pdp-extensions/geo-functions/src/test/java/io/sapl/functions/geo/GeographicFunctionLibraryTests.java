@@ -25,9 +25,16 @@ import lombok.val;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.spatial4j.distance.DistanceUtils;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.*;
@@ -483,6 +490,53 @@ class GeographicFunctionLibraryTests {
     @SneakyThrows
     private static ObjectValue geometryToGeoJSON(Geometry geo) {
         return (ObjectValue) json(GEOJSON_WRITER.write(geo));
+    }
+
+    @TempDir
+    Path tempDir;
+
+    private enum XxeCase {
+        KML,
+        GML2,
+        GML3
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesExternalEntityThenContentIsNotResolved(XxeCase xxeCase) throws IOException {
+        val payloadFile = tempDir.resolve("xxe-payload.txt");
+        // The entity is referenced inside the coordinates, so a parser that
+        // resolved it would surface this injected longitude in the output
+        // geometry. The hardened parser must not resolve the external entity,
+        // so this value must never appear in the result.
+        val injectedLon = "133.7";
+        val fileContent = xxeCase == XxeCase.KML ? injectedLon + ",42.0,0" : injectedLon + ",42.0";
+        Files.writeString(payloadFile, fileContent);
+        val externalUri = payloadFile.toUri().toString();
+
+        val document = switch (xxeCase) {
+        case KML        -> """
+                <?xml version="1.0"?>
+                <!DOCTYPE kml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                <kml xmlns="http://www.opengis.net/kml/2.2"><Placemark>
+                <Point><coordinates>&xxe;</coordinates></Point></Placemark></kml>
+                """.formatted(externalUri);
+        case GML2, GML3 ->
+            """
+                    <?xml version="1.0"?>
+                    <!DOCTYPE gml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                    <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326"><gml:coordinates>&xxe;</gml:coordinates></gml:Point>
+                    """
+                    .formatted(externalUri);
+        };
+
+        val result = switch (xxeCase) {
+        case KML  -> kmlToGeoJSON(Value.of(document));
+        case GML2 -> gml2ToGeoJSON(Value.of(document));
+        case GML3 -> gml3ToGeoJSON(Value.of(document));
+        };
+
+        assertThat(result.toString()).doesNotContain(injectedLon);
     }
 
     @Test

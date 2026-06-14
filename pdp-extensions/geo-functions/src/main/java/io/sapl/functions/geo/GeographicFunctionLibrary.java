@@ -21,6 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.*;
 import lombok.SneakyThrows;
+import lombok.val;
 import org.geotools.api.feature.Feature;
 import org.geotools.api.feature.Property;
 import org.geotools.feature.FeatureCollection;
@@ -28,7 +29,11 @@ import org.geotools.geometry.jts.JTS;
 import org.geotools.kml.v22.KMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.GeodeticCalculator;
+import org.geotools.xsd.Configuration;
 import org.geotools.xsd.Parser;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.ext.EntityResolver2;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
@@ -38,9 +43,11 @@ import org.locationtech.jts.operation.distance.DistanceOp;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.StringReader;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
@@ -106,11 +113,68 @@ public class GeographicFunctionLibrary {
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    private static final Parser          GML2_READER      = new Parser(new org.geotools.gml2.GMLConfiguration());
-    private static final Parser          GML3_READER      = new Parser(new org.geotools.gml3.GMLConfiguration());
-    private static final Parser          KML_READER       = new Parser(new KMLConfiguration());
+    private static final Parser          GML2_READER      = hardenedParser(new org.geotools.gml2.GMLConfiguration());
+    private static final Parser          GML3_READER      = hardenedParser(new org.geotools.gml3.GMLConfiguration());
+    private static final Parser          KML_READER       = hardenedParser(new KMLConfiguration());
     private static final GeometryFactory WGS84_FACTORY    = new GeometryFactory(new PrecisionModel(), 4326);
     private static final WKTReader       WKT_READER       = new WKTReader();
+
+    /**
+     * Resolves only XML Schema documents (those whose resolved URI ends in
+     * {@code .xsd}), which geotools needs to parse KML/GML, and blocks every
+     * other external entity. This closes the XXE and external-entity SSRF
+     * vector on caller-supplied documents: a payload such as
+     * {@code file:///etc/passwd} is rejected, while legitimate schema
+     * resolution still works, including the {@code file:}-scheme schemas the
+     * stricter geotools {@code PreventLocalEntityResolver} would wrongly reject.
+     * <p>
+     * Implements {@link EntityResolver2} because geotools' parser consults the
+     * four-argument resolution path; a plain {@code EntityResolver} is bypassed
+     * for general external entities. A blocked entity raises a SAXException,
+     * which the parse call sites convert to an ErrorValue.
+     */
+    private static final class SchemaOnlyEntityResolver implements EntityResolver2 {
+
+        private static final SchemaOnlyEntityResolver INSTANCE = new SchemaOnlyEntityResolver();
+
+        @Override
+        public InputSource getExternalSubset(String name, String baseUri) {
+            return null;
+        }
+
+        @Override
+        public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
+            return resolveEntity(null, publicId, null, systemId);
+        }
+
+        @Override
+        public InputSource resolveEntity(String name, String publicId, String baseUri, String systemId)
+                throws SAXException {
+            if (systemId == null) {
+                return null;
+            }
+            val resolved = resolveSystemId(baseUri, systemId);
+            if (resolved.split("[?#]", 2)[0].toLowerCase(Locale.ROOT).endsWith(".xsd")) {
+                return null;
+            }
+            throw new SAXException("Blocked resolution of external entity: " + resolved);
+        }
+
+        private static String resolveSystemId(String baseUri, String systemId) {
+            try {
+                return baseUri == null ? URI.create(systemId).toString()
+                        : URI.create(baseUri).resolve(systemId).toString();
+            } catch (RuntimeException e) {
+                return systemId;
+            }
+        }
+    }
+
+    private static Parser hardenedParser(Configuration configuration) {
+        val parser = new Parser(configuration);
+        parser.setEntityResolver(SchemaOnlyEntityResolver.INSTANCE);
+        return parser;
+    }
 
     /*
      * Geometry Comparisons
