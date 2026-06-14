@@ -1167,7 +1167,7 @@ The corresponding `pdp.json` configures the JWT PIP with public key resolution.
     "jwt": {
       "secretsKey": "jwt",
       "publicKeyServer": {
-        "uri": "http://auth-server:9000/public-key/{kid}",
+        "uri": "https://auth-server:9000/public-key/{kid}",
         "method": "GET",
         "keyCachingTtlMillis": 300000
       }
@@ -1175,6 +1175,8 @@ The corresponding `pdp.json` configures the JWT PIP with public key resolution.
   }
 }
 ```
+
+Always use an `https` URI for the public key server. Keys fetched over plain `http` can be substituted by a network attacker, who could then forge tokens the PIP would accept as trusted. TLS authenticates the key server and protects the keys in transit.
 
 ### Subject Field Stripping
 

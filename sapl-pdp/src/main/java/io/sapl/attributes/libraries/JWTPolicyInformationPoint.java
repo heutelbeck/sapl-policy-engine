@@ -127,7 +127,7 @@ public class JWTPolicyInformationPoint {
                   "secretsKey": "jwt",
                   "clockSkewSeconds": 60,
                   "publicKeyServer": {
-                    "uri": "http://authz-server:9000/public-key/{kid}",
+                    "uri": "https://authz-server:9000/public-key/{kid}",
                     "method": "GET",
                     "keyCachingTtlMillis": 300000
                   },
@@ -138,6 +138,12 @@ public class JWTPolicyInformationPoint {
               }
             }
             ```
+
+            The `publicKeyServer` field configures a remote endpoint that serves public keys on demand,
+            keyed by the token's key ID. Always use an `https` URI. Keys fetched over plain `http` can be
+            substituted by a network attacker, who could then forge tokens this PIP would accept as trusted.
+            TLS authenticates the key server and protects the keys in transit. Keys in the `whitelist` are
+            configured locally and are not affected.
 
             The `secretsKey` field specifies which key in subscription secrets holds the JWT token.
             Defaults to `"jwt"` if omitted.

@@ -67,8 +67,8 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final InstantSource             timestampSource;
     private final Consumer<Value>           onValue;
 
-    // The broker lock guards subscriberRefs + refcount; the AtomicInteger here
-    // is only to silence SonarQube's atomicity check on increment / decrement.
+    // The broker lock guards both subscriberRefs and refcount; the AtomicInteger
+    // type documents that refcount carries the live subscriber count.
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
     private final AtomicInteger                    refcount       = new AtomicInteger();
 
