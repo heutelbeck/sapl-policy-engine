@@ -17,12 +17,14 @@
  */
 package io.sapl.extensions.mqtt;
 
+import com.hivemq.client.mqtt.MqttClientSslConfig;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedContext;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
+import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuth;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.attributes.AttributeAccessContext;
@@ -44,9 +46,17 @@ import lombok.val;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import javax.net.ssl.TrustManagerFactory;
+
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
@@ -93,6 +103,12 @@ public class SaplMqttClient implements Closeable {
     public static final String   ENVIRONMENT_BROKER_PORT        = "brokerPort";
     /** Configuration key controlling sentinel emission on reconnect. */
     public static final String   ENVIRONMENT_EMIT_AT_RETRY      = "emitAtRetry";
+    /** Configuration key enabling TLS for the broker connection. */
+    public static final String   ENVIRONMENT_TLS                = "tls";
+    /** Configuration key for a PKCS12/JKS trust store used to verify the broker. */
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE    = "tlsTrustStore";
+    /** Configuration key for the trust store password. */
+    public static final String   ENVIRONMENT_TLS_TRUST_STORE_PW = "tlsTrustStorePassword";
     private static final String  ENVIRONMENT_MQTT_PIP_CONFIG    = "mqttPipConfig";
     private static final String  ENVIRONMENT_USERNAME           = "username";
     private static final String  ENVIRONMENT_BROKER_CONFIG_NAME = "name";
@@ -105,6 +121,8 @@ public class SaplMqttClient implements Closeable {
     private static final String  SECRETS_MQTT                   = "mqtt";
     private static final String  SECRETS_PASSWORD               = "password";
     private static final boolean DEFAULT_EMIT_AT_RETRY          = true;
+    private static final boolean DEFAULT_TLS                    = false;
+    private static final String  DEFAULT_TLS_TRUST_STORE        = "";
 
     private static final Duration CONNECT_TIMEOUT     = Duration.ofSeconds(10L);
     private static final Duration SUBSCRIBE_TIMEOUT   = Duration.ofSeconds(5L);
@@ -302,9 +320,45 @@ public class SaplMqttClient implements Closeable {
             }
         };
 
-        return Mqtt5Client.builder().identifier(clientId).serverAddress(InetSocketAddress.createUnresolved(host, port))
-                .automaticReconnectWithDefaultConfig().addDisconnectedListener(disconnectedListener)
-                .simpleAuth(buildAuth(brokerConfig, pdpSecrets)).buildAsync();
+        Mqtt5ClientBuilder builder = Mqtt5Client.builder().identifier(clientId)
+                .serverAddress(InetSocketAddress.createUnresolved(host, port)).automaticReconnectWithDefaultConfig()
+                .addDisconnectedListener(disconnectedListener);
+
+        val tlsEnabled = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_TLS, DEFAULT_TLS));
+        if (tlsEnabled) {
+            builder = applyTls(builder, brokerConfig, pipConfig);
+        }
+
+        return builder.simpleAuth(buildAuth(brokerConfig, pdpSecrets)).buildAsync();
+    }
+
+    private static Mqtt5ClientBuilder applyTls(Mqtt5ClientBuilder builder, JsonNode brokerConfig, JsonNode pipConfig) {
+        val trustStorePath = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS_TRUST_STORE,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_TLS_TRUST_STORE, DEFAULT_TLS_TRUST_STORE));
+        if (trustStorePath.isBlank()) {
+            // No explicit trust store: verify the broker against the platform
+            // default trust material (public CAs).
+            return builder.sslWithDefaultConfig();
+        }
+        val trustStorePassword = getConfigValueOrDefault(brokerConfig, ENVIRONMENT_TLS_TRUST_STORE_PW,
+                getConfigValueOrDefault(pipConfig, ENVIRONMENT_TLS_TRUST_STORE_PW, ""));
+        return builder.sslConfig(MqttClientSslConfig.builder()
+                .trustManagerFactory(trustManagerFactory(trustStorePath, trustStorePassword)).build());
+    }
+
+    private static TrustManagerFactory trustManagerFactory(String trustStorePath, String password) {
+        try {
+            val trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (InputStream in = Files.newInputStream(Path.of(trustStorePath))) {
+                trustStore.load(in, password.isEmpty() ? null : password.toCharArray());
+            }
+            val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            factory.init(trustStore);
+            return factory;
+        } catch (GeneralSecurityException | IOException e) {
+            throw new IllegalStateException("Failed to load MQTT TLS trust store from " + trustStorePath, e);
+        }
     }
 
     private static Mqtt5SimpleAuth buildAuth(JsonNode brokerConfig, ObjectValue pdpSecrets) {

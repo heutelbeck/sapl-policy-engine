@@ -252,7 +252,8 @@ public class SaplNodeProperties implements InitializingBean {
      */
     @Data
     public static class OAuthConfig {
-        private String pdpIdClaim = "sapl_pdp_id";
+        private String       pdpIdClaim = "sapl_pdp_id";
+        private List<String> audiences  = new ArrayList<>();
     }
 
 }

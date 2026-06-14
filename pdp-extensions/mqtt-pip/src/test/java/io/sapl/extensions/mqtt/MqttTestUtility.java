@@ -28,6 +28,7 @@ import lombok.val;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -46,6 +47,26 @@ class MqttTestUtility {
     public static GenericContainer<?> newMosquittoContainer() {
         return new GenericContainer<>(DockerImageName.parse(MOSQUITTO_IMAGE)).withExposedPorts(1883)
                 .withCommand("mosquitto", "-c", "/mosquitto-no-auth.conf")
+                .waitingFor(Wait.forLogMessage(".*mosquitto version.*", 1).withStartupTimeout(Duration.ofMinutes(2L)));
+    }
+
+    /**
+     * A Mosquitto broker with a plaintext listener on 1883 (for the test
+     * publisher) and a TLS listener on 8883 (for the PIP under test). The
+     * server certificate and key are the committed self-signed test material
+     * under {@code src/test/resources/tls}.
+     *
+     * @return the configured, not-yet-started container
+     */
+    public static GenericContainer<?> newTlsMosquittoContainer() {
+        return new GenericContainer<>(DockerImageName.parse(MOSQUITTO_IMAGE)).withExposedPorts(1883, 8883)
+                .withCopyFileToContainer(MountableFile.forClasspathResource("tls/mosquitto-tls.conf"),
+                        "/mosquitto/config/mosquitto.conf")
+                .withCopyFileToContainer(MountableFile.forClasspathResource("tls/server.crt"),
+                        "/mosquitto/certs/server.crt")
+                .withCopyFileToContainer(MountableFile.forClasspathResource("tls/server.key"),
+                        "/mosquitto/certs/server.key")
+                .withCommand("mosquitto", "-c", "/mosquitto/config/mosquitto.conf")
                 .waitingFor(Wait.forLogMessage(".*mosquitto version.*", 1).withStartupTimeout(Duration.ofMinutes(2L)));
     }
 

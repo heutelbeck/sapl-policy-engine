@@ -30,9 +30,16 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.SupplierJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
@@ -65,6 +72,9 @@ import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Servlet-based security configuration for SAPL Node with unified user
@@ -313,12 +323,38 @@ public class SecurityConfiguration {
         }
         return new SupplierJwtDecoder(() -> {
             try {
-                return JwtDecoders.fromIssuerLocation(jwtIssuerURI);
+                val decoder   = (NimbusJwtDecoder) JwtDecoders.fromIssuerLocation(jwtIssuerURI);
+                val audiences = pdpProperties.getOauth().getAudiences();
+                if (!audiences.isEmpty()) {
+                    decoder.setJwtValidator(audienceValidator(jwtIssuerURI, audiences));
+                }
+                return decoder;
             } catch (Exception e) {
                 log.warn("OIDC discovery against issuer {} failed: {}; OAuth2 token validation will retry on the next "
                         + "request", jwtIssuerURI, e.getMessage());
                 throw new JwtException("OIDC issuer unavailable: " + e.getMessage(), e);
             }
         });
+    }
+
+    /**
+     * Builds the token validator for the configured issuer. When the audience
+     * allowlist is non-empty the default issuer and timestamp validation is
+     * combined with an audience check, so a token minted for a different
+     * resource server on the same issuer is rejected. An empty allowlist
+     * disables the audience check and preserves the default validation.
+     *
+     * @param issuer the expected token issuer
+     * @param audiences the accepted audience values, or empty to disable the check
+     * @return the combined token validator
+     */
+    static OAuth2TokenValidator<Jwt> audienceValidator(String issuer, List<String> audiences) {
+        val defaultValidator = JwtValidators.createDefaultWithIssuer(issuer);
+        if (audiences.isEmpty()) {
+            return defaultValidator;
+        }
+        val audienceCheck = new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
+                aud -> aud != null && !Collections.disjoint(aud, audiences));
+        return new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceCheck);
     }
 }
