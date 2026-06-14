@@ -165,6 +165,30 @@ class BlockingWebClientTests {
     }
 
     @Test
+    @DisplayName("a response body exceeding maxResponseBytes fails closed to an error value")
+    void whenResponseExceedsMaxResponseBytesThenErrorValue() {
+        val oversized = "{\"big\":\"" + "x".repeat(5000) + "\"}";
+        server.enqueue(new MockResponse().setBody(oversized).addHeader("Content-Type", "application/json"));
+        val template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "application/json",
+                    "maxResponseBytes" : 64
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl));
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).contains("64");
+            });
+        }
+    }
+
+    @Test
     @DisplayName("XML response is returned as a text value")
     void whenFetchingXmlThenIsTextValue() {
         val minimalXml  = "<a/>";

@@ -72,7 +72,6 @@ import java.util.function.Supplier;
  * servers.
  */
 @Slf4j
-@RequiredArgsConstructor
 public class BlockingWebClient {
 
     public static final String ACCEPT_MEDIATYPE            = "accept";
@@ -80,18 +79,21 @@ public class BlockingWebClient {
     public static final String BODY                        = "body";
     public static final String CONTENT_MEDIATYPE           = "contentType";
     public static final String HEADERS                     = "headers";
+    public static final String MAX_RESPONSE_BYTES          = "maxResponseBytes";
     public static final String PATH                        = "path";
     public static final String POLLING_INTERVAL            = "pollingIntervalMs";
     public static final String REPEAT_TIMES                = "repetitions";
     public static final String URL_PARAMS                  = "urlParameters";
     static final long          DEFAULT_POLLING_INTERVAL_MS = 1000L;
     static final long          DEFAULT_REPETITIONS         = Long.MAX_VALUE;
+    static final long          DEFAULT_MAX_RESPONSE_BYTES  = 1_048_576L;
 
     private static final String ERROR_BASE_URL_MUST_BE_TEXT                 = "baseUrl must be a text value.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
     private static final String ERROR_HTTP_RESPONSE_STATUS                  = "HTTP %d";
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
+    private static final String ERROR_RESPONSE_TOO_LARGE                    = "HTTP response exceeded the configured limit of %d bytes.";
 
     private static final String MEDIATYPE_APPLICATION_JSON  = "application/json";
     private static final String MEDIATYPE_TEXT_EVENT_STREAM = "text/event-stream";
@@ -106,6 +108,23 @@ public class BlockingWebClient {
     private final HttpClient    httpClient;
     private final Clock         clock;
     private final TimeScheduler scheduler;
+    private final long          maxResponseBytes;
+
+    public BlockingWebClient(JsonMapper mapper, HttpClient httpClient, Clock clock, TimeScheduler scheduler) {
+        this(mapper, httpClient, clock, scheduler, DEFAULT_MAX_RESPONSE_BYTES);
+    }
+
+    public BlockingWebClient(JsonMapper mapper,
+            HttpClient httpClient,
+            Clock clock,
+            TimeScheduler scheduler,
+            long maxResponseBytes) {
+        this.mapper           = mapper;
+        this.httpClient       = httpClient;
+        this.clock            = clock;
+        this.scheduler        = scheduler;
+        this.maxResponseBytes = maxResponseBytes;
+    }
 
     /**
      * Issues an HTTP request and emits the response as a
@@ -131,7 +150,8 @@ public class BlockingWebClient {
             if (MEDIATYPE_TEXT_EVENT_STREAM.equals(accept)) {
                 return openServerSentEventStream(request);
             }
-            val supplier = jsonRequestSupplier(request, accept);
+            val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
+            val supplier = jsonRequestSupplier(request, accept, maxBytes);
             return Streams.scheduledPoll(Duration.ofMillis(pollingMs), supplier, clock, scheduler);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));
@@ -156,27 +176,29 @@ public class BlockingWebClient {
         }
     }
 
-    private Supplier<Value> jsonRequestSupplier(HttpRequest request, String accept) {
+    private Supplier<Value> jsonRequestSupplier(HttpRequest request, String accept, long maxBytes) {
         return () -> {
             try {
-                if (MEDIATYPE_APPLICATION_JSON.equals(accept)) {
-                    val response = httpClient.send(request, BodyHandlers.ofString());
-                    if (response.statusCode() >= 400) {
-                        return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
-                    }
-                    val body = response.body();
-                    if (body == null || body.isBlank()) {
-                        return Value.UNDEFINED;
-                    }
-                    return ValueJsonMarshaller.fromJsonNode(mapper.readTree(body));
-                }
-                val response = httpClient.send(request, BodyHandlers.ofString());
+                val response = httpClient.send(request, BodyHandlers.ofInputStream());
                 if (response.statusCode() >= 400) {
                     return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
                 }
-                return Value.of(response.body());
+                final byte[] bytes;
+                try (val in = response.body()) {
+                    // Read one byte past the limit so an oversized body is detected
+                    // without buffering more than the cap plus a single byte.
+                    bytes = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE));
+                }
+                if (bytes.length > maxBytes) {
+                    return Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes));
+                }
+                val body = new String(bytes, StandardCharsets.UTF_8);
+                if (MEDIATYPE_APPLICATION_JSON.equals(accept)) {
+                    return body.isBlank() ? Value.UNDEFINED : ValueJsonMarshaller.fromJsonNode(mapper.readTree(body));
+                }
+                return Value.of(body);
             } catch (JacksonException | IOException e) {
-                return Value.error(e.getMessage());
+                return Value.error(messageOf(e));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return Value.error(messageOf(e));

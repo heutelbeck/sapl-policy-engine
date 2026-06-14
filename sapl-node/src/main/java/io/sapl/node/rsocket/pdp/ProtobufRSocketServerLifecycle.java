@@ -61,10 +61,10 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             the RSocket protocol per frame ceiling. Lower values are not legal
             because a single decision frame can already reach that size.""";
 
-    private static final String ERROR_PORT_IN_USE  = "SAPL Node refused to start. The RSocket server port %d is already in use.";
+    private static final String ERROR_PORT_IN_USE  = "SAPL Node refused to start. The RSocket server address %s:%d is already in use.";
     private static final String ACTION_PORT_IN_USE = """
-            Another process, possibly another SAPL Node, is already bound to
-            %s:%d. Either stop that process, or point this node at a free port:
+            Another process, possibly another SAPL Node, is already bound to that
+            address. Either stop that process, or point this node at a free port:
 
               sapl.pdp.rsocket.port=<free-port>   (env SAPL_PDP_RSOCKET_PORT)
 
@@ -163,8 +163,8 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
                 val bindError  = channelBindExceptionOf(e);
                 val failedHost = bindError != null ? bindError.localHost() : bindAddress;
                 val failedPort = bindError != null ? bindError.localPort() : port;
-                throw new SaplStartupConfigurationException(ERROR_PORT_IN_USE.formatted(failedPort),
-                        ACTION_PORT_IN_USE.formatted(failedHost, failedPort));
+                throw new SaplStartupConfigurationException(ERROR_PORT_IN_USE.formatted(failedHost, failedPort),
+                        ACTION_PORT_IN_USE, e);
             }
             throw e;
         }
