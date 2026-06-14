@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -194,6 +195,32 @@ class UserLookupServiceTests {
     }
 
     @Nested
+    @DisplayName("constant-time API-key padding")
+    class ApiKeyPaddingTests {
+
+        @Test
+        @DisplayName("a configured-but-wrong api-key-id and an unknown api-key-id cost the same number of Argon2 verifications, so timing cannot enumerate configured ids")
+        void whenApiKeyIdPresentButWrongVersusAbsentThenSameVerificationCount() {
+            val real    = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val counter = new CountingPasswordEncoder(real);
+            val sut     = new UserLookupService(properties, counter);
+
+            val entry = new UserEntry();
+            entry.setApiKeyId("7A7ByyQd6U");
+            entry.setApiKey(real.encode("a-different-secret"));
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of("7A7ByyQd6U", entry));
+            sut.findByApiKey(RAW_API_KEY);
+            val presentButWrong = counter.matchInvocations.getAndSet(0);
+
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
+            sut.findByApiKey(RAW_API_KEY);
+            val absent = counter.matchInvocations.get();
+
+            assertThat(presentButWrong).isEqualTo(absent).isEqualTo(1);
+        }
+    }
+
+    @Nested
     @DisplayName("toSaplUser")
     class ToSaplUserTests {
 
@@ -222,6 +249,32 @@ class UserLookupServiceTests {
             assertThat(result.pdpId()).isEqualTo("default");
         }
 
+    }
+
+    /**
+     * Delegating encoder that counts {@code matches} invocations so a test can
+     * assert that the same number of Argon2 verifications run regardless of
+     * whether an api-key-id is configured.
+     */
+    private static final class CountingPasswordEncoder implements PasswordEncoder {
+
+        private final PasswordEncoder delegate;
+        private final AtomicInteger   matchInvocations = new AtomicInteger();
+
+        private CountingPasswordEncoder(PasswordEncoder delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public String encode(CharSequence rawPassword) {
+            return delegate.encode(rawPassword);
+        }
+
+        @Override
+        public boolean matches(CharSequence rawPassword, String encodedPassword) {
+            matchInvocations.incrementAndGet();
+            return delegate.matches(rawPassword, encodedPassword);
+        }
     }
 
 }

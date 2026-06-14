@@ -334,7 +334,7 @@ io.sapl.node:
   keep-alive: 15
 ```
 
-This sends a keep-alive frame every 15 seconds. Set the proxy read timeout to a value above this interval (e.g., 60 seconds). The default is `0` (disabled). See [Configuration](../7_2_Configuration/) for the property reference.
+This sends a keep-alive frame every 15 seconds. Set the proxy read timeout to a value above this interval (e.g., 60 seconds). The bundled `application.yml` ships with `keep-alive: 15`; when the property is absent the code fallback is `0` (disabled). See [Configuration](../7_2_Configuration/) for the property reference.
 
 #### nginx
 

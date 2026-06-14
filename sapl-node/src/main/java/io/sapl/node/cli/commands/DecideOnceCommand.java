@@ -44,7 +44,7 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
     description = { """
         Evaluates the authorization subscription against policies once and
         prints the full decision to stdout as a JSON object containing the
-        decision (PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE), any
+        decision (PERMIT, DENY, SUSPEND, NOT_APPLICABLE, INDETERMINATE), any
         obligations, advice, and resource transformations.
 
         By default, policies are loaded from ~/.sapl/. Use

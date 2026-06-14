@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.UUID;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -71,6 +72,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
     private final @Nullable JwtDecoder   jwtDecoder;
     private final HttpAuthResult         defaultPdpResult;
     private final Cache<String, Outcome> cache;
+    private final String                 dummyArgon2Hash;
 
     public CachingHttpAuthHandler(SaplNodeProperties properties,
             UserLookupService userLookupService,
@@ -89,6 +91,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId());
         this.cache             = Caffeine.newBuilder().maximumSize(maxSize)
                 .expireAfter(new TtlExpiry(positiveTtl, negativeTtl)).build();
+        this.dummyArgon2Hash   = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     @Override
@@ -158,7 +161,13 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         val username = text.substring(0, colon);
         val password = text.substring(colon + 1);
         val userOpt  = userLookupService.findByBasicUsername(username);
-        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getBasic().getSecret())) {
+        // Run one Argon2 verification on every path (the real secret when the
+        // user exists, a fixed dummy hash otherwise) so an unknown username
+        // cannot be distinguished from a known one with a wrong password by
+        // response timing.
+        val encoded = userOpt.map(user -> user.getBasic().getSecret()).orElse(dummyArgon2Hash);
+        val matches = passwordEncoder.matches(password, encoded);
+        if (userOpt.isEmpty() || !matches) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
         return new HttpAuthResult(userOpt.get().getPdpId());
@@ -240,10 +249,24 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         private long ttl(Outcome value) {
             return switch (value) {
             case Outcome.Failure ignored                               -> negativeNanos;
-            case Outcome.Success(var result, var exp) when exp != null ->
-                Math.clamp(Duration.between(Instant.now(), exp).toNanos(), 0L, positiveNanos);
+            case Outcome.Success(var result, var exp) when exp != null -> ttlUntil(exp);
             case Outcome.Success ignored                               -> positiveNanos;
             };
+        }
+
+        // Clamp to [0, positiveNanos] without ever calling Duration.toNanos()
+        // on a value that exceeds the long-nanosecond range (~292 years).
+        // A signature-valid JWT with an exp far in the future would otherwise
+        // throw ArithmeticException from inside cache insertion.
+        private long ttlUntil(Instant exp) {
+            val remaining = Duration.between(Instant.now(), exp);
+            if (remaining.isNegative()) {
+                return 0L;
+            }
+            if (remaining.compareTo(Duration.ofNanos(positiveNanos)) >= 0) {
+                return positiveNanos;
+            }
+            return remaining.toNanos();
         }
     }
 }

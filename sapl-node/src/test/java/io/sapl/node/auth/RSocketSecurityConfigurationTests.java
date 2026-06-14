@@ -37,6 +37,8 @@ import reactor.test.StepVerifier;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -99,6 +101,24 @@ class RSocketSecurityConfigurationTests {
 
         StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
         verify(userLookupService).findByBasicUsername("alice");
+    }
+
+    @Test
+    @DisplayName("an unknown Basic user is rejected with the same generic message as a wrong password and still runs one verification, so neither the message nor timing reveals which users exist")
+    void whenBasicUsernameUnknownThenGenericErrorAndDummyVerification() {
+        val properties = new SaplNodeProperties();
+        properties.setAllowBasicAuth(true);
+        when(userLookupService.findByBasicUsername("ghost")).thenReturn(Optional.empty());
+        val metadata = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, "ghost".toCharArray(),
+                "secret".toCharArray());
+
+        val result = authenticatorFor(properties).authenticate(setupWith(metadata));
+
+        StepVerifier.create(result)
+                .expectErrorSatisfies(error -> assertThat(error).isInstanceOf(BadCredentialsException.class)
+                        .hasMessage("Authentication failed.").hasMessageNotContaining("ghost"))
+                .verify();
+        verify(passwordEncoder).matches(any(), any());
     }
 
     @Nested

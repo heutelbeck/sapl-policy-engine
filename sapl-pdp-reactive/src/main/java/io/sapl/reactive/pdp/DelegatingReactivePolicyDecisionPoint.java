@@ -86,7 +86,7 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
     /**
      * Engine-internal flux of {@link TracedVote}s for a subscription:
      * vote, emit timestamp, dependency map, and per-key snapshot read.
-     * Mirrors {@link DelegatingReactivePolicyDecisionPoint#gatherVotes}
+     * Mirrors {@link BlockingPolicyDecisionPoint#gatherVotes}
      * for tooling that consumes the trace through Reactor (the SAPL
      * playground).
      */

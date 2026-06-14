@@ -81,15 +81,18 @@ public class UserLookupService {
         if (apiKeyId == null) {
             return Optional.empty();
         }
-        val candidate = properties.getApiKeyIdIndex().get(apiKeyId);
-        if (candidate != null && candidate.getApiKey() != null
-                && passwordEncoder.matches(rawApiKey, candidate.getApiKey())) {
+        val candidate    = properties.getApiKeyIdIndex().get(apiKeyId);
+        val hasCandidate = candidate != null && candidate.getApiKey() != null;
+        // Constant-work padding: exactly one Argon2 verification runs whether
+        // or not the api-key-id is configured (the real hash when present, a
+        // fixed dummy hash otherwise). A present-but-wrong id must take the
+        // same wall-clock time as a missing one, otherwise an attacker can
+        // enumerate the configured ids by timing alone.
+        val encodedToCheck = hasCandidate ? candidate.getApiKey() : dummyArgon2Hash;
+        val matches        = passwordEncoder.matches(rawApiKey, encodedToCheck);
+        if (hasCandidate && matches) {
             return Optional.of(candidate);
         }
-        // Constant-time padding: a missing api-key-id must take the same
-        // wall-clock time as a present-but-wrong one. Otherwise an
-        // attacker can enumerate the configured ids by timing alone.
-        passwordEncoder.matches(rawApiKey, dummyArgon2Hash);
         return Optional.empty();
     }
 

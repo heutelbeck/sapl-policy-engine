@@ -200,6 +200,20 @@ class CachingHttpAuthHandlerTests {
         }
 
         @Test
+        @DisplayName("unknown Basic username still runs one password verification, so timing does not reveal which usernames exist")
+        void whenBasicUsernameUnknownThenDummyVerificationRuns() {
+            val header = basicHeader("ghost", "anything");
+            when(request.getHeader(AUTHORIZATION)).thenReturn(header);
+            when(properties.isAllowBasicAuth()).thenReturn(true);
+            when(userLookupService.findByBasicUsername("ghost")).thenReturn(Optional.empty());
+
+            val sut = handler();
+
+            assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
+            verify(passwordEncoder).matches(any(), any());
+        }
+
+        @Test
         @DisplayName("Basic credentials with wrong password are rejected")
         void whenBasicPasswordWrongThenAuthenticationFailed() {
             val header = basicHeader("alice", "wrong");
@@ -486,6 +500,16 @@ class CachingHttpAuthHandlerTests {
             val outcome = new Outcome.Success(new HttpAuthResult("default"), past);
 
             assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isZero();
+        }
+
+        @Test
+        @DisplayName("JWT success with an exp beyond the nanosecond range does not throw and clamps to the positive TTL")
+        void whenJwtExpiryBeyondNanoRangeThenPositiveTtlApplies() {
+            val expiry    = new TtlExpiry(POSITIVE, NEGATIVE);
+            val farBeyond = Instant.now().plus(Duration.ofDays(365L * 1000));
+            val outcome   = new Outcome.Success(new HttpAuthResult("default"), farBeyond);
+
+            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
         }
 
         @Test
