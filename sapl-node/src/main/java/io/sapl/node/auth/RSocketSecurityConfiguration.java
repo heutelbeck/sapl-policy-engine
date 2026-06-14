@@ -18,14 +18,12 @@
 package io.sapl.node.auth;
 
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -38,6 +36,7 @@ import io.sapl.node.SaplNodeProperties;
 import io.sapl.node.auth.UserLookupService;
 import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator;
 import io.sapl.node.rsocket.pdp.RSocketConnectionAuthenticator.AuthenticationResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import reactor.core.publisher.Mono;
@@ -61,6 +60,7 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class RSocketSecurityConfiguration {
 
     private static final String SAPL_API_KEY_PREFIX = "sapl_";
@@ -72,20 +72,7 @@ public class RSocketSecurityConfiguration {
 
     private final SaplNodeProperties   properties;
     private final UserLookupService    userLookupService;
-    private final PasswordEncoder      passwordEncoder;
     private final @Nullable JwtDecoder jwtDecoder;
-    private final String               dummyArgon2Hash;
-
-    public RSocketSecurityConfiguration(SaplNodeProperties properties,
-            UserLookupService userLookupService,
-            PasswordEncoder passwordEncoder,
-            @Nullable JwtDecoder jwtDecoder) {
-        this.properties        = properties;
-        this.userLookupService = userLookupService;
-        this.passwordEncoder   = passwordEncoder;
-        this.jwtDecoder        = jwtDecoder;
-        this.dummyArgon2Hash   = passwordEncoder.encode(UUID.randomUUID().toString());
-    }
 
     @Bean
     @Nullable
@@ -131,14 +118,11 @@ public class RSocketSecurityConfiguration {
         val passwordBuf = AuthMetadataCodec.readPassword(metadata);
         val username    = usernameBuf.toString(StandardCharsets.UTF_8);
         val password    = passwordBuf.toString(StandardCharsets.UTF_8);
-        val userOpt     = userLookupService.findByBasicUsername(username);
-        // One generic error and one Argon2 verification on every path (the
-        // real secret when the user exists, a fixed dummy hash otherwise) so
-        // neither the message nor the response timing discloses whether a
-        // username exists.
-        val encoded = userOpt.map(user -> user.getBasic().getSecret()).orElse(dummyArgon2Hash);
-        val matches = passwordEncoder.matches(password, encoded);
-        if (userOpt.isEmpty() || !matches) {
+        // The service runs one Argon2 verification on every path and returns a
+        // result only on a real match, so neither a generic error nor the
+        // response timing discloses whether a username exists.
+        val userOpt = userLookupService.verifyBasicCredentials(username, password);
+        if (userOpt.isEmpty()) {
             return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
         }
         return Mono.just(new AuthenticationResult(userOpt.get().getPdpId(), null));

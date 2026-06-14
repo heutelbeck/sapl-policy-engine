@@ -119,6 +119,50 @@ class UserLookupServiceTests {
     }
 
     @Nested
+    @DisplayName("verifyBasicCredentials")
+    class VerifyBasicCredentialsTests {
+
+        private UserEntry alice(String encodedSecret) {
+            val basic = new BasicCredentials();
+            basic.setUsername("alice");
+            basic.setSecret(encodedSecret);
+            val entry = new UserEntry();
+            entry.setId("alice");
+            entry.setPdpId("production");
+            entry.setBasic(basic);
+            return entry;
+        }
+
+        @Test
+        @DisplayName("returns the user on a correct password")
+        void whenPasswordCorrectThenReturnsUser() {
+            val real = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val sut  = new UserLookupService(properties, real);
+            when(properties.getUsers()).thenReturn(List.of(alice(real.encode("secret"))));
+
+            assertThat(sut.verifyBasicCredentials("alice", "secret")).isPresent()
+                    .hasValueSatisfying(user -> assertThat(user.getPdpId()).isEqualTo("production"));
+        }
+
+        @Test
+        @DisplayName("an unknown username and a known username with a wrong password both fail and cost the same single verification, so timing cannot enumerate usernames")
+        void whenUnknownVersusWrongPasswordThenSameVerificationCountAndEmpty() {
+            val real    = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val counter = new CountingPasswordEncoder(real);
+            val sut     = new UserLookupService(properties, counter);
+            when(properties.getUsers()).thenReturn(List.of(alice(real.encode("secret"))));
+
+            assertThat(sut.verifyBasicCredentials("alice", "wrong")).isEmpty();
+            val wrongPassword = counter.matchInvocations.getAndSet(0);
+
+            assertThat(sut.verifyBasicCredentials("ghost", "whatever")).isEmpty();
+            val unknownUser = counter.matchInvocations.get();
+
+            assertThat(wrongPassword).isEqualTo(unknownUser).isEqualTo(1);
+        }
+    }
+
+    @Nested
     @DisplayName("findByApiKey")
     class FindByApiKeyTests {
 

@@ -24,12 +24,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.UUID;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -68,15 +66,12 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
 
     private final SaplNodeProperties     properties;
     private final UserLookupService      userLookupService;
-    private final PasswordEncoder        passwordEncoder;
     private final @Nullable JwtDecoder   jwtDecoder;
     private final HttpAuthResult         defaultPdpResult;
     private final Cache<String, Outcome> cache;
-    private final String                 dummyArgon2Hash;
 
     public CachingHttpAuthHandler(SaplNodeProperties properties,
             UserLookupService userLookupService,
-            PasswordEncoder passwordEncoder,
             @Nullable JwtDecoder jwtDecoder,
             Duration positiveTtl,
             Duration negativeTtl,
@@ -86,12 +81,10 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         }
         this.properties        = properties;
         this.userLookupService = userLookupService;
-        this.passwordEncoder   = passwordEncoder;
         this.jwtDecoder        = jwtDecoder;
         this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId());
         this.cache             = Caffeine.newBuilder().maximumSize(maxSize)
                 .expireAfter(new TtlExpiry(positiveTtl, negativeTtl)).build();
-        this.dummyArgon2Hash   = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     @Override
@@ -160,14 +153,8 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         }
         val username = text.substring(0, colon);
         val password = text.substring(colon + 1);
-        val userOpt  = userLookupService.findByBasicUsername(username);
-        // Run one Argon2 verification on every path (the real secret when the
-        // user exists, a fixed dummy hash otherwise) so an unknown username
-        // cannot be distinguished from a known one with a wrong password by
-        // response timing.
-        val encoded = userOpt.map(user -> user.getBasic().getSecret()).orElse(dummyArgon2Hash);
-        val matches = passwordEncoder.matches(password, encoded);
-        if (userOpt.isEmpty() || !matches) {
+        val userOpt  = userLookupService.verifyBasicCredentials(username, password);
+        if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
         return new HttpAuthResult(userOpt.get().getPdpId());

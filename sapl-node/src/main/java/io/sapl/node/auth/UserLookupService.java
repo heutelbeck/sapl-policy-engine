@@ -60,6 +60,26 @@ public class UserLookupService {
     }
 
     /**
+     * Verifies Basic-auth credentials with constant work.
+     * <p>
+     * Exactly one Argon2 verification runs whether or not the username exists
+     * (the user's secret when present, a fixed dummy hash otherwise), so an
+     * unknown username cannot be distinguished from a known one with a wrong
+     * password by response timing.
+     *
+     * @param username the presented username
+     * @param password the presented raw password
+     * @return the matching user entry, or empty if the username is unknown or
+     * the password does not match
+     */
+    public Optional<UserEntry> verifyBasicCredentials(String username, String password) {
+        val userOpt = findByBasicUsername(username);
+        val encoded = userOpt.map(user -> user.getBasic().getSecret()).orElse(dummyArgon2Hash);
+        val matches = passwordEncoder.matches(password, encoded);
+        return userOpt.isPresent() && matches ? userOpt : Optional.empty();
+    }
+
+    /**
      * Finds a user by API key.
      * <p>
      * Wire format: {@code sapl_<id>_<secret>}. The {@code id} segment is looked

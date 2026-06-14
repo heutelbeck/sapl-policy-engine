@@ -32,13 +32,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import reactor.test.StepVerifier;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -50,11 +48,8 @@ class RSocketSecurityConfigurationTests {
     @Mock
     private UserLookupService userLookupService;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
     private RSocketConnectionAuthenticator authenticatorFor(SaplNodeProperties properties) {
-        return new RSocketSecurityConfiguration(properties, userLookupService, passwordEncoder, null)
+        return new RSocketSecurityConfiguration(properties, userLookupService, null)
                 .rsocketConnectionAuthenticator(true);
     }
 
@@ -94,21 +89,21 @@ class RSocketSecurityConfigurationTests {
     void whenBasicAuthEnabledThenUserStoreIsConsulted() {
         val properties = new SaplNodeProperties();
         properties.setAllowBasicAuth(true);
-        when(userLookupService.findByBasicUsername("alice")).thenReturn(Optional.empty());
+        when(userLookupService.verifyBasicCredentials("alice", "secret")).thenReturn(Optional.empty());
         val metadata = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, "alice".toCharArray(),
                 "secret".toCharArray());
         val result   = authenticatorFor(properties).authenticate(setupWith(metadata));
 
         StepVerifier.create(result).expectError(BadCredentialsException.class).verify();
-        verify(userLookupService).findByBasicUsername("alice");
+        verify(userLookupService).verifyBasicCredentials("alice", "secret");
     }
 
     @Test
-    @DisplayName("an unknown Basic user is rejected with the same generic message as a wrong password and still runs one verification, so neither the message nor timing reveals which users exist")
-    void whenBasicUsernameUnknownThenGenericErrorAndDummyVerification() {
+    @DisplayName("an unknown Basic user is rejected with the same generic message as a wrong password, so the message does not reveal which users exist")
+    void whenBasicUsernameUnknownThenGenericErrorNotEchoingUsername() {
         val properties = new SaplNodeProperties();
         properties.setAllowBasicAuth(true);
-        when(userLookupService.findByBasicUsername("ghost")).thenReturn(Optional.empty());
+        when(userLookupService.verifyBasicCredentials("ghost", "secret")).thenReturn(Optional.empty());
         val metadata = AuthMetadataCodec.encodeSimpleMetadata(ByteBufAllocator.DEFAULT, "ghost".toCharArray(),
                 "secret".toCharArray());
 
@@ -118,7 +113,7 @@ class RSocketSecurityConfigurationTests {
                 .expectErrorSatisfies(error -> assertThat(error).isInstanceOf(BadCredentialsException.class)
                         .hasMessage("Authentication failed.").hasMessageNotContaining("ghost"))
                 .verify();
-        verify(passwordEncoder).matches(any(), any());
+        verify(userLookupService).verifyBasicCredentials("ghost", "secret");
     }
 
     @Nested

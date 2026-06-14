@@ -30,7 +30,6 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import jakarta.servlet.Servlet;
@@ -76,12 +75,11 @@ class PdpHttpEndpointConfiguration {
 
     @Bean
     HttpAuthHandler httpAuthHandler(SaplNodeProperties properties, UserLookupService userLookupService,
-            PasswordEncoder passwordEncoder, @Nullable JwtDecoder jwtDecoder,
+            @Nullable JwtDecoder jwtDecoder,
             @Value("${io.sapl.node.http.auth-cache.positive-ttl:5m}") Duration positiveTtl,
             @Value("${io.sapl.node.http.auth-cache.negative-ttl:5s}") Duration negativeTtl,
             @Value("${io.sapl.node.http.auth-cache.max-size:10000}") long maxSize) {
-        return new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, jwtDecoder, positiveTtl,
-                negativeTtl, maxSize);
+        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, positiveTtl, negativeTtl, maxSize);
     }
 
     @Bean(destroyMethod = "shutdown")
