@@ -162,8 +162,9 @@ server:
       key-password: changeme
       key-alias: netty
 
-# Set the time between keep-alive frames in seconds. These messages are required to avoid that an inactive tcp connection
-# is dropped by a firewall or other network components. The default vlaue 0 disables keep-alive messages.
+# Interval in seconds between keep-alive frames on idle SSE streaming connections. Prevents proxies and firewalls from
+# dropping inactive connections and lets the server detect clients that drop without closing. Always on; default 15
+# seconds. Keep it below the smallest proxy idle timeout on the path.
 # io.sapl.node.keep-alive: 15
 
 spring:

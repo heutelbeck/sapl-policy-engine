@@ -339,7 +339,7 @@ A PEP encountering connectivity issues or errors with the PDP server must treat 
 
 ### Keep-Alive
 
-Streaming connections use periodic SSE comment events (`: keep-alive`) to prevent firewalls and proxies from closing idle connections. A PEP should treat a prolonged absence of any events (decisions or keep-alives) as a connection failure.
+Streaming connections use periodic SSE comment events (`: keep-alive`) to prevent firewalls and proxies from closing idle connections and to let the server detect clients that drop without closing. A PEP should treat a prolonged absence of any events (decisions or keep-alives) as a connection failure.
 
 ### Reverse Proxy Configuration
 
@@ -352,14 +352,14 @@ Requirements for any reverse proxy in front of SAPL Node:
 3. **Preserve chunked transfer encoding.** Do not add `Content-Length` headers to streaming responses.
 4. **Forward the HTTP method.** All PDP endpoints use POST.
 
-SAPL Node can send periodic keep-alive frames on idle connections:
+SAPL Node sends periodic keep-alive frames on idle connections, every 15 seconds by default:
 
 ```yaml
 io.sapl.node:
   keep-alive: 15
 ```
 
-Set the proxy read timeout above this interval (e.g., 60 seconds). See [Configuration](../7_2_Configuration/) for the property reference.
+Set the proxy read timeout above this interval (e.g., 60 seconds). Keep-alive is always on and cannot be disabled. See [Configuration](../7_2_Configuration/) for the property reference.
 
 #### nginx
 

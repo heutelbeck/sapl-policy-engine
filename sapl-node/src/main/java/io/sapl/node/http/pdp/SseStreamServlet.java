@@ -57,6 +57,15 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     private static final String CONTENT_TYPE_SSE = "text/event-stream;charset=UTF-8";
     private static final String KEEP_ALIVE_FRAME = ": keep-alive\n\n";
 
+    // Keep-alive is always on: it both keeps proxies/load balancers from
+    // idle-timing-out the connection and is the only reliable way to detect a
+    // client that died without closing (a half-open connection is otherwise
+    // indistinguishable from a healthy idle one). It is therefore tunable but
+    // not disableable: a non-positive configured interval falls back to the
+    // default, and a positive one is floored.
+    private static final Duration DEFAULT_KEEP_ALIVE = Duration.ofSeconds(15);
+    private static final Duration MIN_KEEP_ALIVE     = Duration.ofSeconds(1);
+
     private final HttpAuthHandler          authHandler;
     private final JsonMapper               mapper;
     private final Duration                 keepAliveInterval;
@@ -72,10 +81,25 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             SseConnectionRegistry connectionRegistry) {
         this.authHandler        = authHandler;
         this.mapper             = mapper;
-        this.keepAliveInterval  = keepAliveInterval;
+        this.keepAliveInterval  = effectiveKeepAliveInterval(keepAliveInterval);
         this.keepAliveScheduler = keepAliveScheduler;
         this.pumpExecutor       = pumpExecutor;
         this.connectionRegistry = connectionRegistry;
+    }
+
+    /**
+     * Normalizes the configured keep-alive interval. Keep-alive cannot be
+     * disabled: a {@code null}, zero, or negative interval falls back to the
+     * default, and an interval below the minimum is raised to it.
+     *
+     * @param configured the configured interval, may be null
+     * @return a positive, floored interval
+     */
+    static Duration effectiveKeepAliveInterval(@Nullable Duration configured) {
+        if (configured == null || configured.isZero() || configured.isNegative()) {
+            return DEFAULT_KEEP_ALIVE;
+        }
+        return configured.compareTo(MIN_KEEP_ALIVE) < 0 ? MIN_KEEP_ALIVE : configured;
     }
 
     /**
@@ -157,7 +181,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         val                writerLock    = new Object();
         ScheduledFuture<?> keepAliveTask = null;
         try (PrintWriter writer = response.getWriter(); Stream<D> stream = openStream(subscription, pdpId)) {
-            keepAliveTask = scheduleKeepAlive(writer, writerLock);
+            keepAliveTask = scheduleKeepAlive(writer, writerLock, stream);
             try {
                 while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, writer, writerLock, pdpId)) {
                     // loop body intentionally empty; processNextEvent drives one iteration
@@ -210,17 +234,36 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     }
 
     @Nullable
-    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer, Object writerLock) {
-        if (keepAliveInterval.isZero() || keepAliveInterval.isNegative() || keepAliveScheduler == null) {
+    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+        if (keepAliveScheduler == null) {
             return null;
         }
         val periodMillis = keepAliveInterval.toMillis();
         return keepAliveScheduler.scheduleAtFixedRate(() -> {
+            boolean clientGone;
             synchronized (writerLock) {
                 writer.write(KEEP_ALIVE_FRAME);
                 writer.flush();
+                // A broken-pipe write is swallowed by PrintWriter but sets the
+                // error flag; this is the only signal that an otherwise-idle
+                // client has died without closing.
+                clientGone = writer.checkError();
+            }
+            if (clientGone) {
+                // Close the stream: this unblocks the pump parked in awaitNext()
+                // (it returns null and exits), and the pump's finally block then
+                // cancels this task, unregisters, and completes the async context.
+                closeQuietly(stream);
             }
         }, periodMillis, periodMillis, TimeUnit.MILLISECONDS);
+    }
+
+    private void closeQuietly(Stream<D> stream) {
+        try {
+            stream.close();
+        } catch (Exception e) {
+            log.debug("Closing SSE stream after client disconnect failed: {}", e.getMessage());
+        }
     }
 
     /**

@@ -327,14 +327,14 @@ The key requirements for any reverse proxy in front of SAPL Node:
 
 #### Keep-Alive Frames
 
-SAPL Node can send periodic SSE comment frames (`:keep-alive`) on idle connections to prevent proxies and firewalls from dropping them. Set the interval in `application.yml`:
+SAPL Node sends periodic SSE comment frames (`: keep-alive`) on idle connections, both to keep proxies and firewalls from dropping them and to detect clients that drop without closing. Tune the interval in `application.yml`:
 
 ```yaml
 io.sapl.node:
   keep-alive: 15
 ```
 
-This sends a keep-alive frame every 15 seconds. Set the proxy read timeout to a value above this interval (e.g., 60 seconds). The bundled `application.yml` ships with `keep-alive: 15`; when the property is absent the code fallback is `0` (disabled). See [Configuration](../7_2_Configuration/) for the property reference.
+This sends a keep-alive frame every 15 seconds (the default). Keep the interval below the smallest idle timeout on the path; that is, set the proxy read timeout above it (60 seconds is typical). Keep-alive is always on and cannot be disabled; an interval below `1` is raised to the default. See [Configuration](../7_2_Configuration/) for the property reference.
 
 #### nginx
 

@@ -121,7 +121,7 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<DecideStreamServlet> decideStreamServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new DecideStreamServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
                         sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
@@ -132,7 +132,7 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<MultiDecideServlet> multiDecideServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
                         sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
@@ -143,7 +143,7 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<MultiDecideAllServlet> multiDecideAllServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
                         sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
