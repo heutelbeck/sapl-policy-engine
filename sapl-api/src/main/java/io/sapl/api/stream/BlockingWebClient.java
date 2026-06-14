@@ -243,27 +243,32 @@ public class BlockingWebClient {
         while (!stopped.get() && iterator.hasNext()) {
             val line = iterator.next();
             if (line.isEmpty()) {
-                if (!data.isEmpty()) {
-                    emit.accept(parseServerSentEventData(data.toString()));
-                    data.setLength(0);
-                }
-                continue;
-            }
-            if (line.startsWith("data:")) {
-                if (!data.isEmpty()) {
-                    data.append('\n');
-                }
-                data.append(line.substring(5).stripLeading());
+                flushEvent(data, emit);
+            } else if (line.startsWith("data:")) {
+                appendDataLine(data, line);
                 if (data.length() > maxBytes) {
                     emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                     stopped.set(true);
-                    return;
                 }
             }
         }
-        if (!stopped.get() && !data.isEmpty()) {
-            emit.accept(parseServerSentEventData(data.toString()));
+        if (!stopped.get()) {
+            flushEvent(data, emit);
         }
+    }
+
+    private void flushEvent(StringBuilder data, Consumer<Value> emit) {
+        if (!data.isEmpty()) {
+            emit.accept(parseServerSentEventData(data.toString()));
+            data.setLength(0);
+        }
+    }
+
+    private static void appendDataLine(StringBuilder data, String line) {
+        if (!data.isEmpty()) {
+            data.append('\n');
+        }
+        data.append(line.substring(5).stripLeading());
     }
 
     private Value parseServerSentEventData(String data) {
