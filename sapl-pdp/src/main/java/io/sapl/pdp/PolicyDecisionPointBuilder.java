@@ -55,6 +55,7 @@ import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -101,7 +102,15 @@ import java.util.List;
 public class PolicyDecisionPointBuilder {
 
     private final JsonMapper mapper;
-    private final Clock      clock;
+    private Clock            clock;
+
+    // Timestamping source for observability stamps (decision trace, attribute
+    // value freshness). Distinct from the temporal-reasoning clock above. Null
+    // means it defaults to the temporal clock at build time. ownsTimestampSource
+    // is true only when this builder created the source (then the components
+    // close it); a caller-supplied source is left for the caller to close.
+    private InstantSource timestampSource;
+    private boolean       ownsTimestampSource = false;
 
     private boolean includeDefaultFunctionLibraries       = true;
     private boolean includeDefaultPolicyInformationPoints = true;
@@ -126,63 +135,71 @@ public class PolicyDecisionPointBuilder {
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
+    private static final String ERROR_NO_PLUGINS_AVAILABLE      = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
+    private static final String WARN_ERROR_CLOSING_RESOURCE     = "Error closing {} during failed PDP build: {}.";
 
-    private PolicyDecisionPointBuilder(JsonMapper mapper, Clock clock) {
+    private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
-        this.clock  = clock;
+        this.clock  = Clock.systemUTC();
     }
 
     /**
      * Creates a builder with default function libraries and policy information
-     * points enabled, using a new ObjectMapper
-     * and system UTC clock.
+     * points enabled, using a new ObjectMapper.
      *
      * @return a new builder instance
      */
     public static PolicyDecisionPointBuilder withDefaults() {
-        return new PolicyDecisionPointBuilder(JsonMapper.builder().build(), Clock.systemUTC());
+        return new PolicyDecisionPointBuilder(JsonMapper.builder().build());
     }
 
     /**
      * Creates a builder with default function libraries and policy information
      * points enabled.
      *
-     * @param mapper
-     * the JsonMapper for JSON processing
-     * @param clock
-     * the clock for time-based operations
-     *
+     * @param mapper the JsonMapper for JSON processing
      * @return a new builder instance
      */
-    public static PolicyDecisionPointBuilder withDefaults(JsonMapper mapper, Clock clock) {
-        return new PolicyDecisionPointBuilder(mapper, clock);
+    public static PolicyDecisionPointBuilder withDefaults(JsonMapper mapper) {
+        return new PolicyDecisionPointBuilder(mapper);
     }
 
     /**
      * Creates a builder without any default libraries or PIPs, using a new
-     * ObjectMapper and system UTC clock.
+     * ObjectMapper.
      *
      * @return a new builder instance with defaults disabled
      */
     public static PolicyDecisionPointBuilder withoutDefaults() {
-        return withoutDefaults(JsonMapper.builder().build(), Clock.systemUTC());
+        return withoutDefaults(JsonMapper.builder().build());
     }
 
     /**
      * Creates a builder without any default libraries or PIPs. Use this for minimal
      * configurations or testing.
      *
-     * @param mapper
-     * the JsonMapper for JSON processing
-     * @param clock
-     * the clock for time-based operations
-     *
+     * @param mapper the JsonMapper for JSON processing
      * @return a new builder instance with defaults disabled
      */
-    public static PolicyDecisionPointBuilder withoutDefaults(JsonMapper mapper, Clock clock) {
-        return new PolicyDecisionPointBuilder(mapper, clock).withoutDefaultFunctionLibraries()
+    public static PolicyDecisionPointBuilder withoutDefaults(JsonMapper mapper) {
+        return new PolicyDecisionPointBuilder(mapper).withoutDefaultFunctionLibraries()
                 .withoutDefaultPolicyInformationPoints();
+    }
+
+    /**
+     * Sets the clock that drives time-based policy reasoning: the time PIP,
+     * certificate validity, JWT expiry, and scheduling. Defaults to
+     * {@link Clock#systemUTC()}. This is independent of the timestamp source for
+     * observability stamps (see {@link #withTimestampSource} and
+     * {@link #withCoarseTimestamps}).
+     *
+     * @param clock the temporal-reasoning clock
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withClock(Clock clock) {
+        this.clock = clock;
+        return this;
     }
 
     /**
@@ -202,6 +219,38 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withoutDefaultPolicyInformationPoints() {
         this.includeDefaultPolicyInformationPoints = false;
+        return this;
+    }
+
+    /**
+     * Sets the source used for observability timestamps (decision-trace
+     * timestamps and attribute value freshness). This is independent of the
+     * temporal-reasoning clock, which keeps driving time-based policy logic
+     * (JWT expiry, certificate validity, the time PIP, scheduling). The caller
+     * retains ownership: the source is not closed when the PDP is closed.
+     *
+     * @param source the timestamp source
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withTimestampSource(InstantSource source) {
+        this.timestampSource     = source;
+        this.ownsTimestampSource = false;
+        return this;
+    }
+
+    /**
+     * Uses a coarse-resolution cached clock ({@link CoarseClock}) for
+     * observability timestamps. The clock is created and owned by the resulting
+     * PDP and is closed when the PDP is closed. The cached read is far cheaper
+     * than {@link java.time.Clock#instant()} on high-throughput timestamping
+     * paths, at the cost of coarser (interval-bounded) timestamp precision.
+     * Temporal reasoning is unaffected and stays on the accurate clock.
+     *
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withCoarseTimestamps() {
+        this.timestampSource     = new CoarseClock();
+        this.ownsTimestampSource = true;
         return this;
     }
 
@@ -715,35 +764,65 @@ public class PolicyDecisionPointBuilder {
      * fails
      */
     public PDPComponents build() {
-        val attributeBroker = resolveAttributeBroker();
-        val pluginsSource   = resolvePluginsSource();
-        val voterSource     = new PdpVoterSource(pluginsSource, clock);
-        val timestampClock  = new LazyFastClock();
-        val blockingPdp     = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(), clock);
+        // Default the timestamp source to the temporal clock so a single clock
+        // governs everything unless the caller opts into a separate source.
+        val resolvedTimestampSource = timestampSource != null ? timestampSource : clock;
+        val ownsResolvedSource      = ownsTimestampSource;
+        val attributeBroker         = resolveAttributeBroker(resolvedTimestampSource);
+        val pluginsSource           = resolvePluginsSource();
+        val voterSource             = new PdpVoterSource(pluginsSource, clock);
+        val blockingPdp             = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
+                resolvedTimestampSource);
 
-        // Create default configuration from collected policies
-        if (!policyDocuments.isEmpty()) {
-            val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
-            val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
-                    List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-            initialConfigurations.add(config);
+        try {
+            // Create default configuration from collected policies
+            if (!policyDocuments.isEmpty()) {
+                val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
+                val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
+                        List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+                initialConfigurations.add(config);
+            }
+
+            // Load initial configurations: false signals fail-fast on compile error,
+            // propagating PDPConfigurationException to the build() caller.
+            for (val config : initialConfigurations) {
+                voterSource.loadConfiguration(config, false);
+            }
+
+            if (configurationSource != null) {
+                // Subscribe propagates source-side compile errors via the same
+                // fail-fast path when the source emits Load with keepOldOnError=false.
+                configurationSource.subscribe(voterSource::handle);
+            }
+
+            val plugins = voterSource.getPlugins();
+            if (plugins == null) {
+                throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
+            }
+            return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
+                    configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
+                    plugins.lifecycleListeners());
+        } catch (RuntimeException e) {
+            // A failed build never transfers ownership to PDPComponents, so close
+            // the resources this builder created to avoid leaking the coarse-clock
+            // thread, the voter-source scheduler, or a builder-created broker.
+            closeQuietly(voterSource);
+            if (ownsResolvedSource && resolvedTimestampSource instanceof AutoCloseable closeableSource) {
+                closeQuietly(closeableSource);
+            }
+            if (externalAttributeBroker == null) {
+                closeQuietly(attributeBroker);
+            }
+            throw e;
         }
+    }
 
-        // Load initial configurations: false signals fail-fast on compile error,
-        // propagating PDPConfigurationException to the build() caller.
-        for (val config : initialConfigurations) {
-            voterSource.loadConfiguration(config, false);
+    private void closeQuietly(AutoCloseable resource) {
+        try {
+            resource.close();
+        } catch (Exception e) {
+            log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
         }
-
-        if (configurationSource != null) {
-            // Subscribe propagates source-side compile errors via the same
-            // fail-fast path when the source emits Load with keepOldOnError=false.
-            configurationSource.subscribe(voterSource::handle);
-        }
-
-        val plugins = voterSource.getPlugins();
-        return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
-                configurationSource, timestampClock, plugins.decisionInterceptors(), plugins.lifecycleListeners());
     }
 
     private PluginsSource resolvePluginsSource() {
@@ -787,13 +866,13 @@ public class PolicyDecisionPointBuilder {
         return functionBroker;
     }
 
-    private AttributeBroker resolveAttributeBroker() {
+    private AttributeBroker resolveAttributeBroker(InstantSource timestampSource) {
         if (externalAttributeBroker != null) {
             return externalAttributeBroker;
         }
         val repository = externalRepository != null ? externalRepository : new InMemoryAttributeRepository();
-        return buildPolicyInformationPointAttributeBroker(clock, mapper, includeDefaultPolicyInformationPoints,
-                policyInformationPoints, repository);
+        return buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper,
+                includeDefaultPolicyInformationPoints, policyInformationPoints, repository);
     }
 
     /**
@@ -839,14 +918,39 @@ public class PolicyDecisionPointBuilder {
      */
     public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
             JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips, AttributeRepository fallback) {
-        val broker    = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback);
+        return buildPolicyInformationPointAttributeBroker(clock, clock, mapper, includeDefaults, additionalPips,
+                fallback);
+    }
+
+    /**
+     * Same as the 5-arg overload, but with an explicit timestamp source for the
+     * broker's attribute value-arrival stamps, kept separate from the temporal
+     * {@code clock} that drives the time-based PIPs.
+     *
+     * @param clock clock used by the time-based PIPs and the
+     * {@link TimeScheduler}
+     * @param timestampSource source for attribute value-arrival timestamps
+     * @param mapper JSON mapper used by the {@link BlockingWebClient} for
+     * HTTP-based PIPs
+     * @param includeDefaults whether to load the SAPL default PIPs (HTTP, JWT,
+     * time, X.509)
+     * @param additionalPips additional PIP instances to load on top of the
+     * defaults
+     * @param fallback fallback repository for unmatched invocations
+     * @return a fully configured attribute broker
+     * @throws PipLoadException if a PIP fails to load
+     */
+    public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
+            InstantSource timestampSource, JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips,
+            AttributeRepository fallback) {
+        val broker    = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback, timestampSource);
         val scheduler = new RealTimeScheduler(clock);
 
         if (includeDefaults) {
             // 5 second TCP connect cap so a stalled remote PIP host does not
             // hang the calling decision indefinitely.
             val httpClient  = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-            val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
+            val webClient   = new BlockingWebClient(mapper, httpClient);
             val keyProvider = new JWTKeyProvider(httpClient, clock);
 
             broker.load(new TimePolicyInformationPoint(clock, scheduler));

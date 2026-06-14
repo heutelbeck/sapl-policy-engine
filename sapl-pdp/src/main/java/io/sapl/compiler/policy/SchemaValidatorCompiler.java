@@ -64,6 +64,7 @@ public class SchemaValidatorCompiler {
     private static final String ERROR_SCHEMA_MUST_BE_CONSTANT    = "Schema must be a constant object literal, not a runtime expression. "
             + "Variable references and function calls are not allowed in schema definitions.";
     private static final String ERROR_SCHEMA_MUST_BE_OBJECT      = "Schema must be an object, got: %s";
+    private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s";
 
     private static final String SCHEMA_ID_FIELD = "$id";
 
@@ -158,9 +159,16 @@ public class SchemaValidatorCompiler {
             if (elementValue instanceof ErrorValue) {
                 return elementValue;
             }
-            val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
-            val messages    = schema.validate(subjectNode);
-            return messages.isEmpty() ? Value.TRUE : Value.FALSE;
+            try {
+                val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
+                val messages    = schema.validate(subjectNode);
+                return messages.isEmpty() ? Value.TRUE : Value.FALSE;
+            } catch (Throwable e) {
+                // Third-party validation on attacker-influenced input must never
+                // crash the evaluation path; surface failures as an ErrorValue,
+                // mirroring the function-invocation guard.
+                return Value.errorAt(location, ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
+            }
         }
 
         private Value getSubscriptionElement(EvaluationContext ctx) {

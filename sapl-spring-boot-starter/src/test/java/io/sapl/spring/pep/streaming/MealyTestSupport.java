@@ -56,10 +56,12 @@ import lombok.experimental.UtilityClass;
  * MealyMachine test suites. Used by:
  * <ul>
  * <li>{@code MealyMachineCellTests} — content checks of one row of δ.</li>
- * <li>{@code MealyMachineUniversalInvariantTests} — Lean theorems
- * universally quantified over a finite subset of S × Σ.</li>
+ * <li>{@code MealyMachineUniversalInvariantTests} — Lean theorems universally
+ * quantified over a finite subset of S ×
+ * Σ.</li>
  * <li>{@code MealyMachineSequenceInvariantTests} — Lean theorems and
- * supplementary properties over multi-step traces.</li>
+ * supplementary properties over multi-step
+ * traces.</li>
  * </ul>
  */
 @UtilityClass

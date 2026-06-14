@@ -69,12 +69,13 @@ import lombok.val;
  * End-to-end tests for the blocking @PreEnforce PEP.
  * <p>
  * The scenario is the Ankh-Morpork City Watch handling action requests on
- * suspects. Before the Watch (the PEP) acts on a warrant, the Patrician's
- * office (the PDP) decides whether the request is sanctioned, what must be
- * done, and on whose authority. Sgt. Colon takes notes, Carrot may rewrite
- * the warrant to name the actual perpetrator, the Librarian redacts the
- * resulting case file, and Death himself sometimes claims an exception on its
- * way out.
+ * suspects. Before the Watch (the PEP) acts on
+ * a warrant, the Patrician's office (the PDP) decides whether the request is
+ * sanctioned, what must be done, and on
+ * whose authority. Sgt. Colon takes notes, Carrot may rewrite the warrant to
+ * name the actual perpetrator, the Librarian
+ * redacts the resulting case file, and Death himself sometimes claims an
+ * exception on its way out.
  */
 @SpringBootTest(classes = PreEnforcePolicyEnforcementPointTests.AnkhMorporkTestApp.class)
 @WithMockUser(username = "vimes", roles = "WATCH_COMMANDER")

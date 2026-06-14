@@ -28,10 +28,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- *
  * Provide the @EnableReactiveSaplMethodSecurity annotation on any configuration
- * class to activate the reactive method security for methods returning a
- * Publisher.
+ * class to activate the reactive method
+ * security for methods returning a Publisher.
  */
 @Documented
 @Target(ElementType.TYPE)
@@ -41,16 +40,19 @@ public @interface EnableReactiveSaplMethodSecurity {
 
     /**
      * Indicate whether subclass-based (CGLIB) proxies are to be created as opposed
-     * to standard Java interface-based proxies. The default is {@code false}.
-     * <strong> Applicable only if {@link #mode()} is set to
+     * to standard Java interface-based
+     * proxies. The default is {@code false}. <strong> Applicable only if
+     * {@link #mode()} is set to
      * {@link AdviceMode#PROXY}</strong>.
      * <p>
      * Note that setting this attribute to {@code true} will affect <em>all</em>
-     * Spring-managed beans requiring proxying, not just those marked with
-     * {@code @Cacheable}. For example, other beans marked with Spring's
+     * Spring-managed beans requiring
+     * proxying, not just those marked with {@code @Cacheable}. For example, other
+     * beans marked with Spring's
      * {@code @Transactional} annotation will be upgraded to subclass proxying at
-     * the same time. This approach has no negative impact in practice unless one is
-     * explicitly expecting one type of proxy vs another, e.g. in tests.
+     * the same time. This approach has no
+     * negative impact in practice unless one is explicitly expecting one type of
+     * proxy vs another, e.g. in tests.
      *
      * @return if to proxy target class
      */
@@ -61,14 +63,15 @@ public @interface EnableReactiveSaplMethodSecurity {
      * {@link AdviceMode#PROXY}.
      *
      * @see AdviceMode
+     *
      * @return the {@link AdviceMode} to use
      */
     AdviceMode mode() default AdviceMode.PROXY;
 
     /**
-     * Indicate the ordering of the execution of the security advisor when
-     * advice is applied at a specific join point. The default is
-     * {@link Ordered#LOWEST_PRECEDENCE}.
+     * Indicate the ordering of the execution of the security advisor when advice is
+     * applied at a specific join point.
+     * The default is {@link Ordered#LOWEST_PRECEDENCE}.
      *
      * @return the order the security advisor should be applied
      */

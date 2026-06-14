@@ -59,9 +59,9 @@ class SaplExtensionsConfiguration {
     }
 
     @Bean
-    BlockingWebClient blockingWebClient(JsonMapper mapper, Clock clock, TimeScheduler scheduler) {
+    BlockingWebClient blockingWebClient(JsonMapper mapper) {
         val httpClient = HttpClient.newBuilder().connectTimeout(HTTP_CONNECT_TIMEOUT).build();
-        return new BlockingWebClient(mapper, httpClient, clock, scheduler);
+        return new BlockingWebClient(mapper, httpClient);
     }
 
     @Bean

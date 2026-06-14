@@ -118,8 +118,10 @@ public class FilterCompiler {
 
         @Override
         public long semanticHash() {
-            val baseHash   = base instanceof Value v ? v.hashCode() : ((PureOperator) base).semanticHash();
-            val filterHash = filter instanceof Value v ? v.hashCode() : ((PureOperator) filter).semanticHash();
+            val baseHash   = base instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) base).semanticHash();
+            val filterHash = filter instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) filter).semanticHash();
             return SemanticHashing.ordered(KIND, baseHash, filterHash);
         }
     }

@@ -542,5 +542,24 @@ class SchemaValidatorCompilerTests {
                     """);
             assertThat(evaluate(validator, ctx)).isEqualTo(Value.FALSE);
         }
+
+        @Test
+        @DisplayName("a validator that throws at evaluation time yields ErrorValue, not a thrown exception")
+        void whenValidateThrowsAtEvalTimeThenReturnsErrorValue() {
+            // networknt can throw at validate time on adversarial input. The
+            // eval path must surface that as an ErrorValue rather than crash.
+            val throwingSchema = org.mockito.Mockito.mock(com.networknt.schema.Schema.class);
+            org.mockito.Mockito
+                    .when(throwingSchema
+                            .validate(org.mockito.ArgumentMatchers.any(tools.jackson.databind.JsonNode.class)))
+                    .thenThrow(new RuntimeException("boom"));
+            val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA, throwingSchema,
+                    TEST_LOCATION);
+            val ctx       = subscriptionContext("""
+                    { "subject": "anything", "action": "read", "resource": "data" }
+                    """);
+
+            assertThat(validator.evaluate(ctx)).isInstanceOf(ErrorValue.class);
+        }
     }
 }

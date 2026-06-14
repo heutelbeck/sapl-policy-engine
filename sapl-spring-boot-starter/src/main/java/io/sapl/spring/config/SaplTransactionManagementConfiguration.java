@@ -34,27 +34,29 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
 
 /**
  * Automatically adjusts the transaction interceptor order so that the
- * transaction boundary wraps SAPL Policy Enforcement Points. This ensures that
- * when a SAPL constraint handler fails after a transactional method succeeds,
- * the resulting exception propagates through the {@code TransactionInterceptor}
- * and triggers a rollback.
+ * transaction boundary wraps SAPL Policy
+ * Enforcement Points. This ensures that when a SAPL constraint handler fails
+ * after a transactional method succeeds, the
+ * resulting exception propagates through the {@code TransactionInterceptor} and
+ * triggers a rollback.
  * <p>
  * This configuration is imported by both {@link EnableSaplMethodSecurity} and
  * {@link EnableReactiveSaplMethodSecurity}.
  * <p>
  * The adjustment only applies when the transaction advisor still has the
- * default order ({@link Ordered#LOWEST_PRECEDENCE}). If the user has
- * explicitly configured a custom order via
+ * default order
+ * ({@link Ordered#LOWEST_PRECEDENCE}). If the user has explicitly configured a
+ * custom order via
  * {@code @EnableTransactionManagement(order = ...)}, it is left unchanged.
  * <p>
  * To disable this automatic adjustment entirely, set the property
  * {@code io.sapl.method-security.adjust-transaction-order=false}.
  * <p>
  * A {@link BeanFactoryPostProcessor} is used instead of a simple
- * {@link BeanPostProcessor} {@code @Bean} because the transaction advisor is
- * created during the {@code BeanPostProcessor} registration phase and would
- * not be intercepted by a regular {@code BeanPostProcessor} declared via
- * {@code @Bean}.
+ * {@link BeanPostProcessor} {@code @Bean} because the
+ * transaction advisor is created during the {@code BeanPostProcessor}
+ * registration phase and would not be intercepted
+ * by a regular {@code BeanPostProcessor} declared via {@code @Bean}.
  *
  * @since 4.0.0
  */

@@ -6,7 +6,7 @@ permit
     action == "fetchingByQueryMethod";
     subject.age > 18;
 obligation {
-               "type": "mongoQueryManipulation",
+               "type": "mongoQueryRewriting",
                "conditions": [ "{'age': {'$gt': 18}}" ]
              }
 

@@ -214,7 +214,7 @@ public class ArrayCompiler {
             long hash = KIND;
             for (val element : elements) {
                 val elementHash = switch (element) {
-                case Value v                -> (long) v.hashCode();
+                case Value v                -> SemanticHashing.valueHash(v);
                 case PureOperator p         -> p.semanticHash();
                 case StreamOperator ignored -> (long) element.hashCode();
                 };

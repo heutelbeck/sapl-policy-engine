@@ -86,8 +86,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
 
     static final int RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
-    private final Mono<RSocket>            rSocketMono;
-    private final AtomicReference<RSocket> cachedSocket = new AtomicReference<>();
+    private final Mono<RSocket>                  rSocketMono;
+    private final AtomicReference<RSocket>       cachedSocket = new AtomicReference<>();
+    private final AtomicReference<Mono<RSocket>> connecting   = new AtomicReference<>();
 
     @Getter
     private final int firstBackoffMillis;
@@ -95,21 +96,41 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     @Getter
     private final int maxBackOffMillis;
 
+    // Bounds a connection attempt so a dead or unreachable PDP cannot hang the
+    // client. Mirrors the HTTP client's timeout. A live cached socket is reused
+    // without re-timing; only a fresh connect is bounded.
+    @Getter
+    private final int timeoutMillis;
+
     // Reconnecting cache: reuses the RSocket while alive, reconnects after
     // connection drop. Mono.defer() re-evaluates on each subscription, so
     // retryWhen in decide() naturally triggers reconnection when the cached
     // socket is disposed.
     ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono, int firstBackoffMillis, int maxBackOffMillis) {
+        this(rSocketMono, firstBackoffMillis, maxBackOffMillis, 5000);
+    }
+
+    ProtobufRemoteReactivePolicyDecisionPoint(Mono<RSocket> rSocketMono,
+            int firstBackoffMillis,
+            int maxBackOffMillis,
+            int timeoutMillis) {
         val connectMono = rSocketMono;
         this.rSocketMono        = Mono.defer(() -> {
                                     val existing = cachedSocket.get();
                                     if (existing != null && !existing.isDisposed()) {
                                         return Mono.just(existing);
                                     }
-                                    return connectMono.doOnNext(cachedSocket::set);
+                                    // Single-flight the connect: concurrent first
+                                    // subscriptions share one connection attempt
+                                    // instead of each opening (and leaking) a socket.
+                                    return connecting.updateAndGet(current -> current != null ? current
+                                            : connectMono.timeout(Duration.ofMillis(timeoutMillis))
+                                                    .doOnNext(cachedSocket::set)
+                                                    .doFinally(signal -> connecting.set(null)).cache());
                                 });
         this.firstBackoffMillis = firstBackoffMillis;
         this.maxBackOffMillis   = maxBackOffMillis;
+        this.timeoutMillis      = timeoutMillis;
     }
 
     private Retry createRetrySpec() {
@@ -131,10 +152,15 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Flux.just(AuthorizationDecision.INDETERMINATE);
             }
-        }).concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
-            log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
-            return Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error));
-        }).retryWhen(createRetrySpec()).distinctUntilChanged();
+        })
+                // Bound the wait for the first decision so a connected but silent
+                // server fails over to a retry; later items are not time-limited so
+                // a healthy long-lived stream stays open. Mirrors the HTTP client.
+                .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
+                .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
+                    log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
+                    return Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error));
+                }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
 
     @Override
@@ -309,7 +335,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
 
         private TcpClient     tcpClient   = TcpClient.create();
         private Duration      keepAlive   = Duration.ofSeconds(20);
-        private Duration      maxLifeTime = Duration.ofSeconds(90);
+        private Duration      maxLifeTime = Duration.ofSeconds(60);
         private Mono<Payload> setupPayloadMono;
 
         /**

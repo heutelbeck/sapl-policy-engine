@@ -184,4 +184,58 @@ public class CombiningUtils {
         return Outcome.combine(a, b);
     }
 
+    /**
+     * Completes the could-have-been outcome of a short-circuited INDETERMINATE
+     * set vote. When a set-level combiner (UNANIMOUS, UNIQUE) settles its
+     * decision before folding every child, the un-folded children are still
+     * reachable effects, so the partial outcome under-reports the set
+     * potential. This broadens the outcome by the un-folded children's
+     * compile-time metadata potential without evaluating them, so an enclosing
+     * priority combiner does not under-judge the error's criticality (a
+     * fail-open). Only INDETERMINATE results are affected, and only at the set
+     * level; the terminal PDP vote's outcome has no consumer, so the PDP keeps
+     * its hard short-circuit.
+     *
+     * @param vote the short-circuited combined vote
+     * @param unfolded the children not folded into the decision
+     * @return the vote with its outcome broadened, or unchanged when not
+     * INDETERMINATE or nothing remains
+     */
+    public static Vote completeSetOutcome(Vote vote, List<? extends CompiledDocument> unfolded) {
+        if (vote.authorizationDecision().decision() != Decision.INDETERMINATE || unfolded.isEmpty()) {
+            return vote;
+        }
+        var outcome = vote.outcome();
+        for (val document : unfolded) {
+            outcome = Outcome.combine(outcome, document.metadata().outcome());
+        }
+        return vote.withOutcome(outcome);
+    }
+
+    /**
+     * Completes the could-have-been outcome of a short-circuited INDETERMINATE
+     * set vote built from already-evaluated constant child votes (the all-static
+     * fold). The applicable children's potential is the union of the non
+     * NOT_APPLICABLE votes' outcomes; folding all of them is idempotent for the
+     * children already incorporated and adds those the short-circuit skipped.
+     * Mirrors {@link #completeSetOutcome(Vote, List)} for the static path.
+     *
+     * @param vote the short-circuited combined vote
+     * @param childVotes the constant child votes of the set
+     * @return the vote with its outcome broadened, or unchanged when not
+     * INDETERMINATE
+     */
+    public static Vote completeSetOutcomeFromVotes(Vote vote, List<Vote> childVotes) {
+        if (vote.authorizationDecision().decision() != Decision.INDETERMINATE) {
+            return vote;
+        }
+        var outcome = vote.outcome();
+        for (val childVote : childVotes) {
+            if (childVote.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
+                outcome = Outcome.combine(outcome, childVote.outcome());
+            }
+        }
+        return vote.withOutcome(outcome);
+    }
+
 }

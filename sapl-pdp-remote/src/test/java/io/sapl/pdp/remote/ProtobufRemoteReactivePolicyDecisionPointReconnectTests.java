@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.DisplayName;
@@ -88,6 +89,19 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
 
     @Test
     @Timeout(10)
+    @DisplayName("A connect that never completes times out to INDETERMINATE instead of hanging the client")
+    void whenConnectNeverCompletesThenDecideOnceTimesOutToIndeterminate() {
+        // A dead or unreachable PDP whose connect never completes must not hang
+        // the client; the connection timeout converts it to a fail-closed
+        // INDETERMINATE within the budget.
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.never(), 1, 2, 200);
+
+        StepVerifier.create(pdp.decideOnce(SUBSCRIPTION, "default")).expectNext(AuthorizationDecision.INDETERMINATE)
+                .verifyComplete();
+    }
+
+    @Test
+    @Timeout(10)
     @DisplayName("Transport error triggers a reconnect rather than terminating the stream")
     void whenTransportErrorsThenClientReconnectsAndContinues() throws IOException {
         val attempt = new AtomicInteger();
@@ -107,6 +121,44 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
                 .expectNext(AuthorizationDecision.INDETERMINATE, AuthorizationDecision.PERMIT).thenCancel().verify();
 
         assertThat(attempt.get()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("A connected server that never sends the first decision times out to INDETERMINATE")
+    void whenFirstDecisionNeverArrivesThenTimesOutToIndeterminate() {
+        when(rSocket.requestStream(any(Payload.class))).thenAnswer(invocation -> {
+            ((Payload) invocation.getArgument(0)).release();
+            return Flux.never();
+        });
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.just(rSocket), 1, 2, 200);
+
+        StepVerifier.create(pdp.decide(SUBSCRIPTION).take(1)).expectNext(AuthorizationDecision.INDETERMINATE)
+                .verifyComplete();
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("Concurrent first subscriptions share a single connection attempt rather than each opening a socket")
+    void whenConcurrentFirstSubscriptionsThenConnectsOnce() {
+        val connects = new AtomicInteger();
+        // A slow connect keeps the attempt in flight while both subscriptions
+        // arrive, so without de-duplication each would open its own socket.
+        Mono<RSocket> connect = Mono.fromCallable(() -> {
+            connects.incrementAndGet();
+            return rSocket;
+        }).delayElement(Duration.ofMillis(200));
+        when(rSocket.requestResponse(any(Payload.class))).thenAnswer(invocation -> {
+            ((Payload) invocation.getArgument(0)).release();
+            return Mono.just(decisionPayload(AuthorizationDecision.PERMIT));
+        });
+
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(connect, 1, 2);
+
+        Mono.zip(pdp.decideOnce(SUBSCRIPTION, "default"), pdp.decideOnce(SUBSCRIPTION, "default"))
+                .block(Duration.ofSeconds(5));
+
+        assertThat(connects.get()).isEqualTo(1);
     }
 
     private static Payload decisionPayload(AuthorizationDecision decision) {

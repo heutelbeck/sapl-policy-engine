@@ -28,10 +28,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +66,48 @@ class InMemoryAttributeRepositoryTests {
 
     private static RepositoryKey repoKey(String fqn) {
         return new RepositoryKey(null, fqn, List.of());
+    }
+
+    @Test
+    @Timeout(30)
+    @DisplayName("concurrent same-key publishes never leave an observer on a stale value")
+    void whenConcurrentPublishesThenObserverConvergesToRepositoryState() throws InterruptedException {
+        for (int round = 0; round < 300; round++) {
+            try (val repo = new InMemoryAttributeRepository()) {
+                val observed = new AtomicReference<Value>();
+                // A read-park-write consumer widens the delivery window, so a
+                // stale racing delivery would clobber the latest value.
+                repo.observe(invocation("env.race"), value -> {
+                    observed.get();
+                    LockSupport.parkNanos(1_000);
+                    observed.set(value);
+                });
+                val barrier = new CyclicBarrier(2);
+                val writerA = Thread.ofVirtual().unstarted(publisher(repo, barrier, Value.of(1)));
+                val writerB = Thread.ofVirtual().unstarted(publisher(repo, barrier, Value.of(2)));
+                writerA.start();
+                writerB.start();
+                writerA.join();
+                writerB.join();
+                // A fresh observer reads the repository's settled state; the
+                // racing observer must have converged to the same value.
+                val authoritative = new AtomicReference<Value>();
+                repo.observe(invocation("env.race"), authoritative::set);
+                assertThat(observed.get()).as("round %d", round).isEqualTo(authoritative.get());
+            }
+        }
+    }
+
+    private static Runnable publisher(InMemoryAttributeRepository repo, CyclicBarrier barrier, Value value) {
+        return () -> {
+            try {
+                barrier.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            repo.publish(repoKey("env.race"), value);
+        };
     }
 
     private static final class Recorder implements Consumer<Value> {

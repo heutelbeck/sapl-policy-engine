@@ -18,6 +18,7 @@
 package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.Stream;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.BrokerSubscription;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.time.InstantSource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -68,6 +70,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
 
     private final long                      id = NEXT_ID.getAndIncrement();
     private final AttributeFinderInvocation invocation;
+    private final InstantSource             timestampSource;
     private final Consumer<Value>           onValue;
 
     // Subscriber index + refcount are guarded by the BROKER lock, not by this
@@ -85,7 +88,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private final Object                                 lock               = new Object();
     private Stream<Value>                                sourceStream;
     private boolean                                      pumpStarted        = false;
-    private Optional<Value>                              latestValue        = Optional.empty();
+    private Optional<AttributeSnapshot>                  latestSnapshot     = Optional.empty();
     private @Nullable StreamAttributeFinderSpecification sourceSpec;
     private boolean                                      closed             = false;
     private boolean                                      inRebindTransition = false;
@@ -98,17 +101,20 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * {@code sourceStream}; {@code null} for terminal active
      * invocations, used by the broker on hot-swap to identify which
      * active invocations serve which specs
+     * @param timestampSource source for value-arrival timestamps
      * @param onValue callback invoked on each new value emitted by
      * the source stream; the broker wires this to its dispatch path
      */
     ActivePolicyInformationPointInvocation(AttributeFinderInvocation invocation,
             @Nullable Stream<Value> sourceStream,
             @Nullable StreamAttributeFinderSpecification sourceSpec,
+            InstantSource timestampSource,
             Consumer<Value> onValue) {
-        this.invocation   = invocation;
-        this.sourceStream = sourceStream;
-        this.sourceSpec   = sourceSpec;
-        this.onValue      = onValue;
+        this.invocation      = invocation;
+        this.sourceStream    = sourceStream;
+        this.sourceSpec      = sourceSpec;
+        this.timestampSource = timestampSource;
+        this.onValue         = onValue;
         log.debug(DEBUG_OPENED, id, invocation.attributeName());
     }
 
@@ -129,13 +135,14 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     }
 
     /**
-     * Returns the latest published value, or {@link Optional#empty()}
-     * if no value has been published yet.
+     * Returns the latest published value paired with the instant it was
+     * published into the mailbox, or {@link Optional#empty()} if no
+     * value has been published yet.
      */
     @Override
-    public Optional<Value> snapshot() {
+    public Optional<AttributeSnapshot> snapshot() {
         synchronized (lock) {
-            return latestValue;
+            return latestSnapshot;
         }
     }
 
@@ -327,7 +334,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
                 return;
             }
             inRebindTransition = false;
-            latestValue        = Optional.of(value);
+            latestSnapshot     = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
         }
         try {
             onValue.accept(value);

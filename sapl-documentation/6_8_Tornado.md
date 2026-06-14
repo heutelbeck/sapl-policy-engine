@@ -143,7 +143,7 @@ When the decorated method returns a value (dict, list, or string), the decorator
 
 #### @post_enforce
 
-Authorizes **after** the handler method executes. The method always runs; its return value is available to the subscription builder via the `return_value` field of the `SubscriptionContext`.
+Authorizes **after** the handler method executes. The method always runs. Its return value is available to the subscription builder via the `return_value` field of the `SubscriptionContext`.
 
 ```python
 from sapl_tornado import post_enforce
@@ -211,7 +211,9 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 
 #### @stream_enforce
 
-Streaming enforcement for SSE endpoints. The decorated handler method returns an async iterator of data items. The wrapper opens a streaming PDP subscription, drives the streaming state machine, and writes each item to the Tornado response as an SSE `data:` frame on `text/event-stream`. It sets `Content-Type: text/event-stream` and `Cache-Control: no-cache` automatically and calls `handler.finish()` when the stream ends.
+Streaming enforcement applies an authorization decision continuously to a stream of items your handler produces. The decorated handler method returns an async iterator of data items. SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses the flow while keeping the subscription open, and `DENY` ends it. The enforced result is itself an async iterator of authorised items, so it is independent of how you deliver them.
+
+`@stream_enforce` is the ready-made binding for Server-Sent Events: it renders the enforced stream as SSE `data:` frames on `text/event-stream`, sets `Content-Type: text/event-stream` and `Cache-Control: no-cache`, and calls `handler.finish()` when the stream ends. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`: it takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 
 ```python
 import asyncio
@@ -244,15 +246,15 @@ A single decorator now covers every streaming case. The behaviour is driven by t
 
 | PDP decision     | Effect on the stream                                                                                  |
 | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `PERMIT`         | Items flow through to the client as SSE frames.                                                       |
+| `PERMIT`         | Items flow through to the consumer.                                                                    |
 | `SUSPEND`        | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow.            |
-| `DENY`           | The subscription terminates. A final `ACCESS_DENIED` SSE frame is emitted and the stream closes.       |
+| `DENY`           | The stream terminates; the SSE binding emits a final `ACCESS_DENIED` frame before closing.             |
 | `INDETERMINATE`  | The subscription terminates, the same way `DENY` does.                                                 |
 | `NOT_APPLICABLE` | The subscription terminates, the same way `DENY` does.                                                 |
 
 Under the strict fail-closed discipline only an explicit `SUSPEND` keeps the subscription alive while pausing it. `DENY`, `INDETERMINATE`, and `NOT_APPLICABLE` all terminate. For keep-alive semantics where access pauses and later resumes, the policy must emit `SUSPEND` rather than `DENY`. Operators who want `NOT_APPLICABLE` to pause rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level.
 
-**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The client sees items while permitted and a gap while suspended, with no boundary frame. With `True`, the wrapper emits an `ACCESS_SUSPENDED` SSE frame each time the stream is suspended and an `ACCESS_RESTORED` SSE frame each time it resumes. Use this when the client should render a paused/resumed status.
+**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The consumer sees items while permitted and a gap while suspended, with no boundary marker. With `True`, the enforced stream carries an `ACCESS_SUSPENDED` boundary item each time it is suspended and an `ACCESS_GRANTED` boundary item each time it resumes (the SSE binding renders these as frames). Use this when the consumer should render a paused/resumed status.
 
 **pause_rap_during_suspend.** With the default `False`, the protected async iterator stays subscribed during suspension. Items keep arriving from upstream and are dropped on the way to the client, giving lower latency on resume. With `True`, the upstream iterator is cancelled on entry to the suspended state and re-subscribed on resume. Use this for upstream sources with expensive side effects that must not run while access is paused.
 
@@ -340,9 +342,9 @@ There is one extension point. A constraint handler is an object that implements 
 
 ```python
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Protocol
 
-from sapl_base.pep import ConstraintHandlerProvider, ScopedHandler
+from sapl_base.pep import ScopedHandler
 
 
 class ConstraintHandlerProvider(Protocol):
@@ -471,11 +473,29 @@ Registered automatically by `configure_sapl()`. Filters array elements or nullif
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported.
 
+### Query Rewriting
+
+Tornado applications can filter results at the database through SAPL's SQLAlchemy integration, the `sapl-sqlalchemy` package: a policy attaches a `sql:queryRewriting` obligation and the integration rewrites the query before it reaches the database, so unauthorised rows never leave it. Install it separately and register it once at startup.
+
+```bash
+pip install sapl-sqlalchemy
+```
+
+```python
+from sapl_sqlalchemy import SqlQueryRewritingProvider, register_orm_listener
+from sapl_tornado import register_provider
+
+register_orm_listener()
+register_provider(SqlQueryRewritingProvider())
+```
+
+See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format, the shared semantics, and what the integration does and does not cover (including the off-session fail-open caveat).
+
 ### Streaming Authorization
 
 For SSE endpoints returning async iterators, `@stream_enforce` provides continuous authorization where the PDP streams decisions over time. Access may flip between permitted, suspended, and denied based on time, location, or context changes.
 
-Tornado streaming responses are written directly to the response via `handler.write()` and `handler.flush()`. The decorator sets the SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`) and calls `handler.finish()` when the stream ends. Each yielded item is rendered as an SSE `data:` event (dicts are JSON-serialized). With `signal_transitions=True`, suspend and resume boundaries arrive as `ACCESS_SUSPENDED` and `ACCESS_RESTORED` frames; a terminating `DENY` arrives as a final `ACCESS_DENIED` frame.
+Tornado streaming responses are written directly to the response via `handler.write()` and `handler.flush()`. The decorator sets the SSE headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`) and calls `handler.finish()` when the stream ends. Each yielded item is rendered as an SSE `data:` event (dicts are JSON-serialized). With `signal_transitions=True`, suspend and resume boundaries arrive as `ACCESS_SUSPENDED` and `ACCESS_GRANTED` frames. A terminating `DENY` arrives as a final `ACCESS_DENIED` frame.
 
 A time-based policy that cycles between `PERMIT` and `SUSPEND`, so the stream pauses and resumes without terminating:
 

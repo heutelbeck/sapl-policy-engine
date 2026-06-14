@@ -29,11 +29,13 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 
 /**
- * Shared resolution of the {@link MethodSecurityExpressionHandler} bean used
- * by both blocking and reactive method-security configurations. Honours an
- * application-supplied handler when present, otherwise falls back to a
+ * Shared resolution of the {@link MethodSecurityExpressionHandler} bean used by
+ * both blocking and reactive
+ * method-security configurations. Honours an application-supplied handler when
+ * present, otherwise falls back to a
  * {@link DefaultMethodSecurityExpressionHandler} configured with the
- * application's {@link GrantedAuthorityDefaults} role prefix.
+ * application's {@link GrantedAuthorityDefaults}
+ * role prefix.
  */
 @UtilityClass
 class MethodSecurityExpressionHandlers {

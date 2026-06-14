@@ -32,7 +32,8 @@ import static java.lang.reflect.Modifier.isSynchronized;
 
 /**
  * Jackson serializer for MethodInvocation that extracts method metadata
- * including name, declaring class, modifiers, and class hierarchy.
+ * including name, declaring class, modifiers, and
+ * class hierarchy.
  */
 public class MethodInvocationSerializer extends StdSerializer<MethodInvocation> {
 

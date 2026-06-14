@@ -29,14 +29,16 @@ import lombok.val;
 
 /**
  * Tests {@link Maybe}: a three-state container distinguishing {@link Absent}
- * from {@link Present}{@code (null)} so that downstream code can tell
- * "no value at all" apart from "a value that happens to be null".
+ * from {@link Present}{@code (null)} so that
+ * downstream code can tell "no value at all" apart from "a value that happens
+ * to be null".
  * <p>
  * The distinction is load-bearing across the enforcement framework:
  * {@link io.sapl.spring.pep.constraints.EnforcementPlan#execute} starts a
- * {@code VoidSignal} at {@link Absent} so Mappers and Consumers skip, but
- * starts a value-carrying signal at {@link Present} so they fire even when
- * the carried value is {@code null}.
+ * {@code VoidSignal} at {@link Absent} so
+ * Mappers and Consumers skip, but starts a value-carrying signal at
+ * {@link Present} so they fire even when the carried
+ * value is {@code null}.
  */
 @DisplayName("Maybe<T>")
 class MaybeTests {

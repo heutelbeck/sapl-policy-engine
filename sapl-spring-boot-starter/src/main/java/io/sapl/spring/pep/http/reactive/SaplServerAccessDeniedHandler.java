@@ -32,13 +32,15 @@ import reactor.core.publisher.Mono;
 
 /**
  * Reactive {@link ServerAccessDeniedHandler} that fires
- * {@link HttpDenialSignal} against the {@link EnforcementPlan} published by
- * {@link ReactiveSaplAuthorizationManager} so policy obligations can shape
- * the deny response (status, headers, body, redirect).
+ * {@link HttpDenialSignal} against the {@link EnforcementPlan}
+ * published by {@link ReactiveSaplAuthorizationManager} so policy obligations
+ * can shape the deny response (status,
+ * headers, body, redirect).
  * <p>
- * Falls back to a Spring default 403 response when no plan is present,
- * when no handler claims the denial, or when an obligation handler fails.
- * Otherwise commits the buffered response shaped by the handlers.
+ * Falls back to a Spring default 403 response when no plan is present, when no
+ * handler claims the denial, or when an
+ * obligation handler fails. Otherwise commits the buffered response shaped by
+ * the handlers.
  */
 public class SaplServerAccessDeniedHandler implements ServerAccessDeniedHandler {
 

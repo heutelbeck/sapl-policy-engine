@@ -26,11 +26,13 @@ import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Deterministic {@link TimeScheduler} for tests. Tasks are queued
- * and never run automatically; tests call {@link #advanceTo(Instant)}
- * to fire all tasks whose scheduled instant is at or before the
- * supplied time. Insertion order is preserved among tasks scheduled
- * for the same instant.
+ * Deterministic {@link TimeScheduler} for tests. A task scheduled for
+ * a future instant is queued; tests call {@link #advanceTo(Instant)} to
+ * fire all tasks whose scheduled instant is at or before the supplied
+ * time. A task scheduled for an instant that has already passed fires
+ * immediately, mirroring the real scheduler (whose delay clamps to
+ * zero). Insertion order is preserved among tasks scheduled for the
+ * same instant.
  */
 public final class TestTimeScheduler implements TimeScheduler {
 
@@ -44,6 +46,15 @@ public final class TestTimeScheduler implements TimeScheduler {
 
     @Override
     public synchronized Cancellable scheduleAt(Instant when, Runnable task) {
+        if (!when.isAfter(currentTime)) {
+            // Match RealTimeScheduler, whose delay clamps to zero: a time that has
+            // already passed fires immediately rather than waiting in the queue for
+            // an advanceTo that will never come. Without this, a boundary the system
+            // under test schedules asynchronously a hair after the clock was advanced
+            // past it would be stranded forever.
+            task.run();
+            return () -> {};
+        }
         val entry = new Entry(when, sequence.getAndIncrement(), task);
         queue.add(entry);
         return () -> {

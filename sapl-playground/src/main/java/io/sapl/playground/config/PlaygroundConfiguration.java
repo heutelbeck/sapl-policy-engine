@@ -89,7 +89,7 @@ public class PlaygroundConfiguration {
             InMemoryAttributeRepository inMemoryAttributeRepository) {
         var clock     = Clock.systemUTC();
         var scheduler = new RealTimeScheduler(clock);
-        var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
+        var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient());
         var mqtt      = new DummySaplMqttClient(clock, scheduler);
         var keys      = new DummyJWTKeyProvider(clock);
 
@@ -162,8 +162,8 @@ public class PlaygroundConfiguration {
 
     public static class DummyBlockingWebClient extends BlockingWebClient {
 
-        public DummyBlockingWebClient(JsonMapper mapper, HttpClient httpClient, Clock clock, TimeScheduler scheduler) {
-            super(mapper, httpClient, clock, scheduler);
+        public DummyBlockingWebClient(JsonMapper mapper, HttpClient httpClient) {
+            super(mapper, httpClient);
         }
 
         @Override

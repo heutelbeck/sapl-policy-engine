@@ -40,8 +40,9 @@ import lombok.val;
 
 /**
  * Wires the blocking @PreEnforce and @PostEnforce method-security advisors to
- * the new shim-signal-based PEP framework. The shared infrastructure beans
- * (planner, attribute registry, subscription builder) come from
+ * the new shim-signal-based PEP framework.
+ * The shared infrastructure beans (planner, attribute registry, subscription
+ * builder) come from
  * {@link PepInfrastructureAutoConfiguration}.
  */
 @Slf4j

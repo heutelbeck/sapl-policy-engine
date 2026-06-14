@@ -56,9 +56,10 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Validates that the configurer-level {@code subscriptionFactory(...)} hook
- * actually shapes the subscription that hits the PDP in a fully wired
- * filter chain. The default factory bean is registered by the auto-config
- * but must be bypassed when the configurer carries a custom factory.
+ * actually shapes the subscription that hits
+ * the PDP in a fully wired filter chain. The default factory bean is registered
+ * by the auto-config but must be bypassed
+ * when the configurer carries a custom factory.
  */
 @SpringBootTest(classes = SaplHttpServletConfigurerOverrideTests.TestApp.class)
 @AutoConfigureMockMvc

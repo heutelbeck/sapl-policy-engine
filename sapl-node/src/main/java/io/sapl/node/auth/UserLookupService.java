@@ -62,11 +62,10 @@ public class UserLookupService {
     /**
      * Finds a user by API key.
      * <p>
-     * Wire format: {@code sapl_<id>_<secret>}. When the {@code id} segment is
-     * present in the user configuration's {@code api-key-id} index, lookup is
-     * O(1) plus a single Argon2 verification. Configurations that pre-date
-     * the {@code api-key-id} field fall back to an O(N) scan so existing
-     * deployments keep working until keys are rotated.
+     * Wire format: {@code sapl_<id>_<secret>}. The {@code id} segment is looked
+     * up in the user configuration's {@code api-key-id} index, so a match needs
+     * one index lookup and a single Argon2 verification. A key whose id is not
+     * indexed is rejected.
      * <p>
      * The miss path performs a dummy Argon2 verify so response latency does
      * not reveal whether a given {@code api-key-id} exists in the config.
@@ -79,25 +78,18 @@ public class UserLookupService {
             return Optional.empty();
         }
         val apiKeyId = extractApiKeyId(rawApiKey);
-        if (apiKeyId != null) {
-            val candidate = properties.getApiKeyIdIndex().get(apiKeyId);
-            if (candidate != null && candidate.getApiKey() != null
-                    && passwordEncoder.matches(rawApiKey, candidate.getApiKey())) {
-                return Optional.of(candidate);
-            }
-            // Constant-time padding: a missing api-key-id must take the same
-            // wall-clock time as a present-but-wrong one. Otherwise an
-            // attacker can enumerate the configured ids by timing alone.
-            passwordEncoder.matches(rawApiKey, dummyArgon2Hash);
+        if (apiKeyId == null) {
+            return Optional.empty();
         }
-        // Backward-compatible fallback: scan users without api-key-id wired up
-        // (older configurations). Same O(N * Argon2) shape as before.
-        for (val user : properties.getUsers()) {
-            val encodedKey = user.getApiKey();
-            if (user.getApiKeyId() == null && encodedKey != null && passwordEncoder.matches(rawApiKey, encodedKey)) {
-                return Optional.of(user);
-            }
+        val candidate = properties.getApiKeyIdIndex().get(apiKeyId);
+        if (candidate != null && candidate.getApiKey() != null
+                && passwordEncoder.matches(rawApiKey, candidate.getApiKey())) {
+            return Optional.of(candidate);
         }
+        // Constant-time padding: a missing api-key-id must take the same
+        // wall-clock time as a present-but-wrong one. Otherwise an
+        // attacker can enumerate the configured ids by timing alone.
+        passwordEncoder.matches(rawApiKey, dummyArgon2Hash);
         return Optional.empty();
     }
 

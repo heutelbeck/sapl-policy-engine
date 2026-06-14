@@ -180,7 +180,7 @@ public class NaryOperatorCompiler {
                 return SemanticHashing.commutative(kind, childHashes);
             }
             val allHashes = new long[childHashes.length + 1];
-            allHashes[0] = valueResult.hashCode();
+            allHashes[0] = SemanticHashing.valueHash(valueResult);
             System.arraycopy(childHashes, 0, allHashes, 1, childHashes.length);
             return SemanticHashing.commutative(kind, allHashes);
         }

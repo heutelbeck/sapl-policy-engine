@@ -41,4 +41,9 @@ public class SaplStartupConfigurationException extends IllegalStateException {
         this.action = action;
     }
 
+    public SaplStartupConfigurationException(String description, String action, Throwable cause) {
+        super(description, cause);
+        this.action = action;
+    }
+
 }

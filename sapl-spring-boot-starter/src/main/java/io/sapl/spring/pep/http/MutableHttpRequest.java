@@ -20,18 +20,20 @@ package io.sapl.spring.pep.http;
 import org.springframework.http.HttpRequest;
 
 /**
- * A view of the inbound HTTP request that constraint handlers can mutate
- * before downstream filters and the controller see it. Used as the value
- * type of the request-mutation signal.
+ * A view of the inbound HTTP request that constraint handlers can mutate before
+ * downstream filters and the controller
+ * see it. Used as the value type of the request-mutation signal.
  * <p>
  * Header changes are applied to the request the rest of the chain consumes.
- * Attribute changes are visible through the standard request-attribute API
- * downstream. The {@link #snapshot()} method returns a read-only view of
- * the current state for inspection.
+ * Attribute changes are visible through the
+ * standard request-attribute API downstream. The {@link #snapshot()} method
+ * returns a read-only view of the current
+ * state for inspection.
  * <p>
- * Servlet and reactive backends provide their own implementations.
- * Handlers see this interface and write portable code. Cast to a backend
- * type only when a feature outside this interface is required.
+ * Servlet and reactive backends provide their own implementations. Handlers see
+ * this interface and write portable code.
+ * Cast to a backend type only when a feature outside this interface is
+ * required.
  */
 public interface MutableHttpRequest {
 
@@ -52,22 +54,25 @@ public interface MutableHttpRequest {
     void removeHeader(String name);
 
     /**
-     * Sets a request-scoped attribute that downstream filters and the
-     * controller can read through the standard request-attribute API.
+     * Sets a request-scoped attribute that downstream filters and the controller
+     * can read through the standard
+     * request-attribute API.
      */
     void setAttribute(String name, Object value);
 
     /**
-     * Returns a read-only view of the request as it currently stands.
-     * Reflects mutations made through this interface up to the call.
+     * Returns a read-only view of the request as it currently stands. Reflects
+     * mutations made through this interface up
+     * to the call.
      */
     HttpRequest snapshot();
 
     /**
-     * Returns {@code true} once any mutation method on this request has
-     * been called (header set / add / remove, attribute set). Used by the
-     * PEP filter to skip forwarding the wrapper to downstream filters when
-     * the obligation handler did not actually change the request.
+     * Returns {@code true} once any mutation method on this request has been called
+     * (header set / add / remove,
+     * attribute set). Used by the PEP filter to skip forwarding the wrapper to
+     * downstream filters when the obligation
+     * handler did not actually change the request.
      */
     boolean isModified();
 }

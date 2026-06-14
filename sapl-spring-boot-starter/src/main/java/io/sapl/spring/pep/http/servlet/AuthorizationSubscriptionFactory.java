@@ -24,15 +24,17 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Builds the {@link AuthorizationSubscription} that
- * {@link SaplAuthorizationManager} sends to the PDP for one HTTP request.
+ * {@link SaplAuthorizationManager} sends to the PDP for one HTTP
+ * request.
  * <p>
- * The default implementation
- * ({@link DefaultAuthorizationSubscriptionFactory}) places the resolved
- * {@link Authentication} on {@code subject} and the serialized request on
- * both {@code action} and {@code resource}, leaving {@code environment}
- * undefined. Applications that want a narrower or differently shaped
- * subscription register their own factory bean of this type, or pass an
- * inline factory to the SAPL HTTP security configurer:
+ * The default implementation ({@link DefaultAuthorizationSubscriptionFactory})
+ * places the resolved
+ * {@link Authentication} on {@code subject} and the serialized request on both
+ * {@code action} and {@code resource},
+ * leaving {@code environment} undefined. Applications that want a narrower or
+ * differently shaped subscription register
+ * their own factory bean of this type, or pass an inline factory to the SAPL
+ * HTTP security configurer:
  *
  * <pre>{@code
  * http.with(saplHttp(), c -> c.subscriptionFactory(
@@ -40,9 +42,9 @@ import jakarta.servlet.http.HttpServletRequest;
  * }</pre>
  * <p>
  * The factory is invoked once per request from inside the authorization
- * manager. The {@link Authentication} passed in is never {@code null};
- * an anonymous token is supplied when the security context has no
- * authentication.
+ * manager. The {@link Authentication} passed in
+ * is never {@code null}; an anonymous token is supplied when the security
+ * context has no authentication.
  */
 @FunctionalInterface
 public interface AuthorizationSubscriptionFactory {
@@ -50,9 +52,11 @@ public interface AuthorizationSubscriptionFactory {
     /**
      * Returns the {@link AuthorizationSubscription} to send to the PDP.
      *
-     * @param authentication the resolved authentication (anonymous token
-     * when the security context had no authentication).
-     * @param request the inbound HTTP request.
+     * @param authentication
+     * the resolved authentication (anonymous token when the security context had no
+     * authentication).
+     * @param request
+     * the inbound HTTP request.
      */
     AuthorizationSubscription build(Authentication authentication, HttpServletRequest request);
 }

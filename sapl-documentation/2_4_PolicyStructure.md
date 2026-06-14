@@ -186,7 +186,7 @@ Conditions are evaluated lazily: if an earlier condition evaluates to `false`, l
 
 ### Obligations
 
-An obligation expression consists of the keyword `obligation` followed by an expression. It describes a task the PEP **must** fulfill before acting on the decision. If the PEP cannot fulfill an obligation, it must not grant access even on a `PERMIT` decision; similarly, a streaming PEP must not resume on a `PERMIT` whose obligations cannot be fulfilled, and must apply the obligations associated with a `SUSPEND` (e.g., logging the suspension) before pausing.
+An obligation expression consists of the keyword `obligation` followed by an expression. It describes a task the PEP **must** fulfill before acting on the decision. If the PEP cannot fulfill an obligation, it must not grant access even on a `PERMIT` decision. Similarly, a streaming PEP must not resume on a `PERMIT` whose obligations cannot be fulfilled, and must apply the obligations associated with a `SUSPEND` (e.g., logging the suspension) before pausing.
 
 A common use case is *break-the-glass* scenarios: in an emergency, a doctor may access records they normally cannot read, but this access must be logged to prevent abuse. Logging is a requirement for granting access and therefore must be expressed as an obligation.
 

@@ -77,7 +77,7 @@ public class HttpLoadGenerator {
      * @param out writer for progress output
      * @return the benchmark result with throughput and latency distribution
      */
-    public static BenchmarkResult run(String baseUrl, byte[] body, int concurrency, int warmupSeconds,
+    public static LoadtestOutcome run(String baseUrl, byte[] body, int concurrency, int warmupSeconds,
             int measureSeconds, int targetRate, boolean insecure, PrintWriter out) {
         val url     = baseUrl + ENDPOINT;
         val request = HttpRequest.newBuilder().uri(URI.create(url)).header("Content-Type", "application/json")
@@ -94,14 +94,15 @@ public class HttpLoadGenerator {
                 warmupUntilConverged(client, request, concurrency, out);
             }
 
-            val ops     = new AtomicLong(0);
-            val latency = new LatencyCollector(MAX_LATENCY_SAMPLES);
-            val start   = System.nanoTime();
+            val ops      = new AtomicLong(0);
+            val failures = new AtomicLong(0);
+            val latency  = new LatencyCollector(MAX_LATENCY_SAMPLES);
+            val start    = System.nanoTime();
 
             if (targetRate > 0) {
-                runPacedPhase(client, request, concurrency, measureSeconds, targetRate, ops, latency);
+                runPacedPhase(client, request, concurrency, measureSeconds, targetRate, ops, failures, latency);
             } else {
-                runSaturationPhase(client, request, concurrency, measureSeconds, ops, latency);
+                runSaturationPhase(client, request, concurrency, measureSeconds, ops, failures, latency);
             }
 
             val elapsed    = (System.nanoTime() - start) / 1_000_000_000.0;
@@ -113,36 +114,45 @@ public class HttpLoadGenerator {
             } else {
                 out.printf("  %d concurrent: %.0f req/s%n", concurrency, throughput);
             }
+            if (failures.get() > 0) {
+                out.printf("  %d request(s) failed (non-2xx response or transport error)%n", failures.get());
+            }
             out.flush();
 
             val label = targetRate > 0 ? "http-%dc-%dr".formatted(concurrency, targetRate)
                     : "http-%dc".formatted(concurrency);
-            return BenchmarkResult.fromIterations(label, 1, List.of(throughput), latency.toLatency());
+            return new LoadtestOutcome(
+                    BenchmarkResult.fromIterations(label, 1, List.of(throughput), latency.toLatency()), failures.get());
         }
     }
 
-    private static Mono<Void> sendAsync(HttpClient client, HttpRequest request) {
-        return Mono.fromCompletionStage(() -> client.sendAsync(request, BodyHandlers.discarding())).then();
+    private static Mono<Boolean> sendAsync(HttpClient client, HttpRequest request) {
+        return Mono.fromCompletionStage(() -> client.sendAsync(request, BodyHandlers.discarding()))
+                .map(response -> response.statusCode() < 300);
     }
 
     private static void runSaturationPhase(HttpClient client, HttpRequest request, int concurrency, int seconds,
-            AtomicLong ops, @Nullable LatencyCollector latency) {
+            AtomicLong ops, AtomicLong failures, @Nullable LatencyCollector latency) {
         val running = new AtomicBoolean(true);
         Schedulers.parallel().schedule(() -> running.set(false), seconds, TimeUnit.SECONDS);
 
         Flux.range(0, concurrency).flatMap(slot -> Mono.defer(() -> {
             val sendTime = System.nanoTime();
-            return sendAsync(client, request).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
-                if (latency != null) {
-                    latency.addSample(System.nanoTime() - sendTime);
+            return sendAsync(client, request).onErrorResume(e -> Mono.just(false)).doOnNext(success -> {
+                if (Boolean.TRUE.equals(success)) {
+                    if (latency != null) {
+                        latency.addSample(System.nanoTime() - sendTime);
+                    }
+                    ops.incrementAndGet();
+                } else {
+                    failures.incrementAndGet();
                 }
-                ops.incrementAndGet();
             });
         }).repeat(running::get), concurrency).blockLast();
     }
 
     private static void runPacedPhase(HttpClient client, HttpRequest request, int concurrency, int seconds,
-            int targetRate, AtomicLong ops, LatencyCollector latency) {
+            int targetRate, AtomicLong ops, AtomicLong failures, LatencyCollector latency) {
         val workerCount = Math.min(concurrency, Runtime.getRuntime().availableProcessors());
         // Round up so the aggregate rate covers the target. Plain integer division
         // silently caps
@@ -158,9 +168,13 @@ public class HttpLoadGenerator {
                         .interval(Duration.ofNanos(workerIntervalNs), Schedulers.newSingle("pacer-" + worker, true))
                         .take(ticksPerWorker).onBackpressureDrop().flatMap(tick -> Mono.defer(() -> {
                             val sendTime = System.nanoTime();
-                            return sendAsync(client, request).onErrorResume(e -> Mono.empty()).doOnSuccess(ignored -> {
-                                latency.addSample(System.nanoTime() - sendTime);
-                                ops.incrementAndGet();
+                            return sendAsync(client, request).onErrorResume(e -> Mono.just(false)).doOnNext(success -> {
+                                if (Boolean.TRUE.equals(success)) {
+                                    latency.addSample(System.nanoTime() - sendTime);
+                                    ops.incrementAndGet();
+                                } else {
+                                    failures.incrementAndGet();
+                                }
                             });
                         }), concPerWorker), workerCount)
                 .blockLast();
@@ -171,7 +185,7 @@ public class HttpLoadGenerator {
         val samples = new long[MAX_WARMUP_ITERATIONS];
         for (int i = 0; i < MAX_WARMUP_ITERATIONS; i++) {
             val ops = new AtomicLong(0);
-            runSaturationPhase(client, request, concurrency, WARMUP_INTERVAL_SECS, ops, null);
+            runSaturationPhase(client, request, concurrency, WARMUP_INTERVAL_SECS, ops, new AtomicLong(0), null);
             val rps = ops.get() / WARMUP_INTERVAL_SECS;
             out.printf("%d/s ", rps);
             out.flush();

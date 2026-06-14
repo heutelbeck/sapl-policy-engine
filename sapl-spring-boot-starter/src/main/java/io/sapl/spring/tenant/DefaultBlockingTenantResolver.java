@@ -26,9 +26,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Default {@link BlockingTenantResolver}: reads the current
- * authentication from {@code SecurityContextHolder}, delegates
- * extraction of the PDP id to a configured
+ * Default {@link BlockingTenantResolver}: reads the current authentication from
+ * {@code SecurityContextHolder},
+ * delegates extraction of the PDP id to a configured
  * {@link PdpIdAuthenticationExtractorBlocking}, and falls back to
  * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID} when no authentication or
  * no extracted id is available.

@@ -114,10 +114,12 @@ public class TraccarPolicyInformationPoint {
 
              Configuration fields:
              * `baseUrl` (required): The base URL of the Traccar server.
-             * `pollingIntervalMs` (optional): Interval in milliseconds between polling requests.
-               Defaults to 1000.
-             * `repetitions` (optional): Maximum number of repeated polling requests. Defaults to
-               `Long.MAX_VALUE`.
+
+             Refresh cadence is not a configuration field. Like every streaming
+             attribute, the engine re-evaluates this attribute on its own schedule
+             via the `pollIntervalMs` attribute option (see Functions and
+             Attributes); the connection settings here describe only how to reach
+             the server.
 
              The configuration is provided via the `TRACCAR_CONFIG` environment variable in
              `pdp.json`:
@@ -125,8 +127,7 @@ public class TraccarPolicyInformationPoint {
              {
                "variables": {
                  "TRACCAR_CONFIG": {
-                   "baseUrl": "https://demo.traccar.org",
-                   "pollingIntervalMs": 250
+                   "baseUrl": "https://demo.traccar.org"
                  }
                }
              }
@@ -187,13 +188,13 @@ public class TraccarPolicyInformationPoint {
              policy "check_position"
              permit
                subject.device.<traccar.position({
-                                "baseUrl": "https://other.traccar.org",
-                                "pollingIntervalMs": 500
-                              })>;
+                                "baseUrl": "https://other.traccar.org"
+                              })[{pollIntervalMs: 250}]>;
              ```
-             Resolution: uses the inline object for `baseUrl` and `pollingIntervalMs`, but
-             credentials still come from `ctx.pdpSecrets().traccar` -- the same single set of
-             secrets. The inline object cannot override authentication.
+             Resolution: uses the inline object for `baseUrl`, but credentials still come
+             from `ctx.pdpSecrets().traccar` -- the same single set of secrets; the inline
+             object cannot override authentication. The `[{pollIntervalMs: 250}]` attribute
+             option sets how often the engine re-evaluates the attribute and is optional.
 
              ## Complete pdp.json Example
 
@@ -201,8 +202,7 @@ public class TraccarPolicyInformationPoint {
              {
                "variables": {
                  "TRACCAR_CONFIG": {
-                   "baseUrl": "https://traccar.example.com",
-                   "pollingIntervalMs": 1000
+                   "baseUrl": "https://traccar.example.com"
                  }
                },
                "secrets": {
@@ -286,8 +286,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             <traccar.server({
-                              "baseUrl": "https://demo.traccar.org",
-                              "pollingIntervalMs": 500
+                              "baseUrl": "https://demo.traccar.org"
                             })>
             ```
 
@@ -377,8 +376,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             <traccar.devices({
-                              "baseUrl": "https://demo.traccar.org",
-                              "pollingIntervalMs": 500
+                              "baseUrl": "https://demo.traccar.org"
                             })>
             ```
 
@@ -469,8 +467,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             "12345".<traccar.device({
-                              "baseUrl": "https://demo.traccar.org",
-                              "pollingIntervalMs": 500
+                              "baseUrl": "https://demo.traccar.org"
                             })>
             ```
 
@@ -545,8 +542,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             <traccar.geofences({
-                "baseUrl": "https://demo.traccar.org",
-                "pollingIntervalMs": 250
+                "baseUrl": "https://demo.traccar.org"
             })>
             ```
 
@@ -615,8 +611,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             "12345".<traccar.traccarGeofence({
-                "baseUrl": "https://demo.traccar.org",
-                "pollingIntervalMs": 250
+                "baseUrl": "https://demo.traccar.org"
             })>
             ```
 
@@ -693,8 +688,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             "12345".<traccar.geofenceGeometry({
-                "baseUrl": "https://demo.traccar.org",
-                "pollingIntervalMs": 250
+                "baseUrl": "https://demo.traccar.org"
             })>
             ```
 
@@ -775,8 +769,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             "12345".<traccar.traccarPosition({
-                "baseUrl": "https://demo.traccar.org",
-                "pollingIntervalMs": 250
+                "baseUrl": "https://demo.traccar.org"
             })>
             ```
 
@@ -862,8 +855,7 @@ public class TraccarPolicyInformationPoint {
 
             ```
             "12345".<traccar.position({
-                "baseUrl": "https://demo.traccar.org",
-                "pollingIntervalMs": 250
+                "baseUrl": "https://demo.traccar.org"
             })>
             ```
 
@@ -925,15 +917,6 @@ public class TraccarPolicyInformationPoint {
 
         if (!effectiveQueryParams.isEmpty()) {
             requestSettings.set(BlockingWebClient.URL_PARAMS, effectiveQueryParams);
-        }
-
-        val config = ValueJsonMarshaller.toJsonNode(traccarConfig);
-        if (config.has(BlockingWebClient.POLLING_INTERVAL)) {
-            requestSettings.set(BlockingWebClient.POLLING_INTERVAL, config.get(BlockingWebClient.POLLING_INTERVAL));
-        }
-
-        if (config.has(BlockingWebClient.REPEAT_TIMES)) {
-            requestSettings.set(BlockingWebClient.REPEAT_TIMES, config.get(BlockingWebClient.REPEAT_TIMES));
         }
 
         return ValueJsonMarshaller.fromJsonNode(requestSettings);

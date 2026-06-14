@@ -34,6 +34,7 @@ import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -46,11 +47,14 @@ import tools.jackson.databind.json.JsonMapper;
  * for built-in RBAC preset)
  * @param configType DIRECTORY, BUNDLES, or RBAC
  */
+@Slf4j
 public record BenchmarkContext(
         String subscriptionJson,
         @Nullable String subscriptionsJson,
         @Nullable String policiesPath,
         String configType) {
+
+    private static final String WARN_SIGNATURE_VERIFICATION_DISABLED = "Benchmark loads bundles with signature verification disabled. Measurements reflect an unauthenticated bundle source and must not be read as a security baseline.";
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
@@ -91,6 +95,7 @@ public record BenchmarkContext(
         val builder       = PolicyDecisionPointBuilder.withDefaults();
         val directoryPath = Path.of(policiesPath);
         if ("BUNDLES".equals(configType)) {
+            log.warn(WARN_SIGNATURE_VERIFICATION_DISABLED);
             val securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
             builder.withBundleDirectorySource(directoryPath, securityPolicy);
         } else {

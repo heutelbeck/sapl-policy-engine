@@ -1,4 +1,4 @@
-<!-- NestJS streaming enforcement sequence: PDP sends PERMIT (data events flow in loop), then DENY. Three enforcement strategies diverge: @EnforceTillDenied (ACCESS_DENIED, stream closed), @EnforceDropWhileDenied (events dropped, resumes on re-PERMIT), @EnforceRecoverableIfDenied (ACCESS_SUSPENDED, ACCESS_RESTORED on re-PERMIT) -->
+<!-- NestJS streaming enforcement sequence: PDP sends PERMIT (data events flow in loop), then DENY. Three enforcement strategies diverge: @EnforceTillDenied (ACCESS_DENIED, stream closed), @EnforceDropWhileDenied (events dropped, resumes on re-PERMIT), @EnforceRecoverableIfDenied (ACCESS_SUSPENDED, ACCESS_GRANTED on re-PERMIT) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 1080" font-family="Inter, -apple-system, sans-serif">
   <defs>
     <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -107,9 +107,9 @@
   <line x1="75" y1="900" x2="260" y2="900" stroke="#028392" stroke-width="2" marker-end="url(#ah)"/>
   <text x="167" y="892" text-anchor="middle" fill="#028392" font-size="11" font-weight="600">PERMIT</text>
 
-  <!-- Self-arrow: ACCESS_RESTORED -->
+  <!-- Self-arrow: ACCESS_GRANTED -->
   <path d="M 265 925 H 345 V 965 H 270" stroke="#028392" stroke-width="1.5" fill="none" marker-end="url(#ah-self)"/>
-  <text x="325" y="940" text-anchor="middle" fill="#028392" font-size="10">ACCESS_RESTORED</text>
+  <text x="325" y="940" text-anchor="middle" fill="#028392" font-size="10">ACCESS_GRANTED</text>
 
   <!-- Note: Events resume -->
   <rect x="210" y="975" width="130" height="26" rx="4" fill="#e2e8f0" stroke="#7bbdbc" stroke-width="1"/>

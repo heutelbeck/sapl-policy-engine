@@ -57,6 +57,7 @@ import lombok.val;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -92,7 +93,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private final PdpVoterSource  pdpConfigurationSource;
     private final AttributeBroker attributeBroker;
     private final IdFactory       idFactory;
-    private final Clock           clock;
+    private final InstantSource   timestampSource;
 
     public BlockingPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             AttributeBroker attributeBroker,
@@ -103,11 +104,11 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     public BlockingPolicyDecisionPoint(PdpVoterSource pdpConfigurationSource,
             AttributeBroker attributeBroker,
             IdFactory idFactory,
-            Clock clock) {
+            InstantSource timestampSource) {
         this.pdpConfigurationSource = pdpConfigurationSource;
         this.attributeBroker        = attributeBroker;
         this.idFactory              = idFactory;
-        this.clock                  = clock;
+        this.timestampSource        = timestampSource;
     }
 
     private List<DecisionInterceptor> decisionInterceptors() {
@@ -159,7 +160,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private Stream<AuthorizationDecision> evaluateDecisionsTraced(Optional<CompiledPdp> maybePdp,
             AuthorizationSubscription sub, String subscriptionId, String pdpId) {
         val tracedSource = maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
-                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, clock)));
+                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
         return mapStream(tracedSource, tv -> {
             dispatchDecisionObservers(decisionInterceptors(), tv, tv.timestamp(), subscriptionId, sub);
             return tv.authorizationDecision();
@@ -227,7 +228,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private Stream<TracedVote> evaluateTracedVotes(Optional<CompiledPdp> maybePdp, AuthorizationSubscription sub,
             String subscriptionId, String pdpId) {
         return maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
-                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, clock)));
+                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
     }
 
     /**
@@ -382,14 +383,14 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private TracedVote computeTracedVoteSync(AuthorizationSubscription sub, String subscriptionId, String pdpId) {
         val pdpConfiguration = pdpConfigurationSource.getCurrentConfiguration(pdpId);
         return pdpConfiguration.map(pdp -> evaluateOnceTracedSync(pdp, sub, subscriptionId))
-                .orElseGet(() -> tracedNoConfiguration(pdpId, clock));
+                .orElseGet(() -> tracedNoConfiguration(pdpId, timestampSource));
     }
 
     private TracedVote evaluateOnceTracedSync(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
         val baseCtx = evaluationContext(pdp, sub, subscriptionId);
         return switch (pdp.voter()) {
-        case Vote v        -> TracedVote.of(v, clock.instant());
-        case PureVoter p   -> TracedVote.of(p.vote(baseCtx), clock.instant());
+        case Vote v        -> TracedVote.of(v, timestampSource.instant());
+        case PureVoter p   -> TracedVote.of(p.vote(baseCtx), timestampSource.instant());
         case StreamVoter s -> evaluateStreamingTracedSync(pdp, baseCtx, subscriptionId, s);
         };
     }
@@ -400,19 +401,19 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         if (initial.dependencies().isEmpty()) {
             return TracedVote.of(
                     initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote(),
-                    clock.instant());
+                    timestampSource.instant());
         }
         if (initial.vote() != null) {
-            return TracedVote.of(initial.vote(), clock.instant());
+            return TracedVote.of(initial.vote(), timestampSource.instant());
         }
         try {
             return Voters.awaitFirstTracedVote(attributeBroker, subscriptionId, initial.dependencies().keySet(),
-                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)), clock);
+                    snapshot -> voter.evaluate(baseCtx.withSnapshot(snapshot)), timestampSource);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            return TracedVote.of(errorVote(pdp, ERROR_INTERRUPTED), clock.instant());
+            return TracedVote.of(errorVote(pdp, ERROR_INTERRUPTED), timestampSource.instant());
         } catch (EvaluationException ee) {
-            return TracedVote.of(errorVote(pdp, ERROR_EVALUATOR_THREW), clock.instant());
+            return TracedVote.of(errorVote(pdp, ERROR_EVALUATOR_THREW), timestampSource.instant());
         }
     }
 
@@ -505,8 +506,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                                                   out.put(Optional.empty());
                                               }
                                           };
+        // subscribeToUpdates delivers the current configuration to the listener
+        // under the source lock, so the initial value and any concurrent update
+        // arrive in order and a stale configuration cannot latch here.
         pdpConfigurationSource.subscribeToUpdates(pdpId, listener);
-        out.put(pdpConfigurationSource.getCurrentConfiguration(pdpId));
         out.onClose(() -> pdpConfigurationSource.unsubscribeFromUpdates(pdpId, listener));
         return out;
     }
@@ -545,8 +548,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private Stream<TracedVote> tracedVoteStream(CompiledPdp pdp, AuthorizationSubscription sub, String subscriptionId) {
         val baseCtx = evaluationContext(pdp, sub, subscriptionId);
         return switch (pdp.voter()) {
-        case Vote v        -> singleton(TracedVote.of(v, clock.instant()));
-        case PureVoter p   -> singleton(TracedVote.of(p.vote(baseCtx), clock.instant()));
+        case Vote v        -> singleton(TracedVote.of(v, timestampSource.instant()));
+        case PureVoter p   -> singleton(TracedVote.of(p.vote(baseCtx), timestampSource.instant()));
         case StreamVoter s -> streamingTracedVoteStream(pdp, baseCtx, subscriptionId, s);
         };
     }
@@ -557,17 +560,17 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         val initial = voter.evaluate(baseCtx);
         if (initial.dependencies().isEmpty()) {
             val v = initial.vote() == null ? errorVote(pdp, ERROR_VOTER_PRODUCED_NO_DECISION) : initial.vote();
-            out.put(TracedVote.of(v, clock.instant()));
+            out.put(TracedVote.of(v, timestampSource.instant()));
             out.complete();
             return out;
         }
         if (initial.vote() != null) {
-            out.put(TracedVote.of(initial.vote(), clock.instant()));
+            out.put(TracedVote.of(initial.vote(), timestampSource.instant()));
         }
         val handle = BrokerEvalLoops.openWithHead(attributeBroker, subscriptionId, initial.dependencies().keySet(),
                 snap -> voter.evaluate(baseCtx.withSnapshot(snap)), (r, snap) -> {
                     if (r.vote() != null) {
-                        out.put(buildTracedVote(r, snap, clock));
+                        out.put(buildTracedVote(r, snap, timestampSource));
                     }
                 }, r -> r.dependencies().keySet());
         out.onClose(handle::close);
@@ -581,8 +584,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      * regardless of which transport the consumer uses.
      */
     public static TracedVote buildTracedVote(VoteResult result, Map<SubscriptionKey, AttributeSnapshot> snapshot,
-            Clock clock) {
-        return new TracedVote(result.vote(), clock.instant(), result.dependencies(),
+            InstantSource timestampSource) {
+        return new TracedVote(result.vote(), timestampSource.instant(), result.dependencies(),
                 Voters.readSnapshot(result, snapshot));
     }
 
@@ -630,7 +633,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      */
     public static MultiAuthorizationDecision evaluateRound(List<IdentifiableAuthorizationSubscription> items,
             CompiledPdp pdp, String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
-            Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, Clock clock,
+            Set<SubscriptionKey> depsAccumulator, FunctionBroker functionBroker, InstantSource timestampSource,
             BiConsumer<TracedVote, IdentifiableAuthorizationSubscription> perSubTraceObserver) {
         val multi = new MultiAuthorizationDecision();
         for (val item : items) {
@@ -642,7 +645,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                 return null;
             }
             if (perSubTraceObserver != null) {
-                perSubTraceObserver.accept(buildTracedVote(r, snapshot, clock), item);
+                perSubTraceObserver.accept(buildTracedVote(r, snapshot, timestampSource), item);
             }
             multi.setDecision(item.subscriptionId(), r.vote().authorizationDecision());
         }
@@ -778,7 +781,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             String subscriptionId, Map<SubscriptionKey, AttributeSnapshot> snapshot,
             Set<SubscriptionKey> depsAccumulator) {
         return evaluateRound(items, pdp, subscriptionId, snapshot, depsAccumulator, pdp.plugins().functionBroker(),
-                clock, hasDecisionInterceptors() ? this::observePerSubTrace : null);
+                timestampSource, hasDecisionInterceptors() ? this::observePerSubTrace : null);
     }
 
     private void observePerSubTrace(TracedVote perSubTraced, IdentifiableAuthorizationSubscription item) {
@@ -799,8 +802,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      * Wraps {@link #noConfigurationVote(String)} as a {@link TracedVote}
      * with the current emit timestamp.
      */
-    public static TracedVote tracedNoConfiguration(String pdpId, Clock clock) {
-        return TracedVote.of(noConfigurationVote(pdpId), clock.instant());
+    public static TracedVote tracedNoConfiguration(String pdpId, InstantSource timestampSource) {
+        return TracedVote.of(noConfigurationVote(pdpId), timestampSource.instant());
     }
 
     /**

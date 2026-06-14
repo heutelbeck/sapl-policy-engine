@@ -63,13 +63,15 @@ import reactor.test.StepVerifier;
 
 /**
  * Engine-side end-to-end test of the Mongo shim chain. Mirrors
- * {@link RelationalShimChainTests} for MongoDB. Same scenario, different
- * collection: chronicles of Krynn (Astinus's annals) tagged by moon and
- * forbidden tier; the obligation filters access by moon alignment.
+ * {@link RelationalShimChainTests} for MongoDB. Same
+ * scenario, different collection: chronicles of Krynn (Astinus's annals) tagged
+ * by moon and forbidden tier; the
+ * obligation filters access by moon alignment.
  * <p>
  * Uses a real MongoDB via Testcontainers (matching the
- * {@code queryrewriting-mongodb-reactive} demo's setup) so the proxy chain is
- * exercised against actual driver behaviour, not a mock template.
+ * {@code queryrewriting-mongodb-reactive} demo's setup) so the
+ * proxy chain is exercised against actual driver behaviour, not a mock
+ * template.
  */
 @SpringBootTest(classes = MongoDbShimChainIT.AstinusChroniclesTestApp.class)
 @Testcontainers
@@ -233,7 +235,7 @@ class MongoDbShimChainIT {
         @Test
         @DisplayName("$regex obligation via conditions intersects with @Query $regex: empty result when patterns disjoint")
         void whenRegexObligationDisjointFromUserPatternThenEmpty() {
-            decide(decisionWithMongoConditions("{ 'title': { '$regex': '.*Compendium.*' } }"));
+            decide(decisionWithMongoConditions("{ \"title\": { \"$regex\": \".*Compendium.*\" } }"));
 
             StepVerifier.create(chronicles.chroniclesByTitle(".*Chronicles.*").collectList())
                     .assertNext(titles -> assertThat(titles).isEmpty()).verifyComplete();
@@ -242,7 +244,7 @@ class MongoDbShimChainIT {
         @Test
         @DisplayName("$regex obligation via conditions intersects with @Query $regex: document matching both patterns is returned")
         void whenRegexObligationIntersectsUserPatternThenMatchingDocumentReturned() {
-            decide(decisionWithMongoConditions("{ 'title': { '$regex': '.*Compendium.*' } }"));
+            decide(decisionWithMongoConditions("{ \"title\": { \"$regex\": \".*Compendium.*\" } }"));
 
             StepVerifier.create(chronicles.chroniclesByTitle(".*Necromancers.*").map(Chronicle::title).collectList())
                     .assertNext(titles -> assertThat(titles).containsExactly("Necromancers' Compendium"))
@@ -286,7 +288,7 @@ class MongoDbShimChainIT {
 
     private static AuthorizationDecision decisionWithMongoCriteria(ObjectValue... criteria) {
         val obligation = Value
-                .ofObject(Map.of("type", Value.of("mongo:queryManipulation"), "criteria", arrayOf(criteria)));
+                .ofObject(Map.of("type", Value.of("mongo:queryRewriting"), "criteria", arrayOf(criteria)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }
@@ -325,7 +327,7 @@ class MongoDbShimChainIT {
             conditionValues[i] = Value.of(conditions[i]);
         }
         val obligation = Value.ofObject(
-                Map.of("type", Value.of("mongo:queryManipulation"), "conditions", Value.ofArray(conditionValues)));
+                Map.of("type", Value.of("mongo:queryRewriting"), "conditions", Value.ofArray(conditionValues)));
         return new AuthorizationDecision(Decision.PERMIT, Value.ofArray(obligation), Value.EMPTY_ARRAY,
                 Value.UNDEFINED);
     }

@@ -25,25 +25,29 @@ import reactor.core.publisher.Hooks;
 
 /**
  * Activates Reactor automatic context propagation for the SAPL enforcement
- * plan. Declared as a bean by any shim auto-configuration whose interceptors
- * need to read the plan from a synchronous Java method called inside a
- * Reactor flow (currently the R2DBC shim, since
- * {@code DatabaseClient.sql(...)} returns a non-publisher
+ * plan. Declared as a bean by any shim
+ * auto-configuration whose interceptors need to read the plan from a
+ * synchronous Java method called inside a Reactor
+ * flow (currently the R2DBC shim, since {@code DatabaseClient.sql(...)} returns
+ * a non-publisher
  * {@code GenericExecuteSpec} synchronously).
  * <p>
  * On bean construction:
  * <ol>
  * <li>Registers an {@link EnforcementPlanThreadLocalAccessor} with
- * {@link ContextRegistry#getInstance()} so the plan is mirrored between
- * Reactor {@link reactor.util.context.Context} and a
- * {@link ThreadLocal} at every operator boundary.</li>
- * <li>Calls {@link Hooks#enableAutomaticContextPropagation()} once globally,
- * so Reactor performs the mirror on every operator.</li>
+ * {@link ContextRegistry#getInstance()} so the plan is
+ * mirrored between Reactor {@link reactor.util.context.Context} and a
+ * {@link ThreadLocal} at every operator
+ * boundary.</li>
+ * <li>Calls {@link Hooks#enableAutomaticContextPropagation()} once globally, so
+ * Reactor performs the mirror on every
+ * operator.</li>
  * </ol>
- * The hook is JVM-wide. Activation is gated at the auto-configuration level
- * by both classpath presence and an explicit per-shim opt-out property so
- * that applications without SAPL shims active keep the default Reactor
- * behaviour. Operators see the activation in the startup log.
+ * The hook is JVM-wide. Activation is gated at the auto-configuration level by
+ * both classpath presence and an explicit
+ * per-shim opt-out property so that applications without SAPL shims active keep
+ * the default Reactor behaviour.
+ * Operators see the activation in the startup log.
  */
 @Slf4j
 public class SaplContextPropagationActivator {

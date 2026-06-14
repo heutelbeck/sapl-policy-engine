@@ -61,6 +61,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Deduplication diagnostics")
 class DeduplicationTests {
 
+    private static final Clock              CLOCK              = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"),
+            ZoneOffset.UTC);
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
             DefaultDecision.DENY, ErrorHandling.ABSTAIN);
 
@@ -115,7 +117,7 @@ class DeduplicationTests {
         void whenConsecutiveVotesFromTimePolicyThenDecisionsEqual() {
             val mapper      = JsonMapper.builder().build();
             val fixedClock  = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
-            val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
+            val components  = PolicyDecisionPointBuilder.withDefaults(mapper).withClock(fixedClock).build();
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
@@ -150,7 +152,7 @@ class DeduplicationTests {
             val sub        = subscription("user", "stream:heartbeat", "heartbeat");
 
             StepVerifier.withVirtualTime(() -> {
-                val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
+                val components  = PolicyDecisionPointBuilder.withDefaults(mapper).withClock(fixedClock).build();
                 val voterSource = components.pdpVoterSource();
                 val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
                 voterSource.loadConfiguration(configuration(DENY_UNLESS_PERMIT, TIME_TRIGGERED_PERMIT_POLICY), false);
@@ -164,7 +166,7 @@ class DeduplicationTests {
         void whenFixedClockReEvaluationThenDuplicatesSuppressedRealTime() {
             val mapper      = JsonMapper.builder().build();
             val fixedClock  = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
-            val components  = PolicyDecisionPointBuilder.withDefaults(mapper, fixedClock).build();
+            val components  = PolicyDecisionPointBuilder.withDefaults(mapper).withClock(fixedClock).build();
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
@@ -181,7 +183,7 @@ class DeduplicationTests {
         @DisplayName("system clock: gatherVotes re-emits when time attribute used in condition")
         void whenSystemClockWithTimeInConditionThenMultipleVotesEmitted() {
             val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withDefaults(mapper, Clock.systemUTC()).build();
+            val components  = PolicyDecisionPointBuilder.withDefaults(mapper).withClock(Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
@@ -201,7 +203,7 @@ class DeduplicationTests {
         @DisplayName("system clock: decide() emits only distinct decisions despite time-triggered re-evaluation")
         void whenSystemClockReEvaluationThenDistinctDecisionsOnly() {
             val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withDefaults(mapper, Clock.systemUTC()).build();
+            val components  = PolicyDecisionPointBuilder.withDefaults(mapper).withClock(Clock.systemUTC()).build();
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
 
@@ -230,7 +232,7 @@ class DeduplicationTests {
         @DisplayName("config source notifies listeners on every reload, including duplicates")
         void whenSameConfigReloadedThenConfigSourceEmitsBothCompilations() {
             val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
+            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper).withClock(CLOCK).build();
             val voterSource = components.pdpVoterSource();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);
 
@@ -240,15 +242,21 @@ class DeduplicationTests {
             voterSource.loadConfiguration(config, false);
             voterSource.loadConfiguration(config, false);
 
-            assertThat(received).hasSize(2)
-                    .allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
+            // Subscribing delivers the current state first; with no configuration
+            // loaded yet that is a Removed event, then one Voter per reload
+            // (duplicate reloads are not deduplicated at the source).
+            assertThat(received).hasSize(3).satisfies(events -> {
+                assertThat(events.getFirst()).isInstanceOf(PdpUpdateEvent.Removed.class);
+                assertThat(events.subList(1, events.size()))
+                        .allSatisfy(event -> assertThat(event).isInstanceOf(PdpUpdateEvent.Voter.class));
+            });
         }
 
         @Test
         @DisplayName("decide() deduplicates despite config source emitting duplicate compilations")
         void whenSameConfigReloadedThenDecideDeduplicatesAtDecisionLevel() {
             val mapper      = JsonMapper.builder().build();
-            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper, Clock.systemUTC()).build();
+            val components  = PolicyDecisionPointBuilder.withoutDefaults(mapper).withClock(CLOCK).build();
             val voterSource = components.pdpVoterSource();
             val pdp         = ReactivePolicyDecisionPointBuilder.from(components).pdp();
             val config      = configuration(DENY_UNLESS_PERMIT, SIMPLE_PERMIT);

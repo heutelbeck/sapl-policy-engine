@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DisplayName("MockingAttributeBroker")
 class MockingAttributeBrokerTests {
 
+    private static final Instant                REFERENCE       = Instant.parse("2025-01-01T00:00:00Z");
     private static final String                 CONFIG_ID       = "test-config";
     private static final Duration               DEFAULT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration               DEFAULT_POLL    = Duration.ofSeconds(1);
@@ -543,7 +545,7 @@ class MockingAttributeBrokerTests {
         }
 
         synchronized void publish(SubscriptionKey key, Value value) {
-            mailbox.put(key, new AttributeSnapshot(value, java.time.Instant.now()));
+            mailbox.put(key, new AttributeSnapshot(value, REFERENCE));
             for (val sub : subs.values()) {
                 if (sub.deps.contains(key) && sub.deps.stream().allMatch(mailbox::containsKey)) {
                     fireSync(sub);

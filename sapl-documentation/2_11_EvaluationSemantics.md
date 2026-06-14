@@ -31,9 +31,9 @@ SAPL categorizes expressions into three strata based on their evaluation cost:
 
 2. **Within-strata ordering:** Within the same stratum, operands are evaluated strictly left-to-right as they appear in the source.
 
-3. **Short-circuit behavior:** When a short-circuit value is found (`false` for AND, `true` for OR), evaluation stops and remaining operands are not evaluated.
+3. **Short-circuit behavior:** Only the dominating value short-circuits: `false` for AND, `true` for OR. When a dominating value is found, evaluation stops and the remaining operands are not evaluated. An error or undefined operand does **not** short-circuit, so it never lets the engine skip the remaining operands or their subscriptions.
 
-4. **Error propagation:** When an error occurs during evaluation, it propagates immediately. Lower strata errors propagate even if higher strata operands appear earlier in the source.
+4. **Kleene three-valued logic:** Boolean operators follow Kleene strong three-valued logic. An operand that is not `true` or `false`, an error, `undefined`, or any other non-boolean value, acts as a third value, *unknown*. Errors and undefined are treated alike. AND is `false` if any operand is `false`, otherwise *unknown* if any operand is unknown, otherwise `true`. OR is `true` if any operand is `true`, otherwise *unknown* if any operand is unknown, otherwise `false`. Only when no operand carries the dominating value does an unknown operand determine the result, in which case the operator yields an error (the original error, or a type-mismatch error for `undefined` or another non-boolean). Because the dominating value wins regardless of operand position or stratum, the result does not depend on evaluation order: a dominating `false` (AND) or `true` (OR) in any stratum rescues an unknown in any other.
 
 ### Examples
 
@@ -73,23 +73,23 @@ Both operands are constants (same stratum). Left-to-right order applies: `true` 
 (1/0 > 0) || true
 ```
 
-Again both are constants, but now the error-producing expression comes first. The division by zero **is evaluated** and produces an error, even though `true` would have short-circuited if reached.
+Again both are constants, but now the error-producing expression comes first. Under Kleene logic the error does **not** short-circuit, and the dominating `true` wins regardless of position, so the result is `true`. The division-by-zero error never surfaces, because a dominating value is present.
 
-**Lower strata errors propagate**
+**A dominating value rescues an error in any stratum**
 
 ```sapl
 subject.isActive || (1/0 > 0)
 ```
 
-Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum). Constants are evaluated first, so the division by zero **produces an error** before `subject.isActive` is ever checked, even though `subject.isActive` appears first in the source. The pure expression cannot "rescue" the constant error.
+Here `subject.isActive` is a pure expression (higher stratum) and `1/0 > 0` is a constant (lower stratum) that produces an error. The error does not short-circuit, so `subject.isActive` is still evaluated. If it is `true`, the dominating `true` wins and the result is `true`: the pure expression **rescues** the constant error. Only if `subject.isActive` is `false`, leaving no dominating value for the OR, does the error become the result.
 
 ### Implications for Policy Authors
 
 {: .info }
 **Why this matters for attribute finders:** Attribute finders subscribe to external data sources. Skipping their evaluation when unnecessary avoids unnecessary network calls, reduces latency, and prevents side effects from unused subscriptions. This is particularly valuable when combining quick checks with expensive external lookups.
 
-{: .warning }
-**Compile-time errors:** Constant expressions that produce errors (like `1/0`) are evaluated at compile time. These errors propagate regardless of whether a higher-stratum operand (appearing earlier in the source) might have short-circuited at runtime. To avoid this, ensure constant sub-expressions do not contain errors, or guard them with conditional logic.
+{: .info }
+**Constant errors do not by themselves determine the result:** Constant expressions that produce errors (like `1/0`) are evaluated at compile time, but under Kleene logic a constant error is only the third value *unknown*. It is carried alongside the expression, and a dominating value in any operand or stratum still wins. The constant error becomes the result only when no operand carries the dominating value (no `false` in an AND, no `true` in an OR). To avoid an error result, ensure a dominating operand is reachable, or guard the constant with conditional logic.
 
 ### Body Condition Evaluation
 

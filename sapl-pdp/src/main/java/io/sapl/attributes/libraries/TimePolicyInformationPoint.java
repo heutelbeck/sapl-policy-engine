@@ -723,14 +723,16 @@ public class TimePolicyInformationPoint {
             return Streams.just(Value.FALSE);
         }
 
-        val now = zonedNow(zone).toLocalTime();
-        if (now.isAfter(checkpoint)) {
-            val tillMidnight = boolAtZonedBoundary(Value.FALSE, LocalTime.MAX, zone);
+        val now   = zonedNow(zone);
+        val local = now.toLocalTime();
+        val today = now.toLocalDate();
+        if (local.isAfter(checkpoint)) {
+            val tillMidnight = boolAtDate(Value.FALSE, LocalTime.MAX, today, zone);
             return Streams.concat(Streams.just(Value.TRUE), tillMidnight,
                     afterCheckpointFollowingDays(checkpoint, zone));
         }
-        val tillCheckpoint = boolAtZonedBoundary(Value.TRUE, checkpoint, zone);
-        val tillMidnight   = boolAtZonedBoundary(Value.FALSE, LocalTime.MAX, zone);
+        val tillCheckpoint = boolAtDate(Value.TRUE, checkpoint, today, zone);
+        val tillMidnight   = boolAtDate(Value.FALSE, LocalTime.MAX, today, zone);
         return Streams.concat(Streams.just(Value.FALSE), tillCheckpoint, tillMidnight,
                 afterCheckpointFollowingDays(checkpoint, zone));
     }
@@ -750,10 +752,6 @@ public class TimePolicyInformationPoint {
             val endOfDay   = boolAtDate(Value.FALSE, LocalTime.MAX, nextDay, zone);
             return Streams.concat(startOfDay, endOfDay);
         });
-    }
-
-    private Stream<Value> boolAtZonedBoundary(Value value, LocalTime to, ZoneId zone) {
-        return boolAtDate(value, to, zonedNow(zone).toLocalDate(), zone);
     }
 
     private Stream<Value> boolAtDate(Value value, LocalTime to, LocalDate date, ZoneId zone) {

@@ -24,17 +24,21 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 
 /**
- * Registers the PDP metrics interceptor for Prometheus instrumentation.
+ * Registers the PDP metrics interceptor for Prometheus instrumentation, but
+ * only when {@code io.sapl.pdp.embedded.metrics-enabled} is set.
  *
  * <p>
- * The enabled flag is read from
- * {@code io.sapl.pdp.embedded.metrics-enabled} at startup and passed to the
- * interceptor. When disabled, all interceptor callbacks are no-ops -- zero
- * cost at runtime.
+ * When disabled the bean method returns {@code null}, so no
+ * {@link io.sapl.api.pdp.DecisionInterceptor} is registered and the PDP takes
+ * its no-interceptor fast path that produces no per-decision timestamp. A
+ * registered interceptor, even a no-op one, would still force the PDP onto the
+ * traced path (the timestamp is computed before interceptor dispatch), so
+ * leaving the metrics interceptor inactive is not enough; it must be absent.
  *
  * <p>
- * This is a runtime check, not a {@code @Conditional}, ensuring correct
- * behavior in both JVM and GraalVM native images.
+ * The decision is a runtime check (a {@code null} return), not a
+ * {@code @Conditional}, so it stays correct in GraalVM native images, where
+ * {@code @Conditional} is resolved at build time.
  */
 @Configuration
 class MetricsConfiguration {
@@ -47,7 +51,10 @@ class MetricsConfiguration {
 
     @Bean
     PdpMetricsCollector pdpMetricsCollector(MeterRegistry meterRegistry) {
-        return new PdpMetricsCollector(properties.isMetricsEnabled(), meterRegistry);
+        if (!properties.isMetricsEnabled()) {
+            return null;
+        }
+        return new PdpMetricsCollector(true, meterRegistry);
     }
 
 }

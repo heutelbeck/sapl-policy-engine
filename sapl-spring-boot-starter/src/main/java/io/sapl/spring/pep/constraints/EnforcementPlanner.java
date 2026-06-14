@@ -43,36 +43,35 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Constructs the enforcement plan P(d) for an authorization decision d,
- * following Algorithm 2 of the
- * enforcement framework.
+ * following Algorithm 2 of the enforcement
+ * framework.
  * <p>
  * Phase 1 resolves a handler for each obligation and advice in d by querying
- * the deployed handler providers.
- * A constraint is replaced by a synthetic failure runner attached to the
- * decision signal when the providers
- * return no handler, more than one handler, or a handler that is not
- * well-formed for the constraint's type.
+ * the deployed handler providers. A
+ * constraint is replaced by a synthetic failure runner attached to the decision
+ * signal when the providers return no
+ * handler, more than one handler, or a handler that is not well-formed for the
+ * constraint's type.
  * <p>
  * Phase 2 sorts each per-signal sequence by ascending priority with the
- * handler-type tiebreak
- * Runner &lt; Mapper &lt; Consumer, then enforces the mapper-commutativity
- * invariant: every maximal run of
- * mappers at equal priority of length greater than one is replaced in place by
- * synthetic failure runners,
- * since the planner cannot prove commutativity of arbitrary mapper composition.
+ * handler-type tiebreak Runner &lt; Mapper &lt;
+ * Consumer, then enforces the mapper-commutativity invariant: every maximal run
+ * of mappers at equal priority of length
+ * greater than one is replaced in place by synthetic failure runners, since the
+ * planner cannot prove commutativity of
+ * arbitrary mapper composition.
  * <p>
  * SAPL-specific extension: when {@code decision.resource()} is not
- * {@link UndefinedValue}, the planner
- * synthesises an implicit obligation-tagged Mapper at the OutputSignal
- * supported by the PEP, with priority
- * {@link Integer#MIN_VALUE}. The mapper ignores the RAP's output and returns
- * the resource value unmarshalled
- * to the OutputSignal's value type. If no OutputSignal is in
- * {@code supportedSignals}, the implicit
- * obligation is replaced by an {@link SubstitutionReason#INADMISSIBLE} failure
- * substitute at the decision
- * signal. Conversion failures at runtime fail the obligation through the
- * executor's standard catch path.
+ * {@link UndefinedValue}, the planner synthesises an
+ * implicit obligation-tagged Mapper at the OutputSignal supported by the PEP,
+ * with priority {@link Integer#MIN_VALUE}.
+ * The mapper ignores the RAP's output and returns the resource value
+ * unmarshalled to the OutputSignal's value type. If
+ * no OutputSignal is in {@code supportedSignals}, the implicit obligation is
+ * replaced by an
+ * {@link SubstitutionReason#INADMISSIBLE} failure substitute at the decision
+ * signal. Conversion failures at runtime
+ * fail the obligation through the executor's standard catch path.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -91,14 +90,16 @@ public class EnforcementPlanner {
 
     /**
      * Builds the enforcement plan P(d) for {@code decision} as specified by
-     * Algorithm 2: handler resolution
-     * (Phase 1) followed by sort and commutativity enforcement (Phase 2).
+     * Algorithm 2: handler resolution (Phase 1)
+     * followed by sort and commutativity enforcement (Phase 2).
      *
-     * @param decision the authorization decision whose obligations and advice are
-     * to be planned
-     * @param supportedSignals the set of signals the deployed PEP actually fires;
-     * handlers attached to any
-     * other signal are treated as not well-formed
+     * @param decision
+     * the authorization decision whose obligations and advice are to be planned
+     * @param supportedSignals
+     * the set of signals the deployed PEP actually fires; handlers attached to any
+     * other signal are treated
+     * as not well-formed
+     *
      * @return the enforcement plan satisfying the ordering, type-signal
      * admissibility, mapper-tag, mapper
      * commutativity, supported signals, and coverage invariants
@@ -125,12 +126,11 @@ public class EnforcementPlanner {
      * SAPL-specific step: when {@code decision.resource()} is not
      * {@link UndefinedValue}, attaches an implicit
      * obligation-tagged Mapper at the supported OutputSignal at priority
-     * {@link Integer#MIN_VALUE} that
-     * substitutes the RAP's output with the resource value unmarshalled to the
-     * OutputSignal's value type.
-     * Falls back to an {@link SubstitutionReason#INADMISSIBLE} substitute at the
-     * decision signal when no
-     * OutputSignal is supported.
+     * {@link Integer#MIN_VALUE} that substitutes the
+     * RAP's output with the resource value unmarshalled to the OutputSignal's value
+     * type. Falls back to an
+     * {@link SubstitutionReason#INADMISSIBLE} substitute at the decision signal
+     * when no OutputSignal is supported.
      */
     private void addImplicitResourceObligationIfPresent(AuthorizationDecision decision,
             @Nullable ValueSignalType<?> outputSignal, Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
@@ -164,8 +164,8 @@ public class EnforcementPlanner {
      * Phase 1 of Algorithm 2: for every obligation and advice in {@code decision},
      * resolves a handler via the
      * registered providers and appends the resulting entry to its target signal's
-     * sequence, or appends a
-     * synthetic failure runner to the decision signal when resolution fails.
+     * sequence, or appends a synthetic
+     * failure runner to the decision signal when resolution fails.
      */
     private Map<SignalType, List<EnforcementPlanEntry<?>>> resolveHandlerForEachConstraint(
             AuthorizationDecision decision, Set<SignalType> supportedSignals) {
@@ -177,10 +177,10 @@ public class EnforcementPlanner {
 
     /**
      * Phase 2 of Algorithm 2: sorts each per-signal sequence by the entry's natural
-     * order (ascending priority
-     * with handler-type tiebreak Runner &lt; Mapper &lt; Consumer) and replaces
-     * every maximal same-priority
-     * mapper run of length greater than one with synthetic failure runners.
+     * order (ascending priority with
+     * handler-type tiebreak Runner &lt; Mapper &lt; Consumer) and replaces every
+     * maximal same-priority mapper run of
+     * length greater than one with synthetic failure runners.
      */
     private static void sortAndEnforceCommutativity(Map<SignalType, List<EnforcementPlanEntry<?>>> entriesBySignal) {
         for (val entries : entriesBySignal.values()) {
@@ -191,9 +191,8 @@ public class EnforcementPlanner {
 
     /**
      * Resolves a handler for each {@code constraint} in {@code constraints} (all
-     * sharing
-     * {@code constraintType}) and appends the resulting entry to the per-signal
-     * sequence in
+     * sharing {@code constraintType}) and
+     * appends the resulting entry to the per-signal sequence in
      * {@code entriesBySignal}.
      */
     private void scheduleHandlersFor(ArrayValue constraints, ConstraintType constraintType,
@@ -208,16 +207,19 @@ public class EnforcementPlanner {
 
     /**
      * Resolves all handlers for one constraint by collecting providers' results.
-     * Exactly one provider must claim the constraint (return a non-empty list).
-     * That provider may return one or more handlers, each scoped to its own
-     * signal and priority. Each well-formed handler is scheduled independently;
-     * any inadmissible handler in the bundle fails the entire claim.
+     * Exactly one provider must claim the
+     * constraint (return a non-empty list). That provider may return one or more
+     * handlers, each scoped to its own
+     * signal and priority. Each well-formed handler is scheduled independently; any
+     * inadmissible handler in the bundle
+     * fails the entire claim.
      * <p>
-     * Returns a singleton failure substitute attached to the decision signal
-     * when no provider claims, multiple providers claim, or any returned handler
-     * is not admissible
-     * ({@link SubstitutionReason#UNRESOLVED}, {@link SubstitutionReason#AMBIGUOUS},
-     * or {@link SubstitutionReason#INADMISSIBLE}).
+     * Returns a singleton failure substitute attached to the decision signal when
+     * no provider claims, multiple
+     * providers claim, or any returned handler is not admissible
+     * ({@link SubstitutionReason#UNRESOLVED},
+     * {@link SubstitutionReason#AMBIGUOUS}, or
+     * {@link SubstitutionReason#INADMISSIBLE}).
      */
     private List<Assignment> assignHandlers(Value constraint, ConstraintType constraintType,
             Set<SignalType> supportedSignals) {
@@ -246,12 +248,11 @@ public class EnforcementPlanner {
 
     /**
      * Returns true when {@code (a, s, p)} is well-formed for
-     * {@code constraintType}, per the type-signal
-     * admissibility invariant: the signal is in {@code supportedSignals}; advice
-     * constraints carry no mapper;
-     * mappers and consumers attach only to data-carrying (value) signals while
-     * runners are admissible at any
-     * signal.
+     * {@code constraintType}, per the type-signal admissibility
+     * invariant: the signal is in {@code supportedSignals}; advice constraints
+     * carry no mapper; mappers and consumers
+     * attach only to data-carrying (value) signals while runners are admissible at
+     * any signal.
      */
     private static boolean isAdmissible(ScopedConstraintHandler scopedHandler, ConstraintType constraintType,
             Set<SignalType> supportedSignals) {
@@ -267,11 +268,10 @@ public class EnforcementPlanner {
 
     /**
      * Walks {@code entries} and replaces every maximal run of mappers at equal
-     * priority of length greater
-     * than one with synthetic failure runners tagged
-     * {@link SubstitutionReason#NON_COMMUTING_GROUP}. The
-     * planner has no API for declaring pairwise commutativity, so any such group is
-     * conservatively treated
+     * priority of length greater than one with
+     * synthetic failure runners tagged
+     * {@link SubstitutionReason#NON_COMMUTING_GROUP}. The planner has no API for
+     * declaring pairwise commutativity, so any such group is conservatively treated
      * as non-commuting.
      */
     private static void replaceNonCommutingMapperGroups(List<EnforcementPlanEntry<?>> entries) {
@@ -315,8 +315,8 @@ public class EnforcementPlanner {
 
     /**
      * Builds an assignment of a synthetic failure runner at the decision signal for
-     * a constraint that could
-     * not be resolved or admitted in Phase 1.
+     * a constraint that could not be
+     * resolved or admitted in Phase 1.
      */
     private Assignment failureSubstitute(Value constraint, ConstraintType constraintType, SubstitutionReason reason) {
         return new Assignment(DECISION_SIGNAL_TYPE, entry(syntheticFailureRunner(constraint, constraintType, reason),
@@ -325,13 +325,12 @@ public class EnforcementPlanner {
 
     /**
      * Returns the synthetic failure runner of the framework: on invocation it logs
-     * the offending constraint;
-     * if {@code constraintType} is obligation it additionally throws an
-     * {@link AccessDeniedException} to signal failure to the execution
-     * algorithm; if
-     * {@code constraintType} is advice it completes successfully, recording the
-     * non-enforcement without
-     * blocking the decision.
+     * the offending constraint; if
+     * {@code constraintType} is obligation it additionally throws an
+     * {@link AccessDeniedException} to signal failure to
+     * the execution algorithm; if {@code constraintType} is advice it completes
+     * successfully, recording the
+     * non-enforcement without blocking the decision.
      */
     private static Runner syntheticFailureRunner(Value constraint, ConstraintType constraintType,
             SubstitutionReason reason) {

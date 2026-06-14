@@ -84,7 +84,7 @@ public class ExpressionCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, name.hashCode());
+            return SemanticHashing.ordered(KIND, SemanticHashing.textHash(name));
         }
     }
 

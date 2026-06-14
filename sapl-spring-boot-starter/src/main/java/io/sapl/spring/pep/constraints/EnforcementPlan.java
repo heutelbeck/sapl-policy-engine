@@ -50,10 +50,12 @@ import reactor.core.publisher.Mono;
 
 /**
  * Per-decision schedule mapping each {@link SignalType} to the ordered sequence
- * of {@link EnforcementPlanEntry} instances to discharge when that signal
- * fires. Implements Algorithm 3 of the enforcement framework: when a signal
+ * of {@link EnforcementPlanEntry}
+ * instances to discharge when that signal fires. Implements Algorithm 3 of the
+ * enforcement framework: when a signal
  * fires, the entries scheduled for it are applied in plan order, mappers
- * threading the carried value, consumers observing it, runners ignoring it.
+ * threading the carried value, consumers
+ * observing it, runners ignoring it.
  */
 @Slf4j
 public record EnforcementPlan(
@@ -68,8 +70,9 @@ public record EnforcementPlan(
 
     /**
      * Convenience constructor for plans without a registered OutputSignal type.
-     * Calling {@link #enforceOutputConstraints(Object, boolean)} on such a plan
-     * passes the value through unchanged.
+     * Calling
+     * {@link #enforceOutputConstraints(Object, boolean)} on such a plan passes the
+     * value through unchanged.
      */
     public EnforcementPlan(Map<SignalType, List<EnforcementPlanEntry<?>>> entries) {
         this(null, entries);
@@ -77,25 +80,30 @@ public record EnforcementPlan(
 
     /**
      * Returns the ordered sequence of entries scheduled for {@code signalType}, or
-     * an empty list when no
-     * entries are scheduled at that signal.
+     * an empty list when no entries are
+     * scheduled at that signal.
      */
     public List<EnforcementPlanEntry<?>> entriesFor(SignalType signalType) {
         return entries.getOrDefault(signalType, List.of());
     }
 
     /**
-     * Discharges the entries scheduled for {@code signal} in plan order,
-     * applying mappers, consumers, and runners best-effort: a handler that throws
-     * is logged and skipped; only obligation-tagged failures flip the returned
+     * Discharges the entries scheduled for {@code signal} in plan order, applying
+     * mappers, consumers, and runners
+     * best-effort: a handler that throws is logged and skipped; only
+     * obligation-tagged failures flip the returned
      * failure state. JVM-fatal and Reactor-fatal throwables are re-raised via
      * {@link reactor.core.Exceptions#throwIfFatal}.
      *
-     * @param signal the fired signal; data-carrying signals contribute their value
-     * as the initial current value, self-contained signals start with
-     * {@link Maybe.Absent}
-     * @param priorFailureState failure state propagated from earlier signals; once
-     * {@code true} it remains {@code true} for the rest of the run
+     * @param signal
+     * the fired signal; data-carrying signals contribute their value as the initial
+     * current value,
+     * self-contained signals start with {@link Maybe.Absent}
+     * @param priorFailureState
+     * failure state propagated from earlier signals; once {@code true} it remains
+     * {@code true} for the rest
+     * of the run
+     *
      * @return the (possibly transformed) value carried through the entries together
      * with the updated failure state
      */
@@ -126,23 +134,26 @@ public record EnforcementPlan(
     }
 
     /**
-     * Reactive error-path entry point: fires {@link ErrorSignal} for {@code t}
-     * and returns the resolved error wrapped in {@link Mono#error(Throwable)}.
-     * Suitable as a method reference for
-     * {@code .onErrorResume(plan::enforceErrorConstraints)}
-     * on both Mono and Flux pipelines (since {@code Mono} is a {@code Publisher}).
+     * Reactive error-path entry point: fires {@link ErrorSignal} for {@code t} and
+     * returns the resolved error wrapped
+     * in {@link Mono#error(Throwable)}. Suitable as a method reference for
+     * {@code .onErrorResume(plan::enforceErrorConstraints)} on both Mono and Flux
+     * pipelines (since {@code Mono} is a
+     * {@code Publisher}).
      */
     public Mono<Object> enforceErrorConstraints(Throwable t) {
         return Mono.error(enforceErrorConstraintsAsThrowable(t));
     }
 
     /**
-     * Blocking error-path entry point: fires {@link ErrorSignal} for {@code t}
-     * and returns the resolved {@link Throwable} for the caller to {@code throw}.
-     * Resolution rules: a fatal Throwable is re-raised immediately; a failure of
-     * the error-signal obligation itself escalates to a fresh
-     * {@link AccessDeniedException}; a Mapper that returned a Throwable replaces
-     * {@code t}; otherwise {@code t} passes through unchanged.
+     * Blocking error-path entry point: fires {@link ErrorSignal} for {@code t} and
+     * returns the resolved
+     * {@link Throwable} for the caller to {@code throw}. Resolution rules: a fatal
+     * Throwable is re-raised immediately;
+     * a failure of the error-signal obligation itself escalates to a fresh
+     * {@link AccessDeniedException}; a Mapper that
+     * returned a Throwable replaces {@code t}; otherwise {@code t} passes through
+     * unchanged.
      */
     public Throwable enforceErrorConstraintsAsThrowable(Throwable t) {
         throwIfFatal(t);
@@ -164,12 +175,13 @@ public record EnforcementPlan(
 
     /**
      * Pre-invocation entry point: fires {@link DecisionSignal} carrying the
-     * authorization decision and then, regardless of any failure at the decision
-     * signal, fires {@link InputSignal} carrying the method invocation (Mapper
-     * handlers may mutate the invocation in place). Both signals always run so
-     * policies can react at the decision and the input level. Throws
-     * {@link AccessDeniedException} after both have fired if any obligation
-     * handler failed.
+     * authorization decision and then, regardless
+     * of any failure at the decision signal, fires {@link InputSignal} carrying the
+     * method invocation (Mapper handlers
+     * may mutate the invocation in place). Both signals always run so policies can
+     * react at the decision and the input
+     * level. Throws {@link AccessDeniedException} after both have fired if any
+     * obligation handler failed.
      */
     public void enforcePreInvocationConstraints(AuthorizationDecision decision, MethodInvocation invocation) {
         var failed = execute(DecisionSignal.of(decision), false).failureState();
@@ -181,11 +193,12 @@ public record EnforcementPlan(
 
     /**
      * Post-RAP decision entry point: fires {@link DecisionSignal} carrying the
-     * authorization decision and returns the failure state of its handlers
-     * without throwing, for the caller to thread into the subsequent
-     * {@link OutputSignal} call. Used by PostEnforce flows where decision-time
-     * obligation failures must propagate into the output signal rather than
-     * abort early.
+     * authorization decision and returns the
+     * failure state of its handlers without throwing, for the caller to thread into
+     * the subsequent {@link OutputSignal}
+     * call. Used by PostEnforce flows where decision-time obligation failures must
+     * propagate into the output signal
+     * rather than abort early.
      */
     public boolean enforceDecisionConstraints(AuthorizationDecision decision) {
         return execute(DecisionSignal.of(decision), false).failureState();
@@ -193,7 +206,8 @@ public record EnforcementPlan(
 
     /**
      * Convenience overload of {@link #enforceOutputConstraints(Object, boolean)}
-     * with no prior failure to thread in. Suitable as a method reference for
+     * with no prior failure to thread in.
+     * Suitable as a method reference for
      * {@code rap.mapNotNull(plan::enforceOutputConstraints)} in reactive Mono
      * pipelines where OutputSignal fires once per emitted item.
      */
@@ -203,14 +217,17 @@ public record EnforcementPlan(
 
     /**
      * Output entry point: fires {@link OutputSignal} carrying {@code value} typed
-     * by this plan's output type, threading {@code priorFailure} into the
-     * execution. For void or {@link Void} output types the signal fires with no
-     * value (Mappers and Consumers are skipped, Runners still fire). When this
-     * plan was built without a registered OutputSignal type the call behaves
-     * like an empty entry list: no signal fires, the value passes through, but
+     * by this plan's output type, threading
+     * {@code priorFailure} into the execution. For void or {@link Void} output
+     * types the signal fires with no value
+     * (Mappers and Consumers are skipped, Runners still fire). When this plan was
+     * built without a registered
+     * OutputSignal type the call behaves like an empty entry list: no signal fires,
+     * the value passes through, but
      * {@code priorFailure} still triggers an {@link AccessDeniedException} so
-     * upstream failure is not silently dropped. Returns the (possibly
-     * Mapper-transformed) value, or {@code null} for empty results.
+     * upstream failure is not silently dropped.
+     * Returns the (possibly Mapper-transformed) value, or {@code null} for empty
+     * results.
      */
     public @Nullable Object enforceOutputConstraints(@Nullable Object value, boolean priorFailure) {
         if (outputType == null) {
@@ -229,8 +246,8 @@ public record EnforcementPlan(
 
     /**
      * Fires {@link SubscriptionSignal} carrying the demand. Throws
-     * {@link AccessDeniedException} on obligation-handler failure.
-     * Suitable as a {@code LongConsumer} method reference for
+     * {@link AccessDeniedException} on obligation-handler
+     * failure. Suitable as a {@code LongConsumer} method reference for
      * {@code .doOnRequest(plan::enforceSubscription)}.
      */
     public void enforceSubscription(long demand) {

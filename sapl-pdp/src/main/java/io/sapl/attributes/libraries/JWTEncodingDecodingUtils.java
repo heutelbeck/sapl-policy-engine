@@ -87,8 +87,7 @@ public class JWTEncodingDecodingUtils {
      * @return bytes
      */
     private static Optional<byte[]> decode(String base64) {
-        val pattern = "\\+";
-        base64 = base64.replace(pattern, "-").replace('/', '_').replace(',', '_');
+        base64 = base64.replace('+', '-').replace('/', '_').replace(',', '_');
 
         try {
             val bytes = Base64.getUrlDecoder().decode(base64);

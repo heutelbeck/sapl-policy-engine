@@ -35,6 +35,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties;
 import lombok.val;
 
@@ -82,20 +83,11 @@ class MetricsConfigurationTests {
     class WhenMetricsDisabled {
 
         @Test
-        @DisplayName("interceptor is a no-op and records no metrics")
-        void whenMetricsDisabledThenNoMetricsRecorded() {
-            contextRunner(false).run(context -> {
-                val interceptor = context.getBean(PdpMetricsCollector.class);
-                val registry    = context.getBean(MeterRegistry.class);
-
-                interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
-                interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"),
-                        "sub-1", SUBSCRIPTION);
-                interceptor.onUnsubscribe("sub-1");
-
-                assertThat(registry.find(METRIC_DECISIONS).counter()).isNull();
-                assertThat(registry.find(METRIC_SUBSCRIPTIONS_ACTIVE).gauge()).isNull();
-            });
+        @DisplayName("no decision interceptor is supplied, so the PDP uses its no-interceptor fast path")
+        void whenMetricsDisabledThenNoInterceptorSupplied() {
+            contextRunner(false).run(
+                    context -> assertThat(context.getBeanProvider(DecisionInterceptor.class).orderedStream().toList())
+                            .isEmpty());
         }
 
     }

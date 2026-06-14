@@ -72,8 +72,9 @@ import lombok.val;
 
 /**
  * End-to-end servlet test of the SAPL HTTP authorization chain. Real Spring
- * Boot context wired through {@link SaplHttpSecurityConfigurer}, real
- * controller, real {@link MockMvc}. The PDP is the only mock.
+ * Boot context wired through
+ * {@link SaplHttpSecurityConfigurer}, real controller, real {@link MockMvc}.
+ * The PDP is the only mock.
  */
 @SpringBootTest(classes = SaplHttpServletEnforcementTests.TestApp.class)
 @AutoConfigureMockMvc

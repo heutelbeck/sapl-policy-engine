@@ -17,6 +17,7 @@
  */
 package io.sapl.api.stream;
 
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -324,29 +325,63 @@ public class Streams {
      * into the output. Equivalent of Reactor's {@code .repeat()} for a
      * cold publisher. Runs until the output stream is closed.
      * <p>
-     * Hot: spawns one virtual thread that drives the loop. Caller must
+     * Lazy: the loop does not start until the returned stream is first
+     * read (the first {@link Stream#awaitNext()} or {@link Stream#tryNext()}).
+     * This keeps the factory from running, and from scheduling time boundaries
+     * against a stale clock, before a preceding source in an enclosing
+     * {@link #concat} has completed. Once started it spawns one virtual thread
+     * that drives the loop until the stream is closed. Caller must
      * {@code close()} the returned stream to stop the loop.
      */
     public static Stream<Value> repeat(Supplier<Stream<Value>> sourceFactory) {
         val out     = new LatestSlotStream<Value>();
         val stopped = new AtomicBoolean(false);
-        val pump    = Thread.startVirtualThread(() -> {
-                        try {
-                            while (!stopped.get()) {
-                                val src = sourceFactory.get();
-                                pumpInto(src, out, stopped);
-                            }
-                        } catch (RuntimeException loopFailure) {
-                            out.put(Value.error(messageOf(loopFailure)));
-                        } finally {
-                            out.complete();
+        val started = new AtomicBoolean(false);
+        val pumpRef = new AtomicReference<Thread>();
+
+        final Runnable start = () -> {
+            if (started.compareAndSet(false, true)) {
+                pumpRef.set(Thread.startVirtualThread(() -> {
+                    try {
+                        while (!stopped.get()) {
+                            val src = sourceFactory.get();
+                            pumpInto(src, out, stopped);
                         }
-                    });
+                    } catch (RuntimeException loopFailure) {
+                        out.put(Value.error(messageOf(loopFailure)));
+                    } finally {
+                        out.complete();
+                    }
+                }));
+            }
+        };
+
         out.onClose(() -> {
             stopped.set(true);
-            pump.interrupt();
+            val pump = pumpRef.get();
+            if (pump != null) {
+                pump.interrupt();
+            }
         });
-        return out;
+
+        return new Stream<>() {
+            @Override
+            public Value awaitNext() throws InterruptedException {
+                start.run();
+                return out.awaitNext();
+            }
+
+            @Override
+            public Poll<Value> tryNext() {
+                start.run();
+                return out.tryNext();
+            }
+
+            @Override
+            public void close() {
+                out.close();
+            }
+        };
     }
 
     /**

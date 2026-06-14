@@ -41,29 +41,34 @@ import reactor.util.context.ContextView;
 
 /**
  * AOP {@link MethodInterceptor} for the reactive Mongo template proxy. Catches
- * both the legacy {@code find(Query, Class)} family of entry points
- * ({@code find}, {@code findOne}, {@code exists}, {@code count},
+ * both the legacy
+ * {@code find(Query, Class)} family of entry points ({@code find},
+ * {@code findOne}, {@code exists}, {@code count},
  * {@code remove}) and the fluent {@link ReactiveFindOperation} chain
  * ({@code template.query(Class).matching(Query).all()}) used by Spring Data
- * Mongo's derived-query and {@code @Query}-annotated repository methods. The
- * legacy entry points cover {@code SimpleReactiveMongoRepository}'s CRUD
- * surface ({@code findById}, {@code existsById}, {@code count()},
- * {@code findAll}, {@code deleteById}, {@code findOne(Example)}, etc.) since
- * each of them ultimately bottoms out at one of these methods on
+ * Mongo's derived-query and
+ * {@code @Query}-annotated repository methods. The legacy entry points cover
+ * {@code SimpleReactiveMongoRepository}'s
+ * CRUD surface ({@code findById}, {@code existsById}, {@code count()},
+ * {@code findAll}, {@code deleteById},
+ * {@code findOne(Example)}, etc.) since each of them ultimately bottoms out at
+ * one of these methods on
  * {@code ReactiveMongoTemplate}.
  * <p>
- * For the fluent chain, the interceptor returns a Spring AOP proxy
- * implementing {@link FindWithProjection} on top of the template's real chain
- * and re-wraps the result of {@code as(Class)} so that {@code matching(Query)}
- * is intercepted regardless of whether projection retyping was applied first
- * (which {@code AbstractReactiveMongoQuery.doExecute} does for derived
- * queries). The shim defers to the terminating method (where the returned
- * {@link Mono} or {@link Flux} can {@code deferContextual} to read the active
- * plan) and re-invokes the real chain with the rewritten query.
+ * For the fluent chain, the interceptor returns a Spring AOP proxy implementing
+ * {@link FindWithProjection} on top of
+ * the template's real chain and re-wraps the result of {@code as(Class)} so
+ * that {@code matching(Query)} is intercepted
+ * regardless of whether projection retyping was applied first (which
+ * {@code AbstractReactiveMongoQuery.doExecute} does
+ * for derived queries). The shim defers to the terminating method (where the
+ * returned {@link Mono} or {@link Flux} can
+ * {@code deferContextual} to read the active plan) and re-invokes the real
+ * chain with the rewritten query.
  */
 public class MongoShimMethodInterceptor implements MethodInterceptor {
 
-    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A MongoDB query-manipulation obligation handler failed.";
+    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A MongoDB query-rewriting obligation handler failed.";
 
     private static final String      METHOD_QUERY                = "query";
     private static final Set<String> SHIMMED_LEGACY_QUERY_METHOD = Set.of("find", "findOne", "exists", "count",

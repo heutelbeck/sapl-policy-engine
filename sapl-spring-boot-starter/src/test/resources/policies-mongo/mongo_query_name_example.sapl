@@ -6,7 +6,7 @@ permit
     action == "findAll";
     subject.age > 18;
 obligation {
-               "type": "mongoQueryManipulation",
+               "type": "mongoQueryRewriting",
                "conditions": [ "{'admin': {'$eq': false}}" ],
 			   "selection": {
 					"type": "blacklist",
@@ -19,7 +19,7 @@ permit
     action == "findAllByAgeAfter";
     resource.age >= 18;
 obligation {
-               "type": "mongoQueryManipulation",
+               "type": "mongoQueryRewriting",
                "conditions": [ "{'admin': {'$eq': false}}" ],
 			   "selection": {
 					"type": "whitelist",

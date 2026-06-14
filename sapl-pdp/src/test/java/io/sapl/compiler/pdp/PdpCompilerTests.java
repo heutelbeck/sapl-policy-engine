@@ -27,6 +27,7 @@ import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.util.SaplTesting;
@@ -191,6 +192,88 @@ class PdpCompilerTests {
             val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
             assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+    }
+
+    @Nested
+    @DisplayName("PDP voter metadata outcome")
+    class PdpVoterMetadataOutcomeTests {
+
+        private static final String POLICY_SUSPEND = """
+                policy "policy-s"
+                suspend
+                """;
+
+        static Stream<Arguments> pdpOutcomeCases() {
+            return Stream.of(arguments(ABSTAIN, List.of(POLICY_A, POLICY_B), Outcome.PERMIT_OR_DENY),
+                    arguments(ABSTAIN, List.of(POLICY_A, POLICY_SUSPEND), Outcome.PERMIT_OR_SUSPEND),
+                    arguments(DefaultDecision.SUSPEND, List.of(POLICY_B), Outcome.DENY_OR_SUSPEND),
+                    arguments(ABSTAIN, List.<String>of(), Outcome.PERMIT_OR_DENY_OR_SUSPEND));
+        }
+
+        @ParameterizedTest(name = "default {0} with documents {1} yields {2}")
+        @MethodSource("pdpOutcomeCases")
+        void whenCompilingPdpThenMetadataOutcomeIsUnionOfDocumentOutcomesAndDefault(DefaultDecision defaultDecision,
+                List<String> documents, Outcome expected) {
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, defaultDecision, PROPAGATE), documents,
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+
+            assertThat(compiledVoter.metadata().outcome()).isEqualTo(expected);
+        }
+    }
+
+    @Nested
+    @DisplayName("policy set would-have-been outcome on target errors")
+    class PolicySetWouldHaveBeenOutcomeTests {
+
+        private static final String ERRORING_DENY_SUSPEND_SET = """
+                set "erroring-set"
+                priority deny or abstain
+                for subject.missing.field
+                policy "set-deny" deny
+                policy "set-suspend" suspend
+                """;
+
+        private static final String ERRORING_PERMIT_SUSPEND_SET = """
+                set "erroring-set"
+                priority permit or abstain
+                for subject.missing.field
+                policy "set-permit" permit
+                policy "set-suspend" suspend
+                """;
+
+        private static final AuthorizationSubscription TEXT_SUBJECT_SUBSCRIPTION = AuthorizationSubscription
+                .of(Value.of("alice"), Value.NULL, Value.NULL, Value.NULL);
+
+        @Test
+        @DisplayName("erroring deny/suspend set blocks concrete PERMIT under priority suspend")
+        void whenSetWithDenyAndSuspendPoliciesErrorsUnderPrioritySuspendThenIndeterminate() {
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_SUSPEND, ABSTAIN, PROPAGATE),
+                    List.of(ERRORING_DENY_SUSPEND_SET, VALID_POLICY),
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, TEXT_SUBJECT_SUBSCRIPTION);
+
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("erroring permit/suspend set does not block concrete PERMIT under priority deny")
+        void whenSetWithPermitAndSuspendPoliciesErrorsUnderPriorityDenyThenConcretePermitWins() {
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
+                    List.of(ERRORING_PERMIT_SUSPEND_SET, VALID_POLICY),
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, TEXT_SUBJECT_SUBSCRIPTION);
+
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
     }
 

@@ -18,19 +18,22 @@
 package io.sapl.attributes.libraries;
 
 import io.sapl.api.attributes.AttributeAccessContext;
+import io.sapl.api.attributes.AttributeFinderInvocation;
 import io.sapl.api.model.ObjectValue;
+import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.BlockingWebClient;
 import io.sapl.api.stream.LatestSlotStream;
-import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
-import io.sapl.api.test.stream.TestTimeScheduler;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,9 +48,11 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Duration;
-import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static io.sapl.util.SaplTesting.evaluate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -407,8 +412,7 @@ class HttpPolicyInformationPointTests {
                 val pdpSecrets = namedHttpSecrets("weather-api", "X-API-Key", "abc123");
                 val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
                 val request    = ObjectValue.builder().put("baseUrl", Value.of(baseUrl))
-                        .put("accept", Value.of("application/json")).put("secretsKey", Value.of("weather-api"))
-                        .put("pollingIntervalMs", Value.of(1000)).build();
+                        .put("accept", Value.of("application/json")).put("secretsKey", Value.of("weather-api")).build();
                 val realClient = newRealClient();
                 val pip        = new HttpPolicyInformationPoint(realClient);
 
@@ -442,8 +446,7 @@ class HttpPolicyInformationPointTests {
                 val policyHeaders = ObjectValue.builder().put("Accept-Language", Value.of("de"))
                         .put("Authorization", Value.of("Bearer policy-token")).build();
                 val request       = ObjectValue.builder().put("baseUrl", Value.of(baseUrl))
-                        .put("accept", Value.of("application/json")).put("headers", policyHeaders)
-                        .put("pollingIntervalMs", Value.of(1000)).build();
+                        .put("accept", Value.of("application/json")).put("headers", policyHeaders).build();
                 val realClient    = newRealClient();
                 val pip           = new HttpPolicyInformationPoint(realClient);
 
@@ -471,16 +474,57 @@ class HttpPolicyInformationPointTests {
         void whenLoadedIntoStoreThenRegistersUnderHttpNamespace() {
             try (val broker = new PolicyInformationPointAttributeBroker()) {
                 val mapper    = JsonMapper.builder().build();
-                val now       = Instant.parse("2025-06-15T12:00:00Z");
-                val clock     = new MutableClock(now);
-                val scheduler = new TestTimeScheduler(now);
-                val webClient = new BlockingWebClient(mapper, HttpClient.newHttpClient(), clock, scheduler);
+                val webClient = new BlockingWebClient(mapper, HttpClient.newHttpClient());
                 val handle    = broker.load(new HttpPolicyInformationPoint(webClient));
 
                 assertThat(handle.pipName()).isEqualTo("http");
                 assertThat(handle.isLoaded()).isTrue();
                 assertThat(broker.catalog()).containsExactly(handle);
             }
+        }
+    }
+
+    @Test
+    @DisplayName("the pollIntervalMs attribute option drives the http.get invocation poll interval end to end")
+    void whenPollIntervalOptionOnHttpAttributeThenInvocationCarriesIt() {
+        val invocation = evaluate("<http.get({\"baseUrl\": \"https://example.com\"})[{pollIntervalMs: 250}]>")
+                .with("http.get", Value.of("ok")).onlyInvocation();
+
+        assertThat(invocation.attributeName()).isEqualTo("http.get");
+        assertThat(invocation.pollInterval()).isEqualTo(Duration.ofMillis(250));
+    }
+
+    @Test
+    @DisplayName("the broker re-invokes the http attribute at the configured poll interval (repetition end to end)")
+    void whenSubscribedWithShortPollIntervalThenBrokerReIssuesRequests() throws IOException {
+        val server = new MockWebServer();
+        server.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest recordedRequest) {
+                return new MockResponse().setBody("{\"v\":1}").addHeader("Content-Type", "application/json");
+            }
+        });
+        server.start();
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
+            broker.load(new HttpPolicyInformationPoint(
+                    new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient())));
+            val request    = ObjectValue.builder().put("baseUrl", Value.of("http://localhost:" + server.getPort()))
+                    .build();
+            val invocation = new AttributeFinderInvocation("default", "http.get", List.of(request),
+                    Duration.ofSeconds(1), Duration.ofMillis(50), Duration.ofMillis(50), 0L, false, EMPTY_CTX);
+            val key        = new SubscriptionKey(invocation, false);
+
+            val subscription = broker.open("poll-e2e", Set.of(key), snapshot -> Set.of(key));
+            try {
+                // A single-shot HTTP attribute, re-issued by the broker every 50 ms poll
+                // interval, must produce more than one request without any in-PIP looping.
+                Awaitility.await().atMost(Duration.ofSeconds(5))
+                        .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2));
+            } finally {
+                subscription.close();
+            }
+        } finally {
+            server.shutdown();
         }
     }
 
@@ -500,8 +544,7 @@ class HttpPolicyInformationPointTests {
     }
 
     private static BlockingWebClient newRealClient() {
-        return new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient(),
-                new MutableClock(Instant.now()), new TestTimeScheduler(Instant.now()));
+        return new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient());
     }
 
     private static ObjectValue baseRequest(String url) {

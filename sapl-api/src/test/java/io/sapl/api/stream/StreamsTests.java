@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +39,9 @@ import static org.awaitility.Awaitility.await;
 
 @DisplayName("Streams")
 class StreamsTests {
+
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
+    private static final Clock   CLOCK     = Clock.fixed(REFERENCE, ZoneOffset.UTC);
 
     @Nested
     @DisplayName("just")
@@ -89,7 +94,7 @@ class StreamsTests {
 
         @BeforeEach
         void setUp() {
-            scheduler = new RealTimeScheduler();
+            scheduler = new RealTimeScheduler(CLOCK);
         }
 
         @AfterEach
@@ -100,7 +105,7 @@ class StreamsTests {
         @Test
         @DisplayName("emits the value at the scheduled instant and completes")
         void whenScheduledAtFutureThenEmitsAndCompletes() throws InterruptedException {
-            val when   = Clock.systemUTC().instant().plusMillis(40);
+            val when   = REFERENCE.plusMillis(40);
             val stream = Streams.scheduledAt(Value.of("now"), when, scheduler);
 
             assertThat(stream.awaitNext()).isEqualTo(Value.of("now"));
@@ -110,7 +115,7 @@ class StreamsTests {
         @Test
         @DisplayName("close before fire cancels the scheduled emission")
         void whenCloseBeforeFireThenNoEmission() {
-            val when   = Clock.systemUTC().instant().plusMillis(200);
+            val when   = REFERENCE.plusMillis(200);
             val stream = Streams.scheduledAt(Value.of("never"), when, scheduler);
 
             stream.close();
@@ -128,7 +133,7 @@ class StreamsTests {
 
         @BeforeEach
         void setUp() {
-            scheduler = new RealTimeScheduler();
+            scheduler = new RealTimeScheduler(CLOCK);
         }
 
         @AfterEach
@@ -140,7 +145,7 @@ class StreamsTests {
         @DisplayName("delivers each phase across a real time gap")
         void whenConcatOverScheduledTransitionThenBothPhasesDelivered() throws InterruptedException {
             val phase1 = Streams.just(Value.of("phase1"));
-            val phase2 = Streams.scheduledAt(Value.of("phase2"), Clock.systemUTC().instant().plusMillis(80), scheduler);
+            val phase2 = Streams.scheduledAt(Value.of("phase2"), REFERENCE.plusMillis(80), scheduler);
 
             val stream = Streams.concat(phase1, phase2);
 

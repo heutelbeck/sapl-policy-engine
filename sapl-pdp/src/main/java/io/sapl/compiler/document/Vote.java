@@ -126,6 +126,20 @@ public final class Vote implements Voter, TracedDecision {
     }
 
     /**
+     * Returns a copy of this vote with its outcome replaced. Used by
+     * set-level combiners to complete the could-have-been effect set of an
+     * INDETERMINATE result over the policies a decision short-circuit did not
+     * fold, so that an enclosing priority combiner judges criticality
+     * correctly. Decision, errors, contributing votes, and voter are kept.
+     *
+     * @param outcome the replacement outcome
+     * @return a copy carrying {@code outcome}
+     */
+    public Vote withOutcome(Outcome outcome) {
+        return new Vote(authorizationDecision, errors, contributingVotes, voter, outcome);
+    }
+
+    /**
      * Returns a copy with {@code newVote} appended to the contributing votes.
      */
     public Vote withVote(Vote newVote) {

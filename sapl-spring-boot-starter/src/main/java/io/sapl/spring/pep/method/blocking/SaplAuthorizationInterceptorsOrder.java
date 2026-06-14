@@ -24,9 +24,10 @@ import lombok.Getter;
  * interceptors.
  * <p>
  * SAPL PEPs are placed at the innermost positions of the AOP interceptor chain
- * (highest order values). This ensures that when combined with
- * {@code @Transactional}, constraint handler failures after method execution
- * propagate through the {@code TransactionInterceptor} and trigger a rollback.
+ * (highest order values). This ensures
+ * that when combined with {@code @Transactional}, constraint handler failures
+ * after method execution propagate through
+ * the {@code TransactionInterceptor} and trigger a rollback.
  * <p>
  * From inner to outer:
  * <ol>
@@ -34,7 +35,8 @@ import lombok.Getter;
  * <li>{@link #PRE_ENFORCE} ({@code Integer.MAX_VALUE - 1})</li>
  * <li>{@link #STREAMING} ({@code Integer.MAX_VALUE - 2})</li>
  * <li>{@code TransactionInterceptor} - should be configured with order
- * {@link #TRANSACTION_ORDER} ({@code Integer.MAX_VALUE - 3})</li>
+ * {@link #TRANSACTION_ORDER}
+ * ({@code Integer.MAX_VALUE - 3})</li>
  * </ol>
  * <p>
  * All three enforcement types (pre, post, streaming) are mutually exclusive on
@@ -55,8 +57,9 @@ public enum SaplAuthorizationInterceptorsOrder {
 
     /**
      * Recommended order for {@code TransactionInterceptor} when used with SAPL
-     * enforcement. This places the transaction boundary just outside the SAPL
-     * PEPs so that constraint handler failures trigger transaction rollback.
+     * enforcement. This places the transaction
+     * boundary just outside the SAPL PEPs so that constraint handler failures
+     * trigger transaction rollback.
      */
     public static final int TRANSACTION_ORDER = Integer.MAX_VALUE - 3;
 

@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.regex.Pattern;
 
 /**
  * Retrieves public keys from a remote JWT authorization server with
@@ -50,7 +51,12 @@ public class JWTKeyProvider {
     private static final String ERROR_JWT_KEY_CACHING_CONFIGURATION = "The provided caching configuration was not understood: ";
     private static final String WARN_JWT_KEY_SERVER_HTTP            = "JWT public-key server returned HTTP {} for kid '{}' at '{}'. Token signatures cannot be verified.";
     private static final String WARN_JWT_KEY_SERVER_IO              = "JWT public-key fetch failed for kid '{}' at '{}': {}. Token signatures cannot be verified.";
+    private static final String WARN_JWT_KID_REJECTED               = "JWT public-key fetch rejected: the key id contains characters outside the permitted set [A-Za-z0-9._-]. Token signatures cannot be verified.";
 
+    // The kid comes from an unverified JWT header and is interpolated into the
+    // operator's key-server URI template. Restricting it to base64url-safe
+    // characters prevents path, query, authority, or CRLF injection.
+    private static final Pattern  SAFE_KEY_ID            = Pattern.compile("[A-Za-z0-9._-]+");
     public static final String    PUBLIC_KEY_URI_KEY     = "uri";
     public static final String    PUBLIC_KEY_METHOD_KEY  = "method";
     public static final String    KEY_CACHING_TTL_MILLIS = "keyCachingTtlMillis";
@@ -161,6 +167,10 @@ public class JWTKeyProvider {
     }
 
     private Optional<Key> fetchPublicKey(String kid, String publicKeyUri, String publicKeyRequestMethod) {
+        if (!SAFE_KEY_ID.matcher(kid).matches()) {
+            log.warn(WARN_JWT_KID_REJECTED);
+            return Optional.empty();
+        }
         if (isCached(kid)) {
             return Optional.of(keyCache.get(kid));
         }

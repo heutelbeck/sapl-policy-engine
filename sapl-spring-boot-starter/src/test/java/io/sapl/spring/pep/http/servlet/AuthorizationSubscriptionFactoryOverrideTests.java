@@ -49,11 +49,12 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Validates that the {@link AuthorizationSubscriptionFactory} extension
- * point shapes the subscription that reaches the PDP. These are not unit
- * tests of the factory itself: they assert that a non-default factory's
- * output is what the manager subscribes the PDP with. That is the contract
- * the extension point exists to provide.
+ * Validates that the {@link AuthorizationSubscriptionFactory} extension point
+ * shapes the subscription that reaches the
+ * PDP. These are not unit tests of the factory itself: they assert that a
+ * non-default factory's output is what the
+ * manager subscribes the PDP with. That is the contract the extension point
+ * exists to provide.
  */
 class AuthorizationSubscriptionFactoryOverrideTests {
 

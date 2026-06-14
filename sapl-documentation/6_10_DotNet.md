@@ -49,7 +49,7 @@ dotnet add package Sapl.AspNetCore
 
 The library requires .NET 9.0 or later.
 
-An RSocket transport is available in the separate `Sapl.Rsocket` package as an alternative to HTTP for the PDP connection. `AddSapl` wires the HTTP client; the RSocket client is registered explicitly. See the demo and integration tests for the RSocket setup.
+An RSocket transport is available in the separate `Sapl.Rsocket` package as an alternative to HTTP for the PDP connection. `AddSapl` wires the HTTP client. The RSocket client is registered explicitly. See the demo and integration tests for the RSocket setup.
 
 A complete working demo with constraint handlers, service-layer enforcement, and streaming authorization is available at [sapl-dotnet-demos](https://github.com/heutelbeck/sapl-dotnet-demos).
 
@@ -135,7 +135,7 @@ This middleware should be registered before `app.MapControllers()`. Without it, 
 
 ### Enforcement Attributes
 
-All enforcement attributes can be placed on controller action methods or on the controller class itself. The attributes work through ASP.NET Core's MVC filter pipeline, so they require standard controller routing (`[ApiController]`, `MapControllers()`).
+`[PreEnforce]` and `[PostEnforce]` can be placed on controller action methods or on the controller class itself. `[StreamEnforce]` applies to methods only and targets actions returning `IAsyncEnumerable<T>`. The attributes work through ASP.NET Core's MVC filter pipeline, so they require standard controller routing (`[ApiController]`, `MapControllers()`).
 
 #### [PreEnforce]
 
@@ -162,7 +162,7 @@ Use `[PreEnforce]` for actions with side effects (database writes, emails) that 
 
 #### [PostEnforce]
 
-Authorizes **after** the action executes. The action always runs; its return value is available to the subscription builder and to constraint handlers for transformation.
+Authorizes **after** the action executes. The action always runs. Its return value is available to the subscription builder and to constraint handlers for transformation.
 
 ```csharp
 [HttpGet("patients")]
@@ -247,7 +247,7 @@ For SSE endpoints, the single `[StreamEnforce]` attribute provides continuous au
 
 | Property            | Effect                                                                                                                                                                                                                       |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SignalTransitions` | When `true`, each suspend/resume boundary surfaces an out-of-band frame to the subscriber (`ACCESS_SUSPENDED` on entering suspended, `ACCESS_RESTORED` on resuming). When `false` (default) transitions are silent and items simply drop while suspended. |
+| `SignalTransitions` | When `true`, each suspend/resume boundary surfaces an out-of-band frame to the subscriber (`ACCESS_SUSPENDED` on entering suspended, `ACCESS_GRANTED` on resuming). When `false` (default) transitions are silent and items simply drop while suspended. |
 
 The three streaming semantics the old library expressed with three separate attributes are now expressed with one attribute plus the policy's decision verb:
 
@@ -279,7 +279,7 @@ public sealed class StreamingController(IStreamingService streamingService) : Co
 }
 ```
 
-`[StreamEnforce]` applies to methods returning `IAsyncEnumerable<T>`. The filter renders the enforced stream as `text/event-stream`; on a terminal denial it writes a final `ACCESS_DENIED` frame before closing.
+`[StreamEnforce]` applies to methods returning `IAsyncEnumerable<T>`. The filter renders the enforced stream as `text/event-stream`. On a terminal denial it writes a final `ACCESS_DENIED` frame before closing.
 
 ### How Enforcement Works
 
@@ -287,7 +287,7 @@ The attributes above are convenient, but to use them well it helps to understand
 
 #### The Deny Invariant
 
-Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your action running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive; one-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
+Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your action running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive. One-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
 
 A `PERMIT` with obligations is not a free pass. The enforcement engine checks that every obligation in the decision has a registered handler. If even one obligation cannot be fulfilled, the engine treats the decision as a denial. If a handler accepts responsibility but fails during execution, that also results in denial. Advice is softer: if an advice handler fails, the engine logs the failure and moves on. Advice never causes denial.
 
@@ -401,8 +401,8 @@ Each enforcement point advertises which signals it supports. `GetConstraintHandl
 
 `IConstraintHandlerProvider` exposes two static helpers for the common dispatch pattern:
 
-- `ConstraintIsOfType(constraint, "typeName")` -- true when the constraint object's `type` field matches.
-- `StringField(constraint, "field")` -- the string value of a named field, or null.
+- `ConstraintIsOfType(constraint, "typeName")` returns true when the constraint object's `type` field matches.
+- `StringField(constraint, "field")` returns the string value of a named field, or null.
 
 #### Registering Custom Handlers
 
@@ -566,7 +566,7 @@ The `blacken` action supports these options:
 
 #### Path Syntax
 
-Paths are resolved with Newtonsoft `SelectToken`, so JSONPath is supported: simple dot paths (`$.field.nested`), recursive descent (`$..ssn`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`). `blacken` targets a single text node (the first match); a path that does not resolve is left unchanged.
+Paths are resolved with Newtonsoft `SelectToken`, so JSONPath is supported: simple dot paths (`$.field.nested`), recursive descent (`$..ssn`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`). `blacken` targets a single text node (the first match). A path that does not resolve is left unchanged.
 
 ### Service-Layer Enforcement
 
@@ -648,7 +648,7 @@ public interface IStreamingService
 }
 ```
 
-At the service (proxy) layer the enforced stream keeps yielding the concrete element type; boundary frames (`ACCESS_SUSPENDED` / `ACCESS_RESTORED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, so `SignalTransitions` applies to controller-level streaming.
+At the service (proxy) layer the enforced stream keeps yielding the concrete element type. Boundary frames (`ACCESS_SUSPENDED` / `ACCESS_GRANTED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, and so `SignalTransitions` applies to controller-level streaming.
 
 ### Manual PDP Access
 
@@ -687,7 +687,6 @@ The `IPolicyDecisionPoint` interface exposes both one-shot and streaming endpoin
 | ---------------------- | -------------------------------------------- | -------------------------------------------- |
 | `DecideOnceAsync`      | `Task<AuthorizationDecision>`                | One-shot single subscription                 |
 | `Decide`               | `IAsyncEnumerable<AuthorizationDecision>`    | Streaming single subscription                |
-| `MultiDecideOnceAsync` | `Task<MultiAuthorizationDecision>`           | One-shot multi subscription                  |
 | `MultiDecideAllOnceAsync` | `Task<MultiAuthorizationDecision>`        | One-shot multi subscription (all decisions)  |
 | `MultiDecide`          | `IAsyncEnumerable<IdentifiableAuthorizationDecision>` | Streaming multi subscription    |
 | `MultiDecideAll`       | `IAsyncEnumerable<MultiAuthorizationDecision>` | Streaming multi subscription (all decisions) |
@@ -707,7 +706,7 @@ A complete working demo is available at [sapl-dotnet-demos](https://github.com/h
 - Manual PDP access (no attributes)
 - `[PreEnforce]` and `[PostEnforce]` with content filtering and field redaction
 - Service-layer enforcement using `DispatchProxy` and interface attributes
-- Constraint handlers across every signal and shape (decision/input/output/error; runner/consumer/mapper)
+- Constraint handlers across every signal and shape (decision/input/output/error, runner/consumer/mapper)
 - SSE streaming with the three semantics (till-denied, silent-suspending, observed-suspending)
 - JWT-based ABAC
 
@@ -722,7 +721,6 @@ All options are set via `PdpClientOptions`, either inline or from configuration:
 | `Username`                    | `string?` | `null`                    | Basic auth username (mutually exclusive with `Token`)     |
 | `Secret`                      | `string?` | `null`                    | Basic auth password                                       |
 | `TimeoutMs`                   | `int`   | `5000`                     | PDP request timeout in milliseconds                       |
-| `StreamingMaxRetries`         | `int`   | `0` (unlimited)            | Maximum reconnection attempts for streaming subscriptions |
 | `StreamingRetryBaseDelayMs`   | `int`   | `1000`                     | Base delay for exponential backoff on reconnection        |
 | `StreamingRetryMaxDelayMs`    | `int`   | `30000`                    | Maximum delay between reconnection attempts               |
 
@@ -736,7 +734,7 @@ Streaming retries use exponential backoff with jitter. The delay doubles on each
 | 403 despite PERMIT decision           | Unhandled obligation                  | Check a provider's `GetConstraintHandlers` returns a handler for the obligation `type` |
 | Handler not firing                    | Missing registration                  | Call `AddSaplConstraintHandler<T>()` in `Program.cs`              |
 | Subject is `"anonymous"`              | No authenticated user                 | Configure ASP.NET Core authentication middleware and JWT validation |
-| Content filter throws                 | Unsupported path syntax               | Only simple dot paths supported (`$.field.nested`)                 |
+| Content filter throws                 | Invalid JSONPath                      | Paths resolve through Newtonsoft `SelectToken`; check the JSONPath syntax (recursive descent, array indexing, wildcards, and filter expressions are all supported) |
 | Service method throws `AccessDeniedException` | Normal denial behavior       | Register `UseSaplAccessDenied()` middleware for automatic 403      |
 | Streaming SSE empty                   | Action does not return `IAsyncEnumerable` | Ensure streaming methods return `IAsyncEnumerable<T>`          |
 | HTTP 500 on service denial            | Missing middleware                    | Add `app.UseSaplAccessDenied()` before `app.MapControllers()`      |

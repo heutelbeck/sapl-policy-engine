@@ -59,7 +59,8 @@ public final class SaplAttributeRegistry {
     /**
      * Creates a new registry with the specified expression handler.
      *
-     * @param expressionHandler the expression handler for parsing SpEL expressions
+     * @param expressionHandler
+     * the expression handler for parsing SpEL expressions
      */
     public SaplAttributeRegistry(@NonNull MethodSecurityExpressionHandler expressionHandler) {
         this.expressionHandler = expressionHandler;
@@ -69,9 +70,13 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the
      * {@link MethodInvocation}.
      *
-     * @param <T> the annotation type
-     * @param mi the {@link MethodInvocation} to use
-     * @param annotationType the annotation type.
+     * @param <T>
+     * the annotation type
+     * @param mi
+     * the {@link MethodInvocation} to use
+     * @param annotationType
+     * the annotation type.
+     *
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
     public <T extends Annotation> Optional<SaplAttribute> getSaplAttributeForAnnotationType(MethodInvocation mi,
@@ -85,7 +90,9 @@ public final class SaplAttributeRegistry {
     /**
      * Checks if the method has any Spring Security annotations.
      *
-     * @param mi the {@link MethodInvocation} to check
+     * @param mi
+     * the {@link MethodInvocation} to check
+     *
      * @return true if any Spring Security annotation is present
      */
     public boolean hasSpringAnnotations(MethodInvocation mi) {
@@ -101,7 +108,9 @@ public final class SaplAttributeRegistry {
     /**
      * Returns a Map of all SaplAttributes by annotation type.
      *
-     * @param mi the {@link MethodInvocation} to use
+     * @param mi
+     * the {@link MethodInvocation} to use
+     *
      * @return a Map of all SaplAttributes by type
      */
     public Map<Class<? extends Annotation>, SaplAttribute> getAllSaplAttributes(MethodInvocation mi) {
@@ -116,10 +125,15 @@ public final class SaplAttributeRegistry {
      * Returns an {@link Optional} {@link SaplAttribute} for the method and the
      * target class.
      *
-     * @param <T> the annotation type
-     * @param method the method
-     * @param targetClass the target class
-     * @param annotationType the annotation type
+     * @param <T>
+     * the annotation type
+     * @param method
+     * the method
+     * @param targetClass
+     * the target class
+     * @param annotationType
+     * the annotation type
+     *
      * @return the {@link Optional} {@link SaplAttribute} to use
      */
     public <T extends Annotation> Optional<SaplAttribute> getAttribute(Method method, Class<?> targetClass,
@@ -137,10 +151,15 @@ public final class SaplAttributeRegistry {
     /**
      * Resolves and creates a {@link SaplAttribute} from annotation metadata.
      *
-     * @param <T> the annotation type
-     * @param method the method
-     * @param targetClass the target class
-     * @param annotationType the annotation type
+     * @param <T>
+     * the annotation type
+     * @param method
+     * the method
+     * @param targetClass
+     * the target class
+     * @param annotationType
+     * the annotation type
+     *
      * @return the resolved {@link SaplAttribute} or
      * {@link SaplAttribute#NULL_ATTRIBUTE}
      */

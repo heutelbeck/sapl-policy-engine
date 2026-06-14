@@ -63,6 +63,7 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.io.Serial;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -75,6 +76,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthorizationSubscriptionBuilderServiceServletTests {
+
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner().withConfiguration(
             AutoConfigurations.of(JacksonAutoConfiguration.class, ObjectMapperAutoConfiguration.class));
@@ -343,9 +346,8 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @DisplayName("when JwtAuthenticationToken, then tokenValue is stripped from subject.token and subject.principal")
         void whenJwtAuthentication_thenTokenValueStrippedFromSubject() {
             var jwt           = new org.springframework.security.oauth2.jwt.Jwt(
-                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", java.time.Instant.now(),
-                    java.time.Instant.now().plusSeconds(3600), java.util.Map.of("alg", "RS256"),
-                    java.util.Map.of("sub", "user"));
+                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", REFERENCE, REFERENCE.plusSeconds(3600),
+                    java.util.Map.of("alg", "RS256"), java.util.Map.of("sub", "user"));
             var jwtAuth       = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(
                     jwt, AuthorityUtils.createAuthorityList("ROLE_USER"));
             val attribute     = attribute(null, null, null, null);
@@ -367,9 +369,8 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         @DisplayName("when JwtAuthenticationToken without injector then secrets are empty and token stripped")
         void whenJwtAuthWithoutInjectorThenSecretsEmptyAndTokenStripped() {
             var jwt          = new org.springframework.security.oauth2.jwt.Jwt(
-                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", java.time.Instant.now(),
-                    java.time.Instant.now().plusSeconds(3600), java.util.Map.of("alg", "RS256"),
-                    java.util.Map.of("sub", "user"));
+                    "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", REFERENCE, REFERENCE.plusSeconds(3600),
+                    java.util.Map.of("alg", "RS256"), java.util.Map.of("sub", "user"));
             var jwtAuth      = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(
                     jwt, AuthorityUtils.createAuthorityList("ROLE_USER"));
             val attribute    = attribute(null, null, null, null);

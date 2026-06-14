@@ -98,6 +98,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
             sapl-node bundle create -i <policy-dir> -o {}/default.saplbundle \
             Signature verification is disabled. \
             For production, enable signing with: sapl-node bundle keygen -o signing""";
+    private static final String WARN_SUBSCRIBER_THREW    = "Configuration subscriber threw on event {}: {}.";
 
     private final Path                              directoryPath;
     private final BundleSecurityPolicy              securityPolicy;
@@ -167,7 +168,13 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
             return;
         }
         for (val subscriber : subscribers) {
-            subscriber.accept(event);
+            try {
+                subscriber.accept(event);
+            } catch (Exception e) {
+                // One misbehaving subscriber must not abort delivery to the
+                // others or kill the file-watch thread driving hot reload.
+                log.warn(WARN_SUBSCRIBER_THREW, event, e.getMessage());
+            }
         }
     }
 

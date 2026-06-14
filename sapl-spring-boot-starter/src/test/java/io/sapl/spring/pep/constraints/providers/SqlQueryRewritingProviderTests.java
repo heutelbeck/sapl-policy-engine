@@ -41,14 +41,14 @@ import lombok.val;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-@DisplayName("SqlQueryManipulationProvider")
-class SqlQueryManipulationProviderTests {
+@DisplayName("SqlQueryRewritingProvider")
+class SqlQueryRewritingProviderTests {
 
     private static final ObjectMapper MAPPER          = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
     private static final SignalType   SQL_SIGNAL      = Signal.SqlShimSignal.SIGNAL_TYPE;
     private static final SignalType   DECISION_SIGNAL = Signal.DecisionSignal.SIGNAL_TYPE;
 
-    private final SqlQueryManipulationProvider provider = new SqlQueryManipulationProvider();
+    private final SqlQueryRewritingProvider provider = new SqlQueryRewritingProvider();
 
     private static Value v(String json) {
         return MAPPER.readValue(json, Value.class);
@@ -83,7 +83,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("matching constraint without SqlShimSignal supported yields empty Optional")
         void givenMatchingConstraintWithoutSqlSignalThenEmpty() {
             val result = provider.getConstraintHandlers(v("""
-                    {"type": "sql:queryManipulation", "conditions": ["x = 1"]}
+                    {"type": "sql:queryRewriting", "conditions": ["x = 1"]}
                     """), Set.of(DECISION_SIGNAL));
             assertThat(result).isEmpty();
         }
@@ -92,7 +92,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("matching constraint with neither conditions nor columns yields empty Optional")
         void givenMatchingConstraintWithEmptyPayloadThenEmpty() {
             val result = provider.getConstraintHandlers(v("""
-                    {"type": "sql:queryManipulation"}
+                    {"type": "sql:queryRewriting"}
                     """), Set.of(SQL_SIGNAL));
             assertThat(result).isEmpty();
         }
@@ -101,7 +101,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("returns Mapper at SqlShimSignal with default priority")
         void givenMatchingConstraintAndSignalThenReturnsMapper() {
             val result = provider.getConstraintHandlers(v("""
-                    {"type": "sql:queryManipulation", "conditions": ["x = 1"]}
+                    {"type": "sql:queryRewriting", "conditions": ["x = 1"]}
                     """), Set.of(SQL_SIGNAL));
             assertThat(result).singleElement().satisfies(scoped -> assertThat(scoped).satisfies(s -> {
                 assertThat(s.signalType()).isEqualTo(SQL_SIGNAL);
@@ -119,7 +119,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Adds WHERE clause when original SELECT has no WHERE (closes the silent-bypass bug)")
         void givenSelectWithoutWhereThenWhereIsAdded() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             val rewritten = mapper.apply("SELECT * FROM users");
             assertThat(rewritten).containsIgnoringCase("WHERE").contains("tenant_id = 7");
@@ -129,7 +129,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Preserves OR precedence when original WHERE contains OR (closes the precedence-inversion bug)")
         void givenSelectWithOrWhenObligationAddsAndThenOrPrecedenceIsPreserved() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             val rewritten = mapper.apply("SELECT * FROM users WHERE a = 1 OR b = 2");
             assertThat(rewritten).contains("(a = 1 OR b = 2)").contains("tenant_id = 7");
@@ -139,7 +139,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Multiple obligation conditions are AND-combined and parenthesized individually")
         void givenMultipleConditionsThenAllAreAndCombined() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "conditions": ["tenant_id = 7", "status = 'active'"]}
                     """);
             val rewritten = mapper.apply("SELECT * FROM users");
@@ -150,7 +150,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("String literals containing the word 'where' do not confuse the rewriter")
         void givenWhereInsideStringLiteralThenRewriteIsCorrect() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             val rewritten = mapper.apply("SELECT * FROM logs WHERE message = 'something where stuff happened'");
             assertThat(rewritten).contains("'something where stuff happened'").contains("tenant_id = 7");
@@ -165,7 +165,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("UPDATE statement gets the obligation injected into WHERE")
         void givenUpdateThenWhereIsAddedOrCombined() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             val rewritten = mapper.apply("UPDATE users SET name = 'x' WHERE id = 1");
             assertThat(rewritten).contains("UPDATE").contains("tenant_id = 7").contains("id = 1");
@@ -175,7 +175,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("DELETE statement gets the obligation injected into WHERE")
         void givenDeleteThenWhereIsAddedOrCombined() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             val rewritten = mapper.apply("DELETE FROM users WHERE id = 1");
             assertThat(rewritten).contains("DELETE").contains("tenant_id = 7").contains("id = 1");
@@ -190,7 +190,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Plain INSERT statement throws (no WHERE to inject into)")
         void givenInsertThenThrows() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             assertThatThrownBy(() -> mapper.apply("INSERT INTO users (id, name) VALUES (1, 'x')"))
                     .isInstanceOf(AccessDeniedException.class).hasMessageContaining("does not support");
@@ -200,7 +200,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Malformed original SQL throws")
         void givenMalformedSqlThenThrows() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["tenant_id = 7"]}
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7"]}
                     """);
             assertThatThrownBy(() -> mapper.apply("SELEKT * FROM users")).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Cannot parse SQL");
@@ -210,7 +210,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Malformed obligation condition throws")
         void givenMalformedObligationConditionThenThrows() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation", "conditions": ["this is not sql"]}
+                    {"type": "sql:queryRewriting", "conditions": ["this is not sql"]}
                     """);
             assertThatThrownBy(() -> mapper.apply("SELECT * FROM users")).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Cannot parse obligation condition");
@@ -225,7 +225,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("SELECT * is narrowed to obligation columns")
         void givenSelectStarThenColumnsReplaceStar() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "columns": ["id", "name"]}
+                    {"type": "sql:queryRewriting", "columns": ["id", "name"]}
                     """);
             val rewritten = mapper.apply("SELECT * FROM users");
             assertThat(rewritten).contains("id").contains("name").doesNotContain("*");
@@ -235,7 +235,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Obligation cannot widen original projection (security: intersect not replace)")
         void givenOriginalNarrowsAndObligationWidensThenIntersectionWins() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation", "columns": ["id", "name", "ssn"]}
+                    {"type": "sql:queryRewriting", "columns": ["id", "name", "ssn"]}
                     """);
             val rewritten = mapper.apply("SELECT id, name FROM users");
             assertThat(rewritten).contains("id").contains("name").doesNotContain("ssn");
@@ -245,7 +245,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Columns directive is silently ignored on UPDATE")
         void givenUpdateWithColumnsThenColumnsAreIgnored() {
             val mapper    = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "conditions": ["tenant_id = 7"], "columns": ["id"]}
                     """);
             val rewritten = mapper.apply("UPDATE users SET name = 'x' WHERE id = 1");
@@ -276,12 +276,12 @@ class SqlQueryManipulationProviderTests {
 
         static Stream<Arguments> combinedScenarios() {
             return Stream.of(arguments("conditions plus column narrowing on SELECT *", """
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "conditions": ["tenant_id = 7"],
                      "columns": ["id", "name"]}
                     """, "SELECT * FROM users", new String[] { "tenant_id = 7", "id", "name" }, new String[] { "*" }),
                     arguments("conditions plus column intersection on narrow SELECT", """
-                            {"type": "sql:queryManipulation",
+                            {"type": "sql:queryRewriting",
                              "conditions": ["tenant_id = 7"],
                              "columns": ["id", "name", "ssn"]}
                             """, "SELECT id, name FROM users WHERE active = true",
@@ -297,7 +297,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Single equality criterion is rendered to a SQL fragment and AND-injected into the WHERE")
         void whenSingleEqualityCriterionThenInjectedAsSqlFragment() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
                     """);
 
@@ -310,7 +310,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Text value is single-quoted and embedded single quotes are doubled")
         void whenTextValueThenSingleQuotedAndEscaped() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "name", "op": "=", "value": "O'Brien"}]}
                     """);
 
@@ -323,7 +323,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Boolean value renders as TRUE / FALSE literal")
         void whenBooleanValueThenLiteralTrueOrFalse() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "active", "op": "=", "value": true}]}
                     """);
 
@@ -336,7 +336,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Null value as = renders to IS NULL idiom (semantically correct SQL)")
         void whenIsNullOperatorThenRendersIsNull() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "deleted_at", "op": "isNull"}]}
                     """);
 
@@ -349,7 +349,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("isNotNull operator renders to IS NOT NULL")
         void whenIsNotNullOperatorThenRendersIsNotNull() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "verified_at", "op": "isNotNull"}]}
                     """);
 
@@ -362,7 +362,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("In operator with array value renders as IN (...)")
         void whenInOperatorThenRendersAsInList() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "category", "op": "in", "value": [1, 2, 3]}]}
                     """);
 
@@ -375,7 +375,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Like operator with text value renders as LIKE 'pattern'")
         void whenLikeOperatorThenRendersAsLike() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "title", "op": "like", "value": "%Krynn%"}]}
                     """);
 
@@ -388,7 +388,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Multiple top-level criteria are AND-combined")
         void whenMultipleTopLevelCriteriaThenAndCombined() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [
                        {"column": "tenant_id", "op": "=", "value": 7},
                        {"column": "deleted_at", "op": "isNull"}
@@ -404,7 +404,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("OR group within criteria array renders as parenthesised OR-expression")
         void whenOrGroupThenRendersAsParenthesisedOr() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"or": [
                        {"column": "owner_id", "op": "=", "value": "alice"},
                        {"column": "is_public", "op": "=", "value": true}
@@ -420,7 +420,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Typed criteria + string conditions can coexist on one obligation; both contribute")
         void whenTypedCriteriaAndStringConditionsCoexistThenBothApplied() {
             val mapper = mapperFor("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "tenant_id", "op": "=", "value": 7}],
                      "conditions": ["status = 'active'"]}
                     """);
@@ -434,7 +434,7 @@ class SqlQueryManipulationProviderTests {
         @DisplayName("Unsupported operator on a typed criterion fails closed at planning time")
         void whenUnsupportedOperatorOnTypedCriterionThenThrowsAccessDeniedException() {
             val constraint = v("""
-                    {"type": "sql:queryManipulation",
+                    {"type": "sql:queryRewriting",
                      "criteria": [{"column": "tenant_id", "op": "is_secretly_equal", "value": 7}]}
                     """);
             val supported  = Set.of(SQL_SIGNAL);
@@ -444,10 +444,10 @@ class SqlQueryManipulationProviderTests {
         }
 
         @Test
-        @DisplayName("Obligation type 'relational:queryManipulation' is accepted as alias")
+        @DisplayName("Obligation type 'relational:queryRewriting' is accepted as alias")
         void whenRelationalTypeAliasThenProviderClaimsObligation() {
             val mapper = mapperFor("""
-                    {"type": "relational:queryManipulation",
+                    {"type": "relational:queryRewriting",
                      "criteria": [{"column": "tenant_id", "op": "=", "value": 7}]}
                     """);
 

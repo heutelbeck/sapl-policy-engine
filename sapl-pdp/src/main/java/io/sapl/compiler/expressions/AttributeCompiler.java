@@ -44,6 +44,7 @@ public class AttributeCompiler {
     public static final long DEFAULT_POLL_INTERVAL_MS = 30000L;
     public static final long DEFAULT_BACKOFF_MS       = 1000L;
     public static final long DEFAULT_RETRIES          = 3L;
+    public static final long MIN_BACKOFF_MS           = 50L;
 
     public static final String OPTION_FIELD_ATTRIBUTE_FINDER_OPTIONS = "attributeFinderOptions";
 
@@ -54,6 +55,7 @@ public class AttributeCompiler {
     public static final String OPTION_FRESH           = "fresh";
 
     private static final String ERROR_ATTRIBUTE_ACCESS_NOT_PERMITTED          = "Attribute access not permitted in attribute options.";
+    private static final String ERROR_OPTION_BELOW_MINIMUM                    = "Attribute option '%s' must be at least %d ms, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_BOOLEAN                  = "Attribute option '%s' must be a boolean, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_NON_NEGATIVE             = "Attribute option '%s' must be non-negative, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_NUMBER                   = "Attribute option '%s' must be a number, but was: %s.";
@@ -166,9 +168,20 @@ public class AttributeCompiler {
     private static void validateSettings(ObjectValue settings, @Nullable SourceLocation location) {
         requirePositive(settings, OPTION_INITIAL_TIMEOUT, location);
         requirePositive(settings, OPTION_POLL_INTERVAL, location);
-        requirePositive(settings, OPTION_BACKOFF, location);
+        // A sub-50ms retry backoff cannot help any real PIP failure mode (all are
+        // I/O) and only hammers a struggling dependency, so reject it at compile
+        // time rather than honour a config that would degrade the downstream.
+        requireAtLeast(settings, OPTION_BACKOFF, MIN_BACKOFF_MS, location);
         requireNonNegative(settings, OPTION_RETRIES, location);
         requireBoolean(settings, OPTION_FRESH, location);
+    }
+
+    private static void requireAtLeast(ObjectValue settings, String key, long minimum,
+            @Nullable SourceLocation location) {
+        val n = requireNumber(settings, key, location);
+        if (n.compareTo(BigDecimal.valueOf(minimum)) < 0) {
+            throw new SaplCompilerException(ERROR_OPTION_BELOW_MINIMUM.formatted(key, minimum, n), location);
+        }
     }
 
     private static void requirePositive(ObjectValue settings, String key, @Nullable SourceLocation location) {

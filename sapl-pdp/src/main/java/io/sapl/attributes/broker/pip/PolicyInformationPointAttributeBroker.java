@@ -38,7 +38,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
-import java.time.Instant;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -119,6 +119,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final Duration                      gracePeriodDuration;
     private final ScheduledExecutorService      teardownScheduler;
     private final @Nullable AttributeRepository fallback;
+    private final InstantSource                 timestampSource;
 
     /** No grace period, no fallback. */
     public PolicyInformationPointAttributeBroker() {
@@ -156,11 +157,31 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      */
     public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration,
             @Nullable AttributeRepository fallback) {
+        this(gracePeriodDuration, fallback, InstantSource.system());
+    }
+
+    /**
+     * As
+     * {@link #PolicyInformationPointAttributeBroker(Duration, AttributeRepository)},
+     * with an explicit source for attribute value-arrival timestamps. The source
+     * is read whenever a value enters an active invocation's mailbox, so the
+     * snapshot timestamp reflects arrival time, not read time.
+     *
+     * @param gracePeriodDuration teardown delay after refcount-zero;
+     * {@link Duration#ZERO} disables grace
+     * @param fallback repository that serves invocations with no matching PIP;
+     * {@code null} means consumers see UNDEFINED for unmatched invocations
+     * @param timestampSource source for value-arrival timestamps
+     */
+    public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration,
+            @Nullable AttributeRepository fallback,
+            @NonNull InstantSource timestampSource) {
         if (gracePeriodDuration.isNegative()) {
             throw new IllegalArgumentException(ERROR_GRACE_DURATION_NEGATIVE);
         }
         this.gracePeriodDuration = gracePeriodDuration;
         this.fallback            = fallback;
+        this.timestampSource     = timestampSource;
         this.teardownScheduler   = Executors.newSingleThreadScheduledExecutor(runnable -> {
                                      val thread = Thread.ofVirtual().unstarted(runnable);
                                      thread.setName("PolicyInformationPointAttributeBroker-teardown");
@@ -664,7 +685,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val                     holder    = new ActivePolicyInformationPointInvocation[1];
         Supplier<Stream<Value>> innerOpen = openSyncFirstThenLazy(innerStreamSupplier(spec, normalized));
         val                     stream    = new AttributeStream(normalized, innerOpen);
-        holder[0] = new ActivePolicyInformationPointInvocation(normalized, stream, spec, v -> dispatchValue(holder[0]));
+        holder[0] = new ActivePolicyInformationPointInvocation(normalized, stream, spec, timestampSource,
+                v -> dispatchValue(holder[0]));
         return holder[0];
     }
 
@@ -734,13 +756,15 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private ActiveRepositoryInvocation newActiveRepositoryInvocation(AttributeFinderInvocation normalized,
             AttributeRepository repository) {
         val holder = new ActiveRepositoryInvocation[1];
-        holder[0] = new ActiveRepositoryInvocation(normalized, repository, v -> dispatchValue(holder[0]));
+        holder[0] = new ActiveRepositoryInvocation(normalized, repository, timestampSource,
+                v -> dispatchValue(holder[0]));
         return holder[0];
     }
 
     private ActivePolicyInformationPointInvocation newTerminalActiveInvocation(AttributeFinderInvocation normalized) {
         val holder = new ActivePolicyInformationPointInvocation[1];
-        holder[0] = new ActivePolicyInformationPointInvocation(normalized, null, null, v -> dispatchValue(holder[0]));
+        holder[0] = new ActivePolicyInformationPointInvocation(normalized, null, null, timestampSource,
+                v -> dispatchValue(holder[0]));
         holder[0].publishImmediate(Value.UNDEFINED);
         return holder[0];
     }
@@ -791,6 +815,40 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
         replacement.start();
         old.close();
+        reclaimIfOrphaned(replacement);
+    }
+
+    /**
+     * Caller must not hold the broker lock. If {@code invocation} has no
+     * subscribers, applies the same teardown policy as a refcount-zero drop:
+     * schedules a grace-period teardown, or removes and closes it when there is
+     * no grace window. {@link #migrate} transfers the old invocation's
+     * subscribers to the replacement, but when the old invocation was in its
+     * refcount-zero grace window there are none to transfer, so the replacement
+     * is promoted with no subscribers. Because {@code handleRefcountZero} only
+     * fires on a consumer detach, such a born-orphaned replacement would never
+     * be reclaimed and its pump would run for the life of the broker. This
+     * closes that gap defensively.
+     */
+    private void reclaimIfOrphaned(ActiveInvocation invocation) {
+        lock.lock();
+        try {
+            if (invocation.refcount() > 0) {
+                return;
+            }
+            val list        = subscriptions.get(invocation.invocation());
+            val teardownNow = (list != null && list.size() > 1) || gracePeriodDuration.isZero();
+            if (!teardownNow) {
+                if (!pendingTeardowns.containsKey(invocation)) {
+                    scheduleTeardown(invocation);
+                }
+                return;
+            }
+            removeFromList(invocation);
+        } finally {
+            lock.unlock();
+        }
+        invocation.close();
     }
 
     /**
@@ -1070,14 +1128,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         Map<SubscriptionKey, AttributeSnapshot> currentSnapshot() {
-            val now    = Instant.now();
             val result = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(deps.size());
             for (val key : deps) {
                 val active = route.get(key);
                 if (active == null) {
                     continue;
                 }
-                active.snapshot().ifPresent(value -> result.put(key, new AttributeSnapshot(value, now)));
+                active.snapshot().ifPresent(snapshot -> result.put(key, snapshot));
             }
             return Map.copyOf(result);
         }

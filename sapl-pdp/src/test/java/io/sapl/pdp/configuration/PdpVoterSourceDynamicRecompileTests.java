@@ -35,15 +35,18 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PdpVoterSource dynamic recompile")
 class PdpVoterSourceDynamicRecompileTests {
 
-    private static final Clock   CLOCK    = Clock.systemUTC();
+    private static final Clock   CLOCK    = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
     private static final PdpData EMPTY    = new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
     private static final String  PDP_ID   = "test-pdp";
     private static final String  CONFIG_A = "config-A";
@@ -61,6 +64,45 @@ class PdpVoterSourceDynamicRecompileTests {
     private static PDPConfiguration policyConfig(String configId) {
         return new PDPConfiguration(PDP_ID, configId, CombiningAlgorithm.DEFAULT, List.of("policy \"p\" permit"),
                 EMPTY);
+    }
+
+    @Test
+    @DisplayName("a fail-fast rejected configuration is not retained for later recompiles")
+    void whenLoadFailsFastThenRejectedConfigurationIsNotRetained() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+
+            val rejectedPdpId = "rejected-pdp";
+            val badConfig     = new PDPConfiguration(rejectedPdpId, "config-bad", CombiningAlgorithm.DEFAULT,
+                    List.of("this is not valid sapl"), EMPTY);
+            assertThatThrownBy(() -> voterSource.loadConfiguration(badConfig, false))
+                    .isInstanceOf(PDPConfigurationException.class);
+
+            // A later plugins push recompiles every retained configuration. The
+            // rejected config must not be retained, so its pdpId stays unknown.
+            pluginsSource.publish(pluginsOf(brokerWithStandard()));
+
+            assertThat(voterSource.getCurrentConfiguration(rejectedPdpId)).isEmpty();
+        }
+    }
+
+    @Test
+    @DisplayName("subscribing delivers the current configuration to the listener synchronously")
+    void whenSubscribingThenCurrentConfigurationDeliveredImmediately() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            val current = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+            // The current state must be delivered under the source lock at
+            // subscription time; otherwise a concurrent update could interleave
+            // and leave a stale configuration latched in the decision stream.
+            val received = new ArrayList<PdpUpdateEvent>();
+            voterSource.subscribeToUpdates(PDP_ID, received::add);
+
+            assertThat(received).singleElement().isEqualTo(new PdpUpdateEvent.Voter(PDP_ID, current));
+        }
     }
 
     @Test

@@ -27,13 +27,15 @@ import reactor.util.context.ContextView;
 
 /**
  * Holder for the active {@link EnforcementPlan} during a PEP-wrapped
- * invocation. Shim wrappers placed deeper in the call graph (e.g. around
- * Spring Data templates) read the plan from here and fire shim signals against
- * it. When no plan is in scope, lookups return {@link Optional#empty()} and
- * shim wrappers pass through unchanged.
+ * invocation. Shim wrappers placed deeper in the
+ * call graph (e.g. around Spring Data templates) read the plan from here and
+ * fire shim signals against it. When no plan
+ * is in scope, lookups return {@link Optional#empty()} and shim wrappers pass
+ * through unchanged.
  * </p>
  * Reactive flows propagate the plan via the Reactor {@link ContextView} keyed
- * by {@link #REACTOR_KEY}. Blocking flows propagate via a {@link ThreadLocal}.
+ * by {@link #REACTOR_KEY}. Blocking flows
+ * propagate via a {@link ThreadLocal}.
  */
 @UtilityClass
 public class EnforcementPlanContext {
@@ -65,10 +67,11 @@ public class EnforcementPlanContext {
     }
 
     /**
-     * Sets or clears the thread-bound plan directly. Callers that cannot wrap
-     * their body in a {@link Supplier} (e.g. because the body throws
-     * {@link Throwable}) use this together with a manual try/finally. Pass
-     * {@code null} to clear the binding.
+     * Sets or clears the thread-bound plan directly. Callers that cannot wrap their
+     * body in a {@link Supplier} (e.g.
+     * because the body throws {@link Throwable}) use this together with a manual
+     * try/finally. Pass {@code null} to
+     * clear the binding.
      */
     public static void bindBlocking(EnforcementPlan plan) {
         if (plan == null) {

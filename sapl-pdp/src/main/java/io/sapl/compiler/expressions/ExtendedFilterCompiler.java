@@ -136,8 +136,10 @@ public class ExtendedFilterCompiler {
 
         @Override
         public long semanticHash() {
-            val baseHash   = base instanceof Value v ? (long) v.hashCode() : ((PureOperator) base).semanticHash();
-            val filterHash = filter instanceof Value v ? (long) v.hashCode() : ((PureOperator) filter).semanticHash();
+            val baseHash   = base instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) base).semanticHash();
+            val filterHash = filter instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) filter).semanticHash();
             return SemanticHashing.ordered(KIND, baseHash, filterHash, path.hashCode(),
                     pathAnalysis.compiledElements().hashCode());
         }

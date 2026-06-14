@@ -19,7 +19,10 @@ package io.sapl.node.rsocket.pdp;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import io.sapl.api.stream.Stream;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
@@ -57,10 +60,11 @@ import reactor.core.scheduler.Schedulers;
  * the per-connection {@code RSocket} instance and passed explicitly to the
  * {@link ReactivePolicyDecisionPoint} for tenant routing.
  * <p>
- * Connection lifetime is soft. JWT credentials are validated at the next
- * decision call by the upstream authentication path; expired tokens are then
- * rejected and the client reconnects with fresh credentials. The server does
- * not maintain a separate hard-disconnect timer per connection.
+ * When the authenticated credential carries an expiry (a JWT {@code exp}
+ * claim), the connection is disposed at that instant, so an expired token
+ * cannot retain access on a long-lived connection. The client reconnects with
+ * fresh credentials. Credentials without an expiry (basic auth, API key) leave
+ * the connection open until the client closes it.
  * <p>
  * Request-response operations ({@code decide-once}) use
  * {@link BlockingPolicyDecisionPoint#decideOnce} on virtual threads for
@@ -142,11 +146,21 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         if (authenticator == null) {
             return Mono.just(new ProtobufRSocket(blockingPdp, pdp, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
         }
-        return authenticator.authenticate(setup)
-                .<RSocket>map(result -> new ProtobufRSocket(blockingPdp, pdp, result.pdpId())).onErrorMap(e -> {
-                    log.debug("RSocket setup authentication failed: {}", e.getMessage());
-                    return new RejectedSetupException(ERROR_AUTH_FAILED);
-                });
+        return authenticator.authenticate(setup).<RSocket>map(result -> {
+            scheduleConnectionExpiry(sendingSocket, result.expiresAt());
+            return new ProtobufRSocket(blockingPdp, pdp, result.pdpId());
+        }).onErrorMap(e -> {
+            log.debug("RSocket setup authentication failed: {}", e.getMessage());
+            return new RejectedSetupException(ERROR_AUTH_FAILED);
+        });
+    }
+
+    private static void scheduleConnectionExpiry(RSocket connection, @Nullable Instant expiresAt) {
+        if (expiresAt == null) {
+            return;
+        }
+        val delayMillis = Math.max(0L, Duration.between(Instant.now(), expiresAt).toMillis());
+        Schedulers.parallel().schedule(connection::dispose, delayMillis, TimeUnit.MILLISECONDS);
     }
 
     private static ByteBuf preEncode(String route) {

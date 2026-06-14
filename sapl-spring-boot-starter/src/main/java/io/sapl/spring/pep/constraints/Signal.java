@@ -34,8 +34,8 @@ import lombok.val;
  * An event fired during enforcement at which constraint handlers may attach.
  * Sealed into self-contained
  * {@link VoidSignal}s and data-carrying {@link ValueSignal}s; every concrete
- * signal exposes its
- * {@link SignalType} via {@link #type()} for plan keying.
+ * signal exposes its {@link SignalType} via
+ * {@link #type()} for plan keying.
  */
 public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
@@ -46,8 +46,9 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
     /**
      * A signal that carries a value of type {@code T}; mappers, consumers, and
-     * runners are admissible here. {@link #valueType()} returns a
-     * {@link ResolvableType} so generic information (e.g. the {@code String} in
+     * runners are admissible here.
+     * {@link #valueType()} returns a {@link ResolvableType} so generic information
+     * (e.g. the {@code String} in
      * {@code Mono<String>}) is preserved for provider dispatch.
      */
     sealed interface ValueSignal<T> extends Signal
@@ -105,11 +106,13 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
     /**
      * Fires when the RAP emits an output of type {@code T} (return value or stream
-     * item). The carried payload is a {@link Maybe} so that void-returning methods
-     * can still fire the signal as {@link Maybe.Absent}, letting Runners attach
-     * for side effects while Mappers and Consumers are skipped automatically. The
-     * {@link ResolvableType} is the full generic view, so a provider may dispatch
-     * on {@code Mono<String>} differently from {@code Mono<User>}.
+     * item). The carried payload is a
+     * {@link Maybe} so that void-returning methods can still fire the signal as
+     * {@link Maybe.Absent}, letting Runners
+     * attach for side effects while Mappers and Consumers are skipped
+     * automatically. The {@link ResolvableType} is the
+     * full generic view, so a provider may dispatch on {@code Mono<String>}
+     * differently from {@code Mono<User>}.
      */
     record OutputSignal<T>(ResolvableType valueType, Maybe<T> maybeValue) implements ValueSignal<T> {
 
@@ -135,7 +138,8 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         /**
          * Erased-{@code T} factory for callers that hold {@code Class<?>} and
-         * {@code Object} at runtime (e.g. AOP method interceptors).
+         * {@code Object} at runtime (e.g. AOP
+         * method interceptors).
          */
         public static OutputSignal<Object> ofUnchecked(ResolvableType valueType, Object value) {
             return new OutputSignal<>(valueType, Maybe.of(value));
@@ -143,10 +147,11 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
         /**
          * Factory for AOP method interceptors. Inspects the invoked method's return
-         * type, fires {@link #empty(ResolvableType)} for {@code void}/{@code Void}
-         * returns and {@link #ofUnchecked(ResolvableType, Object)} otherwise, using
-         * the method's generic return type so inner generics (e.g.
-         * {@code Mono<String>}) are preserved.
+         * type, fires
+         * {@link #empty(ResolvableType)} for {@code void}/{@code Void} returns and
+         * {@link #ofUnchecked(ResolvableType, Object)} otherwise, using the method's
+         * generic return type so inner
+         * generics (e.g. {@code Mono<String>}) are preserved.
          */
         public static OutputSignal<Object> forResultOf(MethodInvocation invocation, Object returned) {
             val returnClass = invocation.getMethod().getReturnType();
@@ -274,11 +279,12 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
     /**
      * Shim signal carrying a raw SQL string just before driver dispatch. Fired by
-     * wrappers around {@code DatabaseClient.sql(String)} (R2DBC), JDBC templates,
-     * and JPA native query execution. Mappers attached here may textually rewrite
-     * the SQL (e.g. inject WHERE clauses) before the underlying driver receives
-     * it. Dialect-agnostic at the signal level; mapper authors handle dialect
-     * concerns.
+     * wrappers around
+     * {@code DatabaseClient.sql(String)} (R2DBC), JDBC templates, and JPA native
+     * query execution. Mappers attached here
+     * may textually rewrite the SQL (e.g. inject WHERE clauses) before the
+     * underlying driver receives it.
+     * Dialect-agnostic at the signal level; mapper authors handle dialect concerns.
      */
     record SqlShimSignal(String value) implements ValueSignal<String> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(String.class);
@@ -300,14 +306,15 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     /**
-     * Shim signal carrying a Spring Data MongoDB {@link Query} just before
-     * driver dispatch. Fired by wrappers around {@code MongoTemplate} and
-     * {@code ReactiveMongoTemplate}. Raw {@code @Query}-annotated methods parse
-     * into {@code BasicQuery extends Query} and travel the same path, so a
-     * single shim signal covers all Mongo query origins. The carried type is
-     * Spring Data Mongo's
-     * {@code org.springframework.data.mongodb.core.query.Query},
-     * not the relational query type.
+     * Shim signal carrying a Spring Data MongoDB {@link Query} just before driver
+     * dispatch. Fired by wrappers around
+     * {@code MongoTemplate} and {@code ReactiveMongoTemplate}. Raw
+     * {@code @Query}-annotated methods parse into
+     * {@code BasicQuery extends Query} and travel the same path, so a single shim
+     * signal covers all Mongo query
+     * origins. The carried type is Spring Data Mongo's
+     * {@code org.springframework.data.mongodb.core.query.Query}, not
+     * the relational query type.
      */
     record MongoDbQueryShimSignal(Query value) implements ValueSignal<Query> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(Query.class);
@@ -330,11 +337,12 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     /**
-     * Fires inside the HTTP authorization manager once the PDP decision is
-     * known. Carries a read-only view of the inbound request as a Spring
-     * {@link HttpRequest}. Use {@code Consumer} or {@code Runner}
-     * handlers for audit, metrics, or rate-limit checks. The request is
-     * treated as read-only at this point. Mutations belong to
+     * Fires inside the HTTP authorization manager once the PDP decision is known.
+     * Carries a read-only view of the
+     * inbound request as a Spring {@link HttpRequest}. Use {@code Consumer} or
+     * {@code Runner} handlers for audit,
+     * metrics, or rate-limit checks. The request is treated as read-only at this
+     * point. Mutations belong to
      * {@link HttpRequestMutationSignal}.
      */
     record HttpRequestSignal(HttpRequest value) implements ValueSignal<HttpRequest> {
@@ -358,10 +366,11 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     /**
-     * Fires from the SAPL HTTP filter on the permit path, before the
-     * request reaches downstream filters and the controller. Carries a
-     * {@link MutableHttpRequest} that handlers may use to set or remove
-     * headers and request attributes.
+     * Fires from the SAPL HTTP filter on the permit path, before the request
+     * reaches downstream filters and the
+     * controller. Carries a {@link MutableHttpRequest} that handlers may use to set
+     * or remove headers and request
+     * attributes.
      */
     record HttpRequestMutationSignal(MutableHttpRequest value) implements ValueSignal<MutableHttpRequest> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpRequest.class);
@@ -384,12 +393,13 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     /**
-     * Fires from the SAPL HTTP filter on the permit path after the
-     * controller has returned, before the response is committed to the
-     * client. Carries a {@link MutableHttpResponse}. Consumer handlers
-     * may observe the response (status, headers) or modify it (set
-     * status, set or add headers, write body). The signal serves both
-     * observation and modification through the standard handler shapes.
+     * Fires from the SAPL HTTP filter on the permit path after the controller has
+     * returned, before the response is
+     * committed to the client. Carries a {@link MutableHttpResponse}. Consumer
+     * handlers may observe the response
+     * (status, headers) or modify it (set status, set or add headers, write body).
+     * The signal serves both observation
+     * and modification through the standard handler shapes.
      */
     record HttpResponseSignal(MutableHttpResponse value) implements ValueSignal<MutableHttpResponse> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpResponse.class);
@@ -412,12 +422,12 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
     }
 
     /**
-     * Fires from the SAPL access-denied handler when an authenticated
-     * request is denied by the policy. Carries a
-     * {@link MutableHttpResponse} that handlers may use to set the
-     * status, write headers, or issue a redirect. Anonymous denials route
-     * through Spring's authentication entry point and do not fire this
-     * signal.
+     * Fires from the SAPL access-denied handler when an authenticated request is
+     * denied by the policy. Carries a
+     * {@link MutableHttpResponse} that handlers may use to set the status, write
+     * headers, or issue a redirect.
+     * Anonymous denials route through Spring's authentication entry point and do
+     * not fire this signal.
      */
     record HttpDenialSignal(MutableHttpResponse value) implements ValueSignal<MutableHttpResponse> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(MutableHttpResponse.class);

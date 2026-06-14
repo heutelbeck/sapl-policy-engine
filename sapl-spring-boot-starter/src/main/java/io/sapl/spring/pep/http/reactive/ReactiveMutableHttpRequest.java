@@ -33,13 +33,14 @@ import lombok.val;
 
 /**
  * Reactive-backed {@link MutableHttpRequest}. Collects header and attribute
- * mutations applied by constraint handlers, then materialises them as a
- * mutated {@link ServerHttpRequest} (and {@link ServerWebExchange}) when
+ * mutations applied by constraint handlers,
+ * then materialises them as a mutated {@link ServerHttpRequest} (and
+ * {@link ServerWebExchange}) when
  * {@link #applyTo(ServerWebExchange)} is called by the PEP filter.
  * <p>
- * The original request is never modified. The PEP filter discards the
- * wrapper and forwards the original request when {@link #isModified()}
- * returns {@code false}.
+ * The original request is never modified. The PEP filter discards the wrapper
+ * and forwards the original request when
+ * {@link #isModified()} returns {@code false}.
  */
 public final class ReactiveMutableHttpRequest implements MutableHttpRequest {
 
@@ -100,8 +101,9 @@ public final class ReactiveMutableHttpRequest implements MutableHttpRequest {
     }
 
     /**
-     * Returns the mutated exchange when any header or attribute mutation
-     * happened, otherwise the original exchange unchanged.
+     * Returns the mutated exchange when any header or attribute mutation happened,
+     * otherwise the original exchange
+     * unchanged.
      */
     public ServerWebExchange applyTo(ServerWebExchange exchange) {
         if (!modified) {

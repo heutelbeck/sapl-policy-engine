@@ -29,11 +29,12 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Default {@link ReactiveAuthorizationSubscriptionFactory}: places the
- * resolved {@link Authentication} on {@code subject} and the serialized
- * {@link org.springframework.http.server.reactive.ServerHttpRequest} on
- * both {@code action} and {@code resource}, leaving {@code environment}
- * undefined. Registered automatically when no other
+ * Default {@link ReactiveAuthorizationSubscriptionFactory}: places the resolved
+ * {@link Authentication} on
+ * {@code subject} and the serialized
+ * {@link org.springframework.http.server.reactive.ServerHttpRequest} on both
+ * {@code action} and {@code resource}, leaving {@code environment} undefined.
+ * Registered automatically when no other
  * {@code ReactiveAuthorizationSubscriptionFactory} bean is present.
  */
 @RequiredArgsConstructor

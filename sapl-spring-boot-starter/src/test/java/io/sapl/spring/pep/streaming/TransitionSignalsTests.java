@@ -34,16 +34,16 @@ import reactor.test.StepVerifier;
 
 /**
  * Tests for {@link TransitionSignals}, the subscriber-side helper that
- * translates the streaming PEP's non-terminal boundary exceptions
- * ({@link AccessDeniedException} for suspend boundaries,
- * {@link AccessGrantedException} for grant boundaries) into ordinary
- * callbacks and optional substitute emissions.
+ * translates the streaming PEP's non-terminal
+ * boundary exceptions ({@link AccessDeniedException} for suspend boundaries,
+ * {@link AccessGrantedException} for grant
+ * boundaries) into ordinary callbacks and optional substitute emissions.
  * <p>
  * Test pattern mirrors the streaming PEP's actual output shape: a
- * {@code flatMap} barrier that raises boundary exceptions per item.
- * That barrier is what makes {@code onErrorContinue} work; tests must
- * reproduce it for the helper to behave under test as it does in
- * production.
+ * {@code flatMap} barrier that raises boundary
+ * exceptions per item. That barrier is what makes {@code onErrorContinue} work;
+ * tests must reproduce it for the helper
+ * to behave under test as it does in production.
  */
 class TransitionSignalsTests {
 

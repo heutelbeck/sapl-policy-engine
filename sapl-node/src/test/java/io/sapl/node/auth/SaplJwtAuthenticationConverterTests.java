@@ -45,6 +45,8 @@ import lombok.val;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class SaplJwtAuthenticationConverterTests {
 
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
+
     @Mock
     private SaplNodeProperties properties;
 
@@ -60,7 +62,7 @@ class SaplJwtAuthenticationConverterTests {
 
     private Jwt createJwt(String subject, Map<String, Object> claims) {
         return Jwt.withTokenValue("token").header("alg", "RS256").subject(subject).claims(c -> c.putAll(claims))
-                .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
+                .issuedAt(REFERENCE).expiresAt(REFERENCE.plusSeconds(3600)).build();
     }
 
     @Nested

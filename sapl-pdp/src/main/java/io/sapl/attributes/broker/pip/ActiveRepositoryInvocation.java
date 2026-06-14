@@ -18,6 +18,7 @@
 package io.sapl.attributes.broker.pip;
 
 import io.sapl.api.attributes.AttributeFinderInvocation;
+import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker.BrokerSubscription;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.time.InstantSource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +64,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final long                      id = NEXT_ID.getAndIncrement();
     private final AttributeFinderInvocation invocation;
     private final AttributeRepository       fallback;
+    private final InstantSource             timestampSource;
     private final Consumer<Value>           onValue;
 
     // The broker lock guards subscriberRefs + refcount; the AtomicInteger here
@@ -69,23 +72,26 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
     private final AtomicInteger                    refcount       = new AtomicInteger();
 
-    private final Object                               lock        = new Object();
-    private AttributeRepository.@Nullable Registration handle      = null;
-    private volatile Optional<Value>                   latestValue = Optional.empty();
-    private volatile boolean                           closed      = false;
+    private final Object                               lock           = new Object();
+    private AttributeRepository.@Nullable Registration handle         = null;
+    private volatile Optional<AttributeSnapshot>       latestSnapshot = Optional.empty();
+    private volatile boolean                           closed         = false;
 
     /**
      * @param invocation the normalized invocation this active
      * invocation serves
      * @param fallback the repository this active invocation observes
+     * @param timestampSource source for value-arrival timestamps
      * @param onValue dispatched on every new value from the fallback
      */
     ActiveRepositoryInvocation(AttributeFinderInvocation invocation,
             AttributeRepository fallback,
+            InstantSource timestampSource,
             Consumer<Value> onValue) {
-        this.invocation = invocation;
-        this.fallback   = fallback;
-        this.onValue    = onValue;
+        this.invocation      = invocation;
+        this.fallback        = fallback;
+        this.timestampSource = timestampSource;
+        this.onValue         = onValue;
         log.debug(DEBUG_OPENED, id, invocation.attributeName());
     }
 
@@ -105,8 +111,8 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     }
 
     @Override
-    public Optional<Value> snapshot() {
-        return latestValue;
+    public Optional<AttributeSnapshot> snapshot() {
+        return latestSnapshot;
     }
 
     @Override
@@ -187,7 +193,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
         if (closed) {
             return;
         }
-        latestValue = Optional.of(value);
+        latestSnapshot = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
         try {
             onValue.accept(value);
         } catch (RuntimeException e) {

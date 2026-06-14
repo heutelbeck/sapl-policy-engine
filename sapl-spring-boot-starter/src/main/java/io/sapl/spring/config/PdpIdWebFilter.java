@@ -33,21 +33,20 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 /**
- * WebFilter that resolves the authenticated user's PDP id once per
- * request and propagates it through the Reactor Context. Cooperates
- * with {@link DefaultReactiveTenantResolver}, which reads the same
- * key on the consumer side. The PDP itself never reads the Reactor
- * Context; tenant resolution happens here, in application
- * infrastructure.
+ * WebFilter that resolves the authenticated user's PDP id once per request and
+ * propagates it through the Reactor
+ * Context. Cooperates with {@link DefaultReactiveTenantResolver}, which reads
+ * the same key on the consumer side. The
+ * PDP itself never reads the Reactor Context; tenant resolution happens here,
+ * in application infrastructure.
  * <p>
- * Uses the provided {@link PdpIdAuthenticationExtractor} to extract
- * the id from the current authentication. The extracted id is
- * written under
- * {@link DefaultReactiveTenantResolver#REACTOR_CONTEXT_PDP_ID_KEY};
- * a missing authentication or empty extraction falls back to
+ * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the id from
+ * the current authentication. The
+ * extracted id is written under
+ * {@link DefaultReactiveTenantResolver#REACTOR_CONTEXT_PDP_ID_KEY}; a missing
+ * authentication or empty extraction falls back to
  * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
- * {@link ReactiveTenantResolver}
- * implementations downstream consume the value.
+ * {@link ReactiveTenantResolver} implementations downstream consume the value.
  */
 @RequiredArgsConstructor
 public class PdpIdWebFilter implements WebFilter {

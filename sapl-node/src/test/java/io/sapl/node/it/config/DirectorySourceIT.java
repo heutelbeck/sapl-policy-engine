@@ -149,6 +149,7 @@ class DirectorySourceIT extends BaseIntegrationTest {
                     .withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
                     .withEnv("IO_SAPL_NODE_USERS_0_ID", "test-apikey-client")
                     .withEnv("IO_SAPL_NODE_USERS_0_PDPID", DEFAULT_PDP_ID)
+                    .withEnv("IO_SAPL_NODE_USERS_0_APIKEYID", "7A7ByyQd6U")
                     .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", API_KEY_ENCODED)) {
                 container.start();
 

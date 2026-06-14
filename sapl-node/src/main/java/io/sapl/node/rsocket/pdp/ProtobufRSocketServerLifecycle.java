@@ -18,6 +18,7 @@
 package io.sapl.node.rsocket.pdp;
 
 import java.io.IOException;
+import java.net.BindException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -37,6 +38,7 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.netty.ChannelBindException;
 import reactor.netty.tcp.TcpServer;
 
 /**
@@ -59,7 +61,18 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             the RSocket protocol per frame ceiling. Lower values are not legal
             because a single decision frame can already reach that size.""";
 
+    private static final String ERROR_PORT_IN_USE  = "SAPL Node refused to start. The RSocket server address %s:%d is already in use.";
+    private static final String ACTION_PORT_IN_USE = """
+            Another process, possibly another SAPL Node, is already bound to that
+            address. Either stop that process, or point this node at a free port:
+
+              sapl.pdp.rsocket.port=<free-port>   (env SAPL_PDP_RSOCKET_PORT)
+
+            Set sapl.pdp.rsocket.enabled=false to disable the RSocket transport
+            entirely.""";
+
     private final boolean                                  enabled;
+    private final String                                   bindAddress;
     private final int                                      port;
     private final @Nullable String                         socketPath;
     private final int                                      maxInboundPayloadSize;
@@ -96,19 +109,19 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             log.debug("RSocket max inbound payload size: {} bytes", maxInboundPayloadSize);
             val acceptor  = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
             val transport = createTransport();
-            server  = RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
+            server  = bind(acceptor, transport);
             running = true;
             val scheme = sslContext != null ? "tls" : "tcp";
             if (socketPath != null) {
                 log.debug("Protobuf RSocket PDP server started on Unix socket {} ({})", socketPath, scheme);
             } else {
-                log.debug("Protobuf RSocket PDP server started on port {} ({})", port, scheme);
+                log.debug("Protobuf RSocket PDP server started on {}:{} ({})", bindAddress, port, scheme);
             }
             if (sslContext == null && socketPath == null) {
-                log.warn("RSocket server bound on port {} without TLS. Connection-setup credentials "
+                log.warn("RSocket server bound on {}:{} without TLS. Connection-setup credentials "
                         + "(basic auth, API key, JWT) and decision payloads traverse the network in cleartext. "
                         + "Configure sapl.pdp.rsocket.ssl.bundle, or terminate TLS at an upstream load balancer.",
-                        port);
+                        bindAddress, port);
             }
         } finally {
             lifecycleLock.unlock();
@@ -142,6 +155,57 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
         }
     }
 
+    private CloseableChannel bind(ProtobufRSocketAcceptor acceptor, TcpServerTransport transport) {
+        try {
+            return RSocketServer.create(acceptor).maxInboundPayloadSize(maxInboundPayloadSize).bindNow(transport);
+        } catch (RuntimeException e) {
+            if (isAddressInUse(e)) {
+                val bindError  = channelBindExceptionOf(e);
+                val failedHost = bindError != null ? bindError.localHost() : bindAddress;
+                val failedPort = bindError != null ? bindError.localPort() : port;
+                throw new SaplStartupConfigurationException(ERROR_PORT_IN_USE.formatted(failedHost, failedPort),
+                        ACTION_PORT_IN_USE, e);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Walks the cause chain to recognise the address-in-use bind failure. The
+     * concrete root cause varies by transport: the NIO transport raises a
+     * {@link BindException}, while the native epoll transport raises a Netty
+     * {@code NativeIoException} carrying errno 98 whose message reads
+     * {@code "Address already in use"}. Only this condition gets the clean
+     * operator message; every other bind failure propagates unchanged.
+     */
+    static boolean isAddressInUse(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof BindException) {
+                return true;
+            }
+            val message = cause.getMessage();
+            if (message != null && (message.contains("Address already in use") || message.contains("error(-98)"))) {
+                return true;
+            }
+            if (cause.getCause() == cause) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    private static @Nullable ChannelBindException channelBindExceptionOf(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ChannelBindException bindException) {
+                return bindException;
+            }
+            if (cause.getCause() == cause) {
+                break;
+            }
+        }
+        return null;
+    }
+
     private TcpServerTransport createTransport() {
         TcpServer tcpServer;
         if (socketPath != null) {
@@ -154,7 +218,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             val path = socketPath;
             tcpServer = TcpServer.create().bindAddress(() -> new DomainSocketAddress(path));
         } else {
-            tcpServer = TcpServer.create().port(port);
+            tcpServer = TcpServer.create().host(bindAddress).port(port);
         }
         if (sslContext != null) {
             tcpServer = tcpServer.secure(spec -> spec.sslContext(sslContext));

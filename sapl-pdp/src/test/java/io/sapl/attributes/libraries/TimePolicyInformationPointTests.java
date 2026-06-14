@@ -42,6 +42,9 @@ import java.time.ZoneOffset;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("TimePolicyInformationPoint")
@@ -322,6 +325,32 @@ class TimePolicyInformationPointTests {
                 awaitsErrorAndCompletes(stream);
             }
         }
+
+        @Test
+        @DisplayName("a midnight crossing between the two clock reads still schedules FALSE for the end of the starting day, not a day later")
+        void whenClockCrossesMidnightBetweenReadsThenFalseFiresAtEndOfStartingDay() {
+            // The time-of-day decision and the date used to schedule the midnight
+            // boundary must come from a single clock read. A clock that ticks past
+            // midnight between the two reads must not push the FALSE transition a
+            // full day into the future.
+            val startOfReadWindow = Instant.parse("2021-11-08T23:59:59.999Z");
+            val afterMidnight     = Instant.parse("2021-11-09T00:00:00Z");
+            val clock             = mock(Clock.class);
+            when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+            // First read decides the time of day; the second read supplies the date
+            // for the midnight boundary - it must not see a later day.
+            when(clock.instant()).thenReturn(startOfReadWindow, afterMidnight);
+            val scheduler = new TestTimeScheduler(startOfReadWindow);
+            val sut       = new TimePolicyInformationPoint(clock, scheduler);
+
+            try (val stream = sut.localTimeIsAfter(Value.of("17:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                // Well past the end of the starting day (2021-11-08) but long before
+                // the end of the next day; FALSE must already be due.
+                scheduler.advanceTo(Instant.parse("2021-11-09T12:00:00Z"));
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            }
+        }
     }
 
     @Nested
@@ -432,6 +461,21 @@ class TimePolicyInformationPointTests {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
                 f.advanceTo(nextStart);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
+        }
+
+        @Test
+        @DisplayName("schedules only the next boundary, never a past-due one, while waiting")
+        void whenStartingAfterIntervalThenSchedulesOnlyTheNextBoundary() {
+            val f = fixtureAt("2021-11-08T18:00:00Z");
+            try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                // The repeat loop is lazy, so while it waits only the single next-day start
+                // boundary is queued. An eager loop reading the clock too early would also
+                // queue a past-due end-of-today boundary, whose stray emission can overwrite
+                // the legitimate next transition.
+                await().during(Duration.ofMillis(100)).atMost(Duration.ofMillis(300))
+                        .until(() -> f.scheduler.pendingCount() == 1);
             }
         }
 

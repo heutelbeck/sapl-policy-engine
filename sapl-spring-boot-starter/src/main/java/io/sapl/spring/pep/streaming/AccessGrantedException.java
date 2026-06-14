@@ -24,21 +24,22 @@ import lombok.Getter;
 import java.io.Serial;
 
 /**
- * Signal emitted by the streaming PEP when the subscription enters
- * permitting state and {@code signalTransitions} is enabled on the
- * annotation. Fires symmetrically on initial grant (Pending -&gt;
- * Permitting) and resume (Suspended -&gt; Permitting). Carried on the
- * error channel as a non-terminal signal: subscribers consume it via
- * {@code onErrorContinue} (typically through {@link TransitionSignals})
- * and the stream continues emitting items.
+ * Signal emitted by the streaming PEP when the subscription enters permitting
+ * state and {@code signalTransitions} is
+ * enabled on the annotation. Fires symmetrically on initial grant (Pending
+ * -&gt; Permitting) and resume (Suspended
+ * -&gt; Permitting). Carried on the error channel as a non-terminal signal:
+ * subscribers consume it via
+ * {@code onErrorContinue} (typically through {@link TransitionSignals}) and the
+ * stream continues emitting items.
  * <p>
  * Distinct from
- * {@link org.springframework.security.access.AccessDeniedException}
- * by design. A naive subscriber that does not opt into the
- * transition-signalling contract would not expect a grant signal;
- * routing it through a separate exception type makes the contract
- * explicit and lets subscribers pattern-match without inspecting
- * payloads.
+ * {@link org.springframework.security.access.AccessDeniedException} by design.
+ * A naive subscriber that
+ * does not opt into the transition-signalling contract would not expect a grant
+ * signal; routing it through a separate
+ * exception type makes the contract explicit and lets subscribers pattern-match
+ * without inspecting payloads.
  *
  * @since 4.1.0
  */
@@ -51,8 +52,10 @@ public final class AccessGrantedException extends RuntimeException {
     private final AuthorizationDecision decision;
 
     /**
-     * @param decision the PERMIT decision that established access; the
-     * subscriber may inspect it to apply decision-specific logic
+     * @param decision
+     * the PERMIT decision that established access; the subscriber may inspect it to
+     * apply decision-specific
+     * logic
      */
     public AccessGrantedException(AuthorizationDecision decision) {
         super("Access granted.");

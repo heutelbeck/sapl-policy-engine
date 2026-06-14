@@ -29,6 +29,7 @@ import org.mockito.Mockito;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
@@ -399,7 +400,7 @@ class TemporalFunctionLibraryTests {
 
     @Test
     void whenLocalConversionThenConvertsToUtc() {
-        final var ldt = LocalDateTime.of(2021, 11, 8, 13, 0, 0);
+        final var ldt = LocalDateTime.of(2021, Month.NOVEMBER, 8, 13, 0, 0);
         final var zdt = ZonedDateTime.of(ldt, ZoneId.systemDefault());
         assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.localIso(Value.of("2021-11-08T13:00:00")))
                 .isEqualTo(Value.of(zdt.toInstant().toString()));

@@ -51,10 +51,10 @@ import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Validates that the reactive configurer's
- * {@code subscriptionFactory(...)} hook actually shapes the subscription
- * that hits the PDP in a fully wired filter chain. Mirror of the servlet
- * override test.
+ * Validates that the reactive configurer's {@code subscriptionFactory(...)}
+ * hook actually shapes the subscription that
+ * hits the PDP in a fully wired filter chain. Mirror of the servlet override
+ * test.
  */
 @SpringBootTest(classes = SaplHttpReactiveConfigurerOverrideTests.TestApp.class, properties = "spring.main.web-application-type=reactive")
 class SaplHttpReactiveConfigurerOverrideTests {

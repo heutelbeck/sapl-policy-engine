@@ -172,7 +172,7 @@ public class PdpVoterSource implements AutoCloseable {
 
     private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError,
             PluginsBundle plugins) {
-        retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
+        val priorRetained      = retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
                 pdpConfiguration.data(), plugins.functionBroker());
         compilationContext.setCompilerOptions(pdpConfiguration.compilerOptions());
@@ -182,6 +182,13 @@ public class PdpVoterSource implements AutoCloseable {
         } catch (SaplCompilerException compilerException) {
             val formattedError = CompilationErrorFormatter.format(compilerException);
             if (!keepOldConfigOnError) {
+                // Fail-fast must leave state unchanged: restore the previously
+                // retained configuration so the rejected one is not retained.
+                if (priorRetained == null) {
+                    retainedConfigurations.remove(pdpConfiguration.pdpId());
+                } else {
+                    retainedConfigurations.put(pdpConfiguration.pdpId(), priorRetained);
+                }
                 throw new PDPConfigurationException(formattedError, compilerException);
             }
             val now          = clock.instant();
@@ -256,15 +263,36 @@ public class PdpVoterSource implements AutoCloseable {
     /**
      * Registers a listener that is invoked synchronously whenever the
      * configuration for the given pdpId changes.
+     * <p>
+     * On subscription the listener is delivered the current state once, under
+     * the source lock, so the initial value and any concurrent update arrive in
+     * order and no stale configuration can latch downstream. The current state
+     * is a {@link PdpUpdateEvent.Voter} when a configuration is loaded, or a
+     * {@link PdpUpdateEvent.Removed} when none is. Because the event type has no
+     * dedicated "absent" case, {@code Removed} on this initial delivery means
+     * "no current configuration" rather than "a configuration was deleted";
+     * both map to a fail-closed no-config decision downstream.
      *
      * @param pdpId the PDP identifier
      * @param listener the callback to invoke on configuration change
      */
     public void subscribeToUpdates(String pdpId, Consumer<PdpUpdateEvent> listener) {
-        if (closed) {
-            return;
+        stateLock.lock();
+        try {
+            if (closed) {
+                return;
+            }
+            updateListeners.computeIfAbsent(pdpId, id -> ConcurrentHashMap.newKeySet()).add(listener);
+            // Deliver the current configuration under the lock so a concurrent
+            // update cannot interleave between subscription and this initial
+            // delivery and leave a stale configuration latched downstream.
+            val current = getConfigRef(pdpId).get();
+            val initial = current.<PdpUpdateEvent>map(voter -> new PdpUpdateEvent.Voter(pdpId, voter))
+                    .orElseGet(() -> new PdpUpdateEvent.Removed(pdpId));
+            notifyListener(listener, pdpId, initial);
+        } finally {
+            stateLock.unlock();
         }
-        updateListeners.computeIfAbsent(pdpId, id -> ConcurrentHashMap.newKeySet()).add(listener);
     }
 
     /**
@@ -331,11 +359,15 @@ public class PdpVoterSource implements AutoCloseable {
             return;
         }
         for (val listener : set) {
-            try {
-                listener.accept(event);
-            } catch (Exception e) {
-                log.warn(WARN_LISTENER_THREW, pdpId, e.getMessage());
-            }
+            notifyListener(listener, pdpId, event);
+        }
+    }
+
+    private void notifyListener(Consumer<PdpUpdateEvent> listener, String pdpId, PdpUpdateEvent event) {
+        try {
+            listener.accept(event);
+        } catch (Exception e) {
+            log.warn(WARN_LISTENER_THREW, pdpId, e.getMessage());
         }
     }
 

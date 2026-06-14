@@ -30,16 +30,18 @@ import reactor.core.publisher.FluxSink;
 /**
  * Subscriber-side helpers for streams produced by a method annotated with
  * {@link io.sapl.spring.method.metadata.StreamEnforce
- * &#64;StreamEnforce(signalTransitions = true)}. The PEP surfaces every
- * suspend / resume boundary as a non-terminal exception on the error
- * channel ({@link AccessDeniedException} for suspend boundaries,
- * {@link AccessGrantedException} for grant boundaries) so subscribers can
- * react to them without their stream terminating on the first signal.
+ * &#64;StreamEnforce(signalTransitions = true)}. The PEP surfaces
+ * every suspend / resume boundary as a non-terminal exception on the error
+ * channel ({@link AccessDeniedException} for
+ * suspend boundaries, {@link AccessGrantedException} for grant boundaries) so
+ * subscribers can react to them without
+ * their stream terminating on the first signal.
  * <p>
- * The methods here translate those non-terminal signals into ordinary
- * callbacks (and, optionally, into a substitute item to emit downstream
- * in place of the signal). Errors that are <strong>not</strong>
- * boundary signals propagate normally and terminate the stream.
+ * The methods here translate those non-terminal signals into ordinary callbacks
+ * (and, optionally, into a substitute
+ * item to emit downstream in place of the signal). Errors that are
+ * <strong>not</strong> boundary signals propagate
+ * normally and terminate the stream.
  *
  * @since 4.1.0
  */
@@ -47,12 +49,17 @@ import reactor.core.publisher.FluxSink;
 public class TransitionSignals {
 
     /**
-     * Observes suspend boundaries via {@code onSuspend} and continues.
-     * Grant boundaries are silently dropped. Other errors propagate.
+     * Observes suspend boundaries via {@code onSuspend} and continues. Grant
+     * boundaries are silently dropped. Other
+     * errors propagate.
      *
-     * @param <T> the element type
-     * @param source the streaming-PEP-protected source
-     * @param onSuspend side-effecting consumer invoked on suspend boundary
+     * @param <T>
+     * the element type
+     * @param source
+     * the streaming-PEP-protected source
+     * @param onSuspend
+     * side-effecting consumer invoked on suspend boundary
+     *
      * @return a flux that observes suspend boundaries and continues
      */
     public static <T> Flux<T> onSuspend(Flux<T> source, Consumer<AccessDeniedException> onSuspend) {
@@ -60,14 +67,20 @@ public class TransitionSignals {
     }
 
     /**
-     * Observes suspend boundaries via {@code onSuspend} and emits the
-     * value supplied by {@code emit} downstream in place of the signal.
-     * Grant boundaries are silently dropped. Other errors propagate.
+     * Observes suspend boundaries via {@code onSuspend} and emits the value
+     * supplied by {@code emit} downstream in
+     * place of the signal. Grant boundaries are silently dropped. Other errors
+     * propagate.
      *
-     * @param <T> the element type
-     * @param source the streaming-PEP-protected source
-     * @param onSuspend side-effecting consumer invoked on suspend boundary
-     * @param emit supplies a substitute value to emit on suspend
+     * @param <T>
+     * the element type
+     * @param source
+     * the streaming-PEP-protected source
+     * @param onSuspend
+     * side-effecting consumer invoked on suspend boundary
+     * @param emit
+     * supplies a substitute value to emit on suspend
+     *
      * @return a flux that observes suspend boundaries and emits the substitute
      */
     public static <T> Flux<T> onSuspend(Flux<T> source, Consumer<AccessDeniedException> onSuspend, Supplier<T> emit) {
@@ -75,12 +88,17 @@ public class TransitionSignals {
     }
 
     /**
-     * Observes grant boundaries via {@code onGranted} and continues.
-     * Suspend boundaries are silently dropped. Other errors propagate.
+     * Observes grant boundaries via {@code onGranted} and continues. Suspend
+     * boundaries are silently dropped. Other
+     * errors propagate.
      *
-     * @param <T> the element type
-     * @param source the streaming-PEP-protected source
-     * @param onGranted side-effecting consumer invoked on grant boundary
+     * @param <T>
+     * the element type
+     * @param source
+     * the streaming-PEP-protected source
+     * @param onGranted
+     * side-effecting consumer invoked on grant boundary
+     *
      * @return a flux that observes grant boundaries and continues
      */
     public static <T> Flux<T> onGranted(Flux<T> source, Consumer<AccessGrantedException> onGranted) {
@@ -88,14 +106,20 @@ public class TransitionSignals {
     }
 
     /**
-     * Observes grant boundaries via {@code onGranted} and emits the
-     * value supplied by {@code emit} downstream in place of the signal.
-     * Suspend boundaries are silently dropped. Other errors propagate.
+     * Observes grant boundaries via {@code onGranted} and emits the value supplied
+     * by {@code emit} downstream in place
+     * of the signal. Suspend boundaries are silently dropped. Other errors
+     * propagate.
      *
-     * @param <T> the element type
-     * @param source the streaming-PEP-protected source
-     * @param onGranted side-effecting consumer invoked on grant boundary
-     * @param emit supplies a substitute value to emit on grant
+     * @param <T>
+     * the element type
+     * @param source
+     * the streaming-PEP-protected source
+     * @param onGranted
+     * side-effecting consumer invoked on grant boundary
+     * @param emit
+     * supplies a substitute value to emit on grant
+     *
      * @return a flux that observes grant boundaries and emits the substitute
      */
     public static <T> Flux<T> onGranted(Flux<T> source, Consumer<AccessGrantedException> onGranted, Supplier<T> emit) {
@@ -103,13 +127,17 @@ public class TransitionSignals {
     }
 
     /**
-     * Observes both boundary directions in a single call. Other errors
-     * propagate.
+     * Observes both boundary directions in a single call. Other errors propagate.
      *
-     * @param <T> the element type
-     * @param source the streaming-PEP-protected source
-     * @param onSuspend side-effecting consumer invoked on suspend boundary
-     * @param onGranted side-effecting consumer invoked on grant boundary
+     * @param <T>
+     * the element type
+     * @param source
+     * the streaming-PEP-protected source
+     * @param onSuspend
+     * side-effecting consumer invoked on suspend boundary
+     * @param onGranted
+     * side-effecting consumer invoked on grant boundary
+     *
      * @return a flux that observes both boundaries and continues
      */
     public static <T> Flux<T> onTransitions(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
@@ -118,15 +146,22 @@ public class TransitionSignals {
     }
 
     /**
-     * Observes both boundary directions and emits a substitute item per
-     * direction. Other errors propagate.
+     * Observes both boundary directions and emits a substitute item per direction.
+     * Other errors propagate.
      *
-     * @param <T> the element type
-     * @param source the streaming-PEP-protected source
-     * @param onSuspend side-effecting consumer invoked on suspend boundary
-     * @param emitOnSuspend supplies a substitute value to emit on suspend
-     * @param onGranted side-effecting consumer invoked on grant boundary
-     * @param emitOnGranted supplies a substitute value to emit on grant
+     * @param <T>
+     * the element type
+     * @param source
+     * the streaming-PEP-protected source
+     * @param onSuspend
+     * side-effecting consumer invoked on suspend boundary
+     * @param emitOnSuspend
+     * supplies a substitute value to emit on suspend
+     * @param onGranted
+     * side-effecting consumer invoked on grant boundary
+     * @param emitOnGranted
+     * supplies a substitute value to emit on grant
+     *
      * @return a flux that observes both boundaries and emits substitutes
      */
     public static <T> Flux<T> onTransitions(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
@@ -135,9 +170,9 @@ public class TransitionSignals {
     }
 
     /**
-     * Observe-only path: a chained {@code onErrorContinue} on the
-     * source. No extra {@code Flux.create}, no extra subscription,
-     * full backpressure preserved. Suitable when no substitute item
+     * Observe-only path: a chained {@code onErrorContinue} on the source. No extra
+     * {@code Flux.create}, no extra
+     * subscription, full backpressure preserved. Suitable when no substitute item
      * needs to be injected on a boundary.
      */
     private static <T> Flux<T> observeOnly(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
@@ -156,13 +191,14 @@ public class TransitionSignals {
     }
 
     /**
-     * Substitution path: a wrapping {@code Flux.create} sink so the
-     * boundary-error callback can {@code sink.next(emit.get())} a
-     * substitute item. This costs one extra subscription and
-     * {@code OverflowStrategy.BUFFER} on the sink (the
-     * {@code Flux.create} default); the inner subscription is bound
-     * to the sink's lifetime via {@code sink.onDispose(...)}, so a
-     * downstream cancel propagates upstream.
+     * Substitution path: a wrapping {@code Flux.create} sink so the boundary-error
+     * callback can
+     * {@code sink.next(emit.get())} a substitute item. This costs one extra
+     * subscription and
+     * {@code OverflowStrategy.BUFFER} on the sink (the {@code Flux.create}
+     * default); the inner subscription is bound to
+     * the sink's lifetime via {@code sink.onDispose(...)}, so a downstream cancel
+     * propagates upstream.
      */
     private static <T> Flux<T> observeAndSubstitute(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
             Supplier<T> emitOnSuspend, Consumer<AccessGrantedException> onGranted, Supplier<T> emitOnGranted) {

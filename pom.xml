@@ -94,7 +94,7 @@
 		<okhttp.version>5.3.2</okhttp.version>
 		<jacoco.version>0.8.14</jacoco.version>
 		<scalar.version>0.6.34</scalar.version>
-		<vaadin.version>25.1.1</vaadin.version>
+		<vaadin.version>25.1.7</vaadin.version>
 		<picocli.version>4.7.7</picocli.version>
 		<lombok.version>1.18.46</lombok.version>
 		<jupiter.version>6.0.3</jupiter.version>
@@ -105,7 +105,7 @@
 		<springdoc.version>3.0.3</springdoc.version>
 		<jsqlparser.version>5.0</jsqlparser.version>
 		<slf4j-test.version>3.0.3</slf4j-test.version>
-		<springboot.version>4.0.6</springboot.version>
+		<springboot.version>4.1.0</springboot.version>
 		<commons-io.version>2.21.0</commons-io.version>
 		<classgraph.version>4.8.184</classgraph.version>
 		<bouncycastle.version>1.84</bouncycastle.version>

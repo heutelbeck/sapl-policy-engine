@@ -31,10 +31,11 @@ import io.sapl.spring.pdp.embedded.PDPAutoConfiguration;
  * Marks an inner test app as a SAPL PEP-side Spring Boot test configuration.
  * <p>
  * Equivalent to {@code @SpringBootConfiguration} +
- * {@code @EnableAutoConfiguration} with {@link PDPAutoConfiguration} excluded.
- * Tests that exercise PEP / HTTP / method-security wiring and supply the PDP
- * via {@code @MockitoBean} would otherwise trigger the embedded PDP
- * auto-config, which fails the context when the test classpath has no
+ * {@code @EnableAutoConfiguration} with {@link PDPAutoConfiguration}
+ * excluded. Tests that exercise PEP / HTTP / method-security wiring and supply
+ * the PDP via {@code @MockitoBean} would
+ * otherwise trigger the embedded PDP auto-config, which fails the context when
+ * the test classpath has no
  * {@code /policies} resource.
  */
 @Target(ElementType.TYPE)

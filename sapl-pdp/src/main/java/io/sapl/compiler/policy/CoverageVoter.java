@@ -23,6 +23,7 @@ import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.document.VoteResult;
 import io.sapl.compiler.document.VoteResultWithCoverage;
 import io.sapl.compiler.document.Voter;
+import io.sapl.compiler.expressions.StratifiedBooleanOperationCompiler;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.PolicyCompiler.IndexedCompiledCondition;
 import lombok.val;
@@ -94,12 +95,13 @@ public interface CoverageVoter {
             Value bodyValue       = Value.TRUE;
 
             for (val condition : bodyConditions) {
-                val v = evalChild(condition.expression(), ctx, deps);
-                if (v == null) {
+                val raw = evalChild(condition.expression(), ctx, deps);
+                if (raw == null) {
                     val partial = new Coverage.PolicyCoverage(metadata,
                             new Coverage.BodyCoverage(hits, totalConditions));
                     return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
                 }
+                val v = StratifiedBooleanOperationCompiler.asBoolean(raw, condition.location());
                 hits.add(new Coverage.ConditionHit(v, condition.location(), condition.statementId()));
                 if (v instanceof ErrorValue || Value.FALSE.equals(v)) {
                     bodyValue = v;
@@ -136,9 +138,10 @@ public interface CoverageVoter {
                     return new VoteResultWithCoverage(new VoteResult(null, deps), partial);
                 }
                 val condition = bodyConditions.get(i);
-                hits.add(new Coverage.ConditionHit(v, condition.location(), condition.statementId()));
-                if (v instanceof ErrorValue || Value.FALSE.equals(v)) {
-                    bodyValue = v;
+                val coerced   = StratifiedBooleanOperationCompiler.asBoolean(v, condition.location());
+                hits.add(new Coverage.ConditionHit(coerced, condition.location(), condition.statementId()));
+                if (coerced instanceof ErrorValue || Value.FALSE.equals(coerced)) {
+                    bodyValue = coerced;
                     break;
                 }
             }

@@ -233,7 +233,8 @@ class SaplHttpPepWebFilterTests {
             if (!ConstraintHandlerProvider.constraintIsOfType(constraint, "noop")) {
                 return List.of();
             }
-            ConstraintHandler.Consumer<MutableHttpRequest> h = req -> { /* observe only, no mutation */ };
+            ConstraintHandler.Consumer<MutableHttpRequest> h = req -> {
+                /* observe only, no mutation */ };
             return List.of(new ScopedConstraintHandler(h, Signal.HttpRequestMutationSignal.SIGNAL_TYPE, 0));
         };
     }

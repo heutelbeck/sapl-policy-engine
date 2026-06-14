@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -138,14 +139,41 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
-    void whenDirectoryDoesNotExistThenSubscribeThrowsException() {
-        val nonExistentPath = tempDir.resolve("non-existent");
-        source = new DirectoryPDPConfigurationSource(nonExistentPath);
+    void whenDirectoryAbsentAtStartupThenToleratedAndRecoversOnCreation() throws IOException {
+        val path = tempDir.resolve("appears-later");
+        source = new DirectoryPDPConfigurationSource(path);
 
         val capture = new CapturingSubscriber();
+        assertThatCode(() -> source.subscribe(capture)).doesNotThrowAnyException();
+        assertThat(source.isClosed()).isFalse();
+        assertThat(capture.configs()).isEmpty();
 
-        assertThatThrownBy(() -> source.subscribe(capture)).isInstanceOf(PDPConfigurationException.class)
-                .hasMessageContaining("not a directory");
+        Files.createDirectory(path);
+        writePdpJson(path);
+        createFile(path.resolve("policy.sapl"), "policy \"p\" permit true;");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(capture.configs()).isNotEmpty());
+    }
+
+    @Test
+    void whenDirectoryDeletedAtRuntimeThenEmitsRemoveAndRecoversOnRecreation() throws IOException {
+        writePdpJson(tempDir);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"p\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+        await().atMost(Duration.ofSeconds(5)).until(() -> !capture.configs().isEmpty());
+
+        deleteDirectoryContents(tempDir);
+        Files.delete(tempDir);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(capture.removedPdpIds()).isNotEmpty());
+
+        Files.createDirectory(tempDir);
+        writePdpJson(tempDir);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"p\" permit true;");
+        await().atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(capture.configs()).hasSizeGreaterThanOrEqualTo(2));
     }
 
     @Test
@@ -482,6 +510,14 @@ class DirectoryPDPConfigurationSourceTests {
                 """
                         {"algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }}
                         """);
+    }
+
+    private static void deleteDirectoryContents(Path directory) throws IOException {
+        try (val entries = Files.newDirectoryStream(directory)) {
+            for (val entry : entries) {
+                Files.delete(entry);
+            }
+        }
     }
 
 }

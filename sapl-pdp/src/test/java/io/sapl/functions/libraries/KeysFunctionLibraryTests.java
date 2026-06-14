@@ -53,8 +53,9 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @DisplayName("KeysFunctionLibrary")
 class KeysFunctionLibraryTests {
 
-    private static final JsonNodeFactory     JSON = JsonNodeFactory.instance;
-    private static final KeysFunctionLibrary KEYS = new KeysFunctionLibrary();
+    private static final JsonNodeFactory     JSON      = JsonNodeFactory.instance;
+    private static final KeysFunctionLibrary KEYS      = new KeysFunctionLibrary();
+    private static final Instant             REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
@@ -564,7 +565,7 @@ class KeysFunctionLibraryTests {
     }
 
     private static X509Certificate generateCertificate(KeyPair keyPair, String algorithm) throws Exception {
-        val now       = Instant.now();
+        val now       = REFERENCE;
         val notBefore = now.minus(1, ChronoUnit.DAYS);
         val notAfter  = now.plus(365, ChronoUnit.DAYS);
 

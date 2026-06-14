@@ -40,9 +40,10 @@ public record EnforcementPlanEntry<T>(
 
     /**
      * Orders by {@link #priority} ascending, then by handler kind
-     * {@link ConstraintHandler.Runner} &lt; {@link ConstraintHandler.Mapper} &lt;
-     * {@link ConstraintHandler.Consumer}.
-     * {@link #constraintType} and {@link #constraint} are not part of the ordering.
+     * {@link ConstraintHandler.Runner} &lt;
+     * {@link ConstraintHandler.Mapper} &lt; {@link ConstraintHandler.Consumer}.
+     * {@link #constraintType} and
+     * {@link #constraint} are not part of the ordering.
      */
     @Override
     public int compareTo(@NonNull EnforcementPlanEntry<?> other) {

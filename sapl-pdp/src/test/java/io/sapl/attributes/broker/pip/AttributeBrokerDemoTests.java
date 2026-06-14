@@ -47,6 +47,8 @@ import tools.jackson.databind.json.JsonMapper;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,6 +72,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AttributeBrokerDemoTests {
 
     private static final boolean PRINT_OUTPUT = false;
+    private static final Clock   CLOCK        = Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC);
 
     @BeforeEach
     void clearCapturedLogs() {
@@ -190,10 +193,10 @@ class AttributeBrokerDemoTests {
         // that every real PIP shipped in sapl-pdp registers cleanly under its
         // declared namespace.
         val mapper      = JsonMapper.builder().build();
-        val clock       = Clock.systemUTC();
+        val clock       = CLOCK;
         val scheduler   = new RealTimeScheduler(clock);
         val httpClient  = HttpClient.newHttpClient();
-        val webClient   = new BlockingWebClient(mapper, httpClient, clock, scheduler);
+        val webClient   = new BlockingWebClient(mapper, httpClient);
         val keyProvider = new JWTKeyProvider(httpClient, clock);
 
         try (val broker = new PolicyInformationPointAttributeBroker()) {

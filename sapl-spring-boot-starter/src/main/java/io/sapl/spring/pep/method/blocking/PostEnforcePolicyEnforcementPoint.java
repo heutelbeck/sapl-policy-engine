@@ -43,10 +43,11 @@ import java.util.Set;
 
 /**
  * An {@link org.springframework.security.authorization.AuthorizationManager}
- * which can determine if an {@link Authentication} was permitted to invoke the
- * {@link MethodInvocation} by calling a Policy Decision Point with the method's
- * return value, based on the expressions from the {@link PostEnforce}
- * annotation.
+ * which can determine if an
+ * {@link Authentication} was permitted to invoke the {@link MethodInvocation}
+ * by calling a Policy Decision Point with
+ * the method's return value, based on the expressions from the
+ * {@link PostEnforce} annotation.
  * </p>
  *
  * @since 4.1.0

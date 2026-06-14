@@ -291,6 +291,9 @@ class CachingHttpAuthHandlerTests {
     @DisplayName("OAuth2 / JWT authentication")
     class JwtAuthentication {
 
+        private static final Instant ISSUED_AT  = Instant.parse("2026-02-13T00:00:00Z");
+        private static final Instant EXPIRES_AT = ISSUED_AT.plusSeconds(60);
+
         @Test
         @DisplayName("valid JWT with pdpId claim routes to that pdpId")
         void whenValidJwtThenClaimedPdpId() {
@@ -301,7 +304,7 @@ class CachingHttpAuthHandlerTests {
             oauth.setPdpIdClaim("sapl_pdp_id");
             when(properties.getOauth()).thenReturn(oauth);
             val jwt = Jwt.withTokenValue(token).header("alg", "RS256").claim("sapl_pdp_id", TENANT_PDP)
-                    .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(60)).build();
+                    .issuedAt(ISSUED_AT).expiresAt(EXPIRES_AT).build();
             when(jwtDecoder.decode(token)).thenReturn(jwt);
 
             val sut = handler();
@@ -332,8 +335,8 @@ class CachingHttpAuthHandlerTests {
             oauth.setPdpIdClaim("sapl_pdp_id");
             when(properties.getOauth()).thenReturn(oauth);
             when(properties.isRejectOnMissingPdpId()).thenReturn(true);
-            val jwt = Jwt.withTokenValue(token).header("alg", "RS256").claim("sub", "user").issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(60)).build();
+            val jwt = Jwt.withTokenValue(token).header("alg", "RS256").claim("sub", "user").issuedAt(ISSUED_AT)
+                    .expiresAt(EXPIRES_AT).build();
             when(jwtDecoder.decode(token)).thenReturn(jwt);
 
             val sut = handler();
@@ -352,8 +355,8 @@ class CachingHttpAuthHandlerTests {
             when(properties.getOauth()).thenReturn(oauth);
             when(properties.isRejectOnMissingPdpId()).thenReturn(false);
             when(properties.getDefaultPdpId()).thenReturn(DEFAULT_PDP);
-            val jwt = Jwt.withTokenValue(token).header("alg", "RS256").claim("other", "value").issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(60)).build();
+            val jwt = Jwt.withTokenValue(token).header("alg", "RS256").claim("other", "value").issuedAt(ISSUED_AT)
+                    .expiresAt(EXPIRES_AT).build();
             when(jwtDecoder.decode(token)).thenReturn(jwt);
 
             val sut = handler();

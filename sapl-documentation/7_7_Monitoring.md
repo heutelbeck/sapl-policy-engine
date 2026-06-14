@@ -87,7 +87,7 @@ Detail fields are only visible to authenticated users. The default configuration
 | `/actuator/info` | `401` | `{git:{branch, commit.id}, sapl:{configType, configPath, policiesPath}}` |
 | `/actuator/prometheus` | `401` | all Prometheus metrics |
 
-The split is driven by `management.endpoint.health.show-details: when-authorized` (Spring Boot default) and `management.endpoints.web.exposure.include: health,info,prometheus`. Health endpoints are unauthenticated so Kubernetes probes work without credentials; authentication only widens the response, never gates the probe itself. Info and Prometheus require authentication to prevent information disclosure of policy-source layout and metric labels.
+The split is driven by `management.endpoint.health.show-details: when-authorized` (Spring Boot default) and `management.endpoints.web.exposure.include: health,info,prometheus`. Health endpoints are unauthenticated so Kubernetes probes work without credentials. Authentication only widens the response, never gates the probe itself. Info and Prometheus require authentication to prevent information disclosure of policy-source layout and metric labels.
 
 ### Kubernetes Probes
 

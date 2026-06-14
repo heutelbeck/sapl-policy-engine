@@ -40,16 +40,17 @@ import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason;
 import reactor.core.publisher.Flux;
 
 /**
- * Unit tests for {@link StreamingPipeline#classify}, the
- * pre-classification function that turns a raw PDP
+ * Unit tests for {@link StreamingPipeline#classify}, the pre-classification
+ * function that turns a raw PDP
  * {@link AuthorizationDecision} (plus the outcome of decision-scoped
- * enforcement) into the {@link Event} variant the FSM consumes.
+ * enforcement) into the {@link Event} variant the
+ * FSM consumes.
  * <p>
  * Under the strict fail-closed discipline, only an explicit
- * {@code Decision.SUSPEND} produces a {@link PdpSuspend}. Every other
- * non-PERMIT outcome and a PERMIT whose decision-scoped enforcement
- * failed produce a {@link PdpDeny} carrying a discriminating
- * {@link DenyKind} for diagnostics.
+ * {@code Decision.SUSPEND} produces a {@link PdpSuspend}.
+ * Every other non-PERMIT outcome and a PERMIT whose decision-scoped enforcement
+ * failed produce a {@link PdpDeny}
+ * carrying a discriminating {@link DenyKind} for diagnostics.
  */
 class StreamingPipelineClassifyTests {
 

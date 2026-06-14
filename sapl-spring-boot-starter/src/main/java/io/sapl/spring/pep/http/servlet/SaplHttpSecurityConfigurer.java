@@ -29,13 +29,14 @@ import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.val;
 
 /**
- * Spring Security configurer that wires the SAPL servlet HTTP enforcement
- * chain into an {@link HttpSecurity} build. Apply with
+ * Spring Security configurer that wires the SAPL servlet HTTP enforcement chain
+ * into an {@link HttpSecurity} build.
+ * Apply with
  * {@code http.with(SaplHttpSecurityConfigurer.saplHttp(), Customizer.withDefaults())}.
  * <p>
  * The configurer pulls the {@link SaplAuthorizationManager}, the
- * {@link SaplAccessDeniedHandler}, and the {@link SaplHttpPepFilter} from the
- * application context and:
+ * {@link SaplAccessDeniedHandler}, and the
+ * {@link SaplHttpPepFilter} from the application context and:
  * <ul>
  * <li>routes {@code anyRequest()} through the SAPL authorization manager;</li>
  * <li>installs the SAPL access-denied handler on the exception-handling
@@ -44,7 +45,8 @@ import lombok.val;
  * {@link AuthorizationFilter}.</li>
  * </ul>
  * Other {@code HttpSecurity} customisations (CSRF, login flavours, request
- * matchers beyond {@code anyRequest()}) remain the caller's responsibility.
+ * matchers beyond {@code anyRequest()}) remain
+ * the caller's responsibility.
  * <p>
  * Customisation hooks (use the customizer parameter of
  * {@link HttpSecurity#with}):
@@ -54,10 +56,11 @@ import lombok.val;
  *         (auth, req) -> AuthorizationSubscription.of(auth.getName(), req.getMethod(), req.getRequestURI(), mapper)));
  * }</pre>
  *
- * Use {@link #subscriptionFactory(AuthorizationSubscriptionFactory)} to
- * replace only the subscription shape, or
- * {@link #authorizationManager(SaplAuthorizationManager)} to install a
- * fully custom manager (e.g. one that pre-resolves attributes).
+ * Use {@link #subscriptionFactory(AuthorizationSubscriptionFactory)} to replace
+ * only the subscription shape, or
+ * {@link #authorizationManager(SaplAuthorizationManager)} to install a fully
+ * custom manager (e.g. one that pre-resolves
+ * attributes).
  */
 public final class SaplHttpSecurityConfigurer extends AbstractHttpConfigurer<SaplHttpSecurityConfigurer, HttpSecurity> {
 
@@ -73,11 +76,13 @@ public final class SaplHttpSecurityConfigurer extends AbstractHttpConfigurer<Sap
     }
 
     /**
-     * Overrides the {@link AuthorizationSubscriptionFactory} used by this
-     * filter chain. Ignored when an explicit
+     * Overrides the {@link AuthorizationSubscriptionFactory} used by this filter
+     * chain. Ignored when an explicit
      * {@link #authorizationManager(SaplAuthorizationManager)} is also set.
      *
-     * @param factory the factory to use for this chain.
+     * @param factory
+     * the factory to use for this chain.
+     *
      * @return this configurer for fluent chaining.
      */
     public SaplHttpSecurityConfigurer subscriptionFactory(AuthorizationSubscriptionFactory factory) {
@@ -86,10 +91,13 @@ public final class SaplHttpSecurityConfigurer extends AbstractHttpConfigurer<Sap
     }
 
     /**
-     * Replaces the {@link SaplAuthorizationManager} for this filter chain in
-     * its entirety. When set, {@link #subscriptionFactory} is ignored.
+     * Replaces the {@link SaplAuthorizationManager} for this filter chain in its
+     * entirety. When set,
+     * {@link #subscriptionFactory} is ignored.
      *
-     * @param manager the manager to use for this chain.
+     * @param manager
+     * the manager to use for this chain.
+     *
      * @return this configurer for fluent chaining.
      */
     public SaplHttpSecurityConfigurer authorizationManager(SaplAuthorizationManager manager) {

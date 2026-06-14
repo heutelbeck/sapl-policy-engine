@@ -71,6 +71,7 @@ class RSocketTransportIT extends BaseIntegrationTest {
     private static final String BASIC_SECRET         = "haTPcbYA8Dwkl91$)gG42S)UG98eF!*m";
     private static final String BASIC_SECRET_ENCODED = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
     private static final String API_KEY              = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
+    private static final String API_KEY_ID           = API_KEY.split("_")[1];
     private static final String API_KEY_ENCODED      = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
     private static final String DEFAULT_PDP_ID       = "default";
 
@@ -103,6 +104,7 @@ class RSocketTransportIT extends BaseIntegrationTest {
             String encodedApiKey) {
         return container.withEnv("IO_SAPL_NODE_ALLOWNOAUTH", "false").withEnv("IO_SAPL_NODE_ALLOWAPIKEYAUTH", "true")
                 .withEnv("IO_SAPL_NODE_USERS_0_ID", id).withEnv("IO_SAPL_NODE_USERS_0_PDPID", pdpId)
+                .withEnv("IO_SAPL_NODE_USERS_0_APIKEYID", API_KEY_ID)
                 .withEnv("IO_SAPL_NODE_USERS_0_APIKEY", encodedApiKey);
     }
 

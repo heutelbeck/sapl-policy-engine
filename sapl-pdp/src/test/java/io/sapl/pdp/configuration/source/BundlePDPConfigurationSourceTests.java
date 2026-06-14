@@ -220,6 +220,33 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
+    void whenOneSubscriberThrowsThenOthersStillReceiveReloads() throws IOException {
+        createBundle(tempDir.resolve("dunwich.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "dunwich-v1" }
+                        """,
+                "policy.sapl", "policy \"test\" permit true;");
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+
+        val recorder = new CapturingSubscriber();
+        source.subscribe(recorder);
+        // A subscriber that always throws must not starve the others or kill the
+        // file-watch thread driving hot reload.
+        source.subscribe(event -> {
+            throw new IllegalStateException("subscriber boom");
+        });
+
+        createBundle(tempDir.resolve("dunwich.saplbundle"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" }, "configurationId": "dunwich-v2" }
+                        """,
+                "policy.sapl", "policy \"updated\" deny true;");
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(recorder.configs())
+                .anyMatch(config -> config.combiningAlgorithm().equals(PERMIT_OVERRIDES)));
+    }
+
+    @Test
     void whenBundleContainsNestedArchiveThenBundleIsSkippedAndVoterSourceNotInvoked() throws IOException {
         val bundlePath = tempDir.resolve("malicious.saplbundle");
         createBundleWithNestedArchive(bundlePath);

@@ -9,6 +9,8 @@ nav_order: 604
 
 Attribute-Based Access Control (ABAC) for NestJS using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
+Version 2.0 re-architected enforcement from the legacy constraint-bundle model to the SAPL 4.1 planner and `@StreamEnforce` model, added the RSocket transport, support for the new `SUSPEND` decision verb, and data-layer query rewriting. Projects upgrading from 1.x should consult the `@sapl/nestjs` CHANGELOG for the migration table.
+
 ## What is SAPL?
 
 SAPL is a policy language and Policy Decision Point (PDP) for attribute-based access control. Policies are written in a dedicated language and evaluated by the PDP, which streams authorization decisions based on subject, action, resource, and environment attributes.
@@ -221,7 +223,7 @@ Use `@PreEnforce` for methods with side effects (database writes, emails) that s
 
 ### @PostEnforce
 
-Authorizes **after** the method executes. The method always runs; its return value is available via `ctx.returnValue` in subscription field callbacks.
+Authorizes **after** the method executes. The method always runs. Its return value is available via `ctx.returnValue` in subscription field callbacks.
 
 ```typescript
 import { Controller, Get, Param } from '@nestjs/common';
@@ -307,7 +309,7 @@ The decorators above are convenient, but to use them well it helps to understand
 
 ### The Deny Invariant
 
-Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your method running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive; one-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
+Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your method running or your stream forwarding data. Everything else means denial. Streaming PEPs that honour `SUSPEND` pause the stream while keeping the subscription alive. One-shot PEPs treat `SUSPEND` as `DENY`. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
 
 A `PERMIT` with obligations is not a free pass. The PEP checks that every obligation in the decision has a registered handler. If even one obligation cannot be fulfilled, the PEP treats the decision as a denial. If a handler accepts responsibility but fails during execution, that also results in denial. Advice is softer: if an advice handler fails, the PEP logs the failure and moves on. Advice never causes denial.
 
@@ -540,6 +542,17 @@ Filters array elements or nullifies single values that do not meet conditions.
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported and will throw an error.
 
+## Query Rewriting
+
+Constraint handlers also cover data-layer enforcement: a policy can attach a query-rewriting obligation that narrows the rows an enforced method reads at the database, rather than filtering them in memory. The query an enforced method issues is rewritten transparently, fail-closed and narrowing-only.
+
+Two integrations ship as optional subpath exports, so you install only the driver you use:
+
+- **`@sapl/nestjs/mongoose`** for MongoDB on Mongoose. Register the shim and apply `createSaplMongoosePlugin(cls)` to your schemas, then add `MongoDbQueryRewritingProvider` to your module. It honours the `mongo:queryRewriting` obligation.
+- **`@sapl/nestjs/prisma`** for SQL on Prisma. Register the shim and extend your client with `createSaplPrismaExtension(cls)`, then add `SqlQueryRewritingProvider`. It honours the `sql:queryRewriting` obligation (typed `criteria` and `columns`, because Prisma's structured `where` cannot lower the raw-SQL `conditions` escape hatch).
+
+The obligation format is identical across every SAPL PEP for a backend, so the same `mongo:queryRewriting` policy works unchanged on the Spring, Python, and NestJS MongoDB integrations. See [Query Rewriting](6_12_QueryRewriting.md) for the obligation schema, semantics, and setup.
+
 ## Streaming Enforcement with @StreamEnforce
 
 `@PreEnforce` and `@PostEnforce` make a single authorization decision and either let the method run or deny it. They suit request-response endpoints. For SSE endpoints that return an `Observable<T>`, the decision is rarely a single point in time. The same subscription stays open while the policy evaluates against attribute streams that may change. The single `@StreamEnforce` decorator covers this case.
@@ -595,7 +608,7 @@ The streaming pipeline is a four-state machine over the decision verbs. It start
 })
 ```
 
-**`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal value on the `next` channel. When `false` (the default), boundary transitions are silent. The subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessSuspendedSignal` value every time the subscription is silenced and an `AccessGrantedSignal` value (carrying the granting decision) every time it resumes. These arrive on the `next` channel, not the error channel; subscribers detect them with `instanceof` or with the `TransitionSignals` helper operators below. Terminal denials bypass the gate entirely and surface on the `error` channel as `AccessDeniedError` regardless of this flag.
+**`signalTransitions`**. Surfaces every suspend/resume boundary to the subscriber as a non-terminal value on the `next` channel. When `false` (the default), boundary transitions are silent. The subscriber sees items while permitted and silence while suspended, with no programmatic notification of the transition itself. When `true`, the subscriber receives an `AccessSuspendedSignal` value every time the subscription is silenced and an `AccessGrantedSignal` value (carrying the granting decision) every time it resumes. These arrive on the `next` channel, not the error channel. Subscribers detect them with `instanceof` or with the `TransitionSignals` helper operators below. Terminal denials bypass the gate entirely and surface on the `error` channel as `AccessDeniedError` regardless of this flag.
 
 **`pauseRapDuringSuspend`**. Controls the underlying source Observable while the subscription is silenced. With the default `false`, the protected method's Observable stays subscribed throughout the silenced period. Items keep arriving from upstream and are silently dropped on the way to the subscriber. Lower latency on resume, and upstream state is preserved. With `true`, the upstream subscription is disposed when the subscription enters `Suspended` and re-established when it resumes into `Permitting`. This stops upstream side effects during suspension at the cost of paying re-subscription latency on resume. Opt in for upstream sources with expensive side effects that must not run while the subscriber is denied access.
 
@@ -632,7 +645,7 @@ The flag combinations encode the three behavioural patterns most streaming endpo
 liveTrades(): Observable<Trade> { ... }
 ```
 
-**Drop while suspended, silent transitions.** The subscription should survive deny windows transparently, with no boundary events. The defaults are again sufficient; the difference is in the policy, which uses the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open, and a later `PERMIT` resumes the flow.
+**Drop while suspended, silent transitions.** The subscription should survive deny windows transparently, with no boundary events. The defaults are again sufficient. The difference is in the policy, which uses the `suspend` verb instead of `deny` for the deny windows. The PDP returns `SUSPEND`, items are silently dropped, the subscription stays open, and a later `PERMIT` resumes the flow.
 
 ```typescript
 @StreamEnforce({ action: 'stream:telemetry' })
@@ -901,7 +914,6 @@ All options for `SaplModule.forRoot()` / `SaplModule.forRootAsync()`:
 | `secret`                  | `string`                    | -                                               | Basic Auth password. Must be used together with `username`. Mutually exclusive with `token`. |
 | `oauth2`                  | `OAuth2TokenProviderOptions`| -                                               | OAuth2 client_credentials config (`issuerUrl`, `clientId`, `clientSecret`, `scope?`). Mutually exclusive with `token` and `username`/`secret`. |
 | `timeout`                 | `number`                    | `5000`                                          | Timeout in ms for PDP HTTP requests.                                                          |
-| `streamingMaxRetries`     | `number`                    | unlimited                                       | Maximum reconnection attempts for streaming subscriptions.                                    |
 | `streamingRetryBaseDelay` | `number`                    | `1000`                                          | Initial delay in ms before the first streaming reconnection.                                  |
 | `streamingRetryMaxDelay`  | `number`                    | `30000`                                         | Maximum backoff delay in ms for streaming reconnection.                                       |
 | `tls`                     | `TlsConfig`                 | -                                               | TLS configuration for the connection. See [Transport Security](#transport-security).         |

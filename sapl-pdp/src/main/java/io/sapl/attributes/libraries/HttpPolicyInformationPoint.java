@@ -70,12 +70,16 @@ public class HttpPolicyInformationPoint {
             | `body` | any | (none) | The request body. |
             | `accept` | text | `"application/json"` | Accepted response media type. |
             | `contentType` | text | `"application/json"` | Media type of the request body. |
-            | `pollingIntervalMs` | number | `1000` | Milliseconds between polling requests. |
-            | `repetitions` | number | `Long.MAX_VALUE` | Upper bound for repeated requests. |
+            | `maxResponseBytes` | number | `1048576` | Maximum response body, SSE event, or WebSocket message size in bytes; an oversized payload fails closed to an error value. |
             | `secretsKey` | text | (none) | Selects a named credential set from secrets (see below). |
 
             The `secretsKey` field is metadata for credential selection and is stripped before
             the HTTP request is sent.
+
+            Polling cadence is not a request setting. Each call issues one request and emits one
+            value; the engine re-evaluates the attribute on its own schedule via the
+            `pollIntervalMs` attribute option (see Functions and Attributes), uniformly with every
+            streaming attribute.
 
             ## Secrets Configuration
 
@@ -192,8 +196,11 @@ public class HttpPolicyInformationPoint {
                                 "baseUrl": "https://example.com",
                                 "path": "/status"
                             };
-              <http.get(request)>.status == "OK";
+              <http.get(request)[{pollIntervalMs: 1000}]>.status == "OK";
             ```
+            The `[{pollIntervalMs: 1000}]` attribute option sets how often the engine
+            re-evaluates the attribute (re-issues the request); it is optional and
+            defaults to the engine-wide attribute poll interval.
             """)
     public Stream<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
         return webClient.httpRequest("GET", mergeHeaders(ctx, requestSettings));

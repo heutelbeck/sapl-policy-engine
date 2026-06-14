@@ -843,4 +843,37 @@ class UnanimousVoteCombinerTests {
         }
     }
 
+    @Nested
+    @DisplayName("NOT_APPLICABLE does not inflate the INDETERMINATE outcome")
+    class NotApplicableDoesNotInflateOutcome {
+
+        @Test
+        @DisplayName("NOT_APPLICABLE accumulator with INDETERMINATE vote keeps only the error's outcome")
+        void whenNotApplicableAccumulatorThenOutcomeIsErrorOnly() {
+            val notApplicable = Vote.abstain(testMetadata("seed", Outcome.PERMIT_OR_DENY));
+            val indeterminate = indeterminateVote("erroring", Outcome.PERMIT);
+
+            val result = UnanimousVoteCombiner.combineVotes(notApplicable, indeterminate, TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT);
+            });
+        }
+
+        @Test
+        @DisplayName("INDETERMINATE accumulator with NOT_APPLICABLE vote keeps only the error's outcome")
+        void whenNotApplicableNewVoteThenOutcomeIsErrorOnly() {
+            val indeterminate = indeterminateVote("erroring", Outcome.PERMIT);
+            val notApplicable = Vote.abstain(testMetadata("seed", Outcome.PERMIT_OR_DENY));
+
+            val result = UnanimousVoteCombiner.combineVotes(indeterminate, notApplicable, TEST_METADATA, false);
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT);
+            });
+        }
+    }
+
 }

@@ -32,6 +32,10 @@ public interface StreamAttributeFinder {
 
     /**
      * Invokes the attribute finder and returns its value stream.
+     * <p>
+     * Must return promptly. Perform all blocking or IO work in the returned
+     * stream, which is consumed off the broker thread. Blocking here holds a
+     * shared lock and stalls unrelated attribute subscriptions.
      *
      * @param invocation the attribute finder invocation
      * @return a {@link Stream} emitting attribute values

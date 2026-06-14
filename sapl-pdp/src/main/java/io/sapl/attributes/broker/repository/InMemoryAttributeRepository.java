@@ -71,6 +71,14 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     private boolean closed = false;
 
+    /**
+     * Monotonic per-mutation sequence, assigned under {@link #lock}. Observers
+     * fire outside the lock, so concurrent publishes for the same key can race
+     * in delivery order. Each observer uses this sequence to drop a delivery a
+     * newer mutation has already superseded, so the latest value always wins.
+     */
+    private long sequenceCounter = 0L;
+
     public InMemoryAttributeRepository() {
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             val thread = Thread.ofVirtual().unstarted(runnable);
@@ -95,6 +103,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
     @Override
     public void remove(@NonNull RepositoryKey key) {
         List<KeyObserver> toFire;
+        long              seq;
         lock.lock();
 
         try {
@@ -109,12 +118,13 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 prior.expiryTask.cancel(false);
             }
             toFire = observers(key);
+            seq    = ++sequenceCounter;
         } finally {
 
             lock.unlock();
 
         }
-        fireObservers(toFire, Value.UNDEFINED);
+        fireObservers(toFire, Value.UNDEFINED, seq);
     }
 
     @Override
@@ -123,6 +133,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         val   repoKey  = RepositoryKey.fromInvocation(invocation);
         val   observer = new KeyObserver(repoKey, onValue);
         Value initial;
+        long  seqInit;
         lock.lock();
 
         try {
@@ -133,12 +144,13 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                 val entry = entries.get(repoKey);
                 initial = entry != null ? entry.value : Value.UNDEFINED;
             }
+            seqInit = sequenceCounter;
         } finally {
 
             lock.unlock();
 
         }
-        observer.deliver(initial);
+        observer.deliver(initial, seqInit);
         return observer;
     }
 
@@ -177,6 +189,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
     private void publishInternal(RepositoryKey key, Value value, @Nullable Duration ttl) {
         List<KeyObserver> toFire;
+        long              seq;
         lock.lock();
 
         try {
@@ -194,16 +207,18 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
                         TimeUnit.MILLISECONDS);
             }
             toFire = observers(key);
+            seq    = ++sequenceCounter;
         } finally {
 
             lock.unlock();
 
         }
-        fireObservers(toFire, value);
+        fireObservers(toFire, value, seq);
     }
 
     private void expireKey(RepositoryKey key, Entry expectedEntry) {
         List<KeyObserver> toFire;
+        long              seq;
         lock.lock();
 
         try {
@@ -213,12 +228,13 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
             }
             entries.remove(key);
             toFire = observers(key);
+            seq    = ++sequenceCounter;
         } finally {
 
             lock.unlock();
 
         }
-        fireObservers(toFire, Value.UNDEFINED);
+        fireObservers(toFire, Value.UNDEFINED, seq);
     }
 
     /** Caller holds the lock. */
@@ -227,9 +243,9 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         return bucket == null ? List.of() : new ArrayList<>(bucket);
     }
 
-    private void fireObservers(List<KeyObserver> observers, Value value) {
+    private void fireObservers(List<KeyObserver> observers, Value value, long seq) {
         for (val observer : observers) {
-            observer.deliver(value);
+            observer.deliver(value, seq);
         }
     }
 
@@ -258,15 +274,19 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
 
         private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
 
-        private final long            id     = NEXT_ID.getAndIncrement();
+        private final long            id            = NEXT_ID.getAndIncrement();
         private final RepositoryKey   repositoryKey;
         private final Consumer<Value> onValue;
-        private volatile boolean      closed = false;
+        private volatile boolean      closed        = false;
+        private long                  lastDelivered = Long.MIN_VALUE;
 
-        void deliver(Value value) {
-            if (closed) {
+        synchronized void deliver(Value value, long seq) {
+            if (closed || seq <= lastDelivered) {
                 return;
             }
+            // Serialize and order deliveries so a delivery superseded by a newer
+            // mutation cannot win when observers fire outside the repository lock.
+            lastDelivered = seq;
             try {
                 onValue.accept(value);
             } catch (RuntimeException e) {

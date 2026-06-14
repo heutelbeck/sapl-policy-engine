@@ -68,6 +68,8 @@ public final class TestAttributeBroker implements AttributeBroker {
     private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
 
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
+
     private final Map<SubscriptionKey, AttributeSnapshot> mailbox        = new HashMap<>();
     private final Map<String, SubscriptionImpl>           subs           = new HashMap<>();
     private final Map<String, @Nullable Value>            registeredPips = new HashMap<>();
@@ -133,7 +135,7 @@ public final class TestAttributeBroker implements AttributeBroker {
      * @return {@code true} if any new entry was added to the mailbox
      */
     private boolean applyPipPolicyToDeps(Set<SubscriptionKey> keys) {
-        val     now         = Instant.now();
+        val     now         = REFERENCE;
         boolean mailboxGrew = false;
         for (val key : keys) {
             if (mailbox.containsKey(key)) {
@@ -173,7 +175,7 @@ public final class TestAttributeBroker implements AttributeBroker {
     public void publish(SubscriptionKey key, Value value) {
         List<SubscriptionImpl> toFire;
         synchronized (this) {
-            mailbox.put(key, new AttributeSnapshot(value, Instant.now()));
+            mailbox.put(key, new AttributeSnapshot(value, REFERENCE));
             toFire = new ArrayList<>();
             for (val sub : subs.values()) {
                 if (!sub.deps.contains(key)) {

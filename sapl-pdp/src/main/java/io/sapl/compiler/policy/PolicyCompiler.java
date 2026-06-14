@@ -337,7 +337,6 @@ public class PolicyCompiler {
     }
 
     public static final String ERROR_ATTEMPT_TO_REDEFINE_VARIABLE_S = "Policy attempted to redefine variable '%s'.";
-    public static final String ERROR_CONDITION_NON_BOOLEAN          = "Condition in policy body must return a Boolean value, but got: %s.";
 
     public record IndexedCompiledCondition(CompiledExpression expression, SourceLocation location, long statementId) {}
 
@@ -356,9 +355,8 @@ public class PolicyCompiler {
                     throw new SaplCompilerException(ERROR_ATTEMPT_TO_REDEFINE_VARIABLE_S.formatted(name), location);
                 }
             }
-            case Condition(var expression, var location)                -> {
-                val conditionExpression = BooleanGuardCompiler.applyBooleanGuard(
-                        ExpressionCompiler.compile(expression, ctx), location, ERROR_CONDITION_NON_BOOLEAN);
+            case Condition(var expression, var ignored)                 -> {
+                val conditionExpression = ExpressionCompiler.compile(expression, ctx);
                 conditions.add(new IndexedCompiledCondition(conditionExpression, statement.location(), statementId));
                 statementId++;
             }

@@ -25,8 +25,8 @@ import io.sapl.spring.util.Maybe;
 
 /**
  * AssertJ custom assertion for {@link EnforcementResult}, exposing chainable
- * methods for value presence,
- * present payload, and failure state.
+ * methods for value presence, present
+ * payload, and failure state.
  */
 final class EnforcementResultAssert extends AbstractAssert<EnforcementResultAssert, EnforcementResult<?>> {
 

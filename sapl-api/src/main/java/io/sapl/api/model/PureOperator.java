@@ -17,6 +17,12 @@
  */
 package io.sapl.api.model;
 
+import lombok.val;
+import org.jspecify.annotations.Nullable;
+
+import java.lang.reflect.InaccessibleObjectException;
+import java.util.List;
+
 public non-sealed interface PureOperator extends CompiledExpression {
     Value evaluate(EvaluationContext ctx);
 
@@ -48,6 +54,88 @@ public non-sealed interface PureOperator extends CompiledExpression {
      * @return semantic hash of this operator
      */
     long semanticHash();
+
+    /**
+     * Tests whether this operator is semantically equal to another, ignoring
+     * source location and other non-semantic fields. This verifies the
+     * identity that {@link #semanticHash()} only approximates, so that a hash
+     * collision between two structurally different operators cannot merge them
+     * into one predicate in the policy index and change which documents apply.
+     * <p>
+     * Record implementations are compared component by component: child
+     * operators recursively, constant {@link Value}s by value equality,
+     * identifiers and operator kinds by equality. Source locations and
+     * compiled lambdas (which are derived from the semantic fields) are
+     * ignored. Implementations that are not records fall back to hash
+     * identity, so they must keep their {@link #semanticHash()} unique.
+     *
+     * @param other the operator to compare with
+     * @return true if both operators denote the same computation
+     */
+    default boolean semanticEquals(@Nullable PureOperator other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        val components = getClass().getRecordComponents();
+        if (components == null) {
+            // Not a record: no structural view, trust the semantic hash.
+            return semanticHash() == other.semanticHash();
+        }
+        try {
+            for (val component : components) {
+                val accessor = component.getAccessor();
+                accessor.setAccessible(true);
+                if (!semanticComponentEquals(accessor.invoke(this), accessor.invoke(other))) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException ignored) {
+            // Cannot read components: keep the operators distinct (safe).
+            return false;
+        }
+    }
+
+    private static boolean semanticComponentEquals(@Nullable Object mine, @Nullable Object yours) {
+        if (mine == yours) {
+            return true;
+        }
+        if (mine == null || yours == null) {
+            return false;
+        }
+        // Source locations are not semantic, and compiled lambdas are derived from
+        // the semantic fields, so neither distinguishes two operators.
+        if (mine instanceof SourceLocation || mine.getClass().isSynthetic()) {
+            return true;
+        }
+        return switch (mine) {
+        case PureOperator minePure -> yours instanceof PureOperator yoursPure && minePure.semanticEquals(yoursPure);
+        case List<?> mineList      -> yours instanceof List<?> yoursList && semanticListEquals(mineList, yoursList);
+        case Value ignored         -> mine.equals(yours);
+        // A known leaf compares by value; any other type is kept distinct (safe).
+        default -> isSemanticLeaf(mine) && mine.equals(yours);
+        };
+    }
+
+    private static boolean semanticListEquals(List<?> mine, List<?> yours) {
+        if (mine.size() != yours.size()) {
+            return false;
+        }
+        for (var i = 0; i < mine.size(); i++) {
+            if (!semanticComponentEquals(mine.get(i), yours.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isSemanticLeaf(Object value) {
+        return value instanceof CharSequence || value instanceof Number || value instanceof Boolean
+                || value instanceof Character || value instanceof Enum<?>;
+    }
 
     /**
      * Returns the boolean expression structure of this operator for the

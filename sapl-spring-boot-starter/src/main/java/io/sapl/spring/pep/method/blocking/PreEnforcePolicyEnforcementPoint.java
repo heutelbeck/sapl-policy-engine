@@ -50,8 +50,9 @@ import java.util.Set;
 
 /**
  * An {@link org.springframework.security.authorization.AuthorizationManager}
- * which can determine if an {@link Authentication} may invoke the
- * {@link MethodInvocation} by calling a Policy Decision Point based on the
+ * which can determine if an
+ * {@link Authentication} may invoke the {@link MethodInvocation} by calling a
+ * Policy Decision Point based on the
  * expressions from the {@link PreEnforce} annotation.
  * </p>
  *
@@ -115,10 +116,11 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
     }
 
     /**
-     * Invokes the protected method with the given {@link EnforcementPlan} bound
-     * to the thread-local {@link EnforcementPlanContext}. Shim wrappers running
-     * deeper in the call graph (e.g. around Spring Data templates) read the plan
-     * from the context to fire shim signals.
+     * Invokes the protected method with the given {@link EnforcementPlan} bound to
+     * the thread-local
+     * {@link EnforcementPlanContext}. Shim wrappers running deeper in the call
+     * graph (e.g. around Spring Data
+     * templates) read the plan from the context to fire shim signals.
      */
     private static Object invokeWithPlanInContext(MethodInvocation methodInvocation, EnforcementPlan plan)
             throws Throwable {

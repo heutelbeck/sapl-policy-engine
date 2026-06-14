@@ -26,7 +26,7 @@ If the PDP permits, the method runs. If not, an `AccessDeniedException` is throw
 
 SAPL goes beyond simple permit/deny. Decisions can carry obligations that must be fulfilled, advice that should be attempted, and resource transformations that modify return values before they reach the caller. The library handles all of this transparently.
 
-For reactive applications, streaming annotations (`@EnforceTillDenied`, `@EnforceDropWhileDenied`, `@EnforceRecoverableIfDenied`) maintain a live connection to the PDP, so access rights update in real time as policies, attributes, or the environment change. Transaction integration ensures that obligation failures after a database write trigger a rollback. Built-in constraint handlers cover common needs like JSON field redaction, collection filtering, and database query manipulation for R2DBC and MongoDB. Writing custom handlers is as simple as implementing an interface and registering a Spring bean.
+For reactive applications, streaming annotations (`@EnforceTillDenied`, `@EnforceDropWhileDenied`, `@EnforceRecoverableIfDenied`) maintain a live connection to the PDP, so access rights update in real time as policies, attributes, or the environment change. Transaction integration ensures that obligation failures after a database write trigger a rollback. Built-in constraint handlers cover common needs like JSON field redaction, collection filtering, and database query rewriting for R2DBC and MongoDB. Writing custom handlers is as simple as implementing an interface and registering a Spring bean.
 
 ## Getting Started
 

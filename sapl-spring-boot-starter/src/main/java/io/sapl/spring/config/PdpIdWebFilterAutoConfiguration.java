@@ -30,11 +30,11 @@ import lombok.extern.slf4j.Slf4j;
  * {@link PdpIdAuthenticationExtractor} bean is present in a reactive
  * web application.
  * <p>
- * This enables multi-tenant PDP routing for Spring WebFlux
- * applications using an embedded {@link ReactivePolicyDecisionPoint}. The
- * filter writes the extracted PDP id to the Reactor Context on every
- * request; downstream consumers (the reactive tenant resolver) read
- * it from there.
+ * This enables multi-tenant PDP routing for Spring WebFlux applications using
+ * an embedded
+ * {@link ReactivePolicyDecisionPoint}. The filter writes the extracted PDP id
+ * to the Reactor Context on every request;
+ * downstream consumers (the reactive tenant resolver) read it from there.
  */
 @Slf4j
 @AutoConfiguration

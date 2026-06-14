@@ -15,7 +15,7 @@ SAPL Node defaults differ by deployment context. The binary is optimized for a q
 
 **Binary (development):** Binds to `127.0.0.1`, no TLS, no authentication, `DIRECTORY` mode. Drop `.sapl` files in the working directory and start evaluating policies immediately.
 
-**Packages and Docker (production):** `BUNDLES` mode with signature verification enabled. The node starts and accepts connections, but reports health `DOWN` and returns `INDETERMINATE` for all decisions until a signed bundle is deployed. This ensures the operator completes the bundle workflow before the node serves authorization decisions.
+**Packages and Docker (production):** `BUNDLES` mode with signature verification enabled. The node starts and accepts connections, but reports health `DOWN` and returns `INDETERMINATE` for all decisions until a signed bundle is deployed. This way it serves authorization decisions only once a signed bundle is in place.
 
 In both contexts, authorization requests without matching policies are denied.
 
@@ -40,7 +40,7 @@ In both contexts, authorization requests without matching policies are denied.
 
 SAPL Node supports four authentication modes. Each mode is controlled by a boolean property under `io.sapl.node`. Multiple modes can be active at the same time. When all four modes are disabled, every request is rejected.
 
-By default all four modes are disabled (fail-closed) and the node refuses to start. Enable at least one mode before launching. For local exploration set `allow-no-auth: true`; for production use one or more credential-based modes.
+By default all four modes are disabled (fail-closed) and the node does not start until at least one is enabled. For local exploration, `allow-no-auth: true` is the quickest path. Production deployments typically rely on one or more credential-based modes.
 
 A request is authenticated if it matches any enabled mode. The first successful match determines the client identity and PDP routing. The `pdp-id` from the matched credential entry selects which tenant's policies evaluate the request.
 
@@ -54,7 +54,7 @@ io.sapl.node:
 
 When `allow-no-auth` is `true`, requests without credentials are accepted and routed to the `default-pdp-id`. This is intended for development environments or deployments where an API gateway or service mesh handles authentication before requests reach the node.
 
-Do not enable unauthenticated access in production without a gateway in front of the node. Any client that can reach the HTTP port can submit authorization subscriptions and receive decisions.
+With this flag, any client that can reach the HTTP or RSocket port can submit authorization subscriptions and receive decisions, so it assumes an outer layer (a gateway, service mesh, or reverse proxy) owns authentication, or that the port is reachable only from trusted callers. If you enable it while a transport is bound to a non-loopback address, the node logs a startup warning naming the transport. See [Interface Binding](#interface-binding).
 
 ### Basic Authentication
 
@@ -99,7 +99,7 @@ Generate a key with the CLI:
 sapl generate apikey --id service-b --pdp-id production
 ```
 
-The command prints three things: the plaintext API key, its public `api-key-id` (the middle segment of the wire format), and the Argon2 encoded hash. Both `api-key-id` and `api-key` go into the user entry; the plaintext is shown once and cannot be recovered from the hash. The `api-key-id` lets the server route incoming requests in O(1); user entries without it fall back to an O(N) Argon2 scan and are kept only for backward compatibility with older configurations.
+The command prints three things: the plaintext API key, its public `api-key-id` (the middle segment of the wire format), and the Argon2 encoded hash. Both `api-key-id` and `api-key` go into the user entry. The plaintext is shown once and cannot be recovered from the hash. The `api-key-id` is what the server uses to find the matching user entry. An API key whose id is not configured is rejected.
 
 ### OAuth2 and JWT
 
@@ -152,7 +152,7 @@ For OAuth2, the PDP identifier is extracted from the JWT claim specified by `oau
 
 ### TLS
 
-TLS is disabled by default so the node starts without a certificate. The HTTP server ships on port 8080 (plain HTTP); enable TLS by configuring a keystore and binding to the HTTPS-conventional port 8443:
+TLS is disabled by default so the node starts without a certificate. The HTTP server ships on port 8080 (plain HTTP). Enable TLS by configuring a keystore and binding to the HTTPS-conventional port 8443:
 
 ```yaml
 server:
@@ -196,7 +196,7 @@ sapl:
         bundle: sapl-bundle
 ```
 
-CLI clients connect with `--rsocket --rsocket-tls`; the `--insecure` flag skips certificate verification against self-signed development certificates. See [Configuration](../7_2_Configuration/#rsocket-properties) for the full RSocket property reference.
+CLI clients connect with `--rsocket --rsocket-tls`. The `--insecure` flag skips certificate verification against self-signed development certificates. See [Configuration](../7_2_Configuration/#rsocket-properties) for the full RSocket property reference.
 
 The default configuration restricts connections to modern cipher suites and protocol versions:
 
@@ -232,18 +232,27 @@ TLSv1.3 is preferred. TLSv1.2 is included for compatibility with older clients. 
 
 ### Interface Binding
 
-The `server.address` property controls which network interface the node listens on.
+The node exposes two transports, and each binds to a network interface independently.
 
-The default is `127.0.0.1` (localhost only). This means the node is not reachable from the network out of the box, which is appropriate for local development.
+- HTTP is controlled by `server.address`.
+- RSocket is controlled by `sapl.pdp.rsocket.address`.
 
-For container deployments, bind to all interfaces so Docker port mapping works:
+Both default to `127.0.0.1` (loopback only), so out of the box neither transport is reachable from the network. This is appropriate for local development and for a node that serves only processes on the same host.
+
+Exposing a transport to the network is a deliberate, per-transport step. Binding HTTP to all interfaces does not expose RSocket, and binding RSocket does not expose HTTP. To accept remote connections, set the address of each transport you intend to expose:
 
 ```yaml
 server:
   address: 0.0.0.0
+sapl:
+  pdp:
+    rsocket:
+      address: 0.0.0.0
 ```
 
-In Docker Compose examples, this is set via `SERVER_ADDRESS=0.0.0.0`.
+For container deployments both transports must reach beyond loopback so Docker port mapping works. The `docker` Spring profile sets both addresses to `0.0.0.0`. You can also override them individually with the `SERVER_ADDRESS` and `SAPL_PDP_RSOCKET_ADDRESS` environment variables.
+
+On a non-loopback address, credentials and decisions travel over the network, so this is the natural point to add TLS and an authentication mode, or to place the node behind a gateway, service mesh, or reverse proxy that terminates both. If `allow-no-auth` is enabled while either transport is bound to a non-loopback address, the node logs a startup warning naming the transport and the address. It still starts, since anonymous access behind an outer trust boundary is a legitimate setup. The warning just makes the exposure visible so it stays a deliberate choice. If you do not use RSocket, `sapl.pdp.rsocket.enabled: false` keeps it off.
 
 ### Hardened Configuration Example
 

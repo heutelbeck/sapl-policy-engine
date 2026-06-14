@@ -230,7 +230,7 @@ class CanonicalPolicyIndexTests {
         void whenPredicateErrorThenErrorVoteNotMatchingDocument() {
             val p1       = configurablePredicate(1L);
             val formula  = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
-            val document = stubDocument("policy1");
+            val document = stubDocumentWithApplicability("policy1", p1.operator());
             val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, new ErrorValue("evaluation failed"));
@@ -250,8 +250,8 @@ class CanonicalPolicyIndexTests {
             val p2       = configurablePredicate(2L);
             val formula1 = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
             val formula2 = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p2, false))));
-            val doc1     = stubDocument("policy1");
-            val doc2     = stubDocument("policy2");
+            val doc1     = stubDocumentWithApplicability("policy1", p1.operator());
+            val doc2     = stubDocumentWithApplicability("policy2", p2.operator());
 
             val formulaMap = new LinkedHashMap<DisjunctiveFormula, List<CompiledDocument>>();
             formulaMap.put(formula1, List.of(doc1));
@@ -312,11 +312,11 @@ class CanonicalPolicyIndexTests {
         }
 
         @Test
-        @DisplayName("non-boolean predicate result treated as false")
-        void whenNonBooleanResultThenTreatedAsFalse() {
+        @DisplayName("non-boolean predicate result is reconciled and does not match")
+        void whenNonBooleanResultThenNotMatched() {
             val p1       = configurablePredicate(1L);
             val formula  = new DisjunctiveFormula(new ConjunctiveClause(List.of(new Literal(p1, false))));
-            val document = stubDocument("policy1");
+            val document = stubDocumentWithApplicability("policy1", p1.operator());
             val index    = CanonicalPolicyIndex.createFromFormulas(Map.of(formula, List.of(document)));
 
             PREDICATE_RESULTS.put(1L, Value.of("not a boolean"));

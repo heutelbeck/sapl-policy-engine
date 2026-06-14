@@ -71,11 +71,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Reactive twin of {@link BlockingTransactionalEnforcementTests}: confirms
- * that reactive PEPs nest correctly inside the R2DBC transaction proxy so
- * that an access-denied decision after a transactional insert rolls back the
- * transaction. Uses the same Miskatonic loan-ledger scenario as the blocking
- * twin, only on a reactive stack with R2DBC + H2.
+ * Reactive twin of {@link BlockingTransactionalEnforcementTests}: confirms that
+ * reactive PEPs nest correctly inside the
+ * R2DBC transaction proxy so that an access-denied decision after a
+ * transactional insert rolls back the transaction.
+ * Uses the same Miskatonic loan-ledger scenario as the blocking twin, only on a
+ * reactive stack with R2DBC + H2.
  */
 @SpringBootTest(classes = ReactiveTransactionalEnforcementTests.LedgerTestApp.class)
 @WithMockUser(username = "armitage", roles = "FACULTY")

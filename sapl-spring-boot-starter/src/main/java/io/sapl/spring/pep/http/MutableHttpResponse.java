@@ -22,31 +22,35 @@ import org.springframework.http.HttpStatusCode;
 
 /**
  * A view of the outbound HTTP response that constraint handlers can mutate
- * before the response is committed to the client. Used as the value type of
- * the response signal and the denial signal.
+ * before the response is committed to the
+ * client. Used as the value type of the response signal and the denial signal.
  * <p>
- * Status, headers, and body are buffered until the surrounding component
- * (PEP filter on the success path, access-denied handler on the deny path)
- * flushes them. Handlers may freely read the controller-produced body via
- * {@link #getBody()} and replace it via {@link #setBody(String)} or
+ * Status, headers, and body are buffered until the surrounding component (PEP
+ * filter on the success path, access-denied
+ * handler on the deny path) flushes them. Handlers may freely read the
+ * controller-produced body via {@link #getBody()}
+ * and replace it via {@link #setBody(String)} or
  * {@link #writeBody(String, String)}; header changes go through
  * {@link #setHeader(String, String)}, {@link #addHeader(String, String)},
- * {@link #removeHeader(String)}, or the {@link #headers()} view.
+ * {@link #removeHeader(String)}, or the
+ * {@link #headers()} view.
  * <p>
- * Servlet and reactive backends provide their own implementations. Handlers
- * see this interface and write portable code. Cast to a backend type only
- * when a feature outside this interface is required.
+ * Servlet and reactive backends provide their own implementations. Handlers see
+ * this interface and write portable code.
+ * Cast to a backend type only when a feature outside this interface is
+ * required.
  */
 public interface MutableHttpResponse {
 
     /**
-     * Sets the HTTP status code on the response. Return value mirrors the
-     * reactive
+     * Sets the HTTP status code on the response. Return value mirrors the reactive
      * {@link org.springframework.http.server.reactive.ServerHttpResponse#setStatusCode(HttpStatusCode)}
-     * contract: {@code true} when the status was applied, {@code false}
-     * when the response is already committed and the status cannot change.
-     * Servlet implementations always return {@code true} since the buffered
-     * status is set on a buffer, not on the underlying servlet response.
+     * contract:
+     * {@code true} when the status was applied, {@code false} when the response is
+     * already committed and the status
+     * cannot change. Servlet implementations always return {@code true} since the
+     * buffered status is set on a buffer,
+     * not on the underlying servlet response.
      */
     boolean setStatusCode(HttpStatusCode status);
 
@@ -58,8 +62,9 @@ public interface MutableHttpResponse {
     }
 
     /**
-     * Returns the HTTP status code currently buffered on the response.
-     * Returns {@code 200 OK} when no status has been explicitly set.
+     * Returns the HTTP status code currently buffered on the response. Returns
+     * {@code 200 OK} when no status has been
+     * explicitly set.
      */
     HttpStatusCode getStatusCode();
 
@@ -80,38 +85,42 @@ public interface MutableHttpResponse {
     void removeHeader(String name);
 
     /**
-     * Returns the response headers as currently buffered. Mutations to the
-     * returned object are reflected in the outgoing response.
+     * Returns the response headers as currently buffered. Mutations to the returned
+     * object are reflected in the
+     * outgoing response.
      */
     HttpHeaders headers();
 
     /**
-     * Returns the response body as currently buffered, decoded with the
-     * response's character encoding. Reflects bytes written by the
-     * controller as well as subsequent {@link #setBody(String)} or
-     * {@link #writeBody(String, String)} calls.
+     * Returns the response body as currently buffered, decoded with the response's
+     * character encoding. Reflects bytes
+     * written by the controller as well as subsequent {@link #setBody(String)} or
+     * {@link #writeBody(String, String)}
+     * calls.
      */
     String getBody();
 
     /**
-     * Replaces the buffered body with {@code body}, encoded with the
-     * response's character encoding. Does not change the Content-Type
-     * header; use {@link #writeBody(String, String)} to set both at once.
+     * Replaces the buffered body with {@code body}, encoded with the response's
+     * character encoding. Does not change the
+     * Content-Type header; use {@link #writeBody(String, String)} to set both at
+     * once.
      */
     void setBody(String body);
 
     /**
-     * Replaces the buffered body with {@code body} and sets the
-     * Content-Type header to {@code contentType}. Convenience for deny
-     * handlers and obligation-driven response shaping.
+     * Replaces the buffered body with {@code body} and sets the Content-Type header
+     * to {@code contentType}. Convenience
+     * for deny handlers and obligation-driven response shaping.
      */
     void writeBody(String contentType, String body);
 
     /**
-     * Returns {@code true} once any mutation method on this response has
-     * been called (status, header, body). Used by the access-denied handler
-     * to decide whether a handler claimed the denial; callers on the success
-     * path do not normally consult this flag.
+     * Returns {@code true} once any mutation method on this response has been
+     * called (status, header, body). Used by
+     * the access-denied handler to decide whether a handler claimed the denial;
+     * callers on the success path do not
+     * normally consult this flag.
      */
     boolean isModified();
 }

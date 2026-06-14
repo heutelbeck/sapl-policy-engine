@@ -52,18 +52,19 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.update.Update;
 
 /**
- * Translates a {@code sql:queryManipulation} (or alias
- * {@code relational:queryManipulation}) constraint into a {@link Mapper}
- * attached to the PEP's {@link SqlShimSignal}. The mapper rewrites the SQL
- * via JSqlParser AST manipulation, eliminating the precedence and string-
- * literal hazards inherent to regex-based SQL rewriting.
+ * Translates a {@code sql:queryRewriting} (or alias
+ * {@code relational:queryRewriting}) constraint into a
+ * {@link Mapper} attached to the PEP's {@link SqlShimSignal}. The mapper
+ * rewrites the SQL via JSqlParser AST
+ * rewriting, eliminating the precedence and string- literal hazards inherent
+ * to regex-based SQL rewriting.
  * <p>
  * The obligation supports two complementary input shapes that may be combined
  * on a single obligation:
  *
  * <pre>{@code
  * {
- *   "type": "sql:queryManipulation",
+ *   "type": "sql:queryRewriting",
  *   "criteria": [
  *     {"column": "tenant_id", "op": "=", "value": 7},
  *     {"or": [
@@ -78,34 +79,38 @@ import net.sf.jsqlparser.statement.update.Update;
  * }</pre>
  *
  * The typed {@code criteria} array uses the same shape as the relational and
- * Mongo providers for cross-backend symmetry. Supported {@code op} values:
- * {@code =}, {@code !=}, {@code >}, {@code >=}, {@code <}, {@code <=},
- * {@code in}, {@code like}, {@code notLike}, {@code isNull},
- * {@code isNotNull}. Typed criteria are rendered to SQL fragments internally
- * and AND-combined with the obligation's string {@code conditions} (and with
- * any existing WHERE clause), each addition wrapped in parentheses so OR-
- * precedence cannot leak rows.
+ * Mongo providers for cross-backend
+ * symmetry. Supported {@code op} values: {@code =}, {@code !=}, {@code >},
+ * {@code >=}, {@code <}, {@code <=},
+ * {@code in}, {@code like}, {@code notLike}, {@code isNull}, {@code isNotNull}.
+ * Typed criteria are rendered to SQL
+ * fragments internally and AND-combined with the obligation's string
+ * {@code conditions} (and with any existing WHERE
+ * clause), each addition wrapped in parentheses so OR- precedence cannot leak
+ * rows.
  * <p>
  * The {@code columns} entry, when present and the statement is a SELECT,
- * narrows the projection by intersection with the original SELECT list. For
- * {@code SELECT *}, the obligation defines the projection. {@code columns}
- * is silently ignored for UPDATE and DELETE.
+ * narrows the projection by intersection with
+ * the original SELECT list. For {@code SELECT *}, the obligation defines the
+ * projection. {@code columns} is silently
+ * ignored for UPDATE and DELETE.
  * <p>
  * Failure modes (all fail closed: the mapper throws, the planner sets the
- * obligation's failure state, the PEP raises {@code AccessDeniedException}):
+ * obligation's failure state, the PEP raises
+ * {@code AccessDeniedException}):
  * <ul>
  * <li>Original SQL fails to parse</li>
  * <li>Obligation condition fails to parse</li>
- * <li>Statement type does not support WHERE injection
- * (e.g. plain {@code INSERT VALUES}, DDL)</li>
+ * <li>Statement type does not support WHERE injection (e.g. plain
+ * {@code INSERT VALUES}, DDL)</li>
  * <li>SELECT is a {@code SetOperationList} (UNION/INTERSECT/EXCEPT) and
  * conditions are present</li>
  * </ul>
  */
-public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
+public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
 
-    private static final String CONSTRAINT_TYPE_SQL        = "sql:queryManipulation";
-    private static final String CONSTRAINT_TYPE_RELATIONAL = "relational:queryManipulation";
+    private static final String CONSTRAINT_TYPE_SQL        = "sql:queryRewriting";
+    private static final String CONSTRAINT_TYPE_RELATIONAL = "relational:queryRewriting";
 
     private static final String FIELD_AND        = "and";
     private static final String FIELD_COLUMN     = "column";
@@ -221,7 +226,7 @@ public class SqlQueryManipulationProvider implements ConstraintHandlerProvider {
         }
         val originalItems = plainSelect.getSelectItems();
         if (isSelectStar(originalItems)) {
-            plainSelect.setSelectItems(columns.stream().map(SqlQueryManipulationProvider::columnSelectItem).toList());
+            plainSelect.setSelectItems(columns.stream().map(SqlQueryRewritingProvider::columnSelectItem).toList());
             return;
         }
         val obligationSet = new LinkedHashSet<>(columns);

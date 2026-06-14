@@ -19,6 +19,7 @@ package io.sapl.node.cli.benchmark;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -63,7 +64,7 @@ public record BenchmarkRunConfig(
      * @return the resolved configuration
      */
     public static BenchmarkRunConfig resolve(BenchmarkOptions opts) {
-        val ts         = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        val ts         = LocalDateTime.now(ZoneId.systemDefault()).format(TIMESTAMP_FORMAT);
         val benchmarks = List.of(opts.benchmark);
         return new BenchmarkRunConfig(opts.warmupIterations, opts.warmupTimeSeconds, opts.measurementIterations,
                 opts.measurementTimeSeconds, List.of(opts.threads), benchmarks, opts.latency, opts.machineReadable,

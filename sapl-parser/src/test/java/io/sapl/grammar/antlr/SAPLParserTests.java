@@ -224,14 +224,14 @@ class SAPLParserTests {
                         """),
 
                 // Obligations, Advice, Transforms
-                arguments("mongo query manipulation with obligation", """
+                arguments("mongo query rewriting with obligation", """
                         policy "permit query method (1)"
                         permit
 
                             action == "fetchingByQueryMethod";
                             subject.age > 18;
                         obligation {
-                                       "type": "mongoQueryManipulation",
+                                       "type": "mongoQueryRewriting",
                                        "conditions": [ "{'age': {'$gt': 18}}" ]
                                      }
                         """), arguments("mongo with blacklist selection", """
@@ -241,7 +241,7 @@ class SAPLParserTests {
                             action == "findAll";
                             subject.age > 18;
                         obligation {
-                                       "type": "mongoQueryManipulation",
+                                       "type": "mongoQueryRewriting",
                                        "conditions": [ "{'admin': {'$eq': false}}" ],
                                        "selection": {
                                             "type": "blacklist",
