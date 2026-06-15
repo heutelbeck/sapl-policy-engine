@@ -33,6 +33,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -945,6 +946,40 @@ class RemoteBundlePDPConfigurationSourceTests {
             // With 100ms override (not the 60s default), second fetch should arrive quickly
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(2));
         }
+    }
+
+    @Nested
+    @DisplayName("resource lifecycle and rate limiting")
+    class ResourceLifecycleAndRateLimitingTests {
+
+        @Test
+        @DisplayName("close releases the underlying HttpClient")
+        void whenClosedThenHttpClientIsTerminated() throws Exception {
+            source = new RemoteBundlePDPConfigurationSource(defaultConfig(developmentPolicy));
+            val field = RemoteBundlePDPConfigurationSource.class.getDeclaredField("httpClient");
+            field.setAccessible(true);
+            val client = (HttpClient) field.get(source);
+
+            source.close();
+
+            assertThat(client.isTerminated()).isTrue();
+        }
+
+        @Test
+        @DisplayName("long-poll mode keeps a non-zero minimum delay floor between fetches")
+        void whenLongPollModeThenPollDelayHasMinimumFloor() {
+            source = new RemoteBundlePDPConfigurationSource(longPollConfig(developmentPolicy));
+
+            val pollDelay = source.getPollDelay(PDP_ID);
+
+            assertThat(pollDelay.isZero()).isFalse();
+        }
+    }
+
+    private RemoteBundleSourceConfig longPollConfig(BundleSecurityPolicy securityPolicy) {
+        return new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
+                RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
+                true, securityPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
     }
 
 }

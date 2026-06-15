@@ -89,6 +89,7 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     private static final Duration CONNECT_TIMEOUT          = Duration.ofSeconds(10);
     private static final Duration POLLING_RESPONSE_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration LONG_POLL_TIMEOUT_BUFFER = Duration.ofSeconds(5);
+    private static final Duration LONG_POLL_MIN_DELAY      = Duration.ofSeconds(1);
 
     private final RemoteBundleSourceConfig          config;
     private final HttpClient                        httpClient;
@@ -141,6 +142,7 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
             for (val thread : loopThreads) {
                 thread.interrupt();
             }
+            httpClient.close();
             subscribers.clear();
             log.debug("Closed remote bundle configuration source.");
         }
@@ -261,9 +263,11 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
                 : pdpId;
     }
 
-    private Duration getPollDelay(String pdpId) {
+    Duration getPollDelay(String pdpId) {
         if (config.mode() == LONG_POLL) {
-            return Duration.ZERO;
+            // Floor between iterations so a server that answers immediately cannot turn
+            // the long-poll loop into a hot fetch spin.
+            return LONG_POLL_MIN_DELAY;
         }
         return config.pdpIdPollIntervals().getOrDefault(pdpId, config.pollInterval());
     }
