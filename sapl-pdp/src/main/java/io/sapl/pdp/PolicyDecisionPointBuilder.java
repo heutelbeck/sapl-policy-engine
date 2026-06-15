@@ -769,6 +769,7 @@ public class PolicyDecisionPointBuilder {
         val ownsResolvedSource      = ownsTimestampSource;
         val attributeBroker         = resolveAttributeBroker(resolvedTimestampSource);
         val pluginsSource           = resolvePluginsSource();
+        val ownsPluginsSource       = externalPluginsSource == null;
         val voterSource             = new PdpVoterSource(pluginsSource, clock);
         val blockingPdp             = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
                 resolvedTimestampSource);
@@ -800,11 +801,14 @@ public class PolicyDecisionPointBuilder {
             }
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
                     configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
-                    plugins.lifecycleListeners());
+                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource);
         } catch (RuntimeException e) {
             // A failed build never transfers ownership to PDPComponents, so close what this
             // builder created.
             closeQuietly(voterSource);
+            if (ownsPluginsSource) {
+                closeQuietly(pluginsSource);
+            }
             if (ownsResolvedSource && resolvedTimestampSource instanceof AutoCloseable closeableSource) {
                 closeQuietly(closeableSource);
             }

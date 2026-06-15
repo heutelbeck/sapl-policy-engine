@@ -111,7 +111,7 @@ class MqttPolicyInformationPointTlsIT {
         val message = buildMqttPublishMessage(topic, "secure-hello", true);
 
         // Retained publish before subscribing so the broker replays it once the TLS
-        // subscribe completes; delivery no longer races the handshake.
+        // subscribe completes, so delivery no longer races the handshake.
         publisher.publish(message);
 
         try (val stream = pip.messages(Value.of(topic), tlsCtx())) {

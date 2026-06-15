@@ -39,10 +39,7 @@ class MathFunctionLibraryTests {
 
     private static final double EPSILON = 0.000001;
 
-    // Builds a NumberValue from a finite test double. Value.of(double) returns
-    // Value
-    // (ErrorValue for NaN/infinity); the math functions take NumberValue, and all
-    // inputs here are finite, so the cast is safe.
+    // Builds a NumberValue from a finite test double.
     private static NumberValue num(double value) {
         return (NumberValue) Value.of(value);
     }

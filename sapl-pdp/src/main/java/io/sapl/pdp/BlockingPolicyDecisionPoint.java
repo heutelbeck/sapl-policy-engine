@@ -467,7 +467,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private static <T> void pumpInto(Stream<T> source, Consumer<T> sink) {
         // try-with-resources closes the inner source on every exit, including its own
-        // completion; terminateCurrentInner is only a backstop on config swap/teardown.
+        // completion. terminateCurrentInner is only a backstop on config swap/teardown.
         try (source) {
             while (!Thread.interrupted()) {
                 val value = source.awaitNext();

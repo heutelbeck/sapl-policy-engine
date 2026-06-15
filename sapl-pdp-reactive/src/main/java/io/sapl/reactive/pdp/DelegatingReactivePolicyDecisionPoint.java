@@ -184,7 +184,7 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
 
     private static <T> void pumpStreamToSink(Stream<T> stream, FluxSink<T> sink) {
         // try-with-resources closes the source on every exit (completion, error,
-        // interrupt); onCancel covers only cancellation. Mirrors pumpConflating.
+        // interrupt). onCancel covers only cancellation. Mirrors pumpConflating.
         try (stream) {
             while (!Thread.interrupted()) {
                 val value = stream.awaitNext();
