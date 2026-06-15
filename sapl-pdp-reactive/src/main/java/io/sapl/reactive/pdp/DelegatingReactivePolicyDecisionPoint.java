@@ -106,7 +106,7 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
      * server from memory growth when a consumer falls behind a fast
      * attribute source.
      */
-    private static <T> Flux<T> adapt(Supplier<Stream<T>> streamFactory) {
+    static <T> Flux<T> adapt(Supplier<Stream<T>> streamFactory) {
         return Flux.create(sink -> {
             val stream = streamFactory.get();
             val pump   = Thread.startVirtualThread(() -> pumpStreamToSink(stream, sink));
@@ -183,7 +183,9 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
     }
 
     private static <T> void pumpStreamToSink(Stream<T> stream, FluxSink<T> sink) {
-        try {
+        // try-with-resources closes the source on every exit (completion, error,
+        // interrupt); onCancel covers only cancellation. Mirrors pumpConflating.
+        try (stream) {
             while (!Thread.interrupted()) {
                 val value = stream.awaitNext();
                 if (value == null) {
