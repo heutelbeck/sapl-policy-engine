@@ -238,9 +238,9 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
 
     private <T> Flux<T> streamSse(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
             Object authzSubscription) {
-        // Liveness runs before mapNotNull drops keep-alive frames. Total silence
-        // (no decision and no keep-alive) past inactivityTimeoutMillis fails the
-        // stream closed and reconnects. Keep-alives keep a quiet stream alive.
+        // Liveness runs before mapNotNull drops keep-alive frames, so total silence
+        // past inactivityTimeoutMillis fails closed and reconnects, while keep-alives
+        // keep a quiet stream alive.
         return client.post().uri(path).accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(authzSubscription).retrieve().bodyToFlux(type)
                 .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)),

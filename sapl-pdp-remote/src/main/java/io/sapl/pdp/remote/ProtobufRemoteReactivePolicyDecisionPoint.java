@@ -96,9 +96,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     @Getter
     private final int maxBackOffMillis;
 
-    // Bounds a connection attempt so a dead or unreachable PDP cannot hang the
-    // client. Mirrors the HTTP client's timeout. A live cached socket is reused
-    // without re-timing; only a fresh connect is bounded.
+    // Bounds a fresh connect so a dead PDP cannot hang the client. Cached sockets
+    // are reused untimed. Mirrors the HTTP client.
     @Getter
     private final int timeoutMillis;
 
@@ -120,9 +119,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                                     if (existing != null && !existing.isDisposed()) {
                                         return Mono.just(existing);
                                     }
-                                    // Single-flight the connect: concurrent first
-                                    // subscriptions share one connection attempt
-                                    // instead of each opening (and leaking) a socket.
+                                    // Single-flight the connect so concurrent first subscriptions share one attempt
+                                    // instead of each leaking a socket.
                                     return connecting.updateAndGet(current -> current != null ? current
                                             : connectMono.timeout(Duration.ofMillis(timeoutMillis))
                                                     .doOnNext(cachedSocket::set)
@@ -153,9 +151,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 return Flux.just(AuthorizationDecision.INDETERMINATE);
             }
         })
-                // Bound the wait for the first decision so a connected but silent
-                // server fails over to a retry; later items are not time-limited so
-                // a healthy long-lived stream stays open. Mirrors the HTTP client.
+                // Bound the wait for the first decision so a silent server retries. Later items
+                // are not timed, keeping a healthy stream open. Mirrors the HTTP client.
                 .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
                 .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
                     log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());

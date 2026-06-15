@@ -80,12 +80,11 @@ final class AttributeStream implements Stream<Value> {
     private final LatestSlotStream<Value> output = new LatestSlotStream<>();
     private volatile boolean              closed = false;
 
-    // The pump's virtual thread, interrupted on close() so a pump parked in a
-    // sleep (poll interval or retry backoff) exits promptly instead of lingering
-    // until the sleep elapses. Package-private for lifecycle tests.
+    // Interrupted on close() so a pump parked in a sleep exits promptly.
+    // Package-private for lifecycle tests.
     final Thread pumpThread;
 
-    // Touched only on the pump thread; rate-limits the unexpected-failure log.
+    // Rate-limits the unexpected-failure log.
     private long    lastFailureLogNanos;
     private boolean failureLogged;
 
@@ -122,8 +121,7 @@ final class AttributeStream implements Stream<Value> {
             return;
         }
         closed = true;
-        // Interrupt the pump so a thread parked in a poll-interval or backoff
-        // sleep notices the close immediately rather than after the sleep ends.
+        // Interrupt so a thread parked in a sleep notices the close immediately.
         pumpThread.interrupt();
         output.close();
         val inflightInner = currentInner.getAndSet(null);
@@ -147,14 +145,11 @@ final class AttributeStream implements Stream<Value> {
                 attemptWithRetries();
                 sleepIfNotClosed(invocation.pollInterval());
             } catch (Throwable t) {
-                // The pump thread must be immortal. attemptWithRetries already
-                // turns transient PIP failures into bounded retries, so reaching
-                // here means an unexpected fault: an Error the retry guard does
-                // not catch, or a regression that throws outside it. Surface it
-                // as an error value, rate-limit the log, and retry after a fixed
-                // backoff so a deterministic fault degrades to a slow heartbeat
-                // rather than a hot loop or a dead stream. Recovery is automatic
-                // once the cause clears.
+                // The pump must be immortal. attemptWithRetries already handles transient PIP
+                // failures, so
+                // reaching here is an unexpected fault. Surface an error, rate-limit the log,
+                // and back off so
+                // a deterministic fault degrades to a slow heartbeat.
                 recoverFromPumpFailure(t);
             }
         }
@@ -165,8 +160,7 @@ final class AttributeStream implements Stream<Value> {
         try {
             publish(Value.error(ERROR_PUMP_FAILURE.formatted(invocation.attributeName(), failure.toString())));
         } catch (Throwable ignored) {
-            // Recovery itself must never throw out of the loop; if even the error
-            // publication fails, drop it and keep the pump alive.
+            // Recovery must never throw out of the loop. Drop and keep the pump alive.
         }
         sleepIfNotClosed(PUMP_FAILURE_BACKOFF);
     }
@@ -227,8 +221,7 @@ final class AttributeStream implements Stream<Value> {
         long capMillis = Duration.ofHours(1).toMillis();
         long shifted;
         if (retryIndex >= 62 || baseMillis > (capMillis >> retryIndex)) {
-            // The shift would overflow a long or exceed the cap; clamp to the
-            // cap without computing the overflowing value.
+            // Shift would overflow or exceed the cap. Clamp to the cap.
             shifted = capMillis;
         } else {
             shifted = baseMillis << retryIndex;
@@ -296,8 +289,8 @@ final class AttributeStream implements Stream<Value> {
         if (closed) {
             return false;
         }
-        // Thread.sleep rejects a negative duration; a misconfigured negative
-        // pollInterval or backoff must not be able to throw out of the pump.
+        // Thread.sleep rejects a negative duration. Clamp a misconfigured negative to
+        // zero.
         val sleep = duration.isNegative() ? Duration.ZERO : duration;
         try {
             Thread.sleep(sleep);

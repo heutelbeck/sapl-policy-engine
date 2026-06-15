@@ -169,9 +169,8 @@ public class SchemaValidatorCompiler {
                 val messages    = schema.validate(subjectNode);
                 return messages.isEmpty() ? Value.TRUE : Value.FALSE;
             } catch (Throwable e) {
-                // Third-party validation on attacker-influenced input must never
-                // crash the evaluation path; surface failures as an ErrorValue,
-                // mirroring the function-invocation guard.
+                // Third-party validation on hostile input must never crash evaluation. Surface
+                // an ErrorValue.
                 return Value.errorAt(location, ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
             }
         }

@@ -96,8 +96,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private boolean                                      closed             = false;
     private boolean                                      inRebindTransition = false;
 
-    // Touched on the value-delivery path; rate-limits the onValue-handler-threw
-    // warning so a consistently throwing consumer cannot flood the log.
+    // Rate-limits the onValue-handler-threw warning to one per minute.
     private long    lastWarnLogNanos;
     private boolean warnLogged;
 

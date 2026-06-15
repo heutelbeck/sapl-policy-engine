@@ -70,8 +70,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private final InstantSource             timestampSource;
     private final Consumer<Value>           onValue;
 
-    // The broker lock guards both subscriberRefs and refcount; the AtomicInteger
-    // type documents that refcount carries the live subscriber count.
+    // Broker lock guards both subscriberRefs and refcount.
     private final Map<BrokerSubscription, Integer> subscriberRefs = new HashMap<>();
     private final AtomicInteger                    refcount       = new AtomicInteger();
 
@@ -80,8 +79,7 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private volatile Optional<AttributeSnapshot>       latestSnapshot = Optional.empty();
     private volatile boolean                           closed         = false;
 
-    // Touched on the value-delivery path; rate-limits the onValue-handler-threw
-    // warning so a consistently throwing consumer cannot flood the log.
+    // Rate-limits the onValue-handler-threw warning to one per minute.
     private long    lastWarnLogNanos;
     private boolean warnLogged;
 

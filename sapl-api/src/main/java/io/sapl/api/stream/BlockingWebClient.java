@@ -143,8 +143,8 @@ public class BlockingWebClient {
             if (MEDIATYPE_TEXT_EVENT_STREAM.equals(accept)) {
                 return openServerSentEventStream(request, maxBytes);
             }
-            // One asynchronous request-response, then complete. The attribute
-            // broker re-invokes per its poll interval, so the PIP never loops.
+            // One request-response then complete. The broker re-invokes per its poll
+            // interval, so the PIP never loops.
             val supplier  = jsonRequestSupplier(request, accept, maxBytes);
             val delivered = new AtomicBoolean(false);
             return Streams.fromBlockingSource(() -> delivered.compareAndSet(false, true) ? supplier.get() : null);
@@ -181,8 +181,8 @@ public class BlockingWebClient {
                 }
                 final byte[] bytes;
                 try (val in = response.body()) {
-                    // Read one byte past the limit so an oversized body is detected
-                    // without buffering more than the cap plus a single byte.
+                    // Read one byte past the limit to detect an oversized body without buffering
+                    // more than the cap.
                     bytes = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE));
                 }
                 if (bytes.length > maxBytes) {

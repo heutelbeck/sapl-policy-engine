@@ -68,9 +68,8 @@ public record PDPComponents(
      */
     @Override
     public void close() {
-        // Close the timestamp source only when this bundle owns it (the builder
-        // created it). A caller-supplied source is the caller's to close, even if
-        // it is AutoCloseable.
+        // Close the timestamp source only when owned. A caller-supplied source is the
+        // caller's to close.
         if (ownsTimestampSource) {
             closeQuietly(timestampSource);
         }

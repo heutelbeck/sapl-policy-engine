@@ -241,10 +241,8 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
             };
         }
 
-        // Clamp to [0, positiveNanos] without ever calling Duration.toNanos()
-        // on a value that exceeds the long-nanosecond range (~292 years).
-        // A signature-valid JWT with an exp far in the future would otherwise
-        // throw ArithmeticException from inside cache insertion.
+        // Clamp to [0, positiveNanos] so a far-future exp does not overflow
+        // Duration.toNanos().
         private long ttlUntil(Instant exp) {
             val remaining = Duration.between(Instant.now(), exp);
             if (remaining.isNegative()) {

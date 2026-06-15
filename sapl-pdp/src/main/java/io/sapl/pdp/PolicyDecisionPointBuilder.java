@@ -104,11 +104,10 @@ public class PolicyDecisionPointBuilder {
     private final JsonMapper mapper;
     private Clock            clock;
 
-    // Timestamping source for observability stamps (decision trace, attribute
-    // value freshness). Distinct from the temporal-reasoning clock above. Null
-    // means it defaults to the temporal clock at build time. ownsTimestampSource
-    // is true only when this builder created the source (then the components
-    // close it); a caller-supplied source is left for the caller to close.
+    // Observability timestamp source (decision trace, attribute freshness),
+    // distinct from the temporal
+    // clock. Null defaults to the temporal clock. ownsTimestampSource gates
+    // closing.
     private InstantSource timestampSource;
     private boolean       ownsTimestampSource = false;
 
@@ -764,8 +763,8 @@ public class PolicyDecisionPointBuilder {
      * fails
      */
     public PDPComponents build() {
-        // Default the timestamp source to the temporal clock so a single clock
-        // governs everything unless the caller opts into a separate source.
+        // Default the timestamp source to the temporal clock unless the caller opted
+        // into a separate one.
         val resolvedTimestampSource = timestampSource != null ? timestampSource : clock;
         val ownsResolvedSource      = ownsTimestampSource;
         val attributeBroker         = resolveAttributeBroker(resolvedTimestampSource);
@@ -803,9 +802,8 @@ public class PolicyDecisionPointBuilder {
                     configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
                     plugins.lifecycleListeners());
         } catch (RuntimeException e) {
-            // A failed build never transfers ownership to PDPComponents, so close
-            // the resources this builder created to avoid leaking the coarse-clock
-            // thread, the voter-source scheduler, or a builder-created broker.
+            // A failed build never transfers ownership to PDPComponents, so close what this
+            // builder created.
             closeQuietly(voterSource);
             if (ownsResolvedSource && resolvedTimestampSource instanceof AutoCloseable closeableSource) {
                 closeQuietly(closeableSource);

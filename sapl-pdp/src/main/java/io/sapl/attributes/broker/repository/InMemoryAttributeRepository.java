@@ -282,8 +282,7 @@ public final class InMemoryAttributeRepository implements AttributeRepository {
         private volatile boolean      closed        = false;
         private long                  lastDelivered = Long.MIN_VALUE;
 
-        // Guarded by deliver()'s monitor; rate-limits the observer-threw warning
-        // so a consistently throwing observer cannot flood the log.
+        // Rate-limits the observer-threw warning to one per minute.
         private long    lastWarnLogNanos;
         private boolean warnLogged;
 

@@ -91,10 +91,7 @@ public class RSocketSecurityConfiguration {
     private Mono<AuthenticationResult> authenticateSetup(ConnectionSetupPayload setup, boolean allowNoAuth) {
         val metadata = setup.metadata();
         if (metadata.readableBytes() == 0) {
-            // A connection with no credentials is accepted as the default PDP
-            // only when unauthenticated access is allowed. A presented
-            // credential is always verified and routed to its tenant, matching
-            // the HTTP authentication handler.
+            // No credentials maps to the default PDP only when anonymous access is allowed.
             return allowNoAuth ? Mono.just(new AuthenticationResult(properties.getDefaultPdpId(), null))
                     : Mono.error(new BadCredentialsException(ERROR_NO_CREDENTIALS));
         }
@@ -118,9 +115,8 @@ public class RSocketSecurityConfiguration {
         val passwordBuf = AuthMetadataCodec.readPassword(metadata);
         val username    = usernameBuf.toString(StandardCharsets.UTF_8);
         val password    = passwordBuf.toString(StandardCharsets.UTF_8);
-        // The service runs one Argon2 verification on every path and returns a
-        // result only on a real match, so neither a generic error nor the
-        // response timing discloses whether a username exists.
+        // Constant-time verification, so timing does not disclose whether a username
+        // exists.
         val userOpt = userLookupService.verifyBasicCredentials(username, password);
         if (userOpt.isEmpty()) {
             return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));

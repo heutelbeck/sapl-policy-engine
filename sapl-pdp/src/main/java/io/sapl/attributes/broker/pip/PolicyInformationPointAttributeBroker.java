@@ -956,9 +956,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      */
     private void scheduleTeardown(ActiveInvocation activeInvocation) {
         if (closed) {
-            // The broker is closing; close() already tears down every active
-            // invocation, and the teardown scheduler is shut down, so scheduling
-            // here would only throw RejectedExecutionException.
+            // close() already tears down everything and shut down the scheduler.
             return;
         }
         val task = teardownScheduler.schedule(() -> runScheduledTeardown(activeInvocation),

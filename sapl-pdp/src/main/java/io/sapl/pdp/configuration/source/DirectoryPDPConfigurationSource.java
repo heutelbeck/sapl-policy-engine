@@ -111,18 +111,16 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
      * @param pdpId the PDP identifier for loaded configurations
      */
     public DirectoryPDPConfigurationSource(@NonNull Path directoryPath, @NonNull String pdpId) {
-        // Standalone: this source manages its own directory, so on removal it
-        // emits a Remove and keeps watching, recovering when the directory
-        // reappears with a valid configuration.
+        // Standalone: on removal, emit a Remove and keep watching to recover when the
+        // directory reappears.
         this(directoryPath, pdpId, () -> {}, true);
     }
 
     DirectoryPDPConfigurationSource(@NonNull Path directoryPath,
             @NonNull String pdpId,
             @NonNull Runnable onDirectoryRemoved) {
-        // Parent-managed (a MultiDirectory child): on removal it self-closes and
-        // delegates to the parent, which re-creates the child if the directory
-        // reappears, so this source must not also try to recover.
+        // Parent-managed (MultiDirectory child): on removal, self-close and delegate
+        // recovery to the parent.
         this(directoryPath, pdpId, onDirectoryRemoved, false);
     }
 
@@ -172,11 +170,11 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private void activate() {
         log.info("Loading PDP configuration '{}' from directory: '{}'.", pdpId, directoryPath);
         if (!Files.isDirectory(directoryPath)) {
-            // A path that exists but is not a directory, or a parent-managed
-            // child whose directory is gone, is a misconfiguration that watching
-            // cannot heal: fail fast. A standalone source whose directory simply
-            // does not exist yet is treated as transiently absent (it may be
-            // created later), so log it as an error and keep watching.
+            // A non-directory path, or a parent-managed child whose directory is gone, is
+            // an unrecoverable
+            // misconfiguration, so fail fast. A standalone source whose directory does not
+            // exist yet is
+            // transiently absent, so log and keep watching.
             if (Files.exists(directoryPath) || !recoverOnDirectoryRemoval) {
                 throw new PDPConfigurationException(ERROR_PATH_IS_NOT_DIRECTORY.formatted(directoryPath));
             }

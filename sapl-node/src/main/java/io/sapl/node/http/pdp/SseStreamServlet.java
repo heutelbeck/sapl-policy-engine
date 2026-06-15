@@ -57,12 +57,8 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     private static final String CONTENT_TYPE_SSE = "text/event-stream;charset=UTF-8";
     private static final String KEEP_ALIVE_FRAME = ": keep-alive\n\n";
 
-    // Keep-alive is always on: it both keeps proxies/load balancers from
-    // idle-timing-out the connection and is the only reliable way to detect a
-    // client that died without closing (a half-open connection is otherwise
-    // indistinguishable from a healthy idle one). It is therefore tunable but
-    // not disableable: a non-positive configured interval falls back to the
-    // default, and a positive one is floored.
+    // Keep-alive is tunable but not disableable. A non-positive interval falls back
+    // to the default, a positive one is floored.
     private static final Duration DEFAULT_KEEP_ALIVE = Duration.ofSeconds(15);
     private static final Duration MIN_KEEP_ALIVE     = Duration.ofSeconds(1);
 
@@ -244,15 +240,13 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             synchronized (writerLock) {
                 writer.write(KEEP_ALIVE_FRAME);
                 writer.flush();
-                // A broken-pipe write is swallowed by PrintWriter but sets the
-                // error flag; this is the only signal that an otherwise-idle
-                // client has died without closing.
+                // PrintWriter swallows a broken-pipe write but sets the error flag, the only
+                // signal of a dead idle client.
                 clientGone = writer.checkError();
             }
             if (clientGone) {
-                // Close the stream: this unblocks the pump parked in awaitNext()
-                // (it returns null and exits), and the pump's finally block then
-                // cancels this task, unregisters, and completes the async context.
+                // Unblocks the pump parked in awaitNext, whose finally block then tears down
+                // this task.
                 closeQuietly(stream);
             }
         }, periodMillis, periodMillis, TimeUnit.MILLISECONDS);
