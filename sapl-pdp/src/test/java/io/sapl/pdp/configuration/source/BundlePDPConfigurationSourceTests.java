@@ -273,16 +273,14 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleContainsNestedDirectoriesThenNestedFilesAreSkipped() throws IOException {
+    void whenBundleContainsNestedDirectoriesThenBundleIsRejected() throws IOException {
         val bundlePath = tempDir.resolve("nested.saplbundle");
         createBundleWithNestedDirectory(bundlePath);
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
         val configs = captureConfigurations(source);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments().getFirst()).contains("root-policy");
+        assertThat(configs).isEmpty();
     }
 
     @Test

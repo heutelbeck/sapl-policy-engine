@@ -147,6 +147,7 @@ public class BundleParser {
     private static final String ERROR_PATH_TRAVERSAL_ATTEMPT            = "ZIP security violation: Path traversal attempt in bundle from %s.";
     private static final String ERROR_TOO_MANY_ENTRIES                  = "Too many entries (>%d).";
     private static final String ERROR_UNCOMPRESSED_SIZE_EXCEEDS         = "Uncompressed size exceeds %d MB.";
+    private static final String ERROR_UNEXPECTED_FILE_IN_BUNDLE         = "Unexpected file in bundle from %s: %s. Bundles may only contain pdp.json, the manifest, and root-level .sapl files.";
     private static final String ERROR_ZIP_BOMB_DETECTED                 = "ZIP bomb detected: %s Source: %s.";
 
     /**
@@ -280,9 +281,9 @@ public class BundleParser {
 
                 val entryName = normalizeEntryName(entry.getName());
 
-                // Read and count every entry, including skipped ones, so a zip
-                // bomb hidden in a directory or subdirectory entry cannot bypass
-                // the uncompressed-size and compression-ratio limits.
+                // Read and count every entry before deciding whether to keep it, so a zip
+                // bomb hidden in a rejected entry cannot bypass the uncompressed-size and
+                // compression-ratio limits.
                 val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize);
                 totalUncompressed += entryContent.length();
 
@@ -290,8 +291,9 @@ public class BundleParser {
                     validateCompressionRatio(compressedSize, totalUncompressed, sourceDescription);
                 }
 
-                if (isSkippableEntry(entry, entryName)) {
-                    continue;
+                if (!isAllowedEntry(entry, entryName)) {
+                    throw new PDPConfigurationException(
+                            ERROR_UNEXPECTED_FILE_IN_BUNDLE.formatted(sourceDescription, entryName));
                 }
 
                 content.put(entryName, entryContent);
@@ -322,11 +324,12 @@ public class BundleParser {
         return new Bundle(pdpJson, saplFiles, manifest);
     }
 
-    private boolean isSkippableEntry(ZipEntry entry, String normalizedName) {
-        if (entry.isDirectory()) {
-            return true;
+    private boolean isAllowedEntry(ZipEntry entry, String normalizedName) {
+        if (entry.isDirectory() || normalizedName.contains("/")) {
+            return false;
         }
-        return normalizedName.contains("/");
+        return PDP_JSON.equals(normalizedName) || MANIFEST_FILENAME.equals(normalizedName)
+                || normalizedName.endsWith(SAPL_EXTENSION);
     }
 
     private void validateZipEntry(ZipEntry entry, int entryCount, String sourceDescription) {
