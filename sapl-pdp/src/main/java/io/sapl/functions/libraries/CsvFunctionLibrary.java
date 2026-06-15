@@ -304,8 +304,8 @@ public class CsvFunctionLibrary {
         for (int i = 0; i < array.size(); i++) {
             if (array.get(i) instanceof ObjectValue object) {
                 val objectBuilder = ObjectValue.builder();
-                for (val key : object.keySet()) {
-                    objectBuilder.put(key, escapeFormulaCell(object.get(key)));
+                for (val entry : object.entrySet()) {
+                    objectBuilder.put(entry.getKey(), escapeFormulaCell(entry.getValue()));
                 }
                 builder.add(objectBuilder.build());
             } else {

@@ -263,6 +263,10 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
                 : pdpId;
     }
 
+    boolean httpClientTerminated() {
+        return httpClient.isTerminated();
+    }
+
     Duration getPollDelay(String pdpId) {
         if (config.mode() == LONG_POLL) {
             // Floor between iterations so a server that answers immediately cannot turn

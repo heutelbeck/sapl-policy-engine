@@ -55,7 +55,7 @@ class MqttPolicyInformationPointTlsIT {
     @SuppressWarnings("resource")
     static GenericContainer<?>        broker = newTlsMosquittoContainer();
     static String                     brokerHost;
-    static int                        tlsPort;
+    static volatile int               tlsPort;
     static Mqtt5BlockingClient        publisher;
     static MqttPolicyInformationPoint pip;
     static SaplMqttClient             saplMqttClient;

@@ -345,8 +345,7 @@ class AttributeStreamTests {
         void whenClosedWhilePollSleepingThenPumpThreadTerminates() throws Exception {
             val source   = new ControlledSource(() -> oneShot(Value.of("v1")));
             val longPoll = invocation("pollSleepClose", INITIAL_TIMEOUT, Duration.ofHours(1), BACKOFF, 0L);
-            val stream   = new AttributeStream(longPoll, source);
-            try {
+            try (val stream = new AttributeStream(longPoll, source)) {
                 // Consume the value, then wait until the pump parks in the one-hour poll sleep.
                 assertThat(stream.awaitNext()).isEqualTo(Value.of("v1"));
                 Awaitility.await().atMost(AWAIT_BUDGET)
@@ -356,8 +355,6 @@ class AttributeStreamTests {
 
                 Awaitility.await().atMost(AWAIT_BUDGET).until(() -> !stream.pumpThread.isAlive());
                 assertThat(stream.pumpThread.isAlive()).isFalse();
-            } finally {
-                stream.close();
             }
         }
     }

@@ -478,15 +478,15 @@ class GraphFunctionLibraryTests {
         val json  = new StringBuilder("{");
         for (var i = 0; i < depth; i++) {
             if (i > 0) {
-                json.append(",");
+                json.append(',');
             }
             json.append("\"n").append(i).append("\":[");
             if (i < depth - 1) {
-                json.append("\"n").append(i + 1).append("\"");
+                json.append("\"n").append(i + 1).append('"');
             }
-            json.append("]");
+            json.append(']');
         }
-        json.append("}");
+        json.append('}');
         val graph = (ObjectValue) Value.ofJson(json.toString());
 
         val error  = new AtomicReference<Throwable>();
