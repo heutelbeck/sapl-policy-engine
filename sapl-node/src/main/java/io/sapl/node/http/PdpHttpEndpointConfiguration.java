@@ -67,6 +67,9 @@ class PdpHttpEndpointConfiguration {
         // 64 KiB default is generous for typical authorization subscriptions
         // (subject + action + resource + small context); operators with very
         // large multi-decide payloads or rich environment maps can raise it.
+        // This cap is HTTP only. The RSocket transport is bounded by its protocol
+        // frame ceiling via sapl.pdp.rsocket.max-inbound-payload-size, which cannot
+        // be set below 16 MiB.
         val registration = new FilterRegistrationBean<>(new RequestBodySizeLimitFilter(maxRequestBodyBytes));
         registration.addUrlPatterns("/api/pdp/*", "/access/v1/*");
         registration.setName("requestBodySizeLimitFilter");

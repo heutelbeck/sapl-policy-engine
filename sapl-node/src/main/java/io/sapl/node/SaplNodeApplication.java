@@ -141,7 +141,7 @@ public class SaplNodeApplication {
         return out.toArray(new String[0]);
     }
 
-    private static boolean isServerMode(String[] args) {
+    static boolean isServerMode(String[] args) {
         if (args.length == 0) {
             return true;
         }
@@ -151,7 +151,9 @@ public class SaplNodeApplication {
         if (HELP_FLAGS.contains(args[0])) {
             return false;
         }
-        return !new CommandLine(new SaplNodeCli()).getSubcommands().containsKey(args[0]);
+        // Server mode for a leading property override. A registered subcommand or a
+        // bare word goes to picocli, which reports an unknown command for a typo.
+        return args[0].startsWith("--");
     }
 
     /**
