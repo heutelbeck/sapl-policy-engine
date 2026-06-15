@@ -228,7 +228,7 @@ class GeographicFunctionLibraryTests {
     @Test
     void bufferTest() {
         val expectedGeometry = geometryToGeoJSON(POINT_1_2_GEOMETRY.buffer(10.0D));
-        val actualGeometry   = buffer(POINT_1_2, Value.of(10.0D));
+        val actualGeometry   = buffer(POINT_1_2, (NumberValue) Value.of(10.0D));
         assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 

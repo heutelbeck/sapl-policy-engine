@@ -19,6 +19,7 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
+import java.math.BigDecimal;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
@@ -38,18 +39,39 @@ class MathFunctionLibraryTests {
 
     private static final double EPSILON = 0.000001;
 
+    // Builds a NumberValue from a finite test double. Value.of(double) returns
+    // Value
+    // (ErrorValue for NaN/infinity); the math functions take NumberValue, and all
+    // inputs here are finite, so the cast is safe.
+    private static NumberValue num(double value) {
+        return (NumberValue) Value.of(value);
+    }
+
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.load(new MathFunctionLibrary())).doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("an over-range number (infinite as a double) fails closed to an ErrorValue, not a throw")
+    void whenAbsOfOverRangeNumberThenErrorValue() {
+        val huge = (NumberValue) Value.of(new BigDecimal("1e400"));
+        assertThat(MathFunctionLibrary.abs(huge)).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    @DisplayName("a pow result that overflows to infinity fails closed to an ErrorValue")
+    void whenPowOverflowsThenErrorValue() {
+        assertThat(MathFunctionLibrary.pow(Value.of(10L), Value.of(400L))).isInstanceOf(ErrorValue.class);
+    }
+
     @ParameterizedTest(name = "{0}: {1} and {2} = {3}")
     @MethodSource("binaryOperationCases")
     void whenBinaryOperationThenReturnsCorrectResult(String operation, double a, double b, double expected) {
         val actual = switch (operation) {
-        case "min" -> MathFunctionLibrary.min(Value.of(a), Value.of(b));
-        case "max" -> MathFunctionLibrary.max(Value.of(a), Value.of(b));
+        case "min" -> MathFunctionLibrary.min(num(a), num(b));
+        case "max" -> MathFunctionLibrary.max(num(a), num(b));
         default    -> throw new IllegalArgumentException("Unknown operation: " + operation);
         };
 
@@ -68,11 +90,11 @@ class MathFunctionLibraryTests {
     @MethodSource("unaryOperationCases")
     void whenUnaryOperationThenReturnsCorrectResult(String operation, double value, double expected) {
         val actual = switch (operation) {
-        case "abs"   -> MathFunctionLibrary.abs(Value.of(value));
-        case "ceil"  -> MathFunctionLibrary.ceil(Value.of(value));
-        case "floor" -> MathFunctionLibrary.floor(Value.of(value));
-        case "round" -> MathFunctionLibrary.round(Value.of(value));
-        case "sign"  -> MathFunctionLibrary.sign(Value.of(value));
+        case "abs"   -> MathFunctionLibrary.abs(num(value));
+        case "ceil"  -> MathFunctionLibrary.ceil(num(value));
+        case "floor" -> MathFunctionLibrary.floor(num(value));
+        case "round" -> MathFunctionLibrary.round(num(value));
+        case "sign"  -> MathFunctionLibrary.sign(num(value));
         default      -> throw new IllegalArgumentException("Unknown operation: " + operation);
         };
 
@@ -102,7 +124,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest(name = "pow({0}, {1}) = {2}")
     @MethodSource("powCases")
     void whenPowThenReturnsCorrectResult(double base, double exponent, double expected) {
-        val actual = MathFunctionLibrary.pow(Value.of(base), Value.of(exponent));
+        val actual = MathFunctionLibrary.pow(num(base), num(exponent));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
                 .satisfies(v -> assertThat(v).isCloseTo(expected, within(EPSILON)));
@@ -117,7 +139,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest(name = "sqrt({0}) = {1}")
     @MethodSource("sqrtCases")
     void whenSqrtThenReturnsCorrectResult(double value, double expected) {
-        val actual = MathFunctionLibrary.sqrt(Value.of(value));
+        val actual = MathFunctionLibrary.sqrt(num(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
                 .satisfies(v -> assertThat(v).isCloseTo(expected, within(EPSILON)));
@@ -131,7 +153,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest(name = "clamp({0}, {1}, {2}) = {3}")
     @MethodSource("clampCases")
     void whenClampThenReturnsCorrectResult(double value, double min, double max, double expected) {
-        val actual = MathFunctionLibrary.clamp(Value.of(value), Value.of(min), Value.of(max));
+        val actual = MathFunctionLibrary.clamp(num(value), num(min), num(max));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
                 .isEqualTo(expected);
@@ -159,7 +181,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest(name = "log({0}) = {1}")
     @MethodSource("logCases")
     void whenLogThenReturnsCorrectResult(double value, double expected) {
-        val actual = MathFunctionLibrary.log(Value.of(value));
+        val actual = MathFunctionLibrary.log(num(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
                 .satisfies(v -> assertThat(v).isCloseTo(expected, within(EPSILON)));
@@ -173,7 +195,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest(name = "log10({0}) = {1}")
     @MethodSource("log10Cases")
     void whenLog10ThenReturnsCorrectResult(double value, double expected) {
-        val actual = MathFunctionLibrary.log10(Value.of(value));
+        val actual = MathFunctionLibrary.log10(num(value));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
                 .satisfies(v -> assertThat(v).isCloseTo(expected, within(EPSILON)));
@@ -187,7 +209,7 @@ class MathFunctionLibraryTests {
     @ParameterizedTest(name = "logb({0}, {1}) = {2}")
     @MethodSource("logbCases")
     void whenLogbThenReturnsCorrectResult(double value, double base, double expected) {
-        val actual = MathFunctionLibrary.logb(Value.of(value), Value.of(base));
+        val actual = MathFunctionLibrary.logb(num(value), num(base));
 
         assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value().doubleValue())
                 .satisfies(v -> assertThat(v).isCloseTo(expected, within(EPSILON)));
@@ -208,31 +230,30 @@ class MathFunctionLibraryTests {
     private static Stream<Arguments> errorCases() {
         return Stream.of(
                 // pow errors
-                arguments("pow(-1, 0.5) - NaN result", MathFunctionLibrary.pow(Value.of(-1.0), Value.of(0.5)),
+                arguments("pow(-1, 0.5) - NaN result", MathFunctionLibrary.pow(num(-1.0), num(0.5)),
                         "Power operation resulted in NaN"),
                 // sqrt errors
-                arguments("sqrt(-1) - negative value", MathFunctionLibrary.sqrt(Value.of(-1.0)),
+                arguments("sqrt(-1) - negative value", MathFunctionLibrary.sqrt(num(-1.0)),
                         "Cannot calculate square root of a negative number"),
                 // clamp errors
-                arguments("clamp with min > max",
-                        MathFunctionLibrary.clamp(Value.of(5.0), Value.of(10.0), Value.of(0.0)),
+                arguments("clamp with min > max", MathFunctionLibrary.clamp(num(5.0), num(10.0), num(0.0)),
                         "Minimum must be less than or equal to maximum"),
                 // log errors
-                arguments("log(0) - zero value", MathFunctionLibrary.log(Value.of(0.0)),
+                arguments("log(0) - zero value", MathFunctionLibrary.log(num(0.0)),
                         "Logarithm requires a positive value"),
-                arguments("log(-1) - negative value", MathFunctionLibrary.log(Value.of(-1.0)),
+                arguments("log(-1) - negative value", MathFunctionLibrary.log(num(-1.0)),
                         "Logarithm requires a positive value"),
-                arguments("log10(0) - zero value", MathFunctionLibrary.log10(Value.of(0.0)),
+                arguments("log10(0) - zero value", MathFunctionLibrary.log10(num(0.0)),
                         "Logarithm requires a positive value"),
-                arguments("log10(-1) - negative value", MathFunctionLibrary.log10(Value.of(-1.0)),
+                arguments("log10(-1) - negative value", MathFunctionLibrary.log10(num(-1.0)),
                         "Logarithm requires a positive value"),
-                arguments("logb(-1, 10) - negative value", MathFunctionLibrary.logb(Value.of(-1.0), Value.of(10.0)),
+                arguments("logb(-1, 10) - negative value", MathFunctionLibrary.logb(num(-1.0), num(10.0)),
                         "Logarithm requires a positive value"),
-                arguments("logb(10, 1) - base 1", MathFunctionLibrary.logb(Value.of(10.0), Value.of(1.0)),
+                arguments("logb(10, 1) - base 1", MathFunctionLibrary.logb(num(10.0), num(1.0)),
                         "Logarithm base must be positive and not equal to 1"),
-                arguments("logb(10, -2) - negative base", MathFunctionLibrary.logb(Value.of(10.0), Value.of(-2.0)),
+                arguments("logb(10, -2) - negative base", MathFunctionLibrary.logb(num(10.0), num(-2.0)),
                         "Logarithm base must be positive and not equal to 1"),
-                arguments("logb(10, 0) - zero base", MathFunctionLibrary.logb(Value.of(10.0), Value.of(0.0)),
+                arguments("logb(10, 0) - zero base", MathFunctionLibrary.logb(num(10.0), num(0.0)),
                         "Logarithm base must be positive and not equal to 1"));
     }
 }
