@@ -224,6 +224,10 @@ public class CsvFunctionLibrary {
             first object determine the column headers. Subsequent objects should have the same
             keys for consistent output. Returns an empty string for empty arrays.
 
+            To prevent CSV formula injection, a cell whose text begins with =, +, -, @, a tab,
+            or a carriage return is prefixed with a single quote, so a spreadsheet that opens
+            the output treats it as text rather than a formula.
+
             Parameters:
             - array: Array of objects to convert
 
@@ -270,7 +274,7 @@ public class CsvFunctionLibrary {
         val schema = schemaBuilder.build().withHeader();
 
         try {
-            val arrayNode = convertToJacksonArrayNode(array);
+            val arrayNode = convertToJacksonArrayNode(sanitizeAgainstFormulaInjection(array));
             return Value.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
         } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
@@ -279,5 +283,41 @@ public class CsvFunctionLibrary {
 
     private static ArrayNode convertToJacksonArrayNode(ArrayValue array) {
         return (ArrayNode) ValueJsonMarshaller.toJsonNode(array);
+    }
+
+    /**
+     * Neutralizes CSV formula injection. A cell whose text starts with a
+     * formula trigger is prefixed with a single quote so a spreadsheet that
+     * later opens the generated CSV treats it as text, not an expression.
+     */
+    private static ArrayValue sanitizeAgainstFormulaInjection(ArrayValue array) {
+        val builder = ArrayValue.builder();
+        for (int i = 0; i < array.size(); i++) {
+            if (array.get(i) instanceof ObjectValue object) {
+                val objectBuilder = ObjectValue.builder();
+                for (val key : object.keySet()) {
+                    objectBuilder.put(key, escapeFormulaCell(object.get(key)));
+                }
+                builder.add(objectBuilder.build());
+            } else {
+                builder.add(array.get(i));
+            }
+        }
+        return builder.build();
+    }
+
+    private static Value escapeFormulaCell(Value cell) {
+        if (cell instanceof TextValue(String text) && startsWithFormulaCharacter(text)) {
+            return Value.of("'" + text);
+        }
+        return cell;
+    }
+
+    private static boolean startsWithFormulaCharacter(String text) {
+        if (text.isEmpty()) {
+            return false;
+        }
+        val first = text.charAt(0);
+        return first == '=' || first == '+' || first == '-' || first == '@' || first == '\t' || first == '\r';
     }
 }

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
@@ -349,5 +350,29 @@ class CsvFunctionLibraryTests {
         assertThat(array).hasSize(2);
         assertThat((ObjectValue) array.get(0)).containsEntry("ritual", Value.of(""));
         assertThat((ObjectValue) array.get(1)).containsEntry("entity", Value.of(""));
+    }
+
+    @ParameterizedTest(name = "escapes a cell starting with {0}")
+    @ValueSource(strings = { "=", "+", "-", "@" })
+    @DisplayName("valToCsv neutralizes formula-injection cells")
+    void valToCsvWhenCellStartsWithFormulaCharacterThenEscaped(String prefix) {
+        val payload = prefix + "cmd|0";
+        val array   = ArrayValue.builder().add(ObjectValue.builder().put("note", Value.of(payload)).build()).build();
+
+        val result = CsvFunctionLibrary.valToCsv(array);
+
+        val csvText = ((TextValue) result).value();
+        assertThat(csvText).contains("'" + payload);
+    }
+
+    @Test
+    @DisplayName("valToCsv leaves ordinary cell values untouched")
+    void valToCsvWhenCellHasNoFormulaCharacterThenNotEscaped() {
+        val array = ArrayValue.builder().add(ObjectValue.builder().put("note", Value.of("Cthulhu")).build()).build();
+
+        val result = CsvFunctionLibrary.valToCsv(array);
+
+        val csvText = ((TextValue) result).value();
+        assertThat(csvText).contains("Cthulhu").doesNotContain("'Cthulhu");
     }
 }

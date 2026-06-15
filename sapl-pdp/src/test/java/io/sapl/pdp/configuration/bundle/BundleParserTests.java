@@ -229,11 +229,11 @@ class BundleParserTests {
     }
 
     @Test
-    void whenUncompressedSizeExceedsLimitThenThrowsException() throws IOException {
-        val hugeContent = "X".repeat(11 * 1024 * 1024);
-        val bundleBytes = createBundleWithEntryAndConfig("necronomicon.sapl", hugeContent);
+    void whenUncompressedSizeExceedsConfiguredLimitThenThrowsException() throws IOException {
+        val largeContent = "X".repeat(2 * 1024 * 1024);
+        val bundleBytes  = createBundleWithEntryAndConfig("necronomicon.sapl", largeContent);
 
-        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy, 1024L * 1024))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds");
     }
 

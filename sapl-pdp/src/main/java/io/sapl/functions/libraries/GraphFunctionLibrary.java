@@ -92,7 +92,9 @@ public class GraphFunctionLibrary {
      */
     @Function(name = "transitiveClosure", docs = """
             ```graph.transitiveClosure(OBJECT graph)```: All-pairs transitive closure via Tarjan's SCC
-            + memoized DAG closure. O(V + E + S).
+            + memoized DAG closure. O(V + E + S). Traversal is iterative, so deep graphs do not
+            cause a stack overflow. The output size S grows with reachability and can reach
+            O(V^2) for densely connected graphs.
 
             ```sapl
             var closed = graph.transitiveClosure(rolesHierarchy);

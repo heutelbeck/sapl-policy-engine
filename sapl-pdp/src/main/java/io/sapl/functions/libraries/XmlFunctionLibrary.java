@@ -24,7 +24,10 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.xml.XmlFactory;
 import tools.jackson.dataformat.xml.XmlMapper;
+
+import javax.xml.stream.XMLInputFactory;
 
 /**
  * Function library providing XML marshalling and unmarshalling operations.
@@ -52,7 +55,20 @@ public class XmlFunctionLibrary {
             }
             """;
 
-    private static final XmlMapper XML_MAPPER = XmlMapper.builder().build();
+    private static final XmlMapper XML_MAPPER = hardenedXmlMapper();
+
+    /**
+     * Builds an XmlMapper on an explicitly hardened StAX input factory. DTDs and
+     * external entities are disabled on the parser the engine owns, so XXE,
+     * external-entity SSRF, and entity-expansion payloads fail closed regardless
+     * of third-party default changes.
+     */
+    private static XmlMapper hardenedXmlMapper() {
+        val inputFactory = XMLInputFactory.newFactory();
+        inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+        inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+        return new XmlMapper(XmlFactory.builder().xmlInputFactory(inputFactory).build());
+    }
 
     /**
      * Converts a well-formed XML document into a SAPL value.
@@ -65,6 +81,10 @@ public class XmlFunctionLibrary {
     @Function(docs = """
             ```xmlToVal(TEXT xml)```: Converts a well-formed XML document into a SAPL value
             representing the content of the XML document.
+
+            DTD processing and external entity resolution are disabled. Documents that declare
+            or reference entities, such as XXE or entity-expansion payloads, are rejected with
+            an error. Plain data XML without a document type definition is supported.
 
             **Example:**
             ```sapl
