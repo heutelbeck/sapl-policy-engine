@@ -185,10 +185,11 @@ class MqttPolicyInformationPointIT {
         @DisplayName("subscribe + publish: a published message arrives as a TextValue")
         void whenMessagePublishedThenStreamEmitsIt() {
             val topic   = "test/happy/text";
-            val message = buildMqttPublishMessage(topic, "hello", false);
+            val message = buildMqttPublishMessage(topic, "hello", true);
 
+            // Retained publish before subscribing so delivery does not race the subscribe.
+            publisher.publish(message);
             try (val stream = pip.messages(Value.of(topic), freshCtx())) {
-                publishLater(message, 500L);
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("hello")));
             }

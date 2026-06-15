@@ -108,17 +108,13 @@ class MqttPolicyInformationPointTlsIT {
     @DisplayName("a message reaches the PIP subscribed over a TLS connection verified against the trust store")
     void whenSubscribedOverTlsThenMessageArrives() {
         val topic   = "test/tls/text";
-        val message = buildMqttPublishMessage(topic, "secure-hello", false);
+        val message = buildMqttPublishMessage(topic, "secure-hello", true);
+
+        // Retained publish before subscribing so the broker replays it once the TLS
+        // subscribe completes; delivery no longer races the handshake.
+        publisher.publish(message);
 
         try (val stream = pip.messages(Value.of(topic), tlsCtx())) {
-            Thread.startVirtualThread(() -> {
-                try {
-                    Thread.sleep(1000L);
-                    publisher.publish(message);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-            });
             StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
                     .awaitsNext(v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("secure-hello")));
         }
