@@ -53,6 +53,7 @@ import io.sapl.compiler.pdp.CompiledPdp;
 import io.sapl.compiler.pdp.PdpVoterMetadata;
 import io.sapl.pdp.configuration.PdpUpdateEvent;
 import io.sapl.pdp.configuration.PdpVoterSource;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.time.Clock;
@@ -65,6 +66,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -83,12 +85,18 @@ import java.util.function.Function;
  * one {@code onSubscribe} call when each subscription stream begins and
  * one {@code onUnsubscribe} call when it ends.
  */
+@Slf4j
 public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisionPoint {
 
     private static final String ERROR_EVALUATOR_THREW            = "Voter evaluation failed.";
     private static final String ERROR_INTERRUPTED                = "Voter evaluation interrupted.";
     private static final String ERROR_NO_PDP_CONFIGURATION       = "No PDP configuration found.";
+    private static final String ERROR_UNEXPECTED_EVALUATION      = "Unexpected error during decision evaluation, returning INDETERMINATE.";
     private static final String ERROR_VOTER_PRODUCED_NO_DECISION = "Voter produced no decision.";
+
+    private static final String WARN_LISTENER_THREW = "Observability listener {} threw and was isolated from authorization. Further failures from this class are suppressed.";
+
+    private static final Set<String> warnedListenerClasses = ConcurrentHashMap.newKeySet();
 
     private final PdpVoterSource  pdpConfigurationSource;
     private final AttributeBroker attributeBroker;
@@ -134,6 +142,9 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                 return tv.authorizationDecision();
             }
             return computeVoteSync(sub, subscriptionId, pdpId).authorizationDecision();
+        } catch (RuntimeException e) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, e);
+            return AuthorizationDecision.INDETERMINATE;
         } finally {
             notifyOnUnsubscribe(lifecycleListeners(), subscriptionId);
         }
@@ -152,19 +163,29 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private Stream<AuthorizationDecision> evaluateDecisions(Optional<CompiledPdp> maybePdp,
             AuthorizationSubscription sub, String subscriptionId, String pdpId) {
-        val voteSource = maybePdp.map(pdp -> voteStream(pdp, sub, subscriptionId))
-                .orElseGet(() -> singleton(noConfigurationVote(pdpId)));
-        return mapStream(voteSource, Vote::authorizationDecision);
+        try {
+            val voteSource = maybePdp.map(pdp -> voteStream(pdp, sub, subscriptionId))
+                    .orElseGet(() -> singleton(noConfigurationVote(pdpId)));
+            return mapStream(voteSource, Vote::authorizationDecision);
+        } catch (RuntimeException e) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, e);
+            return singleton(AuthorizationDecision.INDETERMINATE);
+        }
     }
 
     private Stream<AuthorizationDecision> evaluateDecisionsTraced(Optional<CompiledPdp> maybePdp,
             AuthorizationSubscription sub, String subscriptionId, String pdpId) {
-        val tracedSource = maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
-                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
-        return mapStream(tracedSource, tv -> {
-            dispatchDecisionObservers(decisionInterceptors(), tv, tv.timestamp(), subscriptionId, sub);
-            return tv.authorizationDecision();
-        });
+        try {
+            val tracedSource = maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
+                    .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
+            return mapStream(tracedSource, tv -> {
+                dispatchDecisionObservers(decisionInterceptors(), tv, tv.timestamp(), subscriptionId, sub);
+                return tv.authorizationDecision();
+            });
+        } catch (RuntimeException e) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, e);
+            return singleton(AuthorizationDecision.INDETERMINATE);
+        }
     }
 
     private <T> Stream<T> rewireOnConfigChange(String pdpId, Function<Optional<CompiledPdp>, Stream<T>> innerFactory) {
@@ -198,15 +219,33 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             return singleton(MultiAuthorizationDecision.indeterminate());
         }
         val subscriptionId = idFactory.newRandom();
+        val listenerIds    = notifyOnSubscribePerElement(multiSubscription, pdpId);
         val raw            = rewireOnConfigChange(pdpId,
                 maybePdp -> evaluateMulti(maybePdp, multiSubscription, subscriptionId));
-        return Streams.distinctUntilChanged(raw, e -> MultiAuthorizationDecision.indeterminate());
+        val deduped        = Streams.distinctUntilChanged(raw, e -> MultiAuthorizationDecision.indeterminate());
+        return withUnsubscribeNotification(deduped, listenerIds);
+    }
+
+    private List<String> notifyOnSubscribePerElement(MultiAuthorizationSubscription multiSubscription, String pdpId) {
+        val listeners   = lifecycleListeners();
+        val listenerIds = new ArrayList<String>();
+        for (val identifiable : multiSubscription) {
+            val listenerId = idFactory.newRandom();
+            listenerIds.add(listenerId);
+            notifyOnSubscribe(listeners, listenerId, identifiable.subscription(), pdpId);
+        }
+        return listenerIds;
     }
 
     private Stream<MultiAuthorizationDecision> evaluateMulti(Optional<CompiledPdp> maybePdp,
             MultiAuthorizationSubscription multiSubscription, String subscriptionId) {
-        return maybePdp.map(pdp -> multiVoteStream(multiSubscription, pdp, subscriptionId))
-                .orElseGet(() -> singleton(MultiAuthorizationDecision.indeterminate()));
+        try {
+            return maybePdp.map(pdp -> multiVoteStream(multiSubscription, pdp, subscriptionId))
+                    .orElseGet(() -> singleton(MultiAuthorizationDecision.indeterminate()));
+        } catch (RuntimeException e) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, e);
+            return singleton(MultiAuthorizationDecision.indeterminate());
+        }
     }
 
     /**
@@ -227,8 +266,13 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private Stream<TracedVote> evaluateTracedVotes(Optional<CompiledPdp> maybePdp, AuthorizationSubscription sub,
             String subscriptionId, String pdpId) {
-        return maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
-                .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
+        try {
+            return maybePdp.map(pdp -> tracedVoteStream(pdp, sub, subscriptionId))
+                    .orElseGet(() -> singleton(tracedNoConfiguration(pdpId, timestampSource)));
+        } catch (RuntimeException e) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, e);
+            return singleton(tracedNoConfiguration(pdpId, timestampSource));
+        }
     }
 
     /**
@@ -263,6 +307,9 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
             return new VoteWithCoverage(errorVote(pdp, ERROR_INTERRUPTED), null);
         } catch (EvaluationException ee) {
             return new VoteWithCoverage(errorVote(pdp, ERROR_EVALUATOR_THREW), null);
+        } catch (RuntimeException re) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, re);
+            return new VoteWithCoverage(errorVote(pdp, ERROR_EVALUATOR_THREW), null);
         }
     }
 
@@ -281,8 +328,13 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     private Stream<VoteWithCoverage> evaluateCoverage(Optional<CompiledPdp> maybePdp, AuthorizationSubscription sub,
             String subscriptionId, String pdpId) {
-        return maybePdp.map(pdp -> coverageStream(pdp, sub, subscriptionId))
-                .orElseGet(() -> singleton(new VoteWithCoverage(noConfigurationVote(pdpId), null)));
+        try {
+            return maybePdp.map(pdp -> coverageStream(pdp, sub, subscriptionId))
+                    .orElseGet(() -> singleton(new VoteWithCoverage(noConfigurationVote(pdpId), null)));
+        } catch (RuntimeException e) {
+            log.warn(ERROR_UNEXPECTED_EVALUATION, e);
+            return singleton(new VoteWithCoverage(noConfigurationVote(pdpId), null));
+        }
     }
 
     private Stream<VoteWithCoverage> coverageStream(CompiledPdp pdp, AuthorizationSubscription sub,
@@ -739,6 +791,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     private <T> Stream<T> withUnsubscribeNotification(Stream<T> source, String subscriptionId) {
+        return withUnsubscribeNotification(source, List.of(subscriptionId));
+    }
+
+    private <T> Stream<T> withUnsubscribeNotification(Stream<T> source, List<String> subscriptionIds) {
         val out  = new LatestSlotStream<T>();
         val pump = Thread.startVirtualThread(() -> {
                      try {
@@ -754,7 +810,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                      } finally {
                          out.complete();
                          source.close();
-                         notifyOnUnsubscribe(lifecycleListeners(), subscriptionId);
+                         val listeners = lifecycleListeners();
+                         for (val subscriptionId : subscriptionIds) {
+                             notifyOnUnsubscribe(listeners, subscriptionId);
+                         }
                      }
                  });
         out.onClose(() -> {
@@ -817,9 +876,10 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     }
 
     /**
-     * Fires {@code onSubscribe} on every registered listener, swallowing
-     * and ignoring any exception each one throws so a misbehaving
-     * observer cannot affect authorization correctness. Shared with the
+     * Fires {@code onSubscribe} on every registered listener. A
+     * misbehaving observer cannot affect authorization correctness, so
+     * exceptions are isolated and logged once per listener class. Fatal
+     * {@link VirtualMachineError}s are never masked. Shared with the
      * reactive PDP.
      */
     public static void notifyOnSubscribe(List<SubscriptionLifecycleListener> listeners, String subscriptionId,
@@ -827,10 +887,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         for (val listener : listeners) {
             try {
                 listener.onSubscribe(subscriptionId, sub, pdpId);
-            } catch (Throwable swallowed) {
-                // Listeners are observability concerns, not obligations: a
-                // misbehaving listener must not affect authorization. The
-                // listener handles its own failure logging.
+            } catch (Throwable t) {
+                isolateObserverFailure(t, listener);
             }
         }
     }
@@ -844,8 +902,8 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         for (val listener : listeners) {
             try {
                 listener.onUnsubscribe(subscriptionId);
-            } catch (Throwable swallowed) {
-                // see notifyOnSubscribe.
+            } catch (Throwable t) {
+                isolateObserverFailure(t, listener);
             }
         }
     }
@@ -860,9 +918,18 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         for (val interceptor : interceptors) {
             try {
                 interceptor.onDecision(decision, timestamp, subscriptionId, sub);
-            } catch (Throwable swallowed) {
-                // see notifyOnSubscribe.
+            } catch (Throwable t) {
+                isolateObserverFailure(t, interceptor);
             }
+        }
+    }
+
+    private static void isolateObserverFailure(Throwable t, Object observer) {
+        if (t instanceof VirtualMachineError vme) {
+            throw vme;
+        }
+        if (warnedListenerClasses.add(observer.getClass().getName())) {
+            log.warn(WARN_LISTENER_THREW, observer.getClass().getName(), t);
         }
     }
 }
