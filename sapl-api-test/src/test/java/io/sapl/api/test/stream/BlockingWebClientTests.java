@@ -135,6 +135,32 @@ class BlockingWebClientTests {
     }
 
     @Test
+    @DisplayName("a malformed base URL never leaks a query-string secret into the error value")
+    void whenMalformedBaseUrlWithSecretThenErrorValueDoesNotLeakToken() {
+        val secret   = "SUPERSECRET-TOKEN-123";
+        val template = """
+                {
+                    "baseUrl" : "http://bad host:8082",
+                    "path" : "/api/positions",
+                    "accept" : "application/json",
+                    "urlParameters" : {
+                        "token" : "%s"
+                    }
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(secret));
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).doesNotContain(secret);
+            });
+        }
+    }
+
+    @Test
     @DisplayName("HTTP 500 response emits an error value")
     void whenHttpErrorThenEmitsErrorValue() {
         val errorResponse = new MockResponse().setResponseCode(500).setHeader("content-type", "application/json")

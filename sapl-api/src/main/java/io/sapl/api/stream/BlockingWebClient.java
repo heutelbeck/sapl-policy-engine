@@ -91,6 +91,7 @@ public class BlockingWebClient {
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
     private static final String ERROR_HTTP_RESPONSE_STATUS                  = "HTTP %d";
+    private static final String ERROR_MALFORMED_URI                         = "Malformed request URI: %s";
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
     private static final String ERROR_RESPONSE_TOO_LARGE                    = "HTTP response exceeded the configured limit of %d bytes.";
 
@@ -326,7 +327,7 @@ public class BlockingWebClient {
     private static URI buildUri(String baseUrl, String path, Map<String, String> queryParams) {
         val uri = baseUrl + path;
         if (queryParams.isEmpty()) {
-            return URI.create(uri);
+            return createUri(uri);
         }
         val sb = new StringBuilder(uri);
         sb.append(uri.contains("?") ? '&' : '?');
@@ -340,7 +341,26 @@ public class BlockingWebClient {
             sb.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
             first = false;
         }
-        return URI.create(sb.toString());
+        return createUri(sb.toString());
+    }
+
+    private static URI createUri(String uri) {
+        try {
+            return URI.create(uri);
+        } catch (IllegalArgumentException e) {
+            // The query string and any userinfo can carry secrets (e.g. the Traccar
+            // token). Never let them reach the ErrorValue, report, or logs.
+            throw new IllegalArgumentException(ERROR_MALFORMED_URI.formatted(redactSecrets(uri)));
+        }
+    }
+
+    private static String redactSecrets(String uri) {
+        var redacted = uri;
+        val query    = redacted.indexOf('?');
+        if (query >= 0) {
+            redacted = redacted.substring(0, query) + "?<redacted>";
+        }
+        return redacted.replaceAll("//[^/@]*@", "//<redacted>@");
     }
 
     private HttpRequest buildRequest(URI uri, String method, JsonNode headers, String accept, String contentType,
