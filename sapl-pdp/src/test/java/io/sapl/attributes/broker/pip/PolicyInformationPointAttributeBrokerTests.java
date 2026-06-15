@@ -29,8 +29,10 @@ import io.sapl.api.model.Value;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
+import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.pip.PipLoadException;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.repository.RepositoryKey;
 import lombok.val;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -43,12 +45,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.InstantSource;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -357,6 +361,75 @@ class PolicyInformationPointAttributeBrokerTests {
             broker.open("s1", deps, s -> deps);
 
             assertThatThrownBy(() -> broker.open("s1", deps, s -> deps)).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("opening after the broker is closed fails closed instead of leaking a half-built subscription")
+        void whenOpenAfterBrokerClosedThenIllegalState() {
+            broker.load(new ConstantPip());
+            val deps = Set.of(envKey("constant.value"));
+            broker.close();
+
+            assertThatThrownBy(() -> broker.open("s1", deps, s -> deps)).isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("a throwing dependency activation rolls back the dependencies already attached in the same open")
+        void whenDependencyActivationThrowsThenAttachedDependenciesRolledBack() {
+            val okObserveCount = new AtomicInteger();
+            val fallback       = new AttributeRepository() {
+                                   @Override
+                                   public void close() {
+                                       // no resources to release
+                                   }
+
+                                   @Override
+                                   public void publish(RepositoryKey key, Value value) {
+                                       // not exercised by this test
+                                   }
+
+                                   @Override
+                                   public void publish(RepositoryKey key, Value value, Duration ttl) {
+                                       // not exercised by this test
+                                   }
+
+                                   @Override
+                                   public void remove(RepositoryKey key) {
+                                       // not exercised by this test
+                                   }
+
+                                   @Override
+                                   public Registration observe(AttributeFinderInvocation invocation,
+                                           Consumer<Value> onValue) {
+                                       if (invocation.attributeName().contains("boom")) {
+                                           throw new IllegalStateException("activation failed");
+                                       }
+                                       okObserveCount.incrementAndGet();
+                                       return () -> {
+                                                              // no-op registration
+                                                          };
+                                   }
+                               };
+            val scopedBroker   = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback);
+            try {
+                val ok   = envKey("fallback.ok");
+                val boom = envKey("fallback.boom");
+                // Ordered so the good dependency attaches before the failing one throws.
+                val orderedDeps = new LinkedHashSet<>(List.of(ok, boom));
+
+                assertThatThrownBy(() -> scopedBroker.open("s1", orderedDeps, s -> orderedDeps))
+                        .isInstanceOf(IllegalStateException.class);
+                assertThat(okObserveCount).hasValue(1);
+
+                // The rollback must have torn down the attached "ok" dependency, so
+                // reopening it activates a fresh invocation rather than reusing a leak.
+                val okOnly = Set.of(ok);
+                val sub    = scopedBroker.open("s2", okOnly, s -> okOnly);
+                assertThat(okObserveCount).hasValue(2);
+                sub.close();
+            } finally {
+                scopedBroker.close();
+            }
         }
 
         @Test

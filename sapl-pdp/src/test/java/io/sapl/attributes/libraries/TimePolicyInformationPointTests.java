@@ -18,6 +18,7 @@
 package io.sapl.attributes.libraries;
 
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.Poll;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.test.stream.MutableClock;
@@ -792,6 +793,70 @@ class TimePolicyInformationPointTests {
                 clock.setInstant(nextTrue);
                 scheduler.advanceTo(nextTrue);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("clock jumps (suspend/resume, NTP correction)")
+    class ClockJumps {
+
+        @Test
+        @DisplayName("nowIsBetween survives a forward jump over the whole interval and settles on false")
+        void whenClockJumpsPastEntireIntervalThenSettlesOnFalse() {
+            // A VM suspended before the window and resumed after it must not be
+            // stranded in TRUE: once the jump is processed the interval is over,
+            // so the stream's last emission before completion is FALSE. A transient
+            // TRUE for the skipped-over window may or may not be observed.
+            val f       = fixtureAt("2021-11-08T13:00:00Z");
+            val pastEnd = Instant.parse("2021-11-08T20:00:00Z");
+            val stream  = f.sut.nowIsBetween(Value.of("2021-11-08T14:00:00Z"), Value.of("2021-11-08T15:00:00Z"));
+            StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+            f.advanceTo(pastEnd);
+            val emitted = StreamAssertions.assertThat(stream).drain();
+            assertThat(emitted).endsWith(Value.FALSE);
+        }
+
+        @Test
+        @DisplayName("nowIsAfter fires true after a forward jump far past the checkpoint")
+        void whenClockJumpsFarPastCheckpointThenEmitsTrueAndCompletes() {
+            val f       = fixtureAt("2021-11-08T13:00:00Z");
+            val wayPast = Instant.parse("2021-11-15T13:00:00Z");
+            try (val stream = f.sut.nowIsAfter(Value.of("2021-11-08T14:00:00Z"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.advanceTo(wayPast);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
+        }
+
+        @Test
+        @DisplayName("nowIsAfter ignores a backward clock step (NTP correction) and still fires exactly once at the scheduled boundary")
+        void whenClockSteppedBackwardThenNoPrematureTransitionAndFiresOnceAtBoundary() {
+            // A wall-clock rewind (NTP correction) while the TRUE boundary is pending
+            // must not trigger a premature transition; the scheduled boundary still
+            // fires once at the correct time.
+            val f          = fixtureAt("2021-11-08T13:00:00Z");
+            val checkpoint = Instant.parse("2021-11-08T14:00:00Z");
+            try (val stream = f.sut.nowIsAfter(Value.of(checkpoint.toString()))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                f.clock.setInstant(Instant.parse("2021-11-08T12:00:00Z"));
+                assertThat(stream.tryNext()).isInstanceOf(Poll.Empty.class);
+                f.scheduler.advanceTo(checkpoint);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE).awaitsCompletion();
+            }
+        }
+
+        @Test
+        @DisplayName("localTimeIsAfter converges to the correct value after a multi-day forward jump, without hanging")
+        void whenClockJumpsSeveralDaysForwardThenConvergesToCorrectValue() {
+            // Resuming several days later, before the daily checkpoint, the daily
+            // boundary stream must settle on the post-jump value rather than block.
+            val f                = fixtureAt("2021-11-08T13:00:00Z");
+            val daysLaterMorning = Instant.parse("2021-11-11T09:00:00Z");
+            try (val stream = f.sut.localTimeIsAfter(Value.of("12:00"))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                f.advanceTo(daysLaterMorning);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
         }
     }

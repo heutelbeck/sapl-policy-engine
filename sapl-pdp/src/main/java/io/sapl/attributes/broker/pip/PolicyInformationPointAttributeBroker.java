@@ -98,6 +98,7 @@ import java.util.function.Supplier;
 public final class PolicyInformationPointAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_ANNOTATION_MISSING      = "PIP class %s is not annotated with @PolicyInformationPoint.";
+    private static final String ERROR_BROKER_CLOSED           = "Cannot open a subscription: the attribute broker is closed.";
     private static final String ERROR_CATALOG_INVARIANT       = "Catalog invariant violated. Multiple exact matches for '{}'. Falling back to UNDEFINED or repository. The collision rule should have prevented this. Indicates an engine bug.";
     private static final String ERROR_DEPS_EMPTY              = "initialDependencies must not be empty";
     private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
@@ -108,6 +109,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE  = "subscriptionId already open: %s";
     private static final String WARN_ONUPDATE_THREW           = "Consumer {} onUpdate threw: {}";
+
+    private static final long WARN_LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
 
     private final ReentrantLock                                                lock                  = new ReentrantLock(
             true);
@@ -120,6 +123,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final ScheduledExecutorService      teardownScheduler;
     private final @Nullable AttributeRepository fallback;
     private final InstantSource                 timestampSource;
+
+    // Set in close(); guards open() and teardown scheduling.
+    private volatile boolean closed = false;
 
     /** No grace period, no fallback. */
     public PolicyInformationPointAttributeBroker() {
@@ -454,11 +460,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             throw new IllegalArgumentException(ERROR_DEPS_EMPTY);
         }
 
-        BrokerSubscription subscription;
+        BrokerSubscription subscription = null;
         boolean            fireImmediately;
         lock.lock();
 
         try {
+            if (closed) {
+                throw new IllegalStateException(ERROR_BROKER_CLOSED);
+            }
             if (consumerSubscriptions.containsKey(subscriptionId)) {
                 throw new IllegalArgumentException(ERROR_SUBSCRIPTION_ID_IN_USE.formatted(subscriptionId));
             }
@@ -476,6 +485,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             // If every dep is already in its active invocation's mailbox (warm-attach),
             // open the gate and fire synchronously with the cached snapshot.
             fireImmediately = subscription.tryFireGate();
+        } catch (RuntimeException e) {
+            // Roll back deps attached so far; the subscription was never registered.
+            if (subscription != null) {
+                subscription.close();
+            }
+            throw e;
         } finally {
 
             lock.unlock();
@@ -495,6 +510,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         lock.lock();
 
         try {
+            closed        = true;
             toClose       = new ArrayList<>(consumerSubscriptions.values());
             activeToClose = new ArrayList<>(allActive());
             consumerSubscriptions.clear();
@@ -939,6 +955,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * idempotent against cancellation via {@link #pendingTeardowns}.
      */
     private void scheduleTeardown(ActiveInvocation activeInvocation) {
+        if (closed) {
+            // The broker is closing; close() already tears down every active
+            // invocation, and the teardown scheduler is shut down, so scheduling
+            // here would only throw RejectedExecutionException.
+            return;
+        }
         val task = teardownScheduler.schedule(() -> runScheduledTeardown(activeInvocation),
                 gracePeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
         pendingTeardowns.put(activeInvocation, task);
@@ -1044,6 +1066,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         Map<SubscriptionKey, ActiveInvocation>                                        route    = new HashMap<>();
         boolean                                                                       gateOpen = false;
         boolean                                                                       closed   = false;
+
+        // Rate-limits the onUpdate-threw warning to one per minute.
+        private long    lastWarnLogNanos;
+        private boolean warnLogged;
 
         BrokerSubscription(String id,
                 Set<SubscriptionKey> deps,
@@ -1169,13 +1195,22 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             try {
                 newDeps = cb.apply(snapshot);
             } catch (RuntimeException e) {
-                log.warn(WARN_ONUPDATE_THREW, id, e.getMessage(), e);
+                logOnUpdateFailure(e);
                 return;
             }
             if (newDeps == null || newDeps.isEmpty()) {
                 throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
             }
             applyDepDiff(newDeps);
+        }
+
+        private void logOnUpdateFailure(RuntimeException failure) {
+            val now = System.nanoTime();
+            if (!warnLogged || now - lastWarnLogNanos >= WARN_LOG_INTERVAL_NANOS) {
+                log.warn(WARN_ONUPDATE_THREW, id, failure.getMessage(), failure);
+                lastWarnLogNanos = now;
+                warnLogged       = true;
+            }
         }
 
         private void applyDepDiff(Set<SubscriptionKey> newDeps) {

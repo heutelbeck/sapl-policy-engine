@@ -80,6 +80,11 @@ final class AttributeStream implements Stream<Value> {
     private final LatestSlotStream<Value> output = new LatestSlotStream<>();
     private volatile boolean              closed = false;
 
+    // The pump's virtual thread, interrupted on close() so a pump parked in a
+    // sleep (poll interval or retry backoff) exits promptly instead of lingering
+    // until the sleep elapses. Package-private for lifecycle tests.
+    final Thread pumpThread;
+
     // Touched only on the pump thread; rate-limits the unexpected-failure log.
     private long    lastFailureLogNanos;
     private boolean failureLogged;
@@ -87,7 +92,8 @@ final class AttributeStream implements Stream<Value> {
     AttributeStream(@NonNull AttributeFinderInvocation invocation, @NonNull Supplier<Stream<Value>> innerSupplier) {
         this.invocation    = invocation;
         this.innerSupplier = innerSupplier;
-        Thread.ofVirtual().name("AttributeStream-pump-" + invocation.attributeName()).start(this::runLoop);
+        this.pumpThread    = Thread.ofVirtual().name("AttributeStream-pump-" + invocation.attributeName())
+                .start(this::runLoop);
     }
 
     @Override
@@ -116,6 +122,9 @@ final class AttributeStream implements Stream<Value> {
             return;
         }
         closed = true;
+        // Interrupt the pump so a thread parked in a poll-interval or backoff
+        // sleep notices the close immediately rather than after the sleep ends.
+        pumpThread.interrupt();
         output.close();
         val inflightInner = currentInner.getAndSet(null);
         if (inflightInner != null) {

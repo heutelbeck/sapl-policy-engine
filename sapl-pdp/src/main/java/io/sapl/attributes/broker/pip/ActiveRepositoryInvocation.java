@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.time.InstantSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,6 +60,8 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private static final String DEBUG_OPENED               = "Active repository invocation {} opened for '{}'";
     private static final String WARN_ONVALUE_THREW         = "Active repository invocation {} onValue handler threw: {}";
 
+    private static final long WARN_LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
+
     private static final AtomicLong NEXT_ID = new AtomicLong(Long.MIN_VALUE);
 
     private final long                      id = NEXT_ID.getAndIncrement();
@@ -76,6 +79,11 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
     private AttributeRepository.@Nullable Registration handle         = null;
     private volatile Optional<AttributeSnapshot>       latestSnapshot = Optional.empty();
     private volatile boolean                           closed         = false;
+
+    // Touched on the value-delivery path; rate-limits the onValue-handler-threw
+    // warning so a consistently throwing consumer cannot flood the log.
+    private long    lastWarnLogNanos;
+    private boolean warnLogged;
 
     /**
      * @param invocation the normalized invocation this active
@@ -197,7 +205,16 @@ final class ActiveRepositoryInvocation implements ActiveInvocation {
         try {
             onValue.accept(value);
         } catch (RuntimeException e) {
-            log.warn(WARN_ONVALUE_THREW, id, e.getMessage(), e);
+            logHandlerFailure(e);
+        }
+    }
+
+    private void logHandlerFailure(RuntimeException failure) {
+        val now = System.nanoTime();
+        if (!warnLogged || now - lastWarnLogNanos >= WARN_LOG_INTERVAL_NANOS) {
+            log.warn(WARN_ONVALUE_THREW, id, failure.getMessage(), failure);
+            lastWarnLogNanos = now;
+            warnLogged       = true;
         }
     }
 

@@ -338,6 +338,29 @@ class AttributeStreamTests {
             stream.close();
             assertThat(stream.awaitNext()).isNull();
         }
+
+        @Test
+        @DisplayName("close interrupts a pump parked in the poll-interval sleep so its virtual thread terminates "
+                + "promptly instead of lingering until the interval elapses")
+        void whenClosedWhilePollSleepingThenPumpThreadTerminates() throws Exception {
+            val source   = new ControlledSource(() -> oneShot(Value.of("v1")));
+            val longPoll = invocation("pollSleepClose", INITIAL_TIMEOUT, Duration.ofHours(1), BACKOFF, 0L);
+            val stream   = new AttributeStream(longPoll, source);
+            try {
+                // Consume the value, then wait until the pump is parked in the
+                // one-hour poll sleep between cycles.
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("v1"));
+                Awaitility.await().atMost(AWAIT_BUDGET)
+                        .until(() -> stream.pumpThread.getState() == Thread.State.TIMED_WAITING);
+
+                stream.close();
+
+                Awaitility.await().atMost(AWAIT_BUDGET).until(() -> !stream.pumpThread.isAlive());
+                assertThat(stream.pumpThread.isAlive()).isFalse();
+            } finally {
+                stream.close();
+            }
+        }
     }
 
     private static void sleepUninterruptibly(Duration duration) {
