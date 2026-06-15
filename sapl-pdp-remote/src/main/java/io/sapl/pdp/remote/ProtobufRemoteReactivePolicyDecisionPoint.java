@@ -327,6 +327,11 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
      * Builder for {@link ProtobufRemoteReactivePolicyDecisionPoint}. Supports
      * TLS, basic authentication, API key / static bearer token, and OAuth2
      * client_credentials authentication via RSocket setup frame metadata.
+     * <p>
+     * All authentication here is connection-scoped, carried once on the setup
+     * frame. There is no per-request bearer relay equivalent to the HTTP
+     * client's {@code tokenRelay}. To propagate an end-user token per request,
+     * use the HTTP transport or open one RSocket connection per principal.
      */
     public static class Builder {
 
