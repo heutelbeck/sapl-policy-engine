@@ -141,6 +141,7 @@ public class SchemaValidationLibrary {
 
     // Error messages
     private static final String ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON = "Failed to convert value to JSON: %s.";
+    private static final String ERROR_SCHEMA_VALIDATION_FAILED        = "Schema validation failed: %s.";
     private static final String ERROR_UNEXPECTED_VALIDATION_RESULT    = "Unexpected validation result data.";
 
     // Return type schemas for IDE support
@@ -401,6 +402,9 @@ public class SchemaValidationLibrary {
             return createValidationResult(false, List.of());
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
+        } catch (Throwable t) {
+            // Third-party validation on hostile input must not crash evaluation.
+            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, t.getMessage());
         }
     }
 

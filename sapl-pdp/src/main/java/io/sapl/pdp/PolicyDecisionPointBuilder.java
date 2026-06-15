@@ -39,6 +39,7 @@ import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
+import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -778,7 +779,7 @@ public class PolicyDecisionPointBuilder {
             // Create default configuration from collected policies
             if (!policyDocuments.isEmpty()) {
                 val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
-                val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
+                val config    = new PDPConfiguration("default", ConfigurationIds.generate("config"), algorithm,
                         List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
                 initialConfigurations.add(config);
             }

@@ -219,4 +219,60 @@ class DocumentCompilerTests {
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
         }
     }
+
+    @Nested
+    @DisplayName("resource limits")
+    class ResourceLimitTests {
+
+        private static final int OVER_SIZE_LIMIT = 2 * 1024 * 1024 + 1;
+        private static final int DEEP_NESTING    = 50_000;
+
+        private static String deeplyNestedPolicy() {
+            return "policy \"x\" permit " + "(".repeat(DEEP_NESTING) + "true" + ")".repeat(DEEP_NESTING);
+        }
+
+        @Test
+        @DisplayName("parseDocument rejects an oversized document instead of parsing it")
+        void whenDocumentExceedsSizeLimitThenDocumentIsInvalid() {
+            val oversized = "a".repeat(OVER_SIZE_LIMIT);
+
+            val document = DocumentCompiler.parseDocument(oversized);
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).isTrue();
+                assertThat(d.errorMessage()).contains("maximum size");
+            });
+        }
+
+        @Test
+        @DisplayName("compileDocument throws on an oversized document")
+        void whenDocumentExceedsSizeLimitThenCompileThrows() {
+            val oversized = "a".repeat(OVER_SIZE_LIMIT);
+
+            assertThatThrownBy(() -> DocumentCompiler.compileDocument(oversized, ctx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("maximum size");
+        }
+
+        @Test
+        @DisplayName("parseDocument rejects deeply nested input instead of overflowing the stack")
+        void whenDeeplyNestedThenDocumentIsInvalid() {
+            val nested = deeplyNestedPolicy();
+
+            val document = DocumentCompiler.parseDocument(nested);
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).isTrue();
+                assertThat(d.errorMessage()).contains("nesting");
+            });
+        }
+
+        @Test
+        @DisplayName("compileDocument throws on deeply nested input instead of overflowing the stack")
+        void whenDeeplyNestedThenCompileThrows() {
+            val nested = deeplyNestedPolicy();
+
+            assertThatThrownBy(() -> DocumentCompiler.compileDocument(nested, ctx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("nesting");
+        }
+    }
 }

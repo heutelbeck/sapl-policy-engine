@@ -18,7 +18,6 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.*;
-import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.Timeout;
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("SchemaValidationLibrary")
 class SchemaValidationLibraryTests {
@@ -47,8 +45,22 @@ class SchemaValidationLibraryTests {
                 .build();
         val hostile = Value.of("a".repeat(50));
 
-        assertThatThrownBy(() -> isCompliant(hostile, schema))
-                .isInstanceOf(BoundedRegex.RegexBudgetExceededException.class);
+        val result = isCompliant(hostile, schema);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
+    }
+
+    @Test
+    @DisplayName("a validator failure outside the expected exception types yields an ErrorValue, not an escape")
+    void whenValidatorThrowsUnexpectedlyThenErrorValue() {
+        // A self-referential $ref drives networknt into a StackOverflowError, which is
+        // neither SchemaException nor IllegalArgumentException.
+        val selfReferential = ObjectValue.builder().put("$ref", Value.of("#")).build();
+
+        val result = validateWithExternalSchemas(Value.of("x"), selfReferential, Value.EMPTY_ARRAY);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test
