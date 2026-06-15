@@ -299,31 +299,69 @@ public class GraphFunctionLibrary {
             return sccs;
         }
 
-        private void dfs(String node, Map<String, Set<String>> adjacency) {
+        private void dfs(String startNode, Map<String, Set<String>> adjacency) {
+            val work = new ArrayDeque<Frame>();
+            visit(startNode);
+            work.push(new Frame(startNode, adjacency.getOrDefault(startNode, Set.of()).iterator()));
+
+            while (!work.isEmpty()) {
+                val frame     = work.peek();
+                val node      = frame.node;
+                var descended = false;
+
+                while (frame.neighbors.hasNext()) {
+                    val neighbor = frame.neighbors.next();
+                    if (!index.containsKey(neighbor)) {
+                        visit(neighbor);
+                        work.push(new Frame(neighbor, adjacency.getOrDefault(neighbor, Set.of()).iterator()));
+                        descended = true;
+                        break;
+                    } else if (activeInDfs.contains(neighbor)) {
+                        lowlink.put(node, Math.min(lowlink.get(node), index.get(neighbor)));
+                    }
+                }
+                if (descended) {
+                    continue;
+                }
+
+                if (lowlink.get(node).equals(index.get(node))) {
+                    collectScc(node);
+                }
+
+                work.pop();
+                val parent = work.peek();
+                if (parent != null) {
+                    lowlink.put(parent.node, Math.min(lowlink.get(parent.node), lowlink.get(node)));
+                }
+            }
+        }
+
+        private void visit(String node) {
             val idx = counter++;
             index.put(node, idx);
             lowlink.put(node, idx);
             stack.push(node);
             activeInDfs.add(node);
+        }
 
-            for (val neighbor : adjacency.getOrDefault(node, Set.of())) {
-                if (!index.containsKey(neighbor)) {
-                    dfs(neighbor, adjacency);
-                    lowlink.put(node, Math.min(lowlink.get(node), lowlink.get(neighbor)));
-                } else if (activeInDfs.contains(neighbor)) {
-                    lowlink.put(node, Math.min(lowlink.get(node), index.get(neighbor)));
-                }
-            }
+        private void collectScc(String root) {
+            val    scc = new HashSet<String>();
+            String w;
+            do {
+                w = stack.pop();
+                activeInDfs.remove(w);
+                scc.add(w);
+            } while (!w.equals(root));
+            sccs.add(scc);
+        }
 
-            if (lowlink.get(node).equals(index.get(node))) {
-                val    scc = new HashSet<String>();
-                String w;
-                do {
-                    w = stack.pop();
-                    activeInDfs.remove(w);
-                    scc.add(w);
-                } while (!w.equals(node));
-                sccs.add(scc);
+        private static final class Frame {
+            private final String           node;
+            private final Iterator<String> neighbors;
+
+            private Frame(String node, Iterator<String> neighbors) {
+                this.node      = node;
+                this.neighbors = neighbors;
             }
         }
     }
