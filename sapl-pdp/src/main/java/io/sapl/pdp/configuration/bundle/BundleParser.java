@@ -70,7 +70,7 @@ import java.util.zip.ZipInputStream;
  * archives:
  * </p>
  * <ul>
- * <li><b>ZIP bomb protection:</b> Limits on uncompressed size (10 MB),
+ * <li><b>ZIP bomb protection:</b> Limits on uncompressed size (1 GB),
  * compression ratio (100:1), entry count (1000),
  * and entry name length (255 characters).</li>
  * <li><b>Path traversal prevention:</b> Entries containing "..", or starting
@@ -130,8 +130,7 @@ public class BundleParser {
     private static final Set<String> NESTED_ARCHIVE_EXTENSIONS = Set.of(".zip", ".saplbundle", ".jar", ".war");
 
     // ZIP bomb protection limits
-    private static final long   MAX_UNCOMPRESSED_SIZE_BYTES = 10L * 1024 * 1024;
-    private static final long   MAX_UNCOMPRESSED_SIZE_MB    = MAX_UNCOMPRESSED_SIZE_BYTES / 1024 / 1024;
+    private static final long   MAX_UNCOMPRESSED_SIZE_BYTES = 1024L * 1024 * 1024;
     private static final double MAX_COMPRESSION_RATIO       = 100.0;
     private static final int    MAX_ENTRY_COUNT             = 1000;
     private static final int    MAX_ENTRY_NAME_LENGTH       = 255;
@@ -174,8 +173,8 @@ public class BundleParser {
         try {
             val compressedSize = Files.size(bundlePath);
             try (val inputStream = Files.newInputStream(bundlePath)) {
-                return parseInternal(inputStream, compressedSize, bundlePath.toString()).toPDPConfiguration(pdpId,
-                        securityPolicy);
+                return parseInternal(inputStream, compressedSize, bundlePath.toString(), MAX_UNCOMPRESSED_SIZE_BYTES)
+                        .toPDPConfiguration(pdpId, securityPolicy);
             }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_READ_BUNDLE, e);
@@ -208,7 +207,8 @@ public class BundleParser {
      * if signature verification fails or security policy is violated
      */
     public PDPConfiguration parse(InputStream inputStream, String pdpId, BundleSecurityPolicy securityPolicy) {
-        return parseInternal(inputStream, -1, "stream").toPDPConfiguration(pdpId, securityPolicy);
+        return parseInternal(inputStream, -1, "stream", MAX_UNCOMPRESSED_SIZE_BYTES).toPDPConfiguration(pdpId,
+                securityPolicy);
     }
 
     /**
@@ -240,7 +240,8 @@ public class BundleParser {
      */
     public PDPConfiguration parse(InputStream inputStream, long compressedSize, String pdpId,
             BundleSecurityPolicy securityPolicy) {
-        return parseInternal(inputStream, compressedSize, "stream").toPDPConfiguration(pdpId, securityPolicy);
+        return parseInternal(inputStream, compressedSize, "stream", MAX_UNCOMPRESSED_SIZE_BYTES)
+                .toPDPConfiguration(pdpId, securityPolicy);
     }
 
     /**
@@ -264,11 +265,17 @@ public class BundleParser {
      * if signature verification fails or security policy is violated
      */
     public PDPConfiguration parse(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy) {
-        return parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array")
-                .toPDPConfiguration(pdpId, securityPolicy);
+        return parse(bundleBytes, pdpId, securityPolicy, MAX_UNCOMPRESSED_SIZE_BYTES);
     }
 
-    private Bundle parseInternal(InputStream inputStream, long compressedSize, String sourceDescription) {
+    PDPConfiguration parse(byte[] bundleBytes, String pdpId, BundleSecurityPolicy securityPolicy,
+            long maxUncompressedBytes) {
+        return parseInternal(new ByteArrayInputStream(bundleBytes), bundleBytes.length, "byte array",
+                maxUncompressedBytes).toPDPConfiguration(pdpId, securityPolicy);
+    }
+
+    private Bundle parseInternal(InputStream inputStream, long compressedSize, String sourceDescription,
+            long maxUncompressedBytes) {
         val content           = new HashMap<String, String>();
         var totalUncompressed = 0L;
         var entryCount        = 0;
@@ -284,7 +291,8 @@ public class BundleParser {
                 // Read and count every entry before deciding whether to keep it, so a zip
                 // bomb hidden in a rejected entry cannot bypass the uncompressed-size and
                 // compression-ratio limits.
-                val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize);
+                val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize,
+                        maxUncompressedBytes);
                 totalUncompressed += entryContent.length();
 
                 if (compressedSize > 0) {
@@ -374,7 +382,7 @@ public class BundleParser {
     }
 
     private String readZipEntryContent(ZipInputStream zipStream, String sourceDescription, long currentTotal,
-            long compressedSize) throws IOException {
+            long compressedSize, long maxUncompressedBytes) throws IOException {
         val buffer    = new ByteArrayOutputStream();
         val data      = new byte[READ_BUFFER_SIZE];
         var entrySize = 0L;
@@ -384,7 +392,7 @@ public class BundleParser {
             entrySize += bytesRead;
             val runningTotal = currentTotal + entrySize;
 
-            validateUncompressedSize(runningTotal, sourceDescription);
+            validateUncompressedSize(runningTotal, sourceDescription, maxUncompressedBytes);
 
             if (compressedSize > 0) {
                 validateCompressionRatioDuringRead(compressedSize, runningTotal, sourceDescription);
@@ -396,9 +404,9 @@ public class BundleParser {
         return buffer.toString(StandardCharsets.UTF_8);
     }
 
-    private void validateUncompressedSize(long totalUncompressed, String sourceDescription) {
-        if (totalUncompressed > MAX_UNCOMPRESSED_SIZE_BYTES) {
-            throw zipBombException(ERROR_UNCOMPRESSED_SIZE_EXCEEDS.formatted(MAX_UNCOMPRESSED_SIZE_MB),
+    private void validateUncompressedSize(long totalUncompressed, String sourceDescription, long maxUncompressedBytes) {
+        if (totalUncompressed > maxUncompressedBytes) {
+            throw zipBombException(ERROR_UNCOMPRESSED_SIZE_EXCEEDS.formatted(maxUncompressedBytes / 1024 / 1024),
                     sourceDescription);
         }
     }
