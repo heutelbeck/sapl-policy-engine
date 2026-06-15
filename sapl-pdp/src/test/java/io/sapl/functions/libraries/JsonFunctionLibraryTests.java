@@ -213,4 +213,12 @@ class JsonFunctionLibraryTests {
         assertThat(investigator).containsEntry("name", Value.of("Carter")).containsEntry("sanity", Value.of(77));
         assertThat((ArrayValue) investigator.get("artifacts")).hasSize(2);
     }
+
+    @Test
+    void whenJsonExceedsMaxInputThenError() {
+        val result = JsonFunctionLibrary.jsonToVal(Value.of("a".repeat(1024 * 1024 + 1)));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
 }

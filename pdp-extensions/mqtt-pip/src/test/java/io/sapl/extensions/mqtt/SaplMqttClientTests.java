@@ -17,6 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
@@ -27,6 +28,7 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 
@@ -35,6 +37,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SaplMqttClient")
 class SaplMqttClientTests {
+
+    @Test
+    @DisplayName("a message larger than the configured limit fails closed to an error value")
+    void whenPayloadExceedsLimitThenErrorValue() {
+        val publish = Mqtt5Publish.builder().topic("sapl/test").payload(new byte[2048]).build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeded");
+    }
+
+    @Test
+    @DisplayName("a message within the configured limit is decoded")
+    void whenPayloadWithinLimitThenDecoded() {
+        val publish = Mqtt5Publish.builder().topic("sapl/test").payload("hello".getBytes(StandardCharsets.UTF_8))
+                .build();
+
+        val result = SaplMqttClient.decodePublish(publish, 1024);
+
+        assertThat(result).isEqualTo(Value.of("hello"));
+    }
 
     private static AttributeAccessContext ctx() {
         val pipConfig = json("""

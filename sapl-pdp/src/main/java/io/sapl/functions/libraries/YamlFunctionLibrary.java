@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
 /**
@@ -53,7 +54,9 @@ public class YamlFunctionLibrary {
             }
             """;
 
-    private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder().build();
+    private static final YAMLMapper YAML_MAPPER = YAMLMapper
+            .builder(YAMLFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
+            .build();
 
     /**
      * Converts a well-formed YAML document into a SAPL value.
@@ -67,6 +70,9 @@ public class YamlFunctionLibrary {
             ```yamlToVal(TEXT yaml)```: Converts a well-formed YAML document into a SAPL value
             representing the content of the YAML document.
 
+            Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
+            depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
+
             **Example:**
             ```sapl
             policy "permit_resource_owner"
@@ -77,6 +83,9 @@ public class YamlFunctionLibrary {
             ```
             """)
     public static Value yamlToVal(TextValue yaml) {
+        if (TextParseLimits.exceedsMaxInput(yaml.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         try {
             val jsonNode = YAML_MAPPER.readTree(yaml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);

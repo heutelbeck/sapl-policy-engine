@@ -113,11 +113,13 @@ public class SaplMqttClient implements Closeable {
     private static final String  ENVIRONMENT_USERNAME           = "username";
     private static final String  ENVIRONMENT_BROKER_CONFIG_NAME = "name";
     private static final String  ENVIRONMENT_QOS                = "defaultQos";
+    private static final String  ENVIRONMENT_MAX_PAYLOAD_SIZE   = "maxPayloadSize";
     private static final String  DEFAULT_CLIENT_ID              = "mqtt_pip";
     private static final String  DEFAULT_USERNAME               = "";
     private static final String  DEFAULT_BROKER_ADDRESS         = "localhost";
     private static final int     DEFAULT_BROKER_PORT            = 1883;
     private static final int     DEFAULT_QOS                    = 0;
+    private static final int     DEFAULT_MAX_PAYLOAD_SIZE       = 1_048_576;
     private static final String  SECRETS_MQTT                   = "mqtt";
     private static final String  SECRETS_PASSWORD               = "password";
     private static final boolean DEFAULT_EMIT_AT_RETRY          = true;
@@ -131,6 +133,7 @@ public class SaplMqttClient implements Closeable {
 
     private static final String ERROR_INVALID_QOS         = "Invalid MQTT QoS: must be 0, 1, or 2.";
     private static final String ERROR_MQTT_CONNECT_FAILED = "Failed to connect or subscribe to MQTT broker: %s";
+    private static final String ERROR_PAYLOAD_TOO_LARGE   = "MQTT message exceeded the configured limit of %d bytes.";
 
     // Keyed on the broker configuration node itself (content-based equals), not
     // on its 32-bit hashCode, so two distinct broker configs whose hashes
@@ -180,6 +183,8 @@ public class SaplMqttClient implements Closeable {
 
     private Stream<Value> openSubscription(ObjectNode brokerConfig, JsonNode pipConfig, ObjectValue pdpSecrets,
             List<MqttTopicFilter> filters, MqttQos qos, Value defaultValue, long timeoutMs, boolean emitAtRetry) {
+        val maxPayloadBytes = getConfigValueOrDefault(pipConfig, ENVIRONMENT_MAX_PAYLOAD_SIZE,
+                DEFAULT_MAX_PAYLOAD_SIZE);
         return Streams.fromCallback((emit, complete) -> {
             // Get-or-create the shared client and register this subscriber in one
             // atomic map operation, so a concurrent close() cannot evict the entry
@@ -193,7 +198,8 @@ public class SaplMqttClient implements Closeable {
             val firstMessage = new AtomicBoolean(false);
             val closed       = new AtomicBoolean(false);
             val teardownDone = new AtomicBoolean(false);
-            val ctx          = new SubscriptionContext(cached, cached.getMqttAsyncClient(), filters, qos, closed);
+            val ctx          = new SubscriptionContext(cached, cached.getMqttAsyncClient(), filters, qos, closed,
+                    maxPayloadBytes);
 
             val onDisconnect = registerDisconnectListener(cached, emitAtRetry, closed, emit);
             val timerCancel  = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
@@ -210,7 +216,8 @@ public class SaplMqttClient implements Closeable {
             Mqtt5AsyncClient client,
             List<MqttTopicFilter> filters,
             MqttQos qos,
-            AtomicBoolean closed) {}
+            AtomicBoolean closed,
+            int maxPayloadBytes) {}
 
     private static void connectAndSubscribe(SubscriptionContext ctx, AtomicBoolean firstMessage, Consumer<Value> emit,
             Runnable complete, Runnable onFailure) {
@@ -221,8 +228,9 @@ public class SaplMqttClient implements Closeable {
                     return;
                 }
                 ctx.client.subscribeWith().topicFilter(filter).qos(ctx.qos)
-                        .callback(publish -> deliverPublish(publish, ctx.closed, firstMessage, emit)).send()
-                        .get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+                        .callback(
+                                publish -> deliverPublish(publish, ctx.closed, firstMessage, emit, ctx.maxPayloadBytes))
+                        .send().get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
                 // Count the topic only after the subscribe succeeds, so a failed
                 // subscribe does not leave a phantom topic-subscriber count.
                 ctx.cached.incrementTopicSubscribers(filter.toString());
@@ -241,12 +249,12 @@ public class SaplMqttClient implements Closeable {
     }
 
     private static void deliverPublish(Mqtt5Publish publish, AtomicBoolean closed, AtomicBoolean firstMessage,
-            Consumer<Value> emit) {
+            Consumer<Value> emit, int maxPayloadBytes) {
         if (closed.get()) {
             return;
         }
         firstMessage.set(true);
-        emit.accept(decodePublish(publish));
+        emit.accept(decodePublish(publish, maxPayloadBytes));
     }
 
     // Full teardown for an established subscription (the stream close callback):
@@ -456,7 +464,10 @@ public class SaplMqttClient implements Closeable {
         return Value.EMPTY_OBJECT;
     }
 
-    private static Value decodePublish(Mqtt5Publish publishMessage) {
+    static Value decodePublish(Mqtt5Publish publishMessage, int maxPayloadBytes) {
+        if (publishMessage.getPayloadAsBytes().length > maxPayloadBytes) {
+            return Value.error(ERROR_PAYLOAD_TOO_LARGE.formatted(maxPayloadBytes));
+        }
         val payloadFormatIndicator = getPayloadFormatIndicator(publishMessage);
         val contentType            = getContentType(publishMessage);
         if (publishMessage.getPayloadFormatIndicator().isEmpty()

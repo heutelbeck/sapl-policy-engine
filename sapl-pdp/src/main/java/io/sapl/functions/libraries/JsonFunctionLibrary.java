@@ -24,6 +24,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
+import tools.jackson.core.json.JsonFactory;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -99,7 +100,9 @@ public class JsonFunctionLibrary {
             }
             """;
 
-    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+    private static final JsonMapper JSON_MAPPER = JsonMapper
+            .builder(JsonFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
+            .build();
 
     /**
      * Converts a well-formed JSON document into a SAPL value.
@@ -113,6 +116,9 @@ public class JsonFunctionLibrary {
             ```jsonToVal(TEXT json)```: Converts a well-formed JSON document into a SAPL value
             representing the content of the JSON document. Returns an error if the JSON is malformed.
 
+            Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
+            depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
+
             **Example:**
             ```sapl
             policy "check-embedded-role"
@@ -122,6 +128,9 @@ public class JsonFunctionLibrary {
             ```
             """)
     public static Value jsonToVal(TextValue json) {
+        if (TextParseLimits.exceedsMaxInput(json.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         try {
             val jsonNode = JSON_MAPPER.readTree(json.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);

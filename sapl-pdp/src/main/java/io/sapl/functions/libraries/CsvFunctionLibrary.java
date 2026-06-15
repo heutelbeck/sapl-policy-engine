@@ -24,6 +24,7 @@ import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.MappingIterator;
 import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.dataformat.csv.CsvFactory;
 import tools.jackson.dataformat.csv.CsvMapper;
 import tools.jackson.dataformat.csv.CsvSchema;
 
@@ -149,7 +150,9 @@ public class CsvFunctionLibrary {
             ```
             """;
 
-    private static final CsvMapper CSV_MAPPER = CsvMapper.builder().build();
+    private static final CsvMapper CSV_MAPPER = CsvMapper
+            .builder(CsvFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
+            .build();
 
     private static final String ERROR_ARRAY_ELEMENT_NOT_OBJECT   = "CSV array element at index %d is not an object.";
     private static final String ERROR_ARRAY_MUST_CONTAIN_OBJECTS = "CSV array must contain objects.";
@@ -171,6 +174,9 @@ public class CsvFunctionLibrary {
             treated as column headers, and each subsequent row becomes an object with properties
             named after those headers. All values are parsed as strings.
 
+            Input longer than 1 MB (1048576 characters) is rejected with an error, so a hostile
+            attribute value cannot exhaust the evaluation thread.
+
             Parameters:
             - csv: CSV text with headers in first row
 
@@ -190,6 +196,9 @@ public class CsvFunctionLibrary {
               "type": "array"
             }""")
     public static Value csvToVal(TextValue csv) {
+        if (TextParseLimits.exceedsMaxInput(csv.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         val schema = CsvSchema.emptySchema().withHeader();
 
         try (MappingIterator<Map<String, String>> iterator = CSV_MAPPER.readerFor(Map.class).with(schema)

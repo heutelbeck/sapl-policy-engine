@@ -375,4 +375,12 @@ class CsvFunctionLibraryTests {
         val csvText = ((TextValue) result).value();
         assertThat(csvText).contains("Cthulhu").doesNotContain("'Cthulhu");
     }
+
+    @Test
+    void whenCsvExceedsMaxInputThenError() {
+        val result = CsvFunctionLibrary.csvToVal(Value.of("a".repeat(1024 * 1024 + 1)));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
 }
