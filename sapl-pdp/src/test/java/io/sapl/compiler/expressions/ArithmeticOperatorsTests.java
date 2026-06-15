@@ -149,9 +149,8 @@ class ArithmeticOperatorsTests {
     }
     // @formatter:on
 
-    // Number literals can carry extreme exponents (the grammar allows an
-    // unbounded exponent), producing BigDecimals whose combined scale overflows
-    // int. Such operands must never throw out of the evaluation path.
+    // BigDecimals whose combined scale overflows int must never throw out of the
+    // evaluation path.
     private static final Value HUGE_NEGATIVE_SCALE = Value.of(new BigDecimal(BigInteger.ONE, Integer.MAX_VALUE));
     private static final Value HUGE_POSITIVE_SCALE = Value.of(new BigDecimal(BigInteger.ONE, Integer.MIN_VALUE));
 

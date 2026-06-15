@@ -176,8 +176,6 @@ class IndexDifferentialTests {
         }
     }
 
-    // --- corpus construction --------------------------------------------------
-
     private static List<CompiledDocument> buildCorpus() {
         val random   = new Random(123456789L);
         val policies = new ArrayList<CompiledDocument>(POLICY_COUNT);
@@ -251,8 +249,6 @@ class IndexDifferentialTests {
     private static String value(Random random) {
         return String.valueOf(VALUES.charAt(random.nextInt(VALUES.length())));
     }
-
-    // --- assertions and helpers ----------------------------------------------
 
     private static List<CompiledDocument> policies(String... sources) {
         val documents = new ArrayList<CompiledDocument>(sources.length);

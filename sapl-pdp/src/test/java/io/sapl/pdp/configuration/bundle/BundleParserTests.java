@@ -214,8 +214,8 @@ class BundleParserTests {
         val baos                   = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             addPdpJsonEntry(zos);
-            // A subdirectory entry is skipped from the document set, but its
-            // bytes must still be read and counted against the bomb limits.
+            // A skipped subdirectory entry must still have its bytes counted against the
+            // bomb limits.
             zos.putNextEntry(new ZipEntry("nested/eldritch-tome.sapl"));
             zos.write(("policy \"forbidden-knowledge\" permit true; /* " + largeRepetitiveContent + " */")
                     .getBytes(StandardCharsets.UTF_8));

@@ -82,9 +82,8 @@ class ConflateBySubscriptionTests {
     @DisplayName("a slow consumer keeps the latest decision per subscription and loses no other subscription")
     void whenSlowConsumerThenLatestPerSubscriptionPreserved() {
         val allBuffered = new CountDownLatch(1);
-        // Same subscription "a" updates twice (PERMIT then DENY); a distinct
-        // subscription "b" emits once. Under a global latest-wins strategy the
-        // last overall emission ("b") would evict "a" entirely.
+        // "a" updates twice, "b" once. A global latest-wins strategy would evict "a"
+        // entirely.
         val script = List.of(decision("a", AuthorizationDecision.PERMIT), decision("a", AuthorizationDecision.DENY),
                 decision("b", AuthorizationDecision.PERMIT));
 

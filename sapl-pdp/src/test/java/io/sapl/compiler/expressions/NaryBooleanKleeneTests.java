@@ -73,8 +73,8 @@ class NaryBooleanKleeneTests {
         @Test
         @DisplayName("a pure FALSE dominates a pure error in AND, error first")
         void whenPureErrorThenFalseThenFalse() {
-            // subject is a string in the default subscription -> error in boolean position;
-            // action == "no-match" is a runtime pure FALSE (not a constant that would fold)
+            // subject is a string, so an error in boolean position, while action ==
+            // "no-match" is a runtime pure FALSE.
             assertThat(evaluate("subject && (action == \"no-match\")").value()).isEqualTo(Value.FALSE);
         }
 
@@ -113,8 +113,8 @@ class NaryBooleanKleeneTests {
         @Test
         @DisplayName("a stream error dominated by a later pure-equivalent stream FALSE in AND yields FALSE")
         void whenStreamErrorThenStreamFalseThenFalse() {
-            // Lazy: the left error is not the dominator, so the right stream is only
-            // discovered in a later round. Drive rounds until the value stabilizes.
+            // Lazy: the left error is not the dominator, so the right stream surfaces only
+            // in a later round.
             val eval = evaluate("<test.left> && <test.right>").with("test.left", STRING).with("test.right",
                     Value.FALSE);
             assertThat(driveToStableValue(eval)).isEqualTo(Value.FALSE);

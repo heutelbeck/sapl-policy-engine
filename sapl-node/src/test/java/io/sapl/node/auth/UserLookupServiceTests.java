@@ -209,10 +209,8 @@ class UserLookupServiceTests {
             userEntry.setApiKey(ENCODED_API_KEY);
 
             when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
-            // API-key authentication resolves entries only through the
-            // api-key-id index, never by scanning the user list. An entry
-            // without an api-key-id is absent from the index, so stubbing the
-            // user list proves the lookup ignores it even when its key matches.
+            // Lookup uses only the api-key-id index, never the user list. An entry
+            // absent from the index is ignored even when its key matches.
             lenient().when(properties.getUsers()).thenReturn(List.of(userEntry));
 
             val result = service.findByApiKey(RAW_API_KEY);

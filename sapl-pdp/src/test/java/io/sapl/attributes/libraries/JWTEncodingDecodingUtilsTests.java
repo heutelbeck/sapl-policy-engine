@@ -35,10 +35,8 @@ class JWTEncodingDecodingUtilsTests {
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
-    // Bytes whose standard Base64 encoding uses '+' and '/', the two characters
-    // that differ from the url-safe alphabet (0xFB's leading six bits are
-    // 111110 = 62 = '+'). Operators paste keys in both alphabets, so both must
-    // decode to the same key bytes.
+    // Bytes whose standard Base64 encoding uses '+' and '/'. Operators paste keys
+    // in both alphabets, so both must decode to the same bytes.
     private static final byte[] SECRET = { (byte) 0xFB, (byte) 0xF0, 0x00, (byte) 0xFB, (byte) 0xF0, 0x00 };
 
     static Stream<Arguments> base64Alphabets() {

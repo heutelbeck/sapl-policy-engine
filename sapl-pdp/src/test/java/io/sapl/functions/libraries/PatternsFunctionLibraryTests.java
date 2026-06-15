@@ -45,9 +45,8 @@ class PatternsFunctionLibraryTests {
     @Timeout(15)
     @DisplayName("a backtracking regex that slips the static blacklist still aborts as an error")
     void whenBacktrackingPatternSlipsBlacklistThenFindMatchesReturnsError() {
-        // (.*,){30}P passes the static blacklist (no nested (...)+, no |, no
-        // comma-bounded {n,m}) yet backtracks catastrophically. The bounded
-        // matcher must turn the hang into an ErrorValue.
+        // A pattern that slips the static blacklist yet backtracks catastrophically
+        // must become an ErrorValue via the bounded matcher.
         val pattern = (TextValue) Value.of("(.*,){30}P");
         val value   = (TextValue) Value.of("1,".repeat(30));
         val result  = PatternsFunctionLibrary.findMatches(pattern, value);

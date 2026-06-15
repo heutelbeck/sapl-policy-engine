@@ -60,8 +60,7 @@ class PortInUseStartupReportTests {
     }
 
     private static FailureAnalysis analyzeWithRegisteredAnalyzers(Throwable failure) {
-        // Some registered analyzers need a live ApplicationContext to construct;
-        // they are irrelevant here and skipped via a no-op failure handler.
+        // Analyzers needing a live ApplicationContext are skipped via a no-op handler.
         val analyzers = SpringFactoriesLoader.forDefaultResourceLocation().load(FailureAnalyzer.class,
                 (factoryType, factoryImplementationName, failureCause) -> {});
         return analyzers.stream().map(analyzer -> analyzer.analyze(failure)).filter(Objects::nonNull).findFirst()

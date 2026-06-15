@@ -119,9 +119,9 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     @Test
     @DisplayName("a client built via a public constructor round-trips SAPL values in decisions")
     void whenBuiltViaPublicConstructorThenSaplValuesRoundTrip() throws JacksonException {
-        // obligations/advice/resource are SAPL Value types; without SaplJacksonModule
-        // the WebClient cannot deserialize them, so the decision would fall back to
-        // INDETERMINATE. The public constructors must register the module too.
+        // Without SaplJacksonModule the WebClient cannot deserialize SAPL Value types
+        // and
+        // falls back to INDETERMINATE, so the public constructors must register it too.
         val decision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                 Value.of("transformed-resource"));
         server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

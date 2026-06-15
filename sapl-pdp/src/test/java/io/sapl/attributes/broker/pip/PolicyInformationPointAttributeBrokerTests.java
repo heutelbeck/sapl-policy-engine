@@ -421,8 +421,8 @@ class PolicyInformationPointAttributeBrokerTests {
                         .isInstanceOf(IllegalStateException.class);
                 assertThat(okObserveCount).hasValue(1);
 
-                // The rollback must have torn down the attached "ok" dependency, so
-                // reopening it activates a fresh invocation rather than reusing a leak.
+                // Rollback must have torn down the attached "ok" dependency, so reopening
+                // activates a fresh invocation, not a leak.
                 val okOnly = Set.of(ok);
                 val sub    = scopedBroker.open("s2", okOnly, s -> okOnly);
                 assertThat(okObserveCount).hasValue(2);

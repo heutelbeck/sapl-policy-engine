@@ -36,8 +36,8 @@ class PolicyDecisionPointBuilderTests {
         val nonDeliveringSource = new PluginsSource() {
                                     @Override
                                     public void subscribe(Consumer<PluginsBundle> listener) {
-                                        // Violates the deliver-on-subscribe contract, leaving the voter
-                                        // source without a plugins bundle.
+                                        // Violates deliver-on-subscribe, leaving the voter source without a plugins
+                                        // bundle.
                                     }
 
                                     @Override

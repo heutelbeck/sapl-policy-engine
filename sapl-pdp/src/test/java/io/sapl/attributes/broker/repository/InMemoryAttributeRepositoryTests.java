@@ -75,8 +75,8 @@ class InMemoryAttributeRepositoryTests {
         for (int round = 0; round < 300; round++) {
             try (val repo = new InMemoryAttributeRepository()) {
                 val observed = new AtomicReference<Value>();
-                // A read-park-write consumer widens the delivery window, so a
-                // stale racing delivery would clobber the latest value.
+                // A read-park-write consumer widens the delivery window, so a stale racing
+                // delivery would clobber the latest value.
                 repo.observe(invocation("env.race"), value -> {
                     observed.get();
                     LockSupport.parkNanos(1_000);
@@ -89,8 +89,8 @@ class InMemoryAttributeRepositoryTests {
                 writerB.start();
                 writerA.join();
                 writerB.join();
-                // A fresh observer reads the repository's settled state; the
-                // racing observer must have converged to the same value.
+                // A fresh observer reads the settled state, which the racing observer must have
+                // converged to.
                 val authoritative = new AtomicReference<Value>();
                 repo.observe(invocation("env.race"), authoritative::set);
                 assertThat(observed.get()).as("round %d", round).isEqualTo(authoritative.get());

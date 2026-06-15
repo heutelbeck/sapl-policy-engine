@@ -330,24 +330,22 @@ class TimePolicyInformationPointTests {
         @Test
         @DisplayName("a midnight crossing between the two clock reads still schedules FALSE for the end of the starting day, not a day later")
         void whenClockCrossesMidnightBetweenReadsThenFalseFiresAtEndOfStartingDay() {
-            // The time-of-day decision and the date used to schedule the midnight
-            // boundary must come from a single clock read. A clock that ticks past
-            // midnight between the two reads must not push the FALSE transition a
-            // full day into the future.
+            // Time-of-day and the midnight-boundary date must come from one clock read,
+            // else a tick past midnight pushes FALSE a day late.
             val startOfReadWindow = Instant.parse("2021-11-08T23:59:59.999Z");
             val afterMidnight     = Instant.parse("2021-11-09T00:00:00Z");
             val clock             = mock(Clock.class);
             when(clock.getZone()).thenReturn(ZoneOffset.UTC);
-            // First read decides the time of day; the second read supplies the date
-            // for the midnight boundary - it must not see a later day.
+            // First read decides time of day, second read supplies the boundary date, which
+            // must not be a later day.
             when(clock.instant()).thenReturn(startOfReadWindow, afterMidnight);
             val scheduler = new TestTimeScheduler(startOfReadWindow);
             val sut       = new TimePolicyInformationPoint(clock, scheduler);
 
             try (val stream = sut.localTimeIsAfter(Value.of("17:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
-                // Well past the end of the starting day (2021-11-08) but long before
-                // the end of the next day; FALSE must already be due.
+                // Past the end of the starting day but before the next day ends, so FALSE must
+                // already be due.
                 scheduler.advanceTo(Instant.parse("2021-11-09T12:00:00Z"));
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
             }
@@ -471,10 +469,10 @@ class TimePolicyInformationPointTests {
             val f = fixtureAt("2021-11-08T18:00:00Z");
             try (val stream = f.sut.localTimeIsBetween(Value.of("14:00:00"), Value.of("16:00"))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
-                // The repeat loop is lazy, so while it waits only the single next-day start
-                // boundary is queued. An eager loop reading the clock too early would also
-                // queue a past-due end-of-today boundary, whose stray emission can overwrite
-                // the legitimate next transition.
+                // Lazy repeat queues only the next-day start boundary. An eager loop would also
+                // queue a past-due
+                // end-of-today boundary whose stray emission overwrites the legitimate next
+                // transition.
                 await().during(Duration.ofMillis(100)).atMost(Duration.ofMillis(300))
                         .until(() -> f.scheduler.pendingCount() == 1);
             }

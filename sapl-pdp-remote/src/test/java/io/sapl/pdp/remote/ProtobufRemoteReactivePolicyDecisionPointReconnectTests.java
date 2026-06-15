@@ -91,9 +91,7 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
     @Timeout(10)
     @DisplayName("A connect that never completes times out to INDETERMINATE instead of hanging the client")
     void whenConnectNeverCompletesThenDecideOnceTimesOutToIndeterminate() {
-        // A dead or unreachable PDP whose connect never completes must not hang
-        // the client; the connection timeout converts it to a fail-closed
-        // INDETERMINATE within the budget.
+        // The connection timeout fails closed to INDETERMINATE rather than hanging.
         val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.never(), 1, 2, 200);
 
         StepVerifier.create(pdp.decideOnce(SUBSCRIPTION, "default")).expectNext(AuthorizationDecision.INDETERMINATE)
@@ -142,8 +140,8 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
     @DisplayName("Concurrent first subscriptions share a single connection attempt rather than each opening a socket")
     void whenConcurrentFirstSubscriptionsThenConnectsOnce() {
         val connects = new AtomicInteger();
-        // A slow connect keeps the attempt in flight while both subscriptions
-        // arrive, so without de-duplication each would open its own socket.
+        // The slow connect keeps both subscriptions in flight, so without dedup each
+        // opens its own socket.
         Mono<RSocket> connect = Mono.fromCallable(() -> {
             connects.incrementAndGet();
             return rSocket;

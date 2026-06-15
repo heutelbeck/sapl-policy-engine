@@ -230,8 +230,8 @@ class BundlePDPConfigurationSourceTests {
 
         val recorder = new CapturingSubscriber();
         source.subscribe(recorder);
-        // A subscriber that always throws must not starve the others or kill the
-        // file-watch thread driving hot reload.
+        // A throwing subscriber must not starve the others or kill the hot-reload
+        // file-watch thread.
         source.subscribe(event -> {
             throw new IllegalStateException("subscriber boom");
         });
