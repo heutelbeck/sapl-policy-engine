@@ -117,6 +117,10 @@ io.sapl.method-security.r2dbc-shim.enabled=false
 io.sapl.method-security.mongo-shim.enabled=false
 ```
 
+The R2DBC integration rewrites every statement that runs through the wrapped `DatabaseClient` (derived queries, `@Query` methods, `R2dbcEntityTemplate` calls, and direct `databaseClient.sql(...)`), adding `criteria` and `conditions` as `WHERE` predicates via JSqlParser and narrowing the `columns` projection on a `SELECT` by intersection (never widening; ignored on other statements). A malformed criterion or a statement JSqlParser cannot rewrite is denied. The MongoDB integration rewrites the `find`, `findOne`, `exists`, `count`, and `remove` family and the fluent `ReactiveFindOperation` chain, which back the reactive repository CRUD surface, merging `criteria` and JSON `conditions` into the query filter. A non-JSON condition is denied.
+
+Database access that does not run through the wrapped bean is not intercepted: a raw R2DBC `ConnectionFactory` or JDBC connection, an aggregation pipeline or any non-`find` MongoDB operation, or a second unwrapped `DatabaseClient` or `ReactiveMongoTemplate`. That is the fail-open path you must account for, the Spring equivalent of off-session access: once the integration is registered the obligation is accepted, so these paths run unfiltered rather than denied. Keep enforced reads on the wrapped bean.
+
 ### Python: SQLAlchemy
 
 Use the `sapl_sqlalchemy` package with any of the Python SDKs (FastAPI, Flask, Tornado, Django on SQLAlchemy). Register the listener and the provider once at startup.
