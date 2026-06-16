@@ -44,6 +44,7 @@ import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.StringReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -94,11 +95,26 @@ public class GeographicFunctionLibrary {
             - The library assumes all geometries are in GeoJSON format.
             - Methods operate seamlessly with input data using JSON processing.
 
+            ## Resource Limits
+            Geographic inputs may come from untrusted sources such as attribute finders or the
+            authorization subscription, so every parse boundary (GeoJSON, WKT, GML, KML) is bounded
+            and fails closed to an error value when a limit is exceeded:
+            - Input size is capped at 4 MB.
+            - A single geometry may contain at most 100,000 vertices.
+            - A geometry collection may contain at most 50,000 members.
+            - The collection comparisons `subset` and `atLeastOneMemberOf` are quadratic, so they are
+              additionally capped at 1,000,000 pairwise checks.
+
+            These limits comfortably accommodate detailed real-world boundaries while preventing
+            excessive memory or computation from hostile input.
+
             For more details, refer to individual function documentation.
             """;
 
     static final String FAILED_TO_PARSE_GML_ERROR            = "Failed to parse GML.";
     static final String FAILED_TO_PARSE_KML_ERROR            = "Failed to parse KML.";
+    static final String GEOMETRY_INPUT_TOO_LARGE_ERROR       = "Geographic input exceeds the maximum size of %d bytes.";
+    static final String GEOMETRY_TOO_COMPLEX_ERROR           = "Geometry exceeds the maximum of %d vertices or %d members.";
     static final String GEOMETRY_TO_GEO_JSON_ERROR_S         = "Error converting Geometry to GeoJSON: %s";
     static final String INCORRECT_NUMER_OF_GEOEMTRIES_ERROR  = "Input must be a GeometryCollection containing only one Geometry.";
     static final String INVALID_WKT_ERROR                    = "Invalid WKT.";
@@ -107,17 +123,37 @@ public class GeographicFunctionLibrary {
     static final String IS_CLOSED_NOT_APPLICABLE_FOR_S_ERROR = "Operation isClosed is not applicable for the type %s.";
     static final String NOT_A_GEOMETRY_COLLECTION_ERROR      = "The second parameter of the geometryIsIn was not a geometry collection.";
     static final String INVALID_GEOJSON_ERROR                = "Invalid GeoJSON geometry.";
+    static final String TOO_MANY_COMPARISONS_ERROR           = "Geometry collection comparison exceeds the maximum of %d pairwise checks.";
 
     private static final String WGS84 = "EPSG:4326";
 
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    private static final Parser          GML2_READER      = hardenedParser(new org.geotools.gml2.GMLConfiguration());
-    private static final Parser          GML3_READER      = hardenedParser(new org.geotools.gml3.GMLConfiguration());
-    private static final Parser          KML_READER       = hardenedParser(new KMLConfiguration());
-    private static final GeometryFactory WGS84_FACTORY    = new GeometryFactory(new PrecisionModel(), 4326);
-    private static final WKTReader       WKT_READER       = new WKTReader();
+    // GeoTools Parser is stateful and not thread-safe, so a fresh one is built per
+    // call
+    // from these reusable Configurations (see hardenedParser); a Parser must never
+    // be shared.
+    // The gml2/gml3 classes are both named GMLConfiguration, so only one could be
+    // imported;
+    // both are fully qualified to keep the pair symmetric and unambiguous.
+    private static final Configuration   GML2_CONFIG   = new org.geotools.gml2.GMLConfiguration();
+    private static final Configuration   GML3_CONFIG   = new org.geotools.gml3.GMLConfiguration();
+    private static final Configuration   KML_CONFIG    = new KMLConfiguration();
+    private static final GeometryFactory WGS84_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
+    private static final WKTReader       WKT_READER    = new WKTReader();
+
+    // Resource bounds. Geographic inputs can originate from policy literals
+    // (trusted)
+    // but also from attribute finders or the subscription (untrusted), so every
+    // parse
+    // boundary caps input size and geometry complexity, failing closed to an error.
+    // The input cap bounds parse cost; the vertex and member caps bound the
+    // per-geometry and quadratic collection operations downstream.
+    static final int  MAX_GEO_INPUT_BYTES      = 4 * 1024 * 1024;
+    static final int  MAX_GEOMETRY_VERTICES    = 100_000;
+    static final int  MAX_GEOMETRY_COUNT       = 50_000;
+    static final long MAX_PAIRWISE_COMPARISONS = 1_000_000L;
 
     /**
      * Resolves only XML Schema documents (those whose resolved URI ends in
@@ -1157,7 +1193,14 @@ public class GeographicFunctionLibrary {
                 GeographicFunctionLibrary::subset);
     }
 
+    private static void enforcePairwiseBound(Geometry first, Geometry second) {
+        if ((long) first.getNumGeometries() * second.getNumGeometries() > MAX_PAIRWISE_COMPARISONS) {
+            throw new IllegalArgumentException(TOO_MANY_COMPARISONS_ERROR.formatted(MAX_PAIRWISE_COMPARISONS));
+        }
+    }
+
     private static Boolean subset(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
+        enforcePairwiseBound(geometryCollectionThis, geometryCollectionThat);
         if (geometryCollectionThis.getNumGeometries() > geometryCollectionThat.getNumGeometries()) {
             return false;
         }
@@ -1210,6 +1253,7 @@ public class GeographicFunctionLibrary {
     }
 
     private static Boolean atLeastOneMemberOf(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
+        enforcePairwiseBound(geometryCollectionThis, geometryCollectionThat);
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {
                 if (geometryCollectionThis.getGeometryN(i).equals(geometryCollectionThat.getGeometryN(j))) {
@@ -1550,9 +1594,12 @@ public class GeographicFunctionLibrary {
     }
 
     private static Value parseKmlToGeoJSON(TextValue kml) {
+        if (exceedsInputBound(kml.value())) {
+            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
         Object parsed;
         try {
-            parsed = KML_READER.parse(new StringReader(kml.value()));
+            parsed = hardenedParser(KML_CONFIG).parse(new StringReader(kml.value()));
         } catch (Exception e) {
             return Value.error(FAILED_TO_PARSE_KML_ERROR);
         }
@@ -1560,10 +1607,10 @@ public class GeographicFunctionLibrary {
         if (geometries.isEmpty()) {
             return Value.error(NO_GEOMETRIES_IN_KML_ERROR);
         } else if (geometries.size() == 1) {
-            return geometryToGeoJSON(geometries.getFirst());
+            return boundedGeometryToGeoJSON(geometries.getFirst());
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
-        return geometryToGeoJSON(geometryCollection);
+        return boundedGeometryToGeoJSON(geometryCollection);
     }
 
     @SneakyThrows
@@ -1632,8 +1679,11 @@ public class GeographicFunctionLibrary {
             - Useful for converting WKT geometries into GeoJSON for processing.
             """)
     public static Value wktToGeoJSON(TextValue wkt) {
+        if (exceedsInputBound(wkt.value())) {
+            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
         try {
-            return geometryToGeoJSON(WKT_READER.read(wkt.value()));
+            return boundedGeometryToGeoJSON(WKT_READER.read(wkt.value()));
         } catch (ParseException e) {
             return Value.error(INVALID_WKT_ERROR);
         }
@@ -1662,7 +1712,7 @@ public class GeographicFunctionLibrary {
             - Designed for compatibility with GML 3 formatted data.
             """)
     public static Value gml3ToGeoJSON(TextValue gml) {
-        return gmlToGeoJSON(gml, GML3_READER);
+        return gmlToGeoJSON(gml, GML3_CONFIG);
     }
 
     @Function(docs = """
@@ -1690,13 +1740,16 @@ public class GeographicFunctionLibrary {
             - Designed for compatibility with GML 2 formatted data.
             """)
     public static Value gml2ToGeoJSON(TextValue gml) {
-        return gmlToGeoJSON(gml, GML2_READER);
+        return gmlToGeoJSON(gml, GML2_CONFIG);
     }
 
-    private static Value gmlToGeoJSON(TextValue gml, Parser parser) {
+    private static Value gmlToGeoJSON(TextValue gml, Configuration configuration) {
+        if (exceedsInputBound(gml.value())) {
+            return Value.error(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
         Object parsed;
         try {
-            parsed = parser.parse(new StringReader(gml.value()));
+            parsed = hardenedParser(configuration).parse(new StringReader(gml.value()));
         } catch (Exception e) {
             return Value.error(FAILED_TO_PARSE_GML_ERROR);
         }
@@ -1704,10 +1757,10 @@ public class GeographicFunctionLibrary {
         if (geometries.isEmpty()) {
             return Value.error(NO_GEOMETRIES_IN_GML_ERROR);
         } else if (geometries.size() == 1) {
-            return geometryToGeoJSON(geometries.getFirst());
+            return boundedGeometryToGeoJSON(geometries.getFirst());
         }
         var geometryCollection = WGS84_FACTORY.createGeometryCollection(geometries.toArray(new Geometry[0]));
-        return geometryToGeoJSON(geometryCollection);
+        return boundedGeometryToGeoJSON(geometryCollection);
     }
 
     /*
@@ -1716,7 +1769,31 @@ public class GeographicFunctionLibrary {
 
     @SneakyThrows
     static Geometry geoJsonToGeometry(ObjectValue geoJson) {
-        return GEOJSON_READER.read(ValueJsonMarshaller.toJsonString(geoJson));
+        val json = ValueJsonMarshaller.toJsonString(geoJson);
+        if (exceedsInputBound(json)) {
+            throw new IllegalArgumentException(GEOMETRY_INPUT_TOO_LARGE_ERROR.formatted(MAX_GEO_INPUT_BYTES));
+        }
+        val geometry = GEOJSON_READER.read(json);
+        if (exceedsComplexityBound(geometry)) {
+            throw new IllegalArgumentException(
+                    GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+        }
+        return geometry;
+    }
+
+    private static boolean exceedsInputBound(String input) {
+        return input.getBytes(StandardCharsets.UTF_8).length > MAX_GEO_INPUT_BYTES;
+    }
+
+    private static boolean exceedsComplexityBound(Geometry geometry) {
+        return geometry.getNumPoints() > MAX_GEOMETRY_VERTICES || geometry.getNumGeometries() > MAX_GEOMETRY_COUNT;
+    }
+
+    private static Value boundedGeometryToGeoJSON(Geometry geometry) {
+        if (exceedsComplexityBound(geometry)) {
+            return Value.error(GEOMETRY_TOO_COMPLEX_ERROR.formatted(MAX_GEOMETRY_VERTICES, MAX_GEOMETRY_COUNT));
+        }
+        return geometryToGeoJSON(geometry);
     }
 
     static Value geometryToGeoJSON(Geometry geo) {

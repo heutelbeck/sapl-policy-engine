@@ -86,44 +86,66 @@ public class SAPLTextDocumentService implements TextDocumentService {
     public void didOpen(DidOpenTextDocumentParams params) {
         var uri     = params.getTextDocument().getUri();
         var content = params.getTextDocument().getText();
-
-        log.debug("Document opened: {}", uri);
-        documentManager.openDocument(uri, content);
-        validateAndPublishDiagnostics(uri);
+        safely("didOpen", uri, () -> {
+            log.debug("Document opened: {}", uri);
+            documentManager.openDocument(uri, content);
+            validateAndPublishDiagnostics(uri);
+        });
     }
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
         var uri = params.getTextDocument().getUri();
-
         // We use full sync, so take the full content from the first change
-        if (!params.getContentChanges().isEmpty()) {
-            var content = params.getContentChanges().getFirst().getText();
+        if (params.getContentChanges().isEmpty()) {
+            return;
+        }
+        var content = params.getContentChanges().getFirst().getText();
+        safely("didChange", uri, () -> {
             log.debug("Document changed: {}", uri);
             documentManager.updateDocument(uri, content);
             validateAndPublishDiagnostics(uri);
-        }
+        });
     }
 
     @Override
     public void didClose(DidCloseTextDocumentParams params) {
         var uri = params.getTextDocument().getUri();
-        log.debug("Document closed: {}", uri);
-        documentManager.closeDocument(uri);
+        safely("didClose", uri, () -> {
+            log.debug("Document closed: {}", uri);
+            documentManager.closeDocument(uri);
 
-        // Clear diagnostics for closed document
-        var client = server.getClient();
-        if (client != null) {
-            client.publishDiagnostics(new PublishDiagnosticsParams(uri, List.of()));
-        }
+            // Clear diagnostics for closed document
+            var client = server.getClient();
+            if (client != null) {
+                client.publishDiagnostics(new PublishDiagnosticsParams(uri, List.of()));
+            }
+        });
     }
 
     @Override
     public void didSave(DidSaveTextDocumentParams params) {
         var uri = params.getTextDocument().getUri();
-        log.debug("Document saved: {}", uri);
-        // Re-validate on save
-        validateAndPublishDiagnostics(uri);
+        safely("didSave", uri, () -> {
+            log.debug("Document saved: {}", uri);
+            // Re-validate on save
+            validateAndPublishDiagnostics(uri);
+        });
+    }
+
+    /**
+     * Exception barrier for document notification handlers. A failure while
+     * handling one
+     * document (for example a provider fault on an error-recovered partial tree) is
+     * logged
+     * and contained so the language server keeps serving other documents.
+     */
+    private static void safely(String operation, String uri, Runnable action) {
+        try {
+            action.run();
+        } catch (Exception e) {
+            log.error("Unhandled error during {} for {}", operation, uri, e);
+        }
     }
 
     @Override

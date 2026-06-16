@@ -97,7 +97,7 @@ public class CidrFunctionLibrary {
             ```
             """;
 
-    private static final int MAX_EXPANSION = 65535;
+    private static final int MAX_EXPANSION_COUNT = 65535;
 
     private static final String ADDRESS_FAMILY_IPV4 = "IPv4";
     private static final String ADDRESS_FAMILY_IPV6 = "IPv6";
@@ -270,8 +270,8 @@ public class CidrFunctionLibrary {
         val prefixBlock = address.toPrefixBlock();
         val count       = prefixBlock.getCount();
 
-        if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION)) > 0) {
-            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION));
+        if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION_COUNT)) > 0) {
+            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION_COUNT));
         }
 
         val resultBuilder = ArrayValue.builder();

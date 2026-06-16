@@ -45,7 +45,11 @@ public class DocumentCompiler {
     private static final String ERROR_PARSING_AST_NULL   = "Parsing of SAPL document failed: AST was null.";
     private static final String ERROR_PARSING_FAILED     = "Parsing of SAPL document failed: %s.";
 
-    private static final int MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
+    /**
+     * Maximum size of a SAPL document the engine will compile. Shared with the
+     * language server so the editor enforces the same bound as the compile path.
+     */
+    public static final int MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
 
     private final SAPLValidator  validator      = new SAPLValidator();
     private final AstTransformer astTransformer = new AstTransformer();

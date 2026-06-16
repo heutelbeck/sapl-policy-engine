@@ -26,6 +26,7 @@ import io.sapl.api.model.Value;
 import lombok.val;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Graph utilities for reachability, transitive closure, and shortest paths.
@@ -428,8 +429,7 @@ public class GraphFunctionLibrary {
         return visited;
     }
 
-    private static void forEachNeighbor(ObjectValue graph, String nodeId, String edgeKey,
-            java.util.function.Consumer<String> consumer) {
+    private static void forEachNeighbor(ObjectValue graph, String nodeId, String edgeKey, Consumer<String> consumer) {
         val nodeValue = graph.get(nodeId);
         if (nodeValue == null) {
             return;

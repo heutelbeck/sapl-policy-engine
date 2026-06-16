@@ -138,7 +138,7 @@ public class ArrayFunctionLibrary {
     private static final String ERROR_SUFFIX_EMPTY_ARRAY          = " of an empty array.";
     private static final String ERROR_SUFFIX_PERIOD               = ".";
 
-    private static final int MAX_RANGE_SIZE = 65535;
+    private static final int MAX_RANGE_COUNT = 65535;
 
     private static final String TYPE_NAME_NUMERIC = "numeric";
     private static final String TYPE_NAME_TEXT    = "text";
@@ -1023,8 +1023,8 @@ public class ArrayFunctionLibrary {
         }
 
         val count = rangeElementCount(fromValue, toValue, stepValue);
-        if (count.compareTo(BigInteger.valueOf(MAX_RANGE_SIZE)) > 0) {
-            return Value.error(ERROR_RANGE_EXCEEDS_MAXIMUM, count, MAX_RANGE_SIZE);
+        if (count.compareTo(BigInteger.valueOf(MAX_RANGE_COUNT)) > 0) {
+            return Value.error(ERROR_RANGE_EXCEEDS_MAXIMUM, count, MAX_RANGE_COUNT);
         }
 
         // Iterate by element count, not by comparing against the bound, so a final

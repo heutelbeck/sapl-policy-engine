@@ -118,7 +118,7 @@ public class PatternsFunctionLibrary {
     private static final int    MAX_PATTERN_LENGTH        = 1_000;
     private static final int    MAX_INPUT_LENGTH          = 100_000;
     private static final int    MAX_MATCHES               = 10_000;
-    private static final int    MAX_GLOB_RECURSION        = 50;
+    private static final int    MAX_GLOB_RECURSION_DEPTH  = 50;
     private static final int    MAX_ALTERNATIONS          = 100;
     private static final int    MAX_ALTERNATIVE_GROUPS    = 30;
     private static final String REGEX_METACHARACTERS      = ".^$*+?()[]{}\\|";
@@ -729,8 +729,8 @@ public class PatternsFunctionLibrary {
      * Converts a glob pattern to equivalent regex pattern.
      */
     private static String convertGlobToRegex(String glob, List<String> delimiters, int recursionDepth) {
-        if (recursionDepth > MAX_GLOB_RECURSION) {
-            throw new IllegalStateException(ERROR_GLOB_TOO_NESTED.formatted(MAX_GLOB_RECURSION));
+        if (recursionDepth > MAX_GLOB_RECURSION_DEPTH) {
+            throw new IllegalStateException(ERROR_GLOB_TOO_NESTED.formatted(MAX_GLOB_RECURSION_DEPTH));
         }
 
         val alternativeGroupCount = countAlternativeGroups(glob);

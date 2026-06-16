@@ -809,6 +809,10 @@ public class StringFunctionLibrary {
             return Value.of(text);
         }
 
+        if (targetLength > MAX_REPEAT_COUNT) {
+            return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
+        }
+
         val padChar       = padString.charAt(0);
         val paddingNeeded = targetLength - text.length();
         val result        = new StringBuilder(targetLength);

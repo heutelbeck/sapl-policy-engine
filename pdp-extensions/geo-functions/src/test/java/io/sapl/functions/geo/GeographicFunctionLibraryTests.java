@@ -27,7 +27,9 @@ import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.spatial4j.distance.DistanceUtils;
@@ -35,12 +37,16 @@ import org.locationtech.spatial4j.distance.DistanceUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.BiFunction;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.*;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class GeographicFunctionLibraryTests {
 
@@ -960,6 +966,77 @@ class GeographicFunctionLibraryTests {
         val result      = gml2ToGeoJSON(Value.of(gml2Invalid));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+    }
+
+    @Test
+    void kmlToGeoJSONIsThreadSafeUnderConcurrentCalls() {
+        val kml      = Value.of("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark><Point><coordinates>10,20,0</coordinates></Point></Placemark>
+                </kml>
+                """);
+        val expected = kmlToGeoJSON(kml);
+        assertThat(expected).isNotInstanceOf(ErrorValue.class);
+
+        val allMatch = IntStream.range(0, 500).parallel().allMatch(i -> kmlToGeoJSON(kml).equals(expected));
+
+        assertThat(allMatch).isTrue();
+    }
+
+    @Test
+    void geoJsonToGeometryWhenVertexCountExceedsMaximumThenThrows() {
+        val coordinates = new Coordinate[MAX_GEOMETRY_VERTICES + 1];
+        for (var i = 0; i < coordinates.length; i++) {
+            coordinates[i] = new Coordinate(i % 180, i % 90);
+        }
+        val tooManyVertices = geometryToGeoJSON(GEO_FACTORY.createLineString(coordinates));
+        assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyVertices))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("vertices");
+    }
+
+    @Test
+    void geoJsonToGeometryWhenMemberCountExceedsMaximumThenThrows() {
+        val geometries = new Geometry[MAX_GEOMETRY_COUNT + 1];
+        for (var i = 0; i < geometries.length; i++) {
+            geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
+        }
+        val tooManyMembers = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
+        assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyMembers))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("members");
+    }
+
+    @Test
+    void wktToGeoJSONWhenInputExceedsMaximumThenError() {
+        val oversizedWkt = "POINT(1 1)" + " ".repeat(MAX_GEO_INPUT_BYTES);
+        val result       = wktToGeoJSON(Value.of(oversizedWkt));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum size");
+    }
+
+    static Stream<Arguments> quadraticCollectionOperations() {
+        return Stream.of(
+                arguments("subset", (BiFunction<ObjectValue, ObjectValue, Value>) GeographicFunctionLibrary::subset),
+                arguments("atLeastOneMemberOf",
+                        (BiFunction<ObjectValue, ObjectValue, Value>) GeographicFunctionLibrary::atLeastOneMemberOf));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("quadraticCollectionOperations")
+    void whenPairwiseComparisonsExceedMaximumThenError(String name,
+            BiFunction<ObjectValue, ObjectValue, Value> operation) {
+        val first  = collectionOfPoints(1001);
+        val second = collectionOfPoints(1000);
+        val result = operation.apply(first, second);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    private static ObjectValue collectionOfPoints(int count) {
+        val geometries = new Geometry[count];
+        for (var i = 0; i < count; i++) {
+            geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
+        }
+        return geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
     }
 
 }

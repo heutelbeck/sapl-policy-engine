@@ -133,7 +133,7 @@ public class NumeralFunctionLibrary {
     private static final String ERROR_WIDTH_EXCEEDS_MAXIMUM     = "Width must not exceed %d.";
     private static final String ERROR_WIDTH_MUST_BE_POSITIVE    = "Width must be positive.";
 
-    private static final int MAX_PAD_WIDTH = 256;
+    private static final int MAX_PAD_WIDTH_CHARS = 256;
 
     private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
     private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
@@ -710,8 +710,8 @@ public class NumeralFunctionLibrary {
         if (w.compareTo(BigDecimal.valueOf(1)) < 0) {
             return Value.error(ERROR_WIDTH_MUST_BE_POSITIVE);
         }
-        if (w.compareTo(BigDecimal.valueOf(MAX_PAD_WIDTH)) > 0) {
-            return Value.error(ERROR_WIDTH_EXCEEDS_MAXIMUM, MAX_PAD_WIDTH);
+        if (w.compareTo(BigDecimal.valueOf(MAX_PAD_WIDTH_CHARS)) > 0) {
+            return Value.error(ERROR_WIDTH_EXCEEDS_MAXIMUM, MAX_PAD_WIDTH_CHARS);
         }
         return null;
     }

@@ -465,4 +465,22 @@ class StringFunctionLibraryTests {
         val result = (TextValue) StringFunctionLibrary.reverse((TextValue) Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
     }
+
+    @Test
+    void leftPadWhenTargetLengthExceedsMaximumThenError() {
+        val result = StringFunctionLibrary.leftPad((TextValue) Value.of("x"), Value.of(1_000_000),
+                (TextValue) Value.of("0"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds maximum");
+    }
+
+    @Test
+    void rightPadWhenTargetLengthExceedsMaximumThenError() {
+        val result = StringFunctionLibrary.rightPad((TextValue) Value.of("x"), Value.of(1_000_000),
+                (TextValue) Value.of("0"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds maximum");
+    }
 }
