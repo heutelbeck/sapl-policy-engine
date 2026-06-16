@@ -59,6 +59,23 @@ import lombok.extern.slf4j.Slf4j;
  * Handles text document operations for the Language Server.
  * Provides validation, semantic tokens, and completion support.
  * Supports multiple grammars (SAPL, SAPLTest) through DocumentManager routing.
+ * <p>
+ * Provider NPE containment is a deliberate design decision. The providers run
+ * on
+ * the raw, error-recovered ANTLR parse tree of an in-progress document, where
+ * required children can legitimately be null while the author is still typing.
+ * Rather than exhaustively null-guarding every provider (in particular the
+ * large
+ * formatting visitor), provider faults are contained centrally and treated as
+ * the
+ * intended safety net: notification handlers go through {@link #safely}
+ * (logged,
+ * the server keeps serving other documents) and request handlers run inside a
+ * {@link java.util.concurrent.CompletableFuture}, so a fault becomes a failed
+ * response while the server stays up. The small providers null-guard their
+ * common
+ * name-token sites locally for graceful partial results; rarer structural nulls
+ * are intentionally left to this central containment.
  */
 @Slf4j
 public class SAPLTextDocumentService implements TextDocumentService {
@@ -134,11 +151,11 @@ public class SAPLTextDocumentService implements TextDocumentService {
     }
 
     /**
-     * Exception barrier for document notification handlers. A failure while
-     * handling one
-     * document (for example a provider fault on an error-recovered partial tree) is
-     * logged
-     * and contained so the language server keeps serving other documents.
+     * Central exception barrier for document notification handlers, and the
+     * intended containment for provider faults on the diagnostics path (see the
+     * class-level note on provider NPE containment). A failure while handling one
+     * document, for example a provider fault on an error-recovered partial tree, is
+     * logged and contained so the language server keeps serving other documents.
      */
     private static void safely(String operation, String uri, Runnable action) {
         try {
