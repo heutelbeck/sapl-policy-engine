@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -504,5 +505,45 @@ class GraphFunctionLibraryTests {
         val closure = (ObjectValue) result.get();
         assertThat(error.get()).isNull();
         assertThat((ArrayValue) closure.get("n0")).hasSize(depth);
+    }
+
+    @Test
+    void isReachableWhenPathExistsThenTrue() {
+        val graph = (ObjectValue) Value.ofJson("""
+                { "a": ["b"], "b": ["c"], "c": [] }
+                """);
+
+        assertThat(GraphFunctionLibrary.isReachable(graph, Value.of("a"), Value.of("c"))).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    void isReachableWhenNoPathThenFalse() {
+        val graph = (ObjectValue) Value.ofJson("""
+                { "a": ["b"], "b": ["c"], "c": [] }
+                """);
+
+        assertThat(GraphFunctionLibrary.isReachable(graph, Value.of("c"), Value.of("a"))).isEqualTo(Value.FALSE);
+    }
+
+    @Test
+    void isReachableWhenSourceEqualsTargetThenTrue() {
+        val graph = (ObjectValue) Value.ofJson("""
+                { "a": ["b"], "b": [] }
+                """);
+
+        assertThat(GraphFunctionLibrary.isReachable(graph, Value.of("a"), Value.of("a"))).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    void transitiveClosureWhenOutputExceedsMaximumThenError() {
+        val nodes   = 1500;
+        val builder = ObjectValue.builder();
+        for (var i = 0; i < nodes; i++) {
+            builder.put("n" + i, i < nodes - 1 ? Value.ofArray(Value.of("n" + (i + 1))) : Value.EMPTY_ARRAY);
+        }
+        val result = GraphFunctionLibrary.transitiveClosure(builder.build());
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
     }
 }
