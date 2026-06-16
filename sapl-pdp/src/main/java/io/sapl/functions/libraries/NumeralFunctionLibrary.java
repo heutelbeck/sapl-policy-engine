@@ -125,6 +125,14 @@ public class NumeralFunctionLibrary {
                 var permissions = numeral.fromOctal(permString);
                 bitwise.bitwiseAnd(permissions, 4) == 4;
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `toHexPadded`, `toBinaryPadded`, and `toOctalPadded` reject a width above 256 characters, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_CANNOT_PARSE_EMPTY_STRING = "Cannot parse empty %s string.";

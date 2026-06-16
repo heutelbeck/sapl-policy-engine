@@ -95,6 +95,14 @@ public class CidrFunctionLibrary {
             permit action == "create_subnet";
                 !cidr.intersects(resource.cidr, "203.0.113.0/24");
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `expand` rejects a CIDR range that contains more than 65535 addresses, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final int MAX_EXPANSION_COUNT = 65535;

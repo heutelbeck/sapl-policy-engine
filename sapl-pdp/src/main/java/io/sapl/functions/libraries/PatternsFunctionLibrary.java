@@ -113,6 +113,27 @@ public class PatternsFunctionLibrary {
             All regex functions include protection against Regular Expression Denial of Service attacks.
             Patterns containing dangerous constructs like nested quantifiers `(a+)+`, excessive alternations,
             or nested wildcards are rejected before evaluation.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The pattern or template argument may be at most 1000 characters. This applies to glob patterns,
+              regular expressions, and templates.
+            - The input value being matched, searched, replaced, or split may be at most 100000 characters.
+            - Match-returning functions return at most 10000 matches. This caps `findMatches`, `findMatchesLimited`,
+              `findAllSubmatch`, and `findAllSubmatchLimited`, and it caps the number of segments produced by `split`.
+              A larger explicit limit is reduced to 10000.
+            - Glob patterns may nest alternative groups at most 50 levels deep, and a single glob pattern may contain
+              at most 30 alternative groups.
+            - Regular expressions may contain at most 100 top-level alternations. Patterns above this are rejected
+              as part of the denial-of-service protection.
+            - The output of `replaceAll` may be at most 10000000 characters. Replacement stops with an error once the
+              accumulated result exceeds this length.
+
+            These limits apply because this input may originate from the authorization subscription or from policy
+            information points, which are not vetted to the same degree as the policies and variables shipped with the
+            PDP configuration.
             """;
 
     private static final int    MAX_PATTERN_LENGTH        = 1_000;
@@ -121,6 +142,7 @@ public class PatternsFunctionLibrary {
     private static final int    MAX_GLOB_RECURSION_DEPTH  = 50;
     private static final int    MAX_ALTERNATIONS          = 100;
     private static final int    MAX_ALTERNATIVE_GROUPS    = 30;
+    private static final int    MAX_OUTPUT_LENGTH         = 10_000_000;
     private static final String REGEX_METACHARACTERS      = ".^$*+?()[]{}\\|";
     private static final String CHAR_CLASS_METACHARACTERS = "\\]^[";
     private static final String CHAR_CLASS_SPECIAL_CHARS  = "\\]^-[";
@@ -136,6 +158,7 @@ public class PatternsFunctionLibrary {
     private static final String ERROR_INVALID_TEMPLATE    = "Invalid regex in template: %s";
     private static final String ERROR_LIMIT_NEGATIVE      = "Limit must be non-negative.";
     private static final String ERROR_MATCHING_FAILED     = "Pattern matching failed: %s";
+    private static final String ERROR_OUTPUT_TOO_LONG     = "Replacement result too long (max %d characters).";
     private static final String ERROR_PATTERN_TOO_LONG    = "Pattern too long (max %d characters).";
     private static final String ERROR_REPLACEMENT_FAILED  = "Replacement failed: %s";
     private static final String ERROR_SPLIT_FAILED        = "Split failed: %s";
@@ -466,8 +489,16 @@ public class PatternsFunctionLibrary {
             return Value.error(ERROR_DANGEROUS_PATTERN);
 
         try {
-            val result = BoundedRegex.matcher(compiledPattern, value.value()).replaceAll(replacement.value());
-            return Value.of(result);
+            val matcher = BoundedRegex.matcher(compiledPattern, value.value());
+            val result  = new StringBuilder();
+            while (matcher.find()) {
+                matcher.appendReplacement(result, replacement.value());
+                if (result.length() > MAX_OUTPUT_LENGTH) {
+                    return Value.error(ERROR_OUTPUT_TOO_LONG.formatted(MAX_OUTPUT_LENGTH));
+                }
+            }
+            matcher.appendTail(result);
+            return Value.of(result.toString());
         } catch (Exception e) {
             return Value.error(ERROR_REPLACEMENT_FAILED.formatted(e.getMessage()));
         }

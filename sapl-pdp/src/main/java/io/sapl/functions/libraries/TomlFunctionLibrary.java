@@ -43,6 +43,15 @@ public class TomlFunctionLibrary {
             configuration management. Parse TOML configuration files into SAPL values for policy
             evaluation, or serialize authorization configurations into TOML format for application
             configuration files and infrastructure management.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The input is limited to 1 MB.
+            - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to TOML: %s.";

@@ -126,6 +126,13 @@ public class X509FunctionLibrary {
             `matchesFingerprint` computes SHA-256 of the cert and compares to the
             expected hex fingerprint. Returns true only for exact match.
 
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The certificate input is limited to 256 KB (262144 characters), whether PEM-encoded or Base64 DER.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_TEXT = """

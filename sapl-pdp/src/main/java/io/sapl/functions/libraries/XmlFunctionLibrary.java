@@ -44,6 +44,17 @@ public class XmlFunctionLibrary {
             Enables XML processing in SAPL policies for systems that exchange authorization-relevant
             data in XML format. Parse XML from external systems into SAPL values for policy evaluation,
             or serialize policy decisions and context into XML for logging or integration.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The input is limited to 1 MB.
+            - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+
+            DTD processing and external entity resolution are disabled, so XXE and entity-expansion payloads are rejected with an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to XML: %s.";
@@ -67,7 +78,8 @@ public class XmlFunctionLibrary {
         val inputFactory = XMLInputFactory.newFactory();
         inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
         inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        return new XmlMapper(XmlFactory.builder().xmlInputFactory(inputFactory).build());
+        return new XmlMapper(XmlFactory.builder().xmlInputFactory(inputFactory)
+                .streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build());
     }
 
     /**
@@ -96,6 +108,9 @@ public class XmlFunctionLibrary {
             ```
             """)
     public static Value xmlToVal(TextValue xml) {
+        if (TextParseLimits.exceedsMaxInput(xml.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         try {
             val jsonNode = XML_MAPPER.readTree(xml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);

@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Policy Information Point for integrating with Traccar GPS tracking servers.
@@ -59,7 +60,9 @@ public class TraccarPolicyInformationPoint {
     public static final String DESCRIPTION    = "This policy information point can fetch device positions and geofences from a traccar server.";
 
     static final String ERROR_BAD_RESPONSE_EXPECTED_ARRAY = "Bad response. Expected a non-empty array, but got: %s.";
+    static final String ERROR_CREDENTIAL_NOT_TEXT         = "Traccar credentials must be text values.";
     static final String ERROR_REQUIRED_FIELD_MISSING      = "Required field '%s' missing from traccar configuration.";
+    static final String ERROR_UNEXPECTED_RESPONSE         = "Unexpected Traccar response. Expected a JSON object.";
     static final String ERROR_TRACCAR_CONFIG_NOT_OBJECT   = "TRACCAR_CONFIG must be an object, but was: %s";
     static final String ERROR_TRACCAR_CONFIG_UNDEFINED    = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
     static final String ERROR_TRACCAR_CREDENTIALS_MISSING = "No Traccar credentials found in pdpSecrets. Configure secrets.traccar with 'token' or 'userName'/'password'.";
@@ -669,9 +672,8 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> geofenceGeometry(TextValue geofenceEntityId, AttributeAccessContext ctx) {
-        return Streams.distinctUntilChanged(
-                Streams.map(traccarGeofence(geofenceEntityId, ctx), value -> value instanceof ErrorValue ? value
-                        : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)));
+        return Streams.distinctUntilChanged(Streams.map(traccarGeofence(geofenceEntityId, ctx),
+                value -> toGeoJsonOrError(value, TraccarFunctionLibrary::traccarGeofenceToGeoJson)));
     }
 
     @Attribute(schema = GeoJSONSchemata.POLYGON, docs = """
@@ -714,8 +716,7 @@ public class TraccarPolicyInformationPoint {
 
     Stream<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
         return Streams.distinctUntilChanged(Streams.map(traccarGeofence(geofenceEntityId, traccarConfig, pdpSecrets),
-                value -> value instanceof ErrorValue ? value
-                        : TraccarFunctionLibrary.traccarGeofenceToGeoJson((ObjectValue) value)));
+                value -> toGeoJsonOrError(value, TraccarFunctionLibrary::traccarGeofenceToGeoJson)));
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
@@ -838,9 +839,8 @@ public class TraccarPolicyInformationPoint {
             ```
             """)
     public Stream<Value> position(TextValue deviceEntityId, AttributeAccessContext ctx) {
-        return Streams.distinctUntilChanged(
-                Streams.map(traccarPosition(deviceEntityId, ctx), value -> value instanceof ErrorValue ? value
-                        : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)));
+        return Streams.distinctUntilChanged(Streams.map(traccarPosition(deviceEntityId, ctx),
+                value -> toGeoJsonOrError(value, TraccarFunctionLibrary::traccarPositionToGeoJSON)));
     }
 
     @Attribute(schema = GeoJSONSchemata.POINT, docs = """
@@ -873,8 +873,7 @@ public class TraccarPolicyInformationPoint {
 
     Stream<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
         return Streams.distinctUntilChanged(Streams.map(traccarPosition(deviceEntityId, traccarConfig, pdpSecrets),
-                value -> value instanceof ErrorValue ? value
-                        : TraccarFunctionLibrary.traccarPositionToGeoJSON((ObjectValue) value)));
+                value -> toGeoJsonOrError(value, TraccarFunctionLibrary::traccarPositionToGeoJSON)));
     }
 
     private Value requestSettingsFromTraccarConfig(String path, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -949,9 +948,19 @@ public class TraccarPolicyInformationPoint {
         if (password instanceof ErrorValue) {
             return password;
         }
-        val credentials        = ((TextValue) userName).value() + ':' + ((TextValue) password).value();
+        if (!(userName instanceof TextValue userNameText) || !(password instanceof TextValue passwordText)) {
+            return Value.error(ERROR_CREDENTIAL_NOT_TEXT);
+        }
+        val credentials        = userNameText.value() + ':' + passwordText.value();
         val encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
         return Value.of("Basic " + encodedCredentials);
+    }
+
+    private static Value toGeoJsonOrError(Value value, Function<ObjectValue, Value> converter) {
+        if (value instanceof ObjectValue object) {
+            return converter.apply(object);
+        }
+        return value instanceof ErrorValue ? value : Value.error(ERROR_UNEXPECTED_RESPONSE);
     }
 
     private static Value getRequiredProperty(String fieldName, ObjectValue traccarConfig) {

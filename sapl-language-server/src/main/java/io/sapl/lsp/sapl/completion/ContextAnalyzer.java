@@ -181,7 +181,7 @@ public class ContextAnalyzer {
      * Walks backward through tokens to find: ID ( DOT ID )* LPAREN
      */
     private static String extractFunctionNameBeforeParen(List<Token> tokens, Token rparenToken) {
-        var rparenIndex = findTokenIndex(tokens, rparenToken);
+        var rparenIndex = rparenToken.getTokenIndex();
         if (rparenIndex < 0) {
             return "";
         }
@@ -205,7 +205,7 @@ public class ContextAnalyzer {
      * `|<attr>`.
      */
     private static AttributeResult extractAttributeNameBeforeGT(List<Token> tokens, Token gtToken) {
-        var gtIndex = findTokenIndex(tokens, gtToken);
+        var gtIndex = gtToken.getTokenIndex();
         if (gtIndex < 0) {
             return new AttributeResult("", ProposalType.INDETERMINATE);
         }
@@ -310,15 +310,6 @@ public class ContextAnalyzer {
     /**
      * Finds the index of a token in the token list.
      */
-    private static int findTokenIndex(List<Token> tokens, Token target) {
-        for (var i = 0; i < tokens.size(); i++) {
-            if (tokens.get(i) == target) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     /**
      * Finds the matching LPAREN for an RPAREN, handling nesting.
      */

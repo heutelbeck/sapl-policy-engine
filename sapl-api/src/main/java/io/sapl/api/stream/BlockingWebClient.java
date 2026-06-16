@@ -166,7 +166,7 @@ public class BlockingWebClient {
             val headers  = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val body     = jsonOrDefault(requestSettings, BODY, null);
             val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
-            val uri      = URI.create(baseUrl + path);
+            val uri      = createUri(baseUrl + path);
             return openWebSocket(uri, headers, body, maxBytes);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));

@@ -520,4 +520,14 @@ class PatternsFunctionLibraryTests {
                 Value.of("\\d{3}-\\d{2}-\\d{4}"), Value.of("[REDACTED]"));
         assertThat(redacted).isInstanceOf(TextValue.class).isEqualTo(Value.of("SSN: [REDACTED]"));
     }
+
+    @Test
+    void whenReplaceAllOutputExceedsMaximumThenError() {
+        val value       = Value.of("a".repeat(100_000));
+        val replacement = Value.of("X".repeat(200));
+        val result      = PatternsFunctionLibrary.replaceAll(value, Value.of("a"), replacement);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("too long");
+    }
 }

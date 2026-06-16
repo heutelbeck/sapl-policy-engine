@@ -105,8 +105,10 @@ public class GeographicFunctionLibrary {
             - The collection comparisons `subset` and `atLeastOneMemberOf` are quadratic, so they are
               additionally capped at 1,000,000 pairwise checks.
 
-            These limits comfortably accommodate detailed real-world boundaries while preventing
-            excessive memory or computation from hostile input.
+            These limits comfortably accommodate detailed real-world boundaries. They apply because
+            this input may originate from the authorization subscription or from policy information
+            points, which are not vetted to the same degree as the policies and variables shipped
+            with the PDP configuration.
 
             For more details, refer to individual function documentation.
             """;
@@ -1457,15 +1459,14 @@ public class GeographicFunctionLibrary {
             - Useful for combining geometries from arrays into collections.
             """)
     public static Value flattenGeometryBag(ArrayValue arrayOfGeometries) {
-        try {
-            var objectValues = new ObjectValue[arrayOfGeometries.size()];
-            for (int i = 0; i < arrayOfGeometries.size(); i++) {
-                objectValues[i] = (ObjectValue) arrayOfGeometries.get(i);
+        var objectValues = new ObjectValue[arrayOfGeometries.size()];
+        for (int i = 0; i < arrayOfGeometries.size(); i++) {
+            if (!(arrayOfGeometries.get(i) instanceof ObjectValue geometry)) {
+                return Value.error(INVALID_GEOJSON_ERROR);
             }
-            return geometryBag(objectValues);
-        } catch (Exception e) {
-            return Value.error(INVALID_GEOJSON_ERROR);
+            objectValues[i] = geometry;
         }
+        return geometryBag(objectValues);
     }
 
     /*

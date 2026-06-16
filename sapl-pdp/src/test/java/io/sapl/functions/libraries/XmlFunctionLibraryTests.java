@@ -173,4 +173,13 @@ class XmlFunctionLibraryTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Failed to parse XML");
     }
+
+    @Test
+    void whenXmlExceedsMaxInputThenError() {
+        val oversized = "<a>" + "x".repeat(2 * 1024 * 1024) + "</a>";
+        val result    = XmlFunctionLibrary.xmlToVal(Value.of(oversized));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum length");
+    }
 }

@@ -101,6 +101,14 @@ public class ArrayFunctionLibrary {
                 var counts = subject.requestsPerMinute;
                 array.sum(counts) > 100;
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `range` and `rangeStepped` reject a range that would produce more than 65535 elements, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_ARRAY = """
