@@ -104,11 +104,11 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
 
     @Setter
     @Getter
-    private int firstBackoffMillis = 500;
+    private int firstBackoffMillis = 1000;
 
     @Setter
     @Getter
-    private int maxBackOffMillis = 5000;
+    private int maxBackOffMillis = 30000;
 
     @Setter
     @Getter
