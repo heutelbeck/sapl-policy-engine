@@ -86,6 +86,6 @@ public final class ParsedDocumentGuards {
     }
 
     private static boolean isBidiControl(char c) {
-        return c == '⁦' || c == '⁧' || c == '⁩' || c == '‮';
+        return c == '\u2066' || c == '\u2067' || c == '\u2069' || c == '\u202E';
     }
 }

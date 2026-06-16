@@ -28,7 +28,9 @@ spring:
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=1000,expireAfterWrite=1h,recordStats
+      # expireAfterWrite is the auth revocation SLA: a revoked API key keeps working until its
+      # cache entry expires. 5m matches io.sapl.node.http.auth-cache.positive-ttl so both stacks agree.
+      spec: maximumSize=1000,expireAfterWrite=5m,recordStats
     cache-names:
       - ApiKeyCache
       - buckets

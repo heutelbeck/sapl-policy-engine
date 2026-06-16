@@ -93,4 +93,6 @@ Evaluating a policy set against an authorization subscription means assigning a 
 | `true` (matching)      | care              | Result of the **Combining Algorithm** applied to the Policies |
 | *Error*                | don't care        | `INDETERMINATE`                                               |
 
+An error in the target expression always makes the whole set `INDETERMINATE`, regardless of the combining algorithm and its error handling. The combining algorithm's error handling governs errors raised *inside* the policies, not a failure of the set's own target. This separation is deliberate: the target is evaluated independently of, and ahead of, the policies, which is what allows a policy set to participate in the compile-time policy index. Routing a target error through the combining algorithm instead would couple target and body evaluation and remove that ability.
+
 For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_5_CombiningAlgorithms/).

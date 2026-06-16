@@ -235,6 +235,12 @@ public class Streams {
      * persists. The cleanup {@link Runnable} returned by the
      * producer must release that work; caller must {@code close()}
      * the returned stream to invoke it.
+     * <p>
+     * A synchronous throw from {@code producer.produce(...)} is not caught
+     * here; it propagates so an enclosing retry layer can handle it. Attribute
+     * sources built on this helper run under the broker's retrying
+     * {@code AttributeStream}, which re-opens the source with backoff. A caller
+     * not under such a wrapper must guard the producer itself.
      */
     public static Stream<Value> fromCallback(CallbackProducer producer) {
         val s       = new LatestSlotStream<Value>();

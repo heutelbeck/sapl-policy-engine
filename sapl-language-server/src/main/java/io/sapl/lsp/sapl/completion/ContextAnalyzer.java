@@ -308,9 +308,6 @@ public class ContextAnalyzer {
     }
 
     /**
-     * Finds the index of a token in the token list.
-     */
-    /**
      * Finds the matching LPAREN for an RPAREN, handling nesting.
      */
     private static int findMatchingLparen(List<Token> tokens, int rparenIndex) {

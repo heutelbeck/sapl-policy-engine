@@ -82,7 +82,8 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     private static final String ERROR_EMPTY_RESPONSE_BODY = "Server returned 200 with empty body.";
     private static final String ERROR_HTTP_STATUS         = "Server returned HTTP %d for pdpId '%s'.";
 
-    private static final String WARN_FETCH_FAILED = "Fetch failed for pdpId '{}' (retry #{}): {}";
+    private static final String WARN_FETCH_FAILED                      = "Fetch failed for pdpId '{}' (retry #{}): {}";
+    private static final String WARN_REDIRECTS_DISABLED_FOR_CREDENTIAL = "Disabling redirect following for bundle source '{}' because a custom auth header is configured. A redirect would replay the credential to a cross-origin target. Point at the final URL to keep redirects.";
 
     private static final int MAX_BUNDLE_RESPONSE_BYTES = 16 * 1024 * 1024;
 
@@ -110,9 +111,19 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     public RemoteBundlePDPConfigurationSource(@NonNull RemoteBundleSourceConfig config) {
         this.config = Objects.requireNonNull(config, "config");
         config.securityPolicy().validate();
-        this.httpClient = HttpClient.newBuilder()
-                .followRedirects(config.followRedirects() ? HttpClient.Redirect.NORMAL : HttpClient.Redirect.NEVER)
+        this.httpClient = HttpClient.newBuilder().followRedirects(redirectPolicy(config))
                 .connectTimeout(CONNECT_TIMEOUT).build();
+    }
+
+    private static HttpClient.Redirect redirectPolicy(RemoteBundleSourceConfig config) {
+        if (!config.followRedirects()) {
+            return HttpClient.Redirect.NEVER;
+        }
+        if (config.authHeaderName() != null) {
+            log.warn(WARN_REDIRECTS_DISABLED_FOR_CREDENTIAL, config.baseUrl());
+            return HttpClient.Redirect.NEVER;
+        }
+        return HttpClient.Redirect.NORMAL;
     }
 
     @Override

@@ -546,7 +546,7 @@ public class X509FunctionLibrary {
         try {
             val certificate = CertificateUtils.parseCertificate(certificateString);
             return operation.apply(certificate);
-        } catch (CertificateException | CryptoException exception) {
+        } catch (CertificateException | RuntimeException exception) {
             val message      = exception.getMessage();
             val errorMessage = message != null && message.endsWith(".") ? errorPrefix + ": " + message
                     : errorPrefix + ": " + message + ".";
