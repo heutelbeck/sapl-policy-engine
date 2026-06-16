@@ -59,11 +59,10 @@ public final class SAPLParsedDocument implements ParsedDocument {
         this.uri     = uri;
         this.content = content;
 
-        // The editor compiles arbitrary, untrusted text on every keystroke, so the same
-        // protections the compile path enforces apply here. Oversized documents are not
-        // parsed; bidirectional control characters and excessive nesting are surfaced
-        // as
-        // error diagnostics so the author sees them.
+        // The editor parses untrusted text on every keystroke, so the compile-path
+        // guards
+        // apply here: oversized documents are skipped, and trojan-source characters and
+        // excessive nesting become error diagnostics.
         var errors  = new ArrayList<>(ParsedDocumentGuards.preParseDiagnostics(content));
         var toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
 

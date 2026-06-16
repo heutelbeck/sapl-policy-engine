@@ -132,26 +132,19 @@ public class GeographicFunctionLibrary {
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    // GeoTools Parser is stateful and not thread-safe, so a fresh one is built per
+    // GeoTools Parser is stateful and not thread-safe; a fresh one is built per
     // call
-    // from these reusable Configurations (see hardenedParser); a Parser must never
-    // be shared.
-    // The gml2/gml3 classes are both named GMLConfiguration, so only one could be
-    // imported;
-    // both are fully qualified to keep the pair symmetric and unambiguous.
+    // (see hardenedParser). gml2/gml3 GMLConfiguration share a class name, hence
+    // the FQNs.
     private static final Configuration   GML2_CONFIG   = new org.geotools.gml2.GMLConfiguration();
     private static final Configuration   GML3_CONFIG   = new org.geotools.gml3.GMLConfiguration();
     private static final Configuration   KML_CONFIG    = new KMLConfiguration();
     private static final GeometryFactory WGS84_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
     private static final WKTReader       WKT_READER    = new WKTReader();
 
-    // Resource bounds. Geographic inputs can originate from policy literals
-    // (trusted)
-    // but also from attribute finders or the subscription (untrusted), so every
-    // parse
-    // boundary caps input size and geometry complexity, failing closed to an error.
-    // The input cap bounds parse cost; the vertex and member caps bound the
-    // per-geometry and quadratic collection operations downstream.
+    // Inputs may come from attribute finders or the subscription, not only trusted
+    // policy literals, so every parse boundary caps input size and geometry
+    // complexity.
     static final int  MAX_GEO_INPUT_BYTES      = 4 * 1024 * 1024;
     static final int  MAX_GEOMETRY_VERTICES    = 100_000;
     static final int  MAX_GEOMETRY_COUNT       = 50_000;

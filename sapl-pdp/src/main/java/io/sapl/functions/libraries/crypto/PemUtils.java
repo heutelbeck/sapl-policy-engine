@@ -54,9 +54,7 @@ public class PemUtils {
     private static final String ERROR_PEM_ENCODING_FAILED = "PEM encoding failed: %s.";
 
     // Keys, certificates, and JWK sets are kilobyte-scale; this generous cap
-    // excludes
-    // pathological input on the multi-algorithm decode/retry paths without
-    // affecting real use.
+    // excludes pathological input.
     private static final int MAX_INPUT_CHARS = 256 * 1024;
 
     /**

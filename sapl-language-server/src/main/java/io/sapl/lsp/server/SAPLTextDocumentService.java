@@ -60,22 +60,18 @@ import lombok.extern.slf4j.Slf4j;
  * Provides validation, semantic tokens, and completion support.
  * Supports multiple grammars (SAPL, SAPLTest) through DocumentManager routing.
  * <p>
- * Provider NPE containment is a deliberate design decision. The providers run
- * on
- * the raw, error-recovered ANTLR parse tree of an in-progress document, where
- * required children can legitimately be null while the author is still typing.
- * Rather than exhaustively null-guarding every provider (in particular the
- * large
- * formatting visitor), provider faults are contained centrally and treated as
+ * Provider NPE containment is a deliberate design decision. Providers run on
  * the
- * intended safety net: notification handlers go through {@link #safely}
- * (logged,
- * the server keeps serving other documents) and request handlers run inside a
- * {@link java.util.concurrent.CompletableFuture}, so a fault becomes a failed
- * response while the server stays up. The small providers null-guard their
- * common
- * name-token sites locally for graceful partial results; rarer structural nulls
- * are intentionally left to this central containment.
+ * raw, error-recovered parse tree of an in-progress document, where children
+ * can
+ * be null while the author is still typing. Rather than null-guard every
+ * provider
+ * exhaustively (notably the large formatting visitor), faults are contained
+ * centrally: notification handlers via {@link #safely}, request handlers via
+ * their
+ * {@link java.util.concurrent.CompletableFuture} (a fault becomes a failed
+ * response, the server stays up). The small providers still guard their common
+ * name-token sites locally for graceful partial results.
  */
 @Slf4j
 public class SAPLTextDocumentService implements TextDocumentService {
@@ -151,11 +147,9 @@ public class SAPLTextDocumentService implements TextDocumentService {
     }
 
     /**
-     * Central exception barrier for document notification handlers, and the
-     * intended containment for provider faults on the diagnostics path (see the
-     * class-level note on provider NPE containment). A failure while handling one
-     * document, for example a provider fault on an error-recovered partial tree, is
-     * logged and contained so the language server keeps serving other documents.
+     * Exception barrier for the document notification handlers (see the class-level
+     * note on provider NPE containment). A fault while handling one document is
+     * logged and contained so the server keeps serving others.
      */
     private static void safely(String operation, String uri, Runnable action) {
         try {

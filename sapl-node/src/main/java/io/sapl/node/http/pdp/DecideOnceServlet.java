@@ -77,9 +77,8 @@ public class DecideOnceServlet extends AbstractBypassServlet {
         try {
             decision = pdp.decideOnce(subscription, pdpId);
         } catch (Exception e) {
-            // Fail closed: an evaluation failure must not surface as a raw 500 (which
-            // leaks a stack trace and pushes the burden onto the client). Mirror the
-            // streaming servlet and return INDETERMINATE.
+            // Fail closed: no raw 500 (stack leak); return INDETERMINATE like the streaming
+            // servlet.
             log.error("Decision evaluation failed for decide-once; returning INDETERMINATE.", e);
             decision = AuthorizationDecision.INDETERMINATE;
         }
