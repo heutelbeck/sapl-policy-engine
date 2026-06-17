@@ -26,30 +26,34 @@
 		<groupId>io.sapl</groupId>
 		<artifactId>sapl-policy-engine</artifactId>
 		<version>4.1.0-SNAPSHOT</version>
-		<relativePath>../../pom.xml</relativePath>
 	</parent>
-	<artifactId>geo-traccar</artifactId>
-	<name>SAPL geographical Traccar Policy Information Point</name>
+	<artifactId>sapl-attribute-utils</artifactId>
+	<name>SAPL Attribute Utils</name>
+	<description>Runtime utilities for building attribute-fetching Policy Information Points.
+		Contains the synchronous HTTP and WebSocket transport (BlockingWebClient) on which
+		the HTTP and Traccar PIPs are built. Kept out of sapl-api so the contract module does
+		not carry a concrete java.net.http client; depends on sapl-api for the Value model and
+		the Stream abstraction every PIP returns.</description>
 
 	<properties>
-		<main.basedir>${project.basedir}/../../</main.basedir>
+		<main.basedir>${project.basedir}/../</main.basedir>
 	</properties>
 
 	<dependencies>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-attribute-utils</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+		<!-- SAPL API: provides the Value model and the Stream/Streams abstraction. -->
 		<dependency>
 			<groupId>io.sapl</groupId>
-			<artifactId>geo-functions</artifactId>
+			<artifactId>sapl-api</artifactId>
 			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -57,15 +61,10 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Testing -->
 		<dependency>
 			<groupId>io.sapl</groupId>
 			<artifactId>sapl-api-test</artifactId>
-			<version>${project.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.sapl</groupId>
-			<artifactId>sapl-pdp</artifactId>
 			<version>${project.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -75,23 +74,13 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>testcontainers-junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>mockwebserver</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -100,5 +89,4 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 </project>

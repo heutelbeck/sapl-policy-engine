@@ -24,7 +24,7 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;

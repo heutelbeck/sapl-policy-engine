@@ -25,7 +25,7 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import tools.jackson.databind.node.JsonNodeFactory;
