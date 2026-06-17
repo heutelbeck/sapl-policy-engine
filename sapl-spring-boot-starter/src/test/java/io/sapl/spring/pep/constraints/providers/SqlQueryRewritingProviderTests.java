@@ -320,7 +320,7 @@ class SqlQueryRewritingProviderTests {
         }
 
         @Test
-        @DisplayName("Boolean value renders as TRUE / FALSE literal")
+        @DisplayName("Boolean value renders as true / false literal")
         void whenBooleanValueThenLiteralTrueOrFalse() {
             val mapper = mapperFor("""
                     {"type": "sql:queryRewriting",
@@ -329,7 +329,7 @@ class SqlQueryRewritingProviderTests {
 
             val rewritten = mapper.apply("SELECT * FROM users");
 
-            assertThat(rewritten).contains("active = TRUE");
+            assertThat(rewritten).contains("active = true");
         }
 
         @Test
@@ -413,7 +413,7 @@ class SqlQueryRewritingProviderTests {
 
             val rewritten = mapper.apply("SELECT * FROM resources");
 
-            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = TRUE").contains("OR");
+            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = true").contains("OR");
         }
 
         @Test
