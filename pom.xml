@@ -90,6 +90,10 @@
 		<maven.deploy.skip>true</maven.deploy.skip>
 		<docker-registry-url>ghcr.io/heutelbeck</docker-registry-url>
 
+		<!-- Heavy differential/scenario tests run a quick smoke size by default and
+		     their full size under the it profile (mvn verify -Pit). -->
+		<sapl.full.tests>false</sapl.full.tests>
+
 		<!-- Dependencies -->
 		<okhttp.version>5.4.0</okhttp.version>
 		<jacoco.version>0.8.15</jacoco.version>
@@ -453,6 +457,9 @@
                     <configuration>
                         <argLine>@{argLine} -Xshare:off
                             -XX:+EnableDynamicAgentLoading</argLine>
+                        <systemPropertyVariables>
+                            <sapl.fullTests>${sapl.full.tests}</sapl.fullTests>
+                        </systemPropertyVariables>
                         <includes>
                             <include>**/*Test.java</include>
                             <include>**/*Tests.java</include>
@@ -711,6 +718,9 @@
 	<profiles>
 		<profile>
 			<id>it</id>
+			<properties>
+				<sapl.full.tests>true</sapl.full.tests>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
