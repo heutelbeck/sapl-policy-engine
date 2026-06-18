@@ -285,14 +285,15 @@ public class CsvFunctionLibrary {
             }
         }
 
+        val sanitized     = sanitizeAgainstFormulaInjection(array);
         val schemaBuilder = CsvSchema.builder();
-        for (val key : firstObject.keySet()) {
+        for (val key : ((ObjectValue) sanitized.getFirst()).keySet()) {
             schemaBuilder.addColumn(key);
         }
         val schema = schemaBuilder.build().withHeader();
 
         try {
-            val arrayNode = convertToJacksonArrayNode(sanitizeAgainstFormulaInjection(array));
+            val arrayNode = convertToJacksonArrayNode(sanitized);
             return Value.of(CSV_MAPPER.writer(schema).writeValueAsString(arrayNode));
         } catch (JacksonException exception) {
             return Value.error(ERROR_FAILED_TO_GENERATE_CSV, exception.getMessage());
@@ -306,7 +307,9 @@ public class CsvFunctionLibrary {
     /**
      * Neutralizes CSV formula injection. A cell whose text starts with a
      * formula trigger is prefixed with a single quote so a spreadsheet that
-     * later opens the generated CSV treats it as text, not an expression.
+     * later opens the generated CSV treats it as text, not an expression. The
+     * same neutralization is applied to object keys, since they become the
+     * header-row cells of the generated CSV.
      */
     private static ArrayValue sanitizeAgainstFormulaInjection(ArrayValue array) {
         val builder = ArrayValue.builder();
@@ -314,7 +317,7 @@ public class CsvFunctionLibrary {
             if (array.get(i) instanceof ObjectValue object) {
                 val objectBuilder = ObjectValue.builder();
                 for (val entry : object.entrySet()) {
-                    objectBuilder.put(entry.getKey(), escapeFormulaCell(entry.getValue()));
+                    objectBuilder.put(escapeFormula(entry.getKey()), escapeFormulaCell(entry.getValue()));
                 }
                 builder.add(objectBuilder.build());
             } else {
@@ -325,10 +328,17 @@ public class CsvFunctionLibrary {
     }
 
     private static Value escapeFormulaCell(Value cell) {
-        if (cell instanceof TextValue(String text) && startsWithFormulaCharacter(text)) {
-            return Value.of("'" + text);
+        if (cell instanceof TextValue(String text)) {
+            return Value.of(escapeFormula(text));
         }
         return cell;
+    }
+
+    private static String escapeFormula(String text) {
+        if (startsWithFormulaCharacter(text)) {
+            return "'" + text;
+        }
+        return text;
     }
 
     private static boolean startsWithFormulaCharacter(String text) {

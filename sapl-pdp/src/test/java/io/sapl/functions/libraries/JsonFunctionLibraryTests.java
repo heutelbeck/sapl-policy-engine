@@ -25,6 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
@@ -212,6 +214,26 @@ class JsonFunctionLibraryTests {
         val investigator = (ObjectValue) ((ObjectValue) reparsed).get("investigator");
         assertThat(investigator).containsEntry("name", Value.of("Carter")).containsEntry("sanity", Value.of(77));
         assertThat((ArrayValue) investigator.get("artifacts")).hasSize(2);
+    }
+
+    @Test
+    void whenHighPrecisionDecimalThenPreservesAllDigits() {
+        val literal = "0.1234567890123456789012345678";
+        val result  = JsonFunctionLibrary.jsonToVal(Value.of("{\"x\": " + literal + "}"));
+
+        assertThat(result).isInstanceOfSatisfying(ObjectValue.class,
+                obj -> assertThat(obj.get("x")).isInstanceOfSatisfying(NumberValue.class,
+                        number -> assertThat(number.value()).isEqualByComparingTo(new BigDecimal(literal))));
+    }
+
+    @Test
+    void whenMagnitudeExceedsDoubleRangeThenParsesAsNumberNotError() {
+        val literal = "1e309";
+        val result  = JsonFunctionLibrary.jsonToVal(Value.of("{\"x\": " + literal + "}"));
+
+        assertThat(result).isInstanceOfSatisfying(ObjectValue.class,
+                obj -> assertThat(obj.get("x")).isInstanceOfSatisfying(NumberValue.class,
+                        number -> assertThat(number.value()).isEqualByComparingTo(new BigDecimal(literal))));
     }
 
     @Test

@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -421,6 +422,22 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.bit(Value.of(invalidPosition));
         assertThat(actual).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) actual).message()).contains("Bit position must be between 0 and 63");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "5.5", "0.1", "63.9" })
+    void whenBitWithFractionalPositionThenReturnsError(String fractionalPosition) {
+        val actual = PermissionsFunctionLibrary.bit((NumberValue) Value.of(new BigDecimal(fractionalPosition)));
+        assertThat(actual).isInstanceOf(ErrorValue.class).extracting(error -> ((ErrorValue) error).message()).asString()
+                .contains("Bit position must be between 0 and 63");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "18446744073709551621", "9223372036854775808", "-9223372036854775809" })
+    void whenBitWithPositionOutsideLongRangeThenReturnsError(String hugePosition) {
+        val actual = PermissionsFunctionLibrary.bit((NumberValue) Value.of(new BigDecimal(hugePosition)));
+        assertThat(actual).isInstanceOf(ErrorValue.class).extracting(error -> ((ErrorValue) error).message()).asString()
+                .contains("Bit position must be between 0 and 63");
     }
 
     /* Error Handling Tests */

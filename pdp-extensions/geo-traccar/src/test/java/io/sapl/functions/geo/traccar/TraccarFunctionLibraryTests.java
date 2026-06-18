@@ -142,6 +142,18 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
+    void when_traccarGeofenceToGeoJson_withDegeneratePolygon_then_returnError() {
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : "POLYGON ((30 10, 40 40, 20 40))"
+                }
+                """);
+        var result   = traccarGeofenceToGeoJson(geofence);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Error processing geometry:");
+    }
+
+    @Test
     void when_traccarGeofenceToGeoJson_missingArea_then_returnError() {
         val geofence = (ObjectValue) json("""
                 {

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.buffer.ByteBufAllocator;
@@ -89,6 +90,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     private final Mono<RSocket>                  rSocketMono;
     private final AtomicReference<RSocket>       cachedSocket = new AtomicReference<>();
     private final AtomicReference<Mono<RSocket>> connecting   = new AtomicReference<>();
+    private final AtomicBoolean                  disposed     = new AtomicBoolean();
 
     @Getter
     private final int firstBackoffMillis;
@@ -123,7 +125,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                                     // instead of each leaking a socket.
                                     return connecting.updateAndGet(current -> current != null ? current
                                             : connectMono.timeout(Duration.ofMillis(timeoutMillis))
-                                                    .doOnNext(cachedSocket::set)
+                                                    .doOnNext(this::cacheOrDisposeIfDisposed)
                                                     .doFinally(signal -> connecting.set(null)).cache());
                                 });
         this.firstBackoffMillis = firstBackoffMillis;
@@ -175,7 +177,13 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Mono.just(AuthorizationDecision.INDETERMINATE);
             }
-        }).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage()))
+        })
+                // Bound the wait for the response so a silent live server fails closed instead
+                // of
+                // hanging the caller. Mirrors the HTTP client.
+                .timeout(Duration.ofMillis(timeoutMillis))
+                .doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(),
+                        error.getMessage()))
                 .onErrorReturn(AuthorizationDecision.INDETERMINATE).defaultIfEmpty(AuthorizationDecision.INDETERMINATE);
     }
 
@@ -195,10 +203,14 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
             }
-        }).concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
-            log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
-            return Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE), Flux.error(error));
-        }).retryWhen(createRetrySpec()).distinctUntilChanged();
+        })
+                // Bound the wait for the first decision so a silent server retries. Later items
+                // are not timed, keeping a healthy stream open. Mirrors the single decide().
+                .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
+                .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
+                    log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
+                    return Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE), Flux.error(error));
+                }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
 
     @Override
@@ -217,10 +229,14 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(MultiAuthorizationDecision.indeterminate());
             }
-        }).concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
-            log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
-            return Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error));
-        }).retryWhen(createRetrySpec()).distinctUntilChanged();
+        })
+                // Bound the wait for the first decision so a silent server retries. Later items
+                // are not timed, keeping a healthy stream open. Mirrors the single decide().
+                .timeout(Mono.delay(Duration.ofMillis(timeoutMillis)), item -> Mono.never())
+                .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
+                    log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
+                    return Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error));
+                }).retryWhen(createRetrySpec()).distinctUntilChanged();
     }
 
     /**
@@ -244,7 +260,12 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Mono.just(MultiAuthorizationDecision.indeterminate());
             }
-        }).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage()))
+        })
+                // Bound the wait for the response so a silent live server fails closed instead
+                // of
+                // hanging the caller. Mirrors the HTTP client.
+                .timeout(Duration.ofMillis(timeoutMillis)).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION,
+                        error.getClass().getSimpleName(), error.getMessage()))
                 .onErrorReturn(MultiAuthorizationDecision.indeterminate());
     }
 
@@ -295,10 +316,23 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         return bytes;
     }
 
+    // Routes a freshly connected socket to the cache, unless dispose() has run in
+    // the meantime. A socket that arrives after dispose() is disposed here so an
+    // in-flight connect cannot leak a live connection past shutdown.
+    private void cacheOrDisposeIfDisposed(RSocket socket) {
+        if (disposed.get()) {
+            socket.dispose();
+        } else {
+            cachedSocket.set(socket);
+        }
+    }
+
     /**
      * Dispose the RSocket connection.
      */
     public void dispose() {
+        disposed.set(true);
+        connecting.set(null);
         val socket = cachedSocket.getAndSet(null);
         if (socket != null) {
             socket.dispose();

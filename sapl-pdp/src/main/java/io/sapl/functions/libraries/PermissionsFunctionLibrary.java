@@ -867,11 +867,12 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value bit(NumberValue position) {
-        val positionNumber = position.value().longValue();
-        if (positionNumber < 0 || positionNumber >= 64) {
+        val positionValue = position.value();
+        if (positionValue.stripTrailingZeros().scale() > 0 || positionValue.compareTo(BigDecimal.ZERO) < 0
+                || positionValue.compareTo(BigDecimal.valueOf(63)) > 0) {
             return Value.error(ERROR_BIT_POSITION_INVALID);
         }
-        return Value.of(1L << positionNumber);
+        return Value.of(1L << positionValue.longValue());
     }
 
     /**

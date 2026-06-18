@@ -72,6 +72,9 @@ public class SAPLTestValidator {
     private void validateUniqueRequirementNames(SaplTestContext saplTest, Consumer<ValidationError> errorConsumer) {
         var names = new HashSet<String>();
         for (var requirement : saplTest.requirement()) {
+            if (requirement.name == null) {
+                continue;
+            }
             var name = unquote(requirement.name.getText());
             if (!names.add(name)) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_DUPLICATE_REQUIREMENT_NAME, requirement.name));
@@ -112,6 +115,9 @@ public class SAPLTestValidator {
     private void validateUniqueScenarioNames(RequirementContext requirement, Consumer<ValidationError> errorConsumer) {
         var names = new HashSet<String>();
         for (var scenario : requirement.scenario()) {
+            if (scenario.name == null) {
+                continue;
+            }
             var name = unquote(scenario.name.getText());
             if (!names.add(name)) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_DUPLICATE_SCENARIO_NAME, scenario.name));
@@ -156,9 +162,51 @@ public class SAPLTestValidator {
 
     private String unquote(String text) {
         if (text != null && text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
-            return text.substring(1, text.length() - 1);
+            return unescape(text.substring(1, text.length() - 1));
         }
         return text;
+    }
+
+    private String unescape(String text) {
+        if (!text.contains("\\")) {
+            return text;
+        }
+        var result = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c != '\\' || i + 1 >= text.length()) {
+                result.append(c);
+                continue;
+            }
+            char next = text.charAt(++i);
+            switch (next) {
+            case 'n'  -> result.append('\n');
+            case 'r'  -> result.append('\r');
+            case 't'  -> result.append('\t');
+            case 'b'  -> result.append('\b');
+            case 'f'  -> result.append('\f');
+            case '\\' -> result.append('\\');
+            case '"'  -> result.append('"');
+            case '\'' -> result.append('\'');
+            case '/'  -> result.append('/');
+            case 'u'  -> i = appendUnicode(text, i, result);
+            default   -> result.append('\\').append(next);
+            }
+        }
+        return result.toString();
+    }
+
+    private int appendUnicode(String text, int uIndex, StringBuilder result) {
+        if (uIndex + 4 < text.length()) {
+            try {
+                result.append((char) Integer.parseInt(text.substring(uIndex + 1, uIndex + 5), 16));
+                return uIndex + 4;
+            } catch (NumberFormatException e) {
+                // Fall through to treat the sequence as literal characters.
+            }
+        }
+        result.append('\\').append('u');
+        return uIndex;
     }
 
 }

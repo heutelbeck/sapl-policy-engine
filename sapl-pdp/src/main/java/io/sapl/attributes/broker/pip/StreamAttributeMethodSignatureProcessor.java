@@ -255,7 +255,7 @@ public class StreamAttributeMethodSignatureProcessor {
                 return Streams.just(Value.error(
                         ERROR_ATTRIBUTE_EXECUTION_TEMPLATE.formatted(invocation.attributeName(), t.getMessage())));
             }
-            if (!returnsStream && result == null) {
+            if (result == null) {
                 return Streams.just(Value.error(ERROR_ATTRIBUTE_RETURNED_NULL.formatted(invocation.attributeName())));
             }
             return convertResultToStream(result, returnsStream);

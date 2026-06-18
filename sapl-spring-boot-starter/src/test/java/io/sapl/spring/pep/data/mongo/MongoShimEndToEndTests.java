@@ -18,12 +18,15 @@
 package io.sapl.spring.pep.data.mongo;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -36,6 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.mongodb.core.ReactiveFindOperation.FindWithQuery;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -289,6 +293,29 @@ class MongoShimEndToEndTests {
             val captor = ArgumentCaptor.forClass(Query.class);
             verify(delegate).find(captor.capture(), eq(Citizen.class), eq("citizens"));
             assertThat(captor.getValue().getQueryObject().toJson()).contains("\"tenantId\": 7");
+        }
+    }
+
+    @Nested
+    @DisplayName("Fail-closed on unexpected terminating return type")
+    class UnexpectedTerminatingReturnType {
+
+        @Test
+        @DisplayName("A terminating method whose return type is neither Flux nor Mono is rejected, never run with an unenforced query")
+        void givenNonReactiveTerminatingReturnTypeWhenDispatchedThenFailsClosed() throws Exception {
+            @SuppressWarnings("unchecked")
+            val          delegateChain = (FindWithQuery<Citizen>) org.mockito.Mockito.mock(FindWithQuery.class);
+            val          originalQuery = new Query();
+            final Method dispatch      = MongoShimMethodInterceptor.class.getDeclaredMethod("dispatchTerminatingFind",
+                    FindWithQuery.class, Query.class, Method.class, Object[].class);
+            dispatch.setAccessible(true);
+            final Method nonReactive = Object.class.getMethod("toString");
+
+            assertThatThrownBy(() -> dispatch.invoke(null, delegateChain, originalQuery, nonReactive, new Object[0]))
+                    .isInstanceOf(InvocationTargetException.class).cause()
+                    .isInstanceOf(UnsupportedOperationException.class);
+
+            verifyNoInteractions(delegateChain);
         }
     }
 

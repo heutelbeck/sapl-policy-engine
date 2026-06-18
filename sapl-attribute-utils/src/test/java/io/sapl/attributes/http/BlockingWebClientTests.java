@@ -36,9 +36,22 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.CookieHandler;
+import java.net.ProxySelector;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandler;
+import java.net.http.HttpResponse.PushPromiseHandler;
 import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -158,6 +171,95 @@ class BlockingWebClientTests {
                 assertThat(err.message()).doesNotContain(secret);
             });
         }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = { "/api/SUPERSECRET-TOKEN-123/positions", "#SUPERSECRET-TOKEN-123" })
+    @DisplayName("a malformed URL never leaks a path-segment or fragment secret into the error value")
+    void whenMalformedUrlWithSecretInPathOrFragmentThenErrorValueDoesNotLeakToken(String secretBearingSuffix) {
+        val secret   = "SUPERSECRET-TOKEN-123";
+        val template = """
+                {
+                    "baseUrl" : "http://bad host:8082",
+                    "path" : "%s",
+                    "accept" : "application/json"
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(secretBearingSuffix));
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).doesNotContain(secret);
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("a malformed URL with an '@' in the userinfo password never leaks the password tail")
+    void whenMalformedUrlWithAtInPasswordThenErrorValueDoesNotLeakPassword() {
+        val passwordTail = "ssword";
+        val template     = """
+                {
+                    "baseUrl" : "http://user:p@ssword@bad host:8082",
+                    "path" : "/api/positions",
+                    "accept" : "application/json"
+                }
+                """;
+        val request      = (ObjectValue) ValueJsonMarshaller.json(template.formatted());
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).doesNotContain(passwordTail);
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("an SSE producer's unchecked transport failure fails closed to an error value")
+    void whenServerSentEventProducerThrowsUncheckedThenErrorValue() {
+        val failingClient = new BlockingWebClient(MAPPER, new ThrowingHttpClient());
+        val template      = """
+                {
+                    "baseUrl" : "http://localhost:1",
+                    "accept" : "text/event-stream"
+                }
+                """;
+        val request       = (ObjectValue) ValueJsonMarshaller.json(template.formatted());
+
+        val drained = StreamAssertions.assertThat(failingClient.httpRequest("GET", request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+        assertThat(drained).anySatisfy(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+    }
+
+    @Test
+    @DisplayName("a multi-byte SSE event over the byte budget fails closed even when its char count is under it")
+    void whenServerSentEventExceedsMaxResponseBytesInUtf8ButNotCharCountThenErrorValue() {
+        val multiByteChars = "€".repeat(40);
+        val eventStream    = "data:" + multiByteChars + "\n\n";
+        server.enqueue(new MockResponse().setBody(eventStream).addHeader("Content-Type", "text/event-stream"));
+        val template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "text/event-stream",
+                    "maxResponseBytes" : 64
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl));
+
+        val drained = StreamAssertions.assertThat(client.httpRequest("GET", request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+        assertThat(drained).anySatisfy(v -> {
+            if (!(v instanceof ErrorValue err)) {
+                throw new AssertionError("Expected ErrorValue, got: " + v);
+            }
+            assertThat(err.message()).contains("64");
+        });
     }
 
     @Test
@@ -349,5 +451,75 @@ class BlockingWebClientTests {
             }
             assertThat(err.message()).contains("64");
         });
+    }
+
+    /**
+     * Stand-in transport whose blocking send throws an unchecked
+     * exception, modelling a flaky endpoint or an invalid request that
+     * surfaces as a RuntimeException from {@link HttpClient#send}.
+     */
+    private static final class ThrowingHttpClient extends HttpClient {
+
+        @Override
+        public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> responseBodyHandler) {
+            throw new IllegalArgumentException("transport failure");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request,
+                BodyHandler<T> responseBodyHandler) {
+            throw new IllegalArgumentException("transport failure");
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, BodyHandler<T> responseBodyHandler,
+                PushPromiseHandler<T> pushPromiseHandler) {
+            throw new IllegalArgumentException("transport failure");
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Version version() {
+            return Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
     }
 }

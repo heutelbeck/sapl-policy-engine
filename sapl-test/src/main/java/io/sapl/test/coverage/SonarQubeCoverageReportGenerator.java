@@ -246,13 +246,19 @@ public class SonarQubeCoverageReportGenerator {
         xml.writeCharacters("\n");
 
         // Write target line coverage (line 1 for policy declaration)
-        if (coverage.wasTargetEvaluated()) {
+        val targetLineEmitted = coverage.wasTargetEvaluated();
+        if (targetLineEmitted) {
             writeLineCoverage(xml, 1, coverage.wasTargetMatched(), 0, 0);
         }
 
-        // Write branch coverage for each condition
+        // Write branch coverage for each condition. SonarQube rejects a <file>
+        // with two lineToCover elements sharing a lineNumber, so the line-1
+        // branch is skipped when the target already claimed that line.
         for (val branch : coverage.getBranchHits()) {
-            val line            = branch.line();
+            val line = branch.line();
+            if (line == 1 && targetLineEmitted) {
+                continue;
+            }
             val covered         = branch.isPartiallyCovered();
             val branchesToCover = branch.totalBranchCount();
             val coveredBranches = branch.coveredBranchCount();

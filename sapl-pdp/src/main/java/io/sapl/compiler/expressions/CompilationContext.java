@@ -72,7 +72,7 @@ public class CompilationContext {
     private Set<String>                     localVariableNames       = new HashSet<>();
     private final Map<Value, Value>         valueDedup               = new HashMap<>();
     private ObjectValue                     compilerOptions          = Value.EMPTY_OBJECT;
-    private Map<Long, Value>                foldingCache             = new HashMap<>();
+    private Map<IndexPredicate, Value>      foldingCache             = new HashMap<>();
 
     public CompilationContext(String pdpId, String configurationId, PdpData data, FunctionBroker functionBroker) {
         this.pdpId           = pdpId;
@@ -180,22 +180,26 @@ public class CompilationContext {
 
     /**
      * Evaluates a foldable PureOperator at compile time, caching the result
-     * by semantic hash. Subsequent calls with the same semantic hash return
-     * the cached result without re-evaluation.
+     * keyed by an {@link IndexPredicate}. The key uses the semantic hash as a
+     * fast pre-filter and {@link PureOperator#semanticEquals(PureOperator)} as
+     * the exact identity check, so a hash collision between two semantically
+     * distinct operators can never substitute one operator's folded constant
+     * for the other's. Subsequent calls with a semantically equal operator
+     * return the cached result without re-evaluation.
      *
      * @param po the pure operator to fold (must not depend on subscription
      * or relative context)
      * @return the folded Value
      */
     private Value cacheOrFold(PureOperator po) {
-        val hash     = po.semanticHash();
-        val cacheHit = foldingCache.get(hash);
+        val key      = new IndexPredicate(po.semanticHash(), po);
+        val cacheHit = foldingCache.get(key);
         if (cacheHit != null) {
             return cacheHit;
         }
         val foldingContext = DummyEvaluationContextFactory.dummyContext(this);
         val result         = dedupeValue(po.evaluate(foldingContext));
-        foldingCache.put(hash, result);
+        foldingCache.put(key, result);
         return result;
     }
 

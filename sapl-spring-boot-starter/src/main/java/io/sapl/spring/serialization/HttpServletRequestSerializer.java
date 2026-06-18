@@ -148,7 +148,11 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
     }
 
     private static String decode(String value) {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException malformedEscape) {
+            return value;
+        }
     }
 
     private static void writeClient(HttpServletRequest request, JsonGenerator gen) {

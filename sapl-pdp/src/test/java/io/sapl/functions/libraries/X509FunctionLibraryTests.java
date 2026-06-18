@@ -33,6 +33,7 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -447,6 +448,81 @@ class X509FunctionLibraryTests {
         assertThat(validNow).isEqualTo(Value.TRUE);
         assertThat(validBefore).isEqualTo(Value.FALSE);
         assertThat(validAfter).isEqualTo(Value.FALSE);
+    }
+
+    @Nested
+    @DisplayName("IPv6 and multi-valued RDN correctness")
+    class AddressAndDistinguishedNameNormalization {
+
+        @ParameterizedTest(name = "{2}")
+        @MethodSource("io.sapl.functions.libraries.X509FunctionLibraryTests#equivalentIpv6Forms")
+        void whenHasIpAddressWithEquivalentIpv6FormThenReturnsTrue(String certificateIp, String policyIp,
+                String description) throws Exception {
+            val cert = generateCertificateWithIpSan(certificateIp);
+            val pem  = toPem(cert);
+
+            val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(pem), (TextValue) Value.of(policyIp));
+
+            assertThat(result).as(description).isEqualTo(Value.TRUE);
+        }
+
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("io.sapl.functions.libraries.X509FunctionLibraryTests#multiValuedRdnSubjects")
+        void whenExtractCommonNameWithMultiValuedRdnThenReturnsBareCommonName(String subjectDn, String expectedCn)
+                throws Exception {
+            val cert = generateCertificate(subjectDn, REFERENCE.minus(1, ChronoUnit.DAYS),
+                    REFERENCE.plus(365, ChronoUnit.DAYS), false, null);
+            val pem  = toPem(cert);
+
+            val result = X509FunctionLibrary.extractCommonName((TextValue) Value.of(pem));
+
+            assertThat(result).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                    .isEqualTo(expectedCn);
+        }
+
+        @Test
+        void whenExtractCommonNameWithEscapedSeparatorThenReturnsUnescapedValue() throws Exception {
+            val cert = generateCertificate("CN=evil\\,corp,O=Acme,C=US", REFERENCE.minus(1, ChronoUnit.DAYS),
+                    REFERENCE.plus(365, ChronoUnit.DAYS), false, null);
+            val pem  = toPem(cert);
+
+            val result = X509FunctionLibrary.extractCommonName((TextValue) Value.of(pem));
+
+            assertThat(result).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                    .isEqualTo("evil,corp");
+        }
+    }
+
+    static Stream<Arguments> equivalentIpv6Forms() {
+        return Stream.of(arguments("::1", "0:0:0:0:0:0:0:1", "Compressed vs expanded loopback"),
+                arguments("2001:db8::1", "2001:0db8:0000:0000:0000:0000:0000:0001", "Compressed vs fully expanded"),
+                arguments("2001:DB8::ABCD", "2001:db8::abcd", "Uppercase vs lowercase hex"));
+    }
+
+    static Stream<Arguments> multiValuedRdnSubjects() {
+        return Stream.of(arguments("CN=trusted.example.com+OU=spoof,O=Acme,C=US", "trusted.example.com"),
+                arguments("OU=spoof+CN=trusted.example.com,O=Acme,C=US", "trusted.example.com"));
+    }
+
+    private static X509Certificate generateCertificateWithIpSan(String ipAddress)
+            throws OperatorCreationException, CertificateException, IOException {
+        val subject     = new X500Name(AZATHOTH_DN);
+        val certBuilder = new JcaX509v3CertificateBuilder(subject, BigInteger.valueOf(System.currentTimeMillis()),
+                Date.from(REFERENCE.minus(1, ChronoUnit.DAYS)), Date.from(REFERENCE.plus(365, ChronoUnit.DAYS)),
+                subject, keyPair.getPublic());
+
+        certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+
+        val ipBytes       = InetAddress.getByName(ipAddress).getAddress();
+        val octetString   = new DEROctetString(ipBytes);
+        val ipGeneralName = new GeneralName(GeneralName.iPAddress, octetString);
+        val sans          = new GeneralNames(new GeneralName[] { ipGeneralName });
+        certBuilder.addExtension(Extension.subjectAlternativeName, false, sans);
+
+        val signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate());
+        val holder = certBuilder.build(signer);
+
+        return new JcaX509CertificateConverter().getCertificate(holder);
     }
 
     /* Helper Methods */

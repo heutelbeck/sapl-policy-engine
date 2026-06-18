@@ -198,7 +198,7 @@ public record TestConfiguration(
 
         /**
          * Sets the timeout for test verification.
-         * Default is 5 seconds for faster feedback.
+         * Default is 1 second for faster feedback.
          *
          * @param timeout the verification timeout
          * @return this builder for chaining

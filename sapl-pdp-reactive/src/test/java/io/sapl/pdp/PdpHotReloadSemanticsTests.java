@@ -30,11 +30,13 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
@@ -60,6 +62,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * {@code switchOnConfig}-style wiring fails an in-engine unit test.
  */
 @DisplayName("decide() stays alive across configuration changes")
+@Timeout(value = 20, unit = TimeUnit.SECONDS)
 class PdpHotReloadSemanticsTests {
 
     private static final CombiningAlgorithm DENY_UNLESS_PERMIT = new CombiningAlgorithm(

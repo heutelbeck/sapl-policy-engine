@@ -115,4 +115,31 @@ class SAPLTestDocumentSymbolProviderTests {
 
     }
 
+    @Nested
+    @DisplayName("partial documents (live editing)")
+    class PartialDocuments {
+
+        @Test
+        @DisplayName("an unnamed requirement still builds the model and the outline keeps the well-formed requirements")
+        void whenRequirementHasNoNameThenModelBuildsAndOutlineKeepsNamedRequirements() {
+            var document = new SAPLTestParsedDocument("test.sapltest", """
+                    requirement {
+                        scenario "s1"
+                            when "u" attempts "a" on "r"
+                            expect permit;
+                    }
+                    requirement "Valid" {
+                        scenario "s2"
+                            when "u" attempts "a" on "r"
+                            expect permit;
+                    }
+                    """);
+
+            var symbols = provider.provideDocumentSymbols(document);
+
+            assertThat(symbols).isNotEmpty().anySatisfy(req -> assertThat(req.getName()).isEqualTo("Valid"));
+        }
+
+    }
+
 }

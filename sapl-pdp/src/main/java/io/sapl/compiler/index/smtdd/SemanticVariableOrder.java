@@ -208,7 +208,7 @@ public class SemanticVariableOrder {
 
     private static boolean addHasConstants(PureOperator pureOperand, Value container, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
-        if (!(container instanceof ObjectValue object)) {
+        if (!(container instanceof ObjectValue object) || object.keySet().isEmpty()) {
             return false;
         }
         // CONST has PureOp: the operator evaluates to a key, check against constant's
@@ -224,6 +224,9 @@ public class SemanticVariableOrder {
     private static boolean addInConstants(PureOperator pureOperand, Value collection, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         if (collection instanceof ArrayValue array) {
+            if (array.size() == 0) {
+                return false;
+            }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
             for (var i = 0; i < array.size(); i++) {
@@ -232,6 +235,9 @@ public class SemanticVariableOrder {
             return true;
         }
         if (collection instanceof ObjectValue object) {
+            if (object.values().isEmpty()) {
+                return false;
+            }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
             for (val value : object.values()) {

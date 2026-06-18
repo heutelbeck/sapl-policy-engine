@@ -68,7 +68,8 @@ import reactor.util.context.ContextView;
  */
 public class MongoShimMethodInterceptor implements MethodInterceptor {
 
-    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED = "Access Denied. A MongoDB query-rewriting obligation handler failed.";
+    private static final String ERROR_ACCESS_DENIED_OBLIGATION_FAILED    = "Access Denied. A MongoDB query-rewriting obligation handler failed.";
+    private static final String ERROR_UNEXPECTED_TERMINATING_RETURN_TYPE = "Cannot enforce the query-rewriting obligation for an unexpected terminating return type: ";
 
     private static final String      METHOD_QUERY                = "query";
     private static final Set<String> SHIMMED_LEGACY_QUERY_METHOD = Set.of("find", "findOne", "exists", "count",
@@ -211,7 +212,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
     }
 
     private static Object dispatchTerminatingFind(FindWithQuery<?> delegate, Query originalQuery, Method method,
-            Object[] args) throws ReflectiveOperationException {
+            Object[] args) {
         val returnType = method.getReturnType();
         if (returnType == Flux.class) {
             return Flux.deferContextual(ctx -> applyShimAndInvokeTerminating(ctx, delegate, originalQuery, method, args)
@@ -221,7 +222,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             return Mono.deferContextual(ctx -> applyShimAndInvokeTerminating(ctx, delegate, originalQuery, method, args)
                     .flatMap(it -> (Mono<?>) it));
         }
-        return method.invoke(delegate.matching(originalQuery), args);
+        throw new UnsupportedOperationException(ERROR_UNEXPECTED_TERMINATING_RETURN_TYPE + returnType.getName());
     }
 
     private static Mono<Object> applyShimAndInvokeTerminating(ContextView ctx, FindWithQuery<?> delegate,

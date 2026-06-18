@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import io.sapl.api.coverage.PolicyCoverageData;
 import lombok.val;
 
 /**
@@ -94,6 +96,46 @@ class HtmlLineCoverageReportGeneratorTests {
                 softly.assertThat(tempDir.resolve("html/assets/lib/js/popper.min.js")).doesNotExist();
                 softly.assertThat(tempDir.resolve("html/assets/lib/js/require.js")).doesNotExist();
             });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("document name sanitization")
+    class DocumentNameSanitizationTests {
+
+        @TempDir
+        Path tempDir;
+
+        private void generate(String documentName) throws IOException {
+            val policy    = new PolicyCoverageData(documentName, "policy \"x\"\npermit;", "policy");
+            val generator = new HtmlLineCoverageReportGenerator();
+            generator.generateHtmlReport(List.of(policy), tempDir, POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO,
+                    POLICY_CONDITION_HIT_RATIO);
+        }
+
+        @Test
+        @DisplayName("a document name with path separators does not escape the policies directory")
+        void whenDocumentNameContainsPathSeparatorThenFileStaysWithinPoliciesDirectory() throws IOException {
+            generate("../../escaped");
+
+            val policiesDir = tempDir.resolve("html").resolve("policies").toRealPath();
+            try (val generated = Files.walk(policiesDir)) {
+                assertThat(generated.filter(Files::isRegularFile))
+                        .allSatisfy(file -> assertThat(file.toRealPath()).startsWith(policiesDir)).hasSize(1);
+            }
+        }
+
+        @Test
+        @DisplayName("the index link points to a file that actually exists on disk")
+        void whenDocumentNameContainsSpecialCharactersThenIndexLinkResolvesToAnExistingFile() throws IOException {
+            generate("a&b/c");
+
+            val reportContent = Files.readString(tempDir.resolve("html").resolve("report.html"));
+            val href          = reportContent.replaceAll("(?s).*<a href=\"policies/", "").replaceAll("(?s)\\.html\".*",
+                    "");
+
+            assertThat(tempDir.resolve("html").resolve("policies").resolve(href + ".html")).exists();
         }
 
     }

@@ -52,4 +52,14 @@ class PDPAutoConfigurationTests {
                 });
     }
 
+    @Test
+    void whenCatalogueKeyHasMalformedBase64_thenStartupFailureNamesTheOffendingKeyId() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.embedded.policiesPath=/policies", "io.sapl.pdp.embedded.enabled=true",
+                        "io.sapl.pdp.embedded.pdpConfigType=BUNDLES",
+                        "io.sapl.pdp.embedded.bundle-security.keys.signing-key=not-valid-base64!!!")
+                .run(context -> assertThat(context).hasFailed().getFailure()
+                        .hasStackTraceContaining("Failed to parse public key 'signing-key' in key catalogue"));
+    }
+
 }

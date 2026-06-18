@@ -130,6 +130,10 @@ public class X509PolicyInformationPoint {
             val notAfter    = certificate.getNotAfter().toInstant();
             val now         = clock.instant();
 
+            if (!notAfter.isAfter(notBefore)) {
+                return Streams.just(Value.FALSE);
+            }
+
             if (now.isAfter(notAfter)) {
                 return Streams.just(Value.FALSE);
             }

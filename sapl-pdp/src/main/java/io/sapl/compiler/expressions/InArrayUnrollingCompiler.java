@@ -63,14 +63,35 @@ class InArrayUnrollingCompiler {
         val haystack = arrayExpr.elements();
         val location = inOperator.location();
 
-        // [] -> false
+        // Compile the needle first so that an erroring needle propagates its
+        // error, matching the standard (non-unrolled) IN path. Folding the
+        // empty-array case to a constant false before evaluating the needle
+        // would silently turn that error into a definite negative match.
+        val compiledNeedle = ExpressionCompiler.compile(inOperator.left(), ctx);
+        if (compiledNeedle instanceof ErrorValue) {
+            return compiledNeedle;
+        }
+
+        // [] -> false for a defined, non-erroring needle. A runtime needle
+        // (Pure/Stream) must still be evaluated for its potential error, so
+        // emit an IN node against the empty array, which short-circuits on an
+        // error operand and otherwise yields false. This matches the standard
+        // (non-unrolled) IN path.
         if (haystack.isEmpty()) {
-            return Value.FALSE;
+            if (compiledNeedle instanceof Value) {
+                return Value.FALSE;
+            }
+            val inOp = BinaryOperationCompiler.BINARY_OPERATIONS.get(BinaryOperatorType.IN);
+            if (compiledNeedle instanceof StreamOperator s) {
+                return new BinaryOperationCompiler.BinaryStream(inOp, s, Value.EMPTY_ARRAY, location);
+            }
+            val p = (PureOperator) compiledNeedle;
+            return new BinaryOperationCompiler.BinaryPureValue(BinaryOperatorType.IN, inOp, p, Value.EMPTY_ARRAY,
+                    location, p.isDependingOnSubscription(), p.isRelativeExpression());
         }
 
         // If needle is a compile-time constant undefined, fold to false
         // immediately. Undefined is never contained in any collection.
-        val compiledNeedle = ExpressionCompiler.compile(inOperator.left(), ctx);
         if (compiledNeedle instanceof UndefinedValue) {
             return Value.FALSE;
         }

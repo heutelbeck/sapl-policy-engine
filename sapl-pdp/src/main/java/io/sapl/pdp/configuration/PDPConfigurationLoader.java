@@ -91,8 +91,10 @@ public class PDPConfigurationLoader {
     private static final String PDP_JSON               = "pdp.json";
     private static final String SAPL_EXTENSION         = ".sapl";
 
-    private static final long MAX_TOTAL_SIZE_BYTES     = 1024L * 1024 * 1024;
-    private static final long MAX_TOTAL_SIZE_MEGABYTES = MAX_TOTAL_SIZE_BYTES / (1024 * 1024);
+    // Internal cap on total SAPL bytes per directory load (default 1 GiB);
+    // not a published compiler option.
+    private static final String OPTION_MAX_TOTAL_SIZE_MEGABYTES  = "maxTotalSizeMegabytes";
+    private static final int    DEFAULT_MAX_TOTAL_SIZE_MEGABYTES = 1024;
 
     private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID = "Bundle '%s' pdp.json is missing required field 'configurationId'.";
     private static final String ERROR_BUNDLE_MISSING_PDP_JSON         = "Bundle '%s' is missing pdp.json. Bundles require pdp.json with a configurationId.";
@@ -142,12 +144,14 @@ public class PDPConfigurationLoader {
      * if loading fails
      */
     public static PDPConfiguration loadFromDirectory(Path path, String pdpId) {
-        val pdpJsonPath  = path.resolve(PDP_JSON);
-        val pdpJson      = loadPdpJson(pdpJsonPath);
-        val maxDocuments = CompilationContext.intOption(pdpJson.compilerOptions(),
+        val pdpJsonPath           = path.resolve(PDP_JSON);
+        val pdpJson               = loadPdpJson(pdpJsonPath);
+        val maxDocuments          = CompilationContext.intOption(pdpJson.compilerOptions(),
                 CompilationContext.OPTION_MAX_POLICY_DOCUMENTS, CompilationContext.DEFAULT_MAX_POLICY_DOCUMENTS);
-        val saplContents = loadSaplDocumentsAsMap(path, maxDocuments);
-        val documents    = new ArrayList<>(saplContents.values());
+        val maxTotalSizeMegabytes = CompilationContext.intOption(pdpJson.compilerOptions(),
+                OPTION_MAX_TOTAL_SIZE_MEGABYTES, DEFAULT_MAX_TOTAL_SIZE_MEGABYTES);
+        val saplContents          = loadSaplDocumentsAsMap(path, maxDocuments, maxTotalSizeMegabytes);
+        val documents             = new ArrayList<>(saplContents.values());
 
         val configurationId = pdpJson.configurationId() != null ? pdpJson.configurationId()
                 : generateDirectoryConfigurationId(path, pdpJson, saplContents);
@@ -352,7 +356,8 @@ public class PDPConfigurationLoader {
         return builder.build();
     }
 
-    private static Map<String, String> loadSaplDocumentsAsMap(Path directory, int maxFileCount) {
+    private static Map<String, String> loadSaplDocumentsAsMap(Path directory, int maxFileCount,
+            int maxTotalSizeMegabytes) {
         List<Path> saplPaths;
         try (Stream<Path> paths = Files.list(directory)) {
             saplPaths = paths.filter(p -> p.toString().endsWith(SAPL_EXTENSION)).filter(Files::isRegularFile).toList();
@@ -367,14 +372,14 @@ public class PDPConfigurationLoader {
         // Read files and validate size atomically to prevent TOCTOU attacks.
         // An attacker could replace a small file with a large one between a
         // size check and the actual read.
-        val documents = new HashMap<String, String>();
-        var totalSize = 0L;
+        val documents         = new HashMap<String, String>();
+        val maxTotalSizeBytes = maxTotalSizeMegabytes * 1024L * 1024;
+        var totalSize         = 0L;
         for (val path : saplPaths) {
             val content = readSaplDocument(path);
             totalSize += content.getBytes(StandardCharsets.UTF_8).length;
-            if (totalSize > MAX_TOTAL_SIZE_BYTES) {
-                throw new PDPConfigurationException(
-                        ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM.formatted(MAX_TOTAL_SIZE_MEGABYTES));
+            if (totalSize > maxTotalSizeBytes) {
+                throw new PDPConfigurationException(ERROR_TOTAL_SIZE_EXCEEDS_MAXIMUM.formatted(maxTotalSizeMegabytes));
             }
             val fileNamePath = path.getFileName();
             if (fileNamePath == null) {

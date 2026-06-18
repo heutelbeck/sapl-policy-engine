@@ -40,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -318,8 +319,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> server(ObjectValue traccarConfig) {
-        return server(traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> server(AttributeAccessContext ctx, ObjectValue traccarConfig) {
+        return server(traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> server(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -404,8 +405,8 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Stream<Value> devices(ObjectValue traccarConfig) {
-        return devices(traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> devices(AttributeAccessContext ctx, ObjectValue traccarConfig) {
+        return devices(traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> devices(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -493,13 +494,13 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return device(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> device(TextValue deviceEntityId, AttributeAccessContext ctx, ObjectValue traccarConfig) {
+        return device(deviceEntityId, traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/devices/%s".formatted(deviceEntityId.value()),
-                traccarConfig, pdpSecrets);
+        val settingsOrError = requestSettingsFromTraccarConfig(
+                "/api/devices/%s".formatted(encodePathSegment(deviceEntityId.value())), traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Streams.just(settingsOrError);
         }
@@ -562,8 +563,8 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Stream<Value> geofences(ObjectValue traccarConfig) {
-        return geofences(traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> geofences(AttributeAccessContext ctx, ObjectValue traccarConfig) {
+        return geofences(traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> geofences(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -628,13 +629,14 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig) {
-        return traccarGeofence(geofenceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> traccarGeofence(TextValue geofenceEntityId, AttributeAccessContext ctx,
+            ObjectValue traccarConfig) {
+        return traccarGeofence(geofenceEntityId, traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences/%s".formatted(geofenceEntityId.value()),
-                traccarConfig, pdpSecrets);
+        val settingsOrError = requestSettingsFromTraccarConfig(
+                "/api/geofences/%s".formatted(encodePathSegment(geofenceEntityId.value())), traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Streams.just(settingsOrError);
         }
@@ -710,8 +712,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig) {
-        return geofenceGeometry(geofenceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> geofenceGeometry(TextValue geofenceEntityId, AttributeAccessContext ctx,
+            ObjectValue traccarConfig) {
+        return geofenceGeometry(geofenceEntityId, traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -794,8 +797,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return traccarPosition(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> traccarPosition(TextValue deviceEntityId, AttributeAccessContext ctx,
+            ObjectValue traccarConfig) {
+        return traccarPosition(deviceEntityId, traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -867,8 +871,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return position(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> position(TextValue deviceEntityId, AttributeAccessContext ctx, ObjectValue traccarConfig) {
+        return position(deviceEntityId, traccarConfig, ctx.pdpSecrets());
     }
 
     Stream<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -961,6 +965,20 @@ public class TraccarPolicyInformationPoint {
             return converter.apply(object);
         }
         return value instanceof ErrorValue ? value : Value.error(ERROR_UNEXPECTED_RESPONSE);
+    }
+
+    /**
+     * Percent-encodes a single path segment so that a policy-controlled entity id
+     * cannot manipulate the request URL structure (query-parameter injection,
+     * fragment truncation, or path traversal) against the Traccar server. Spaces
+     * are encoded as {@code %20} rather than {@code +} because the value is a path
+     * segment, not a query value.
+     *
+     * @param segment the raw entity id
+     * @return the percent-encoded path segment
+     */
+    private static String encodePathSegment(String segment) {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private static Value getRequiredProperty(String fieldName, ObjectValue traccarConfig) {

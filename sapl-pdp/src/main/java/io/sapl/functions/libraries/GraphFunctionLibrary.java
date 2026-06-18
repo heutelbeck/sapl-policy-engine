@@ -595,8 +595,8 @@ public class GraphFunctionLibrary {
                     queue.addLast(rootId);
                 }
             }
-        } else if (initial instanceof TextValue textValue) {
-            val rootId = textValue.value();
+        } else {
+            val rootId = nodeIdOf(initial);
             if (visited.add(rootId)) {
                 queue.addLast(rootId);
             }

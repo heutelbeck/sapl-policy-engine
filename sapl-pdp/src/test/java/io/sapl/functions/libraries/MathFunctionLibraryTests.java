@@ -51,10 +51,46 @@ class MathFunctionLibraryTests {
     }
 
     @Test
-    @DisplayName("an over-range number (infinite as a double) fails closed to an ErrorValue, not a throw")
-    void whenAbsOfOverRangeNumberThenErrorValue() {
-        val huge = (NumberValue) Value.of(new BigDecimal("1e400"));
-        assertThat(MathFunctionLibrary.abs(huge)).isInstanceOf(ErrorValue.class);
+    @DisplayName("abs preserves a magnitude beyond the range of a double exactly, without coercion loss")
+    void whenAbsOfOverRangeNumberThenPreservesExactValue() {
+        val huge = (NumberValue) Value.of(new BigDecimal("-1e400"));
+        assertThat(MathFunctionLibrary.abs(huge)).isInstanceOf(NumberValue.class)
+                .extracting(v -> ((NumberValue) v).value())
+                .satisfies(v -> assertThat(v).isEqualByComparingTo(new BigDecimal("1e400")));
+    }
+
+    @ParameterizedTest(name = "{0} preserves exact integer magnitude above 2^53")
+    @MethodSource("exactLargeIntegerCases")
+    void whenExactFunctionOnLargeIntegerThenPreservesPrecision(String operation, BigDecimal a, BigDecimal b,
+            BigDecimal expected) {
+        val numA   = (NumberValue) Value.of(a);
+        val numB   = b == null ? null : (NumberValue) Value.of(b);
+        val actual = switch (operation) {
+                   case "min"   -> MathFunctionLibrary.min(numA, numB);
+                   case "max"   -> MathFunctionLibrary.max(numA, numB);
+                   case "abs"   -> MathFunctionLibrary.abs(numA);
+                   case "sign"  -> MathFunctionLibrary.sign(numA);
+                   case "ceil"  -> MathFunctionLibrary.ceil(numA);
+                   case "floor" -> MathFunctionLibrary.floor(numA);
+                   case "round" -> MathFunctionLibrary.round(numA);
+                   default      -> throw new IllegalArgumentException("Unknown operation: " + operation);
+                   };
+
+        assertThat(actual).isInstanceOf(NumberValue.class).extracting(v -> ((NumberValue) v).value())
+                .satisfies(v -> assertThat(v).isEqualByComparingTo(expected));
+    }
+
+    private static Stream<Arguments> exactLargeIntegerCases() {
+        val lower   = new BigDecimal("9007199254740992");
+        val higher  = new BigDecimal("9007199254740993");
+        val longMax = new BigDecimal("9223372036854775807");
+        return Stream.of(arguments("min", lower, higher, lower), arguments("min", higher, lower, lower),
+                arguments("max", lower, higher, higher), arguments("max", higher, lower, higher),
+                arguments("abs", longMax.negate(), null, longMax), arguments("abs", longMax, null, longMax),
+                arguments("sign", longMax, null, BigDecimal.ONE),
+                arguments("sign", longMax.negate(), null, BigDecimal.ONE.negate()),
+                arguments("ceil", higher, null, higher), arguments("floor", higher, null, higher),
+                arguments("round", higher, null, higher));
     }
 
     @Test

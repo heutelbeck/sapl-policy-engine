@@ -210,6 +210,20 @@ class SaplJacksonModuleTests {
         assertThat(restored.resource()).isEqualTo(original.resource());
     }
 
+    @ParameterizedTest
+    @MethodSource("invalidDecisionValueCases")
+    void when_deserializingDecisionWithInvalidValue_then_reportsInputMismatch(String json) {
+        assertThatThrownBy(() -> mapper.readValue(json, AuthorizationDecision.class))
+                .isInstanceOf(JacksonException.class);
+    }
+
+    static Stream<Arguments> invalidDecisionValueCases() {
+        return Stream.of(arguments("""
+                {"decision":"BOGUS"}"""), arguments("""
+                {"decision":"permit"}"""), arguments("""
+                {"decision":null}"""));
+    }
+
     @Test
     void when_roundTrippingAuthorizationDecision_then_decisionPreserved() throws JacksonException {
         val obligation = Value.ofObject(Map.of("type", Value.of("notify"), "target", Value.of("security")));

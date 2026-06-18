@@ -18,6 +18,7 @@
 package io.sapl.spring.pep.constraints.providers;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -59,36 +60,39 @@ public class ContentFilter {
     private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
     private static final String ERROR_REGEX_UNSAFE                            = "Unsafe regex pattern rejected (potential ReDoS): ";
 
-    private static final String DISCLOSE_LEFT                  = "discloseLeft";
-    private static final String DISCLOSE_RIGHT                 = "discloseRight";
-    private static final String REPLACEMENT                    = "replacement";
-    private static final String REPLACE                        = "replace";
-    private static final String LENGTH                         = "length";
-    private static final String BLACKEN                        = "blacken";
-    private static final String DELETE                         = "delete";
-    private static final String PATH                           = "path";
-    private static final String ACTIONS                        = "actions";
-    private static final String CONDITIONS                     = "conditions";
-    private static final String VALUE                          = "value";
-    private static final String EQUALS                         = "==";
-    private static final String NEQ                            = "!=";
-    private static final String GEQ                            = ">=";
-    private static final String LEQ                            = "<=";
-    private static final String GT                             = ">";
-    private static final String LT                             = "<";
-    private static final String REGEX                          = "=~";
-    private static final String TYPE                           = "type";
-    private static final String BLACK_SQUARE                   = "█";
-    private static final String ERROR_ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
-    private static final String ERROR_ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
-    private static final String ERROR_LENGTH_NOT_NUMBER        = "'length' of 'blacken' action is not numeric.";
-    private static final String ERROR_NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
-    private static final String ERROR_PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
-    private static final String ERROR_REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
-    private static final String ERROR_UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
-    private static final String ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
-    private static final String ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
-    private static final int    BLACKEN_LENGTH_INVALID_VALUE   = -1;
+    private static final String     DISCLOSE_LEFT                  = "discloseLeft";
+    private static final String     DISCLOSE_RIGHT                 = "discloseRight";
+    private static final String     REPLACEMENT                    = "replacement";
+    private static final String     REPLACE                        = "replace";
+    private static final String     LENGTH                         = "length";
+    private static final String     BLACKEN                        = "blacken";
+    private static final String     DELETE                         = "delete";
+    private static final String     PATH                           = "path";
+    private static final String     ACTIONS                        = "actions";
+    private static final String     CONDITIONS                     = "conditions";
+    private static final String     VALUE                          = "value";
+    private static final String     EQUALS                         = "==";
+    private static final String     NEQ                            = "!=";
+    private static final String     GEQ                            = ">=";
+    private static final String     LEQ                            = "<=";
+    private static final String     GT                             = ">";
+    private static final String     LT                             = "<";
+    private static final String     REGEX                          = "=~";
+    private static final String     TYPE                           = "type";
+    private static final String     BLACK_SQUARE                   = "█";
+    private static final String     ERROR_ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
+    private static final String     ERROR_ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
+    private static final String     ERROR_LENGTH_NEGATIVE_S        = "An action's '%s' must not be negative.";
+    private static final String     ERROR_LENGTH_NOT_NUMBER        = "'length' of 'blacken' action is not numeric.";
+    private static final String     ERROR_LENGTH_TOO_LARGE         = "'length' of 'blacken' action exceeds the maximum permitted blacken length.";
+    private static final String     ERROR_NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+    private static final String     ERROR_PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+    private static final String     ERROR_REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
+    private static final String     ERROR_UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
+    private static final String     ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
+    private static final String     ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
+    private static final int        BLACKEN_LENGTH_INVALID_VALUE   = -1;
+    private static final BigDecimal MAX_BLACKEN                    = BigDecimal.valueOf(1_000_000);
 
     private static final Pattern REDOS_ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*+\\|[^)]*+\\)[*+]");
     private static final Pattern REDOS_NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
@@ -400,9 +404,13 @@ public class ContentFilter {
 
     private static int determineBlackenLength(ObjectValue action) {
         return switch (action.get(LENGTH)) {
-        case null                                      -> BLACKEN_LENGTH_INVALID_VALUE;
-        case NumberValue(var bd) when bd.signum() >= 0 -> bd.intValue();
-        default                                        -> throw new AccessDeniedException(ERROR_LENGTH_NOT_NUMBER);
+        case null                                                                        ->
+            BLACKEN_LENGTH_INVALID_VALUE;
+        case NumberValue(var bd) when bd.signum() >= 0 && bd.compareTo(MAX_BLACKEN) <= 0 -> bd.intValue();
+        case NumberValue(var bd) when bd.signum() >= 0                                   ->
+            throw new AccessDeniedException(ERROR_LENGTH_TOO_LARGE);
+        default                                                                          ->
+            throw new AccessDeniedException(ERROR_LENGTH_NOT_NUMBER);
         };
     }
 
@@ -447,11 +455,16 @@ public class ContentFilter {
         if (!(value instanceof NumberValue(var bd))) {
             throw new AccessDeniedException(ERROR_VALUE_NOT_INTEGER_S.formatted(key));
         }
+        final int intValue;
         try {
-            return bd.intValueExact();
+            intValue = bd.intValueExact();
         } catch (ArithmeticException e) {
             throw new AccessDeniedException(ERROR_VALUE_NOT_INTEGER_S.formatted(key), e);
         }
+        if (intValue < 0) {
+            throw new AccessDeniedException(ERROR_LENGTH_NEGATIVE_S.formatted(key));
+        }
+        return intValue;
     }
 
     private static boolean isDangerousRegex(String pattern) {

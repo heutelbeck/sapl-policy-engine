@@ -20,9 +20,12 @@ package io.sapl.lsp.sapl.completion;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import tools.jackson.databind.JsonNode;
@@ -80,6 +83,11 @@ class ExpressionSchemaResolver {
      */
     public List<JsonNode> inferPotentialSchemasOfExpression(ExpressionContext expression, SaplContext sapl,
             int cursorOffset, LSPConfiguration config) {
+        return inferPotentialSchemasOfExpression(expression, sapl, cursorOffset, config, newVisitedSet());
+    }
+
+    private List<JsonNode> inferPotentialSchemasOfExpression(ExpressionContext expression, SaplContext sapl,
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         if (expression == null) {
             return new ArrayList<>();
         }
@@ -103,7 +111,7 @@ class ExpressionSchemaResolver {
         case GroupBasicContext groupBasic                       -> {
             // Group may contain an expression with implicit schemas
             var innerExpression = groupBasic.basicGroup().expression();
-            baseSchemas = inferPotentialSchemasOfExpression(innerExpression, sapl, cursorOffset, config);
+            baseSchemas = inferPotentialSchemasOfExpression(innerExpression, sapl, cursorOffset, config, visited);
             steps       = extractStepsFromBasic(groupBasic);
         }
         case FunctionBasicContext functionBasic                 -> {
@@ -128,7 +136,7 @@ class ExpressionSchemaResolver {
             // Identifier may be a subscription element or value definition
             var identifierCtx = identifierBasic.basicIdentifier();
             var identifier    = getIdentifierText(identifierCtx.saplId());
-            baseSchemas = inferPotentialSchemasFromIdentifier(identifier, sapl, cursorOffset, config);
+            baseSchemas = inferPotentialSchemasFromIdentifier(identifier, sapl, cursorOffset, config, visited);
             steps       = identifierCtx.step();
         }
         default                                                 -> {
@@ -152,8 +160,19 @@ class ExpressionSchemaResolver {
      */
     public List<JsonNode> inferValueDefinitionSchemas(ValueDefinitionContext valueDefinition, SaplContext sapl,
             int cursorOffset, LSPConfiguration config) {
+        return inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config, newVisitedSet());
+    }
+
+    private List<JsonNode> inferValueDefinitionSchemas(ValueDefinitionContext valueDefinition, SaplContext sapl,
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
+        // Guard against mutually recursive value definitions (e.g. var a = b; var b =
+        // a;) that would otherwise recurse without termination.
+        if (!visited.add(valueDefinition)) {
+            return new ArrayList<>();
+        }
+
         // First infer schemas from the assigned expression
-        var schemas = inferPotentialSchemasOfExpression(valueDefinition.eval, sapl, cursorOffset, config);
+        var schemas = inferPotentialSchemasOfExpression(valueDefinition.eval, sapl, cursorOffset, config, visited);
 
         // Then add explicit schema declarations
         for (var schemaExpression : valueDefinition.schemaVarExpression) {
@@ -161,6 +180,10 @@ class ExpressionSchemaResolver {
         }
 
         return schemas;
+    }
+
+    private Set<ValueDefinitionContext> newVisitedSet() {
+        return Collections.newSetFromMap(new IdentityHashMap<>());
     }
 
     private List<StepContext> extractStepsFromBasic(BasicContext basic) {
@@ -359,19 +382,20 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, SaplContext sapl, int cursorOffset,
-            LSPConfiguration config) {
+            LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, sapl, config);
         }
 
-        var schemas = new ArrayList<>(
-                lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, sapl, cursorOffset, config));
-        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, sapl, cursorOffset, config));
+        var schemas = new ArrayList<>(lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, sapl,
+                cursorOffset, config, visited));
+        schemas.addAll(
+                lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, sapl, cursorOffset, config, visited));
         return schemas;
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(String identifier, SaplContext sapl,
-            int cursorOffset, LSPConfiguration config) {
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         var schemas = new ArrayList<JsonNode>();
 
         var policyElement = sapl.policyElement();
@@ -379,7 +403,7 @@ class ExpressionSchemaResolver {
             var policySet = policySetElement.policySet();
             for (var valueDefinition : policySet.valueDefinition()) {
                 if (nameMatchesAndIsInScope(identifier, valueDefinition, cursorOffset)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config));
+                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config, visited));
                 }
             }
         }
@@ -388,12 +412,13 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicyBody(String identifier, SaplContext sapl,
-            int cursorOffset, LSPConfiguration config) {
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         var schemas      = new ArrayList<JsonNode>();
         var policyBodies = collectPolicyBodies(sapl);
 
         for (var policyBody : policyBodies) {
-            schemas.addAll(findMatchingValueDefinitionsInBody(identifier, policyBody, sapl, cursorOffset, config));
+            schemas.addAll(
+                    findMatchingValueDefinitionsInBody(identifier, policyBody, sapl, cursorOffset, config, visited));
         }
         return schemas;
     }
@@ -420,13 +445,13 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> findMatchingValueDefinitionsInBody(String identifier, PolicyBodyContext policyBody,
-            SaplContext sapl, int cursorOffset, LSPConfiguration config) {
+            SaplContext sapl, int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         var schemas = new ArrayList<JsonNode>();
         for (var statement : policyBody.statement()) {
             if (statement instanceof ValueDefinitionStatementContext valueDefStatement) {
                 var valueDefinition = valueDefStatement.valueDefinition();
                 if (nameMatchesAndIsInScope(identifier, valueDefinition, cursorOffset)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config));
+                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config, visited));
                 }
             }
         }

@@ -94,6 +94,45 @@ class SaplProtobufCodecTests {
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
         }
 
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("malformedNumberCases")
+        @DisplayName("decoding a malformed or unbounded number fails closed with an IOException")
+        void whenNumberPayloadMalformedOrUnboundedThenReadFailsClosed(String description, String numberLiteral)
+                throws IOException {
+            final byte[] bytes = numberValuePayload(numberLiteral);
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readValue(bytes)).isInstanceOf(IOException.class);
+        }
+
+        static Stream<Arguments> malformedNumberCases() {
+            return Stream.of(arguments("empty string", ""), arguments("whitespace", "   "),
+                    arguments("non-numeric text", "abc"), arguments("multiple decimal points", "1.2.3"),
+                    arguments("NaN literal", "NaN"), arguments("Infinity literal", "Infinity"),
+                    arguments("enormous negative scale", "1E2147483647"),
+                    arguments("enormous positive scale", "1E-2147483647"));
+        }
+
+        @Test
+        @DisplayName("a number within the accepted magnitude round-trips")
+        void whenNumberWithinAcceptedMagnitudeThenRoundTrips() throws IOException {
+            final var value = new NumberValue(new BigDecimal("123456789.123456789"));
+
+            final var bytes = SaplProtobufCodec.writeValue(value);
+
+            assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
+        }
+
+        private static byte[] numberValuePayload(String numberLiteral) throws IOException {
+            // Value fields: one VALUE_NUMBER (field 3) carrying the raw on-the-wire string.
+            // Hand-built because the encoder would never emit a malformed or unbounded
+            // number.
+            var valueBuffer = new ByteArrayOutputStream();
+            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            valueOut.writeString(3, numberLiteral);
+            valueOut.flush();
+            return valueBuffer.toByteArray();
+        }
+
         private static byte[] wrapInArrayValue(byte[] innerValueBytes) throws IOException {
             // ArrayValue content: one ARRAY_ELEMENTS (field 1) holding the inner value.
             var elementBuffer = new ByteArrayOutputStream();

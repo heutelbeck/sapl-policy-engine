@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration.source;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 import java.util.List;
@@ -28,7 +29,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 
 @DisplayName("RemoteBundleSourceConfig credential exposure")
@@ -59,6 +62,18 @@ class RemoteBundleSourceConfigTests {
         var cfg = config("https://bundles.example.com/bundles", "Authorization", "Bearer super-secret-token");
 
         assertThat(cfg.toString()).doesNotContain("super-secret-token").contains("REDACTED");
+    }
+
+    @ParameterizedTest(name = "longPollTimeout={0}s")
+    @ValueSource(longs = { 0L, -10L })
+    @DisplayName("a non-positive longPollTimeout is rejected at construction, like every other duration field")
+    void whenLongPollTimeoutNonPositiveThenConstructionFails(long seconds) {
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles",
+                        List.of("default"), RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100),
+                        Duration.ofSeconds(seconds), null, null, true, POLICY, Map.of(), Duration.ofMillis(50),
+                        Duration.ofMillis(200)))
+                .withMessageContaining("longPollTimeout");
     }
 
     private static RemoteBundleSourceConfig config(String baseUrl, String authName, String authValue) {

@@ -62,7 +62,7 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
 
     /**
      * Sets the per-await timeout for subsequent expectations. Default
-     * is two seconds.
+     * is ten seconds.
      */
     public StreamAssertions<T> withinTimeout(Duration newTimeout) {
         this.timeout = newTimeout;

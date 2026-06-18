@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
@@ -122,12 +123,17 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     private static final String FIELD_VALUE      = "value";
     private static final int    DEFAULT_PRIORITY = 30;
 
+    private static final String ERROR_EMPTY_PROJECTION           = "Obligation columns leave no admissible columns for SQL: %s";
+    private static final String ERROR_INVALID_COLUMN_IDENTIFIER  = "Invalid column identifier: %s";
     private static final String ERROR_PARSE_OBLIGATION_CONDITION = "Cannot parse obligation condition '%s': %s";
     private static final String ERROR_PARSE_SQL                  = "Cannot parse SQL '%s': %s";
-    private static final String ERROR_UNSUPPORTED_STATEMENT      = "Statement type %s does not support WHERE injection: %s";
     private static final String ERROR_UNSUPPORTED_OPERATOR       = "Unsupported operator in typed criterion: %s";
-    private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
+    private static final String ERROR_UNSUPPORTED_STATEMENT      = "Statement type %s does not support WHERE injection: %s";
     private static final String ERROR_VALUE_KIND_FOR_OPERATOR    = "Value kind %s incompatible with operator %s";
+    private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
+
+    private static final Pattern COLUMN_IDENTIFIER = Pattern
+            .compile("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*");
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
@@ -232,6 +238,9 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         val obligationSet = new LinkedHashSet<>(columns);
         val intersected   = originalItems.stream().filter(item -> matchesObligationColumn(item, obligationSet))
                 .toList();
+        if (intersected.isEmpty()) {
+            throw new AccessDeniedException(ERROR_EMPTY_PROJECTION.formatted(plainSelect.toString()));
+        }
         plainSelect.setSelectItems(intersected);
     }
 
@@ -244,7 +253,14 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     }
 
     private static SelectItem<?> columnSelectItem(String columnName) {
-        return new SelectItem<>(new Column(columnName));
+        return new SelectItem<>(new Column(requireValidColumnIdentifier(columnName)));
+    }
+
+    private static String requireValidColumnIdentifier(String column) {
+        if (!COLUMN_IDENTIFIER.matcher(column).matches()) {
+            throw new AccessDeniedException(ERROR_INVALID_COLUMN_IDENTIFIER.formatted(column));
+        }
+        return column;
     }
 
     private static List<String> extractStringArray(Value constraint, String fieldName) {
@@ -302,9 +318,10 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     }
 
     private static String renderLeaf(ObjectValue object) {
-        if (!(object.get(FIELD_COLUMN) instanceof TextValue(String column))) {
+        if (!(object.get(FIELD_COLUMN) instanceof TextValue(String rawColumn))) {
             throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted("missing 'column'"));
         }
+        val column = requireValidColumnIdentifier(rawColumn);
         if (!(object.get(FIELD_OP) instanceof TextValue(String op))) {
             throw new AccessDeniedException(ERROR_UNSUPPORTED_OPERATOR.formatted("missing 'op'"));
         }
@@ -355,6 +372,9 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         val parts = new ArrayList<String>(array.size());
         for (val element : array) {
             parts.add(renderValue(element, op));
+        }
+        if (parts.isEmpty()) {
+            return "(NULL)";
         }
         return "(" + String.join(", ", parts) + ")";
     }

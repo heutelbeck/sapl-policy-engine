@@ -337,28 +337,42 @@ class DirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenTotalSizeExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
-        writePdpJson(tempDir);
-        val largeContent = "x".repeat(2 * 1024 * 1024);
-        for (int i = 0; i < 6; i++) {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "compilerOptions": { "maxTotalSizeMegabytes": 2 }
+                        }
+                        """);
+        val oneMegabyte = "x".repeat(1024 * 1024);
+        for (int i = 0; i < 3; i++) {
             createFile(tempDir.resolve("large" + i + ".sapl"),
-                    "policy \"large%d\" permit \"%s\";".formatted(i, largeContent));
+                    "policy \"large%d\" permit \"%s\";".formatted(i, oneMegabyte));
         }
 
         source = new DirectoryPDPConfigurationSource(tempDir);
 
         assertThat(source.isClosed()).isFalse();
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
     void whenFileCountExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
-        writePdpJson(tempDir);
-        for (int i = 0; i < 1002; i++) {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "compilerOptions": { "maxPolicyDocuments": 3 }
+                        }
+                        """);
+        for (int i = 0; i < 4; i++) {
             createFile(tempDir.resolve("policy" + i + ".sapl"), "policy \"p%d\" permit true;".formatted(i));
         }
 
         source = new DirectoryPDPConfigurationSource(tempDir);
 
         assertThat(source.isClosed()).isFalse();
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test

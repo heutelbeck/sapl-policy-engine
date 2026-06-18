@@ -514,6 +514,46 @@ class JWTPolicyInformationPointTests {
                 StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("EXPIRED"));
             }
         }
+
+        @Test
+        @DisplayName("exp unreachably far in the future emits VALID and schedules no expiration")
+        void whenExpirationUnreachablyFarThenValidAndNoExpirationScheduled() throws JOSEException {
+            dispatcher.setDispatchMode(DispatchMode.TRUE);
+            val expiry = Date.from(Instant.ofEpochSecond(99_999_999_999L));
+            val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+            val claims = new JWTClaimsSet.Builder().expirationTime(expiry).build();
+            val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+            provider.cache(kid, keyPair.getPublic());
+            val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                assertThat(scheduler.pendingCount()).isZero();
+            }
+        }
+
+        @Test
+        @DisplayName("immature token with exp unreachably far emits IMMATURE then VALID and schedules no expiration")
+        void whenImmatureWithExpirationUnreachablyFarThenImmatureThenValidAndNoExpirationScheduled()
+                throws JOSEException {
+            dispatcher.setDispatchMode(DispatchMode.TRUE);
+            val nbf    = NOW.plusSeconds(5);
+            val expiry = Date.from(Instant.ofEpochSecond(99_999_999_999L));
+            val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+            val claims = new JWTClaimsSet.Builder().notBeforeTime(Date.from(nbf)).expirationTime(expiry).build();
+            val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+            provider.cache(kid, keyPair.getPublic());
+            val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("IMMATURE"));
+                assertThat(scheduler.pendingCount()).isOne();
+                clock.setInstant(nbf);
+                scheduler.advanceTo(nbf);
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(validity(v)).isEqualTo("VALID"));
+                assertThat(scheduler.pendingCount()).isZero();
+            }
+        }
     }
 
     @Nested

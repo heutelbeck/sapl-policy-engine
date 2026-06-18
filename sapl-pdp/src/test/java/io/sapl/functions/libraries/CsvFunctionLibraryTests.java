@@ -365,6 +365,20 @@ class CsvFunctionLibraryTests {
         assertThat(csvText).contains("'" + payload);
     }
 
+    @ParameterizedTest(name = "escapes a header starting with {0}")
+    @ValueSource(strings = { "=", "+", "-", "@" })
+    @DisplayName("valToCsv neutralizes formula-injection column headers")
+    void valToCsvWhenHeaderStartsWithFormulaCharacterThenEscaped(String prefix) {
+        val maliciousKey = prefix + "cmd|0";
+        val array        = ArrayValue.builder()
+                .add(ObjectValue.builder().put(maliciousKey, Value.of("Cthulhu")).build()).build();
+
+        val result = CsvFunctionLibrary.valToCsv(array);
+
+        val csvText = ((TextValue) result).value();
+        assertThat(csvText).contains("'" + maliciousKey);
+    }
+
     @Test
     @DisplayName("valToCsv leaves ordinary cell values untouched")
     void valToCsvWhenCellHasNoFormulaCharacterThenNotEscaped() {

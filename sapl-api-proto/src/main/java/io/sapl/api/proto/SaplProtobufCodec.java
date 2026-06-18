@@ -84,6 +84,15 @@ public class SaplProtobufCodec {
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
 
+    // Bounds decoded numbers so a tiny scientific-notation literal cannot expand
+    // into
+    // a multi-gigabyte BigDecimal once materialized (toPlainString,
+    // stripTrailingZeros).
+    private static final int    MAX_NUMBER_PRECISION       = 1_000_000;
+    private static final int    MAX_NUMBER_SCALE           = 1_000_000;
+    private static final String ERROR_MALFORMED_NUMBER     = "Malformed number value in protobuf payload.";
+    private static final String ERROR_NUMBER_OUT_OF_BOUNDS = "Number value in protobuf payload exceeds the accepted magnitude.";
+
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
     private static final int SUBSCRIPTION_ACTION      = 2;
@@ -166,7 +175,7 @@ public class SaplProtobufCodec {
                 yield Value.NULL;
             }
             case VALUE_BOOL      -> Value.of(input.readBool());
-            case VALUE_NUMBER    -> new NumberValue(new BigDecimal(input.readString()));
+            case VALUE_NUMBER    -> readNumberValue(input.readString());
             case VALUE_TEXT      -> Value.of(input.readString());
             case VALUE_ARRAY     -> readArrayValue(input, depth);
             case VALUE_OBJECT    -> readObjectValue(input, depth);
@@ -182,6 +191,19 @@ public class SaplProtobufCodec {
             };
         }
         return result;
+    }
+
+    private static NumberValue readNumberValue(String literal) throws IOException {
+        final BigDecimal number;
+        try {
+            number = new BigDecimal(literal);
+        } catch (NumberFormatException e) {
+            throw new IOException(ERROR_MALFORMED_NUMBER, e);
+        }
+        if (Math.abs(number.scale()) > MAX_NUMBER_SCALE || number.precision() > MAX_NUMBER_PRECISION) {
+            throw new IOException(ERROR_NUMBER_OUT_OF_BOUNDS);
+        }
+        return new NumberValue(number);
     }
 
     private static ArrayValue readArrayValue(CodedInputStream input, int depth) throws IOException {

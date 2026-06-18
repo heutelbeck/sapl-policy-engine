@@ -456,4 +456,91 @@ class SqlQueryRewritingProviderTests {
             assertThat(rewritten).contains("tenant_id = 7");
         }
     }
+
+    @Nested
+    @DisplayName("Empty IN-list narrows to zero rows with valid SQL")
+    class EmptyInList {
+
+        @Test
+        @DisplayName("In operator with empty array renders a never-true predicate, not the invalid IN ()")
+        void whenInOperatorWithEmptyArrayThenRendersNeverTruePredicate() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "role", "op": "in", "value": []}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("role IN (NULL)").doesNotContain("IN ()");
+        }
+    }
+
+    @Nested
+    @DisplayName("Empty projection intersection fails closed")
+    class EmptyProjectionIntersection {
+
+        @Test
+        @DisplayName("Disjoint obligation columns on a non-star SELECT throws instead of emitting SELECT  FROM")
+        void whenObligationColumnsDisjointFromSelectListThenThrows() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting", "columns": ["ssn"]}
+                    """);
+
+            assertThatThrownBy(() -> mapper.apply("SELECT id, name FROM users"))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("no admissible columns");
+        }
+    }
+
+    @Nested
+    @DisplayName("Column identifier injection is rejected (typed path is injection-safe)")
+    class ColumnIdentifierInjection {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("maliciousColumns")
+        @DisplayName("A criterion column that is not a strict identifier fails closed at planning time")
+        void whenCriterionColumnIsNotStrictIdentifierThenThrows(String description, String constraintJson) {
+            val constraint = v(constraintJson);
+            val supported  = Set.of(SQL_SIGNAL);
+
+            assertThatThrownBy(() -> provider.getConstraintHandlers(constraint, supported))
+                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Invalid column identifier");
+        }
+
+        static Stream<Arguments> maliciousColumns() {
+            return Stream.of(arguments("tautology via OR in column", """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "1=1 OR tenant_id", "op": "=", "value": 0}]}
+                    """), arguments("operator smuggled into column", """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "tenant_id = 7 OR public", "op": "=", "value": 0}]}
+                    """), arguments("isNull leaf with injecting column", """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "x) OR (1=1", "op": "isNull"}]}
+                    """));
+        }
+
+        @Test
+        @DisplayName("A projection column that is not a strict identifier fails closed")
+        void whenProjectionColumnIsNotStrictIdentifierThenThrows() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting", "columns": ["id, password"]}
+                    """);
+
+            assertThatThrownBy(() -> mapper.apply("SELECT * FROM users")).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Invalid column identifier");
+        }
+
+        @Test
+        @DisplayName("A legitimate schema-qualified column is accepted")
+        void whenQualifiedIdentifierThenAccepted() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "public.users.tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            assertThat(rewritten).contains("public.users.tenant_id = 7");
+        }
+    }
 }

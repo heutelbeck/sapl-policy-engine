@@ -327,7 +327,7 @@ public class SchemaProposalsGenerator {
         if (escaped.contains(" ")) {
             return "'" + escaped + "'";
         }
-        return text;
+        return escaped;
     }
 
 }

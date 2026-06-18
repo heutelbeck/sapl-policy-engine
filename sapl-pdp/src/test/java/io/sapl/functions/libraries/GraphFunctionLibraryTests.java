@@ -144,6 +144,41 @@ class GraphFunctionLibraryTests {
     }
 
     @Test
+    void reachableWhenNumericStartNodeThenSeedsItAndReachesTargets() {
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "1": ["2", "3"],
+                  "2": ["4"],
+                  "3": [],
+                  "4": []
+                }
+                """);
+        val initial = Value.of(1);
+
+        val result = GraphFunctionLibrary.reachable(graph, initial);
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        val resultArray = (ArrayValue) result;
+        assertThat(resultArray).containsExactlyInAnyOrder(Value.of("1"), Value.of("2"), Value.of("3"), Value.of("4"));
+    }
+
+    @Test
+    void isReachableWhenNumericStartNodeThenFindsReachableTarget() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {
+                  "1": ["2", "3"],
+                  "2": ["4"],
+                  "3": [],
+                  "4": []
+                }
+                """);
+
+        val result = GraphFunctionLibrary.isReachable(graph, Value.of(1), Value.of("4"));
+
+        assertThat(result).isEqualTo(Value.TRUE);
+    }
+
+    @Test
     void reachableWhenNonArrayAdjacencyValuesThenIgnoresThem() {
         val graph   = ObjectValue.builder().put("de-vermis-mysteriis", Value.ofArray(Value.of("cultes-des-goules")))
                 .put("cultes-des-goules", Value.of("corrupted-catalog-entry")).put("book-of-eibon", Value.of(666))

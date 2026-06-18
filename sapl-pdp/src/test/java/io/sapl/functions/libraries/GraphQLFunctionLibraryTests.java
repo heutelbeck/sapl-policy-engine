@@ -1052,6 +1052,18 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("valid").asBoolean()).isTrue();
     }
 
+    @Test
+    void whenParseSchemaExceedsMaximumSizeThenReturnsError() {
+        val oversizedSchema = "type Query { investigator(id: ID!): String }\n" + "# padding comment\n".repeat(40000);
+        val result          = GraphQLFunctionLibrary.parseSchema(Value.of(oversizedSchema));
+        val parsed          = ValueJsonMarshaller.toJsonNode(result);
+
+        assertThat(oversizedSchema.length()).isGreaterThan(512 * 1024);
+        assertThat(parsed.get("valid").asBoolean()).isFalse();
+        assertThat(parsed.get("errors").size()).isGreaterThan(0);
+        assertThat(parsed.get("errors").get(0).asString()).contains("maximum size");
+    }
+
     /* Performance Tests */
 
     @Test

@@ -137,6 +137,22 @@ class HttpServletRequestSerializerTests {
             val parsed = serialize(request).get("queryParameters");
             assertThat(parsed.get("q").get(0).asString()).isEqualTo("hello world");
         }
+
+        @Test
+        void malformedPercentEscapeInValueDoesNotCrashAndFallsBackToRaw() {
+            val request = new MockHttpServletRequest();
+            request.setQueryString("a=%zz");
+            val parsed = serialize(request).get("queryParameters");
+            assertThat(parsed.get("a").get(0).asString()).isEqualTo("%zz");
+        }
+
+        @Test
+        void incompleteTrailingPercentEscapeDoesNotCrashAndFallsBackToRaw() {
+            val request = new MockHttpServletRequest();
+            request.setQueryString("x=%");
+            val parsed = serialize(request).get("queryParameters");
+            assertThat(parsed.get("x").get(0).asString()).isEqualTo("%");
+        }
     }
 
     @Nested

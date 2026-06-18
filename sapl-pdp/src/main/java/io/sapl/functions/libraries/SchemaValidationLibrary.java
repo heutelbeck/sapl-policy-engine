@@ -399,7 +399,9 @@ public class SchemaValidationLibrary {
             val errors      = validator.validate(subjectNode);
             return createValidationResult(errors.isEmpty(), errors);
         } catch (SchemaException e) {
-            return createValidationResult(false, List.of());
+            // An uncompilable schema (malformed, bad or unresolvable $ref) is an author
+            // error, not a non-compliant subject. Surface it as an error.
+            return Value.error(ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
         } catch (IllegalArgumentException e) {
             return Value.error(ERROR_FAILED_TO_CONVERT_VALUE_TO_JSON, e);
         } catch (Throwable t) {

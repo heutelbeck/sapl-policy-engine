@@ -295,7 +295,7 @@ public final class BundlePDPConfigurationSource implements PDPConfigurationSourc
                 return;
             }
             val pdpId = derivePdpIdFromBundleName(file.toPath());
-            if (pdpId != null) {
+            if (pdpId != null && PdpIdValidator.isValidPdpId(pdpId)) {
                 emit(new ConfigurationEvent.Remove(pdpId));
                 log.info("Removed configuration for deleted bundle '{}'.", pdpId);
             }

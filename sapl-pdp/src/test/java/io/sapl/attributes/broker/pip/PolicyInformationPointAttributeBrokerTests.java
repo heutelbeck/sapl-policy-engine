@@ -56,6 +56,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PolicyInformationPointAttributeBroker")
@@ -281,6 +282,14 @@ class PolicyInformationPointAttributeBrokerTests {
                     .resolve(envInvocation("exactvarargs.foo", false, List.of(Value.of("a"), Value.of("b"))));
             assertThat(resolved).isPresent();
             assertThat(resolved.get().hasVariableNumberOfArguments()).isTrue();
+        }
+
+        @Test
+        @DisplayName("an exact spec and a varargs spec for the same attribute coexist: overlapping arity is not a collision")
+        void whenExactAndVarargsForSameAttributeThenNoCollisionAtLoad() {
+            broker.load(new ExactPip());
+
+            assertThatCode(() -> broker.load(new VarargsPip())).doesNotThrowAnyException();
         }
 
         @Test

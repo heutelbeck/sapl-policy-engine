@@ -282,7 +282,7 @@ class MqttPolicyInformationPointIT {
                       "defaultBrokerConfigName": "production",
                       "emitAtRetry": "false",
                       "defaultResponse": "%s",
-                      "timeoutDuration": %d,
+                      "defaultResponseTimeout": %d,
                       "brokerConfig": [
                         { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
                       ]
@@ -380,7 +380,7 @@ class MqttPolicyInformationPointIT {
                     {
                       "defaultBrokerConfigName": "ghost",
                       "emitAtRetry": "false",
-                      "timeoutDuration": 30000,
+                      "defaultResponseTimeout": 30000,
                       "brokerConfig": [
                         { "name": "ghost", "brokerAddress": "127.0.0.1", "brokerPort": 1, "clientId": "ghost-client" }
                       ]

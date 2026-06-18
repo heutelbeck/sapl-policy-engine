@@ -38,10 +38,10 @@ public class TrojanSourceUtil {
 
     private static final String ERROR_TROJAN_SOURCE = "Illegal bidirectional unicode control characters detected. This is indicative of a potential trojan source attack.";
 
-    private static final char LRI = '\u2066';
-    private static final char RLI = '\u2067';
-    private static final char PDI = '\u2069';
-    private static final char RLO = '\u202E';
+    private static final char EMBEDDING_RANGE_START = '\u202A';
+    private static final char EMBEDDING_RANGE_END   = '\u202E';
+    private static final char ISOLATE_RANGE_START   = '\u2066';
+    private static final char ISOLATE_RANGE_END     = '\u2069';
 
     /**
      * Asserts that the given source string does not contain trojan source
@@ -56,7 +56,8 @@ public class TrojanSourceUtil {
         }
         for (int i = 0; i < source.length(); i++) {
             char c = source.charAt(i);
-            if (c == LRI || c == RLI || c == PDI || c == RLO) {
+            if ((c >= EMBEDDING_RANGE_START && c <= EMBEDDING_RANGE_END)
+                    || (c >= ISOLATE_RANGE_START && c <= ISOLATE_RANGE_END)) {
                 throw new SaplCompilerException(ERROR_TROJAN_SOURCE);
             }
         }
@@ -122,20 +123,21 @@ public class TrojanSourceUtil {
                 currentIndex         = (currentIndex + 1) % BUFFER_SIZE;
             }
 
-            // LRI: 0xE2, 0x81, 0xA6
-            // RLI: 0xE2, 0x81, 0xA7
-            // PDI: 0xE2, 0x81, 0xA9
-            // RLO: 0xE2, 0x80, 0xAE
+            // Embeddings/overrides U+202A..U+202E: 0xE2, 0x80, 0xAA..0xAE
+            // Isolates U+2066..U+2069: 0xE2, 0x81, 0xA6..0xA9
             boolean illegalCharacterDetected() {
                 if (buffer[currentIndex] != 0xE2) {
                     return false;
                 }
                 int second = buffer[(currentIndex + 1) % BUFFER_SIZE];
-                if (second != 0x81 && second != 0x80) {
-                    return false;
+                int third  = buffer[(currentIndex + 2) % BUFFER_SIZE];
+                if (second == 0x80) {
+                    return third >= 0xAA && third <= 0xAE;
                 }
-                int third = buffer[(currentIndex + 2) % BUFFER_SIZE];
-                return third == 0xA6 || third == 0xA7 || third == 0xA9 || third == 0xAE;
+                if (second == 0x81) {
+                    return third >= 0xA6 && third <= 0xA9;
+                }
+                return false;
             }
         }
     }

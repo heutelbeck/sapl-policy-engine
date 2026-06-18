@@ -91,6 +91,20 @@ class SaplTestParserTests {
     }
 
     @Test
+    void whenStrayLexicallySkippableCharacter_thenThrowsParseException() {
+        var testDefinition = """
+                requirement "stray character" {
+                    scenario "permit access" #
+                        when subject "user" attempts action "read" on resource "data"
+                        expect permit;
+                }
+                """;
+
+        assertThatThrownBy(() -> SaplTestParser.parse(testDefinition)).isInstanceOf(SaplTestException.class)
+                .hasMessageContaining("Parsing errors");
+    }
+
+    @Test
     void whenComplexSubscription_thenParsesAllParts() {
         var testDefinition = """
                 requirement "complex subscription" {

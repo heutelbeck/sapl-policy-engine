@@ -543,8 +543,12 @@ public class GraphQLFunctionLibrary {
             """)
     public static Value parseSchema(TextValue schema) {
         try {
+            val schemaString = schema.value();
+            if (schemaString.length() > MAX_SCHEMA_SIZE_BYTES) {
+                throw new IllegalArgumentException(ERROR_SCHEMA_TOO_LARGE.formatted(MAX_SCHEMA_SIZE_BYTES));
+            }
             val schemaParser           = new SchemaParser();
-            val typeDefinitionRegistry = schemaParser.parse(schema.value());
+            val typeDefinitionRegistry = schemaParser.parse(schemaString);
 
             val result = ObjectValue.builder();
             result.put(FIELD_VALID, Value.of(true));

@@ -121,6 +121,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     private Button                  evaluateButton;
 
     private volatile boolean     isSubscriptionActive;
+    private volatile long        currentGeneration;
     private boolean              isDarkMode = false;
     private transient Disposable activeSubscription;
 
@@ -449,6 +450,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
         }
+        currentGeneration++;
         activeSubscription   = null;
         isSubscriptionActive = false;
         evaluateButton.setText(LABEL_EVALUATE);
@@ -459,6 +461,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
         }
+        val generation = ++currentGeneration;
 
         val subscription = parseSubscription();
         if (subscription == null) {
@@ -468,8 +471,8 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         }
 
         try {
-            activeSubscription = policyDecisionPoint.decide(subscription).subscribe(this::handleDecisionOnUiThread,
-                    this::handleSubscriptionError);
+            activeSubscription = policyDecisionPoint.decide(subscription)
+                    .subscribe(vote -> handleDecisionOnUiThread(vote, generation), this::handleSubscriptionError);
         } catch (IllegalStateException | IllegalArgumentException exception) {
             log.error("Failed to create subscription", exception);
             stopSubscription();
@@ -483,8 +486,33 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         }
     }
 
-    private void handleDecisionOnUiThread(TracedVote timestampedVote) {
-        getUI().ifPresent(ui -> ui.access(() -> displayDecision(timestampedVote)));
+    private void handleDecisionOnUiThread(TracedVote timestampedVote, long generation) {
+        if (!isLiveEmission(generation, currentGeneration, isSubscriptionActive)) {
+            return;
+        }
+        getUI().ifPresent(ui -> ui.access(() -> {
+            if (isLiveEmission(generation, currentGeneration, isSubscriptionActive)) {
+                displayDecision(timestampedVote);
+            }
+        }));
+    }
+
+    /**
+     * Determines whether a decision emitted by a subscription identified by
+     * {@code emissionGeneration} still belongs to the currently active
+     * subscription. A
+     * late emission from a disposed subscription carries a stale generation and
+     * must be
+     * discarded so it cannot overwrite the decision editor with an outdated result.
+     *
+     * @param emissionGeneration the generation captured when the emitting
+     * subscription started
+     * @param activeGeneration the generation of the currently active subscription
+     * @param subscriptionActive whether a subscription is currently active
+     * @return {@code true} if the emission belongs to the active subscription
+     */
+    static boolean isLiveEmission(long emissionGeneration, long activeGeneration, boolean subscriptionActive) {
+        return subscriptionActive && emissionGeneration == activeGeneration;
     }
 
     private void displayDecision(TracedVote timestampedVote) {

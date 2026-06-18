@@ -973,7 +973,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
      */
     private void handleSubscriptionComplete() {
         log.debug("PDP subscription completed");
-        activeSubscription = null;
+        getUI().ifPresent(userInterface -> userInterface.access(() -> activeSubscription = null));
     }
 
     /*

@@ -157,6 +157,22 @@ class SemanticVariableOrderTests {
         }
 
         @Test
+        @DisplayName("IN with empty array is not grouped (never-applicable stays a binary predicate)")
+        void whenInEmptyArrayThenRemaining() {
+            val operand        = stubOperand(100L);
+            val emptyArray     = new ArrayValue(List.of());
+            val emptyPredicate = inPredicate(operand, emptyArray);
+            val expressions    = List.<BooleanExpression>of(
+                    new Atom(inPredicate(operand, new ArrayValue(List.of(Value.of("a"), Value.of("b"))))),
+                    new Atom(emptyPredicate));
+
+            val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
+            assertThat(result.remainingPredicates()).contains(emptyPredicate);
+            assertThat(result.equalityGroups())
+                    .noneMatch(group -> group.getTentativePredicates().contains(emptyPredicate));
+        }
+
+        @Test
         @DisplayName("IN with non-collection value is not groupable")
         void whenInNonCollectionThenRemaining() {
             val operand     = stubOperand(100L);
@@ -186,6 +202,23 @@ class SemanticVariableOrderTests {
             assertThat(result.equalityGroups()).hasSize(1);
             // 2 object keys + 1 EQ constant = 3 distinct constants
             assertThat(result.equalityGroups().getFirst().getEqualsFormulas()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("HAS with empty object is not grouped (never-applicable stays a binary predicate)")
+        void whenHasEmptyObjectThenRemaining() {
+            val operand        = stubOperand(100L);
+            val populated      = new ObjectValue(
+                    new Value[] { Value.of("role"), Value.of("x"), Value.of("dept"), Value.of("y") });
+            val emptyObject    = new ObjectValue(new Value[] {});
+            val emptyPredicate = hasPredicate(operand, emptyObject);
+            val expressions    = List.<BooleanExpression>of(new Atom(hasPredicate(operand, populated)),
+                    new Atom(emptyPredicate));
+
+            val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
+            assertThat(result.remainingPredicates()).contains(emptyPredicate);
+            assertThat(result.equalityGroups())
+                    .noneMatch(group -> group.getTentativePredicates().contains(emptyPredicate));
         }
 
         @Test

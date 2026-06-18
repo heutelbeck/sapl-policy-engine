@@ -64,6 +64,16 @@ class SchemaValidationLibraryTests {
     }
 
     @Test
+    @DisplayName("an unresolvable $ref makes the schema un-compilable and yields an ErrorValue, not a false validation result")
+    void whenSchemaHasUnresolvableRefThenErrorValue() {
+        val brokenSchema = ObjectValue.builder().put("$ref", Value.of("#/$defs/missing")).build();
+
+        val result = validateWithExternalSchemas(Value.of("x"), brokenSchema, Value.EMPTY_ARRAY);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
     void whenValidatingCompliantValueThenReturnsTrue() {
         val schema = ObjectValue.builder().put("type", Value.of("boolean")).build();
 

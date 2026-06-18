@@ -176,7 +176,7 @@ public class TraccarFunctionLibrary {
             // the other way around.
             geometry.apply(new CoordinateFlippingFilter());
             return ValueJsonMarshaller.json(GEOJSON_WRITER.write(geometry));
-        } catch (ParseException e) {
+        } catch (ParseException | IllegalArgumentException e) {
             return Value.error(GEOMETRY_PROCESSING_ERROR_S_ERROR.formatted(e.getMessage()));
         }
     }

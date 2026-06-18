@@ -75,7 +75,7 @@ public class HtmlLineCoverageReportGenerator {
         val links = new StringBuilder();
         for (val policy : policies) {
             val name = policy.getDocumentName();
-            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(name))
+            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(toFileNameSlug(name)))
                     .append(".html\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
                     .append("</a>\n");
         }
@@ -101,7 +101,8 @@ public class HtmlLineCoverageReportGenerator {
                     .replace("{{policyText}}", escapeHtml(policy.getDocumentSource()))
                     .replace("{{lineModelsJson}}", lineModelsJson);
 
-            val outputFile = baseDir.resolve("html").resolve("policies").resolve(policy.getDocumentName() + ".html");
+            val outputFile = baseDir.resolve("html").resolve("policies")
+                    .resolve(toFileNameSlug(policy.getDocumentName()) + ".html");
             writeFile(outputFile, html);
         }
     }
@@ -196,6 +197,10 @@ public class HtmlLineCoverageReportGenerator {
         if (parent != null) {
             Files.createDirectories(parent);
         }
+    }
+
+    private static String toFileNameSlug(String documentName) {
+        return documentName.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
     private static String escapeHtml(String text) {

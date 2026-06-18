@@ -18,6 +18,7 @@
 package io.sapl.test.grammar.antlr.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.List;
 
@@ -328,6 +329,39 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("regex whose unescaped form is an invalid pattern produces error")
+    void whenRegexUnescapesToInvalidPattern_thenError() {
+        var document = """
+                requirement "Pattern Matching" {
+                    scenario "unicode escape to bracket"
+                        when "mi-go" attempts "communicate" on "brain_cylinder"
+                        expect decision is permit, with resource matching text with regex "\\u005B";
+                }
+                """;
+
+        var errors = validate(document);
+
+        assertThat(errors).hasSize(1).first().satisfies(
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
+    }
+
+    @Test
+    @DisplayName("regex with backslash escape that unescapes to a valid pattern produces no error")
+    void whenRegexUnescapesToValidPattern_thenNoError() {
+        var document = """
+                requirement "Pattern Matching" {
+                    scenario "escaped digit class"
+                        when "mi-go" attempts "communicate" on "brain_cylinder"
+                        expect decision is permit, with resource matching text with regex "\\\\d+";
+                }
+                """;
+
+        var errors = validate(document);
+
+        assertThat(errors).isEmpty();
+    }
+
+    @Test
     @DisplayName("empty regex produces no error")
     void whenEmptyRegex_thenNoError() {
         var document = """
@@ -466,6 +500,20 @@ class SAPLTestValidatorTests {
         var errors = validate(document);
 
         assertThat(errors).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a requirement with no name (partial document) does not crash validation")
+    void whenRequirementHasNoNameThenValidationDoesNotThrow() {
+        var document = """
+                requirement {
+                    scenario "s"
+                        when subject "u" attempts action "a" on resource "r"
+                        expect permit;
+                }
+                """;
+
+        assertThatCode(() -> validate(document)).doesNotThrowAnyException();
     }
 
     private List<ValidationError> validate(String document) {

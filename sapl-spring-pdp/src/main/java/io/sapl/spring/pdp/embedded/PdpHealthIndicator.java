@@ -30,12 +30,12 @@ import java.util.Map;
 
 /**
  * Spring Boot health indicator that reports the operational status of all
- * configured PDP instances. Each PDP's state (LOADED, STALE, EMPTY) is
- * mapped to an overall health status:
+ * configured PDP instances. Each PDP's state is mapped to an overall health
+ * status:
  * <ul>
  * <li>All LOADED: UP</li>
  * <li>Any STALE: UP (with warning details)</li>
- * <li>Any ERROR or no PDPs: DOWN</li>
+ * <li>Any ERROR, any AWAITING_PLUGINS, or no PDPs: DOWN</li>
  * </ul>
  */
 @RequiredArgsConstructor
@@ -58,9 +58,10 @@ class PdpHealthIndicator implements HealthIndicator {
         for (val entry : statuses.entrySet()) {
             pdpDetails.put(entry.getKey(), toDetailMap(entry.getValue()));
             switch (entry.getValue().state()) {
-            case ERROR  -> hasError = true;
-            case STALE  -> hasStale = true;
-            case LOADED -> { /* no action */ }
+            case AWAITING_PLUGINS -> hasError = true;
+            case ERROR            -> hasError = true;
+            case STALE            -> hasStale = true;
+            case LOADED           -> { /* no action */ }
             }
         }
 

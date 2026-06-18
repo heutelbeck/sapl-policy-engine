@@ -72,7 +72,6 @@ import java.util.function.Consumer;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getClientId;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getConfigValueOrDefault;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getMqttBrokerConfig;
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getPassword;
 import static io.sapl.extensions.mqtt.util.ConfigUtility.getQos;
 import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultResponseConfig;
 import static io.sapl.extensions.mqtt.util.DefaultResponseUtility.getDefaultValue;
@@ -122,7 +121,7 @@ public class SaplMqttClient implements Closeable {
     private static final int     DEFAULT_MAX_PAYLOAD_SIZE       = 1_048_576;
     private static final String  SECRETS_MQTT                   = "mqtt";
     private static final String  SECRETS_PASSWORD               = "password";
-    private static final boolean DEFAULT_EMIT_AT_RETRY          = true;
+    static final boolean         DEFAULT_EMIT_AT_RETRY          = false;
     private static final boolean DEFAULT_TLS                    = false;
     private static final String  DEFAULT_TLS_TRUST_STORE        = "";
 
@@ -134,12 +133,19 @@ public class SaplMqttClient implements Closeable {
     private static final String ERROR_INVALID_QOS         = "Invalid MQTT QoS: must be 0, 1, or 2.";
     private static final String ERROR_MQTT_CONNECT_FAILED = "Failed to connect or subscribe to MQTT broker: %s";
     private static final String ERROR_PAYLOAD_TOO_LARGE   = "MQTT message exceeded the configured limit of %d bytes.";
+    private static final String WARN_INSECURE_CREDENTIALS = "MQTT broker credentials are being transmitted over an "
+            + "unencrypted connection (tls=false). Enable 'tls' whenever credentials are configured.";
 
     // Keyed on the broker configuration node itself (content-based equals), not
     // on its 32-bit hashCode, so two distinct broker configs whose hashes
     // collide cannot share a client (which would route to the wrong broker with
     // the wrong credentials).
     static final ConcurrentHashMap<JsonNode, MqttClientValues> MQTT_CLIENT_CACHE = new ConcurrentHashMap<>();
+
+    // Guards the single runtime warning about credentials being sent over an
+    // unencrypted connection, so the insecure transport is observable once
+    // without flooding the log on every connection.
+    private static final AtomicBoolean INSECURE_CREDENTIALS_WARNED = new AtomicBoolean(false);
 
     private final Clock         clock;
     private final TimeScheduler scheduler;
@@ -399,7 +405,23 @@ public class SaplMqttClient implements Closeable {
             builder = applyTls(builder, brokerConfig, pipConfig);
         }
 
-        return builder.simpleAuth(buildAuth(brokerConfig, pdpSecrets)).buildAsync();
+        val auth = buildAuth(brokerConfig, pdpSecrets);
+        if (carriesCredentialsOverPlaintext(tlsEnabled, auth)
+                && INSECURE_CREDENTIALS_WARNED.compareAndSet(false, true)) {
+            log.warn(WARN_INSECURE_CREDENTIALS);
+        }
+        return builder.simpleAuth(auth).buildAsync();
+    }
+
+    // True when credentials (a username or a password) are present but the
+    // connection is unencrypted, so the credentials would be sent in cleartext.
+    static boolean carriesCredentialsOverPlaintext(boolean tlsEnabled, Mqtt5SimpleAuth auth) {
+        if (tlsEnabled) {
+            return false;
+        }
+        val hasUsername = auth.getUsername().map(u -> !u.toString().isEmpty()).orElse(false);
+        val hasPassword = auth.getPassword().map(p -> p.remaining() > 0).orElse(false);
+        return hasUsername || hasPassword;
     }
 
     private static Mqtt5ClientBuilder applyTls(Mqtt5ClientBuilder builder, JsonNode brokerConfig, JsonNode pipConfig) {
@@ -430,16 +452,15 @@ public class SaplMqttClient implements Closeable {
         }
     }
 
-    private static Mqtt5SimpleAuth buildAuth(JsonNode brokerConfig, ObjectValue pdpSecrets) {
-        val    mqttSecrets = resolveMqttSecrets(brokerConfig, pdpSecrets);
-        val    username    = mqttSecrets.get(ENVIRONMENT_USERNAME) instanceof TextValue(var u) ? u : DEFAULT_USERNAME;
-        val    passwordVal = mqttSecrets.get(SECRETS_PASSWORD);
-        byte[] password;
-        if (passwordVal instanceof TextValue(var p)) {
-            password = p.getBytes(StandardCharsets.UTF_8);
-        } else {
-            password = getPassword(brokerConfig);
-        }
+    static Mqtt5SimpleAuth buildAuth(JsonNode brokerConfig, ObjectValue pdpSecrets) {
+        // Credentials are sourced exclusively from the resolved secrets object.
+        // A password is never read from the (potentially policy-controlled)
+        // broker configuration, so an inline config cannot inject credentials.
+        val mqttSecrets = resolveMqttSecrets(brokerConfig, pdpSecrets);
+        val username    = mqttSecrets.get(ENVIRONMENT_USERNAME) instanceof TextValue(var u) ? u : DEFAULT_USERNAME;
+        val password    = mqttSecrets.get(SECRETS_PASSWORD) instanceof TextValue(var p)
+                ? p.getBytes(StandardCharsets.UTF_8)
+                : new byte[0];
         return Mqtt5SimpleAuth.builder().username(username).password(password).build();
     }
 

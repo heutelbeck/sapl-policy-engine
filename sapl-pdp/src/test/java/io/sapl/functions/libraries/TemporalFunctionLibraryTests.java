@@ -118,6 +118,29 @@ class TemporalFunctionLibraryTests {
     }
 
     @Test
+    void whenWeekOfYearAtYearBoundaryThenReturnsIsoWeek() {
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(timeValOf("2021-01-01T00:00:00Z")))
+                .isEqualTo(Value.of(53));
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(timeValOf("2020-12-31T00:00:00Z")))
+                .isEqualTo(Value.of(53));
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.weekOfYear(timeValOf("2026-01-01T00:00:00Z")))
+                .isEqualTo(Value.of(1));
+    }
+
+    @Test
+    void whenDurationOfOverflowsThenReturnsError() {
+        final var huge = Value.of(Long.MAX_VALUE);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfDays(huge))
+                .isInstanceOf(ErrorValue.class);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfHours(huge))
+                .isInstanceOf(ErrorValue.class);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfMinutes(huge))
+                .isInstanceOf(ErrorValue.class);
+        assertThat(io.sapl.functions.libraries.TemporalFunctionLibrary.durationOfSeconds(huge))
+                .isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
     void whenBetweenThenChecksRangeCorrectly() {
         final var today     = timeValOf("2021-11-08T13:00:00Z");
         final var yesterday = timeValOf("2021-11-07T13:00:00Z");

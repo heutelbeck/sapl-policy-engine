@@ -244,6 +244,7 @@ public class PdpVoterSource implements AutoCloseable {
             getConfigRef(pdpId).set(Optional.empty());
             notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
             statusCache.remove(pdpId);
+            configCache.remove(pdpId);
         } finally {
             stateLock.unlock();
         }
@@ -302,9 +303,20 @@ public class PdpVoterSource implements AutoCloseable {
      * @param listener the previously registered callback
      */
     public void unsubscribeFromUpdates(String pdpId, Consumer<PdpUpdateEvent> listener) {
-        val set = updateListeners.get(pdpId);
-        if (set != null) {
-            set.remove(listener);
+        stateLock.lock();
+        try {
+            val set = updateListeners.get(pdpId);
+            if (set != null) {
+                set.remove(listener);
+                // Prune the entry when the last live subscriber leaves, so
+                // transient pdpIds do not leak. Config removal keeps live
+                // listeners, so this is the only place that evicts them.
+                if (set.isEmpty()) {
+                    updateListeners.remove(pdpId);
+                }
+            }
+        } finally {
+            stateLock.unlock();
         }
     }
 

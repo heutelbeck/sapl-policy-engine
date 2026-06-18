@@ -23,6 +23,7 @@ import io.sapl.api.model.*;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -126,7 +127,7 @@ public class StringFunctionLibrary {
             """;
 
     @Function(docs = """
-            ```toLowerCase(TEXT str)```: Converts all characters to lowercase using the default locale.
+            ```toLowerCase(TEXT str)```: Converts all characters to lowercase using locale-independent case folding.
 
             Useful for normalizing identifiers, roles, or resource names to enable case-insensitive
             comparisons in authorization policies.
@@ -146,11 +147,11 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value toLowerCase(TextValue str) {
-        return Value.of(str.value().toLowerCase());
+        return Value.of(str.value().toLowerCase(Locale.ROOT));
     }
 
     @Function(docs = """
-            ```toUpperCase(TEXT str)```: Converts all characters to uppercase using the default locale.
+            ```toUpperCase(TEXT str)```: Converts all characters to uppercase using locale-independent case folding.
 
             Useful for normalizing identifiers or ensuring consistent comparison format in
             authorization policies.
@@ -170,7 +171,7 @@ public class StringFunctionLibrary {
             ```
             """, schema = RETURNS_STRING)
     public static Value toUpperCase(TextValue str) {
-        return Value.of(str.value().toUpperCase());
+        return Value.of(str.value().toUpperCase(Locale.ROOT));
     }
 
     @Function(docs = """

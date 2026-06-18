@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Locale;
@@ -89,6 +90,7 @@ public class TemporalFunctionLibrary {
 
     // Error messages (sorted alphabetically by constant name)
     private static final String ERROR_CHRONO_UNIT_BLANK            = "ChronoUnit parameter cannot be blank.";
+    private static final String ERROR_DURATION_OVERFLOW            = "Duration calculation overflowed for amount: %s.";
     private static final String ERROR_INVALID_AMPM_TIME            = "Invalid AM/PM time (expected hh:mm:ss AM/PM): %s.";
     private static final String ERROR_INVALID_CHRONO_UNIT          = "Invalid timestamps or chrono unit: %s, %s, %s.";
     private static final String ERROR_INVALID_CHRONO_UNIT_VALUE    = """
@@ -129,7 +131,7 @@ public class TemporalFunctionLibrary {
             The expression ```time.durationOfSeconds(20.5)``` returns ```20500```.
             """)
     public static Value durationOfSeconds(NumberValue seconds) {
-        return Value.of(seconds.value().longValue() * 1000);
+        return durationMillisOf(seconds, 1000L);
     }
 
     @Function(docs = """
@@ -141,7 +143,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfMinutes(2.5)``` returns ```150000```.""")
     public static Value durationOfMinutes(NumberValue minutes) {
-        return Value.of(minutes.value().longValue() * 60 * 1000);
+        return durationMillisOf(minutes, 60L * 1000);
     }
 
     @Function(docs = """
@@ -153,7 +155,7 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfHours(4.5)``` returns ```16200000```.""")
     public static Value durationOfHours(NumberValue hours) {
-        return Value.of(hours.value().longValue() * 60 * 60 * 1000);
+        return durationMillisOf(hours, 60L * 60 * 1000);
     }
 
     @Function(docs = """
@@ -165,7 +167,15 @@ public class TemporalFunctionLibrary {
 
             The expression ```time.durationOfDays(365)``` returns ```31536000000```.""")
     public static Value durationOfDays(NumberValue days) {
-        return Value.of(days.value().longValue() * 24 * 60 * 60 * 1000);
+        return durationMillisOf(days, 24L * 60 * 60 * 1000);
+    }
+
+    private static Value durationMillisOf(NumberValue amount, long millisPerUnit) {
+        try {
+            return Value.of(Math.multiplyExact(amount.value().longValue(), millisPerUnit));
+        } catch (ArithmeticException e) {
+            return Value.error(ERROR_DURATION_OVERFLOW.formatted(amount), e);
+        }
     }
 
     @Function(docs = """
@@ -563,9 +573,10 @@ public class TemporalFunctionLibrary {
     }
 
     @Function(docs = """
-            ```weekOfYear(TEXT utcDateTime)```: Returns the calendar week number (1-52) for the given date.
+            ```weekOfYear(TEXT utcDateTime)```: Returns the ISO 8601 / DIN 1355 calendar week number (1-53) for the given date.
 
-            utcDateTime must be an ISO 8601 string at UTC.
+            utcDateTime must be an ISO 8601 string at UTC. Weeks near a year boundary may belong to the
+            adjacent year per ISO 8601 (e.g. 2021-01-01 is week 53 of 2020).
 
             **Example:**
 
@@ -573,7 +584,7 @@ public class TemporalFunctionLibrary {
     public static Value weekOfYear(TextValue isoDateTime) {
         try {
             return Value.of(
-                    DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(ChronoField.ALIGNED_WEEK_OF_YEAR));
+                    DateTimeFormatter.ISO_DATE_TIME.parse(isoDateTime.value()).get(IsoFields.WEEK_OF_WEEK_BASED_YEAR));
         } catch (Exception e) {
             return Value.error(ERROR_INVALID_ISO_DATETIME.formatted(isoDateTime), e);
         }

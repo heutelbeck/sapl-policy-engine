@@ -361,7 +361,7 @@ public class PDPAutoConfiguration {
                 keyBytes = Base64.getDecoder().decode(keyContent.replaceAll("\\s", ""));
             }
             return buildEd25519PublicKey(keyBytes);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException e) {
             throw new IllegalStateException(ERROR_FAILED_TO_PARSE_PUBLIC_KEY, e);
         }
     }

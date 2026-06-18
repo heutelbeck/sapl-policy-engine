@@ -45,23 +45,35 @@ class SAPLTestDocumentSymbolProvider {
         val tree    = saplTestDocument.getSaplTestParseTree();
         val symbols = new ArrayList<DocumentSymbol>();
         for (val requirement : tree.requirement()) {
-            symbols.add(buildRequirementSymbol(requirement));
+            val symbol = buildRequirementSymbol(requirement);
+            if (symbol != null) {
+                symbols.add(symbol);
+            }
         }
         return symbols;
     }
 
     private DocumentSymbol buildRequirementSymbol(RequirementContext ctx) {
+        if (ctx == null || ctx.name == null) {
+            return null;
+        }
         val name     = stripQuotes(ctx.name.getText());
         val symbol   = new DocumentSymbol(name, SymbolKind.Module, rangeOf(ctx), rangeOfToken(ctx.name));
         val children = new ArrayList<DocumentSymbol>();
         for (val scenario : ctx.scenario()) {
-            children.add(buildScenarioSymbol(scenario));
+            val child = buildScenarioSymbol(scenario);
+            if (child != null) {
+                children.add(child);
+            }
         }
         symbol.setChildren(children);
         return symbol;
     }
 
     private DocumentSymbol buildScenarioSymbol(ScenarioContext ctx) {
+        if (ctx == null || ctx.name == null) {
+            return null;
+        }
         val name = stripQuotes(ctx.name.getText());
         return new DocumentSymbol(name, SymbolKind.Function, rangeOf(ctx), rangeOfToken(ctx.name));
     }

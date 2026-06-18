@@ -17,6 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
+import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuth;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ErrorValue;
@@ -26,13 +27,16 @@ import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.StreamAssertions;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
+import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SaplMqttClient")
@@ -85,5 +89,101 @@ class SaplMqttClientTests {
         }
 
         assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(cacheSizeBefore);
+    }
+
+    private static JsonNode brokerConfig(String configJson) {
+        return toJsonNode(json(configJson));
+    }
+
+    private static ObjectValue secrets(ObjectValue mqttSecrets) {
+        return ObjectValue.builder().put("mqtt", mqttSecrets).build();
+    }
+
+    private static String passwordOf(Mqtt5SimpleAuth auth) {
+        return auth.getPassword().map(p -> StandardCharsets.UTF_8.decode(p.duplicate()).toString()).orElse("");
+    }
+
+    @Nested
+    @DisplayName("credential sourcing")
+    class CredentialSourcing {
+
+        @Test
+        @DisplayName("a policy-supplied password in the broker config is never used as a credential")
+        void whenPasswordOnlyInBrokerConfigThenNoPasswordSent() {
+            val config = brokerConfig("""
+                    { "name": "default", "brokerAddress": "localhost", "password": "policyInjected" }
+                    """);
+
+            val auth = SaplMqttClient.buildAuth(config, Value.EMPTY_OBJECT);
+
+            assertThat(passwordOf(auth)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a username-only secret does not pair with a policy-supplied config password")
+        void whenSecretHasOnlyUsernameThenNoPasswordSent() {
+            val config          = brokerConfig("""
+                    { "name": "default", "brokerAddress": "localhost", "password": "policyInjected" }
+                    """);
+            val usernameSecrets = secrets(ObjectValue.builder().put("username", Value.of("alice")).build());
+
+            val auth = SaplMqttClient.buildAuth(config, usernameSecrets);
+
+            assertThat(auth.getUsername()).map(Object::toString).contains("alice");
+            assertThat(passwordOf(auth)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("a password configured in secrets is used as the credential")
+        void whenSecretHasPasswordThenItIsUsed() {
+            val config          = brokerConfig("""
+                    { "name": "default", "brokerAddress": "localhost" }
+                    """);
+            val passwordSecrets = secrets(ObjectValue.builder().put("username", Value.of("alice"))
+                    .put("password", Value.of("fromSecrets")).build());
+
+            val auth = SaplMqttClient.buildAuth(config, passwordSecrets);
+
+            assertThat(passwordOf(auth)).isEqualTo("fromSecrets");
+        }
+    }
+
+    @Nested
+    @DisplayName("insecure transport detection")
+    class InsecureTransportDetection {
+
+        private static final ObjectValue CREDENTIAL_SECRETS = ObjectValue.builder().put("mqtt",
+                ObjectValue.builder().put("username", Value.of("alice")).put("password", Value.of("secret")).build())
+                .build();
+
+        @Test
+        @DisplayName("credentials over a plaintext connection are flagged as insecure")
+        void whenCredentialsAndNoTlsThenInsecure() {
+            val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), CREDENTIAL_SECRETS);
+
+            assertThat(SaplMqttClient.carriesCredentialsOverPlaintext(false, auth)).isTrue();
+        }
+
+        @Test
+        @DisplayName("credentials over a TLS connection are not flagged as insecure")
+        void whenCredentialsAndTlsThenNotInsecure() {
+            val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), CREDENTIAL_SECRETS);
+
+            assertThat(SaplMqttClient.carriesCredentialsOverPlaintext(true, auth)).isFalse();
+        }
+
+        @Test
+        @DisplayName("an anonymous plaintext connection carries no credentials and is not flagged")
+        void whenNoCredentialsAndNoTlsThenNotInsecure() {
+            val auth = SaplMqttClient.buildAuth(brokerConfig("{ \"name\": \"default\" }"), Value.EMPTY_OBJECT);
+
+            assertThat(SaplMqttClient.carriesCredentialsOverPlaintext(false, auth)).isFalse();
+        }
+    }
+
+    @Test
+    @DisplayName("reconnect sentinel emission is off by default, matching the documented default")
+    void whenEmitAtRetryUnsetThenDefaultsToFalse() {
+        assertThat(SaplMqttClient.DEFAULT_EMIT_AT_RETRY).isFalse();
     }
 }

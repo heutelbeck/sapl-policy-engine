@@ -38,7 +38,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -102,6 +104,50 @@ class PdpVoterSourceDynamicRecompileTests {
 
             assertThat(received).singleElement().isEqualTo(new PdpUpdateEvent.Voter(PDP_ID, current));
         }
+    }
+
+    @Test
+    @DisplayName("a configuration removal then re-load keeps the live listener, the PDP never closes a subscription")
+    void whenConfigurationRemovedThenReloadedThenTheSameListenerIsNotifiedAgain() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+
+            val received = new ArrayList<PdpUpdateEvent>();
+            voterSource.subscribeToUpdates(PDP_ID, received::add);
+            voterSource.removeConfigurationForPdp(PDP_ID);
+            voterSource.loadConfiguration(policyConfig("config-B"), false);
+
+            // The PDP never closes a client subscription server-side.
+            // Removal emits Removed and the consumer sees INDETERMINATE.
+            // A later load re-notifies the same still-registered listener,
+            // with no eviction and no client re-subscribe.
+            assertThat(received).hasAtLeastOneElementOfType(PdpUpdateEvent.Removed.class).last()
+                    .isInstanceOf(PdpUpdateEvent.Voter.class);
+        }
+    }
+
+    @Test
+    @DisplayName("the last subscriber leaving prunes the pdpId listener entry so transient pdpIds do not leak")
+    void whenLastListenerUnsubscribesThenTheListenerMapEntryIsPruned() throws Exception {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            final Consumer<PdpUpdateEvent> listener = event -> {};
+            voterSource.subscribeToUpdates(PDP_ID, listener);
+            assertThat(listenerEntryPresent(voterSource, PDP_ID)).isTrue();
+
+            voterSource.unsubscribeFromUpdates(PDP_ID, listener);
+
+            assertThat(listenerEntryPresent(voterSource, PDP_ID)).isFalse();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean listenerEntryPresent(PdpVoterSource source, String pdpId) throws Exception {
+        val field = PdpVoterSource.class.getDeclaredField("updateListeners");
+        field.setAccessible(true);
+        return ((Map<String, ?>) field.get(source)).containsKey(pdpId);
     }
 
     @Test

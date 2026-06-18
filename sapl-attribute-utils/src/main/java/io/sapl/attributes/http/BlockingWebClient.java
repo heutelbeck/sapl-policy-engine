@@ -221,7 +221,7 @@ public class BlockingWebClient {
                                     bodyRef.set(lines);
                                     pumpServerSentEvents(lines.iterator(), emit, stopped, maxBytes);
                                 }
-                            } catch (IOException e) {
+                            } catch (IOException | RuntimeException e) {
                                 emit.accept(Value.error(messageOf(e)));
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
@@ -249,7 +249,7 @@ public class BlockingWebClient {
                 flushEvent(data, emit);
             } else if (line.startsWith("data:")) {
                 appendDataLine(data, line);
-                if (data.length() > maxBytes) {
+                if (utf8ByteLength(data) > maxBytes) {
                     emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                     stopped.set(true);
                 }
@@ -357,12 +357,27 @@ public class BlockingWebClient {
     }
 
     private static String redactSecrets(String uri) {
-        var redacted = uri;
-        val query    = redacted.indexOf('?');
-        if (query >= 0) {
-            redacted = redacted.substring(0, query) + "?<redacted>";
+        // None of userinfo, path, query, or fragment is safe to surface, so the URI is
+        // reduced structurally to scheme + host[:port] with everything else redacted.
+        val schemeEnd = uri.indexOf("://");
+        if (schemeEnd < 0) {
+            val colon = uri.indexOf(':');
+            return colon >= 0 ? uri.substring(0, colon + 1) + "<redacted>" : "<redacted>";
         }
-        return redacted.replaceAll("//[^/@]*@", "//<redacted>@");
+        val authorityStart = schemeEnd + 3;
+        var authorityEnd   = authorityStart;
+        while (authorityEnd < uri.length()) {
+            val c = uri.charAt(authorityEnd);
+            if (c == '/' || c == '?' || c == '#') {
+                break;
+            }
+            authorityEnd++;
+        }
+        val authority = uri.substring(authorityStart, authorityEnd);
+        val at        = authority.lastIndexOf('@');
+        val hostPort  = at >= 0 ? authority.substring(at + 1) : authority;
+        val prefix    = uri.substring(0, authorityStart) + (at >= 0 ? "<redacted>@" : "") + hostPort;
+        return authorityEnd < uri.length() ? prefix + "/<redacted>" : prefix;
     }
 
     private HttpRequest buildRequest(URI uri, String method, JsonNode headers, String accept, String contentType,
@@ -467,6 +482,10 @@ public class BlockingWebClient {
         return t.getMessage() == null ? t.toString() : t.getMessage();
     }
 
+    private static int utf8ByteLength(CharSequence text) {
+        return text.toString().getBytes(StandardCharsets.UTF_8).length;
+    }
+
     /**
      * Static factory intended for production wiring outside of tests.
      */
@@ -496,7 +515,7 @@ public class BlockingWebClient {
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
             accumulator.append(data);
-            if (accumulator.length() > maxBytes) {
+            if (utf8ByteLength(accumulator) > maxBytes) {
                 emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                 accumulator.setLength(0);
                 complete.run();

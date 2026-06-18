@@ -21,8 +21,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
@@ -30,6 +33,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 import io.sapl.lsp.server.SAPLLanguageServer;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 /**
  * Launcher for the SAPL Language Server.
@@ -83,25 +87,39 @@ public class SAPLLanguageServerLauncher {
      */
     public static void startSocketServer(int port) throws Exception {
         log.info("Starting SAPL Language Server on port {}", port);
+        val executor = Executors.newCachedThreadPool();
         try (var serverSocket = new ServerSocket(port, 50, InetAddress.getLoopbackAddress())) {
             log.info("Waiting for client connection on port {}...", port);
             while (true) {
-                var socket = serverSocket.accept();
+                val socket = serverSocket.accept();
                 log.info("Client connected from {}", socket.getRemoteSocketAddress());
-
-                var executor = Executors.newSingleThreadExecutor();
-                executor.submit(() -> {
-                    try {
-                        startServer(socket.getInputStream(), socket.getOutputStream());
-                    } catch (InterruptedException e) {
-                        log.debug("Language server interrupted");
-                        Thread.currentThread().interrupt();
-                    } catch (Exception e) {
-                        log.error("Error in language server", e);
-                    }
-                });
+                handleConnection(executor, socket);
             }
+        } finally {
+            executor.shutdownNow();
         }
+    }
+
+    /**
+     * Submits handling of a single accepted connection to the shared executor.
+     * The accepted socket is always closed once the language server loop returns
+     * or throws, so neither the socket descriptor nor the worker thread leaks.
+     *
+     * @param executor the shared executor servicing all connections
+     * @param socket the accepted client socket
+     * @return the future tracking completion of the connection handler
+     */
+    static Future<?> handleConnection(ExecutorService executor, Socket socket) {
+        return executor.submit(() -> {
+            try (socket) {
+                startServer(socket.getInputStream(), socket.getOutputStream());
+            } catch (InterruptedException e) {
+                log.debug("Language server interrupted");
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                log.error("Error in language server", e);
+            }
+        });
     }
 
     /**

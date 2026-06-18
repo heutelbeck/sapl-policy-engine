@@ -26,7 +26,6 @@ import java.util.Map;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.sapl.node.auth.SecretGenerator;
 import io.sapl.node.boot.SaplStartupConfigurationException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -78,15 +77,6 @@ public class SaplNodeProperties implements InitializingBean {
 
             See the multi-tenant configuration reference at
             https://sapl.io/docs/latest/7_2_Configuration for details.""";
-
-    private static final String ERROR_SHORT_API_KEY  = "SAPL Node refused to start. An apiKey in the user configuration is shorter than %d characters.";
-    private static final String ACTION_SHORT_API_KEY = """
-            API keys must be long enough to resist brute force. Generate a
-            fresh credential with:
-
-              sapl generate apikey --id <user-id>
-
-            and paste the encoded value into the user entry.""";
 
     // Authentication methods
     private boolean allowNoAuth     = false;
@@ -144,7 +134,6 @@ public class SaplNodeProperties implements InitializingBean {
         val nextIndex = new HashMap<String, UserEntry>();
         for (UserEntry user : users) {
             if (user.getApiKey() != null) {
-                assertIsValidApiKey(user.getApiKey());
                 requireApiKeyId(user);
                 warnIfApiKeyLooksPlaintext(user);
             }
@@ -208,13 +197,6 @@ public class SaplNodeProperties implements InitializingBean {
                         ACTION_MISSING_PDP_ID);
             }
             user.setPdpId(defaultPdpId);
-        }
-    }
-
-    private void assertIsValidApiKey(String key) {
-        if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
-            throw new SaplStartupConfigurationException(
-                    ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH), ACTION_SHORT_API_KEY);
         }
     }
 

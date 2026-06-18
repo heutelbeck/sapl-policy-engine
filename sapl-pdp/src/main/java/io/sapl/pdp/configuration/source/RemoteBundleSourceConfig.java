@@ -82,6 +82,7 @@ public record RemoteBundleSourceConfig(
     private static final String ERROR_AUTH_HEADER_INCOMPLETE = "Both authHeaderName and authHeaderValue must be provided together, or both must be null.";
     private static final String ERROR_BASE_URL_BLANK = "baseUrl must not be null or blank.";
     private static final String ERROR_FIRST_BACKOFF_NON_POSITIVE = "firstBackoff must be positive.";
+    private static final String ERROR_LONG_POLL_TIMEOUT_NON_POSITIVE = "longPollTimeout must be positive.";
     private static final String ERROR_MAX_BACKOFF_NON_POSITIVE = "maxBackoff must be positive.";
     private static final String ERROR_PDP_IDS_EMPTY = "pdpIds must not be null or empty.";
     private static final String ERROR_POLL_INTERVAL_NON_POSITIVE = "pollInterval must be positive.";
@@ -113,6 +114,9 @@ public record RemoteBundleSourceConfig(
         Objects.requireNonNull(securityPolicy, "securityPolicy");
         if (pollInterval.isNegative() || pollInterval.isZero()) {
             throw new PDPConfigurationException(ERROR_POLL_INTERVAL_NON_POSITIVE);
+        }
+        if (longPollTimeout.isNegative() || longPollTimeout.isZero()) {
+            throw new PDPConfigurationException(ERROR_LONG_POLL_TIMEOUT_NON_POSITIVE);
         }
         if (firstBackoff == null || firstBackoff.isNegative() || firstBackoff.isZero()) {
             throw new PDPConfigurationException(ERROR_FIRST_BACKOFF_NON_POSITIVE);

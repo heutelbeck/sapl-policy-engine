@@ -360,6 +360,26 @@ class SchemaFlowTests {
         assertThat(proposals).contains("manager", "manager.name", "manager.employeeId");
     }
 
+    @Test
+    void whenValueDefinitionsAreMutuallyRecursive_thenContentAssistDoesNotCrash() {
+        var document     = """
+                policy "test"
+                permit
+                where
+                  var a = b;
+                  var b = a;
+                """;
+        var sapl         = parse(document);
+        var cursorOffset = document.length();
+        var config       = LSPConfiguration.minimal();
+
+        var proposals = VariablesProposalsGenerator.variableProposalsForContext(sapl, cursorOffset, config, false);
+
+        assertThat(proposals).contains("a", "b");
+        var cyclicExpansions = proposals.stream().filter(p -> p.startsWith("a.") || p.startsWith("b.")).toList();
+        assertThat(cyclicExpansions).isEmpty();
+    }
+
     private static SaplContext parse(String content) {
         return TestParsing.parseSilently(content);
     }

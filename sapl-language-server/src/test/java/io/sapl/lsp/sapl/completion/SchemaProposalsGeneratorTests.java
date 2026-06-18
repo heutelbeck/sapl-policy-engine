@@ -468,6 +468,19 @@ class SchemaProposalsGeneratorTests {
                         new String[] { ".A", ".A.'x coordinate'", ".A.'y coordinate'", ".A.'z coordinate'", ".B",
                                 ".B.'x coordinate'", ".B.'y coordinate'", ".B.'z coordinate'", ".C",
                                 ".C.'x coordinate'", ".C.'y coordinate'", ".C.'z coordinate'" }),
+                arguments("when_propertyNameHasSpecialCharsButNoSpace_then_proposalIsEscaped", List.of(), """
+                         {
+                            "$id": "https://example.com/quirky.schema.json",
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "title": "Quirky",
+                            "type": "object",
+                            "properties": {
+                                "a\\"b": { "type": "integer" },
+                                "c\\\\d": { "type": "integer" },
+                                "e\\tf": { "type": "integer" }
+                            }
+                        }
+                        """, new String[] { ".a\\\"b", ".c\\\\d", ".e\\tf" }),
                 arguments("simpleRecursiveSchema", List.of(), """
                          {
                             "$id": "https://example.com/person.schema.json",

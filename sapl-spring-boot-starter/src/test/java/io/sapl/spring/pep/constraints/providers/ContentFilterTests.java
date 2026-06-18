@@ -316,6 +316,30 @@ class ContentFilterTests {
     }
 
     @Nested
+    @DisplayName("Blacken resource and bounds hardening")
+    class BlackenHardening {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("hostileBlackenScenarios")
+        @DisplayName("hostile blacken parameters are rejected with AccessDeniedException")
+        void hostileBlackenParametersRejected(String name, String constraintJson) {
+            val transform = ContentFilter.getTransformationHandler(v(constraintJson), MAPPER);
+            val input     = new HashMap<>(Map.of("name", "Alice"));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class);
+        }
+
+        static Stream<Arguments> hostileBlackenScenarios() {
+            return Stream.of(arguments("excessive length triggering huge allocation is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "length": 2000000000}]}
+                    """), arguments("negative discloseLeft is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": -2}]}
+                    """), arguments("negative discloseRight is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "discloseRight": -2}]}
+                    """));
+        }
+    }
+
+    @Nested
     @DisplayName("Constraint validation errors")
     class ValidationErrors {
 

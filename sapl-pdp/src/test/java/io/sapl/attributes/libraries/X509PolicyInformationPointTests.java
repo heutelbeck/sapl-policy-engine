@@ -157,6 +157,22 @@ class X509PolicyInformationPointTests {
         }
 
         @Test
+        @DisplayName("when cert validity window is inverted then never emits true")
+        void whenCertValidityWindowIsInvertedThenNeverEmitsTrue()
+                throws OperatorCreationException, CertificateException, IOException {
+            val notBefore = NOW.plus(10, ChronoUnit.SECONDS);
+            val notAfter  = NOW.plus(5, ChronoUnit.SECONDS);
+            val certPem   = toPem(generateCertificate(CTHULHU_DN, notBefore, notAfter));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
+
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
+        }
+
+        @Test
         @DisplayName("when PEM is malformed then emits error")
         void whenCertPemIsMalformedThenEmitsError() {
             val clock     = new MutableClock(NOW);

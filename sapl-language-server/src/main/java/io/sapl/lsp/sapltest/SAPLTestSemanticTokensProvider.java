@@ -45,8 +45,7 @@ public class SAPLTestSemanticTokensProvider {
         for (var token : tokens) {
             var tokenType = mapTokenType(token);
             if (tokenType >= 0) {
-                semanticInfos.add(new SemanticTokenInfo(token.getLine() - 1, // Convert to 0-based
-                        token.getCharPositionInLine(), token.getText().length(), tokenType, 0));
+                addTokenInfos(semanticInfos, token, tokenType);
             }
         }
 
@@ -57,6 +56,44 @@ public class SAPLTestSemanticTokensProvider {
         // Encode as LSP semantic tokens data array
         var data = encodeTokens(semanticInfos);
         return new SemanticTokens(data);
+    }
+
+    /**
+     * Adds one or more semantic token infos for an ANTLR token. The LSP
+     * semantic-tokens protocol requires every token to be contained on a single
+     * line, so a token whose text spans multiple lines (block comment or string
+     * literal containing line breaks) is split into one info per source line.
+     *
+     * @param semanticInfos the accumulator to add the infos to
+     * @param token the ANTLR token
+     * @param tokenType the semantic token type index
+     */
+    private void addTokenInfos(List<SemanticTokenInfo> semanticInfos, Token token, int tokenType) {
+        var startLine = token.getLine() - 1; // Convert to 0-based
+        var startCol  = token.getCharPositionInLine();
+        var text      = token.getText();
+
+        var lineStart = 0;
+        var line      = startLine;
+        for (var i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                var lineLength = i - lineStart;
+                if (lineLength > 0 && line == startLine) {
+                    semanticInfos.add(new SemanticTokenInfo(line, startCol, lineLength, tokenType, 0));
+                } else if (lineLength > 0) {
+                    semanticInfos.add(new SemanticTokenInfo(line, 0, lineLength, tokenType, 0));
+                }
+                line++;
+                lineStart = i + 1;
+            }
+        }
+
+        var lastLineLength = text.length() - lineStart;
+        if (lastLineLength <= 0) {
+            return;
+        }
+        var column = line == startLine ? startCol : 0;
+        semanticInfos.add(new SemanticTokenInfo(line, column, lastLineLength, tokenType, 0));
     }
 
     /**
