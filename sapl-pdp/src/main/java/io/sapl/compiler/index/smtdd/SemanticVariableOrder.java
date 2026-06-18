@@ -224,7 +224,7 @@ public class SemanticVariableOrder {
     private static boolean addInConstants(PureOperator pureOperand, Value collection, IndexPredicate predicate,
             int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         if (collection instanceof ArrayValue array) {
-            if (array.size() == 0) {
+            if (array.isEmpty()) {
                 return false;
             }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),

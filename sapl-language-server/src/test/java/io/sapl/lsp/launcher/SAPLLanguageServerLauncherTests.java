@@ -87,10 +87,7 @@ class SAPLLanguageServerLauncherTests {
         }
     }
 
-    private void awaitDone(Future<?> handler) throws InterruptedException {
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (!handler.isDone() && System.nanoTime() < deadline) {
-            Thread.sleep(10);
-        }
+    private void awaitDone(Future<?> handler) throws Exception {
+        handler.get(5, TimeUnit.SECONDS);
     }
 }

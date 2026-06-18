@@ -89,7 +89,7 @@ class SAPLTestSemanticTokensProviderTests {
             var sourceLines = content.split("\n", -1);
             var positions   = rawTokenPositions(content);
 
-            assertThat(positions)
+            assertThat(positions).isNotEmpty()
                     .allSatisfy(p -> assertThat(p.column() + p.length())
                             .as("token on line %d must end at or before line length %d", p.line(),
                                     sourceLines[p.line()].length())

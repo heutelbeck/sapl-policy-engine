@@ -93,7 +93,7 @@ class TraccarInlineConfigTests {
         verify(mockWebClient).httpRequest(any(), argThat(settings -> {
             val path = settings.get(BlockingWebClient.PATH);
             return path instanceof TextValue(var pathString)
-                    && pathString.equals("/api/devices/1%2F..%2F..%2Fapi%2Fserver%3Fadmin%3D1");
+                    && "/api/devices/1%2F..%2F..%2Fapi%2Fserver%3Fadmin%3D1".equals(pathString);
         }));
     }
 
@@ -111,7 +111,7 @@ class TraccarInlineConfigTests {
 
         verify(mockWebClient).httpRequest(any(), argThat(settings -> {
             val path = settings.get(BlockingWebClient.PATH);
-            return path instanceof TextValue(var pathString) && pathString.equals("/api/geofences/1%23fragment");
+            return path instanceof TextValue(var pathString) && "/api/geofences/1%23fragment".equals(pathString);
         }));
     }
 }

@@ -51,6 +51,7 @@ import io.sapl.vaadin.lsp.JsonEditor;
 import io.sapl.vaadin.lsp.JsonEditorConfiguration;
 import io.sapl.vaadin.lsp.SaplEditorLsp;
 import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.context.ApplicationContext;
@@ -121,8 +122,8 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     private Button                  evaluateButton;
 
     private volatile boolean     isSubscriptionActive;
-    private volatile long        currentGeneration;
-    private boolean              isDarkMode = false;
+    private final AtomicLong     currentGeneration = new AtomicLong();
+    private boolean              isDarkMode        = false;
     private transient Disposable activeSubscription;
 
     /**
@@ -450,7 +451,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
         }
-        currentGeneration++;
+        currentGeneration.incrementAndGet();
         activeSubscription   = null;
         isSubscriptionActive = false;
         evaluateButton.setText(LABEL_EVALUATE);
@@ -461,7 +462,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
         }
-        val generation = ++currentGeneration;
+        val generation = currentGeneration.incrementAndGet();
 
         val subscription = parseSubscription();
         if (subscription == null) {
@@ -487,11 +488,11 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     }
 
     private void handleDecisionOnUiThread(TracedVote timestampedVote, long generation) {
-        if (!isLiveEmission(generation, currentGeneration, isSubscriptionActive)) {
+        if (!isLiveEmission(generation, currentGeneration.get(), isSubscriptionActive)) {
             return;
         }
         getUI().ifPresent(ui -> ui.access(() -> {
-            if (isLiveEmission(generation, currentGeneration, isSubscriptionActive)) {
+            if (isLiveEmission(generation, currentGeneration.get(), isSubscriptionActive)) {
                 displayDecision(timestampedVote);
             }
         }));

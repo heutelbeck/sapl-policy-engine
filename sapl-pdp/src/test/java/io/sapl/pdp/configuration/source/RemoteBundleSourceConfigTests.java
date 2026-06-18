@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.val;
 
 @DisplayName("RemoteBundleSourceConfig credential exposure")
 class RemoteBundleSourceConfigTests {
@@ -68,11 +69,16 @@ class RemoteBundleSourceConfigTests {
     @ValueSource(longs = { 0L, -10L })
     @DisplayName("a non-positive longPollTimeout is rejected at construction, like every other duration field")
     void whenLongPollTimeoutNonPositiveThenConstructionFails(long seconds) {
+        val pdpIds          = List.of("default");
+        val pollInterval    = Duration.ofMillis(100);
+        val longPollTimeout = Duration.ofSeconds(seconds);
+        val pollIntervals   = Map.<String, Duration>of();
+        val connectTimeout  = Duration.ofMillis(50);
+        val readTimeout     = Duration.ofMillis(200);
         assertThatExceptionOfType(PDPConfigurationException.class)
-                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles",
-                        List.of("default"), RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100),
-                        Duration.ofSeconds(seconds), null, null, true, POLICY, Map.of(), Duration.ofMillis(50),
-                        Duration.ofMillis(200)))
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", pdpIds,
+                        RemoteBundleSourceConfig.FetchMode.LONG_POLL, pollInterval, longPollTimeout, null, null, true,
+                        POLICY, pollIntervals, connectTimeout, readTimeout))
                 .withMessageContaining("longPollTimeout");
     }
 

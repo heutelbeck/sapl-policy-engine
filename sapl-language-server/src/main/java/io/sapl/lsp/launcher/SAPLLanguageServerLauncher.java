@@ -109,7 +109,7 @@ public class SAPLLanguageServerLauncher {
      * @param socket the accepted client socket
      * @return the future tracking completion of the connection handler
      */
-    static Future<?> handleConnection(ExecutorService executor, Socket socket) {
+    static Future<Void> handleConnection(ExecutorService executor, Socket socket) {
         return executor.submit(() -> {
             try (socket) {
                 startServer(socket.getInputStream(), socket.getOutputStream());
@@ -119,6 +119,7 @@ public class SAPLLanguageServerLauncher {
             } catch (Exception e) {
                 log.error("Error in language server", e);
             }
+            return null;
         });
     }
 

@@ -91,8 +91,8 @@ public class PDPConfigurationLoader {
     private static final String PDP_JSON               = "pdp.json";
     private static final String SAPL_EXTENSION         = ".sapl";
 
-    // Internal cap on total SAPL bytes per directory load (default 1 GiB);
-    // not a published compiler option.
+    // Internal cap on total SAPL bytes per directory load, defaulting to 1 GiB.
+    // It is not a published compiler option.
     private static final String OPTION_MAX_TOTAL_SIZE_MEGABYTES  = "maxTotalSizeMegabytes";
     private static final int    DEFAULT_MAX_TOTAL_SIZE_MEGABYTES = 1024;
 

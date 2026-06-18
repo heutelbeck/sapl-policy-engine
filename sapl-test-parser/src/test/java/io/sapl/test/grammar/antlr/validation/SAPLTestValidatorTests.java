@@ -169,6 +169,24 @@ class SAPLTestValidatorTests {
     }
 
     @Test
+    @DisplayName("an over-long regex is rejected without compiling, guarding the LSP validation thread")
+    void whenRegexExceedsLengthCapThenError() {
+        var document = """
+                requirement "Pattern Matching" {
+                    scenario "huge regex"
+                        when subject "mi-go" attempts action "communicate" on resource "brain_cylinder"
+                        expect decision is permit, with obligation matching object where { "pattern" is text with regex "%s" };
+                }
+                """
+                .formatted("a".repeat(10_000));
+
+        var errors = validate(document);
+
+        assertThat(errors).hasSize(1).first().satisfies(
+                e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX));
+    }
+
+    @Test
     @DisplayName("string length of zero produces error")
     void whenStringLengthZero_thenError() {
         var document = """

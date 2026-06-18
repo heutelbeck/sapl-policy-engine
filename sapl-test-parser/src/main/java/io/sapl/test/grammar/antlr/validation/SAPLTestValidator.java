@@ -47,6 +47,10 @@ public class SAPLTestValidator {
     public static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name must be unique.";
     public static final String MSG_DUPLICATE_SCENARIO_NAME                 = "Scenario name must be unique within a requirement.";
 
+    // Pattern.compile of a very long literal is super-linear and runs on the
+    // per-keystroke LSP validation thread, so reject over-long regexes first.
+    private static final int MAX_REGEX_LENGTH = 1000;
+
     /**
      * Validates a SAPLTest document parse tree.
      *
@@ -142,6 +146,10 @@ public class SAPLTestValidator {
 
     private void validateRegex(StringMatchesRegexContext context, Consumer<ValidationError> errorConsumer) {
         var regex = unquote(context.regex.getText());
+        if (regex.length() > MAX_REGEX_LENGTH) {
+            errorConsumer.accept(ValidationError.fromToken(MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX, context.regex));
+            return;
+        }
         try {
             Pattern.compile(regex);
         } catch (PatternSyntaxException e) {
@@ -172,13 +180,17 @@ public class SAPLTestValidator {
             return text;
         }
         var result = new StringBuilder(text.length());
-        for (int i = 0; i < text.length(); i++) {
+        int i      = 0;
+        while (i < text.length()) {
             char c = text.charAt(i);
             if (c != '\\' || i + 1 >= text.length()) {
                 result.append(c);
+                i++;
                 continue;
             }
-            char next = text.charAt(++i);
+            int  nextIndex    = i + 1;
+            char next         = text.charAt(nextIndex);
+            int  consumedUpTo = nextIndex;
             switch (next) {
             case 'n'  -> result.append('\n');
             case 'r'  -> result.append('\r');
@@ -189,9 +201,10 @@ public class SAPLTestValidator {
             case '"'  -> result.append('"');
             case '\'' -> result.append('\'');
             case '/'  -> result.append('/');
-            case 'u'  -> i = appendUnicode(text, i, result);
+            case 'u'  -> consumedUpTo = appendUnicode(text, nextIndex, result);
             default   -> result.append('\\').append(next);
             }
+            i = consumedUpTo + 1;
         }
         return result.toString();
     }

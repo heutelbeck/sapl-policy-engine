@@ -275,7 +275,7 @@ public class CsvFunctionLibrary {
         }
 
         val firstElement = array.getFirst();
-        if (!(firstElement instanceof ObjectValue firstObject)) {
+        if (!(firstElement instanceof ObjectValue)) {
             return Value.error(ERROR_ARRAY_MUST_CONTAIN_OBJECTS);
         }
 

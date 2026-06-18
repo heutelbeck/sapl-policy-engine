@@ -41,6 +41,8 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import lombok.experimental.UtilityClass;
@@ -93,11 +95,6 @@ public class ContentFilter {
     private static final String     ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
     private static final int        BLACKEN_LENGTH_INVALID_VALUE   = -1;
     private static final BigDecimal MAX_BLACKEN                    = BigDecimal.valueOf(1_000_000);
-
-    private static final Pattern REDOS_ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*+\\|[^)]*+\\)[*+]");
-    private static final Pattern REDOS_NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
-    private static final Pattern REDOS_NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
-    private static final Pattern REDOS_NESTED_WILDCARDS       = Pattern.compile("\\([^)*]*+\\*[^)]*+\\)[^)*]*+\\*");
 
     /**
      * Builds a typed mapper that filters JSON content of the payload according to
@@ -289,16 +286,19 @@ public class ContentFilter {
         if (!(conditionValue instanceof TextValue(var patternText))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        if (isDangerousRegex(patternText)) {
-            throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
-        }
         val regex = Pattern.compile(patternText);
         return original -> {
             val value = getValueAtPath(original, path, objectMapper);
             if (!(value instanceof String stringValue)) {
                 return false;
             }
-            return regex.asMatchPredicate().test(stringValue);
+            // Bound the match. A runaway pattern or hostile input aborts within
+            // the budget and denies, instead of hanging the request thread.
+            try {
+                return BoundedRegex.matches(regex, stringValue);
+            } catch (RegexBudgetExceededException e) {
+                throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
+            }
         };
     }
 
@@ -467,9 +467,4 @@ public class ContentFilter {
         return intValue;
     }
 
-    private static boolean isDangerousRegex(String pattern) {
-        return REDOS_NESTED_QUANTIFIERS.matcher(pattern).find() || REDOS_ALTERNATION_WITH_QUANT.matcher(pattern).find()
-                || REDOS_NESTED_WILDCARDS.matcher(pattern).find() || REDOS_NESTED_BOUNDED_QUANT.matcher(pattern).find()
-                || pattern.contains(".*.*") || pattern.contains(".+.+");
-    }
 }

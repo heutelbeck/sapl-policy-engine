@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -382,13 +383,17 @@ class ContentFilterTests {
         }
 
         @Test
-        @DisplayName("dangerous regex is rejected")
-        void dangerousRegexRejected() {
+        @Timeout(15)
+        @DisplayName("a catastrophically backtracking regex (missed by the old blocklist) applied to hostile input fails closed")
+        void catastrophicRegexAppliedToHostileInputFailsClosed() {
             val constraint = v("""
-                    {"conditions": [{"path": "$.x", "type": "=~", "value": "(a+)+"}]}
+                    {"conditions": [{"path": "$.x", "type": "=~", "value": "(.*,){30}P"}]}
                     """);
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
-                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unsafe regex pattern");
+            val predicate  = ContentFilter.predicateFromConditions(constraint, MAPPER);
+            val hostile    = Map.of("x", "1,".repeat(30));
+
+            assertThatThrownBy(() -> predicate.test(hostile)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Unsafe regex pattern");
         }
 
         @Test

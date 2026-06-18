@@ -132,8 +132,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     private static final String ERROR_VALUE_KIND_FOR_OPERATOR    = "Value kind %s incompatible with operator %s";
     private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
 
-    private static final Pattern COLUMN_IDENTIFIER = Pattern
-            .compile("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*");
+    private static final Pattern COLUMN_IDENTIFIER = Pattern.compile("[A-Za-z_]\\w*+(?:\\.[A-Za-z_]\\w*+)*+");
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {

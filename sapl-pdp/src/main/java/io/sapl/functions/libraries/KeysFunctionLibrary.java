@@ -582,8 +582,8 @@ public class KeysFunctionLibrary {
     /**
      * Converts an EC JWK to PublicKey.
      */
-    private static PublicKey convertEcJwkToPublicKey(JsonNode jwkNode) throws NoSuchAlgorithmException,
-            InvalidKeySpecException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
+    private static PublicKey convertEcJwkToPublicKey(JsonNode jwkNode)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException {
         val curveNode = jwkNode.get("crv");
         val xNode     = jwkNode.get("x");
         val yNode     = jwkNode.get("y");
