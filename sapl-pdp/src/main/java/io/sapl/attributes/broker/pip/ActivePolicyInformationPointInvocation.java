@@ -210,7 +210,8 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
                 return;
             }
             pumpStarted = true;
-            Thread.startVirtualThread(this::pumpLoop);
+            val boundStream = sourceStream;
+            Thread.startVirtualThread(() -> pumpLoop(boundStream));
         }
     }
 
@@ -299,18 +300,20 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
         }
     }
 
-    private void pumpLoop() {
+    private void pumpLoop(Stream<Value> boundStream) {
         while (true) {
-            Stream<Value> current;
             synchronized (lock) {
-                current = sourceStream;
-                if (closed || current == null) {
+                // Exit when this pump is no longer the active one: a rebind has
+                // swapped in a different source, or the invocation is closed. The
+                // pump awaits its own bound stream, never the mutable field, so a
+                // superseded pump cannot migrate onto the replacement stream.
+                if (closed || sourceStream != boundStream) {
                     return;
                 }
             }
             Value next;
             try {
-                next = current.awaitNext();
+                next = boundStream.awaitNext();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
