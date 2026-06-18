@@ -96,8 +96,10 @@ import reactor.util.context.ContextView;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class StreamingPipeline {
 
-    private static final String ERROR_STREAM_SUSPENDED     = "Stream suspended: %s";
-    private static final String WARN_RAP_AFTER_TERMINATION = "RAP item arrived after termination; dropping.";
+    private static final String ERROR_STREAM_SUSPENDED                   = "Stream suspended: %s";
+    private static final String WARN_AFTER_TERMINATION_OBLIGATION_FAILED = "After-termination obligation handler failed after the stream had already terminated; the completion cannot be retracted: {}";
+    private static final String WARN_CANCEL_OBLIGATION_FAILED            = "Cancel obligation handler failed after the subscriber had already cancelled: {}";
+    private static final String WARN_RAP_AFTER_TERMINATION               = "RAP item arrived after termination; dropping.";
 
     private final boolean                                          pauseRapDuringSuspend;
     private final Flux<AuthorizationDecision>                      decisions;
@@ -113,6 +115,7 @@ public final class StreamingPipeline {
     private @Nullable BaseSubscriber<Object>   rapSubscription;
     private boolean                            rapReady;
     private long                               subscriberDemand;
+    private @Nullable EnforcementPlan          lastPermittingPlan;
 
     /**
      * Creates a cold {@link Flux} that, on subscription, drives the streaming PEP's
@@ -197,10 +200,20 @@ public final class StreamingPipeline {
      */
     private void onDownstreamRequest(long n) {
         BaseSubscriber<Object> sub = null;
+        EnforcementPlan        plan;
         synchronized (lock) {
             subscriberDemand = Operators.addCap(subscriberDemand, n);
+            plan             = lastPermittingPlan;
             if (rapReady && rapSubscription != null) {
                 sub = rapSubscription;
+            }
+        }
+        if (plan != null) {
+            try {
+                plan.enforceSubscription(n);
+            } catch (AccessDeniedException denied) {
+                process(new RapError(denied));
+                return;
             }
         }
         if (sub != null) {
@@ -353,16 +366,73 @@ public final class StreamingPipeline {
     private static final EnforcementResult<Object> ENFORCEMENT_NOT_ATTEMPTED = new EnforcementResult<>(Maybe.absent(),
             false);
 
+    /**
+     * Runs the error-signal handlers of the last-active Permitting plan against the
+     * raised throwable, then drives the resolved throwable into the FSM. The plan
+     * may
+     * remap the throwable (e.g. redact internal detail) or escalate an obligation
+     * failure to {@link AccessDeniedException}; either way the resolved throwable
+     * is
+     * what reaches the subscriber.
+     */
     private void onRapError(Throwable throwable) {
-        process(new RapError(throwable));
+        val plan     = currentPlan();
+        val resolved = plan == null ? throwable : plan.enforceErrorConstraintsAsThrowable(throwable);
+        process(new RapError(resolved));
     }
 
+    /**
+     * Fires the complete and termination signals of the last-active Permitting plan
+     * on normal RAP completion. A failing complete or termination obligation
+     * escalates
+     * to a terminal {@link AccessDeniedException} routed through the error path
+     * instead
+     * of a normal completion. The after-termination signal fires once the terminal
+     * emission has been rendered; a failure there cannot retract the
+     * already-delivered
+     * completion and is therefore best-effort.
+     */
     private void onRapComplete() {
+        val plan = currentPlan();
+        if (plan != null) {
+            try {
+                plan.enforceComplete();
+                plan.enforceTermination();
+            } catch (AccessDeniedException denied) {
+                process(new RapError(denied));
+                return;
+            }
+        }
         process(RapComplete.INSTANCE);
+        if (plan != null) {
+            enforceAfterTerminationBestEffort(plan);
+        }
     }
 
     private void onCancel() {
+        val plan = currentPlan();
+        if (plan != null) {
+            try {
+                plan.enforceCancel();
+            } catch (AccessDeniedException denied) {
+                log.warn(WARN_CANCEL_OBLIGATION_FAILED, denied.toString());
+            }
+        }
         process(Cancel.INSTANCE);
+    }
+
+    private void enforceAfterTerminationBestEffort(EnforcementPlan plan) {
+        try {
+            plan.enforceAfterTermination();
+        } catch (AccessDeniedException denied) {
+            log.warn(WARN_AFTER_TERMINATION_OBLIGATION_FAILED, denied.toString());
+        }
+    }
+
+    private @Nullable EnforcementPlan currentPlan() {
+        synchronized (lock) {
+            return lastPermittingPlan;
+        }
     }
 
     private void process(Event event) {
@@ -377,6 +447,9 @@ public final class StreamingPipeline {
             val transition = MealyMachine.step(state, event);
             state     = transition.newState();
             nextState = state;
+            if (nextState instanceof Permitting(var permittingPlan)) {
+                lastPermittingPlan = permittingPlan;
+            }
             boolean anyDataEmitted = false;
             for (val emission : transition.emissions()) {
                 renderEmission(emission);

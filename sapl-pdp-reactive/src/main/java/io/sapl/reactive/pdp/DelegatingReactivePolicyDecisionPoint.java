@@ -151,7 +151,7 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
             while (!Thread.interrupted()) {
                 val value = stream.awaitNext();
                 if (value == null) {
-                    drainConflating(sink, pending);
+                    flushConflating(sink, pending);
                     sink.complete();
                     return;
                 }
@@ -176,6 +176,27 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
                     return;
                 }
                 val next = iterator.next().getValue();
+                iterator.remove();
+                sink.next(next);
+            }
+        }
+    }
+
+    /**
+     * Terminal flush on source completion: pushes every remaining pending
+     * decision into the sink without gating on current demand, then the caller
+     * completes the sink. The {@code BUFFER} overflow strategy retains these
+     * entries until the downstream requests them, so a consumer with zero demand
+     * at the completion instant still receives the final per-subscription
+     * decisions instead of losing them. Synchronized on {@code pending} to stay
+     * consistent with {@link #drainConflating}.
+     */
+    private static void flushConflating(FluxSink<IdentifiableAuthorizationDecision> sink,
+            LinkedHashMap<String, IdentifiableAuthorizationDecision> pending) {
+        synchronized (pending) {
+            val iterator = pending.values().iterator();
+            while (iterator.hasNext()) {
+                val next = iterator.next();
                 iterator.remove();
                 sink.next(next);
             }

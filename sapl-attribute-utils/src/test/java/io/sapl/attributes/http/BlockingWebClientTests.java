@@ -23,6 +23,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.test.stream.StreamAssertions;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -36,22 +37,32 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.CookieHandler;
 import java.net.ProxySelector;
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.PushPromiseHandler;
+import java.net.http.HttpResponse.ResponseInfo;
+import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSession;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -430,6 +441,37 @@ class BlockingWebClientTests {
     }
 
     @Test
+    @DisplayName("an unterminated SSE line aborts the read once the byte cap is crossed without unbounded buffering")
+    void whenServerSentEventLineHasNoTerminatorThenAbortsReadOnceCapCrossedAndFailsClosed() {
+        // A hostile SSE host streams a single newline-free line forever. A bounded
+        // reader must abort once the cap is crossed; it must NOT read the line into
+        // memory unbounded (which would OOM the PDP). The stream counts the bytes it
+        // serves and asserts the client stops far below an unbounded read.
+        val maxBytes       = 64L;
+        val countingStream = new CountingInfiniteStream();
+        val countingClient = new BlockingWebClient(MAPPER, new InputStreamHttpClient(countingStream), maxBytes);
+        val template       = """
+                {
+                    "baseUrl" : "http://localhost:1",
+                    "accept" : "text/event-stream",
+                    "maxResponseBytes" : %d
+                }
+                """;
+        val request        = (ObjectValue) ValueJsonMarshaller.json(template.formatted(maxBytes));
+
+        val drained = StreamAssertions.assertThat(countingClient.httpRequest("GET", request))
+                .withinTimeout(Duration.ofSeconds(5L)).drain();
+
+        assertThat(drained).anySatisfy(v -> {
+            if (!(v instanceof ErrorValue err)) {
+                throw new AssertionError("Expected ErrorValue, got: " + v);
+            }
+            assertThat(err.message()).contains("64");
+        });
+        assertThat(countingStream.bytesServed()).isLessThan(1_000_000L);
+    }
+
+    @Test
     @DisplayName("an SSE event exceeding maxResponseBytes fails closed to an error value")
     void whenServerSentEventExceedsMaxResponseBytesThenErrorValue() {
         val eventStream = "data:" + "x".repeat(5000) + "\n\n";
@@ -520,6 +562,232 @@ class BlockingWebClientTests {
         @Override
         public Optional<Executor> executor() {
             return Optional.empty();
+        }
+    }
+
+    /**
+     * Newline-free byte source that never produces a line terminator and
+     * counts how many bytes it has served. Models a hostile SSE host that
+     * streams a single unbounded line. Bounded at a ceiling far above the
+     * test's byte cap so the unfixed line-buffering path terminates with a
+     * detectable over-read instead of exhausting the test JVM heap.
+     */
+    private static final class CountingInfiniteStream extends InputStream {
+        private static final long CEILING = 8L * 1024L * 1024L;
+        private final AtomicLong  served  = new AtomicLong();
+
+        @Override
+        public int read() {
+            if (served.get() >= CEILING) {
+                return -1;
+            }
+            served.incrementAndGet();
+            return 'x';
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) {
+            val remaining = CEILING - served.get();
+            if (remaining <= 0L) {
+                return -1;
+            }
+            val count = (int) Math.min(length, remaining);
+            for (int i = 0; i < count; i++) {
+                buffer[offset + i] = 'x';
+            }
+            served.addAndGet(count);
+            return count;
+        }
+
+        long bytesServed() {
+            return served.get();
+        }
+    }
+
+    /**
+     * Stand-in transport that answers every send with HTTP 200 and the
+     * given {@link InputStream} as the body, driving whichever
+     * {@link BodyHandler} the client supplies. This lets the test observe
+     * how many body bytes the client pulls before aborting.
+     */
+    @RequiredArgsConstructor
+    private static final class InputStreamHttpClient extends HttpClient {
+        private final InputStream body;
+
+        @Override
+        public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> responseBodyHandler) {
+            val responseInfo = new ResponseInfo() {
+                                 @Override
+                                 public int statusCode() {
+                                     return 200;
+                                 }
+
+                                 @Override
+                                 public HttpHeaders headers() {
+                                     return HttpHeaders.of(Map.of(), (a, b) -> true);
+                                 }
+
+                                 @Override
+                                 public Version version() {
+                                     return Version.HTTP_1_1;
+                                 }
+                             };
+            val subscriber   = responseBodyHandler.apply(responseInfo);
+            new BodyPublisher(body).subscribe(subscriber);
+            final T value;
+            try {
+                value = subscriber.getBody().toCompletableFuture().get(5L, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+            return new HttpResponse<>() {
+                @Override
+                public int statusCode() {
+                    return 200;
+                }
+
+                @Override
+                public HttpRequest request() {
+                    return request;
+                }
+
+                @Override
+                public Optional<HttpResponse<T>> previousResponse() {
+                    return Optional.empty();
+                }
+
+                @Override
+                public HttpHeaders headers() {
+                    return responseInfo.headers();
+                }
+
+                @Override
+                public T body() {
+                    return value;
+                }
+
+                @Override
+                public Optional<SSLSession> sslSession() {
+                    return Optional.empty();
+                }
+
+                @Override
+                public URI uri() {
+                    return request.uri();
+                }
+
+                @Override
+                public Version version() {
+                    return Version.HTTP_1_1;
+                }
+            };
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request,
+                BodyHandler<T> responseBodyHandler) {
+            return CompletableFuture.completedFuture(send(request, responseBodyHandler));
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, BodyHandler<T> responseBodyHandler,
+                PushPromiseHandler<T> pushPromiseHandler) {
+            return sendAsync(request, responseBodyHandler);
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Version version() {
+            return Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Minimal demand-driven publisher that streams an {@link InputStream}
+     * as 8 KB byte-buffer chunks to a single {@link BodySubscriber}. Each
+     * downstream request pulls and delivers exactly one further chunk, so
+     * the subscriber controls how much of the body is ever read.
+     */
+    @RequiredArgsConstructor
+    private static final class BodyPublisher implements Flow.Publisher<List<ByteBuffer>> {
+        private final InputStream source;
+
+        @Override
+        public void subscribe(Flow.Subscriber<? super List<ByteBuffer>> subscriber) {
+            subscriber.onSubscribe(new Flow.Subscription() {
+                private volatile boolean done;
+
+                @Override
+                public void request(long n) {
+                    if (done) {
+                        return;
+                    }
+                    for (long i = 0; i < n; i++) {
+                        val       chunk = new byte[8192];
+                        final int read;
+                        try {
+                            read = source.read(chunk, 0, chunk.length);
+                        } catch (IOException e) {
+                            done = true;
+                            subscriber.onError(e);
+                            return;
+                        }
+                        if (read < 0) {
+                            done = true;
+                            subscriber.onComplete();
+                            return;
+                        }
+                        subscriber.onNext(List.of(ByteBuffer.wrap(chunk, 0, read)));
+                    }
+                }
+
+                @Override
+                public void cancel() {
+                    done = true;
+                }
+            });
         }
     }
 }

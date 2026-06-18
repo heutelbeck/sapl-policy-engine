@@ -59,7 +59,7 @@ import java.util.function.Consumer;
  * decisions with the exact policy set. If
  * pdp.json contains a {@code configurationId} field, that value is used.
  * Otherwise, an ID is auto-generated in the
- * format: {@code dir:<path>@<timestamp>@sha256:<hash>}
+ * format: {@code dir:<path>@<timestamp>}
  * </p>
  * <h2>Thread Safety</h2>
  * <p>

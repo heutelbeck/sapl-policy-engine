@@ -18,6 +18,7 @@
 package io.sapl.compiler.util;
 
 import io.sapl.api.model.SourceLocation;
+import io.sapl.grammar.antlr.SAPLParser.PolicyContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicyOnlyElementContext;
 import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
@@ -110,7 +111,10 @@ public class SourceLocationUtil {
     }
 
     /**
-     * Gets the document name from the SAPL policy/policy-set name.
+     * Gets the document name from the SAPL policy/policy-set name. For a node
+     * inside a policy set, the name is the responsible child policy qualified
+     * by the enclosing set as {@code setname->policyname}, so attribute reads
+     * are attributed to the individual policy rather than the whole set.
      */
     private static String getDocumentName(ParserRuleContext context) {
         val root = findRoot(context);
@@ -122,9 +126,38 @@ public class SourceLocationUtil {
         case PolicyOnlyElementContext p when p.policy().saplName != null     ->
             unquoteString(p.policy().saplName.getText());
         case PolicySetElementContext ps when ps.policySet().saplName != null ->
-            unquoteString(ps.policySet().saplName.getText());
+            policySetScope(unquoteString(ps.policySet().saplName.getText()), context);
         case null, default                                                   -> null;
         };
+    }
+
+    /**
+     * Renders the document name for a node inside a policy set. If the node lies
+     * within a specific child policy, the name is qualified as
+     * {@code setname->policyname}. Otherwise (set-level nodes such as the target
+     * expression or set value definitions) the plain set name is returned.
+     */
+    private static String policySetScope(String setName, ParserRuleContext context) {
+        val policy = enclosingPolicy(context);
+        if (policy == null || policy.saplName == null) {
+            return setName;
+        }
+        return setName + "->" + unquoteString(policy.saplName.getText());
+    }
+
+    /**
+     * Walks up from the given node to the nearest enclosing policy context, or
+     * null if the node is not contained in a policy.
+     */
+    private static PolicyContext enclosingPolicy(ParserRuleContext context) {
+        ParseTree current = context;
+        while (current != null) {
+            if (current instanceof PolicyContext policy) {
+                return policy;
+            }
+            current = current.getParent();
+        }
+        return null;
     }
 
     /**

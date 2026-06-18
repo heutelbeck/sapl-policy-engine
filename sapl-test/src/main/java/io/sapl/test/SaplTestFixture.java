@@ -1150,6 +1150,8 @@ public class SaplTestFixture {
      */
     public static class DecisionResult {
 
+        private static final String ERROR_TIMEOUT_AWAITING_DECISION = "Timed out awaiting the expected decision; the decision stream stayed open but never emitted within the timeout.";
+
         private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
         private final Stream<VoteWithCoverage>    voteWithCoverageStream;
@@ -1271,6 +1273,19 @@ public class SaplTestFixture {
 
         /**
          * Executes verification with the given total timeout.
+         * <p>
+         * An expectation that is never satisfied within the timeout (the
+         * decision stream stays open but does not emit the expected decision)
+         * fails the test loudly by throwing an {@link AssertionError}, just
+         * like a mismatched decision. Fluent callers that discard the returned
+         * {@link TestResult} therefore still fail on a timeout. Only truly
+         * unexpected internal exceptions are reported through a returned
+         * {@link TestResult#failure}.
+         *
+         * @param timeout the total time budget for all queued expectations
+         * @return a successful {@link TestResult} if all expectations passed
+         * @throws AssertionError if an expectation fails or the expected
+         * decision never arrives within the timeout
          */
         public TestResult verify(@NonNull Duration timeout) {
             val coverageRecord = coverageAccumulator != null ? coverageAccumulator.getRecord() : null;
@@ -1284,6 +1299,9 @@ public class SaplTestFixture {
             } catch (AssertionError e) {
                 writeCoverage();
                 throw enhanceWithVoteTrace(e);
+            } catch (TimeoutException e) {
+                writeCoverage();
+                throw enhanceWithVoteTrace(new AssertionError(ERROR_TIMEOUT_AWAITING_DECISION, e));
             } catch (Exception e) {
                 writeCoverage();
                 return TestResult.failure(e, coverageRecord);

@@ -81,6 +81,29 @@ class SemanticVariableOrderTests {
         }
 
         @Test
+        @DisplayName("hash-colliding operands that are not semanticEquals are not merged into one group")
+        void whenOperandsCollideOnHashButNotSemanticEqualsThenNotMerged() {
+            // Both operands share the same 64-bit semanticHash key but are
+            // structurally different (only semanticEquals to themselves).
+            val operandA = collidingOperand(100L);
+            val operandB = collidingOperand(100L);
+            // operandA carries two distinct constants so its group survives pruning.
+            // operandB's predicate must not be folded into operandA's group: routing
+            // operandB's formula by operandA's runtime value would be a wrong-branch
+            // merge.
+            val collidingPredicate = eqPredicate(operandB, Value.of("b"));
+            val expressions        = List.<BooleanExpression>of(new Atom(eqPredicate(operandA, Value.of("a1"))),
+                    new Atom(eqPredicate(operandA, Value.of("a2"))), new Atom(collidingPredicate));
+
+            val result = SemanticVariableOrder.analyze(extractPredicates(expressions));
+
+            assertThat(result.equalityGroups())
+                    .allSatisfy(group -> assertThat(group.getSharedOperand().semanticEquals(operandB)).isFalse())
+                    .noneMatch(group -> group.getTentativePredicates().contains(collidingPredicate));
+            assertThat(result.remainingPredicates()).contains(collidingPredicate);
+        }
+
+        @Test
         @DisplayName("non-equality predicates go to remaining")
         void whenNonEqualityThenRemaining() {
             val expressions = List.<BooleanExpression>of(new Atom(configurablePredicate(1L)),

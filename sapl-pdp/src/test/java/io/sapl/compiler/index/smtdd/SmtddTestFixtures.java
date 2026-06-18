@@ -102,6 +102,40 @@ class SmtddTestFixtures {
         };
     }
 
+    /**
+     * Creates an operand that shares the given semanticHash with other colliding
+     * operands but is only semanticEquals to itself. This models a 64-bit
+     * semanticHash collision between two structurally different operands.
+     */
+    public static PureOperator collidingOperand(long hash) {
+        return new PureOperator() {
+            @Override
+            public Value evaluate(EvaluationContext ctx) {
+                return OPERATOR_RESULTS.getOrDefault(System.identityHashCode(this), Value.FALSE);
+            }
+
+            @Override
+            public SourceLocation location() {
+                return TEST_LOCATION;
+            }
+
+            @Override
+            public boolean isDependingOnSubscription() {
+                return true;
+            }
+
+            @Override
+            public long semanticHash() {
+                return hash;
+            }
+
+            @Override
+            public boolean semanticEquals(PureOperator other) {
+                return this == other;
+            }
+        };
+    }
+
     public static List<List<IndexPredicate>> extractPredicates(List<BooleanExpression> expressions) {
         val result = new ArrayList<List<IndexPredicate>>();
         for (val expression : expressions) {

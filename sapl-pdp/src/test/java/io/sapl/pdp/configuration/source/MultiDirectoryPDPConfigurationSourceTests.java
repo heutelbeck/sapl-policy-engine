@@ -271,9 +271,8 @@ class MultiDirectoryPDPConfigurationSourceTests {
         val configs = captureConfigurations(source);
 
         assertThat(configs).hasSize(1);
-        // Auto-generated format: dir:<path>@<timestamp>@sha256:<hash>
-        assertThat(configs.getFirst().configurationId()).startsWith("dir:");
-        assertThat(configs.getFirst().configurationId()).contains("@sha256:");
+        // Auto-generated format: dir:<path>@<timestamp>
+        assertThat(configs.getFirst().configurationId()).startsWith("dir:").doesNotContain("sha256");
     }
 
     @Test

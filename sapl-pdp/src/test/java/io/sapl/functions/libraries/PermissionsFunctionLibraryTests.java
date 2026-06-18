@@ -528,6 +528,71 @@ class PermissionsFunctionLibraryTests {
         assertThat(combined).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
 
+    /* Scalar Argument Validation Tests */
+
+    @ParameterizedTest(name = "{0} arg = {1}")
+    @MethodSource("provideScalarArgumentValidationCases")
+    void whenScalarArgumentIsFractionalOrOutOfLongRangeThenReturnsError(String functionName, String argument) {
+        val         number = (NumberValue) Value.of(new BigDecimal(argument));
+        val         masks  = createLongArray(new long[] { 1L });
+        final Value actual = switch (functionName) {
+                           case "hasAll"         -> PermissionsFunctionLibrary.hasAll(number, masks);
+                           case "hasAny"         -> PermissionsFunctionLibrary.hasAny(number, masks);
+                           case "hasNone"        -> PermissionsFunctionLibrary.hasNone(number, masks);
+                           case "hasOnly"        -> PermissionsFunctionLibrary.hasOnly(number, masks);
+                           case "hasExact"       ->
+                               PermissionsFunctionLibrary.hasExact(number, (NumberValue) Value.of(1L));
+                           case "isSubsetOf"     ->
+                               PermissionsFunctionLibrary.isSubsetOf(number, (NumberValue) Value.of(1L));
+                           case "overlaps"       ->
+                               PermissionsFunctionLibrary.overlaps(number, (NumberValue) Value.of(1L));
+                           case "areDisjoint"    ->
+                               PermissionsFunctionLibrary.areDisjoint(number, (NumberValue) Value.of(1L));
+                           case "unixOwner"      -> PermissionsFunctionLibrary.unixOwner(number);
+                           case "unixGroup"      -> PermissionsFunctionLibrary.unixGroup(number);
+                           case "unixOther"      -> PermissionsFunctionLibrary.unixOther(number);
+                           case "unixCanRead"    -> PermissionsFunctionLibrary.unixCanRead(number);
+                           case "unixCanWrite"   -> PermissionsFunctionLibrary.unixCanWrite(number);
+                           case "unixCanExecute" -> PermissionsFunctionLibrary.unixCanExecute(number);
+                           case "grant"          -> PermissionsFunctionLibrary.grant(number, masks);
+                           case "revoke"         -> PermissionsFunctionLibrary.revoke(number, masks);
+                           case "toggle"         -> PermissionsFunctionLibrary.toggle(number, masks);
+                           default               ->
+                               throw new IllegalArgumentException("Unknown function: " + functionName);
+                           };
+        assertThat(actual).isInstanceOf(ErrorValue.class);
+    }
+
+    private static Stream<Arguments> provideScalarArgumentValidationCases() {
+        val twoToTheSixtyFourPlusSeven = "18446744073709551623";
+        val fractional                 = "6.9";
+        val scalarFunctions            = Stream.of("hasAll", "hasAny", "hasNone", "hasOnly", "hasExact", "isSubsetOf",
+                "overlaps", "areDisjoint", "unixOwner", "unixGroup", "unixOther", "unixCanRead", "unixCanWrite",
+                "unixCanExecute", "grant", "revoke", "toggle");
+        return scalarFunctions.flatMap(functionName -> Stream.of(arguments(functionName, twoToTheSixtyFourPlusSeven),
+                arguments(functionName, fractional)));
+    }
+
+    @ParameterizedTest(name = "unixMode arg index {0} = {1}")
+    @MethodSource("provideUnixModeArgumentValidationCases")
+    void whenUnixModeArgumentIsFractionalOrOutOfLongRangeThenReturnsError(int argumentIndex, String argument) {
+        val         invalid = (NumberValue) Value.of(new BigDecimal(argument));
+        val         valid   = (NumberValue) Value.of(7L);
+        final Value actual  = switch (argumentIndex) {
+                            case 0  -> PermissionsFunctionLibrary.unixMode(invalid, valid, valid);
+                            case 1  -> PermissionsFunctionLibrary.unixMode(valid, invalid, valid);
+                            case 2  -> PermissionsFunctionLibrary.unixMode(valid, valid, invalid);
+                            default -> throw new IllegalArgumentException("Unknown argument index: " + argumentIndex);
+                            };
+        assertThat(actual).isInstanceOf(ErrorValue.class);
+    }
+
+    private static Stream<Arguments> provideUnixModeArgumentValidationCases() {
+        return Stream.of(arguments(0, "18446744073709551623"), arguments(0, "6.9"),
+                arguments(1, "18446744073709551623"), arguments(1, "6.9"), arguments(2, "18446744073709551623"),
+                arguments(2, "6.9"));
+    }
+
     /* Helper Methods */
 
     private static ArrayValue createLongArray(long[] values) {

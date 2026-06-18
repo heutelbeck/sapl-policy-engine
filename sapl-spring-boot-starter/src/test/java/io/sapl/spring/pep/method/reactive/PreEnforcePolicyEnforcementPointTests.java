@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -609,6 +610,36 @@ class PreEnforcePolicyEnforcementPointTests {
         }
     }
 
+    @Nested
+    @DisplayName("Lifecycle obligation failures route through the ErrorSignal funnel")
+    class LifecycleSignalFailureRouting {
+
+        @Test
+        @DisplayName("A failing CompleteSignal obligation is mapped by the ErrorSignal handler instead of escaping raw")
+        void whenCompleteObligationFailsThenErrorSignalMapperRewritesIt() {
+            decide(new AuthorizationDecision(Decision.PERMIT,
+                    arrayOf(Obligation.COMPLETE_RUNNER_FAILS, Obligation.DEATH_CLAIMS_EXCEPTION), Value.EMPTY_ARRAY,
+                    Value.UNDEFINED));
+
+            val openCaseFile = watch.openCaseFile();
+            StepVerifier
+                    .create(openCaseFile).expectErrorSatisfies(err -> assertThat(err)
+                            .isInstanceOf(IllegalStateException.class).hasMessageContaining(DEATH_CLAIMS_THE_EXCEPTION))
+                    .verify(STEP_TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("A failing CompleteSignal obligation without a mapper still denies access terminally")
+        void whenCompleteObligationFailsAndNoMapperThenAccessDenied() {
+            decide(decisionWithObligation(Obligation.COMPLETE_RUNNER_FAILS));
+
+            val openCaseFile = watch.openCaseFile();
+            StepVerifier.create(openCaseFile)
+                    .expectErrorSatisfies(err -> assertThat(err).isInstanceOf(AccessDeniedException.class))
+                    .verify(STEP_TIMEOUT);
+        }
+    }
+
     private void permit() {
         decide(AuthorizationDecision.PERMIT);
     }
@@ -639,8 +670,9 @@ class PreEnforcePolicyEnforcementPointTests {
         return new AuthorizationDecision(Decision.DENY, arrayOf(type), Value.EMPTY_ARRAY, Value.UNDEFINED);
     }
 
-    private static ArrayValue arrayOf(String type) {
-        return Value.ofArray(constraint(type));
+    private static ArrayValue arrayOf(String... types) {
+        return Value.ofArray(
+                Arrays.stream(types).map(PreEnforcePolicyEnforcementPointTests::constraint).toArray(Value[]::new));
     }
 
     private static ObjectValue constraint(String type) {
@@ -744,6 +776,7 @@ class PreEnforcePolicyEnforcementPointTests {
         static final String COMPLETE_RUNNER              = "ankhmorpork:librarianMarksComplete";
         static final String TERMINATE_RUNNER             = "ankhmorpork:bursarSighsOnTerminate";
         static final String AFTER_TERMINATE_RUNNER       = "ankhmorpork:vetinariReadsAfterTerminate";
+        static final String COMPLETE_RUNNER_FAILS        = "ankhmorpork:librarianDropsCompletionLedger";
 
         private Obligation() {
             // constants only
@@ -860,6 +893,10 @@ class PreEnforcePolicyEnforcementPointTests {
             case Obligation.AFTER_TERMINATE_RUNNER       ->
                 List.of(new ScopedConstraintHandler((Runner) logbook.afterTerminateRuns::incrementAndGet,
                         AfterTerminationSignal.SIGNAL_TYPE, 0));
+            case Obligation.COMPLETE_RUNNER_FAILS        -> List.of(new ScopedConstraintHandler((Runner) () -> {
+                                                         throw new IllegalStateException(WARRANT_HAS_COLLAPSED);
+                                                     },
+                    CompleteSignal.SIGNAL_TYPE, 0));
             default                                      -> List.of();
             };
         }

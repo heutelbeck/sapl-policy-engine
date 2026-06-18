@@ -46,9 +46,12 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
 import static java.lang.reflect.Modifier.isFinal;
@@ -69,6 +72,13 @@ public class AuthorizationSubscriptionBuilderService {
 
     private static final String ERROR_EXPRESSION_EVALUATION_FAILED = "Failed to evaluate expression '";
     private static final String ERROR_SECRETS_MUST_BE_OBJECT       = "Secrets expression must evaluate to an object, but got: ";
+
+    /**
+     * Well-known credential field names redacted from the default subject
+     * projection at any node depth, matched case-insensitively on exact field name.
+     */
+    private static final Set<String> CREDENTIAL_FIELD_NAMES = Set.of("accesstoken", "apikey", "clientsecret",
+            "credentials", "idtoken", "password", "privatekey", "refreshtoken", "salt", "secret", "tokenvalue");
 
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
@@ -334,16 +344,17 @@ public class AuthorizationSubscriptionBuilderService {
 
     /**
      * Retrieves the subject for the authorization subscription. When no explicit
-     * subject expression is provided,
-     * serializes the authentication object and strips sensitive fields:
-     * <ul>
-     * <li>{@code credentials} - removed from the root authentication object</li>
-     * <li>{@code token.tokenValue} - raw encoded token removed from token
-     * object</li>
-     * <li>{@code principal.password} - password removed from principal</li>
-     * <li>{@code principal.tokenValue} - raw encoded token removed from
-     * principal</li>
-     * </ul>
+     * subject expression is provided, serializes the authentication object and
+     * applies a best-effort recursive redaction that removes well-known credential
+     * field names (see {@link #CREDENTIAL_FIELD_NAMES}) at any node depth,
+     * case-insensitive on exact field name. This neutralizes nested raw tokens
+     * (for example an OIDC {@code principal.idToken.tokenValue} or OAuth2
+     * {@code accessToken}/{@code refreshToken} values) and custom-principal secret
+     * fields, while preserving benign domain fields carried by custom principals.
+     * <p>
+     * The redaction is best-effort. Principals that carry secrets under
+     * non-standard field names must configure an explicit subject expression, which
+     * short-circuits this projection entirely.
      */
     private JsonNode retrieveSubject(Authentication authentication, Expression subjectExpr, EvaluationContext ctx) {
         if (subjectExpr != null) {
@@ -351,14 +362,7 @@ public class AuthorizationSubscriptionBuilderService {
         }
 
         ObjectNode subject = mapper().valueToTree(authentication);
-        subject.remove("credentials");
-        stripTokenValue(subject.get("token"));
-        val principal = subject.get("principal");
-        if (principal instanceof ObjectNode objectPrincipal) {
-            objectPrincipal.remove("password");
-            objectPrincipal.remove("tokenValue");
-        }
-
+        redactCredentials(subject);
         return subject;
     }
 
@@ -424,9 +428,14 @@ public class AuthorizationSubscriptionBuilderService {
         return evaluateToJson(environmentExpr, ctx);
     }
 
-    private static void stripTokenValue(JsonNode node) {
+    private static void redactCredentials(JsonNode node) {
         if (node instanceof ObjectNode objectNode) {
-            objectNode.remove("tokenValue");
+            val credentialFields = objectNode.propertyNames().stream()
+                    .filter(fieldName -> CREDENTIAL_FIELD_NAMES.contains(fieldName.toLowerCase(Locale.ROOT))).toList();
+            objectNode.remove(credentialFields);
+            objectNode.values().forEach(AuthorizationSubscriptionBuilderService::redactCredentials);
+        } else if (node instanceof ArrayNode arrayNode) {
+            arrayNode.values().forEach(AuthorizationSubscriptionBuilderService::redactCredentials);
         }
     }
 

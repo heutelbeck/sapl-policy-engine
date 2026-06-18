@@ -32,6 +32,7 @@ import org.jspecify.annotations.Nullable;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthenticationException;
+import io.sapl.node.http.RequestBodyTooLargeException;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -137,6 +138,12 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, subscriptionType());
         } catch (IOException | JacksonException e) {
+            if (RequestBodyTooLargeException.isCausedBy(e)) {
+                log.debug("Rejected oversized subscription: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                        "Request body exceeds the configured limit.");
+                return;
+            }
             log.debug("Failed to parse subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed subscription.");
             return;
@@ -149,10 +156,15 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
 
         val asyncContext = request.startAsync();
         asyncContext.setTimeout(0);
-        connectionRegistry.register(asyncContext);
+        // The writer lock serializes every write to the response: the pump, the
+        // keep-alive frame, and the registry's shutdown frame. Sharing it with the
+        // registry prevents the shutdown write from interleaving with a pump or
+        // keep-alive write on the same non-thread-safe PrintWriter.
+        val writerLock = new Object();
+        connectionRegistry.register(asyncContext, writerLock);
 
         try {
-            pumpExecutor.submit(() -> pump(asyncContext, subscription, pdpId));
+            pumpExecutor.submit(() -> pump(asyncContext, subscription, pdpId, writerLock));
         } catch (RejectedExecutionException e) {
             log.warn("SSE pump rejected by executor for pdpId={}: {}", pdpId, e.getMessage());
             connectionRegistry.unregister(asyncContext);
@@ -172,9 +184,8 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      * is bounded by the container's configured response buffer plus the
      * kernel socket send buffer.
      */
-    private void pump(AsyncContext asyncContext, S subscription, String pdpId) {
+    private void pump(AsyncContext asyncContext, S subscription, String pdpId, Object writerLock) {
         val                response      = (HttpServletResponse) asyncContext.getResponse();
-        val                writerLock    = new Object();
         ScheduledFuture<?> keepAliveTask = null;
         try (PrintWriter writer = response.getWriter(); Stream<D> stream = openStream(subscription, pdpId)) {
             keepAliveTask = scheduleKeepAlive(writer, writerLock, stream);
@@ -235,21 +246,36 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             return null;
         }
         val periodMillis = keepAliveInterval.toMillis();
-        return keepAliveScheduler.scheduleAtFixedRate(() -> {
-            boolean clientGone;
-            synchronized (writerLock) {
-                writer.write(KEEP_ALIVE_FRAME);
-                writer.flush();
-                // PrintWriter swallows a broken-pipe write but sets the error flag, the only
-                // signal of a dead idle client.
-                clientGone = writer.checkError();
-            }
-            if (clientGone) {
-                // Unblocks the pump parked in awaitNext, whose finally block then tears down
-                // this task.
-                closeQuietly(stream);
-            }
-        }, periodMillis, periodMillis, TimeUnit.MILLISECONDS);
+        // The scheduler thread only dispatches; the blocking write+flush runs on the
+        // per-connection virtual-thread pump. A slow client that stalls the flush via
+        // TCP flow control therefore parks a cheap virtual thread, never a thread of
+        // the bounded keep-alive scheduler pool.
+        return keepAliveScheduler.scheduleAtFixedRate(() -> dispatchKeepAlive(writer, writerLock, stream), periodMillis,
+                periodMillis, TimeUnit.MILLISECONDS);
+    }
+
+    private void dispatchKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+        try {
+            pumpExecutor.execute(() -> sendKeepAlive(writer, writerLock, stream));
+        } catch (RejectedExecutionException e) {
+            log.debug("Keep-alive dispatch rejected; pump executor is shutting down: {}", e.getMessage());
+        }
+    }
+
+    private void sendKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+        boolean clientGone;
+        synchronized (writerLock) {
+            writer.write(KEEP_ALIVE_FRAME);
+            writer.flush();
+            // PrintWriter swallows a broken-pipe write but sets the error flag, the only
+            // signal of a dead idle client.
+            clientGone = writer.checkError();
+        }
+        if (clientGone) {
+            // Unblocks the pump parked in awaitNext, whose finally block then tears down
+            // this task.
+            closeQuietly(stream);
+        }
     }
 
     private void closeQuietly(Stream<D> stream) {

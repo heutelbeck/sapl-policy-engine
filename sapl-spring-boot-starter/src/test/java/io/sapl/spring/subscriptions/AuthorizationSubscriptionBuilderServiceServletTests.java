@@ -54,6 +54,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.util.MethodInvocationUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -383,6 +386,41 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
             assertThat(subject.get("principal").has("tokenValue")).isFalse();
         }
 
+        @Test
+        @DisplayName("when OIDC login principal, then the raw principal.idToken.tokenValue never reaches the subject")
+        void whenOidcLoginThenNestedIdTokenValueStrippedFromSubject() {
+            val idToken       = new OidcIdToken("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig", REFERENCE,
+                    REFERENCE.plusSeconds(3600), java.util.Map.of("sub", "user"));
+            val oidcUser      = new DefaultOidcUser(AuthorityUtils.createAuthorityList("ROLE_USER"), idToken);
+            val oidcAuth      = new OAuth2AuthenticationToken(oidcUser, AuthorityUtils.createAuthorityList("ROLE_USER"),
+                    "client-registration");
+            val attribute     = attribute(null, null, null, null);
+            val subscription  = defaultWebBuilderUnderTest.constructAuthorizationSubscription(oidcAuth, invocation,
+                    attribute);
+            val subject       = toJson(subscription.subject());
+            val principalNode = subject.get("principal");
+
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(principalNode.has("idToken")).isFalse();
+            assertThat(subject.toString()).doesNotContain("eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.sig");
+        }
+
+        @Test
+        @DisplayName("when principal carries a nested accessToken, then it is stripped while a benign domain field is retained")
+        void whenPrincipalHasNestedAccessTokenThenStrippedButBenignFieldRetained() {
+            val principal     = new CustomPrincipal("tenant-42", new NestedCredentials("raw-access-token"));
+            val auth          = new UsernamePasswordAuthenticationToken(principal, "the credentials");
+            val attribute     = attribute(null, null, null, null);
+            val subscription  = defaultWebBuilderUnderTest.constructAuthorizationSubscription(auth, invocation,
+                    attribute);
+            val subject       = toJson(subscription.subject());
+            val principalNode = subject.get("principal");
+
+            assertThat(subject.has("credentials")).isFalse();
+            assertThat(principalNode.get("tenantId").asString()).isEqualTo("tenant-42");
+            assertThat(principalNode.get("nested").has("accessToken")).isFalse();
+        }
+
     }
 
     @Nested
@@ -475,6 +513,10 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         private String bad;
 
     }
+
+    public record CustomPrincipal(String tenantId, NestedCredentials nested) {}
+
+    public record NestedCredentials(String accessToken) {}
 
     static class MockSecurityContext implements SecurityContext {
 

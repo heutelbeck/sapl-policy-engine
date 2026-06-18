@@ -17,6 +17,7 @@
  */
 package io.sapl.test.plain;
 
+import io.sapl.test.coverage.TestCoverageRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -113,13 +114,29 @@ class PlainTestResultsTests {
     }
 
     @Test
-    @DisplayName("coverageByDocumentId returns empty map when no coverage")
+    @DisplayName("coverageByScenarioName returns empty map when no coverage")
     void whenNoCoverage_thenMapIsEmpty() {
         var results = List.of(ScenarioResult.passed("doc", "req", "s", DURATION, null));
 
         var plainResults = PlainTestResults.from(results, Map.of());
 
-        assertThat(plainResults.coverageByDocumentId()).isEmpty();
+        assertThat(plainResults.coverageByScenarioName()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("coverageByScenarioName is keyed by scenario full name")
+    void whenCoverageProvided_thenMapIsKeyedByScenarioFullName() {
+        var record1  = new TestCoverageRecord("Order access > permit owner");
+        var record2  = new TestCoverageRecord("Order access > deny stranger");
+        var coverage = Map.of("Order access > permit owner", record1, "Order access > deny stranger", record2);
+
+        var plainResults = PlainTestResults.from(List.of(), coverage);
+
+        assertThat(plainResults.coverageByScenarioName()).satisfies(map -> {
+            assertThat(map).containsOnlyKeys("Order access > permit owner", "Order access > deny stranger");
+            assertThat(map.get("Order access > permit owner")).isSameAs(record1);
+            assertThat(map.get("Order access > deny stranger")).isSameAs(record2);
+        });
     }
 
     @Test

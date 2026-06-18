@@ -30,8 +30,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.data.mongodb.core.query.Collation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+
+import com.mongodb.ReadPreference;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
@@ -300,6 +303,63 @@ class MongoDbQueryRewritingProviderTests {
                 assertThat(r.getLimit()).isEqualTo(10);
                 assertThat(r.getSkip()).isEqualTo(20L);
             });
+        }
+    }
+
+    @Nested
+    @DisplayName("Query option preservation (collation, hint, read preference, meta)")
+    class QueryOptionPreservation {
+
+        @Test
+        @DisplayName("Collation is preserved when string conditions are merged into the BSON document")
+        void givenOriginalCollationWhenStringConditionsAppliedThenCollationPreserved() {
+            val mapper    = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val collation = Collation.of("en").strength(Collation.ComparisonLevel.secondary());
+            val original  = new Query().collation(collation);
+            val result    = mapper.apply(original);
+            assertThat(result.getCollation()).contains(collation);
+        }
+
+        @Test
+        @DisplayName("Hint is preserved when string conditions are merged into the BSON document")
+        void givenOriginalHintWhenStringConditionsAppliedThenHintPreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val original = new Query().withHint("tenant_idx");
+            val result   = mapper.apply(original);
+            assertThat(result.getHint()).isEqualTo("tenant_idx");
+        }
+
+        @Test
+        @DisplayName("Read preference is preserved when string conditions are merged into the BSON document")
+        void givenOriginalReadPreferenceWhenStringConditionsAppliedThenReadPreferencePreserved() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val original = new Query().withReadPreference(ReadPreference.secondaryPreferred());
+            val result   = mapper.apply(original);
+            assertThat(result.getReadPreference()).isEqualTo(ReadPreference.secondaryPreferred());
+        }
+
+        @Test
+        @DisplayName("Meta comment is preserved when string conditions are merged into the BSON document")
+        void givenOriginalMetaWhenStringConditionsAppliedThenMetaPreserved() {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "conditions": ["{\\"tenantId\\": 7}"]}
+                    """);
+            val meta   = new org.springframework.data.mongodb.core.query.Meta();
+            meta.setComment("audit-trace");
+            val original = new Query();
+            original.setMeta(meta);
+            val result = mapper.apply(original);
+            assertThat(result.getMeta().getComment()).isEqualTo("audit-trace");
         }
     }
 }

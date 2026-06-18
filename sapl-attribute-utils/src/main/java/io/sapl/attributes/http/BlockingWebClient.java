@@ -33,7 +33,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -43,7 +46,6 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -208,18 +210,18 @@ public class BlockingWebClient {
     private Stream<Value> openServerSentEventStream(HttpRequest request, long maxBytes) {
         return Streams.fromCallback((emit, complete) -> {
             val stopped = new AtomicBoolean(false);
-            val bodyRef = new AtomicReference<java.util.stream.Stream<String>>();
+            val bodyRef = new AtomicReference<InputStream>();
             val thread  = Thread.startVirtualThread(() -> {
                             try {
-                                val response = httpClient.send(request, BodyHandlers.ofLines());
+                                val response = httpClient.send(request, BodyHandlers.ofInputStream());
                                 if (response.statusCode() >= 400) {
                                     emit.accept(
                                             Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode())));
                                     return;
                                 }
-                                try (val lines = response.body()) {
-                                    bodyRef.set(lines);
-                                    pumpServerSentEvents(lines.iterator(), emit, stopped, maxBytes);
+                                try (val body = response.body()) {
+                                    bodyRef.set(body);
+                                    pumpServerSentEvents(body, emit, stopped, maxBytes);
                                 }
                             } catch (IOException | RuntimeException e) {
                                 emit.accept(Value.error(messageOf(e)));
@@ -234,29 +236,94 @@ public class BlockingWebClient {
                 thread.interrupt();
                 val body = bodyRef.get();
                 if (body != null) {
-                    body.close();
+                    try {
+                        body.close();
+                    } catch (IOException ignored) {
+                        // Closing the aborted stream is best-effort; nothing to recover.
+                    }
                 }
             };
         });
     }
 
-    private void pumpServerSentEvents(Iterator<String> iterator, Consumer<Value> emit, AtomicBoolean stopped,
-            long maxBytes) {
-        val data = new StringBuilder();
-        while (!stopped.get() && iterator.hasNext()) {
-            val line = iterator.next();
-            if (line.isEmpty()) {
-                flushEvent(data, emit);
-            } else if (line.startsWith("data:")) {
-                appendDataLine(data, line);
-                if (utf8ByteLength(data) > maxBytes) {
-                    emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
-                    stopped.set(true);
-                }
+    /**
+     * Reads the SSE body one line at a time, enforcing {@code maxBytes}
+     * while scanning for a line terminator so a single newline-free
+     * payload cannot exhaust the heap. Line terminators ({@code \n},
+     * {@code \r}, {@code \r\n}) are recognized and stripped, matching the
+     * previous line-stream behavior; a trailing un-terminated line is
+     * still dispatched at end of stream. The cap is enforced in UTF-8
+     * bytes across the in-flight accumulated event plus the line being
+     * read; once it is crossed the read is aborted before any further
+     * bytes are buffered.
+     */
+    private void pumpServerSentEvents(InputStream body, Consumer<Value> emit, AtomicBoolean stopped, long maxBytes)
+            throws IOException {
+        val reader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8));
+        val data   = new StringBuilder();
+        val line   = new StringBuilder();
+        while (!stopped.get()) {
+            val terminated = readLine(reader, line, utf8ByteLength(data), maxBytes, emit, stopped);
+            if (stopped.get()) {
+                return;
             }
+            if (!terminated && line.isEmpty()) {
+                break;
+            }
+            consumeLine(line.toString(), data, emit, stopped, maxBytes);
+            line.setLength(0);
         }
         if (!stopped.get()) {
             flushEvent(data, emit);
+        }
+    }
+
+    /**
+     * Reads a single line into {@code line}, treating {@code \n},
+     * {@code \r} and {@code \r\n} as terminators and bounding the combined
+     * size of the already-accumulated event ({@code carriedDataBytes})
+     * plus the line being read against {@code maxBytes}. Returns
+     * {@code true} if a terminator was consumed, {@code false} at end of
+     * stream. Emits the too-large error and sets {@code stopped} the
+     * moment the cap is crossed, before reading on.
+     */
+    private boolean readLine(BufferedReader reader, StringBuilder line, long carriedDataBytes, long maxBytes,
+            Consumer<Value> emit, AtomicBoolean stopped) throws IOException {
+        var lineBytes = 0L;
+        int read;
+        while ((read = reader.read()) != -1) {
+            val c = (char) read;
+            if (c == '\n') {
+                return true;
+            }
+            if (c == '\r') {
+                reader.mark(1);
+                if (reader.read() != '\n') {
+                    reader.reset();
+                }
+                return true;
+            }
+            line.append(c);
+            lineBytes += charUtf8ByteLength(c);
+            if (carriedDataBytes + lineBytes > maxBytes) {
+                emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+                stopped.set(true);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private void consumeLine(String line, StringBuilder data, Consumer<Value> emit, AtomicBoolean stopped,
+            long maxBytes) {
+        if (line.isEmpty()) {
+            flushEvent(data, emit);
+        } else if (line.startsWith("data:")) {
+            appendDataLine(data, line);
+            if (utf8ByteLength(data) > maxBytes) {
+                emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
+                stopped.set(true);
+            }
         }
     }
 
@@ -484,6 +551,21 @@ public class BlockingWebClient {
 
     private static int utf8ByteLength(CharSequence text) {
         return text.toString().getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    /**
+     * UTF-8 byte length contributed by a single UTF-16 code unit. A
+     * surrogate counts as two bytes so that a high plus low surrogate
+     * pair sums to the four bytes of the encoded code point.
+     */
+    private static int charUtf8ByteLength(char c) {
+        if (c < 0x80) {
+            return 1;
+        }
+        if (c < 0x800 || Character.isSurrogate(c)) {
+            return 2;
+        }
+        return 3;
     }
 
     /**

@@ -202,6 +202,16 @@ public class GraphQLFunctionLibrary {
               !("ssn" in gql.fields);
             ```
 
+            ## Multiple operations
+
+            A document may declare several named operations; the one executed is chosen at request time by the
+            `operationName` parameter, which this analysis does not observe. The security metrics (`depth`, `fields`,
+            `complexity`, `security.*`) therefore describe the worst case across every operation in the document: the
+            maximum depth and pagination limit, the union of all field names, and the logical OR of the introspection
+            and circular-fragment flags. The descriptive `operation`, `ast.operationName` and `ast.variables` fields
+            reflect the first operation in source order. When a document may carry more than one operation, gate on the
+            aggregate security metrics rather than on the descriptive operation fields.
+
             ## Error Handling
 
             Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
@@ -391,8 +401,7 @@ public class GraphQLFunctionLibrary {
                 return result.build();
             }
 
-            val operation = extractOperation(document);
-            val metrics   = analyzeQueryInSinglePass(document, operation);
+            val metrics = analyzeQueryInSinglePass(document);
             metrics.populateResult(result);
 
             return result.build();
@@ -433,13 +442,12 @@ public class GraphQLFunctionLibrary {
             """, schema = RETURNS_PARSED_QUERY)
     public static Value analyzeQuery(TextValue query) {
         try {
-            val document  = new Parser().parseDocument(query.value());
-            val result    = ObjectValue.builder();
-            val operation = extractOperation(document);
+            val document = new Parser().parseDocument(query.value());
+            val result   = ObjectValue.builder();
 
             result.put(FIELD_VALID, Value.of(true));
 
-            val metrics = analyzeQueryInSinglePass(document, operation);
+            val metrics = analyzeQueryInSinglePass(document);
             metrics.populateResult(result);
 
             return result.build();
@@ -611,43 +619,60 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts the operation definition from a parsed document.
+     * Collects all operation definitions from a parsed document.
+     * <p/>
+     * A GraphQL document may contain several named operations. The one actually
+     * executed is chosen at request time by the {@code operationName} parameter,
+     * which an authorization gate does not observe. All operations are therefore
+     * analyzed and the security metrics aggregate the worst case across them.
      *
      * @param document
      * the parsed GraphQL document
      *
-     * @return the operation definition
+     * @return the operation definitions in source order
      *
      * @throws IllegalArgumentException
      * if no operation definition is found
      */
-    private static OperationDefinition extractOperation(Document document) {
-        return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException(ERROR_NO_OPERATION_FOUND));
+    private static List<OperationDefinition> extractOperations(Document document) {
+        val operations = document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
+                .map(OperationDefinition.class::cast).toList();
+        if (operations.isEmpty()) {
+            throw new IllegalArgumentException(ERROR_NO_OPERATION_FOUND);
+        }
+        return operations;
     }
 
     /**
      * Analyzes a GraphQL query in a single pass, collecting all metrics at once.
+     * <p/>
+     * Every operation definition in the document is traversed and the metrics
+     * aggregate the worst case (maximum depth and pagination limit, union of
+     * fields, logical OR of introspection and circular-fragment flags). The
+     * descriptive {@code operation}, {@code operationName} and {@code variables}
+     * fields reflect the first operation in source order.
      *
      * @param document
      * the parsed document
-     * @param operation
-     * the operation definition
      *
      * @return QueryMetrics containing all collected metrics
      */
-    private static QueryMetrics analyzeQueryInSinglePass(Document document, OperationDefinition operation) {
-        val metrics = new QueryMetrics();
+    private static QueryMetrics analyzeQueryInSinglePass(Document document) {
+        val metrics    = new QueryMetrics();
+        val operations = extractOperations(document);
 
-        metrics.operation     = switch (operation.getOperation()) {
+        val firstOperation = operations.get(0);
+        metrics.operation     = switch (firstOperation.getOperation()) {
                               case QUERY        -> OPERATION_QUERY;
                               case MUTATION     -> OPERATION_MUTATION;
                               case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
                               };
-        metrics.operationName = Objects.requireNonNullElse(operation.getName(), "");
-        metrics.variables     = extractVariablesFromOperation(operation);
+        metrics.operationName = Objects.requireNonNullElse(firstOperation.getName(), "");
+        metrics.variables     = extractVariablesFromOperation(firstOperation);
 
-        analyzeSelectionSet(operation.getSelectionSet(), 0, metrics, true);
+        for (OperationDefinition operation : operations) {
+            analyzeSelectionSet(operation.getSelectionSet(), 0, metrics, true);
+        }
         processFragments(document, metrics);
 
         return metrics;
@@ -845,8 +870,25 @@ public class GraphQLFunctionLibrary {
         }
     }
 
+    // Fragment colours for cycle detection. GRAY marks a fragment on the current
+    // depth-first path; revisiting a GRAY fragment is a back edge and therefore a
+    // cycle. BLACK marks a fully explored fragment with no cycle below it, so it is
+    // never re-explored. Absence from the map is the implicit WHITE (unvisited).
+    private enum FragmentColour {
+        GRAY,
+        BLACK
+    }
+
     /**
-     * Detects circular references in fragment definitions.
+     * Detects circular references in fragment definitions in a single linear pass.
+     * <p/>
+     * Performs an iterative depth-first search with WHITE/GRAY/BLACK colouring over
+     * the fragment-spread graph. A fully explored fragment is marked BLACK and
+     * never
+     * re-explored, so the search visits every fragment and every spread at most
+     * once,
+     * giving O(V+E) running time even on a wide acyclic lattice of shared
+     * fragments.
      *
      * @param fragments
      * map of fragment names to definitions
@@ -854,8 +896,12 @@ public class GraphQLFunctionLibrary {
      * @return true if circular references detected
      */
     private static boolean detectCircularFragments(Map<String, FragmentDefinition> fragments) {
-        for (Map.Entry<String, FragmentDefinition> entry : fragments.entrySet()) {
-            if (hasCircularReference(entry.getKey(), entry.getValue(), fragments, new HashSet<>())) {
+        val colours = new HashMap<String, FragmentColour>();
+        for (String startName : fragments.keySet()) {
+            if (colours.containsKey(startName)) {
+                continue;
+            }
+            if (hasCircularReference(startName, fragments, colours)) {
                 return true;
             }
         }
@@ -863,52 +909,56 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Checks for circular references in a fragment using depth-first search.
-     * <p/>
-     * Uses backtracking DFS with a visited set to detect cycles. The algorithm: 1.
-     * Marks current fragment as visited 2.
-     * Recursively checks all fragment spreads 3. Backtracks by removing from
-     * visited set
-     * <p/>
-     * If a fragment is encountered while already in the visited set, a cycle
-     * exists.
+     * Explores one fragment and its transitive spreads with colouring-based cycle
+     * detection, using an explicit work stack to avoid deep recursion.
      *
-     * @param fragmentName
-     * the fragment name being checked
-     * @param fragment
-     * the fragment definition
+     * @param startName
+     * the fragment name to start exploration from
      * @param allFragments
-     * map of all fragments
-     * @param visited
-     * set of already visited fragment names in current path
+     * map of all fragment definitions
+     * @param colours
+     * the GRAY/BLACK colour map, shared and mutated across calls
      *
-     * @return true if circular reference found
+     * @return true if a back edge (cycle) is found
      */
-    private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
-            Map<String, FragmentDefinition> allFragments, Set<String> visited) {
-        // Cycle detected: fragment references itself through a chain
-        if (visited.contains(fragmentName)) {
-            return true;
-        }
+    private static boolean hasCircularReference(String startName, Map<String, FragmentDefinition> allFragments,
+            Map<String, FragmentColour> colours) {
+        val stack = new ArrayDeque<FragmentFrame>();
+        stack.push(new FragmentFrame(startName, frameSpreads(startName, allFragments)));
+        colours.put(startName, FragmentColour.GRAY);
 
-        // Mark as visited for this path
-        visited.add(fragmentName);
-
-        // Find all fragments this fragment references
-        val referencedFragments = findFragmentSpreads(fragment.getSelectionSet());
-        for (String refName : referencedFragments) {
-            // Recursively check each referenced fragment for cycles
-            val referencedFragment = allFragments.get(refName);
-            if (referencedFragment != null
-                    && hasCircularReference(refName, referencedFragment, allFragments, visited)) {
-                return true;
+        while (!stack.isEmpty()) {
+            val frame = stack.peek();
+            if (frame.spreads.hasNext()) {
+                val refName = frame.spreads.next();
+                if (!allFragments.containsKey(refName)) {
+                    continue;
+                }
+                val colour = colours.get(refName);
+                if (colour == FragmentColour.GRAY) {
+                    return true;
+                }
+                if (colour == null) {
+                    colours.put(refName, FragmentColour.GRAY);
+                    stack.push(new FragmentFrame(refName, frameSpreads(refName, allFragments)));
+                }
+            } else {
+                colours.put(frame.name, FragmentColour.BLACK);
+                stack.pop();
             }
         }
-
-        // Backtrack: remove from visited to allow other paths to use this fragment
-        visited.remove(fragmentName);
         return false;
     }
+
+    private static Iterator<String> frameSpreads(String fragmentName, Map<String, FragmentDefinition> allFragments) {
+        return findFragmentSpreads(allFragments.get(fragmentName).getSelectionSet()).iterator();
+    }
+
+    /**
+     * Work-stack frame for the iterative fragment cycle search. Holds the fragment
+     * currently being explored and an iterator over its outgoing spreads.
+     */
+    private record FragmentFrame(String name, Iterator<String> spreads) {}
 
     /**
      * Finds fragment spreads in a selection set.

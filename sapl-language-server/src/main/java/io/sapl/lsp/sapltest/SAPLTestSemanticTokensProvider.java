@@ -142,8 +142,8 @@ public class SAPLTestSemanticTokensProvider {
         // Mock and setup keywords
         case SAPLTestLexer.FUNCTION, SAPLTestLexer.ATTRIBUTE, SAPLTestLexer.MAPS, SAPLTestLexer.TO, SAPLTestLexer.EMITS,
                 SAPLTestLexer.STREAM, SAPLTestLexer.OF, SAPLTestLexer.IS, SAPLTestLexer.CALLED, SAPLTestLexer.ERROR,
-                SAPLTestLexer.ONCE,
-                SAPLTestLexer.TIMES                                                                                                                                                                                                                                   ->
+                SAPLTestLexer.ONCE, SAPLTestLexer.NEVER,
+                SAPLTestLexer.TIMES                                                                                                                                                                                                                                                        ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Document and configuration keywords
@@ -175,8 +175,8 @@ public class SAPLTestSemanticTokensProvider {
         case SAPLTestLexer.TRUE, SAPLTestLexer.FALSE, SAPLTestLexer.UNDEFINED -> SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Literals
-        case SAPLTestLexer.NUMBER -> SAPLTestSemanticTokenTypes.NUMBER;
-        case SAPLTestLexer.STRING -> SAPLTestSemanticTokenTypes.STRING;
+        case SAPLTestLexer.NUMBER, SAPLTestLexer.INT -> SAPLTestSemanticTokenTypes.NUMBER;
+        case SAPLTestLexer.STRING                    -> SAPLTestSemanticTokenTypes.STRING;
 
         // Identifiers
         case SAPLTestLexer.ID -> SAPLTestSemanticTokenTypes.VARIABLE;

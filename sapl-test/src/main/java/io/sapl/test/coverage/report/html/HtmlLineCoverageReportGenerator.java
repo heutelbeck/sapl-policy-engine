@@ -41,8 +41,9 @@ import lombok.val;
  */
 public class HtmlLineCoverageReportGenerator {
 
-    private static final String ERROR_ASSET_FILE_NOT_FOUND    = "Cannot find asset file: %s";
-    private static final String ERROR_TEMPLATE_FILE_NOT_FOUND = "Cannot find template file: %s";
+    private static final String ERROR_ASSET_FILE_NOT_FOUND                 = "Cannot find asset file: %s";
+    private static final String ERROR_REPORT_FILE_ESCAPES_OUTPUT_DIRECTORY = "Report file escapes the output directory: %s";
+    private static final String ERROR_TEMPLATE_FILE_NOT_FOUND              = "Cannot find template file: %s";
 
     private static final String TEMPLATE_PREFIX = "/io/sapl/test/coverage/report/html/templates/";
 
@@ -75,8 +76,8 @@ public class HtmlLineCoverageReportGenerator {
         val links = new StringBuilder();
         for (val policy : policies) {
             val name = policy.getDocumentName();
-            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(toFileNameSlug(name)))
-                    .append(".html\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
+            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(reportFileName(policy)))
+                    .append("\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
                     .append("</a>\n");
         }
 
@@ -101,8 +102,11 @@ public class HtmlLineCoverageReportGenerator {
                     .replace("{{policyText}}", escapeHtml(policy.getDocumentSource()))
                     .replace("{{lineModelsJson}}", lineModelsJson);
 
-            val outputFile = baseDir.resolve("html").resolve("policies")
-                    .resolve(toFileNameSlug(policy.getDocumentName()) + ".html");
+            val policiesDir = baseDir.resolve("html").resolve("policies");
+            val outputFile  = policiesDir.resolve(reportFileName(policy));
+            if (!outputFile.normalize().startsWith(policiesDir.normalize())) {
+                throw new IOException(ERROR_REPORT_FILE_ESCAPES_OUTPUT_DIRECTORY.formatted(outputFile));
+            }
             writeFile(outputFile, html);
         }
     }
@@ -197,6 +201,26 @@ public class HtmlLineCoverageReportGenerator {
         if (parent != null) {
             Files.createDirectories(parent);
         }
+    }
+
+    /**
+     * Derives the per-policy report file name. The document name is
+     * attacker-influenceable SAPL source content, so it is slugged to a safe path
+     * segment and a short deterministic suffix keyed on the document name and its
+     * source is appended. Slugging guarantees the result stays inside the policies
+     * directory; the suffix keeps genuinely distinct documents that slug to the
+     * same segment from overwriting one another, while keeping the file name
+     * idempotent for repeated emissions of the same document.
+     */
+    private static String reportFileName(PolicyCoverageData policy) {
+        val slug = toFileNameSlug(policy.getDocumentName());
+        return slug + "-" + disambiguator(policy) + ".html";
+    }
+
+    private static String disambiguator(PolicyCoverageData policy) {
+        val key  = policy.getDocumentName() + "#" + policy.getSourceHash();
+        val hash = Integer.toHexString(key.hashCode());
+        return "00000000".substring(hash.length()) + hash;
     }
 
     private static String toFileNameSlug(String documentName) {

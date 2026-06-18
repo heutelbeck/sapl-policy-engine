@@ -859,9 +859,13 @@ public class ScenarioInterpreter {
     /**
      * Builds a Times verification from grammar context.
      */
-    private Times buildTimes(NumericAmountContext ctx) {
-        val count = parseNumericAmount(ctx);
-        return Times.times(count);
+    private Times buildTimes(VerificationAmountContext ctx) {
+        return switch (ctx) {
+        case NeverAmountContext ignored   -> Times.never();
+        case CountedAmountContext counted -> Times.times(parseNumericAmount(counted.numericAmount()));
+        default                           ->
+            throw new IllegalArgumentException(ERROR_UNKNOWN_AMOUNT_TYPE.formatted(ctx.getText()));
+        };
     }
 
     /**

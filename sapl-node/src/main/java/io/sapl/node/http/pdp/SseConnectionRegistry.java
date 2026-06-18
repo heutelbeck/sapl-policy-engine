@@ -17,7 +17,7 @@
  */
 package io.sapl.node.http.pdp;
 
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.event.ContextClosedEvent;
@@ -34,6 +34,12 @@ import lombok.val;
  * connection receives a final shutdown event before the pump executor is
  * interrupted. Without this hook clients see an abrupt TCP close and have
  * no signal to stop reconnecting.
+ * <p>
+ * Each connection is registered together with its per-connection writer lock,
+ * the same lock the pump and keep-alive writes synchronize on. The shutdown
+ * write acquires that lock so the final frame cannot interleave with a
+ * concurrent pump or keep-alive write to the same non-thread-safe
+ * {@code PrintWriter}.
  */
 @Slf4j
 @Component
@@ -43,10 +49,10 @@ public class SseConnectionRegistry {
     private static final String LOG_DRAINING     = "Draining {} active SSE connection(s)";
     private static final String LOG_DRAIN_FAILED = "Failed to drain SSE connection: {}";
 
-    private final Set<AsyncContext> open = ConcurrentHashMap.newKeySet();
+    private final Map<AsyncContext, Object> open = new ConcurrentHashMap<>();
 
-    void register(AsyncContext context) {
-        open.add(context);
+    void register(AsyncContext context, Object writerLock) {
+        open.put(context, writerLock);
     }
 
     void unregister(AsyncContext context) {
@@ -59,12 +65,16 @@ public class SseConnectionRegistry {
             return;
         }
         log.info(LOG_DRAINING, open.size());
-        for (val context : open) {
+        for (val entry : open.entrySet()) {
+            val context    = entry.getKey();
+            val writerLock = entry.getValue();
             try {
                 val response = (HttpServletResponse) context.getResponse();
                 val writer   = response.getWriter();
-                writer.write(SHUTDOWN_EVENT);
-                writer.flush();
+                synchronized (writerLock) {
+                    writer.write(SHUTDOWN_EVENT);
+                    writer.flush();
+                }
                 context.complete();
             } catch (Exception e) {
                 log.debug(LOG_DRAIN_FAILED, e.getMessage());

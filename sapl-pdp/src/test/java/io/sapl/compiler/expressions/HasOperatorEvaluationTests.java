@@ -122,6 +122,23 @@ class HasOperatorEvaluationTests {
             return Stream.of(arguments("string instead of array", "x has any \"a\"", Map.of("x", OBJ_AB)),
                     arguments("number instead of array", "x has any 42", Map.of("x", OBJ_AB)));
         }
+
+        @DisplayName("errors on non-string element regardless of base type")
+        @ParameterizedTest(name = "{0}")
+        @MethodSource
+        void whenHasAnyNonStringElementThenError(String description, String expression, Map<String, Value> vars) {
+            val ctx    = testContext(vars);
+            val result = evaluateExpression(expression, ctx);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        static Stream<Arguments> whenHasAnyNonStringElementThenError() {
+            return Stream.of(arguments("object base", "x has any [\"a\", 42]", Map.of("x", OBJ_AB)),
+                    arguments("empty object base", "x has any [\"a\", 42]", Map.of("x", EMPTY_OBJ)),
+                    arguments("string base", "x has any [\"a\", 42]", Map.of("x", Value.of("text"))),
+                    arguments("array base", "x has any [\"a\", 42]", Map.of("x", Value.ofJson("[1]"))),
+                    arguments("number base", "x has any [\"a\", 42]", Map.of("x", Value.of(7))));
+        }
     }
 
     @Nested
@@ -144,6 +161,23 @@ class HasOperatorEvaluationTests {
                     arguments("has all empty array", "x has all []", Map.of("x", OBJ_AB), Value.TRUE),
                     arguments("undefined has all", "x has all [\"a\"]", Map.of("x", Value.UNDEFINED), Value.FALSE),
                     arguments("array has all", "x has all [\"a\"]", Map.of("x", Value.ofJson("[1]")), Value.FALSE));
+        }
+
+        @DisplayName("errors on non-string element regardless of base type")
+        @ParameterizedTest(name = "{0}")
+        @MethodSource
+        void whenHasAllNonStringElementThenError(String description, String expression, Map<String, Value> vars) {
+            val ctx    = testContext(vars);
+            val result = evaluateExpression(expression, ctx);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        static Stream<Arguments> whenHasAllNonStringElementThenError() {
+            return Stream.of(arguments("object base", "x has all [\"a\", 42]", Map.of("x", OBJ_AB)),
+                    arguments("empty object base", "x has all [\"a\", 42]", Map.of("x", EMPTY_OBJ)),
+                    arguments("string base", "x has all [\"a\", 42]", Map.of("x", Value.of("text"))),
+                    arguments("array base", "x has all [\"a\", 42]", Map.of("x", Value.ofJson("[1]"))),
+                    arguments("number base", "x has all [\"a\", 42]", Map.of("x", Value.of(7))));
         }
     }
 

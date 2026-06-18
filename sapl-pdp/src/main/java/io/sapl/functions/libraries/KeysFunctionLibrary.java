@@ -443,8 +443,7 @@ public class KeysFunctionLibrary {
             return Value.of(keyPem);
         } catch (CryptoException exception) {
             return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage());
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidAlgorithmParameterException
-                | InvalidParameterSpecException exception) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidParameterSpecException exception) {
             return new ErrorValue(ERROR_FAILED_TO_CONVERT_FROM_JWK + exception.getMessage() + ".");
         }
     }
@@ -538,8 +537,8 @@ public class KeysFunctionLibrary {
     /**
      * Converts a JWK to PublicKey following RFC 7517 and RFC 7518.
      */
-    private static PublicKey convertJwkToPublicKey(JsonNode jwkNode) throws NoSuchAlgorithmException,
-            InvalidKeySpecException, InvalidAlgorithmParameterException, InvalidParameterSpecException {
+    private static PublicKey convertJwkToPublicKey(JsonNode jwkNode)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException {
         val keyTypeNode = jwkNode.get("kty");
         if (keyTypeNode == null || !keyTypeNode.isString()) {
             throw new CryptoException(ERROR_JWK_MISSING_KTY);

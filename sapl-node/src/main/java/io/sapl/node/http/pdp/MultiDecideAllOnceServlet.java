@@ -26,6 +26,7 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthenticationException;
+import io.sapl.node.http.RequestBodyTooLargeException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,6 +70,12 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
         try (val in = request.getInputStream()) {
             subscription = mapper.readValue(in, MultiAuthorizationSubscription.class);
         } catch (IOException | JacksonException e) {
+            if (RequestBodyTooLargeException.isCausedBy(e)) {
+                log.debug("Rejected oversized multi-subscription: {}", e.getMessage());
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                        "Request body exceeds the configured limit.");
+                return;
+            }
             log.debug("Failed to parse multi-subscription: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed multi-subscription.");
             return;

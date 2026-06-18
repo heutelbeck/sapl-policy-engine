@@ -20,6 +20,9 @@ package io.sapl.spring.pep.streaming;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -356,6 +359,87 @@ class StreamingPipelineTests {
                     .verifyComplete();
 
             assertThat(suspendCount.get()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("Lifecycle and error signal enforcement against the last-active Permitting plan")
+    class LifecycleSignalEnforcement {
+
+        @Test
+        void completeAndTerminationSignalsFireOnRapCompletion() {
+            Harness         h    = new Harness();
+            EnforcementPlan plan = permittingPlanWithoutFailures();
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out).then(h::emitPermit).then(h::completeRap).verifyComplete();
+
+            verify(plan, times(1)).enforceComplete();
+            verify(plan, times(1)).enforceTermination();
+            verify(plan, times(1)).enforceAfterTermination();
+        }
+
+        @Test
+        void cancelSignalFiresWhenSubscriberCancels() {
+            Harness         h    = new Harness();
+            EnforcementPlan plan = permittingPlanWithoutFailures();
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out.take(1)).then(h::emitPermit).then(() -> h.emitRap("a")).expectNext("a")
+                    .verifyComplete();
+
+            verify(plan, times(1)).enforceCancel();
+        }
+
+        @Test
+        void subscriptionSignalFiresOnDownstreamRequestWhilePermitting() {
+            Harness         h    = new Harness();
+            EnforcementPlan plan = permittingPlanWithoutFailures();
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out, 0).then(h::emitPermit).thenRequest(1).then(() -> h.emitRap("a")).expectNext("a")
+                    .thenCancel().verify(TIMEOUT);
+
+            verify(plan, atLeastOnce()).enforceSubscription(anyLong());
+        }
+
+        @Test
+        void errorSignalHandlersRunOnRapErrorAndMayRewriteTheThrowable() {
+            Harness               h      = new Harness();
+            EnforcementPlan       plan   = permittingPlanWithoutFailures();
+            RuntimeException      boom   = new RuntimeException("rap-boom");
+            IllegalStateException mapped = new IllegalStateException("redacted");
+            when(plan.enforceErrorConstraintsAsThrowable(boom)).thenReturn(mapped);
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out).then(h::emitPermit).then(() -> h.errorRap(boom))
+                    .expectErrorSatisfies(e -> assertThat(e).isSameAs(mapped)).verify(TIMEOUT);
+
+            verify(plan, times(1)).enforceErrorConstraintsAsThrowable(boom);
+        }
+
+        @Test
+        void failingCompleteObligationDeniesAccessTerminally() {
+            Harness         h    = new Harness();
+            EnforcementPlan plan = permittingPlanWithoutFailures();
+            doThrow(new AccessDeniedException("complete obligation failed")).when(plan).enforceComplete();
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out).then(h::emitPermit).then(h::completeRap).expectError(AccessDeniedException.class)
+                    .verify(TIMEOUT);
+        }
+
+        private static EnforcementPlan permittingPlanWithoutFailures() {
+            EnforcementPlan plan = mock(EnforcementPlan.class);
+            when(plan.enforceDecisionConstraints(any())).thenReturn(false);
+            when(plan.execute(any(Signal.class), anyBoolean()))
+                    .thenAnswer(inv -> new EnforcementResult<>(Maybe.of(extractValue(inv.getArgument(0))), false));
+            return plan;
         }
     }
 

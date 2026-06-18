@@ -426,8 +426,10 @@ public class X509FunctionLibrary {
             ```hasDnsName(TEXT certPem, TEXT dnsName)```: Checks if certificate contains a specific DNS name.
 
             Checks both the subject CN and all Subject Alternative Names for the specified DNS
-            name. This is simpler than extracting SANs and checking manually, and handles
-            wildcard certificates correctly.
+            name. This is simpler than extracting SANs and checking manually. A wildcard
+            certificate matches exactly one label in the wildcard position, so `*.example.com`
+            matches `a.example.com` but not `a.b.example.com` or `example.com`, and a wildcard
+            spanning a public suffix such as `*.com` matches nothing.
 
             Example - Verify certificate is valid for accessed domain:
             ```sapl
@@ -723,7 +725,20 @@ public class X509FunctionLibrary {
 
         if (certName.startsWith("*.")) {
             val certBaseDomain = certName.substring(2);
-            val targetParts    = target.split("\\.", 2);
+            // RFC 9525: the wildcard occupies only the leftmost label and may not
+            // contain an embedded or partial wildcard.
+            if (certBaseDomain.contains("*")) {
+                return false;
+            }
+            // RFC 9525: reject wildcards spanning a public suffix or TLD. A safe
+            // wildcard base has at least two labels (e.g. *.example.com), never one
+            // (e.g. *.com).
+            if (certBaseDomain.split("\\.").length < 2) {
+                return false;
+            }
+            // RFC 9525: the wildcard substitutes exactly one leftmost label, so the
+            // target must have exactly one more label than the wildcard base.
+            val targetParts = target.split("\\.", 2);
             return targetParts.length == 2 && targetParts[1].equals(certBaseDomain);
         }
 

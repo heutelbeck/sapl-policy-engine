@@ -191,15 +191,16 @@ public class SaplMqttClient implements Closeable {
             List<MqttTopicFilter> filters, MqttQos qos, Value defaultValue, long timeoutMs, boolean emitAtRetry) {
         val maxPayloadBytes = getConfigValueOrDefault(pipConfig, ENVIRONMENT_MAX_PAYLOAD_SIZE,
                 DEFAULT_MAX_PAYLOAD_SIZE);
+        // Build the candidate client (including any blocking trust-store I/O)
+        // outside the cache's atomic region, so the ConcurrentHashMap bin lock is
+        // never held across filesystem I/O or client construction.
+        val candidate = buildClientValues(brokerConfig, pipConfig, pdpSecrets);
         return Streams.fromCallback((emit, complete) -> {
-            // Get-or-create the shared client and register this subscriber in one
-            // atomic map operation, so a concurrent close() cannot evict the entry
-            // between this lookup and the subscriber-count increment.
-            val cached = MQTT_CLIENT_CACHE.compute(brokerConfig, (key, existing) -> {
-                val values = existing != null ? existing : buildClientValues(brokerConfig, pipConfig, pdpSecrets);
-                values.incrementBrokerSubscribers();
-                return values;
-            });
+            // Register this subscriber atomically: insert the prebuilt candidate
+            // only if absent, otherwise reuse the existing client and discard the
+            // surplus. The atomic region does only the cheap count increment, so a
+            // concurrent close() cannot evict between lookup and increment.
+            val cached = registerSubscriber(brokerConfig, candidate);
 
             val firstMessage = new AtomicBoolean(false);
             val closed       = new AtomicBoolean(false);
@@ -233,13 +234,16 @@ public class SaplMqttClient implements Closeable {
                 if (ctx.closed.get()) {
                     return;
                 }
-                ctx.client.subscribeWith().topicFilter(filter).qos(ctx.qos)
-                        .callback(
+                // Subscribe on the broker and count the topic as one critical
+                // section, so a concurrent unsubscribe on the same shared client
+                // cannot apply between the subscribe and the count update and
+                // leave this subscriber counted but unsubscribed. The count is
+                // updated only after the subscribe succeeds, so a failed subscribe
+                // leaves no phantom topic-subscriber count.
+                ctx.cached.subscribeTopicAtomically(filter.toString(),
+                        () -> ctx.client.subscribeWith().topicFilter(filter).qos(ctx.qos).callback(
                                 publish -> deliverPublish(publish, ctx.closed, firstMessage, emit, ctx.maxPayloadBytes))
-                        .send().get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-                // Count the topic only after the subscribe succeeds, so a failed
-                // subscribe does not leave a phantom topic-subscriber count.
-                ctx.cached.incrementTopicSubscribers(filter.toString());
+                                .send().get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -272,9 +276,11 @@ public class SaplMqttClient implements Closeable {
         }
         cancelSubscriptionResources(ctx, timerCancel, onDisconnect);
         for (val filter : ctx.filters) {
-            if (!ctx.cached.decrementTopicSubscribers(filter.toString())) {
-                unsubscribeQuietly(ctx.client, filter);
-            }
+            // Decrement the count and, when the last subscriber leaves, unsubscribe
+            // on the broker as one critical section guarded by the same lock the
+            // subscribe path uses, so the count and the broker subscription state
+            // change atomically per topic.
+            ctx.cached.unsubscribeTopicAtomically(filter.toString(), () -> unsubscribeQuietly(ctx.client, filter));
         }
         evictBrokerSubscriber(brokerKey);
     }
@@ -298,6 +304,19 @@ public class SaplMqttClient implements Closeable {
         if (onDisconnect != null) {
             ctx.cached.getOnDisconnectCallbacks().remove(onDisconnect);
         }
+    }
+
+    // Registers one broker reference against a prebuilt candidate client. The
+    // candidate is inserted only if no entry exists yet; otherwise the existing
+    // shared client is reused and the surplus candidate (never connected) is
+    // discarded. The atomic map operation does only the count increment, never
+    // client construction or trust-store I/O.
+    static MqttClientValues registerSubscriber(JsonNode brokerKey, MqttClientValues candidate) {
+        return MQTT_CLIENT_CACHE.compute(brokerKey, (key, existing) -> {
+            val values = existing != null ? existing : candidate;
+            values.incrementBrokerSubscribers();
+            return values;
+        });
     }
 
     // Releases one broker reference. The decrement and the eviction decision run

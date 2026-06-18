@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -30,10 +31,13 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -117,6 +121,19 @@ class SseStreamServletTests {
     }
 
     @Test
+    @DisplayName("a chunked over-limit body is rejected with 413 before the stream is opened")
+    void whenBodyExceedsLimitThenContentTooLargeAndNoStreamOpened() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(request.getInputStream()).thenReturn(new TooLargeInputStream());
+        val response = new MockHttpServletResponse();
+
+        servlet().handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+        verifyNoInteractions(pumpExecutor, connectionRegistry);
+    }
+
+    @Test
     @DisplayName("keep-alive cannot be disabled: a non-positive interval falls back to the default and a sub-floor one is raised")
     void whenKeepAliveIntervalConfiguredThenNormalized() {
         assertThat(SseStreamServlet.effectiveKeepAliveInterval(Duration.ZERO)).isEqualTo(Duration.ofSeconds(15));
@@ -127,6 +144,75 @@ class SseStreamServletTests {
                 .isEqualTo(Duration.ofSeconds(1));
         assertThat(SseStreamServlet.effectiveKeepAliveInterval(Duration.ofSeconds(30)))
                 .isEqualTo(Duration.ofSeconds(30));
+    }
+
+    @Test
+    @DisplayName("the keep-alive frame is flushed on the per-connection pump thread, not the bounded scheduler thread")
+    void whenKeepAliveFiresThenWriteRunsOffTheScheduler() throws Exception {
+        val schedulerThreadName = "sapl-test-keepalive";
+        val scheduler           = Executors.newSingleThreadScheduledExecutor(r -> {
+                                    val t = new Thread(r, schedulerThreadName);
+                                    t.setDaemon(true);
+                                    return t;
+                                });
+        val pump                = Executors.newVirtualThreadPerTaskExecutor();
+        val stream              = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
+        val writeThreadName     = new AtomicReference<String>();
+        val keepAliveWritten    = new CountDownLatch(1);
+        try {
+            val recordingWriter = new PrintWriter(new Writer() {
+                                    @Override
+                                    public void write(char[] cbuf, int off, int len) {
+                                        writeThreadName.compareAndSet(null, Thread.currentThread().getName());
+                                        keepAliveWritten.countDown();
+                                    }
+
+                                    @Override
+                                    public void flush() {
+                                        // no-op
+                                    }
+
+                                    @Override
+                                    public void close() {
+                                        // no-op
+                                    }
+                                });
+            val response        = mock(HttpServletResponse.class);
+            when(response.getWriter()).thenReturn(recordingWriter);
+            when(asyncContext.getResponse()).thenReturn(response);
+            when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+            val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
+            when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+            when(request.startAsync()).thenReturn(asyncContext);
+
+            val servlet = new SseStreamServlet<AuthorizationSubscription, AuthorizationDecision>(authHandler, mapper,
+                    Duration.ofSeconds(1), scheduler, pump, connectionRegistry) {
+                @Override
+                protected Class<AuthorizationSubscription> subscriptionType() {
+                    return AuthorizationSubscription.class;
+                }
+
+                @Override
+                protected Stream<AuthorizationDecision> openStream(AuthorizationSubscription subscription,
+                        String pdpId) {
+                    return stream;
+                }
+
+                @Override
+                protected AuthorizationDecision indeterminate() {
+                    return AuthorizationDecision.INDETERMINATE;
+                }
+            };
+
+            servlet.handlePost(request, response);
+
+            assertThat(keepAliveWritten.await(10, TimeUnit.SECONDS)).isTrue();
+            assertThat(writeThreadName.get()).isNotNull().isNotEqualTo(schedulerThreadName);
+        } finally {
+            stream.close();
+            scheduler.shutdownNow();
+            pump.shutdownNow();
+        }
     }
 
     @Test

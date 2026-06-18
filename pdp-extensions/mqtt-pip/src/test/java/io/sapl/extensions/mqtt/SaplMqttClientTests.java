@@ -17,6 +17,7 @@
  */
 package io.sapl.extensions.mqtt;
 
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuth;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import io.sapl.api.attributes.AttributeAccessContext;
@@ -25,11 +26,13 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.extensions.mqtt.util.MqttClientValues;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -38,6 +41,7 @@ import java.time.Duration;
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 @DisplayName("SaplMqttClient")
 class SaplMqttClientTests {
@@ -185,5 +189,46 @@ class SaplMqttClientTests {
     @DisplayName("reconnect sentinel emission is off by default, matching the documented default")
     void whenEmitAtRetryUnsetThenDefaultsToFalse() {
         assertThat(SaplMqttClient.DEFAULT_EMIT_AT_RETRY).isFalse();
+    }
+
+    @Nested
+    @DisplayName("shared-client registration")
+    class SharedClientRegistration {
+
+        private static MqttClientValues candidate() {
+            return new MqttClientValues("clientId", mock(Mqtt5AsyncClient.class),
+                    JsonNodeFactory.instance.objectNode().put("brokerAddress", "localhost"));
+        }
+
+        private static JsonNode brokerKey() {
+            return JsonNodeFactory.instance.objectNode().put("brokerAddress", "localhost").put("token",
+                    java.util.UUID.randomUUID().toString());
+        }
+
+        @Test
+        @DisplayName("the first subscriber inserts the prebuilt client and counts itself")
+        void whenFirstSubscriberThenPrebuiltClientInserted() {
+            val key      = brokerKey();
+            val prebuilt = candidate();
+
+            val registered = SaplMqttClient.registerSubscriber(key, prebuilt);
+
+            assertThat(registered).isSameAs(prebuilt);
+            assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).containsEntry(key, prebuilt);
+        }
+
+        @Test
+        @DisplayName("a second subscriber reuses the cached client and discards its surplus candidate")
+        void whenSecondSubscriberThenSurplusCandidateDiscarded() {
+            val key    = brokerKey();
+            val first  = candidate();
+            val second = candidate();
+            SaplMqttClient.registerSubscriber(key, first);
+
+            val registered = SaplMqttClient.registerSubscriber(key, second);
+
+            assertThat(registered).isSameAs(first).isNotSameAs(second);
+            assertThat(registered.decrementBrokerSubscribers()).isEqualTo(1);
+        }
     }
 }

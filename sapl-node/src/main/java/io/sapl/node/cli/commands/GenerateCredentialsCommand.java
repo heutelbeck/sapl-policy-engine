@@ -29,6 +29,8 @@ import static io.sapl.node.auth.SecretGenerator.encodeWithArgon2;
 import static io.sapl.node.auth.SecretGenerator.newApiKey;
 import static io.sapl.node.auth.SecretGenerator.newKey;
 import static io.sapl.node.auth.SecretGenerator.newSecret;
+import static io.sapl.node.cli.support.ShellQuoting.posix;
+import static io.sapl.node.cli.support.ShellQuoting.powerShell;
 
 /**
  * Commands for generating authentication credentials.
@@ -59,7 +61,8 @@ public class GenerateCredentialsCommand {
         description = { """
             Creates a random username and password, encodes the password
             with Argon2id, and prints the credentials along with an
-            application.yml configuration snippet and a curl usage example.
+            application.yml configuration snippet and ready-to-paste curl
+            usage examples for the common shells (bash and PowerShell).
 
             Store the plaintext password securely. Only the Argon2id hash
             goes into server configuration.
@@ -75,7 +78,7 @@ public class GenerateCredentialsCommand {
               sapl generate basic
 
               # Generate with custom ID and PDP routing
-              sapl generate basic --id my-client --pdp-id production
+              sapl generate basic --id service-a --pdp-id production
 
             See Also: sapl-generate-apikey(1), sapl-server(1)
             """ }
@@ -100,6 +103,9 @@ public class GenerateCredentialsCommand {
                 val username      = newKey();
                 val secret        = newSecret();
                 val encodedSecret = encodeWithArgon2(secret);
+                val credential    = username + ":" + secret;
+                val bodyJson      = """
+                        {"subject":"alice","action":"read","resource":"document"}""";
                 spec.commandLine().getOut().printf("""
                         %n\
                         Basic Auth Credentials%n\
@@ -121,16 +127,24 @@ public class GenerateCredentialsCommand {
                                 username: "%s"%n\
                                 secret: "%s"%n\
                         %n\
-                        Usage (curl):%n\
-                        -------------%n\
-                        curl -u '%s:%s' \\%n\
+                        Usage (curl, bash/POSIX):%n\
+                        -------------------------%n\
+                        curl -u %s \\%n\
                           -X POST http://localhost:8080/api/pdp/decide-once \\%n\
                           -H 'Content-Type: application/json' \\%n\
-                          -d '{"subject":"alice","action":"read","resource":"document"}'%n\
+                          -d %s%n\
+                        %n\
+                        Usage (curl, PowerShell):%n\
+                        -------------------------%n\
+                        curl.exe -u %s `%n\
+                          -X POST http://localhost:8080/api/pdp/decide-once `%n\
+                          -H 'Content-Type: application/json' `%n\
+                          -d %s%n\
                         %n\
                         IMPORTANT: Store the password securely. Use the encoded value in%n\
                         server configuration; use the plaintext password in clients.%n\
-                        """, id, pdpId, username, secret, id, pdpId, username, encodedSecret, username, secret);
+                        """, id, pdpId, username, secret, id, pdpId, username, encodedSecret, posix(credential),
+                        posix(bodyJson), powerShell(credential), powerShell(bodyJson));
                 return 0;
             } catch (RuntimeException e) {
                 spec.commandLine().getErr().println("Error: Failed to generate credentials: " + e.getMessage());

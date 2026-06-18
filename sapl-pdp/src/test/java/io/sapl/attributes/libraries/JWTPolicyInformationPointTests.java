@@ -50,6 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
+import java.security.Key;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -104,6 +105,10 @@ class JWTPolicyInformationPointTests {
         scheduler = new TestTimeScheduler(NOW);
         provider  = new JWTKeyProvider(HttpClient.newHttpClient(), clock);
         sut       = new JWTPolicyInformationPoint(provider, clock, scheduler);
+    }
+
+    private void cacheServerKey(String keyId, Key key) {
+        provider.cache(server.url("/") + "public-keys/" + keyId, keyId, key, JWTKeyProvider.DEFAULT_CACHING_TTL);
     }
 
     private static String validity(Value v) {
@@ -183,7 +188,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, KeyTestUtility.generateInvalidRSAPublicKey());
+            cacheServerKey(kid, KeyTestUtility.generateInvalidRSAPublicKey());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -391,7 +396,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.PS512).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -444,7 +449,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().expirationTime(Date.from(expiry)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -463,7 +468,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().notBeforeTime(Date.from(nbf)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -501,7 +506,7 @@ class JWTPolicyInformationPointTests {
             val claims = new JWTClaimsSet.Builder().notBeforeTime(Date.from(nbf)).expirationTime(Date.from(exp))
                     .build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -523,7 +528,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().expirationTime(expiry).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -542,7 +547,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().notBeforeTime(Date.from(nbf)).expirationTime(expiry).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -567,7 +572,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().subject("user123").build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -598,7 +603,7 @@ class JWTPolicyInformationPointTests {
             val iat    = new Date(1635251415000L);
             val claims = new JWTClaimsSet.Builder().notBeforeTime(nbf).expirationTime(exp).issueTime(iat).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -637,7 +642,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("myToken", source));
 
             try (val stream = sut.token(accessCtx, Value.of("myToken"))) {
@@ -653,7 +658,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val jwtConfigNode = MAPPER.createObjectNode();
             jwtConfigNode.put(JWTPolicyInformationPoint.SECRETS_KEY, "accessToken");
             jwtConfigNode.set(JWTPolicyInformationPoint.PUBLIC_KEY_VARIABLES_KEY,
@@ -859,7 +864,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().expirationTime(Date.from(NOW.plusSeconds(999_999))).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -878,7 +883,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().expirationTime(new Date(999_999_999_999_999L)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
@@ -897,7 +902,7 @@ class JWTPolicyInformationPointTests {
             val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
             val claims = new JWTClaimsSet.Builder().expirationTime(new Date(1635251715000L)).build();
             val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
-            provider.cache(kid, keyPair.getPublic());
+            cacheServerKey(kid, keyPair.getPublic());
             val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {

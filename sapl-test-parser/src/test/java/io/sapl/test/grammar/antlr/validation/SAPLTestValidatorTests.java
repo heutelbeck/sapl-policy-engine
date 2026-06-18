@@ -95,8 +95,8 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("multiple amount less than two produces error")
-    void whenMultipleAmountLessThanTwo_thenError() {
+    @DisplayName("verification count of one produces no error")
+    void whenVerificationCountIsOne_thenNoError() {
         var document = """
                 requirement "Function Call Count" {
                     given
@@ -111,8 +111,7 @@ class SAPLTestValidatorTests {
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_MULTIPLE_AMOUNT));
+        assertThat(errors).isEmpty();
     }
 
     @Test
@@ -204,23 +203,6 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("negative string length produces error")
-    void whenStringLengthNegative_thenError() {
-        var document = """
-                requirement "String Length" {
-                    scenario "negative length"
-                        when subject "hastur" attempts action "speak" on resource "name"
-                        expect decision is permit, with obligation matching object where { "text" is text with length -5 };
-                }
-                """;
-
-        var errors = validate(document);
-
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_STRING_WITH_LENGTH));
-    }
-
-    @Test
     @DisplayName("positive string length produces no error")
     void whenStringLengthPositive_thenNoError() {
         var document = """
@@ -249,15 +231,11 @@ class SAPLTestValidatorTests {
     void whenMultipleErrorsInDocument_thenAllErrorsReported() {
         var document = """
                 requirement "Eldritch Chaos" {
-                    given
-                        - function chaos.invoke() maps to true
-                        - function chaos.repeat() maps to true
                     scenario "chaos scenario"
                         when subject "cultist" attempts action "summon" on resource "void"
-                        expect permit
-                        verify
-                            - function chaos.invoke() is called 0 times
-                            - function chaos.repeat() is called 1 times;
+                        expect
+                            - permit 0 times
+                            - deny 0 times;
                 }
                 """;
 
@@ -288,8 +266,8 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("zero amount produces error")
-    void whenZeroAmount_thenError() {
+    @DisplayName("verification count of zero produces no error")
+    void whenVerificationCountIsZero_thenNoError() {
         var document = """
                 requirement "Zero Amount" {
                     given
@@ -304,8 +282,7 @@ class SAPLTestValidatorTests {
 
         var errors = validate(document);
 
-        assertThat(errors).hasSize(1).first()
-                .satisfies(e -> assertThat(e.message()).isEqualTo(SAPLTestValidator.MSG_INVALID_MULTIPLE_AMOUNT));
+        assertThat(errors).isEmpty();
     }
 
     @Test
@@ -329,14 +306,14 @@ class SAPLTestValidatorTests {
     }
 
     @Test
-    @DisplayName("multiple amount in expect block is validated")
-    void whenMultipleAmountInExpectBlock_thenValidated() {
+    @DisplayName("zero repetition count in expect block produces error")
+    void whenZeroRepetitionInExpectBlock_thenError() {
         var document = """
                 requirement "Expect Amount" {
                     scenario "invalid expect count"
                         when "subject" attempts "action" on "resource"
                         expect
-                            - permit 1 times;
+                            - permit 0 times;
                 }
                 """;
 

@@ -28,7 +28,7 @@ public class RemoteConnectionOptions {
     @Option(names = "--rsocket", description = "Use RSocket/protobuf transport instead of HTTP/JSON")
     public boolean rsocket;
 
-    @Option(names = "--url", description = "Remote PDP URL for HTTP (default: ${DEFAULT-VALUE}, env: SAPL_URL)", defaultValue = "http://localhost:8080")
+    @Option(names = "--url", description = "Remote PDP URL for HTTP (default: http://localhost:8080, env: SAPL_URL)")
     public String url;
 
     @Option(names = "--host", description = "RSocket host (default: ${DEFAULT-VALUE})", defaultValue = "localhost")

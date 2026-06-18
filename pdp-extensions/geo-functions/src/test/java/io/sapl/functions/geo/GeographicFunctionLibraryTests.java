@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.geo;
 
+import com.sun.net.httpserver.HttpServer;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -35,8 +36,12 @@ import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -543,6 +548,57 @@ class GeographicFunctionLibraryTests {
         };
 
         assertThat(result.toString()).doesNotContain(injectedLon);
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesRemoteSchemaWithXsdSuffixThenNoOutboundRequestIsIssued(XxeCase xxeCase)
+            throws IOException {
+        val requestCount = new AtomicInteger();
+        val server       = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            requestCount.incrementAndGet();
+            val body = "133.7,42.0,0".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (val responseBody = exchange.getResponseBody()) {
+                responseBody.write(body);
+            }
+        });
+        server.start();
+        try {
+            // The .xsd suffix is the only thing the suffix-based check looked at, so an
+            // attacker-controlled internal URL ending in .xsd previously slipped past the
+            // resolver and triggered an outbound fetch (blind SSRF). The hardened resolver
+            // must never reach out to a remote host regardless of the suffix.
+            val externalUri = "http://%s:%d/leak.xsd".formatted(server.getAddress().getHostString(),
+                    server.getAddress().getPort());
+            val document    = switch (xxeCase) {
+                            case KML        -> """
+                                    <?xml version="1.0"?>
+                                    <!DOCTYPE kml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                                    <kml xmlns="http://www.opengis.net/kml/2.2"><Placemark>
+                                    <Point><coordinates>&xxe;</coordinates></Point></Placemark></kml>
+                                    """.formatted(externalUri);
+                            case GML2, GML3 ->
+                                """
+                                        <?xml version="1.0"?>
+                                        <!DOCTYPE gml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                                        <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326"><gml:coordinates>&xxe;</gml:coordinates></gml:Point>
+                                        """
+                                        .formatted(externalUri);
+                            };
+
+            val result = switch (xxeCase) {
+            case KML  -> kmlToGeoJSON(Value.of(document));
+            case GML2 -> gml2ToGeoJSON(Value.of(document));
+            case GML3 -> gml3ToGeoJSON(Value.of(document));
+            };
+
+            assertThat(requestCount).hasValue(0);
+            assertThat(result.toString()).doesNotContain("133.7");
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

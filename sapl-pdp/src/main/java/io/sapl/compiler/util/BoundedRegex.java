@@ -19,9 +19,11 @@ package io.sapl.compiler.util;
 
 import io.sapl.api.SaplVersion;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 import java.io.Serial;
 import java.time.Duration;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,12 +40,57 @@ import java.util.regex.Pattern;
  * {@link RegexBudgetExceededException} a bounded time after the budget is
  * exhausted, without a watchdog thread. The clock is sampled only every
  * {@value #CHECK_INTERVAL} reads to keep the per-character cost negligible.
+ * <p>
+ * By default each match gets its own fresh budget. When many matches are driven
+ * by a single attacker-influenced operation (for example one JSON-Schema
+ * {@code schema.validate()} call over a large array or object, which matches a
+ * {@code pattern} keyword once per element), the per-match budget alone lets
+ * the
+ * aggregate cost scale with the element count. To bound such an operation in
+ * aggregate, wrap it in {@link #runWithSharedMatchBudget(Supplier)}: every
+ * match
+ * inside the wrapped operation then shares a single deadline.
  */
 @UtilityClass
 public class BoundedRegex {
 
     private static final long MATCH_BUDGET_NANOS = Duration.ofMillis(1000L).toNanos();
     private static final int  CHECK_INTERVAL     = 1024;
+
+    /**
+     * Holds the deadline shared by all matches inside a
+     * {@link #runWithSharedMatchBudget(Supplier)} scope, or {@code null} when no
+     * scope is active and each match uses its own fresh budget.
+     */
+    private static final ThreadLocal<Long> SHARED_DEADLINE_NANOS = new ThreadLocal<>();
+
+    /**
+     * Runs {@code operation} under a single match budget shared by every regex
+     * match it triggers, so an operation that drives many matches over an
+     * attacker-sized collection is bounded in aggregate rather than per match.
+     * The budget starts when this method is entered. A nested call reuses the
+     * outer deadline rather than extending it.
+     *
+     * @param <T> the operation result type
+     * @param operation the operation to run under the shared budget
+     * @return the operation result
+     * @throws RegexBudgetExceededException if a match exceeds the shared budget
+     */
+    public static <T> T runWithSharedMatchBudget(Supplier<T> operation) {
+        if (SHARED_DEADLINE_NANOS.get() != null) {
+            return operation.get();
+        }
+        return runWithDeadline(System.nanoTime() + MATCH_BUDGET_NANOS, operation);
+    }
+
+    static <T> T runWithDeadline(long deadlineNanos, Supplier<T> operation) {
+        SHARED_DEADLINE_NANOS.set(deadlineNanos);
+        try {
+            return operation.get();
+        } finally {
+            SHARED_DEADLINE_NANOS.remove();
+        }
+    }
 
     /**
      * Tests whether {@code pattern} matches the entire {@code input} under the
@@ -98,7 +145,9 @@ public class BoundedRegex {
     }
 
     private static CharSequence guard(String input) {
-        return new DeadlineCharSequence(input, System.nanoTime() + MATCH_BUDGET_NANOS);
+        val shared        = SHARED_DEADLINE_NANOS.get();
+        val deadlineNanos = shared != null ? shared : System.nanoTime() + MATCH_BUDGET_NANOS;
+        return new DeadlineCharSequence(input, deadlineNanos);
     }
 
     /**

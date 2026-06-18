@@ -324,6 +324,27 @@ class X509FunctionLibraryTests {
         assertThat(result).isEqualTo(Value.TRUE);
     }
 
+    @ParameterizedTest(name = "{0} vs {1} -> {2}")
+    @CsvSource({
+            // RFC 9525: wildcard spanning a public suffix or TLD must be rejected.
+            "*.com,           evil.com,        false",
+            // RFC 9525: single leftmost-label substitution, exactly one extra label.
+            "*.example.com,   a.example.com,   true",
+            // RFC 9525: wildcard substitutes exactly one label, never multiple.
+            "*.example.com,   a.b.example.com, false" })
+    void whenHasDnsNameWithWildcardThenFollowsRfc9525LabelRules(String wildcardName, String targetName,
+            boolean expectedMatch) throws OperatorCreationException, CertificateException, IOException {
+        val now      = REFERENCE;
+        val cert     = generateCertificate("CN=" + wildcardName + ",O=Wildcard Services,C=US",
+                now.minus(1, ChronoUnit.DAYS), now.plus(365, ChronoUnit.DAYS), true, new String[] { wildcardName });
+        val pem      = toPem(cert);
+        val expected = expectedMatch ? Value.TRUE : Value.FALSE;
+
+        val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem), (TextValue) Value.of(targetName));
+
+        assertThat(result).isEqualTo(expected);
+    }
+
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "RITUAL-CHAMBER.RLYEH.DEEP", "Ritual-Chamber.Rlyeh.Deep" })
     void whenHasDnsNameThenIsCaseInsensitive(String dnsVariation) {

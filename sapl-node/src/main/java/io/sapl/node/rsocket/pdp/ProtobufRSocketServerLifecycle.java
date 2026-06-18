@@ -55,7 +55,14 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
 
     private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(2);
 
-    private static final String ERROR_PAYLOAD_SIZE  = "SAPL Node refused to start. sapl.pdp.rsocket.max-inbound-payload-size is %d, must be positive.";
+    /**
+     * The RSocket protocol per frame ceiling. A single decision frame can
+     * already reach this size, so any smaller inbound payload limit would
+     * reject legitimate decision frames at the transport layer at runtime.
+     */
+    private static final int PROTOCOL_PAYLOAD_CEILING = 16_777_215;
+
+    private static final String ERROR_PAYLOAD_SIZE  = "SAPL Node refused to start. sapl.pdp.rsocket.max-inbound-payload-size is %d, must be at least 16777215.";
     private static final String ACTION_PAYLOAD_SIZE = """
             Set sapl.pdp.rsocket.max-inbound-payload-size to at least 16777215,
             the RSocket protocol per frame ceiling. Lower values are not legal
@@ -97,7 +104,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
             if (!enabled || running) {
                 return;
             }
-            if (maxInboundPayloadSize <= 0) {
+            if (maxInboundPayloadSize < PROTOCOL_PAYLOAD_CEILING) {
                 throw new SaplStartupConfigurationException(ERROR_PAYLOAD_SIZE.formatted(maxInboundPayloadSize),
                         ACTION_PAYLOAD_SIZE);
             }

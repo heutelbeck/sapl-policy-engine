@@ -31,7 +31,6 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -56,9 +55,7 @@ public class ConfigUtility {
      * The reference for the broker configuration settings in configurations.
      */
     public static final String  ENVIRONMENT_BROKER_CONFIG              = "brokerConfig";
-    private static final String ENVIRONMENT_PASSWORD                   = "password";
     private static final String DEFAULT_BROKER_CONFIG_NAME             = "default";
-    private static final String DEFAULT_PASSWORD                       = "";
 
     private static final String ERROR_INVALID_QOS              = "The mqtt quality of service level must be a number.";
     private static final String ERROR_NO_VALID_MQTT_PIP_CONFIG = "No valid configuration for mqtt pip client connection provided.";
@@ -317,14 +314,4 @@ public class ConfigUtility {
         throw new IllegalArgumentException(ERROR_INVALID_QOS);
     }
 
-    /**
-     * Looks up the password.
-     *
-     * @param config the provided configuration containing the password
-     * @return returns the looked up password
-     */
-    public static byte[] getPassword(JsonNode config) {
-        String password = getConfigValueOrDefault(config, ENVIRONMENT_PASSWORD, DEFAULT_PASSWORD);
-        return password.getBytes(StandardCharsets.UTF_8);
-    }
 }

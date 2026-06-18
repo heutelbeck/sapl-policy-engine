@@ -143,6 +143,9 @@ public class JsonTestUtility {
 
         if (null != server) {
             valueNode.put(JWTKeyProvider.PUBLIC_KEY_URI_KEY, server.url("/") + "public-keys/{kid}");
+            // The mock web server serves plain http, which the provider rejects
+            // by default. Opt in explicitly, mirroring the local-development path.
+            valueNode.put(JWTKeyProvider.ALLOW_INSECURE_HTTP, true);
         }
         if (null != method && !method.isEmpty()) {
             if ("NONETEXT".equals(method)) {

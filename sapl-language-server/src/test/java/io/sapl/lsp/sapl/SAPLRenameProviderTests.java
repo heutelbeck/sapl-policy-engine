@@ -133,6 +133,56 @@ class SAPLRenameProviderTests {
             assertThat(edits).hasSize(3);
         }
 
+        @Test
+        @DisplayName("renaming set-level variable does not rewrite a shadowing policy-level variable")
+        void whenRenamingSetVarShadowedByPolicyVar_thenLeavesPolicyVarUntouched() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    set "test"
+                    first or abstain
+                    var config = "default";
+
+                    policy "p1"
+                    permit
+                        config == "default";
+
+                    policy "p2"
+                    permit
+                        var config = "local";
+                        config == "local";
+                    """);
+
+            var workspaceEdit = provider.provideRename(document, new Position(2, 4), "settings");
+
+            assertThat(workspaceEdit).isNotNull();
+            var edits = workspaceEdit.getChanges().get("test.sapl");
+            assertThat(edits).hasSize(2).noneMatch(edit -> edit.getRange().getStart().getLine() >= 10);
+        }
+
+        @Test
+        @DisplayName("renaming a shadowing policy-level variable does not rewrite the set-level variable")
+        void whenRenamingPolicyVarShadowingSetVar_thenLeavesSetVarUntouched() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    set "test"
+                    first or abstain
+                    var config = "default";
+
+                    policy "p1"
+                    permit
+                        config == "default";
+
+                    policy "p2"
+                    permit
+                        var config = "local";
+                        config == "local";
+                    """);
+
+            var workspaceEdit = provider.provideRename(document, new Position(10, 8), "renamed");
+
+            assertThat(workspaceEdit).isNotNull();
+            var edits = workspaceEdit.getChanges().get("test.sapl");
+            assertThat(edits).hasSize(2).allMatch(edit -> edit.getRange().getStart().getLine() >= 10);
+        }
+
     }
 
     @Nested

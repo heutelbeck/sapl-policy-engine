@@ -149,10 +149,12 @@ public class JWTPolicyInformationPoint {
             ```
 
             The `publicKeyServer` field configures a remote endpoint that serves public keys on demand,
-            keyed by the token's key ID. Always use an `https` URI. Keys fetched over plain `http` can be
-            substituted by a network attacker, who could then forge tokens this PIP would accept as trusted.
-            TLS authenticates the key server and protects the keys in transit. Keys in the `whitelist` are
-            configured locally and are not affected.
+            keyed by the token's key ID. The URI must use `https`: a key fetched over plain `http` can be
+            substituted by a network attacker who could then forge tokens this PIP would accept as trusted.
+            A non-`https` URI is rejected and the token is treated as untrusted. For local development only,
+            set `"allowInsecureHttp": true` in `publicKeyServer` to permit an `http` URI; this is logged with
+            a prominent warning and must never be used in production. TLS authenticates the key server and
+            protects the keys in transit. Keys in the `whitelist` are configured locally and are not affected.
 
             The `secretsKey` field specifies which key in subscription secrets holds the JWT token.
             Defaults to `"jwt"` if omitted.
@@ -471,13 +473,18 @@ public class JWTPolicyInformationPoint {
             }
         }
 
+        String keyServerUri   = null;
+        long   cacheTtlMillis = 0L;
         if (publicKey.isEmpty()) {
             val jPublicKeyServer = jwtConfigObj.get(PUBLIC_KEY_VARIABLES_KEY);
             if (null == jPublicKeyServer) {
                 return false;
             }
             try {
-                publicKey = keyProvider.provide(keyId, ValueJsonMarshaller.toJsonNode(jPublicKeyServer));
+                val jServerNode = ValueJsonMarshaller.toJsonNode(jPublicKeyServer);
+                keyServerUri   = JWTKeyProvider.resolveKeyServerUri(jServerNode, keyId);
+                cacheTtlMillis = JWTKeyProvider.cachingTtlMillis(jServerNode);
+                publicKey      = keyProvider.provide(keyId, jServerNode);
             } catch (JWTKeyProvider.CachingException e) {
                 log.error(ERROR_KEY_PROVIDER_CONFIG_FAIL, e.getLocalizedMessage());
                 return false;
@@ -488,15 +495,16 @@ public class JWTPolicyInformationPoint {
             return false;
         }
 
-        return verifySignatureOf(keyId, signedJwt, publicKey.get(), isFromWhitelist);
+        return verifySignatureOf(keyId, signedJwt, publicKey.get(), isFromWhitelist, keyServerUri, cacheTtlMillis);
     }
 
-    private boolean verifySignatureOf(String keyId, SignedJWT signedJwt, Key key, boolean isFromWhitelist) {
+    private boolean verifySignatureOf(String keyId, SignedJWT signedJwt, Key key, boolean isFromWhitelist,
+            String keyServerUri, long cacheTtlMillis) {
         try {
             JWSVerifier verifier = VERIFIER_FACTORY.createJWSVerifier(signedJwt.getHeader(), key);
             val         isValid  = signedJwt.verify(verifier);
-            if (isValid && !isFromWhitelist) {
-                keyProvider.cache(keyId, key);
+            if (isValid && !isFromWhitelist && null != keyServerUri) {
+                keyProvider.cache(keyServerUri, keyId, key, cacheTtlMillis);
             }
             return isValid;
         } catch (JOSEException e) {

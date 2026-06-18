@@ -198,6 +198,9 @@ public class SemanticVariableOrder {
             IndexPredicate predicate, int formulaIndex, Map<Long, EqualityGroup> groupsByOperandHash) {
         val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                 k -> new EqualityGroup(pureOperand));
+        if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+            return false;
+        }
         if (negated) {
             group.addExclude(constant, formulaIndex, predicate);
         } else {
@@ -215,6 +218,9 @@ public class SemanticVariableOrder {
         // keys
         val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                 k -> new EqualityGroup(pureOperand));
+        if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+            return false;
+        }
         for (val key : object.keySet()) {
             group.addEquals(Value.of(key), formulaIndex, predicate);
         }
@@ -229,6 +235,9 @@ public class SemanticVariableOrder {
             }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
+            if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+                return false;
+            }
             for (var i = 0; i < array.size(); i++) {
                 group.addEquals(array.get(i), formulaIndex, predicate);
             }
@@ -240,6 +249,9 @@ public class SemanticVariableOrder {
             }
             val group = groupsByOperandHash.computeIfAbsent(pureOperand.semanticHash(),
                     k -> new EqualityGroup(pureOperand));
+            if (!group.getSharedOperand().semanticEquals(pureOperand)) {
+                return false;
+            }
             for (val value : object.values()) {
                 group.addEquals(value, formulaIndex, predicate);
             }

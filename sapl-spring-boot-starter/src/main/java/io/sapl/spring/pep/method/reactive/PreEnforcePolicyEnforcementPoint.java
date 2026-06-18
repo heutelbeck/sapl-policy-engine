@@ -120,13 +120,17 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val itemType = ResolvableType.forMethodReturnType(methodInvocation.getMethod()).getGeneric(0);
         val plan     = enforcementPlan(authzDecision, itemType);
 
+        // The lifecycle side-effect operators sit upstream of onErrorResume so an
+        // AccessDeniedException thrown by a failing lifecycle/subscription obligation
+        // handler is caught by the same error funnel as any other failure and routed
+        // through the plan's ErrorSignal handlers, rather than escaping unmapped.
         return Mono.defer(() -> {
             plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
             return applyOutput(plan, rapStream(methodInvocation, authzDecision));
-        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan))
-                .onErrorResume(plan::enforceErrorConstraints).doOnRequest(plan::enforceSubscription)
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan)).doOnRequest(plan::enforceSubscription)
                 .doOnCancel(plan::enforceCancel).doOnSuccess(v -> plan.enforceComplete())
-                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination);
+                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination)
+                .onErrorResume(plan::enforceErrorConstraints);
     }
 
     private Set<SignalType> collectSupportedSignals(ResolvableType outputType) {
@@ -156,13 +160,15 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
         val publisherType = ResolvableType.forMethodReturnType(methodInvocation.getMethod());
         val plan          = enforcementPlan(authzDecision, publisherType);
 
+        // See enforceDecision: lifecycle operators are upstream of onErrorResume so a
+        // failing lifecycle/subscription obligation routes through the error funnel.
         return Flux.defer(() -> {
             plan.enforcePreInvocationConstraints(authzDecision, methodInvocation);
             return applyOutputFlux(plan, rapFluxStream(methodInvocation, authzDecision));
-        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan))
-                .onErrorResume(plan::enforceErrorConstraints).doOnRequest(plan::enforceSubscription)
+        }).contextWrite(ctx -> ctx.put(EnforcementPlanContext.REACTOR_KEY, plan)).doOnRequest(plan::enforceSubscription)
                 .doOnCancel(plan::enforceCancel).doOnComplete(plan::enforceComplete)
-                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination);
+                .doOnTerminate(plan::enforceTermination).doAfterTerminate(plan::enforceAfterTermination)
+                .onErrorResume(plan::enforceErrorConstraints);
     }
 
     private static Mono<?> rapStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {

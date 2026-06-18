@@ -26,6 +26,7 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -287,6 +288,45 @@ class SchemaValidatorCompilerTests {
             assertThat(evaluate(validator, ctx)).isEqualTo(Value.FALSE);
         }
 
+    }
+
+    @Nested
+    @DisplayName("Aggregate ReDoS budget")
+    class AggregateRegexBudgetTests {
+
+        /**
+         * A schema {@code pattern} keyword is matched once per element of the
+         * validated collection. With a backtracking pattern and an
+         * attacker-sized array, each individual element match stays under the
+         * single-match budget while the aggregate of all element matches would
+         * run far past it. A correct bound is per {@code schema.validate()} call,
+         * so the whole validation aborts once the shared budget is exhausted,
+         * rather than letting CPU cost scale linearly with the element count.
+         */
+        @Test
+        @Timeout(30)
+        @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
+        void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
+            val arraySchema = (ObjectValue) obj("type", Value.of("array"), "items",
+                    obj("type", Value.of("string"), "pattern", Value.of("(.*a){30}$")));
+            val validator   = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, arraySchema)),
+                    compilationContext());
+            assertThat(validator).isNotNull();
+            val hostileElement = "a".repeat(24);
+            val hostileArray   = ("\"" + hostileElement + "\",").repeat(8);
+            val ctx            = subscriptionContext("""
+                    {
+                        "subject": [%s"%s"],
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """.formatted(hostileArray, hostileElement));
+
+            val result = evaluate(validator, ctx);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).contains("time budget"));
+        }
     }
 
     @Nested

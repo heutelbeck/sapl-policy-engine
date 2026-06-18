@@ -24,6 +24,7 @@ import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PRO
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
 
+import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.function.Consumer;
@@ -58,6 +60,12 @@ class SaplTestFixtureTests {
 
     private static final String PERMIT_ALL_POLICY = "policy \"permit-all\" permit";
     private static final String DENY_ALL_POLICY   = "policy \"deny-all\" deny";
+
+    private static final String POLICY_REQUIRING_PENDING_ATTRIBUTE = """
+            policy "requires-pending"
+            permit
+                <test.pending> == "ready";
+            """;
 
     @Test
     void whenCreateSingleTest_thenFixtureIsNotNull() {
@@ -323,5 +331,15 @@ class SaplTestFixtureTests {
                 .withAttributeBroker(new MockingAttributeBroker()).withPolicy(PERMIT_ALL_POLICY);
 
         assertThat(fixture).isNotNull();
+    }
+
+    @Test
+    @DisplayName("verify() throws when the expected decision never arrives within the timeout")
+    void whenExpectedDecisionNeverArrivesWithinTimeout_thenVerifyThrows() {
+        var decisionResult = SaplTestFixture.createSingleTest().withPolicy(POLICY_REQUIRING_PENDING_ATTRIBUTE)
+                .givenEnvironmentAttribute("pending", "test.pending", args())
+                .whenDecide(AuthorizationSubscription.of("willi", "read", "something")).expectPermit();
+
+        assertThatThrownBy(() -> decisionResult.verify(Duration.ofMillis(200))).isInstanceOf(AssertionError.class);
     }
 }

@@ -172,9 +172,10 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
      * Builds a {@code $and} array of the original query's BSON document and each
      * obligation condition fragment, then
      * constructs a fresh {@link BasicQuery} carrying the merged document. Sort,
-     * limit, skip, and projection fields are
-     * transferred from the original query so the non-filter parts of the query
-     * remain intact.
+     * limit, skip, projection fields, collation, hint, read preference, read
+     * concern, and meta are transferred from the original query so the non-filter
+     * parts of the query remain intact, matching the typed-criteria path which
+     * mutates the original {@link Query} in place.
      * </p>
      * The original-query document is included as the first element of the
      * {@code $and} so the user's filter still
@@ -212,6 +213,17 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
         if (query.isSorted()) {
             rebuilt.setSortObject(query.getSortObject());
         }
+        query.getCollation().ifPresent(rebuilt::collation);
+        if (query.getHint() != null) {
+            rebuilt.withHint(query.getHint());
+        }
+        if (query.getReadPreference() != null) {
+            rebuilt.withReadPreference(query.getReadPreference());
+        }
+        if (query.getReadConcern() != null) {
+            rebuilt.withReadConcern(query.getReadConcern());
+        }
+        rebuilt.setMeta(query.getMeta());
         return rebuilt;
     }
 

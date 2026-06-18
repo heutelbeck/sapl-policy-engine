@@ -89,6 +89,13 @@
             <artifactId>spring-websocket</artifactId>
         </dependency>
 
+        <!-- Auto-configuration and bound properties for the LSP endpoint -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

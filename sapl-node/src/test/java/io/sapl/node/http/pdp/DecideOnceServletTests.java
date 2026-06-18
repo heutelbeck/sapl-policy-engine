@@ -36,6 +36,7 @@ import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler.HttpAuthResult;
 import io.sapl.node.auth.http.HttpAuthenticationException;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
@@ -49,6 +50,9 @@ class DecideOnceServletTests {
 
     @Mock
     private HttpAuthHandler authHandler;
+
+    @Mock
+    private HttpServletRequest oversizedRequest;
 
     private final JsonMapper mapper = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
 
@@ -76,6 +80,19 @@ class DecideOnceServletTests {
         new DecideOnceServlet(pdp, authHandler, mapper).handlePost(request, response);
 
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_UNAUTHORIZED);
+        verifyNoInteractions(pdp);
+    }
+
+    @Test
+    @DisplayName("a chunked over-limit body is rejected with 413 and the PDP is never consulted")
+    void whenBodyExceedsLimitThenContentTooLargeAndPdpNotCalled() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(oversizedRequest.getInputStream()).thenReturn(new TooLargeInputStream());
+        val response = new MockHttpServletResponse();
+
+        new DecideOnceServlet(pdp, authHandler, mapper).handlePost(oversizedRequest, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
         verifyNoInteractions(pdp);
     }
 }

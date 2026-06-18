@@ -500,7 +500,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * The configuration ID is determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code dir:<path>@<timestamp>@sha256:<hash>}
+     * {@code dir:<path>@<timestamp>}
      * </p>
      *
      * @param directoryPath
@@ -600,7 +600,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @param resourcePath
@@ -617,7 +617,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @return this builder

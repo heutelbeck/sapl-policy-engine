@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
@@ -139,8 +138,8 @@ public final class RequestBodySizeLimitFilter extends OncePerRequestFilter {
             delegate.setReadListener(readListener);
         }
 
-        private static ResponseStatusException tooLarge(long maxRequestBodyBytes) {
-            return new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE,
+        private static RequestBodyTooLargeException tooLarge(long maxRequestBodyBytes) {
+            return new RequestBodyTooLargeException(
                     "Request body exceeds the configured limit of " + maxRequestBodyBytes + " bytes.");
         }
     }

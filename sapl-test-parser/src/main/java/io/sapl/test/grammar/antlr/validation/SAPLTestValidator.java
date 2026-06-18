@@ -27,6 +27,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.sapl.test.grammar.antlr.SAPLTestParser.CountedAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MultipleAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
@@ -41,7 +42,7 @@ import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
  */
 public class SAPLTestValidator {
 
-    public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Amount needs to be a natural number larger than 1.";
+    public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Repetition amount needs to be a natural number larger than 0.";
     public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The given regex has an invalid format.";
     public static final String MSG_INVALID_STRING_WITH_LENGTH              = "String length needs to be a natural number larger than 0.";
     public static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name must be unique.";
@@ -134,9 +135,15 @@ public class SAPLTestValidator {
     }
 
     private void validateMultipleAmount(MultipleAmountContext context, Consumer<ValidationError> errorConsumer) {
+        // Verification counts allow zero (never invoked) and one. Only stream
+        // repetition requires at least one decision, so the bound only applies
+        // outside a verification amount.
+        if (context.getParent() instanceof CountedAmountContext || context.amount == null) {
+            return;
+        }
         try {
             var amount = new BigDecimal(context.amount.getText()).intValueExact();
-            if (amount < 2) {
+            if (amount < 1) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_INVALID_MULTIPLE_AMOUNT, context.amount));
             }
         } catch (ArithmeticException | NumberFormatException e) {
@@ -158,6 +165,9 @@ public class SAPLTestValidator {
     }
 
     private void validateStringLength(StringWithLengthContext context, Consumer<ValidationError> errorConsumer) {
+        if (context.length == null) {
+            return;
+        }
         try {
             var length = new BigDecimal(context.length.getText()).intValueExact();
             if (length < 1) {

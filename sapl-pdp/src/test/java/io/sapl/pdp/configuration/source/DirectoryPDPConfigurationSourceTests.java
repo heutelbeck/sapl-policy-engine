@@ -134,7 +134,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         assertThat(configs.getFirst()).satisfies(config -> {
             assertThat(config.pdpId()).isEqualTo("cultist");
-            assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
+            assertThat(config.configurationId()).startsWith("dir:").doesNotContain("sha256");
         });
     }
 
