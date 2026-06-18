@@ -60,9 +60,10 @@ jobs:
 
       - name: Install Native Build Tools (Linux)
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential musl-dev musl-tools
+          sudo apt-get -o DPkg::Lock::Timeout=120 update
+          sudo apt-get -o DPkg::Lock::Timeout=120 install -y build-essential musl-dev musl-tools
           # GraalVM hardcodes x86_64-linux-musl-gcc in HostedMuslLibC regardless of arch
           sudo ln -sf /usr/bin/musl-gcc /usr/local/bin/x86_64-linux-musl-gcc
           # Get musl-compiled static zlib from Alpine's package manager
