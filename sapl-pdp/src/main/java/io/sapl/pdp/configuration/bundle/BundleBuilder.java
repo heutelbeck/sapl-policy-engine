@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration.bundle;
 
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
@@ -169,7 +170,7 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm) {
-        return withCombiningAlgorithm(algorithm, "bundle-" + System.currentTimeMillis());
+        return withCombiningAlgorithm(algorithm, ConfigurationIds.generate("bundle"));
     }
 
     /**
@@ -206,7 +207,7 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withConfiguration(CombiningAlgorithm algorithm, Map<String, String> variables) {
-        return withConfiguration(algorithm, "bundle-" + System.currentTimeMillis(), variables);
+        return withConfiguration(algorithm, ConfigurationIds.generate("bundle"), variables);
     }
 
     /**

@@ -26,6 +26,7 @@ import io.sapl.api.model.Value;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.function.DoubleBinaryOperator;
 
@@ -100,6 +101,14 @@ public class ArrayFunctionLibrary {
                 var counts = subject.requestsPerMinute;
                 array.sum(counts) > 100;
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `range` and `rangeStepped` reject a range that would produce more than 65535 elements, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_ARRAY = """
@@ -131,10 +140,13 @@ public class ArrayFunctionLibrary {
     private static final String ERROR_PREFIX_CANNOT_FIND          = "Cannot find ";
     private static final String ERROR_PREFIX_ELEMENTS_MUST_BE     = "Array elements must be numeric or text. First element is: ";
     private static final String ERROR_PREFIX_FOUND_NON            = ". Found non-";
+    private static final String ERROR_RANGE_EXCEEDS_MAXIMUM       = "Range size %s exceeds the maximum of %d.";
     private static final String ERROR_STEP_MUST_NOT_BE_ZERO       = "Step must not be zero.";
     private static final String ERROR_SUFFIX_ELEMENT              = " element: ";
     private static final String ERROR_SUFFIX_EMPTY_ARRAY          = " of an empty array.";
     private static final String ERROR_SUFFIX_PERIOD               = ".";
+
+    private static final int MAX_RANGE_COUNT = 65535;
 
     private static final String TYPE_NAME_NUMERIC = "numeric";
     private static final String TYPE_NAME_TEXT    = "text";
@@ -1018,19 +1030,37 @@ public class ArrayFunctionLibrary {
             return Value.error(ERROR_STEP_MUST_NOT_BE_ZERO);
         }
 
-        val builder = ArrayValue.builder();
-
-        if (stepValue > 0) {
-            for (long currentValue = fromValue; currentValue <= toValue; currentValue += stepValue) {
-                builder.add(Value.of(currentValue));
-            }
-        } else {
-            for (long currentValue = fromValue; currentValue >= toValue; currentValue += stepValue) {
-                builder.add(Value.of(currentValue));
-            }
+        val count = rangeElementCount(fromValue, toValue, stepValue);
+        if (count.compareTo(BigInteger.valueOf(MAX_RANGE_COUNT)) > 0) {
+            return Value.error(ERROR_RANGE_EXCEEDS_MAXIMUM, count, MAX_RANGE_COUNT);
         }
 
+        // Iterate by element count, not by comparing against the bound, so a final
+        // increment past Long.MAX_VALUE cannot wrap and re-enter the loop.
+        val builder      = ArrayValue.builder();
+        val elementCount = count.longValueExact();
+        var currentValue = fromValue;
+        for (long i = 0; i < elementCount; i++) {
+            builder.add(Value.of(currentValue));
+            currentValue += stepValue;
+        }
         return builder.build();
+    }
+
+    private static BigInteger rangeElementCount(long fromValue, long toValue, long stepValue) {
+        val from = BigInteger.valueOf(fromValue);
+        val to   = BigInteger.valueOf(toValue);
+        val step = BigInteger.valueOf(stepValue);
+        if (stepValue > 0) {
+            if (fromValue > toValue) {
+                return BigInteger.ZERO;
+            }
+            return to.subtract(from).divide(step).add(BigInteger.ONE);
+        }
+        if (fromValue < toValue) {
+            return BigInteger.ZERO;
+        }
+        return from.subtract(to).divide(step.negate()).add(BigInteger.ONE);
     }
 
     /**

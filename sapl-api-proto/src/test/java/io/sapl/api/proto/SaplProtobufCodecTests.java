@@ -68,9 +68,8 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("decoding a value nested beyond the maximum depth fails closed with an IOException")
         void whenValueNestedBeyondMaxDepthThenReadFailsClosed() throws IOException {
-            // Built directly on the wire rather than via writeValue: a hostile
-            // payload would not pass through the encoder, and each wrap here is
-            // O(1), avoiding the encoder's own deep-nesting cost.
+            // Hand-built on the wire: a hostile payload would not pass through the encoder,
+            // and each O(1) wrap avoids the encoder's own deep-nesting cost.
             byte[] bytes = SaplProtobufCodec.writeValue(Value.of("leaf"));
             for (int i = 0; i < 1100; i++) {
                 bytes = wrapInArrayValue(bytes);

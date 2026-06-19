@@ -168,9 +168,9 @@ public class AttributeCompiler {
     private static void validateSettings(ObjectValue settings, @Nullable SourceLocation location) {
         requirePositive(settings, OPTION_INITIAL_TIMEOUT, location);
         requirePositive(settings, OPTION_POLL_INTERVAL, location);
-        // A sub-50ms retry backoff cannot help any real PIP failure mode (all are
-        // I/O) and only hammers a struggling dependency, so reject it at compile
-        // time rather than honour a config that would degrade the downstream.
+        // A sub-50ms retry backoff cannot help an I/O failure and only hammers a
+        // struggling dependency,
+        // so reject it at compile time.
         requireAtLeast(settings, OPTION_BACKOFF, MIN_BACKOFF_MS, location);
         requireNonNegative(settings, OPTION_RETRIES, location);
         requireBoolean(settings, OPTION_FRESH, location);

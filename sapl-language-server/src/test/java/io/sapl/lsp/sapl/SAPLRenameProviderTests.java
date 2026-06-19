@@ -18,6 +18,7 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.eclipse.lsp4j.Position;
 import org.junit.jupiter.api.DisplayName;
@@ -130,6 +131,28 @@ class SAPLRenameProviderTests {
             assertThat(workspaceEdit).isNotNull();
             var edits = workspaceEdit.getChanges().get("test.sapl");
             assertThat(edits).hasSize(3);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("partial trees (error recovery while editing)")
+    class PartialTrees {
+
+        @Test
+        @DisplayName("prepareRename on a half-typed document does not crash")
+        void whenPrepareRenameOnPartialDocumentThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "policy ");
+
+            assertThatCode(() -> provider.prepareRename(document, new Position(0, 7))).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("provideRename on a half-typed document does not crash")
+        void whenProvideRenameOnPartialDocumentThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "set ");
+
+            assertThatCode(() -> provider.provideRename(document, new Position(0, 4), "x")).doesNotThrowAnyException();
         }
 
     }

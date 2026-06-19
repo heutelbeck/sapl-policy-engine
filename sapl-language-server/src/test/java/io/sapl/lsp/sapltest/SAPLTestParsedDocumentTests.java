@@ -21,6 +21,8 @@ import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.compiler.document.DocumentCompiler;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SAPLTest parsed document tests")
@@ -139,6 +141,43 @@ class SAPLTestParsedDocumentTests {
         var document = new SAPLTestParsedDocument(TEST_URI, content);
 
         assertThat(document.hasErrors()).isFalse();
+    }
+
+    @Test
+    @DisplayName("oversized document reports error and does not crash")
+    void whenDocumentExceedsMaxSize_thenReportsErrorAndDoesNotCrash() {
+        var content = "a".repeat(DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES + 1);
+
+        var document = new SAPLTestParsedDocument(TEST_URI, content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors())
+                .anySatisfy(error -> assertThat(error.message()).contains("exceeds the maximum size"));
+    }
+
+    @Test
+    @DisplayName("bidirectional control character reports an error diagnostic")
+    void whenTrojanSourceCharacter_thenReportsErrorDiagnostic() {
+        var content = "requirement \u202E\"x\" {}";
+
+        var document = new SAPLTestParsedDocument(TEST_URI, content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors())
+                .anySatisfy(error -> assertThat(error.message()).contains("Bidirectional unicode control character"));
+    }
+
+    @Test
+    @DisplayName("deeply nested input does not crash the parser")
+    void whenDeeplyNestedInput_thenDoesNotCrash() {
+        var depth   = 100_000;
+        var content = "requirement \"x\" { scenario \"s\" when \"u\" attempts \"r\" on " + "(".repeat(depth) + "\"d\""
+                + ")".repeat(depth) + " expect permit; }";
+
+        var document = new SAPLTestParsedDocument(TEST_URI, content);
+
+        assertThat(document).isNotNull();
+        assertThat(document.hasErrors()).isTrue();
     }
 
 }

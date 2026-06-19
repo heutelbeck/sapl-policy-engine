@@ -57,4 +57,22 @@ class SaplNodeMainTests {
         assertThat(exitCode).isZero();
     }
 
+    @Test
+    void whenMistypedSubcommandThenNotServerMode() {
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "bundel", "create" })).isFalse();
+    }
+
+    @Test
+    void whenEmptyOrServerOrPropertyOverrideThenServerMode() {
+        assertThat(SaplNodeApplication.isServerMode(new String[] {})).isTrue();
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "server" })).isTrue();
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "--server.port=9000" })).isTrue();
+    }
+
+    @Test
+    void whenSubcommandOrHelpFlagThenNotServerMode() {
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "generate" })).isFalse();
+        assertThat(SaplNodeApplication.isServerMode(new String[] { "--help" })).isFalse();
+    }
+
 }

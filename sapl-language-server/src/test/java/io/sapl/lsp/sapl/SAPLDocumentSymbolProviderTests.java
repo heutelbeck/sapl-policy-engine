@@ -18,6 +18,7 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.eclipse.lsp4j.SymbolKind;
 import org.junit.jupiter.api.DisplayName;
@@ -142,6 +143,28 @@ class SAPLDocumentSymbolProviderTests {
                 assertThat(selectionRange.getStart().getCharacter()).isEqualTo(7);
                 assertThat(selectionRange.getEnd().getCharacter()).isEqualTo(13);
             });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("partial trees (error recovery while editing)")
+    class PartialTrees {
+
+        @Test
+        @DisplayName("a half-typed policy with no name does not crash")
+        void whenPolicyHasNoNameThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "policy ");
+
+            assertThatCode(() -> provider.provideDocumentSymbols(document)).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("a half-typed policy set with no name does not crash")
+        void whenPolicySetHasNoNameThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "set ");
+
+            assertThatCode(() -> provider.provideDocumentSymbols(document)).doesNotThrowAnyException();
         }
 
     }

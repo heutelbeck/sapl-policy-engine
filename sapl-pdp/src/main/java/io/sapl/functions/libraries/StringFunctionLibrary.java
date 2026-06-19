@@ -94,6 +94,15 @@ public class StringFunctionLibrary {
                 var resourceKey = string.join([subject.tenant, resource.type, resource.id], ":");
                 resourceKey in subject.accessibleResources;
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `repeat` rejects a count above 10,000, returning an error.
+            - `leftPad` and `rightPad` reject a target length above 10,000, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final int MAX_REPEAT_COUNT = 10_000;
@@ -807,6 +816,10 @@ public class StringFunctionLibrary {
 
         if (text.length() >= targetLength) {
             return Value.of(text);
+        }
+
+        if (targetLength > MAX_REPEAT_COUNT) {
+            return Value.error(ERROR_COUNT_EXCEEDS_MAXIMUM, MAX_REPEAT_COUNT);
         }
 
         val padChar       = padString.charAt(0);

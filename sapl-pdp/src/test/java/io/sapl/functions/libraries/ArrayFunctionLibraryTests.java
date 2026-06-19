@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
@@ -148,5 +149,21 @@ class ArrayFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         assertThat((ArrayValue) result).hasSize(15000);
         assertThat(endTime - startTime).isLessThan(1000);
+    }
+
+    @Test
+    void whenRangeExceedsMaximumThenError() {
+        val result = ArrayFunctionLibrary.range(Value.of(0), Value.of(100000));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
+
+    @Test
+    void whenRangeBoundsWouldOverflowThenErrorWithoutHanging() {
+        val result = ArrayFunctionLibrary.range(Value.of(0), Value.of(Long.MAX_VALUE));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds");
     }
 }

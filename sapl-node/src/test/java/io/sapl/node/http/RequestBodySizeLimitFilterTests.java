@@ -42,8 +42,8 @@ class RequestBodySizeLimitFilterTests {
             .readAllBytes();
 
     private static MockHttpServletRequest chunkedRequest(int bodyBytes) {
-        // Simulate chunked transfer encoding: a body is present but no
-        // Content-Length is declared, so getContentLengthLong returns -1.
+        // Chunked encoding has a body but no Content-Length, so getContentLengthLong is
+        // -1.
         val request = new MockHttpServletRequest() {
             @Override
             public long getContentLengthLong() {

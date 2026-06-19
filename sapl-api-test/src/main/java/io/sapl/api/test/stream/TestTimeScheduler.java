@@ -47,11 +47,8 @@ public final class TestTimeScheduler implements TimeScheduler {
     @Override
     public synchronized Cancellable scheduleAt(Instant when, Runnable task) {
         if (!when.isAfter(currentTime)) {
-            // Match RealTimeScheduler, whose delay clamps to zero: a time that has
-            // already passed fires immediately rather than waiting in the queue for
-            // an advanceTo that will never come. Without this, a boundary the system
-            // under test schedules asynchronously a hair after the clock was advanced
-            // past it would be stranded forever.
+            // A past-due time fires immediately, matching RealTimeScheduler, so it is not
+            // stranded waiting for an advanceTo that never comes.
             task.run();
             return () -> {};
         }

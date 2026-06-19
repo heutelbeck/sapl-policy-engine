@@ -15,6 +15,11 @@
     <logger name="io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint" level="WARN" additivity="false"/>
     <logger name="io.sapl.pdp.remote.RemotePdpRetry" level="WARN" additivity="false"/>
 
+    <!-- A test deliberately presents an untrusted self-signed certificate to a
+         strict-trust client and asserts it fails closed. The expected handshake
+         failure is reported here at WARN with a full stack trace. -->
+    <logger name="reactor.netty.http.client.HttpClientConnect" level="OFF"/>
+
     <!-- Late buffer-release noise on stream cancel during MockWebServer teardown. -->
     <logger name="reactor.netty.channel.FluxReceive" level="OFF"/>
     <logger name="io.netty.channel.DefaultChannelPipeline" level="OFF"/>

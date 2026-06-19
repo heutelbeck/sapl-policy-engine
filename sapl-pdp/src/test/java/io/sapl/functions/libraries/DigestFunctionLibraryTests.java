@@ -203,6 +203,15 @@ class DigestFunctionLibraryTests {
                 "9b1ce8b6649e678e1cb7bca85afeaae750add5cfb0668d25ebba5e7f0038f1b6bdcc4bacd909049e752be2a3a3c0158c0f2bb5a33d8101b2ed5d74a66ece2425"));
     }
 
+    @Test
+    void whenDigestInputExceedsMaxLengthThenError() {
+        var oversized = "x".repeat(10_000_001);
+        var result    = DigestFunctionLibrary.sha256(Value.of(oversized));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum length");
+    }
+
     /**
      * Helper method to get the appropriate digest function by algorithm name.
      */

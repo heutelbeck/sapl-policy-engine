@@ -82,13 +82,15 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     private static final String ERROR_EMPTY_RESPONSE_BODY = "Server returned 200 with empty body.";
     private static final String ERROR_HTTP_STATUS         = "Server returned HTTP %d for pdpId '%s'.";
 
-    private static final String WARN_FETCH_FAILED = "Fetch failed for pdpId '{}' (retry #{}): {}";
+    private static final String WARN_FETCH_FAILED                      = "Fetch failed for pdpId '{}' (retry #{}): {}";
+    private static final String WARN_REDIRECTS_DISABLED_FOR_CREDENTIAL = "Disabling redirect following for bundle source '{}' because a custom auth header is configured. A redirect would replay the credential to a cross-origin target. Point at the final URL to keep redirects.";
 
     private static final int MAX_BUNDLE_RESPONSE_BYTES = 16 * 1024 * 1024;
 
     private static final Duration CONNECT_TIMEOUT          = Duration.ofSeconds(10);
     private static final Duration POLLING_RESPONSE_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration LONG_POLL_TIMEOUT_BUFFER = Duration.ofSeconds(5);
+    private static final Duration LONG_POLL_MIN_DELAY      = Duration.ofSeconds(1);
 
     private final RemoteBundleSourceConfig          config;
     private final HttpClient                        httpClient;
@@ -109,9 +111,19 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     public RemoteBundlePDPConfigurationSource(@NonNull RemoteBundleSourceConfig config) {
         this.config = Objects.requireNonNull(config, "config");
         config.securityPolicy().validate();
-        this.httpClient = HttpClient.newBuilder()
-                .followRedirects(config.followRedirects() ? HttpClient.Redirect.NORMAL : HttpClient.Redirect.NEVER)
+        this.httpClient = HttpClient.newBuilder().followRedirects(redirectPolicy(config))
                 .connectTimeout(CONNECT_TIMEOUT).build();
+    }
+
+    private static HttpClient.Redirect redirectPolicy(RemoteBundleSourceConfig config) {
+        if (!config.followRedirects()) {
+            return HttpClient.Redirect.NEVER;
+        }
+        if (config.authHeaderName() != null) {
+            log.warn(WARN_REDIRECTS_DISABLED_FOR_CREDENTIAL, config.baseUrl());
+            return HttpClient.Redirect.NEVER;
+        }
+        return HttpClient.Redirect.NORMAL;
     }
 
     @Override
@@ -141,6 +153,7 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
             for (val thread : loopThreads) {
                 thread.interrupt();
             }
+            httpClient.close();
             subscribers.clear();
             log.debug("Closed remote bundle configuration source.");
         }
@@ -261,9 +274,15 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
                 : pdpId;
     }
 
-    private Duration getPollDelay(String pdpId) {
+    boolean httpClientTerminated() {
+        return httpClient.isTerminated();
+    }
+
+    Duration getPollDelay(String pdpId) {
         if (config.mode() == LONG_POLL) {
-            return Duration.ZERO;
+            // Floor between iterations so a server that answers immediately cannot turn
+            // the long-poll loop into a hot fetch spin.
+            return LONG_POLL_MIN_DELAY;
         }
         return config.pdpIdPollIntervals().getOrDefault(pdpId, config.pollInterval());
     }

@@ -30,7 +30,6 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import jakarta.servlet.Servlet;
@@ -68,6 +67,9 @@ class PdpHttpEndpointConfiguration {
         // 64 KiB default is generous for typical authorization subscriptions
         // (subject + action + resource + small context); operators with very
         // large multi-decide payloads or rich environment maps can raise it.
+        // This cap is HTTP only. The RSocket transport is bounded by its protocol
+        // frame ceiling via sapl.pdp.rsocket.max-inbound-payload-size, which cannot
+        // be set below 16 MiB.
         val registration = new FilterRegistrationBean<>(new RequestBodySizeLimitFilter(maxRequestBodyBytes));
         registration.addUrlPatterns("/api/pdp/*", "/access/v1/*");
         registration.setName("requestBodySizeLimitFilter");
@@ -76,12 +78,11 @@ class PdpHttpEndpointConfiguration {
 
     @Bean
     HttpAuthHandler httpAuthHandler(SaplNodeProperties properties, UserLookupService userLookupService,
-            PasswordEncoder passwordEncoder, @Nullable JwtDecoder jwtDecoder,
+            @Nullable JwtDecoder jwtDecoder,
             @Value("${io.sapl.node.http.auth-cache.positive-ttl:5m}") Duration positiveTtl,
             @Value("${io.sapl.node.http.auth-cache.negative-ttl:5s}") Duration negativeTtl,
             @Value("${io.sapl.node.http.auth-cache.max-size:10000}") long maxSize) {
-        return new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, jwtDecoder, positiveTtl,
-                negativeTtl, maxSize);
+        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, positiveTtl, negativeTtl, maxSize);
     }
 
     @Bean(destroyMethod = "shutdown")
@@ -123,7 +124,7 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<DecideStreamServlet> decideStreamServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new DecideStreamServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
                         sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
@@ -134,7 +135,7 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<MultiDecideServlet> multiDecideServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new MultiDecideServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
                         sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),
@@ -145,7 +146,7 @@ class PdpHttpEndpointConfiguration {
     ServletRegistrationBean<MultiDecideAllServlet> multiDecideAllServletRegistration(BlockingPolicyDecisionPoint pdp,
             HttpAuthHandler authHandler, JsonMapper mapper, ScheduledExecutorService sseKeepAliveScheduler,
             ExecutorService sseStreamPumpExecutor, SseConnectionRegistry sseConnectionRegistry,
-            @Value("${io.sapl.node.keep-alive:0}") long keepAliveSeconds) {
+            @Value("${io.sapl.node.keep-alive:15}") long keepAliveSeconds) {
         return register(
                 new MultiDecideAllServlet(pdp, authHandler, mapper, Duration.ofSeconds(keepAliveSeconds),
                         sseKeepAliveScheduler, sseStreamPumpExecutor, sseConnectionRegistry),

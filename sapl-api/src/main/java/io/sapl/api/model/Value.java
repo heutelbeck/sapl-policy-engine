@@ -85,8 +85,8 @@ import java.util.Map;
 public sealed interface Value extends Serializable, CompiledExpression
         permits UndefinedValue, ErrorValue, NullValue, BooleanValue, NumberValue, TextValue, ArrayValue, ObjectValue {
 
-    String ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE = "Cannot create Value from infinite double: %s. Use Value.error() for computation errors.";
-    String ERROR_CANNOT_CREATE_VALUE_FROM_NAN             = "Cannot create Value from NaN. Use Value.error() for computation errors.";
+    String ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE = "Cannot create a number value from an infinite double: %s.";
+    String ERROR_CANNOT_CREATE_VALUE_FROM_NAN             = "Cannot create a number value from NaN.";
 
     /**
      * Singleton for boolean true.
@@ -171,24 +171,25 @@ public sealed interface Value extends Serializable, CompiledExpression
     /**
      * Creates a number value from a double.
      * <p>
-     * Note: NaN and infinite values are not supported and will throw
-     * IllegalArgumentException. Function libraries
-     * should check for these conditions and return ErrorValue explicitly.
+     * NaN and infinite values have no number representation, so they
+     * yield an {@link ErrorValue} rather than throwing. This keeps the
+     * factory aligned with the engine's errors-as-values model, so a
+     * computed double (e.g. an overflowing arithmetic result or a
+     * value parsed from a huge JSON number) fails closed in the policy
+     * evaluation path without the caller having to guard.
      *
      * @param value
      * the double
      *
-     * @return a NumberValue
-     *
-     * @throws IllegalArgumentException
-     * if value is NaN or infinite
+     * @return a NumberValue, or an ErrorValue if the value is NaN or
+     * infinite
      */
-    static NumberValue of(double value) {
+    static Value of(double value) {
         if (Double.isNaN(value)) {
-            throw new IllegalArgumentException(ERROR_CANNOT_CREATE_VALUE_FROM_NAN);
+            return error(ERROR_CANNOT_CREATE_VALUE_FROM_NAN);
         }
         if (Double.isInfinite(value)) {
-            throw new IllegalArgumentException(ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE.formatted(value));
+            return error(ERROR_CANNOT_CREATE_VALUE_FROM_INFINITE_DOUBLE.formatted(value));
         }
         if (value == 0.0)
             return ZERO;

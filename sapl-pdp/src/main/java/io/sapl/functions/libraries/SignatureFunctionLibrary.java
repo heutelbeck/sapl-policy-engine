@@ -123,6 +123,14 @@ public class SignatureFunctionLibrary {
             Example: `resource.content` is the document text, `resource.signature` is
             hex-encoded (e.g., "3045022100..."). Signature format is auto-detected
             (hex or Base64). Returns true if document is authentic.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The PEM-encoded public key is limited to 256 KB (262144 characters).
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_BOOLEAN = """

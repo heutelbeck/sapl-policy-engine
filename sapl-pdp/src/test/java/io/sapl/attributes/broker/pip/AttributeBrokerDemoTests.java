@@ -25,7 +25,7 @@ import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.Stream;

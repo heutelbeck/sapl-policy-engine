@@ -66,12 +66,16 @@ import lombok.val;
 @DisplayName("Index backends agree with naive over a decomposed, equality-grouped corpus")
 class IndexDifferentialTests {
 
-    private static final int    POLICY_COUNT       = 80;
-    private static final int    SUBSCRIPTION_COUNT = 60;
-    private static final int[]  STRING_OPERANDS    = { 1, 2, 3, 4 };  // subject.rN, equality-grouped
-    private static final int[]  NUMBER_OPERANDS    = { 1, 2, 3 };     // subject.nN, division (can error)
-    private static final int[]  BOOL_OPERANDS      = { 1, 2, 3 };     // subject.bN, bare (can be undefined/non-boolean)
-    private static final String VALUES             = "vw";            // equality constants v0..v2 are "v","w","x"
+    // Quick smoke size by default; full corpus under the it profile
+    // (-Dsapl.fullTests=true).
+    private static final boolean FULL_TESTS         = Boolean.getBoolean("sapl.fullTests");
+    private static final int     POLICY_COUNT       = FULL_TESTS ? 80 : 12;
+    private static final int     SUBSCRIPTION_COUNT = FULL_TESTS ? 60 : 10;
+    private static final int[]   STRING_OPERANDS    = { 1, 2, 3, 4 };  // subject.rN, equality-grouped
+    private static final int[]   NUMBER_OPERANDS    = { 1, 2, 3 };     // subject.nN, division (can error)
+    private static final int[]   BOOL_OPERANDS      = { 1, 2, 3 };     // subject.bN, bare (can be
+                                                                       // undefined/non-boolean)
+    private static final String  VALUES             = "vw";            // equality constants v0..v2 are "v","w","x"
 
     private static final List<CompiledDocument> CORPUS = buildCorpus();
     private static final NaivePolicyIndex       NAIVE  = NaivePolicyIndex.create(CORPUS);
@@ -176,8 +180,6 @@ class IndexDifferentialTests {
         }
     }
 
-    // --- corpus construction --------------------------------------------------
-
     private static List<CompiledDocument> buildCorpus() {
         val random   = new Random(123456789L);
         val policies = new ArrayList<CompiledDocument>(POLICY_COUNT);
@@ -251,8 +253,6 @@ class IndexDifferentialTests {
     private static String value(Random random) {
         return String.valueOf(VALUES.charAt(random.nextInt(VALUES.length())));
     }
-
-    // --- assertions and helpers ----------------------------------------------
 
     private static List<CompiledDocument> policies(String... sources) {
         val documents = new ArrayList<CompiledDocument>(sources.length);

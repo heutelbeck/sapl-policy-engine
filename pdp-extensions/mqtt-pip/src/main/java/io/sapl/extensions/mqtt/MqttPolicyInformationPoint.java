@@ -73,6 +73,8 @@ public class MqttPolicyInformationPoint {
             * `defaultResponseTimeout`: Timeout in milliseconds before emitting the default
               response (defaults to 2000)
             * `emitAtRetry`: Emit value on reconnection -- `"true"` or `"false"` (defaults to `"false"`)
+            * `maxPayloadSize`: Maximum incoming message payload in bytes (defaults to 1048576). A
+              larger message fails closed to an error value rather than being decoded.
 
             Each broker configuration object contains:
             * `name`: Broker identifier used for broker selection and secrets matching (see below)

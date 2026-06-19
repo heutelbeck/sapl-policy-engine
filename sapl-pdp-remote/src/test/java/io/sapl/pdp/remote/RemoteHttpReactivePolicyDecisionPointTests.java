@@ -33,6 +33,8 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.tls.HandshakeCertificates;
+import okhttp3.tls.HeldCertificate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,7 @@ import reactor.test.StepVerifier;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,9 +122,9 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     @Test
     @DisplayName("a client built via a public constructor round-trips SAPL values in decisions")
     void whenBuiltViaPublicConstructorThenSaplValuesRoundTrip() throws JacksonException {
-        // obligations/advice/resource are SAPL Value types; without SaplJacksonModule
-        // the WebClient cannot deserialize them, so the decision would fall back to
-        // INDETERMINATE. The public constructors must register the module too.
+        // Without SaplJacksonModule the WebClient cannot deserialize SAPL Value types
+        // and
+        // falls back to INDETERMINATE, so the public constructors must register it too.
         val decision = new AuthorizationDecision(Decision.PERMIT, Value.EMPTY_ARRAY, Value.EMPTY_ARRAY,
                 Value.of("transformed-resource"));
         server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -195,6 +198,44 @@ class RemoteHttpReactivePolicyDecisionPointTests {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
                 .basicAuth("secret", "key").secure(sslContext).build();
         assertThat(pdpUnderTest).isNotNull();
+    }
+
+    @Test
+    @Timeout(30)
+    @DisplayName("an untrusted self-signed server certificate fails closed: strict-trust client never accepts it")
+    void whenServerCertificateUntrustedThenFailsClosedAndNeverAccepts() throws Exception {
+        // Self-signed server certificate, deliberately not added to the client's trust.
+        val serverCertificate = new HeldCertificate.Builder().commonName("localhost")
+                .addSubjectAlternativeName("localhost").build();
+        val serverHandshake   = new HandshakeCertificates.Builder().heldCertificate(serverCertificate).build();
+
+        val tlsServer = new MockWebServer();
+        tlsServer.useHttps(serverHandshake.sslSocketFactory(), false);
+        // A real PERMIT is queued: had the strict client accepted the certificate it
+        // would
+        // surface PERMIT, so an INDETERMINATE result proves the handshake was rejected.
+        tlsServer.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setResponseCode(HttpStatus.OK.value())
+                .setBody(MAPPER.writeValueAsString(AuthorizationDecision.PERMIT)));
+        tlsServer.start();
+        try {
+            // Default (strict) trust: the system trust store does not contain the
+            // self-signed cert.
+            val strictPdp = RemotePolicyDecisionPoint.builder().http().baseUrl(tlsServer.url("/").toString())
+                    .withHttpClient(HttpClient.create().secure()).basicAuth("secret", "key").build();
+            strictPdp.setFirstBackoffMillis(50);
+            strictPdp.setMaxBackOffMillis(100);
+            strictPdp.setTimeoutMillis(30000);
+
+            val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+            assertThat(strictPdp.decideOnce(subscription).block()).isEqualTo(AuthorizationDecision.INDETERMINATE);
+
+            StepVerifier.create(strictPdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE)
+                    .thenCancel().verify(Duration.ofSeconds(10));
+        } finally {
+            tlsServer.shutdown();
+        }
     }
 
     @Test

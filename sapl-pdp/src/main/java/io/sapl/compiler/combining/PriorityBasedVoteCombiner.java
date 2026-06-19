@@ -193,9 +193,12 @@ public class PriorityBasedVoteCombiner {
 
         val contributingVotes = appendToList(accumulatorVote.contributingVotes(), newVote);
 
-        // NOT_APPLICABLE accumulator: new vote replaces decision but keeps contributing
-        // votes
+        // NOT_APPLICABLE seed: keep an INDETERMINATE replacement's errors, which
+        // concreteResult would drop. Decision and outcome are unchanged.
         if (accDec == Decision.NOT_APPLICABLE) {
+            if (newDec == Decision.INDETERMINATE) {
+                return indeterminateResult(newVote.outcome(), newVote.errors(), contributingVotes, voterMetadata);
+            }
             return concreteResult(newAuthz, newVote.outcome(), contributingVotes, voterMetadata);
         }
 

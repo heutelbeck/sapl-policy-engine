@@ -95,9 +95,17 @@ public class CidrFunctionLibrary {
             permit action == "create_subnet";
                 !cidr.intersects(resource.cidr, "203.0.113.0/24");
             ```
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - `expand` rejects a CIDR range that contains more than 65535 addresses, returning an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
-    private static final int MAX_EXPANSION = 65535;
+    private static final int MAX_EXPANSION_COUNT = 65535;
 
     private static final String ADDRESS_FAMILY_IPV4 = "IPv4";
     private static final String ADDRESS_FAMILY_IPV6 = "IPv6";
@@ -270,8 +278,8 @@ public class CidrFunctionLibrary {
         val prefixBlock = address.toPrefixBlock();
         val count       = prefixBlock.getCount();
 
-        if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION)) > 0) {
-            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION));
+        if (count.compareTo(BigInteger.valueOf(MAX_EXPANSION_COUNT)) > 0) {
+            return Value.error(ERROR_CIDR_EXPANSION_EXCEEDS_MAXIMUM.formatted(count, MAX_EXPANSION_COUNT));
         }
 
         val resultBuilder = ArrayValue.builder();

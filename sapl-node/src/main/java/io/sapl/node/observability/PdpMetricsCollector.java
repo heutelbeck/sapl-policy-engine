@@ -18,8 +18,8 @@
 package io.sapl.node.observability;
 
 import java.time.Instant;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -63,8 +63,9 @@ class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleL
     private final MeterRegistry meterRegistry;
     private final AtomicInteger activeSubscriptions;
 
-    private final ConcurrentHashMap<String, Timer.Sample> subscriptionTimers     = new ConcurrentHashMap<>();
-    private final Set<String>                             firstDecisionDelivered = ConcurrentHashMap.newKeySet();
+    private final ConcurrentHashMap<String, SubscriptionState> subscriptions = new ConcurrentHashMap<>();
+
+    private record SubscriptionState(Timer.Sample sample, AtomicBoolean firstDelivered) {}
 
     PdpMetricsCollector(boolean enabled, MeterRegistry meterRegistry) {
         this.enabled             = enabled;
@@ -79,7 +80,7 @@ class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleL
             return;
         }
         activeSubscriptions.incrementAndGet();
-        subscriptionTimers.put(subscriptionId, Timer.start(meterRegistry));
+        subscriptions.put(subscriptionId, new SubscriptionState(Timer.start(meterRegistry), new AtomicBoolean(false)));
     }
 
     @Override
@@ -91,11 +92,9 @@ class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleL
         val outcome = decision.authorizationDecision().decision();
         meterRegistry.counter(METRIC_DECISIONS, TAG_DECISION, outcome.name()).increment();
 
-        if (firstDecisionDelivered.add(subscriptionId)) {
-            val sample = subscriptionTimers.get(subscriptionId);
-            if (sample != null) {
-                sample.stop(meterRegistry.timer(METRIC_FIRST_DECISION_LATENCY));
-            }
+        val state = subscriptions.get(subscriptionId);
+        if (state != null && state.firstDelivered().compareAndSet(false, true)) {
+            state.sample().stop(meterRegistry.timer(METRIC_FIRST_DECISION_LATENCY));
         }
     }
 
@@ -105,11 +104,14 @@ class PdpMetricsCollector implements DecisionInterceptor, SubscriptionLifecycleL
             return;
         }
         activeSubscriptions.decrementAndGet();
-        firstDecisionDelivered.remove(subscriptionId);
-        val sample = subscriptionTimers.remove(subscriptionId);
-        if (sample != null) {
-            sample.stop(meterRegistry.timer(METRIC_SUBSCRIPTION_DURATION));
+        val state = subscriptions.remove(subscriptionId);
+        if (state != null) {
+            state.sample().stop(meterRegistry.timer(METRIC_SUBSCRIPTION_DURATION));
         }
+    }
+
+    int trackedSubscriptionCount() {
+        return subscriptions.size();
     }
 
 }

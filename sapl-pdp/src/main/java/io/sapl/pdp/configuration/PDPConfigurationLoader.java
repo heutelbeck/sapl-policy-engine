@@ -91,7 +91,7 @@ public class PDPConfigurationLoader {
     private static final String PDP_JSON               = "pdp.json";
     private static final String SAPL_EXTENSION         = ".sapl";
 
-    private static final long MAX_TOTAL_SIZE_BYTES     = 10L * 1024 * 1024;
+    private static final long MAX_TOTAL_SIZE_BYTES     = 1024L * 1024 * 1024;
     private static final long MAX_TOTAL_SIZE_MEGABYTES = MAX_TOTAL_SIZE_BYTES / (1024 * 1024);
 
     private static final String ERROR_BUNDLE_MISSING_CONFIGURATION_ID = "Bundle '%s' pdp.json is missing required field 'configurationId'.";

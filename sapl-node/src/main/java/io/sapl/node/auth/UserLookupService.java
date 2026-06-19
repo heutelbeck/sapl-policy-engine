@@ -60,6 +60,26 @@ public class UserLookupService {
     }
 
     /**
+     * Verifies Basic-auth credentials with constant work.
+     * <p>
+     * Exactly one Argon2 verification runs whether or not the username exists
+     * (the user's secret when present, a fixed dummy hash otherwise), so an
+     * unknown username cannot be distinguished from a known one with a wrong
+     * password by response timing.
+     *
+     * @param username the presented username
+     * @param password the presented raw password
+     * @return the matching user entry, or empty if the username is unknown or
+     * the password does not match
+     */
+    public Optional<UserEntry> verifyBasicCredentials(String username, String password) {
+        val userOpt = findByBasicUsername(username);
+        val encoded = userOpt.map(user -> user.getBasic().getSecret()).orElse(dummyArgon2Hash);
+        val matches = passwordEncoder.matches(password, encoded);
+        return userOpt.isPresent() && matches ? userOpt : Optional.empty();
+    }
+
+    /**
      * Finds a user by API key.
      * <p>
      * Wire format: {@code sapl_<id>_<secret>}. The {@code id} segment is looked
@@ -81,15 +101,15 @@ public class UserLookupService {
         if (apiKeyId == null) {
             return Optional.empty();
         }
-        val candidate = properties.getApiKeyIdIndex().get(apiKeyId);
-        if (candidate != null && candidate.getApiKey() != null
-                && passwordEncoder.matches(rawApiKey, candidate.getApiKey())) {
+        val candidate    = properties.getApiKeyIdIndex().get(apiKeyId);
+        val hasCandidate = candidate != null && candidate.getApiKey() != null;
+        // Always run exactly one Argon2 verification (dummy hash when absent), so
+        // timing does not leak configured ids.
+        val encodedToCheck = hasCandidate ? candidate.getApiKey() : dummyArgon2Hash;
+        val matches        = passwordEncoder.matches(rawApiKey, encodedToCheck);
+        if (hasCandidate && matches) {
             return Optional.of(candidate);
         }
-        // Constant-time padding: a missing api-key-id must take the same
-        // wall-clock time as a present-but-wrong one. Otherwise an
-        // attacker can enumerate the configured ids by timing alone.
-        passwordEncoder.matches(rawApiKey, dummyArgon2Hash);
         return Optional.empty();
     }
 

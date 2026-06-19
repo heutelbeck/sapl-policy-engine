@@ -55,10 +55,8 @@ class CoarseClockTests {
             var initialInstant = clock.instant();
             var initialString  = clock.now();
 
-            // Drive the update directly (rather than racing the background scheduler,
-            // which can be starved under CPU/JVM-warmup load) and poll until the wall
-            // clock has advanced past the millisecond resolution. Polling lets real
-            // time pass without a fixed Thread.sleep, keeping the assertion deterministic.
+            // Drive the update directly instead of racing the scheduler, and poll past the
+            // millisecond resolution to stay deterministic.
             await().atMost(Duration.ofSeconds(1)).pollInterval(Duration.ofMillis(1)).untilAsserted(() -> {
                 clock.updateTimestamp();
                 assertThat(clock.instant()).isAfter(initialInstant);

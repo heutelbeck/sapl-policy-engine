@@ -124,14 +124,15 @@ public class DefaultFunctionBroker implements FunctionBroker {
         registeredLibraries.add(libraryType);
     }
 
-    private void loadFunction(FunctionSpecification functionSpecification) {
+    void loadFunction(FunctionSpecification functionSpecification) {
         functionIndex.compute(functionSpecification.functionName(), (functionName, functions) -> {
-            val functionList = functions != null ? functions : new ArrayList<FunctionSpecification>();
+            val existing = functions != null ? functions : List.<FunctionSpecification>of();
 
-            validateNoCollision(functionList, functionSpecification);
+            validateNoCollision(existing, functionSpecification);
 
-            functionList.add(functionSpecification);
-            return functionList;
+            val updated = new ArrayList<FunctionSpecification>(existing);
+            updated.add(functionSpecification);
+            return List.copyOf(updated);
         });
     }
 

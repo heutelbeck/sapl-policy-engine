@@ -147,9 +147,7 @@ public class RSocketLoadGenerator {
             try {
                 rsocket = RSocketConnector.create().connect(transport).block();
             } catch (Exception ignored) {
-                // A refused or unreachable endpoint surfaces as a connect
-                // exception. Report it as a clean message instead of letting a
-                // stack trace reach the operator.
+                // A refused or unreachable endpoint surfaces here as a connect exception.
                 rsocket = null;
             }
             if (rsocket == null || rsocket.isDisposed()) {

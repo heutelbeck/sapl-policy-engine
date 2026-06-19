@@ -23,6 +23,7 @@ import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
+import io.sapl.pdp.plugins.PluginsSource;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -56,7 +57,9 @@ public record PDPComponents(
         InstantSource timestampSource,
         boolean ownsTimestampSource,
         List<DecisionInterceptor> decisionInterceptors,
-        List<SubscriptionLifecycleListener> lifecycleListeners) implements AutoCloseable {
+        List<SubscriptionLifecycleListener> lifecycleListeners,
+        @Nullable PluginsSource pluginsSource,
+        boolean ownsPluginsSource) implements AutoCloseable {
 
     private static final String WARN_ERROR_CLOSING_RESOURCE = "Error closing {}: {}";
 
@@ -68,13 +71,16 @@ public record PDPComponents(
      */
     @Override
     public void close() {
-        // Close the timestamp source only when this bundle owns it (the builder
-        // created it). A caller-supplied source is the caller's to close, even if
-        // it is AutoCloseable.
+        // Close the timestamp source only when owned. A caller-supplied source is the
+        // caller's to close.
         if (ownsTimestampSource) {
             closeQuietly(timestampSource);
         }
         closeAll(source, pdpVoterSource, attributeBroker, functionBroker, decisionInterceptors, lifecycleListeners);
+        // Builder-owned only. A withPluginsSource source stays caller-owned.
+        if (ownsPluginsSource) {
+            closeQuietly(pluginsSource);
+        }
     }
 
     private static void closeAll(Object... resources) {

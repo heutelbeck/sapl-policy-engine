@@ -24,7 +24,7 @@ import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
@@ -516,8 +516,8 @@ class HttpPolicyInformationPointTests {
 
             val subscription = broker.open("poll-e2e", Set.of(key), snapshot -> Set.of(key));
             try {
-                // A single-shot HTTP attribute, re-issued by the broker every 50 ms poll
-                // interval, must produce more than one request without any in-PIP looping.
+                // A single-shot HTTP attribute re-issued by the broker poll interval must
+                // produce multiple requests, no in-PIP looping.
                 Awaitility.await().atMost(Duration.ofSeconds(5))
                         .untilAsserted(() -> assertThat(server.getRequestCount()).isGreaterThanOrEqualTo(2));
             } finally {

@@ -32,6 +32,7 @@ import picocli.CommandLine.Spec;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -172,7 +173,7 @@ public class TestCommand implements Callable<Integer> {
             policies = discoverFiles(dir, SAPL_EXTENSION).stream().map(p -> toSaplDocument(p, dir)).toList();
             tests    = discoverFiles(effectiveTestdir, SAPLTEST_EXTENSION).stream().map(TestCommand::toSaplTestDocument)
                     .toList();
-        } catch (IOException e) {
+        } catch (IOException | UncheckedIOException e) {
             err.println(ERROR_READING_FILES.formatted(dir, e.getMessage()));
             return 1;
         }
@@ -244,7 +245,7 @@ public class TestCommand implements Callable<Integer> {
             val name         = extractDocumentName(stripped);
             return SaplDocument.of(name, source, path.toString());
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read: " + path + ".", e);
+            throw new UncheckedIOException("Failed to read: " + path + ".", e);
         }
     }
 
@@ -275,7 +276,7 @@ public class TestCommand implements Callable<Integer> {
             val name   = path.getFileName().toString();
             return SaplTestDocument.of(name, source);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read: " + path + ".", e);
+            throw new UncheckedIOException("Failed to read: " + path + ".", e);
         }
     }
 

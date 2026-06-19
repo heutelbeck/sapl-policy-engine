@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import io.sapl.compiler.document.DocumentCompiler;
+
 class SAPLParsedDocumentTests {
 
     @Test
@@ -119,6 +121,39 @@ class SAPLParsedDocumentTests {
 
         assertThat(document.getValidationErrors()).isNotEmpty();
         assertThat(document.getValidationErrors().getFirst().message()).contains("Attribute");
+    }
+
+    @Test
+    void whenDocumentExceedsMaxSize_thenReportsErrorAndDoesNotCrash() {
+        var content = "a".repeat(DocumentCompiler.MAX_DOCUMENT_SIZE_BYTES + 1);
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors())
+                .anySatisfy(error -> assertThat(error.message()).contains("exceeds the maximum size"));
+    }
+
+    @Test
+    void whenTrojanSourceCharacter_thenReportsErrorDiagnostic() {
+        var content = "policy \u202E\"test\" permit";
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document.hasErrors()).isTrue();
+        assertThat(document.getParseErrors())
+                .anySatisfy(error -> assertThat(error.message()).contains("Bidirectional unicode control character"));
+    }
+
+    @Test
+    void whenDeeplyNestedExpression_thenDoesNotCrash() {
+        var depth   = 100_000;
+        var content = "policy \"test\" permit " + "(".repeat(depth) + "true" + ")".repeat(depth);
+
+        var document = new SAPLParsedDocument("test.sapl", content);
+
+        assertThat(document).isNotNull();
+        assertThat(document.hasErrors()).isTrue();
     }
 
 }

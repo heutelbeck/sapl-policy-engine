@@ -17,7 +17,7 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;

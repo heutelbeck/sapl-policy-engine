@@ -163,8 +163,6 @@ class MealyTestSupport {
         };
     }
 
-    // ---- Subset providers (@MethodSource-compatible) ----
-
     static Stream<Arguments> nonTerminatedStates() {
         return Stream.of(arguments("Pending", Pending.INSTANCE), arguments("Permitting", permitting()),
                 arguments("Suspended", Suspended.INSTANCE));

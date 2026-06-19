@@ -79,8 +79,8 @@ class PdpVoterSourceDynamicRecompileTests {
             assertThatThrownBy(() -> voterSource.loadConfiguration(badConfig, false))
                     .isInstanceOf(PDPConfigurationException.class);
 
-            // A later plugins push recompiles every retained configuration. The
-            // rejected config must not be retained, so its pdpId stays unknown.
+            // A plugins push recompiles every retained configuration, so a rejected config
+            // must not be retained.
             pluginsSource.publish(pluginsOf(brokerWithStandard()));
 
             assertThat(voterSource.getCurrentConfiguration(rejectedPdpId)).isEmpty();
@@ -95,9 +95,8 @@ class PdpVoterSourceDynamicRecompileTests {
             voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
             val current = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
 
-            // The current state must be delivered under the source lock at
-            // subscription time; otherwise a concurrent update could interleave
-            // and leave a stale configuration latched in the decision stream.
+            // State must be delivered under the source lock at subscription time, else a
+            // concurrent update latches a stale configuration.
             val received = new ArrayList<PdpUpdateEvent>();
             voterSource.subscribeToUpdates(PDP_ID, received::add);
 

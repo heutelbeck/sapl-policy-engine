@@ -71,9 +71,8 @@ class StreamsExtendedTests {
             stream.close();
             val countAtClose = factoryCalls.get();
 
-            // close() stops the loop synchronously, so the counter settles within one
-            // in-flight call. Wait for it to go quiescent (two equal reads) and then assert
-            // the bound, instead of racing a fixed wall-clock window.
+            // close() settles within one in-flight call. Poll for quiescence (two equal
+            // reads) rather than racing a fixed wall-clock window.
             val lastObserved = new AtomicInteger(-1);
             await().atMost(Duration.ofSeconds(2)).pollInterval(Duration.ofMillis(20)).until(() -> {
                 val current = factoryCalls.get();

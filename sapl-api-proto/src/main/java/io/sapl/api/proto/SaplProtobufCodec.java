@@ -79,10 +79,8 @@ public class SaplProtobufCodec {
     private static final int ERROR_MESSAGE   = 1;
     private static final int ERROR_ARGUMENTS = 2;
 
-    // Bounds value nesting on decode so a maliciously deep wire payload (which
-    // bypasses any JSON parser) fails closed with an IOException rather than
-    // overflowing the stack. Matches the JSON parser's default nesting limit so
-    // the transports accept the same legitimately-deep values.
+    // Bounds decode nesting so a deep payload fails closed instead of overflowing
+    // the stack. Matches the JSON parser's limit.
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
 
@@ -304,9 +302,8 @@ public class SaplProtobufCodec {
         case NumberValue(BigDecimal n) -> CodedOutputStream.computeStringSize(VALUE_NUMBER, n.toPlainString());
         case TextValue(String s)       -> CodedOutputStream.computeStringSize(VALUE_TEXT, s);
         case ArrayValue arr            -> {
-            // Compute the content size once and reuse it. Calling the content
-            // sizer twice doubles the work at every nesting level, which is
-            // exponential in the value's depth.
+            // Compute the content size once. Sizing twice per level is exponential in the
+            // value's depth.
             val content = computeArrayValueContentSize(arr);
             yield 1 + CodedOutputStream.computeUInt32SizeNoTag(content) + content;
         }

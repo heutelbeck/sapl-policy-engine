@@ -50,6 +50,8 @@ import lombok.val;
  */
 class SAPLRenameProvider {
 
+    private static final Range ZERO_RANGE = new Range(new Position(0, 0), new Position(0, 0));
+
     PrepareRenameResult prepareRename(ParsedDocument document, Position position) {
         if (!(document instanceof SAPLParsedDocument saplDocument)) {
             return null;
@@ -94,9 +96,12 @@ class SAPLRenameProvider {
 
     private void collectRenameEditsInPolicySet(PolicySetContext policySet, String targetName, String newName,
             Position position, List<TextEdit> edits) {
+        if (policySet == null) {
+            return;
+        }
         // Check if it's a set-level var
         for (val varDef : policySet.valueDefinition()) {
-            if (varDef.name.getText().equals(targetName)) {
+            if (varDef.name != null && varDef.name.getText().equals(targetName)) {
                 edits.add(new TextEdit(rangeOf(varDef.name), newName));
                 collectReferencesInTree(policySet, targetName, edits, newName);
                 return;
@@ -113,7 +118,7 @@ class SAPLRenameProvider {
 
     private void collectRenameEditsInPolicy(PolicyContext policy, String targetName, String newName,
             List<TextEdit> edits) {
-        if (policy.policyBody() == null) {
+        if (policy == null || policy.policyBody() == null) {
             return;
         }
         val body  = policy.policyBody();
@@ -121,7 +126,7 @@ class SAPLRenameProvider {
         for (val statement : body.statements) {
             if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
                 val varDef = varDefStmt.valueDefinition();
-                if (varDef.name.getText().equals(targetName)) {
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
                     edits.add(new TextEdit(rangeOf(varDef.name), newName));
                     found = true;
                     continue;
@@ -150,7 +155,8 @@ class SAPLRenameProvider {
     }
 
     private void collectReferencesInTree(ParseTree tree, String targetName, List<TextEdit> edits, String newName) {
-        if (tree instanceof BasicIdentifierContext basicId && basicId.saplId().getText().equals(targetName)) {
+        if (tree instanceof BasicIdentifierContext basicId && basicId.saplId() != null
+                && basicId.saplId().getText().equals(targetName)) {
             edits.add(new TextEdit(rangeOf(basicId.saplId()), newName));
         }
         if (tree instanceof ParserRuleContext ctx) {
@@ -176,7 +182,7 @@ class SAPLRenameProvider {
         collectNodesOfType(tree, BasicIdentifierContext.class, identifiers);
         for (val ident : identifiers) {
             val saplId = ident.saplId();
-            if (containsPosition(saplId, position)) {
+            if (saplId != null && containsPosition(saplId, position)) {
                 return saplId;
             }
         }
@@ -226,6 +232,9 @@ class SAPLRenameProvider {
     }
 
     private Range rangeOf(ParserRuleContext ctx) {
+        if (ctx == null || ctx.getStart() == null || ctx.getStop() == null) {
+            return ZERO_RANGE;
+        }
         val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
         val stop  = ctx.getStop();
         val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());

@@ -947,4 +947,35 @@ class RemoteBundlePDPConfigurationSourceTests {
         }
     }
 
+    @Nested
+    @DisplayName("resource lifecycle and rate limiting")
+    class ResourceLifecycleAndRateLimitingTests {
+
+        @Test
+        @DisplayName("close releases the underlying HttpClient")
+        void whenClosedThenHttpClientIsTerminated() {
+            source = new RemoteBundlePDPConfigurationSource(defaultConfig(developmentPolicy));
+
+            source.close();
+
+            assertThat(source.httpClientTerminated()).isTrue();
+        }
+
+        @Test
+        @DisplayName("long-poll mode keeps a non-zero minimum delay floor between fetches")
+        void whenLongPollModeThenPollDelayHasMinimumFloor() {
+            source = new RemoteBundlePDPConfigurationSource(longPollConfig(developmentPolicy));
+
+            val pollDelay = source.getPollDelay(PDP_ID);
+
+            assertThat(pollDelay.isZero()).isFalse();
+        }
+    }
+
+    private RemoteBundleSourceConfig longPollConfig(BundleSecurityPolicy securityPolicy) {
+        return new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
+                RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
+                true, securityPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
+    }
+
 }

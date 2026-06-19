@@ -224,8 +224,8 @@ class AttributeStreamTests {
             val                     attempts = new AtomicInteger();
             Supplier<Stream<Value>> source   = () -> {
                                                  if (attempts.getAndIncrement() == 0) {
-                                                     // An Error is not caught by attemptWithRetries, so it escapes
-                                                     // to the pump loop; the immortal guard must contain it.
+                                                     // attemptWithRetries does not catch Error, so the immortal pump
+                                                     // guard must contain it.
                                                      throw new AssertionError("pump-error");
                                                  }
                                                  val good = new ScriptedStream();
@@ -337,6 +337,25 @@ class AttributeStreamTests {
 
             stream.close();
             assertThat(stream.awaitNext()).isNull();
+        }
+
+        @Test
+        @DisplayName("close interrupts a pump parked in the poll-interval sleep so its virtual thread terminates "
+                + "promptly instead of lingering until the interval elapses")
+        void whenClosedWhilePollSleepingThenPumpThreadTerminates() throws Exception {
+            val source   = new ControlledSource(() -> oneShot(Value.of("v1")));
+            val longPoll = invocation("pollSleepClose", INITIAL_TIMEOUT, Duration.ofHours(1), BACKOFF, 0L);
+            try (val stream = new AttributeStream(longPoll, source)) {
+                // Consume the value, then wait until the pump parks in the one-hour poll sleep.
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("v1"));
+                Awaitility.await().atMost(AWAIT_BUDGET)
+                        .until(() -> stream.pumpThread.getState() == Thread.State.TIMED_WAITING);
+
+                stream.close();
+
+                Awaitility.await().atMost(AWAIT_BUDGET).until(() -> !stream.pumpThread.isAlive());
+                assertThat(stream.pumpThread.isAlive()).isFalse();
+            }
         }
     }
 

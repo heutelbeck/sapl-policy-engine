@@ -96,6 +96,14 @@ public class MacFunctionLibrary {
 
             Never use string equality or standard comparison operators to verify MACs in
             authorization decisions.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The message and the key are each capped at 10000000 characters (10 MB). This applies to the HMAC functions hmacSha256, hmacSha384, hmacSha512, and to isValidHmac, which computes an HMAC internally. A function returns an error when either the message or the key exceeds this length.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_TEXT = """
@@ -113,8 +121,11 @@ public class MacFunctionLibrary {
     private static final String ERROR_FAILED_TO_COMPARE_MACS = "Failed to compare MACs: ";
     private static final String ERROR_FAILED_TO_COMPUTE_HMAC = "Failed to compute HMAC: ";
     private static final String ERROR_HMAC_ALGORITHM_UNAVAIL = "HMAC algorithm not available: ";
+    private static final String ERROR_INPUT_TOO_LARGE        = "Input exceeds the maximum length of %d characters.";
     private static final String ERROR_INVALID_HEX_MAC_FORMAT = "Invalid hexadecimal MAC format: ";
     private static final String ERROR_INVALID_HMAC_KEY       = "Invalid key for HMAC: ";
+
+    private static final int MAX_INPUT_LENGTH = 10_000_000;
 
     @Function(docs = """
             ```hmacSha256(TEXT message, TEXT key)```: Computes HMAC-SHA256 authentication code.
@@ -255,6 +266,9 @@ public class MacFunctionLibrary {
      * @return a Value containing the hexadecimal MAC or an error
      */
     private static Value computeHmac(String message, String key, String algorithm) {
+        if (message.length() > MAX_INPUT_LENGTH || key.length() > MAX_INPUT_LENGTH) {
+            return new ErrorValue(ERROR_INPUT_TOO_LARGE.formatted(MAX_INPUT_LENGTH));
+        }
         try {
             val secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), algorithm);
             val mac       = Mac.getInstance(algorithm);

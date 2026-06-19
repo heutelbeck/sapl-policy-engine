@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.sapl.api.functions.FunctionLibraryProvider;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.TimeScheduler;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;

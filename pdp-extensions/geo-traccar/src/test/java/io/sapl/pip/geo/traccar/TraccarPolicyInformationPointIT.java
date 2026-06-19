@@ -22,7 +22,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.Streams;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.functions.geo.GeographicFunctionLibrary;

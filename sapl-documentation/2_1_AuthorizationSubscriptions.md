@@ -109,3 +109,13 @@ permit action == "read" & resource.type == "patient_record";
 ```
 
 The domain-driven variant communicates intent to domain stakeholders such as compliance officers. Use technical subscriptions for rapid prototyping but migrate to domain-driven subscriptions before production deployment.
+
+#### Default Subscriptions Are PEP-Specific
+
+When you do not set the subscription fields explicitly, each PEP fills them from its framework context, and the resulting shape is **not the same across PEPs**, in structure and in field names alike.
+
+- Even within the Spring integration the two PEP styles differ. Method security (`@PreEnforce` / `@PostEnforce` / `@StreamEnforce`) nests the data as `action.http` / `action.java` and `resource.http` / `resource.java`; the HTTP filter PEP (`saplHttp()`) places the serialized request flat on both `action` and `resource` (so `action.method`, `resource.path`, `resource.host`).
+- Across PEPs the same concept lands under different keys. The HTTP verb is `action.method` in some integrations and `action.httpMethod` in others; the invoked method or handler name appears as `action.handler`, `action.view`, `action.endpoint`, or `action.java.name`; route parameters are `resource.params`, `resource.view_args`, or `resource.kwargs`.
+- The authenticated principal has no common shape, and roles in particular live in different places (`subject.roles`, `subject.authorities[].authority`, `subject.realm_access.roles`, or nowhere by default). A policy that checks roles against a default subject is therefore tied to one PEP.
+
+This is the strongest practical reason to prefer the explicit, domain-driven subscriptions described above. An explicit `subject` / `action` / `resource` that you control is portable across PEPs and stable across infrastructure changes, whereas a policy written against a PEP's default shape is specific to that PEP. For the exact default shape your integration emits, see its PEP documentation page.

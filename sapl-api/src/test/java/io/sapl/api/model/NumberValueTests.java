@@ -91,18 +91,18 @@ class NumberValueTests {
     }
 
     @Test
-    @DisplayName("Factory with NaN throws IllegalArgumentException")
-    void when_factoryDoubleCalledWithNaN_then_throws() {
-        assertThatThrownBy(() -> Value.of(Double.NaN)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("NaN");
+    @DisplayName("Factory with NaN returns an ErrorValue")
+    void when_factoryDoubleCalledWithNaN_then_errorValue() {
+        assertThat(Value.of(Double.NaN)).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("NaN"));
     }
 
-    @ParameterizedTest(name = "Value.of({0}) throws IllegalArgumentException")
+    @ParameterizedTest(name = "Value.of({0}) returns an ErrorValue")
     @ValueSource(doubles = { Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY })
-    @DisplayName("Factory with infinity throws IllegalArgumentException")
-    void when_factoryDoubleCalledWithInfinity_then_throws(double value) {
-        assertThatThrownBy(() -> Value.of(value)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("infinite");
+    @DisplayName("Factory with infinity returns an ErrorValue")
+    void when_factoryDoubleCalledWithInfinity_then_errorValue(double value) {
+        assertThat(Value.of(value)).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("infinite"));
     }
 
     @ParameterizedTest(name = "{0} equals {1} numerically")
