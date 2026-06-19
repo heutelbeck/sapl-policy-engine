@@ -278,8 +278,49 @@ public class SmtddPolicyIndex implements PolicyIndex {
 
     @Override
     public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
-        // TODO: implement Kleene-compatible incremental matching for the SMTDD index.
-        throw new UnsupportedOperationException("matchKleeneWhile for the SMTDD index not yet implemented");
+        for (val errorMatch : alwaysErrorMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(), List.of(errorMatch)))) {
+                return;
+            }
+        }
+        for (val document : alwaysApplicable) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
+                return;
+            }
+        }
+
+        if (binaryOrder == null) {
+            return;
+        }
+
+        val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+        val errored = result.errored();
+
+        for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
+                .nextSetBit(formulaIndex + 1)) {
+            if (!errored.get(formulaIndex)
+                    && !shouldContinue.test(new PolicyMatches(formulaDocuments.get(formulaIndex), List.of()))) {
+                return;
+            }
+        }
+
+        val suspects = suspectDocuments(errored);
+        if (suspects.isEmpty()) {
+            return;
+        }
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        IndexReclassification.reclassifySuspectsKleene(suspects, ctx, trueMatches, errorMatches);
+        for (val errorMatch : errorMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(), List.of(errorMatch)))) {
+                return;
+            }
+        }
+        for (val document : trueMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
+                return;
+            }
+        }
     }
 
 }

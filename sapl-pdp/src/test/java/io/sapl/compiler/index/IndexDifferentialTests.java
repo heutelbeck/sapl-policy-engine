@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyMatches;
 import io.sapl.compiler.index.canonical.CanonicalPolicyIndex;
 import io.sapl.compiler.index.naive.NaivePolicyIndex;
@@ -121,6 +122,37 @@ class IndexDifferentialTests {
                 .isEqualTo(matchedKleene(naive));
         assertThat(erroredKleene(smtdd)).as("smtdd error matches | subscription %d", index)
                 .isEqualTo(erroredKleene(naive));
+    }
+
+    @ParameterizedTest(name = "subscription {0}")
+    @MethodSource("subscriptions")
+    @DisplayName("matchKleeneWhile yields the same matches as matchKleene for every backend")
+    void matchKleeneWhileAgreesWithMatchKleene(int index, String subjectJson) {
+        val ctx = subscriptionContext(wrap(subjectJson));
+        assertWhileAgreesWithMatchKleene(NAIVE, ctx, "naive", index);
+        assertWhileAgreesWithMatchKleene(CANON, ctx, "canonical", index);
+        assertWhileAgreesWithMatchKleene(SMTDD, ctx, "smtdd", index);
+    }
+
+    private static void assertWhileAgreesWithMatchKleene(PolicyIndex index, EvaluationContext ctx, String label,
+            int subscription) {
+        val direct    = index.matchKleene(ctx);
+        val collected = collectKleeneWhile(index, ctx);
+        assertThat(matchedKleene(collected)).as("%s while true matches | subscription %d", label, subscription)
+                .isEqualTo(matchedKleene(direct));
+        assertThat(erroredKleene(collected)).as("%s while error matches | subscription %d", label, subscription)
+                .isEqualTo(erroredKleene(direct));
+    }
+
+    private static PolicyMatches collectKleeneWhile(PolicyIndex index, EvaluationContext ctx) {
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        index.matchKleeneWhile(ctx, step -> {
+            trueMatches.addAll(step.trueMatches());
+            errorMatches.addAll(step.errorMatches());
+            return true;
+        });
+        return new PolicyMatches(trueMatches, errorMatches);
     }
 
     private static Stream<Arguments> subscriptions() {

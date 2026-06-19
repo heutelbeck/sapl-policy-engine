@@ -174,9 +174,19 @@ public class CanonicalPolicyIndex implements PolicyIndex {
 
     @Override
     public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
-        // TODO: implement Kleene-compatible incremental matching for the canonical
-        // index.
-        throw new UnsupportedOperationException("matchKleeneWhile for the canonical index not yet implemented");
+        for (val errorMatch : alwaysErrorMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(), List.of(errorMatch)))) {
+                return;
+            }
+        }
+        for (val document : alwaysApplicable) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
+                return;
+            }
+        }
+        if (indexData != null) {
+            CanonicalIndexSearch.searchKleeneWhile(indexData, ctx, shouldContinue);
+        }
     }
 
 }
