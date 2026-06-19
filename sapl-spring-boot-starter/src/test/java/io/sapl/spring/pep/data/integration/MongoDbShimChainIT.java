@@ -27,6 +27,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
+
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +44,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -282,6 +287,126 @@ class MongoDbShimChainIT {
         }
     }
 
+    @Nested
+    @DisplayName("Fluent chain: bare terminals and matching(Criteria) are narrowed, not bypassed")
+    class FluentChainEnforcement {
+
+        @Test
+        @DisplayName("query(X).all() with no matching step is narrowed by the obligation")
+        void whenFluentAllThenNarrowed() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", NUITARI)));
+
+            StepVerifier.create(chronicles.fluentAll().map(Chronicle::title).collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactlyInAnyOrder("The Black Wing Rite",
+                            "Necromancers' Compendium"))
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("query(X).count() with no matching step counts only narrowed documents")
+        void whenFluentCountThenNarrowed() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", LUNITARI)));
+
+            StepVerifier.create(chronicles.fluentCount()).expectNext(2L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("query(X).exists() with no matching step reflects the narrowed set")
+        void whenFluentExistsAgainstEmptyNarrowedSetThenFalse() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", "Reorx")));
+
+            StepVerifier.create(chronicles.fluentExists()).expectNext(false).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("query(X).first() with no matching step returns a narrowed document")
+        void whenFluentFirstThenNarrowedDocument() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", NUITARI)));
+
+            StepVerifier.create(chronicles.fluentFirst().map(Chronicle::moon)).expectNext(NUITARI).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("query(X).matching(Criteria).all() honours both the criteria and the obligation")
+        void whenFluentMatchingCriteriaThenIntersectedWithObligation() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", SOLINARI)));
+
+            StepVerifier.create(chronicles.fluentMatchingCriteria(1).map(Chronicle::title).collectList())
+                    .assertNext(titles -> assertThat(titles).containsExactlyInAnyOrder("The Disks of Mishakal",
+                            "The Bestiary of Krynn"))
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("query(X).as(View).all() is narrowed before projection")
+        void whenFluentProjectionThenNarrowed() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", LUNITARI)));
+
+            StepVerifier.create(chronicles.fluentProjection().collectList()).assertNext(
+                    titles -> assertThat(titles).containsExactlyInAnyOrder("Songs of the Bards", "The Lost Chronicles"))
+                    .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("DENY raises AccessDeniedException on a bare fluent terminal too")
+        void whenDenyThenFluentAllDenied() {
+            decide(AuthorizationDecision.DENY);
+
+            StepVerifier.create(chronicles.fluentAll())
+                    .expectErrorSatisfies(err -> assertThat(err).isInstanceOf(AccessDeniedException.class))
+                    .verify(STEP_TIMEOUT);
+        }
+
+        @Test
+        @DisplayName("A repository save under a query-rewriting obligation is not over-denied")
+        void whenObligationAndRepositorySaveThenNotDenied() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", NUITARI)));
+
+            StepVerifier.create(chronicles.saveChronicle(new Chronicle("7", "The Star of Reorx", NUITARI, 2)))
+                    .assertNext(saved -> assertThat(saved.id()).isEqualTo("7")).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("The fluent update builder selection is narrowed: an intersecting obligation updates the in-scope rows")
+        void whenObligationIntersectsFluentUpdateThenInScopeRowsUpdated() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", NUITARI)));
+
+            StepVerifier.create(chronicles.fluentUpdate()).expectNext(2L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("The fluent update builder selection is narrowed: a disjoint obligation updates nothing")
+        void whenObligationDisjointFromFluentUpdateThenNothingUpdated() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", LUNITARI)));
+
+            StepVerifier.create(chronicles.fluentUpdate()).expectNext(0L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("The fluent update builder proceeds unchanged when no obligation narrows the query")
+        void whenNoObligationAndFluentUpdateThenProceeds() {
+            decide(AuthorizationDecision.PERMIT);
+
+            StepVerifier.create(chronicles.fluentUpdate()).expectNext(2L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("The fluent remove builder selection is narrowed: a disjoint obligation deletes nothing")
+        void whenObligationDisjointFromFluentRemoveThenNothingDeleted() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", LUNITARI)));
+
+            StepVerifier.create(chronicles.fluentRemove()).expectNext(0L).verifyComplete();
+        }
+
+        @Test
+        @DisplayName("The fluent remove builder selection is narrowed: an intersecting obligation deletes the in-scope rows")
+        void whenObligationIntersectsFluentRemoveThenInScopeRowsDeleted() {
+            decide(decisionWithMongoCriteria(eqColumn("moon", NUITARI)));
+
+            StepVerifier.create(chronicles.fluentRemove()).expectNext(2L).verifyComplete();
+        }
+    }
+
     private void decide(AuthorizationDecision decision) {
         when(pdp.decideOnce(any(), anyString())).thenReturn(Mono.just(decision));
     }
@@ -339,12 +464,16 @@ class MongoDbShimChainIT {
     @Document("chronicles")
     public record Chronicle(@Id String id, String title, String moon, Integer forbiddenTier) {}
 
+    record TitleOnly(String title) {}
+
     static class ChronicleService {
 
         private final MongoChronicleRepository repository;
+        private final ReactiveMongoTemplate    template;
 
-        ChronicleService(MongoChronicleRepository repository) {
+        ChronicleService(MongoChronicleRepository repository, ReactiveMongoTemplate template) {
             this.repository = repository;
+            this.template   = template;
         }
 
         @PreEnforce(action = "'allChronicles'")
@@ -381,6 +510,56 @@ class MongoDbShimChainIT {
         public Flux<Chronicle> chroniclesByTitle(String pattern) {
             return repository.findRareChronicles(pattern);
         }
+
+        // Direct fluent-chain usage. None of these call matching(Query); they are the
+        // surface that previously bypassed the shim entirely (run1-068, run1-070).
+
+        @PreEnforce(action = "'fluentAll'")
+        public Flux<Chronicle> fluentAll() {
+            return template.query(Chronicle.class).all();
+        }
+
+        @PreEnforce(action = "'fluentCount'")
+        public Mono<Long> fluentCount() {
+            return template.query(Chronicle.class).count();
+        }
+
+        @PreEnforce(action = "'fluentExists'")
+        public Mono<Boolean> fluentExists() {
+            return template.query(Chronicle.class).exists();
+        }
+
+        @PreEnforce(action = "'fluentFirst'")
+        public Mono<Chronicle> fluentFirst() {
+            return template.query(Chronicle.class).first();
+        }
+
+        @PreEnforce(action = "'fluentMatchingCriteria'")
+        public Flux<Chronicle> fluentMatchingCriteria(int maxTier) {
+            return template.query(Chronicle.class).matching(Criteria.where("forbiddenTier").lte(maxTier)).all();
+        }
+
+        @PreEnforce(action = "'fluentProjection'")
+        public Flux<String> fluentProjection() {
+            return template.query(Chronicle.class).as(TitleOnly.class).all().map(TitleOnly::title);
+        }
+
+        @PreEnforce(action = "'saveChronicle'")
+        public Mono<Chronicle> saveChronicle(Chronicle chronicle) {
+            return repository.save(chronicle);
+        }
+
+        @PreEnforce(action = "'fluentUpdate'")
+        public Mono<Long> fluentUpdate() {
+            return template.update(Chronicle.class).matching(Criteria.where("moon").is(NUITARI))
+                    .apply(new Update().set("forbiddenTier", 9)).all().map(UpdateResult::getModifiedCount);
+        }
+
+        @PreEnforce(action = "'fluentRemove'")
+        public Mono<Long> fluentRemove() {
+            return template.remove(Chronicle.class).matching(Criteria.where("moon").is(NUITARI)).all()
+                    .map(DeleteResult::getDeletedCount);
+        }
     }
 
     @SaplPepTestApp
@@ -389,8 +568,8 @@ class MongoDbShimChainIT {
     static class AstinusChroniclesTestApp {
 
         @Bean
-        ChronicleService chronicleService(MongoChronicleRepository repository) {
-            return new ChronicleService(repository);
+        ChronicleService chronicleService(MongoChronicleRepository repository, ReactiveMongoTemplate template) {
+            return new ChronicleService(repository, template);
         }
     }
 }

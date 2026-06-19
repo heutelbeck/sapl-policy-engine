@@ -34,6 +34,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import io.sapl.spring.testsupport.SaplPepTestApp;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
@@ -387,7 +388,7 @@ class RelationalShimChainTests {
 
     @SaplPepTestApp
     @EnableReactiveSaplMethodSecurity
-    @org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories(basePackageClasses = TomeRepository.class)
+    @EnableR2dbcRepositories(basePackageClasses = TomeRepository.class)
     static class PalanthasLibraryTestApp {
 
         @Bean

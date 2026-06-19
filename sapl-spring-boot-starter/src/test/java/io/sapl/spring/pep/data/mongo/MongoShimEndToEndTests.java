@@ -41,8 +41,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.ReactiveFindOperation.FindWithQuery;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.core.query.UpdateDefinition;
 import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.model.ArrayValue;
@@ -316,6 +319,130 @@ class MongoShimEndToEndTests {
                     .isInstanceOf(UnsupportedOperationException.class);
 
             verifyNoInteractions(delegateChain);
+        }
+    }
+
+    @Nested
+    @DisplayName("Write-selection narrowing via the generic Query-first rule")
+    class WriteSelectionNarrowing {
+
+        private static final String TENANT_OBLIGATION = """
+                {
+                  "type": "mongo:queryRewriting",
+                  "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
+                }
+                """;
+
+        @Test
+        @DisplayName("updateMulti(Query, Update, Class) selection is narrowed before the delegate runs")
+        void givenObligationWhenUpdateMultiThenSelectionNarrowed() {
+            val plan   = planner.plan(permitWithObligation(TENANT_OBLIGATION),
+                    Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+            val update = new Update().set("name", "Vetinari");
+            when(delegate.updateMulti(any(Query.class), any(UpdateDefinition.class), eq(Citizen.class)))
+                    .thenReturn(Mono.empty());
+
+            val callChain = shimmedTemplate.updateMulti(new Query(), update, Citizen.class);
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, callChain.then())).verifyComplete();
+
+            val captor = ArgumentCaptor.forClass(Query.class);
+            verify(delegate).updateMulti(captor.capture(), any(UpdateDefinition.class), eq(Citizen.class));
+            assertThat(captor.getValue().getQueryObject().toJson()).contains("\"tenantId\": 7");
+        }
+
+        @Test
+        @DisplayName("findAndModify(Query, Update, Class) selection is narrowed before the delegate runs")
+        void givenObligationWhenFindAndModifyThenSelectionNarrowed() {
+            val plan   = planner.plan(permitWithObligation(TENANT_OBLIGATION),
+                    Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+            val update = new Update().set("name", "Vetinari");
+            when(delegate.findAndModify(any(Query.class), any(UpdateDefinition.class), eq(Citizen.class)))
+                    .thenReturn(Mono.empty());
+
+            val callChain = shimmedTemplate.findAndModify(new Query(), update, Citizen.class);
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, callChain.then())).verifyComplete();
+
+            val captor = ArgumentCaptor.forClass(Query.class);
+            verify(delegate).findAndModify(captor.capture(), any(UpdateDefinition.class), eq(Citizen.class));
+            assertThat(captor.getValue().getQueryObject().toJson()).contains("\"tenantId\": 7");
+        }
+
+        @Test
+        @DisplayName("remove(Query, Class) selection is narrowed before the delegate runs")
+        void givenObligationWhenRemoveThenSelectionNarrowed() {
+            val plan = planner.plan(permitWithObligation(TENANT_OBLIGATION),
+                    Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+            when(delegate.remove(any(Query.class), eq(Citizen.class))).thenReturn(Mono.empty());
+
+            val callChain = shimmedTemplate.remove(new Query(), Citizen.class);
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, callChain.then())).verifyComplete();
+
+            val captor = ArgumentCaptor.forClass(Query.class);
+            verify(delegate).remove(captor.capture(), eq(Citizen.class));
+            assertThat(captor.getValue().getQueryObject().toJson()).contains("\"tenantId\": 7");
+        }
+    }
+
+    @Nested
+    @DisplayName("findAll is rerouted through a narrowed find")
+    class FindAllReroute {
+
+        @Test
+        @DisplayName("findAll(Class) reaches the delegate as a narrowed find, never the unfiltered findAll")
+        void givenObligationWhenFindAllThenNarrowedFind() {
+            val decision = permitWithObligation("""
+                    {
+                      "type": "mongo:queryRewriting",
+                      "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
+                    }
+                    """);
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+            when(delegate.find(any(Query.class), eq(Citizen.class))).thenReturn(Flux.empty());
+
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, shimmedTemplate.findAll(Citizen.class).then()))
+                    .verifyComplete();
+
+            val captor = ArgumentCaptor.forClass(Query.class);
+            verify(delegate).find(captor.capture(), eq(Citizen.class));
+            assertThat(captor.getValue().getQueryObject().toJson()).contains("\"tenantId\": 7");
+        }
+    }
+
+    @Nested
+    @DisplayName("Fail-closed on operations that cannot be narrowed by a row-level query")
+    class DenyUnsupportedOperations {
+
+        @Test
+        @DisplayName("aggregate is denied while a narrowing obligation is in scope, without touching the delegate")
+        void givenObligationWhenAggregateThenAccessDenied() {
+            val decision = permitWithObligation("""
+                    {
+                      "type": "mongo:queryRewriting",
+                      "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
+                    }
+                    """);
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+            val pipeline = Aggregation.newAggregation(Aggregation.match(Criteria.where("name").is("Vimes")));
+
+            StepVerifier
+                    .create(EnforcementPlanContext.withReactor(plan,
+                            shimmedTemplate.aggregate(pipeline, Citizen.class, Citizen.class).then()))
+                    .expectError(AccessDeniedException.class).verify();
+
+            verifyNoInteractions(delegate);
+        }
+
+        @Test
+        @DisplayName("aggregate proceeds untouched when no obligation is in scope")
+        void givenNoObligationWhenAggregateThenProceeds() {
+            val pipeline = Aggregation.newAggregation(Aggregation.match(Criteria.where("name").is("Vimes")));
+            when(delegate.aggregate(any(Aggregation.class), eq(Citizen.class), eq(Citizen.class)))
+                    .thenReturn(Flux.empty());
+
+            StepVerifier.create(shimmedTemplate.aggregate(pipeline, Citizen.class, Citizen.class).then())
+                    .verifyComplete();
+
+            verify(delegate).aggregate(any(Aggregation.class), eq(Citizen.class), eq(Citizen.class));
         }
     }
 
