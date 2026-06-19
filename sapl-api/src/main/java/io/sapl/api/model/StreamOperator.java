@@ -75,7 +75,7 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      *
      * @since 4.1.0
      */
-    static @Nullable Value evalChild(CompiledExpression child, EvaluationContext ctx,
+    static Value evalChild(CompiledExpression child, EvaluationContext ctx,
             Map<SubscriptionKey, List<Occurrence>> deps) {
         return switch (child) {
         case Value v          -> v;
