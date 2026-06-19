@@ -20,6 +20,7 @@ package io.sapl.compiler.index.naive;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -164,6 +165,147 @@ class NaivePolicyIndexTests {
 
             assertThat(errors).hasSize(1);
             assertThat(errors.getFirst().errorVotes()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("matchKleene")
+    class MatchKleene {
+
+        @ParameterizedTest(name = "predicate={0} -> trueMatch={1}")
+        @MethodSource
+        void whenPredicateEvaluatedThenClassified(Value predicateResult, boolean shouldMatch) {
+            val p1  = configurablePredicate(1L);
+            val doc = stubDocumentWithApplicability("policy1", p1.operator());
+
+            PREDICATE_RESULTS.put(1L, predicateResult);
+            val result = NaivePolicyIndex.create(List.of(doc)).matchKleene(evaluationContext());
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.trueMatches()).hasSize(shouldMatch ? 1 : 0);
+                assertThat(r.errorMatches()).isEmpty();
+            });
+        }
+
+        static Stream<Arguments> whenPredicateEvaluatedThenClassified() {
+            return Stream.of(arguments(Value.TRUE, true), arguments(Value.FALSE, false));
+        }
+
+        @Test
+        @DisplayName("predicate error becomes an error match carrying the document and its error")
+        void whenPredicateErrorThenErrorMatchCarriesDocumentAndError() {
+            val p1    = configurablePredicate(1L);
+            val doc   = stubDocumentWithApplicability("policy1", p1.operator());
+            val error = new ErrorValue("broken");
+
+            PREDICATE_RESULTS.put(1L, error);
+            val result = NaivePolicyIndex.create(List.of(doc)).matchKleene(evaluationContext());
+
+            assertThat(result.trueMatches()).isEmpty();
+            assertThat(result.errorMatches()).singleElement().satisfies(errorMatch -> {
+                assertThat(errorMatch.document().metadata().name()).isEqualTo("policy1");
+                assertThat(errorMatch.error()).isEqualTo(error);
+            });
+        }
+
+        @Test
+        @DisplayName("constant TRUE applicability is a true match")
+        void whenConstantTrueThenTrueMatch() {
+            val result = NaivePolicyIndex.create(List.of(stubDocument("p1"))).matchKleene(evaluationContext());
+            assertThat(result).satisfies(r -> {
+                assertThat(r.trueMatches()).hasSize(1);
+                assertThat(r.errorMatches()).isEmpty();
+            });
+        }
+
+        @Test
+        @DisplayName("empty index returns empty matches")
+        void whenEmptyThenEmpty() {
+            val result = NaivePolicyIndex.create(List.of()).matchKleene(evaluationContext());
+            assertThat(result).satisfies(r -> {
+                assertThat(r.trueMatches()).isEmpty();
+                assertThat(r.errorMatches()).isEmpty();
+            });
+        }
+
+        @Test
+        @DisplayName("mixed documents partition into true matches and error matches, dropping false")
+        void whenMixedThenPartitioned() {
+            val pTrue  = configurablePredicate(1L);
+            val pFalse = configurablePredicate(2L);
+            val pError = configurablePredicate(3L);
+            val docs   = List.of(stubDocumentWithApplicability("t", pTrue.operator()),
+                    stubDocumentWithApplicability("f", pFalse.operator()),
+                    stubDocumentWithApplicability("e", pError.operator()));
+
+            PREDICATE_RESULTS.put(1L, Value.TRUE);
+            PREDICATE_RESULTS.put(2L, Value.FALSE);
+            PREDICATE_RESULTS.put(3L, new ErrorValue("boom"));
+
+            val result = NaivePolicyIndex.create(docs).matchKleene(evaluationContext());
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.trueMatches()).extracting(d -> d.metadata().name()).containsExactly("t");
+                assertThat(r.errorMatches()).extracting(em -> em.document().metadata().name()).containsExactly("e");
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("matchKleeneWhile")
+    class MatchKleeneWhile {
+
+        @Test
+        @DisplayName("yields all true matches when consumer always continues")
+        void whenAlwaysContinueThenAllTrueMatches() {
+            val docs     = List.of(stubDocument("p1"), stubDocument("p2"), stubDocument("p3"));
+            val index    = NaivePolicyIndex.create(docs);
+            val received = new ArrayList<String>();
+
+            index.matchKleeneWhile(evaluationContext(), step -> {
+                step.trueMatches().forEach(d -> received.add(d.metadata().name()));
+                return true;
+            });
+
+            assertThat(received).containsExactly("p1", "p2", "p3");
+        }
+
+        @Test
+        @DisplayName("stops after consumer returns false")
+        void whenConsumerStopsThenNoMoreEvaluations() {
+            val docs      = List.of(stubDocument("p1"), stubDocument("p2"), stubDocument("p3"));
+            val index     = NaivePolicyIndex.create(docs);
+            val callCount = new AtomicInteger(0);
+
+            index.matchKleeneWhile(evaluationContext(), step -> {
+                callCount.incrementAndGet();
+                return callCount.get() < 2;
+            });
+
+            assertThat(callCount.get()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("error matches are yielded incrementally with their error")
+        void whenErrorThenYieldedIncrementally() {
+            val p1    = configurablePredicate(1L);
+            val doc   = stubDocumentWithApplicability("policy1", p1.operator());
+            val index = NaivePolicyIndex.create(List.of(doc));
+            val error = new ErrorValue("broken");
+
+            PREDICATE_RESULTS.put(1L, error);
+            val steps = new ArrayList<PolicyMatches>();
+
+            index.matchKleeneWhile(evaluationContext(), step -> {
+                steps.add(step);
+                return true;
+            });
+
+            assertThat(steps).singleElement()
+                    .satisfies(step -> assertThat(step.errorMatches()).singleElement().satisfies(errorMatch -> {
+                        assertThat(errorMatch.document().metadata().name()).isEqualTo("policy1");
+                        assertThat(errorMatch.error()).isEqualTo(error);
+                    }));
         }
     }
 

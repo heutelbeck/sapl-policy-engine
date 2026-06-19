@@ -26,6 +26,7 @@ import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import io.sapl.compiler.index.dnf.DisjunctiveFormula;
 import io.sapl.compiler.index.dnf.DnfNormalizer;
 import lombok.val;
@@ -53,16 +54,19 @@ public class CanonicalPolicyIndex implements PolicyIndex {
 
     private static final String ERROR_NON_BOOLEAN_APPLICABILITY = "Document applicability is a non-boolean constant value: %s. This violates the compilation contract.";
 
-    private final CanonicalIndexData     indexData;
-    private final List<CompiledDocument> alwaysApplicable;
-    private final List<Vote>             alwaysErrorVotes;
+    private final CanonicalIndexData             indexData;
+    private final List<CompiledDocument>         alwaysApplicable;
+    private final List<Vote>                     alwaysErrorVotes;
+    private final List<PolicyMatches.ErrorMatch> alwaysErrorMatches;
 
     private CanonicalPolicyIndex(CanonicalIndexData indexData,
             List<CompiledDocument> alwaysApplicable,
-            List<Vote> alwaysErrorVotes) {
-        this.indexData        = indexData;
-        this.alwaysApplicable = List.copyOf(alwaysApplicable);
-        this.alwaysErrorVotes = List.copyOf(alwaysErrorVotes);
+            List<Vote> alwaysErrorVotes,
+            List<PolicyMatches.ErrorMatch> alwaysErrorMatches) {
+        this.indexData          = indexData;
+        this.alwaysApplicable   = List.copyOf(alwaysApplicable);
+        this.alwaysErrorVotes   = List.copyOf(alwaysErrorVotes);
+        this.alwaysErrorMatches = List.copyOf(alwaysErrorMatches);
     }
 
     /**
@@ -77,13 +81,17 @@ public class CanonicalPolicyIndex implements PolicyIndex {
         val formulaToDocuments = new HashMap<DisjunctiveFormula, List<CompiledDocument>>();
         val alwaysApplicable   = new ArrayList<CompiledDocument>();
         val alwaysErrorVotes   = new ArrayList<Vote>();
+        val alwaysErrorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
 
         for (val document : documents) {
             val expression = document.isApplicable();
             switch (expression) {
             case BooleanValue(var b) when b -> alwaysApplicable.add(document);
             case BooleanValue ignored       -> { /* constant false, drop */ }
-            case ErrorValue error           -> alwaysErrorVotes.add(Vote.error(error, document.metadata()));
+            case ErrorValue error           -> {
+                alwaysErrorVotes.add(Vote.error(error, document.metadata()));
+                alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
+            }
             case PureOperator pureOp        -> {
                 val formula = DnfNormalizer.normalize(pureOp.booleanExpression());
                 formulaToDocuments.computeIfAbsent(formula, k -> new ArrayList<>()).add(document);
@@ -94,7 +102,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
         }
 
         val indexData = formulaToDocuments.isEmpty() ? null : CanonicalIndexBuilder.build(formulaToDocuments);
-        return new CanonicalPolicyIndex(indexData, alwaysApplicable, alwaysErrorVotes);
+        return new CanonicalPolicyIndex(indexData, alwaysApplicable, alwaysErrorVotes, alwaysErrorMatches);
     }
 
     /**
@@ -105,7 +113,8 @@ public class CanonicalPolicyIndex implements PolicyIndex {
     }
 
     static CanonicalPolicyIndex createFromFormulas(Map<DisjunctiveFormula, List<CompiledDocument>> formulaToDocuments) {
-        return new CanonicalPolicyIndex(CanonicalIndexBuilder.build(formulaToDocuments), List.of(), List.of());
+        return new CanonicalPolicyIndex(CanonicalIndexBuilder.build(formulaToDocuments), List.of(), List.of(),
+                List.of());
     }
 
     @Override
@@ -142,6 +151,32 @@ public class CanonicalPolicyIndex implements PolicyIndex {
         if (indexData != null) {
             CanonicalIndexSearch.searchWhile(indexData, ctx, shouldContinue);
         }
+    }
+
+    @Override
+    public PolicyMatches matchKleene(EvaluationContext ctx) {
+        if (indexData == null) {
+            return new PolicyMatches(alwaysApplicable, alwaysErrorMatches);
+        }
+        val indexResult = CanonicalIndexSearch.searchKleene(indexData, ctx);
+        if (alwaysApplicable.isEmpty() && alwaysErrorMatches.isEmpty()) {
+            return indexResult;
+        }
+        val trueMatches = new ArrayList<CompiledDocument>(alwaysApplicable.size() + indexResult.trueMatches().size());
+        trueMatches.addAll(alwaysApplicable);
+        trueMatches.addAll(indexResult.trueMatches());
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>(
+                alwaysErrorMatches.size() + indexResult.errorMatches().size());
+        errorMatches.addAll(alwaysErrorMatches);
+        errorMatches.addAll(indexResult.errorMatches());
+        return new PolicyMatches(trueMatches, errorMatches);
+    }
+
+    @Override
+    public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
+        // TODO: implement Kleene-compatible incremental matching for the canonical
+        // index.
+        throw new UnsupportedOperationException("matchKleeneWhile for the canonical index not yet implemented");
     }
 
 }

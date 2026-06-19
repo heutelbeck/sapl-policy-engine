@@ -69,6 +69,30 @@ public class IndexReclassification {
         }
     }
 
+    /**
+     * Kleene-contract variant of
+     * {@link #reclassifySuspects(Collection, EvaluationContext, List, List)}. A
+     * {@code true} result is added to {@code trueMatches}, an error becomes an
+     * {@link PolicyMatches.ErrorMatch} carrying the document and its error, and
+     * a dominating {@code false} is dropped.
+     *
+     * @param suspects documents whose index classification touched an error
+     * @param ctx the evaluation context
+     * @param trueMatches collects suspects that re-evaluate to applicable
+     * @param errorMatches collects error matches for suspects that genuinely error
+     */
+    public static void reclassifySuspectsKleene(Collection<CompiledDocument> suspects, EvaluationContext ctx,
+            List<CompiledDocument> trueMatches, List<PolicyMatches.ErrorMatch> errorMatches) {
+        for (val document : suspects) {
+            val applicability = applicability(document, ctx);
+            if (applicability instanceof ErrorValue error) {
+                errorMatches.add(new PolicyMatches.ErrorMatch(document, error));
+            } else if (applicability instanceof BooleanValue(var b) && b) {
+                trueMatches.add(document);
+            }
+        }
+    }
+
     private static Value applicability(CompiledDocument document, EvaluationContext ctx) {
         val expression = document.isApplicable();
         if (expression instanceof Value value) {

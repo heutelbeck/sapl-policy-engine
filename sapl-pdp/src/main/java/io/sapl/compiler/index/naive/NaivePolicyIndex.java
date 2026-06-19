@@ -22,6 +22,7 @@ import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.val;
 
 import java.util.ArrayList;
@@ -77,6 +78,35 @@ public class NaivePolicyIndex implements PolicyIndex {
                 return;
             } else if (isApplicable instanceof BooleanValue(var b) && b
                     && !shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+                return;
+            }
+        }
+    }
+
+    @Override
+    public PolicyMatches matchKleene(EvaluationContext ctx) {
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        for (val document : documents) {
+            val applicability = evaluateApplicability(document, ctx);
+            if (applicability instanceof ErrorValue error) {
+                errorMatches.add(new PolicyMatches.ErrorMatch(document, error));
+            } else if (applicability instanceof BooleanValue(var b) && b) {
+                trueMatches.add(document);
+            }
+        }
+        return new PolicyMatches(trueMatches, errorMatches);
+    }
+
+    @Override
+    public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
+        for (val document : documents) {
+            val applicability = evaluateApplicability(document, ctx);
+            if (applicability instanceof ErrorValue error && !shouldContinue
+                    .test(new PolicyMatches(List.of(), List.of(new PolicyMatches.ErrorMatch(document, error))))) {
+                return;
+            } else if (applicability instanceof BooleanValue(var b) && b
+                    && !shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
                 return;
             }
         }

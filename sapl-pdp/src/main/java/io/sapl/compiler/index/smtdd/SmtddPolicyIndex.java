@@ -25,6 +25,7 @@ import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.IndexReclassification;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,11 +53,12 @@ public class SmtddPolicyIndex implements PolicyIndex {
 
     private static final String ERROR_UNEXPECTED_APPLICABILITY_TYPE = "Unexpected applicability expression type (streaming operators cannot be indexed): %s";
 
-    private final SmtddNode                    root;
-    private final BinaryVariableOrder          binaryOrder;
-    private final List<List<CompiledDocument>> formulaDocuments;
-    private final List<CompiledDocument>       alwaysApplicable;
-    private final List<Vote>                   alwaysErrorVotes;
+    private final SmtddNode                      root;
+    private final BinaryVariableOrder            binaryOrder;
+    private final List<List<CompiledDocument>>   formulaDocuments;
+    private final List<CompiledDocument>         alwaysApplicable;
+    private final List<Vote>                     alwaysErrorVotes;
+    private final List<PolicyMatches.ErrorMatch> alwaysErrorMatches;
 
     /**
      * Creates an SMTDD index from compiled documents.
@@ -70,8 +72,9 @@ public class SmtddPolicyIndex implements PolicyIndex {
     public static SmtddPolicyIndex create(List<CompiledDocument> documents, int maxIndexNodes) {
         log.debug("SMTDD index: partitioning {} documents", documents.size());
         // Predetermined results due to constant applicability
-        val alwaysApplicable = new ArrayList<CompiledDocument>();
-        val alwaysErrorVotes = new ArrayList<Vote>();
+        val alwaysApplicable   = new ArrayList<CompiledDocument>();
+        val alwaysErrorVotes   = new ArrayList<Vote>();
+        val alwaysErrorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
 
         // Formula lookup tables
         val formulas          = new ArrayList<BooleanExpression>();
@@ -90,7 +93,10 @@ public class SmtddPolicyIndex implements PolicyIndex {
             switch (applicability) {
             case BooleanValue(var b) when b -> alwaysApplicable.add(document);
             case BooleanValue ignored       -> { /* constant false, drop */ }
-            case ErrorValue error           -> alwaysErrorVotes.add(Vote.error(error, document.metadata()));
+            case ErrorValue error           -> {
+                alwaysErrorVotes.add(Vote.error(error, document.metadata()));
+                alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
+            }
             case PureOperator pureOp        -> {
                 val formula            = pureOp.booleanExpression();
                 val alreadySeenAtIndex = alreadySeenFormulas.get(formula);
@@ -117,7 +123,8 @@ public class SmtddPolicyIndex implements PolicyIndex {
 
         // Short circuit if there are no formulas
         if (formulas.isEmpty()) {
-            return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorVotes);
+            return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorVotes,
+                    alwaysErrorMatches);
         }
 
         val analysis = SemanticVariableOrder.analyze(formulaPredicates, nonGroupablePredicates);
@@ -127,7 +134,8 @@ public class SmtddPolicyIndex implements PolicyIndex {
         val binaryOrder = new BinaryVariableOrder(analysis.remainingPredicates(),
                 analysis.formulasPerRemainingPredicate());
 
-        return new SmtddPolicyIndex(root, binaryOrder, formulaDocuments, alwaysApplicable, alwaysErrorVotes);
+        return new SmtddPolicyIndex(root, binaryOrder, formulaDocuments, alwaysApplicable, alwaysErrorVotes,
+                alwaysErrorMatches);
     }
 
     private static List<IndexPredicate> collectPredicates(BooleanExpression expression) {
@@ -244,6 +252,34 @@ public class SmtddPolicyIndex implements PolicyIndex {
                 return;
             }
         }
+    }
+
+    @Override
+    public PolicyMatches matchKleene(EvaluationContext ctx) {
+        val trueMatches  = new ArrayList<CompiledDocument>(alwaysApplicable);
+        val errorMatches = new ArrayList<>(alwaysErrorMatches);
+
+        if (binaryOrder != null) {
+            val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+            val errored = result.errored();
+
+            for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
+                    .nextSetBit(formulaIndex + 1)) {
+                if (!errored.get(formulaIndex)) {
+                    trueMatches.addAll(formulaDocuments.get(formulaIndex));
+                }
+            }
+
+            IndexReclassification.reclassifySuspectsKleene(suspectDocuments(errored), ctx, trueMatches, errorMatches);
+        }
+
+        return new PolicyMatches(trueMatches, errorMatches);
+    }
+
+    @Override
+    public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
+        // TODO: implement Kleene-compatible incremental matching for the SMTDD index.
+        throw new UnsupportedOperationException("matchKleeneWhile for the SMTDD index not yet implemented");
     }
 
 }

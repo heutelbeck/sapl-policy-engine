@@ -24,6 +24,7 @@ import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.index.IndexReclassification;
 import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -60,6 +61,29 @@ class CanonicalIndexSearch {
      * @return matching documents and error votes
      */
     static PolicyIndexResult search(CanonicalIndexData data, EvaluationContext ctx) {
+        val classification = traverse(data, ctx);
+        return buildResult(classification.matchedFormulas(), classification.errorFormulas(), data, ctx);
+    }
+
+    /**
+     * Kleene-contract variant of
+     * {@link #search(CanonicalIndexData, EvaluationContext)}.
+     * Runs the same count-and-eliminate traversal, then builds the result as true
+     * matches plus error matches (each carrying its document and error) instead of
+     * matching documents plus terminal error votes.
+     *
+     * @param data the precomputed index data structures
+     * @param ctx the evaluation context for predicate evaluation
+     * @return true matches and error matches
+     */
+    static PolicyMatches searchKleene(CanonicalIndexData data, EvaluationContext ctx) {
+        val classification = traverse(data, ctx);
+        return buildKleeneResult(classification.matchedFormulas(), classification.errorFormulas(), data, ctx);
+    }
+
+    private record FormulaClassification(BitSet matchedFormulas, BitSet errorFormulas) {}
+
+    private static FormulaClassification traverse(CanonicalIndexData data, EvaluationContext ctx) {
         val numberOfConjunctions = data.numberOfConjunctions();
         val numberOfFormulas     = data.formulas().size();
 
@@ -105,7 +129,7 @@ class CanonicalIndexSearch {
             eliminateUnsatisfied(p, predicateTrue, data, candidateConjunctions, scratch);
         }
 
-        return buildResult(matchedFormulas, errorFormulas, data, ctx);
+        return new FormulaClassification(matchedFormulas, errorFormulas);
     }
 
     /**
@@ -322,6 +346,21 @@ class CanonicalIndexSearch {
         IndexReclassification.reclassifySuspects(suspectDocuments(errorFormulas, data), ctx, matchingDocuments,
                 errorVotes);
         return new PolicyIndexResult(matchingDocuments, errorVotes);
+    }
+
+    private static PolicyMatches buildKleeneResult(BitSet matchedFormulas, BitSet errorFormulas,
+            CanonicalIndexData data, EvaluationContext ctx) {
+        val trueMatches = new ArrayList<CompiledDocument>();
+        for (var f = matchedFormulas.nextSetBit(0); f >= 0; f = matchedFormulas.nextSetBit(f + 1)) {
+            if (errorFormulas.get(f)) {
+                continue;
+            }
+            trueMatches.addAll(data.formulaDocuments().get(f));
+        }
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        IndexReclassification.reclassifySuspectsKleene(suspectDocuments(errorFormulas, data), ctx, trueMatches,
+                errorMatches);
+        return new PolicyMatches(trueMatches, errorMatches);
     }
 
 }

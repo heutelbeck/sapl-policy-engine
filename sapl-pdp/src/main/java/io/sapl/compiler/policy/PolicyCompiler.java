@@ -350,7 +350,8 @@ public class PolicyCompiler {
                 // If now known to be false -> short circuit to abstain
                 return new VoteResult(Vote.abstain(voterMetadata), Map.of());
             }
-            // Here applicability is either true, or error. All expressions guaranteed to only return that.
+            // Here applicability is either true, or error. All expressions guaranteed to
+            // only return that.
             // Eval streaming section
             val deps        = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
             var streamValue = evalChild(streamingSection, ctx, deps);

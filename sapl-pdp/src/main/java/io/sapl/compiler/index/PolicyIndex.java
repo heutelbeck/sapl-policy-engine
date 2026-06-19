@@ -53,4 +53,29 @@ public interface PolicyIndex {
      */
     void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue);
 
+    /**
+     * Kleene-compatible variant of {@link #match(EvaluationContext)}. Returns
+     * the applicable documents split by applicability outcome: TRUE matches and
+     * error matches, each error match carrying its error. An erroring document
+     * is a candidate rather than a terminal vote, so the combining algorithm can
+     * compose it with the document's streaming section under Kleene strong
+     * three-valued AND.
+     *
+     * @param ctx the evaluation context containing the authorization subscription
+     * @return documents whose applicability evaluated to TRUE or to an error
+     */
+    PolicyMatches matchKleene(EvaluationContext ctx);
+
+    /**
+     * Kleene-compatible, incremental variant of
+     * {@link #matchWhile(EvaluationContext, Predicate)}. After each step the
+     * newly classified matches are passed to {@code shouldContinue}; returning
+     * {@code false} stops evaluation immediately.
+     *
+     * @param ctx the evaluation context containing the authorization subscription
+     * @param shouldContinue predicate called after each step with incremental
+     * matches; returns false to stop
+     */
+    void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue);
+
 }
