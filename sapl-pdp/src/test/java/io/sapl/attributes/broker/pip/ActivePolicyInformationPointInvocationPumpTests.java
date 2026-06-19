@@ -157,6 +157,48 @@ class ActivePolicyInformationPointInvocationPumpTests {
     }
 
     @Test
+    @DisplayName("the old pump publishes its already-pulled value once on rebind, then exits without rereading the old stream")
+    void whenRebindAfterPullThenOneTrailingEmitThenOldPumpExits() {
+        val published = new CopyOnWriteArrayList<Value>();
+        val parked    = new CountDownLatch(1);
+        val firstSeen = new CountDownLatch(1);
+        // Park the pump in the handler right after it pulls its first value, placing
+        // it between awaitNext returning and its next loop iteration.
+        Consumer<Value> onValue    = value -> {
+                                       published.add(value);
+                                       if (firstSeen.getCount() > 0) {
+                                           firstSeen.countDown();
+                                           try {
+                                               parked.await();
+                                           } catch (InterruptedException e) {
+                                               Thread.currentThread().interrupt();
+                                           }
+                                       }
+                                   };
+        val             oldStream  = new ControllableStream();
+        val             newStream  = new ControllableStream();
+        val             invocation = pump(oldStream, onValue);
+        invocation.start();
+
+        oldStream.emit(Value.TRUE);
+        await().atMost(LIMIT).until(() -> firstSeen.getCount() == 0);
+        val oldAwaitCallsAtRebind = oldStream.awaitCalls.get();
+
+        invocation.rebind(newStream, null);
+        parked.countDown();
+
+        // The value pulled before the rebind is published exactly once as the trailing
+        // emit; the superseded pump then exits on the next loop guard and never awaits
+        // the old stream again.
+        await().atMost(LIMIT).until(() -> published.contains(Value.TRUE));
+        await().during(HOLD).atMost(LIMIT)
+                .untilAsserted(() -> assertThat(oldStream.awaitCalls.get()).isEqualTo(oldAwaitCallsAtRebind));
+        assertThat(published).containsExactly(Value.TRUE);
+
+        invocation.close();
+    }
+
+    @Test
     @DisplayName("after a hot-swap only the new pump consumes the new stream and its values are published")
     void whenRebindThenNewStreamHasOneConsumerAndPublishes() {
         val published  = new CopyOnWriteArrayList<Value>();
