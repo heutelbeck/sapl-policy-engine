@@ -65,22 +65,22 @@ class CrossStratumKleeneTests {
     @ParameterizedTest(name = "{0}")
     @MethodSource("cells")
     @DisplayName("decision follows the Kleene truth table for both condition orders")
-    void whenPureAndStreamCombineThenDecisionFollowsKleene(String label, String body, String pureJson,
+    void whenPureAndStreamCombineThenDecisionFollowsKleene(String label, String algorithm, String body, String pureJson,
             Value streamValue, Decision expected) {
-        val compiled = compileWithNaiveIndex(body);
+        val compiled = compileWithNaiveIndex(algorithm, body);
         val ctx      = subscriptionWithPure(pureJson);
         assertStreamPathEquivalence(compiled, Map.of("test.attr", streamValue), ctx, expected);
     }
 
-    private static CompiledPolicySet compileWithNaiveIndex(String body) {
+    private static CompiledPolicySet compileWithNaiveIndex(String algorithm, String body) {
         val ctx = compilationContext();
         ctx.setCompilerOptions(ObjectValue.builder().put("indexing", Value.of("NAIVE")).build());
         return compilePolicySet("""
                 set "kleene"
-                unanimous or abstain errors propagate
+                %s
 
                 policy "p" permit %s
-                """.formatted(body), ctx);
+                """.formatted(algorithm, body), ctx);
     }
 
     private static EvaluationContext subscriptionWithPure(String pureJson) {
@@ -107,13 +107,19 @@ class CrossStratumKleeneTests {
                 new Cell("pureError", "42", Value.FALSE, "streamFalse", Decision.NOT_APPLICABLE),
                 new Cell("pureError", "42", streamError, "streamError", Decision.INDETERMINATE));
         val orders      = List.of(arguments("pureFirst", PURE_FIRST), arguments("streamFirst", STREAM_FIRST));
+        val algorithms  = List.of(arguments("priority", "priority permit or abstain errors propagate"),
+                arguments("unanimous", "unanimous or abstain errors propagate"));
         val args        = new ArrayList<Arguments>();
         for (val cell : table) {
             for (val order : orders) {
                 val orderName = (String) order.get()[0];
                 val body      = (String) order.get()[1];
-                args.add(arguments(cell.pure() + "/" + cell.streamName() + "/" + orderName, body, cell.pureJson(),
-                        cell.stream(), cell.expected()));
+                for (val algorithm : algorithms) {
+                    val algorithmName   = (String) algorithm.get()[0];
+                    val algorithmSource = (String) algorithm.get()[1];
+                    args.add(arguments(cell.pure() + "/" + cell.streamName() + "/" + orderName + "/" + algorithmName,
+                            algorithmSource, body, cell.pureJson(), cell.stream(), cell.expected()));
+                }
             }
         }
         return args.stream();
