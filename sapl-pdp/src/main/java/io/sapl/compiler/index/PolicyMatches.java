@@ -30,11 +30,11 @@ import io.sapl.compiler.document.CompiledDocument;
  * each paired with that error. Documents whose applicability resolved to FALSE
  * are dropped.
  * <p>
- * Unlike {@link PolicyIndexResult}, an erroring document is carried as a
- * candidate together with its error rather than turned into a terminal error
- * vote, so the combining algorithm can compose it with the document's streaming
- * section under Kleene strong three-valued AND and let a streaming FALSE
- * dominate the error.
+ * An erroring document is carried as a candidate together with its error rather
+ * than turned into a terminal error vote, so the combining algorithm can
+ * compose
+ * it with the document's streaming section under Kleene strong three-valued AND
+ * and let a streaming FALSE dominate the error.
  *
  * @param trueMatches documents whose applicability evaluated to TRUE
  * @param errorMatches documents whose applicability evaluated to an error

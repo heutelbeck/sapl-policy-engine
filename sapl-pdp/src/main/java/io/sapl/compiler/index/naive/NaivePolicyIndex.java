@@ -19,9 +19,7 @@ package io.sapl.compiler.index.naive;
 
 import io.sapl.api.model.*;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.index.PolicyIndex;
-import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.compiler.index.PolicyMatches;
 import lombok.val;
 
@@ -52,35 +50,6 @@ public class NaivePolicyIndex implements PolicyIndex {
      */
     public static NaivePolicyIndex create(List<CompiledDocument> documents) {
         return new NaivePolicyIndex(documents);
-    }
-
-    @Override
-    public PolicyIndexResult match(EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<CompiledDocument>();
-        val errorVotes        = new ArrayList<Vote>();
-        for (val document : documents) {
-            val isApplicable = evaluateApplicability(document, ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                errorVotes.add(Vote.error(error, document.metadata()));
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                matchingDocuments.add(document);
-            }
-        }
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
-    }
-
-    @Override
-    public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
-        for (val document : documents) {
-            val isApplicable = evaluateApplicability(document, ctx);
-            if (isApplicable instanceof ErrorValue error && !shouldContinue
-                    .test(new PolicyIndexResult(List.of(), List.of(Vote.error(error, document.metadata()))))) {
-                return;
-            } else if (isApplicable instanceof BooleanValue(var b) && b
-                    && !shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                return;
-            }
-        }
     }
 
     @Override

@@ -22,10 +22,8 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.PolicyIndex;
-import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.compiler.index.PolicyMatches;
 import io.sapl.compiler.index.dnf.DisjunctiveFormula;
 import io.sapl.compiler.index.dnf.DnfNormalizer;
@@ -56,16 +54,13 @@ public class CanonicalPolicyIndex implements PolicyIndex {
 
     private final CanonicalIndexData             indexData;
     private final List<CompiledDocument>         alwaysApplicable;
-    private final List<Vote>                     alwaysErrorVotes;
     private final List<PolicyMatches.ErrorMatch> alwaysErrorMatches;
 
     private CanonicalPolicyIndex(CanonicalIndexData indexData,
             List<CompiledDocument> alwaysApplicable,
-            List<Vote> alwaysErrorVotes,
             List<PolicyMatches.ErrorMatch> alwaysErrorMatches) {
         this.indexData          = indexData;
         this.alwaysApplicable   = List.copyOf(alwaysApplicable);
-        this.alwaysErrorVotes   = List.copyOf(alwaysErrorVotes);
         this.alwaysErrorMatches = List.copyOf(alwaysErrorMatches);
     }
 
@@ -80,7 +75,6 @@ public class CanonicalPolicyIndex implements PolicyIndex {
     public static CanonicalPolicyIndex create(List<CompiledDocument> documents) {
         val formulaToDocuments = new HashMap<DisjunctiveFormula, List<CompiledDocument>>();
         val alwaysApplicable   = new ArrayList<CompiledDocument>();
-        val alwaysErrorVotes   = new ArrayList<Vote>();
         val alwaysErrorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
 
         for (val document : documents) {
@@ -88,10 +82,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
             switch (expression) {
             case BooleanValue(var b) when b -> alwaysApplicable.add(document);
             case BooleanValue ignored       -> { /* constant false, drop */ }
-            case ErrorValue error           -> {
-                alwaysErrorVotes.add(Vote.error(error, document.metadata()));
-                alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
-            }
+            case ErrorValue error           -> alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
             case PureOperator pureOp        -> {
                 val formula = DnfNormalizer.normalize(pureOp.booleanExpression());
                 formulaToDocuments.computeIfAbsent(formula, k -> new ArrayList<>()).add(document);
@@ -102,7 +93,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
         }
 
         val indexData = formulaToDocuments.isEmpty() ? null : CanonicalIndexBuilder.build(formulaToDocuments);
-        return new CanonicalPolicyIndex(indexData, alwaysApplicable, alwaysErrorVotes, alwaysErrorMatches);
+        return new CanonicalPolicyIndex(indexData, alwaysApplicable, alwaysErrorMatches);
     }
 
     /**
@@ -113,44 +104,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
     }
 
     static CanonicalPolicyIndex createFromFormulas(Map<DisjunctiveFormula, List<CompiledDocument>> formulaToDocuments) {
-        return new CanonicalPolicyIndex(CanonicalIndexBuilder.build(formulaToDocuments), List.of(), List.of(),
-                List.of());
-    }
-
-    @Override
-    public PolicyIndexResult match(EvaluationContext ctx) {
-        if (indexData == null) {
-            return new PolicyIndexResult(alwaysApplicable, alwaysErrorVotes);
-        }
-        val indexResult = CanonicalIndexSearch.search(indexData, ctx);
-        if (alwaysApplicable.isEmpty() && alwaysErrorVotes.isEmpty()) {
-            return indexResult;
-        }
-        val matchingDocuments = new ArrayList<CompiledDocument>(
-                alwaysApplicable.size() + indexResult.matchingDocuments().size());
-        matchingDocuments.addAll(alwaysApplicable);
-        matchingDocuments.addAll(indexResult.matchingDocuments());
-        val errorVotes = new ArrayList<Vote>(alwaysErrorVotes.size() + indexResult.errorVotes().size());
-        errorVotes.addAll(alwaysErrorVotes);
-        errorVotes.addAll(indexResult.errorVotes());
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
-    }
-
-    @Override
-    public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
-        for (val errorVote : alwaysErrorVotes) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(errorVote)))) {
-                return;
-            }
-        }
-        for (val document : alwaysApplicable) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                return;
-            }
-        }
-        if (indexData != null) {
-            CanonicalIndexSearch.searchWhile(indexData, ctx, shouldContinue);
-        }
+        return new CanonicalPolicyIndex(CanonicalIndexBuilder.build(formulaToDocuments), List.of(), List.of());
     }
 
     @Override

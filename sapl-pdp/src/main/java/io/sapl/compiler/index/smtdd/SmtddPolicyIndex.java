@@ -20,11 +20,9 @@ package io.sapl.compiler.index.smtdd;
 import io.sapl.api.model.*;
 import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.IndexReclassification;
 import io.sapl.compiler.index.PolicyIndex;
-import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.compiler.index.PolicyMatches;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +55,6 @@ public class SmtddPolicyIndex implements PolicyIndex {
     private final BinaryVariableOrder            binaryOrder;
     private final List<List<CompiledDocument>>   formulaDocuments;
     private final List<CompiledDocument>         alwaysApplicable;
-    private final List<Vote>                     alwaysErrorVotes;
     private final List<PolicyMatches.ErrorMatch> alwaysErrorMatches;
 
     /**
@@ -73,7 +70,6 @@ public class SmtddPolicyIndex implements PolicyIndex {
         log.debug("SMTDD index: partitioning {} documents", documents.size());
         // Predetermined results due to constant applicability
         val alwaysApplicable   = new ArrayList<CompiledDocument>();
-        val alwaysErrorVotes   = new ArrayList<Vote>();
         val alwaysErrorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
 
         // Formula lookup tables
@@ -93,10 +89,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
             switch (applicability) {
             case BooleanValue(var b) when b -> alwaysApplicable.add(document);
             case BooleanValue ignored       -> { /* constant false, drop */ }
-            case ErrorValue error           -> {
-                alwaysErrorVotes.add(Vote.error(error, document.metadata()));
-                alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
-            }
+            case ErrorValue error           -> alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
             case PureOperator pureOp        -> {
                 val formula            = pureOp.booleanExpression();
                 val alreadySeenAtIndex = alreadySeenFormulas.get(formula);
@@ -119,12 +112,11 @@ public class SmtddPolicyIndex implements PolicyIndex {
         }
 
         log.debug("SMTDD index: {} always-applicable, {} always-error, {} unique formulas", alwaysApplicable.size(),
-                alwaysErrorVotes.size(), formulas.size());
+                alwaysErrorMatches.size(), formulas.size());
 
         // Short circuit if there are no formulas
         if (formulas.isEmpty()) {
-            return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorVotes,
-                    alwaysErrorMatches);
+            return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorMatches);
         }
 
         val analysis = SemanticVariableOrder.analyze(formulaPredicates, nonGroupablePredicates);
@@ -134,8 +126,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
         val binaryOrder = new BinaryVariableOrder(analysis.remainingPredicates(),
                 analysis.formulasPerRemainingPredicate());
 
-        return new SmtddPolicyIndex(root, binaryOrder, formulaDocuments, alwaysApplicable, alwaysErrorVotes,
-                alwaysErrorMatches);
+        return new SmtddPolicyIndex(root, binaryOrder, formulaDocuments, alwaysApplicable, alwaysErrorMatches);
     }
 
     private static List<IndexPredicate> collectPredicates(BooleanExpression expression) {
@@ -171,32 +162,6 @@ public class SmtddPolicyIndex implements PolicyIndex {
         }
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public PolicyIndexResult match(EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<CompiledDocument>(alwaysApplicable);
-        val errorVotes        = new ArrayList<>(alwaysErrorVotes);
-
-        if (binaryOrder != null) {
-            val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
-            val errored = result.errored();
-
-            for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
-                    .nextSetBit(formulaIndex + 1)) {
-                if (!errored.get(formulaIndex)) {
-                    matchingDocuments.addAll(formulaDocuments.get(formulaIndex));
-                }
-            }
-
-            // A formula whose evaluation touched an error branch is an over-approximate
-            // suspect: a dominating sibling may still make it true or false. Reconcile
-            // each suspect through Kleene naive instead of voting it an error outright.
-            IndexReclassification.reclassifySuspects(suspectDocuments(errored), ctx, matchingDocuments, errorVotes);
-        }
-
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
-    }
-
     private List<CompiledDocument> suspectDocuments(BitSet errored) {
         val suspects = new ArrayList<CompiledDocument>();
         for (var formulaIndex = errored.nextSetBit(0); formulaIndex >= 0; formulaIndex = errored
@@ -204,54 +169,6 @@ public class SmtddPolicyIndex implements PolicyIndex {
             suspects.addAll(formulaDocuments.get(formulaIndex));
         }
         return suspects;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
-        for (val errorVote : alwaysErrorVotes) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(errorVote)))) {
-                return;
-            }
-        }
-        for (val document : alwaysApplicable) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                return;
-            }
-        }
-
-        if (binaryOrder == null) {
-            return;
-        }
-
-        val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
-        val errored = result.errored();
-
-        for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
-                .nextSetBit(formulaIndex + 1)) {
-            if (!errored.get(formulaIndex)
-                    && !shouldContinue.test(new PolicyIndexResult(formulaDocuments.get(formulaIndex), List.of()))) {
-                return;
-            }
-        }
-
-        val suspects = suspectDocuments(errored);
-        if (suspects.isEmpty()) {
-            return;
-        }
-        val matching = new ArrayList<CompiledDocument>();
-        val errors   = new ArrayList<Vote>();
-        IndexReclassification.reclassifySuspects(suspects, ctx, matching, errors);
-        for (val vote : errors) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(vote)))) {
-                return;
-            }
-        }
-        for (val document : matching) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                return;
-            }
-        }
     }
 
     @Override

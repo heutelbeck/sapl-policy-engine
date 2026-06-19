@@ -40,22 +40,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("AttributeVerification tests")
 class AttributeVerificationTests {
 
-    private static final String LOCATION_POLICY_PATH = "/attribute-verification-tests/location-policy.sapl";
-    private static final String ROLE_POLICY_PATH     = "/attribute-verification-tests/role-policy.sapl";
-    private static final String BYPASS_POLICY_PATH   = "/attribute-verification-tests/bypass-policy.sapl";
-    private static final String POSITIVE_TESTS_PATH  = "/attribute-verification-tests/attribute-verification-positive.sapltest";
-    private static final String NEGATIVE_TESTS_PATH  = "/attribute-verification-tests/attribute-verification-negative.sapltest";
+    private static final String LOCATION_POLICY_PATH   = "/attribute-verification-tests/location-policy.sapl";
+    private static final String ROLE_POLICY_PATH       = "/attribute-verification-tests/role-policy.sapl";
+    private static final String BYPASS_POLICY_PATH     = "/attribute-verification-tests/bypass-policy.sapl";
+    private static final String TWO_STREAM_POLICY_PATH = "/attribute-verification-tests/two-stream-policy.sapl";
+    private static final String POSITIVE_TESTS_PATH    = "/attribute-verification-tests/attribute-verification-positive.sapltest";
+    private static final String NEGATIVE_TESTS_PATH    = "/attribute-verification-tests/attribute-verification-negative.sapltest";
 
     @Test
     void allPositiveAttributeVerificationTestsShouldPass() {
-        var locationPolicy = loadResource(LOCATION_POLICY_PATH);
-        var rolePolicy     = loadResource(ROLE_POLICY_PATH);
-        var bypassPolicy   = loadResource(BYPASS_POLICY_PATH);
-        var tests          = loadResource(POSITIVE_TESTS_PATH);
+        var locationPolicy  = loadResource(LOCATION_POLICY_PATH);
+        var rolePolicy      = loadResource(ROLE_POLICY_PATH);
+        var bypassPolicy    = loadResource(BYPASS_POLICY_PATH);
+        var twoStreamPolicy = loadResource(TWO_STREAM_POLICY_PATH);
+        var tests           = loadResource(POSITIVE_TESTS_PATH);
 
         var config = TestConfiguration.builder()
                 .withSaplDocuments(List.of(SaplDocument.of("location-policy", locationPolicy),
-                        SaplDocument.of("role-policy", rolePolicy), SaplDocument.of("bypass-policy", bypassPolicy)))
+                        SaplDocument.of("role-policy", rolePolicy), SaplDocument.of("bypass-policy", bypassPolicy),
+                        SaplDocument.of("two-stream-policy", twoStreamPolicy)))
                 .withSaplTestDocuments(List.of(SaplTestDocument.of("positive-tests", tests)))
                 .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE)).build();
 
@@ -63,7 +66,7 @@ class AttributeVerificationTests {
         var results = adapter.execute(config);
 
         assertThat(results.allPassed()).withFailMessage(() -> buildFailureMessage(results)).isTrue();
-        assertThat(results.passed()).isEqualTo(4);
+        assertThat(results.passed()).isEqualTo(6);
     }
 
     @Test

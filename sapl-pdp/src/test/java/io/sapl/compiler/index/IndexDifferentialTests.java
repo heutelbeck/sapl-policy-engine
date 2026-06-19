@@ -47,8 +47,8 @@ import lombok.val;
 
 /**
  * The canonical and SMTDD indexes are optimizations of the naive linear scan,
- * so for every subscription they must report exactly the same matched documents
- * and error votes as naive. This is the fast, index-level companion to the
+ * so for every subscription they must report exactly the same true matches
+ * and error matches as naive. This is the fast, index-level companion to the
  * benchmark's end-to-end decision-agreement test: it builds policies through
  * the
  * real compiler (so conditions decompose and equality predicates group exactly
@@ -83,20 +83,6 @@ class IndexDifferentialTests {
     private static final NaivePolicyIndex       NAIVE  = NaivePolicyIndex.create(CORPUS);
     private static final CanonicalPolicyIndex   CANON  = CanonicalPolicyIndex.create(CORPUS);
     private static final SmtddPolicyIndex       SMTDD  = SmtddPolicyIndex.create(CORPUS, 0);
-
-    @ParameterizedTest(name = "subscription {0}")
-    @MethodSource("subscriptions")
-    @DisplayName("canonical and SMTDD match naive on every subscription")
-    void backendsAgreeWithNaive(int index, String subjectJson) {
-        val ctx   = subscriptionContext(wrap(subjectJson));
-        val naive = NAIVE.match(ctx);
-        val canon = CANON.match(ctx);
-        val smtdd = SMTDD.match(ctx);
-        assertThat(matched(canon)).as("canonical matched | subscription %d", index).isEqualTo(matched(naive));
-        assertThat(errored(canon)).as("canonical errored | subscription %d", index).isEqualTo(errored(naive));
-        assertThat(matched(smtdd)).as("smtdd matched | subscription %d", index).isEqualTo(matched(naive));
-        assertThat(errored(smtdd)).as("smtdd errored | subscription %d", index).isEqualTo(errored(naive));
-    }
 
     @ParameterizedTest(name = "subscription {0}")
     @MethodSource("subscriptions")
@@ -162,81 +148,6 @@ class IndexDifferentialTests {
             streams.add(arguments(s, randomSubject(random)));
         }
         return streams.stream();
-    }
-
-    @Nested
-    @DisplayName("equality grouping")
-    class EqualityGrouping {
-
-        @Test
-        @DisplayName("an undefined operand makes every equality on it false, not an error")
-        void whenOperandUndefinedThenAllEqualitiesFalse() {
-            val documents = policies("policy \"a\" permit subject.r1 == \"v\"",
-                    "policy \"b\" permit subject.r1 == \"w\"", "policy \"c\" permit subject.r1 != \"v\"");
-            val ctx       = subscriptionContext(wrap("{}")); // r1 missing -> undefined
-            assertAgreesWithNaive("undefined operand", documents, ctx);
-            // undefined == X is false; undefined != X is true.
-            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("c");
-        }
-
-        @Test
-        @DisplayName("a matching value selects exactly the matching equality branch")
-        void whenOperandMatchesThenOnlyThatBranchMatches() {
-            val documents = policies("policy \"a\" permit subject.r1 == \"v\"",
-                    "policy \"b\" permit subject.r1 == \"w\"", "policy \"c\" permit subject.r1 in [\"w\", \"x\"]");
-            val ctx       = subscriptionContext(wrap("{\"r1\": \"w\"}"));
-            assertAgreesWithNaive("matching value", documents, ctx);
-            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactlyInAnyOrder("b", "c");
-        }
-    }
-
-    @Nested
-    @DisplayName("decomposed boolean structure")
-    class DecomposedStructure {
-
-        @Test
-        @DisplayName("a true equality dominates an erroring division in a decomposed OR")
-        void whenOrHasTrueEqualityAndErrorThenMatches() {
-            val documents = policies("policy \"p\" permit (10 / subject.n1 > 0) || subject.r1 == \"v\"");
-            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"v\"}")); // division errors, equality true
-            assertAgreesWithNaive("true dominates error in OR", documents, ctx);
-            assertThat(matched(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
-        }
-
-        @Test
-        @DisplayName("an erroring division with no dominating sibling makes the policy indeterminate")
-        void whenOrHasErrorAndNoDominatorThenErrors() {
-            val documents = policies("policy \"p\" permit (10 / subject.n1 > 0) || subject.r1 == \"v\"");
-            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\"}")); // error, equality false
-            assertAgreesWithNaive("error with no dominator in OR", documents, ctx);
-            assertThat(errored(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
-        }
-    }
-
-    @Nested
-    @DisplayName("non-boolean and shared-error corners")
-    class NonBooleanAndSharedError {
-
-        @Test
-        @DisplayName("a non-boolean bare field condition makes the policy indeterminate")
-        void whenBareFieldNonBooleanThenErrors() {
-            val documents = policies("policy \"p\" permit subject.b1");
-            val ctx       = subscriptionContext(wrap("{\"b1\": \"not a boolean\"}"));
-            assertAgreesWithNaive("non-boolean bare field", documents, ctx);
-            assertThat(errored(NaivePolicyIndex.create(documents).match(ctx))).containsExactly("p");
-        }
-
-        @Test
-        @DisplayName("a shared erroring division drops one policy and errors another in the same evaluation")
-        void whenSharedErrorThenEachSiblingResolvesIndependently() {
-            val documents = policies("policy \"drops\" permit (10 / subject.n1 > 0); subject.r1 == \"v\"",
-                    "policy \"errors\" permit (10 / subject.n1 > 0); subject.r2 == \"w\"");
-            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"other\", \"r2\": \"w\"}"));
-            assertAgreesWithNaive("shared error", documents, ctx);
-            val naive = NaivePolicyIndex.create(documents).match(ctx);
-            assertThat(matched(naive)).isEmpty();
-            assertThat(errored(naive)).containsExactly("errors");
-        }
     }
 
     @Nested
@@ -384,25 +295,6 @@ class IndexDifferentialTests {
             documents.add(compilePolicyFull(source));
         }
         return documents;
-    }
-
-    private static void assertAgreesWithNaive(String label, List<CompiledDocument> documents, EvaluationContext ctx) {
-        val naive = NaivePolicyIndex.create(documents).match(ctx);
-        val canon = CanonicalPolicyIndex.create(documents).match(ctx);
-        val smtdd = SmtddPolicyIndex.create(documents, 0).match(ctx);
-        assertThat(matched(canon)).as("canonical matched | %s", label).isEqualTo(matched(naive));
-        assertThat(errored(canon)).as("canonical errored | %s", label).isEqualTo(errored(naive));
-        assertThat(matched(smtdd)).as("smtdd matched | %s", label).isEqualTo(matched(naive));
-        assertThat(errored(smtdd)).as("smtdd errored | %s", label).isEqualTo(errored(naive));
-    }
-
-    private static Set<String> matched(PolicyIndexResult result) {
-        return result.matchingDocuments().stream().map(document -> document.metadata().name())
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<String> errored(PolicyIndexResult result) {
-        return result.errorVotes().stream().map(vote -> vote.voter().name()).collect(Collectors.toSet());
     }
 
     private static void assertAgreesWithNaiveKleene(String label, List<CompiledDocument> documents,

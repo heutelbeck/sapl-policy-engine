@@ -21,9 +21,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.index.IndexReclassification;
-import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.compiler.index.PolicyMatches;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -55,23 +53,9 @@ import java.util.function.Predicate;
 class CanonicalIndexSearch {
 
     /**
-     * Executes the count-and-eliminate algorithm on the precomputed index data.
-     *
-     * @param data the precomputed index data structures
-     * @param ctx the evaluation context for predicate evaluation
-     * @return matching documents and error votes
-     */
-    static PolicyIndexResult search(CanonicalIndexData data, EvaluationContext ctx) {
-        val classification = traverse(data, ctx);
-        return buildResult(classification.matchedFormulas(), classification.errorFormulas(), data, ctx);
-    }
-
-    /**
-     * Kleene-contract variant of
-     * {@link #search(CanonicalIndexData, EvaluationContext)}.
-     * Runs the same count-and-eliminate traversal, then builds the result as true
-     * matches plus error matches (each carrying its document and error) instead of
-     * matching documents plus terminal error votes.
+     * Executes the count-and-eliminate algorithm on the precomputed index data,
+     * building the result as true matches plus error matches (each carrying its
+     * document and error).
      *
      * @param data the precomputed index data structures
      * @param ctx the evaluation context for predicate evaluation
@@ -134,37 +118,14 @@ class CanonicalIndexSearch {
     }
 
     /**
-     * Incremental search: yields matches and errors to the callback after each
-     * predicate evaluation. Stops when the callback returns false.
-     *
-     * @param data the precomputed index data structures
-     * @param ctx the evaluation context for predicate evaluation
-     * @param shouldContinue called with incremental results after each predicate
-     * step; returns false to stop
-     */
-    static void searchWhile(CanonicalIndexData data, EvaluationContext ctx,
-            Predicate<PolicyIndexResult> shouldContinue) {
-        val errorFormulas = traverseWhile(data, ctx,
-                documents -> shouldContinue.test(new PolicyIndexResult(documents, List.of())));
-        // Error-suspect formulas are not yielded during the walk: a sibling clause may
-        // still dominate. Reconcile them through Kleene naive after the walk completes.
-        if (errorFormulas != null) {
-            yieldReclassifiedSuspects(errorFormulas, data, ctx, shouldContinue);
-        }
-    }
-
-    /**
-     * Kleene-contract variant of
-     * {@link #searchWhile(CanonicalIndexData, EvaluationContext, Predicate)}.
-     * Shares
-     * the same incremental count-and-eliminate walk, yielding true matches as
-     * {@link PolicyMatches} and reconciling error-suspects into error matches.
+     * Incremental search: yields true matches as {@link PolicyMatches} after each
+     * predicate evaluation and reconciles error-suspects into error matches once
+     * the walk completes. Stops when the callback returns false.
      *
      * @param data the precomputed index data structures
      * @param ctx the evaluation context for predicate evaluation
      * @param shouldContinue called with incremental matches after each step;
-     * returns
-     * false to stop
+     * returns false to stop
      */
     static void searchKleeneWhile(CanonicalIndexData data, EvaluationContext ctx,
             Predicate<PolicyMatches> shouldContinue) {
@@ -305,27 +266,6 @@ class CanonicalIndexSearch {
         }
     }
 
-    private static void yieldReclassifiedSuspects(BitSet errorFormulas, CanonicalIndexData data, EvaluationContext ctx,
-            Predicate<PolicyIndexResult> shouldContinue) {
-        val suspects = suspectDocuments(errorFormulas, data);
-        if (suspects.isEmpty()) {
-            return;
-        }
-        val matching = new ArrayList<CompiledDocument>();
-        val errors   = new ArrayList<Vote>();
-        IndexReclassification.reclassifySuspects(suspects, ctx, matching, errors);
-        for (val vote : errors) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(vote)))) {
-                return;
-            }
-        }
-        for (val document : matching) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
-                return;
-            }
-        }
-    }
-
     private static void yieldReclassifiedSuspectsKleene(BitSet errorFormulas, CanonicalIndexData data,
             EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
         val suspects = suspectDocuments(errorFormulas, data);
@@ -390,21 +330,6 @@ class CanonicalIndexSearch {
                 errorFormulas.set(formulaIndex);
             }
         }
-    }
-
-    private static PolicyIndexResult buildResult(BitSet matchedFormulas, BitSet errorFormulas, CanonicalIndexData data,
-            EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<CompiledDocument>();
-        for (var f = matchedFormulas.nextSetBit(0); f >= 0; f = matchedFormulas.nextSetBit(f + 1)) {
-            if (errorFormulas.get(f)) {
-                continue;
-            }
-            matchingDocuments.addAll(data.formulaDocuments().get(f));
-        }
-        val errorVotes = new ArrayList<Vote>();
-        IndexReclassification.reclassifySuspects(suspectDocuments(errorFormulas, data), ctx, matchingDocuments,
-                errorVotes);
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
     }
 
     private static PolicyMatches buildKleeneResult(BitSet matchedFormulas, BitSet errorFormulas,

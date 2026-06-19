@@ -23,7 +23,6 @@ import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
@@ -47,32 +46,8 @@ import java.util.List;
 public class IndexReclassification {
 
     /**
-     * Re-evaluates each suspect document's applicability under Kleene
-     * semantics. A {@code true} result is added to {@code matching}, an error
-     * to {@code errors}, and anything else (a dominating {@code false}) is
-     * dropped.
-     *
-     * @param suspects documents whose index classification touched an error
-     * @param ctx the evaluation context
-     * @param matching collects suspects that re-evaluate to applicable
-     * @param errors collects error votes for suspects that genuinely error
-     */
-    public static void reclassifySuspects(Collection<CompiledDocument> suspects, EvaluationContext ctx,
-            List<CompiledDocument> matching, List<Vote> errors) {
-        for (val document : suspects) {
-            val applicability = applicability(document, ctx);
-            if (applicability instanceof ErrorValue error) {
-                errors.add(Vote.error(error, document.metadata()));
-            } else if (applicability instanceof BooleanValue(var b) && b) {
-                matching.add(document);
-            }
-        }
-    }
-
-    /**
-     * Kleene-contract variant of
-     * {@link #reclassifySuspects(Collection, EvaluationContext, List, List)}. A
-     * {@code true} result is added to {@code trueMatches}, an error becomes an
+     * Re-evaluates each suspect document's applicability under Kleene semantics.
+     * A {@code true} result is added to {@code trueMatches}, an error becomes an
      * {@link PolicyMatches.ErrorMatch} carrying the document and its error, and
      * a dominating {@code false} is dropped.
      *

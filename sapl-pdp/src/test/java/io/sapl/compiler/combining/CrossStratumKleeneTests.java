@@ -108,7 +108,8 @@ class CrossStratumKleeneTests {
                 new Cell("pureError", "42", streamError, "streamError", Decision.INDETERMINATE));
         val orders      = List.of(arguments("pureFirst", PURE_FIRST), arguments("streamFirst", STREAM_FIRST));
         val algorithms  = List.of(arguments("priority", "priority permit or abstain errors propagate"),
-                arguments("unanimous", "unanimous or abstain errors propagate"));
+                arguments("unanimous", "unanimous or abstain errors propagate"),
+                arguments("unique", "unique or abstain errors propagate"));
         val args        = new ArrayList<Arguments>();
         for (val cell : table) {
             for (val order : orders) {

@@ -37,6 +37,7 @@ import io.sapl.compiler.index.IndexFactory;
 import io.sapl.compiler.index.PolicyIndex;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CoverageVoter;
+import io.sapl.compiler.policyset.CompiledPolicySet;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
@@ -140,9 +141,9 @@ public class UniqueVoteCompiler {
         public Vote vote(EvaluationContext ctx) {
             // At the set level (completeOutcome) the could-have-been of a
             // short-circuited INDETERMINATE must include the un-folded matched
-            // policies' potential, which matchWhile cannot expose; use a full
+            // policies' potential, which matchKleeneWhile cannot expose. Use a full
             // match and complete the outcome. At the PDP level the outcome is
-            // unused, so keep the matchWhile hard short-circuit.
+            // unused, so keep the matchKleeneWhile hard short-circuit.
             val vote = completeOutcome ? combineMatchedAndComplete(accumulatorVote, index, voterMetadata, ctx)
                     : combinePureVoters(accumulatorVote, index, voterMetadata, ctx);
             return vote.finalizeVote(defaultDecision, errorHandling);
@@ -152,11 +153,14 @@ public class UniqueVoteCompiler {
     private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
             EvaluationContext ctx) {
         var holder = new Vote[] { accumulatorVote };
-        index.matchWhile(ctx, stepResult -> {
-            for (val errorVote : stepResult.errorVotes()) {
-                holder[0] = UniqueVoteCombiner.combineVotes(holder[0], errorVote, voterMetadata);
+        index.matchKleeneWhile(ctx, stepResult -> {
+            for (val errorMatch : stepResult.errorMatches()) {
+                // A pure-path candidate has no streaming section, so an applicability
+                // error is terminal and the policy is INDETERMINATE.
+                holder[0] = UniqueVoteCombiner.combineVotes(holder[0],
+                        Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata);
             }
-            for (val document : stepResult.matchingDocuments()) {
+            for (val document : stepResult.trueMatches()) {
                 val  voter = document.voter();
                 Vote newVote;
                 if (voter instanceof Vote constantVote) {
@@ -173,11 +177,14 @@ public class UniqueVoteCompiler {
 
     private static Vote combineMatchedAndComplete(Vote accumulatorVote, PolicyIndex index, VoterMetadata voterMetadata,
             EvaluationContext ctx) {
-        val result   = index.match(ctx);
-        val matching = result.matchingDocuments();
+        val result   = index.matchKleene(ctx);
+        val matching = result.trueMatches();
         var vote     = accumulatorVote;
-        for (val errorVote : result.errorVotes()) {
-            vote = UniqueVoteCombiner.combineVotes(vote, errorVote, voterMetadata);
+        for (val errorMatch : result.errorMatches()) {
+            // A pure-path candidate has no streaming section, so an applicability
+            // error is terminal and the policy is INDETERMINATE.
+            vote = UniqueVoteCombiner.combineVotes(vote,
+                    Vote.error(errorMatch.error(), errorMatch.document().metadata()), voterMetadata);
         }
         for (var i = 0; i < matching.size(); i++) {
             val  voter = matching.get(i).voter();
@@ -213,11 +220,33 @@ public class UniqueVoteCompiler {
         @Override
         public VoteResult evaluate(EvaluationContext ctx) {
             val deps         = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(8);
-            val result       = index.match(ctx);
-            val matching     = result.matchingDocuments();
+            val result       = index.matchKleene(ctx);
+            val matching     = result.trueMatches();
             var combinedVote = accumulatorVote;
-            for (val errorVote : result.errorVotes()) {
-                combinedVote = UniqueVoteCombiner.combineVotes(combinedVote, errorVote, voterMetadata);
+            for (val errorMatch : result.errorMatches()) {
+                val document = errorMatch.document();
+                // A set has no streaming section to dominate a target error, so an erroring
+                // set is terminal INDETERMINATE.
+                if (document instanceof CompiledPolicySet) {
+                    combinedVote = UniqueVoteCombiner.combineVotes(combinedVote,
+                            Vote.error(errorMatch.error(), document.metadata()), voterMetadata);
+                    continue;
+                }
+                // The body voter abstains exactly when the streaming section is FALSE, which
+                // dominates the pure error and yields NOT_APPLICABLE. Otherwise the error
+                // stands and the policy is INDETERMINATE. The pure section is not re-evaluated.
+                val sub = document.voter().evaluate(ctx);
+                StreamOperator.mergeDependencies(deps, sub.dependencies());
+                if (sub.vote() == null) {
+                    return new VoteResult(null, deps);
+                }
+                Vote contribution;
+                if (sub.vote().authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                    contribution = sub.vote();
+                } else {
+                    contribution = Vote.error(errorMatch.error(), document.metadata());
+                }
+                combinedVote = UniqueVoteCombiner.combineVotes(combinedVote, contribution, voterMetadata);
             }
             for (var i = 0; i < matching.size(); i++) {
                 val sub = matching.get(i).voter().evaluate(ctx);

@@ -19,7 +19,6 @@ package io.sapl.compiler.index.naive;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.index.PolicyIndexResult;
 import io.sapl.compiler.index.PolicyMatches;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
@@ -46,126 +45,6 @@ class NaivePolicyIndexTests {
     @AfterEach
     void clearPredicateResults() {
         PREDICATE_RESULTS.clear();
-    }
-
-    @Nested
-    @DisplayName("match")
-    class Match {
-
-        @ParameterizedTest(name = "predicate={0} -> matches={1}")
-        @MethodSource
-        void whenPredicateEvaluatedThenCorrectMatch(Value predicateResult, boolean shouldMatch) {
-            val p1  = configurablePredicate(1L);
-            val doc = stubDocumentWithApplicability("policy1", p1.operator());
-
-            PREDICATE_RESULTS.put(1L, predicateResult);
-            val result = NaivePolicyIndex.create(List.of(doc)).match(evaluationContext());
-
-            if (shouldMatch) {
-                assertThat(result.matchingDocuments()).hasSize(1);
-            } else {
-                assertThat(result.matchingDocuments()).isEmpty();
-            }
-        }
-
-        static Stream<Arguments> whenPredicateEvaluatedThenCorrectMatch() {
-            return Stream.of(arguments(Value.TRUE, true), arguments(Value.FALSE, false));
-        }
-
-        @Test
-        @DisplayName("predicate error produces error vote")
-        void whenPredicateErrorThenErrorVote() {
-            val p1  = configurablePredicate(1L);
-            val doc = stubDocumentWithApplicability("policy1", p1.operator());
-
-            PREDICATE_RESULTS.put(1L, new ErrorValue("broken"));
-            val result = NaivePolicyIndex.create(List.of(doc)).match(evaluationContext());
-
-            assertThat(result).satisfies(r -> {
-                assertThat(r.matchingDocuments()).isEmpty();
-                assertThat(r.errorVotes()).hasSize(1);
-            });
-        }
-
-        @Test
-        @DisplayName("constant TRUE applicability always matches")
-        void whenConstantTrueThenMatches() {
-            val result = NaivePolicyIndex.create(List.of(stubDocument("p1"))).match(evaluationContext());
-            assertThat(result.matchingDocuments()).hasSize(1);
-        }
-
-        @Test
-        @DisplayName("empty index returns empty result")
-        void whenEmptyThenEmptyResult() {
-            val result = NaivePolicyIndex.create(List.of()).match(evaluationContext());
-            assertThat(result).satisfies(r -> {
-                assertThat(r.matchingDocuments()).isEmpty();
-                assertThat(r.errorVotes()).isEmpty();
-            });
-        }
-    }
-
-    @Nested
-    @DisplayName("matchWhile")
-    class MatchWhile {
-
-        @Test
-        @DisplayName("yields all matches when consumer always continues")
-        void whenAlwaysContinueThenAllMatches() {
-            val docs     = List.of(stubDocument("p1"), stubDocument("p2"), stubDocument("p3"));
-            val index    = NaivePolicyIndex.create(docs);
-            val received = new ArrayList<String>();
-
-            index.matchWhile(evaluationContext(), step -> {
-                step.matchingDocuments().forEach(d -> received.add(d.metadata().name()));
-                return true;
-            });
-
-            assertThat(received).containsExactly("p1", "p2", "p3");
-        }
-
-        @Test
-        @DisplayName("stops after consumer returns false")
-        void whenConsumerStopsThenNoMoreEvaluations() {
-            val p1    = configurablePredicate(1L);
-            val p2    = configurablePredicate(2L);
-            val p3    = configurablePredicate(3L);
-            val docs  = List.of(stubDocumentWithApplicability("policy1", p1.operator()),
-                    stubDocumentWithApplicability("policy2", p2.operator()),
-                    stubDocumentWithApplicability("policy3", p3.operator()));
-            val index = NaivePolicyIndex.create(docs);
-
-            PREDICATE_RESULTS.put(1L, Value.TRUE);
-            PREDICATE_RESULTS.put(2L, Value.TRUE);
-            PREDICATE_RESULTS.put(3L, Value.TRUE);
-
-            val callCount = new AtomicInteger(0);
-            index.matchWhile(evaluationContext(), step -> {
-                callCount.incrementAndGet();
-                return callCount.get() < 2;
-            });
-
-            assertThat(callCount.get()).isEqualTo(2);
-        }
-
-        @Test
-        @DisplayName("error votes are yielded incrementally")
-        void whenErrorThenYieldedIncrementally() {
-            val p1    = configurablePredicate(1L);
-            val doc   = stubDocumentWithApplicability("policy1", p1.operator());
-            val index = NaivePolicyIndex.create(List.of(doc));
-
-            PREDICATE_RESULTS.put(1L, new ErrorValue("broken"));
-            val errors = new ArrayList<PolicyIndexResult>();
-
-            index.matchWhile(evaluationContext(), step -> {
-                errors.add(step);
-                return true;
-            });
-
-            assertThat(errors).hasSize(1);
-            assertThat(errors.getFirst().errorVotes()).hasSize(1);
-        }
     }
 
     @Nested
