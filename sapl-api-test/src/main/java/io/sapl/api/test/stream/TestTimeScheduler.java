@@ -26,13 +26,14 @@ import java.util.PriorityQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Deterministic {@link TimeScheduler} for tests. A task scheduled for
- * a future instant is queued; tests call {@link #advanceTo(Instant)} to
- * fire all tasks whose scheduled instant is at or before the supplied
- * time. A task scheduled for an instant that has already passed fires
- * immediately, mirroring the real scheduler (whose delay clamps to
- * zero). Insertion order is preserved among tasks scheduled for the
- * same instant.
+ * Deterministic {@link TimeScheduler} for tests. A task scheduled for a future
+ * instant is queued; tests call
+ * {@link #advanceTo(Instant)} to fire all tasks whose scheduled instant is at
+ * or before the supplied time. A task
+ * scheduled for an instant that has already passed fires immediately, mirroring
+ * the real scheduler (whose delay clamps
+ * to zero). Insertion order is preserved among tasks scheduled for the same
+ * instant.
  */
 public final class TestTimeScheduler implements TimeScheduler {
 
@@ -62,10 +63,10 @@ public final class TestTimeScheduler implements TimeScheduler {
     }
 
     /**
-     * Advances the scheduler's current time to {@code target} and
-     * fires every queued task whose scheduled instant is at or
-     * before {@code target}, in scheduled-instant order (ties broken
-     * by insertion order).
+     * Advances the scheduler's current time to {@code target} and fires every
+     * queued task whose scheduled instant is at
+     * or before {@code target}, in scheduled-instant order (ties broken by
+     * insertion order).
      */
     public synchronized void advanceTo(Instant target) {
         if (target.isBefore(currentTime)) {
@@ -79,8 +80,7 @@ public final class TestTimeScheduler implements TimeScheduler {
     }
 
     /**
-     * Number of tasks still pending. Useful for assertions about
-     * cancellation.
+     * Number of tasks still pending. Useful for assertions about cancellation.
      */
     public synchronized int pendingCount() {
         return queue.size();

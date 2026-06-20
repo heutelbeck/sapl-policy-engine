@@ -231,7 +231,7 @@ class DocumentCompilerTests {
         }
 
         private List<Callable<Void>> buildTasks() {
-            return IntStream.range(0, ROUNDS).mapToObj(round -> alternatingTask(round)).toList();
+            return IntStream.range(0, ROUNDS).mapToObj(this::alternatingTask).toList();
         }
 
         private Callable<Void> alternatingTask(int round) {

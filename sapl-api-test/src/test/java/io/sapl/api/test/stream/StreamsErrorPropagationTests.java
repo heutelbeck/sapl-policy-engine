@@ -226,8 +226,8 @@ class StreamsErrorPropagationTests {
     }
 
     /**
-     * A {@link Clock} that can be flipped between returning a real
-     * instant and returning {@code null}. Used to provoke
+     * A {@link Clock} that can be flipped between returning a real instant and
+     * returning {@code null}. Used to provoke
      * rescheduling failures in {@code scheduledPoll}.
      */
     private static final class FlippableClock extends Clock {

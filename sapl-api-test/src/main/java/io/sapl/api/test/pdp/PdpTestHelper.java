@@ -43,9 +43,12 @@ public class PdpTestHelper {
      * Creates an authorization subscription with string values for subject, action,
      * and resource.
      *
-     * @param subject the subject string
-     * @param action the action string
-     * @param resource the resource string
+     * @param subject
+     * the subject string
+     * @param action
+     * the action string
+     * @param resource
+     * the resource string
      *
      * @return the authorization subscription
      */
@@ -57,10 +60,14 @@ public class PdpTestHelper {
     /**
      * Creates an authorization subscription with Value objects.
      *
-     * @param subject the subject Value
-     * @param action the action Value
-     * @param resource the resource Value
-     * @param environment the environment Value
+     * @param subject
+     * the subject Value
+     * @param action
+     * the action Value
+     * @param resource
+     * the resource Value
+     * @param environment
+     * the environment Value
      *
      * @return the authorization subscription
      */
@@ -72,8 +79,10 @@ public class PdpTestHelper {
     /**
      * Creates a PDPConfiguration with the given policies and algorithm.
      *
-     * @param algorithm the combining algorithm
-     * @param policies the SAPL policy documents
+     * @param algorithm
+     * the combining algorithm
+     * @param policies
+     * the SAPL policy documents
      *
      * @return the PDP configuration
      */
@@ -85,7 +94,8 @@ public class PdpTestHelper {
     /**
      * Creates a PDPConfiguration with DEFAULT algorithm.
      *
-     * @param policies the SAPL policy documents
+     * @param policies
+     * the SAPL policy documents
      *
      * @return the PDP configuration
      */
@@ -95,13 +105,16 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle (zip file) containing the given policy content. The
-     * bundle includes a pdp.json with a generated configurationId.
+     * bundle includes a pdp.json with a
+     * generated configurationId.
      *
-     * @param policyContent the policy document text
+     * @param policyContent
+     * the policy document text
      *
      * @return the bundle bytes
      *
-     * @throws IOException if bundle creation fails
+     * @throws IOException
+     * if bundle creation fails
      */
     public static byte[] createBundle(String policyContent) throws IOException {
         return createBundle(new String[] { policyContent });
@@ -109,13 +122,16 @@ public class PdpTestHelper {
 
     /**
      * Creates a SAPL bundle containing multiple policies. The bundle includes a
-     * pdp.json with a generated configurationId.
+     * pdp.json with a generated
+     * configurationId.
      *
-     * @param policies the policy documents
+     * @param policies
+     * the policy documents
      *
      * @return the bundle bytes
      *
-     * @throws IOException if bundle creation fails
+     * @throws IOException
+     * if bundle creation fails
      */
     public static byte[] createBundle(String... policies) throws IOException {
         return createBundleWithConfigurationId("test-bundle-" + System.currentTimeMillis(), policies);
@@ -124,12 +140,15 @@ public class PdpTestHelper {
     /**
      * Creates a SAPL bundle with a specific configurationId.
      *
-     * @param configurationId the configuration identifier
-     * @param policies the policy documents
+     * @param configurationId
+     * the configuration identifier
+     * @param policies
+     * the policy documents
      *
      * @return the bundle bytes
      *
-     * @throws IOException if bundle creation fails
+     * @throws IOException
+     * if bundle creation fails
      */
     public static byte[] createBundleWithConfigurationId(String configurationId, String... policies)
             throws IOException {

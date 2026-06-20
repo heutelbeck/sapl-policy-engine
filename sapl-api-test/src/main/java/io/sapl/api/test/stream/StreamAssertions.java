@@ -32,15 +32,17 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
- * AssertJ-style fluent assertions for {@link Stream}{@code <T>}.
- * Replaces typical {@code StepVerifier} usage in PIP tests:
+ * AssertJ-style fluent assertions for {@link Stream}{@code <T>}. Replaces
+ * typical {@code StepVerifier} usage in PIP
+ * tests:
  *
  * <pre>{@code
  * StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(1)).awaitsNext(Value.of("permit"))
  *         .awaitsNext(value -> assertThat(value.asString()).startsWith("p")).awaitsCompletion();
  * }</pre>
  *
- * @param <T> the value type of the stream under test
+ * @param <T>
+ * the value type of the stream under test
  */
 public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T>, Stream<T>> {
 
@@ -62,8 +64,8 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     }
 
     /**
-     * Sets the per-await timeout for subsequent expectations. Default
-     * is ten seconds.
+     * Sets the per-await timeout for subsequent expectations. Default is ten
+     * seconds.
      */
     public StreamAssertions<T> withinTimeout(Duration newTimeout) {
         this.timeout = newTimeout;
@@ -71,8 +73,8 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     }
 
     /**
-     * Asserts that the next value emitted equals {@code expected},
-     * within the configured timeout.
+     * Asserts that the next value emitted equals {@code expected}, within the
+     * configured timeout.
      */
     public StreamAssertions<T> awaitsNext(T expected) {
         val actualValue = pollOrFail("awaitsNext(" + expected + ")");
@@ -92,27 +94,28 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     }
 
     /**
-     * Awaits the first value matching {@code selector}, skipping any
-     * earlier values, then asserts {@code requirements} on it within the
-     * configured timeout. Use when a stream may emit a transient
-     * placeholder (such as the UNDEFINED a PIP emits before its first real
-     * message) ahead of the value under test.
+     * Awaits the first value matching {@code selector}, skipping any earlier
+     * values, then asserts {@code requirements}
+     * on it within the configured timeout. Use when a stream may emit a transient
+     * placeholder (such as the UNDEFINED a
+     * PIP emits before its first real message) ahead of the value under test.
      */
     public StreamAssertions<T> awaitsNextMatching(Predicate<? super T> selector, Consumer<T> requirements) {
         val deadline = System.nanoTime() + timeout.toNanos();
         while (System.nanoTime() < deadline) {
             switch (actual.tryNext()) {
-            case Poll.Value<T>(var v)  -> {
-                if (selector.test(v)) {
-                    requirements.accept(v);
-                    return this;
-                }
+            case Poll.Value<T>(var v) when selector.test(v) -> {
+                requirements.accept(v);
+                return this;
             }
-            case Poll.Done<T> ignored  -> {
+            case Poll.Value<T> ignored                      -> {
+                // Value does not match the selector; keep polling.
+            }
+            case Poll.Done<T> ignored                       -> {
                 failWithMessage("Stream completed before producing a matching value");
                 return this;
             }
-            case Poll.Empty<T> ignored -> {
+            case Poll.Empty<T> ignored                      -> {
                 try {
                     Thread.sleep(2L);
                 } catch (InterruptedException ie) {
@@ -128,8 +131,8 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     }
 
     /**
-     * Asserts that the stream completes within the configured timeout
-     * without producing further values.
+     * Asserts that the stream completes within the configured timeout without
+     * producing further values.
      */
     public StreamAssertions<T> awaitsCompletion() {
         val completed = new AtomicBoolean(false);
@@ -168,9 +171,9 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     }
 
     /**
-     * Drains every value the stream emits until completion or
-     * timeout, returning them as a list. Exits early when the stream
-     * signals completion. Closes the stream after.
+     * Drains every value the stream emits until completion or timeout, returning
+     * them as a list. Exits early when the
+     * stream signals completion. Closes the stream after.
      */
     public List<T> drain() {
         val collected = new ArrayList<T>();
