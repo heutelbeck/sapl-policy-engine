@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * AssertJ-style fluent assertions for {@link Stream}{@code <T>}.
@@ -87,6 +88,42 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
     public StreamAssertions<T> awaitsNext(Consumer<T> requirements) {
         val actualValue = pollOrFail("awaitsNext(<assertion>)");
         requirements.accept(actualValue);
+        return this;
+    }
+
+    /**
+     * Awaits the first value matching {@code selector}, skipping any
+     * earlier values, then asserts {@code requirements} on it within the
+     * configured timeout. Use when a stream may emit a transient
+     * placeholder (such as the UNDEFINED a PIP emits before its first real
+     * message) ahead of the value under test.
+     */
+    public StreamAssertions<T> awaitsNextMatching(Predicate<? super T> selector, Consumer<T> requirements) {
+        val deadline = System.nanoTime() + timeout.toNanos();
+        while (System.nanoTime() < deadline) {
+            switch (actual.tryNext()) {
+            case Poll.Value<T>(var v)  -> {
+                if (selector.test(v)) {
+                    requirements.accept(v);
+                    return this;
+                }
+            }
+            case Poll.Done<T> ignored  -> {
+                failWithMessage("Stream completed before producing a matching value");
+                return this;
+            }
+            case Poll.Empty<T> ignored -> {
+                try {
+                    Thread.sleep(2L);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    failWithMessage("Interrupted while waiting for a matching value");
+                    return this;
+                }
+            }
+            }
+        }
+        failWithMessage("Timed out after %s waiting for a matching value", timeout);
         return this;
     }
 

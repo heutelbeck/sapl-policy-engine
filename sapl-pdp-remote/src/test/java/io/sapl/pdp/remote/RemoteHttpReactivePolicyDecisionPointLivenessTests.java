@@ -86,7 +86,10 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
                 "secret", HttpClient.create());
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
-        pdp.setTimeoutMillis(2000);
+        // Generous first-element budget so a slow CI connection setup cannot
+        // preempt the initial decision with an INDETERMINATE timeout. Only
+        // consumed when the stream is genuinely silent.
+        pdp.setTimeoutMillis(10000);
         return pdp;
     }
 
@@ -122,7 +125,7 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
     void whenStreamGoesSilentThenIndeterminate() throws Exception {
         val pdp = startServer(out -> {
             writeChunk(out, decisionEvent(AuthorizationDecision.PERMIT));
-            Thread.sleep(5000);
+            Thread.sleep(15000);
         });
         pdp.setInactivityTimeoutMillis(300);
 

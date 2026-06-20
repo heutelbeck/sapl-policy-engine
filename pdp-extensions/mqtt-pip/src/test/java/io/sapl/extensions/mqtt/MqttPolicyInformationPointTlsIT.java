@@ -21,6 +21,7 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
 import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.StreamAssertions;
@@ -115,8 +116,12 @@ class MqttPolicyInformationPointTlsIT {
         publisher.publish(message);
 
         try (val stream = pip.messages(Value.of(topic), tlsCtx())) {
-            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(15))
-                    .awaitsNext(v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("secure-hello")));
+            // Skip the leading timer-driven UNDEFINED the PIP emits before the
+            // retained message arrives over the slower TLS handshake, then assert
+            // the first real value is the message.
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(20)).awaitsNextMatching(
+                    v -> !(v instanceof UndefinedValue),
+                    v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("secure-hello")));
         }
     }
 }
