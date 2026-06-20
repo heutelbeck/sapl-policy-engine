@@ -250,14 +250,15 @@ public class UnanimousVoteCompiler {
                 // The body voter abstains exactly when the streaming section is FALSE, which
                 // dominates the pure error and yields NOT_APPLICABLE. Otherwise the error
                 // stands and the policy is INDETERMINATE. The pure section is not re-evaluated.
-                val sub = document.voter().evaluate(ctx);
+                val sub  = document.voter().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
                 Vote contribution;
-                if (sub.vote().authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
-                    contribution = sub.vote();
+                if (vote.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                    contribution = vote;
                 } else {
                     contribution = Vote.error(errorMatch.error(), document.metadata());
                 }
@@ -265,12 +266,13 @@ public class UnanimousVoteCompiler {
                         strictMode);
             }
             for (var i = 0; i < matching.size(); i++) {
-                val sub = matching.get(i).voter().evaluate(ctx);
+                val sub  = matching.get(i).voter().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
-                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, sub.vote(), voterMetadata, strictMode);
+                combinedVote = UnanimousVoteCombiner.combineVotes(combinedVote, vote, voterMetadata, strictMode);
                 if (UnanimousVoteCombiner.isTerminal(combinedVote, strictMode)) {
                     if (completeOutcome) {
                         combinedVote = CombiningUtils.completeSetOutcome(combinedVote,

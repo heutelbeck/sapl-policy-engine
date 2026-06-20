@@ -187,12 +187,13 @@ public class PriorityVoteCompiler {
             val result       = index.matchKleene(ctx);
             var combinedVote = accumulatorVote;
             for (val document : result.trueMatches()) {
-                val sub = document.voter().evaluate(ctx);
+                val sub  = document.voter().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
-                combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote, sub.vote(), priorityDecision,
+                combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote, vote, priorityDecision,
                         voterMetadata);
             }
             for (val errorMatch : result.errorMatches()) {
@@ -207,14 +208,15 @@ public class PriorityVoteCompiler {
                 // The body voter abstains exactly when the streaming section is FALSE, which
                 // dominates the pure error and yields NOT_APPLICABLE. Otherwise the error
                 // stands and the policy is INDETERMINATE. The pure section is not re-evaluated.
-                val sub = document.voter().evaluate(ctx);
+                val sub  = document.voter().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
                 Vote contribution;
-                if (sub.vote().authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
-                    contribution = sub.vote();
+                if (vote.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                    contribution = vote;
                 } else {
                     contribution = Vote.error(errorMatch.error(), document.metadata());
                 }

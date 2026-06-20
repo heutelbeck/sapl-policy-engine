@@ -234,17 +234,17 @@ public class FirstVoteCompiler {
             val deps     = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
             val allVotes = new ArrayList<>(contributingVotes);
             for (var i = 0; i < policies.size(); i++) {
-                val sub = policies.get(i).applicabilityAndVote().evaluate(ctx);
+                val sub  = policies.get(i).applicabilityAndVote().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
-                allVotes.add(sub.vote());
-                if (sub.vote().authorizationDecision().decision() != NOT_APPLICABLE) {
-                    val outcome  = firstApplicableOutcome(sub.vote(), policies.subList(i + 1, policies.size()),
+                allVotes.add(vote);
+                if (vote.authorizationDecision().decision() != NOT_APPLICABLE) {
+                    val outcome  = firstApplicableOutcome(vote, policies.subList(i + 1, policies.size()),
                             defaultDecision);
-                    val combined = Vote.combinedVote(sub.vote().authorizationDecision(), voterMetadata, allVotes,
-                            outcome);
+                    val combined = Vote.combinedVote(vote.authorizationDecision(), voterMetadata, allVotes, outcome);
                     return new VoteResult(finalizeVote(combined, errorHandling, voterMetadata), deps);
                 }
             }

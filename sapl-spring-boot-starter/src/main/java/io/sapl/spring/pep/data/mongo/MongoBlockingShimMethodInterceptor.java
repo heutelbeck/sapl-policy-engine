@@ -40,6 +40,7 @@ import static io.sapl.spring.pep.data.mongo.MongoShimSupport.toQuery;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.unwrap;
 
 import java.lang.reflect.Method;
+import java.util.Objects;
 import java.util.function.Function;
 
 import org.aopalliance.intercept.MethodInterceptor;
@@ -125,7 +126,7 @@ public class MongoBlockingShimMethodInterceptor implements MethodInterceptor {
         case Denied(Throwable cause)    -> throw cause;
         case Rewritten(Query rewritten) -> query = rewritten;
         }
-        val target = (MongoOperations) invocation.getThis();
+        val target = (MongoOperations) Objects.requireNonNull(invocation.getThis(), "AOP target must not be null");
         val args   = invocation.getArguments();
         val type   = (Class<?>) args[0];
         if (args.length >= 2 && args[1] instanceof String collection) {
