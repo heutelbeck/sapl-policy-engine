@@ -17,6 +17,7 @@
  */
 package io.sapl.vaadin.lsp;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.InputStream;
@@ -153,10 +154,10 @@ class LspWebSocketEndpointTests {
             });
             reader.start();
 
-            assertThat(stream.offer("hello".getBytes())).isTrue();
+            assertThat(stream.offer("hello".getBytes(UTF_8))).isTrue();
             assertThat(done.await(2, TimeUnit.SECONDS)).isTrue();
             assertThat(readCount.get()).isEqualTo(5);
-            assertThat(new String(received)).isEqualTo("hello");
+            assertThat(new String(received, UTF_8)).isEqualTo("hello");
 
             stream.close();
             assertThat(stream.read(received)).isEqualTo(-1);
