@@ -300,8 +300,8 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
                 return wrapRemoveBuilder(inv.proceed(), capturedQuery);
             }
             if (isReactiveReturn(method)) {
-                return dispatchWriteTerminal(query -> ((RemoveWithQuery<?>) base).matching(query), capturedQuery,
-                        method, inv.getArguments());
+                return dispatchWriteTerminal(((RemoveWithQuery<?>) base)::matching, capturedQuery, method,
+                        inv.getArguments());
             }
             val result = inv.proceed();
             if (result != null && isFluentStage(result)) {
@@ -340,7 +340,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         }
         try {
             return Mono.just(invokeReflectively(rescope.apply(queryToUse), method, args));
-        } catch (Throwable t) {
+        } catch (Exception t) {
             return Mono.error(unwrap(t));
         }
     }
@@ -401,7 +401,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
     private static Flux<Object> invokeAsFlux(Object target, Method method, Object[] args) {
         try {
             return castFlux(invokeReflectively(target, method, args));
-        } catch (Throwable throwable) {
+        } catch (Exception throwable) {
             return Flux.error(unwrap(throwable));
         }
     }
@@ -410,7 +410,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
     private static Mono<Object> invokeAsMono(Object target, Method method, Object[] args) {
         try {
             return (Mono) invokeReflectively(target, method, args);
-        } catch (Throwable throwable) {
+        } catch (Exception throwable) {
             return Mono.error(unwrap(throwable));
         }
     }

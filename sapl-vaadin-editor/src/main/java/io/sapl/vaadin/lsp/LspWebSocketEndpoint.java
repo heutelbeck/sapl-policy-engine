@@ -270,10 +270,13 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
 
         @Override
         public void close() {
-            // Signal end-of-stream to the reader. Clearing first guarantees room so
-            // the sentinel is always accepted and close is never lost.
+            // Signal end-of-stream to the reader. Clear to make room, then offer the
+            // sentinel. If a concurrent producer refilled the queue, drop a chunk and
+            // retry so the end-of-stream sentinel is never lost.
             queue.clear();
-            queue.offer(END_OF_STREAM);
+            while (!queue.offer(END_OF_STREAM)) {
+                queue.poll();
+            }
         }
     }
 

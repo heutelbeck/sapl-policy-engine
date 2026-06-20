@@ -133,10 +133,10 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
     static Flux<IdentifiableAuthorizationDecision> conflateBySubscription(
             Supplier<Stream<IdentifiableAuthorizationDecision>> streamFactory) {
         return Flux.create(sink -> {
-            val pending = new LinkedHashMap<String, IdentifiableAuthorizationDecision>();
-            val stream  = streamFactory.get();
-            val pump    = Thread.startVirtualThread(() -> pumpConflating(stream, sink, pending));
-            sink.onRequest(requested -> drainConflating(sink, pending));
+            val buffer = new ConflationBuffer();
+            val stream = streamFactory.get();
+            val pump   = Thread.startVirtualThread(() -> pumpConflating(stream, sink, buffer));
+            sink.onRequest(requested -> buffer.drainTo(sink));
             sink.onCancel(() -> {
                 pump.interrupt();
                 stream.close();
@@ -145,20 +145,17 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
     }
 
     private static void pumpConflating(Stream<IdentifiableAuthorizationDecision> stream,
-            FluxSink<IdentifiableAuthorizationDecision> sink,
-            LinkedHashMap<String, IdentifiableAuthorizationDecision> pending) {
+            FluxSink<IdentifiableAuthorizationDecision> sink, ConflationBuffer buffer) {
         try (stream) {
             while (!Thread.interrupted()) {
                 val value = stream.awaitNext();
                 if (value == null) {
-                    flushConflating(sink, pending);
+                    buffer.flushTo(sink);
                     sink.complete();
                     return;
                 }
-                synchronized (pending) {
-                    pending.put(value.subscriptionId(), value);
-                }
-                drainConflating(sink, pending);
+                buffer.put(value);
+                buffer.drainTo(sink);
             }
         } catch (InterruptedException expected) {
             Thread.currentThread().interrupt();
@@ -167,38 +164,52 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
         }
     }
 
-    private static void drainConflating(FluxSink<IdentifiableAuthorizationDecision> sink,
-            LinkedHashMap<String, IdentifiableAuthorizationDecision> pending) {
-        synchronized (pending) {
-            while (sink.requestedFromDownstream() > 0) {
-                val iterator = pending.entrySet().iterator();
-                if (!iterator.hasNext()) {
-                    return;
-                }
-                val next = iterator.next().getValue();
-                iterator.remove();
-                sink.next(next);
+    /**
+     * Per-subscription latest-wins buffer with its own lock, so the conflation
+     * helpers never synchronize on a shared collection they do not own. The pump
+     * thread and the demand-gate callback take the same monitor, keeping the
+     * buffer mutations and the gated emissions mutually consistent.
+     */
+    private static final class ConflationBuffer {
+        private final LinkedHashMap<String, IdentifiableAuthorizationDecision> pending = new LinkedHashMap<>();
+        private final Object                                                   lock    = new Object();
+
+        void put(IdentifiableAuthorizationDecision value) {
+            synchronized (lock) {
+                pending.put(value.subscriptionId(), value);
             }
         }
-    }
 
-    /**
-     * Terminal flush on source completion: pushes every remaining pending
-     * decision into the sink without gating on current demand, then the caller
-     * completes the sink. The {@code BUFFER} overflow strategy retains these
-     * entries until the downstream requests them, so a consumer with zero demand
-     * at the completion instant still receives the final per-subscription
-     * decisions instead of losing them. Synchronized on {@code pending} to stay
-     * consistent with {@link #drainConflating}.
-     */
-    private static void flushConflating(FluxSink<IdentifiableAuthorizationDecision> sink,
-            LinkedHashMap<String, IdentifiableAuthorizationDecision> pending) {
-        synchronized (pending) {
-            val iterator = pending.values().iterator();
-            while (iterator.hasNext()) {
-                val next = iterator.next();
-                iterator.remove();
-                sink.next(next);
+        void drainTo(FluxSink<IdentifiableAuthorizationDecision> sink) {
+            synchronized (lock) {
+                while (sink.requestedFromDownstream() > 0) {
+                    val iterator = pending.entrySet().iterator();
+                    if (!iterator.hasNext()) {
+                        return;
+                    }
+                    val next = iterator.next().getValue();
+                    iterator.remove();
+                    sink.next(next);
+                }
+            }
+        }
+
+        /**
+         * Terminal flush on source completion: pushes every remaining pending
+         * decision into the sink without gating on current demand, then the
+         * caller completes the sink. The {@code BUFFER} overflow strategy retains
+         * these entries until the downstream requests them, so a consumer with
+         * zero demand at the completion instant still receives the final
+         * per-subscription decisions instead of losing them.
+         */
+        void flushTo(FluxSink<IdentifiableAuthorizationDecision> sink) {
+            synchronized (lock) {
+                val iterator = pending.values().iterator();
+                while (iterator.hasNext()) {
+                    val next = iterator.next();
+                    iterator.remove();
+                    sink.next(next);
+                }
             }
         }
     }

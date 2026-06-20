@@ -68,12 +68,12 @@ final class MongoShimSupport {
     }
 
     static boolean isFluentFindEntry(Method method) {
-        return METHOD_QUERY.equals(method.getName()) && method.getParameterCount() == 1
+        return method.getParameterCount() == 1 && METHOD_QUERY.equals(method.getName())
                 && method.getParameterTypes()[0] == Class.class;
     }
 
     static boolean isFluentClassEntry(Method method, String name) {
-        return name.equals(method.getName()) && method.getParameterCount() == 1
+        return method.getParameterCount() == 1 && name.equals(method.getName())
                 && method.getParameterTypes()[0] == Class.class && returnsFluentOperation(method);
     }
 
@@ -89,7 +89,7 @@ final class MongoShimSupport {
 
     static boolean isFindAllEntry(Method method) {
         val params = method.getParameterTypes();
-        return METHOD_FIND_ALL.equals(method.getName()) && params.length >= 1 && params[0] == Class.class;
+        return params.length >= 1 && params[0] == Class.class && METHOD_FIND_ALL.equals(method.getName());
     }
 
     private static boolean returnsFluentOperation(Method method) {

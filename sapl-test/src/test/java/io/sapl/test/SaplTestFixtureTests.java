@@ -340,6 +340,7 @@ class SaplTestFixtureTests {
                 .givenEnvironmentAttribute("pending", "test.pending", args())
                 .whenDecide(AuthorizationSubscription.of("willi", "read", "something")).expectPermit();
 
-        assertThatThrownBy(() -> decisionResult.verify(Duration.ofMillis(200))).isInstanceOf(AssertionError.class);
+        var timeout = Duration.ofMillis(200);
+        assertThatThrownBy(() -> decisionResult.verify(timeout)).isInstanceOf(AssertionError.class);
     }
 }

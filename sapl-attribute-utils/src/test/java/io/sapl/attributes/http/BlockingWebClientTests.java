@@ -55,9 +55,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
@@ -615,7 +617,8 @@ class BlockingWebClientTests {
         private final InputStream body;
 
         @Override
-        public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> responseBodyHandler) {
+        public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> responseBodyHandler)
+                throws IOException, InterruptedException {
             val responseInfo = new ResponseInfo() {
                                  @Override
                                  public int statusCode() {
@@ -639,9 +642,9 @@ class BlockingWebClientTests {
                 value = subscriber.getBody().toCompletableFuture().get(5L, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
+                throw e;
+            } catch (ExecutionException | TimeoutException e) {
+                throw new IOException(e);
             }
             return new HttpResponse<>() {
                 @Override
@@ -689,7 +692,14 @@ class BlockingWebClientTests {
         @Override
         public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request,
                 BodyHandler<T> responseBodyHandler) {
-            return CompletableFuture.completedFuture(send(request, responseBodyHandler));
+            try {
+                return CompletableFuture.completedFuture(send(request, responseBodyHandler));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return CompletableFuture.failedFuture(e);
+            } catch (IOException e) {
+                return CompletableFuture.failedFuture(e);
+            }
         }
 
         @Override

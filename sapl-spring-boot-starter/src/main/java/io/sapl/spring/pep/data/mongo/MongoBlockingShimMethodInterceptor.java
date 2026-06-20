@@ -146,7 +146,7 @@ public class MongoBlockingShimMethodInterceptor implements MethodInterceptor {
             val method = inv.getMethod();
             val name   = method.getName();
             if (METHOD_MATCHING.equals(name) && inv.getArguments().length == 1) {
-                return wrapTerminatingFind((FindWithQuery<?>) delegate, toQuery(inv.getArguments()[0]));
+                return wrapTerminatingFind(delegate, toQuery(inv.getArguments()[0]));
             }
             if (METHOD_AS.equals(name) || METHOD_IN_COLLECTION.equals(name)) {
                 return wrapFind((FindWithProjection<?>) inv.proceed());
@@ -226,7 +226,7 @@ public class MongoBlockingShimMethodInterceptor implements MethodInterceptor {
                 return wrapRemove(inv.proceed(), capturedQuery);
             }
             if (isFluentTerminal(method)) {
-                return narrowAndInvokeWrite(query -> ((RemoveWithQuery<?>) base).matching(query), capturedQuery, method,
+                return narrowAndInvokeWrite(((RemoveWithQuery<?>) base)::matching, capturedQuery, method,
                         inv.getArguments());
             }
             val result = inv.proceed();
