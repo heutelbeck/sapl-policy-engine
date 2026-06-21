@@ -95,9 +95,8 @@ class AnonymousAccessStartupWarning {
         try {
             return !InetAddress.getByName(address.trim()).isLoopbackAddress();
         } catch (UnknownHostException e) {
-            // An address that cannot be resolved would also fail to bind, so the
-            // node would not reach this point with it in effect. Surface it as
-            // exposed rather than swallow a possible misconfiguration silently.
+            // Treat an unresolvable address as exposed rather than silently ignore a
+            // misconfiguration.
             return true;
         }
     }

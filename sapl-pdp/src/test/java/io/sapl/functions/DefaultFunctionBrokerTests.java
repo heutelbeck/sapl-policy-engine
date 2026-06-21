@@ -20,6 +20,7 @@ package io.sapl.functions;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.functions.FunctionSpecification;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -302,6 +304,58 @@ class DefaultFunctionBrokerTests {
 
             assertThat(errors).isEmpty();
         }
+    }
+
+    @Test
+    @DisplayName("concurrent overload loading does not corrupt the spec list read on the eval path")
+    void whenConcurrentOverloadLoadAndEvaluateThenNoCorruption() throws Exception {
+        val name   = "d7.fn";
+        val errors = Collections.synchronizedList(new ArrayList<Throwable>());
+        val done   = new AtomicBoolean(false);
+
+        for (int arity = 0; arity < 4; arity++) {
+            broker.loadFunction(overload(name, arity));
+        }
+
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            executor.submit(() -> {
+                try {
+                    for (int arity = 4; arity < 2000; arity++) {
+                        broker.loadFunction(overload(name, arity));
+                    }
+                } catch (Throwable t) {
+                    errors.add(t);
+                } finally {
+                    done.set(true);
+                }
+            });
+            for (int reader = 0; reader < 6; reader++) {
+                executor.submit(() -> {
+                    while (!done.get()) {
+                        try {
+                            // Distinct args miss the cache, so invokeFunction iterates the live list.
+                            broker.evaluateFunction(
+                                    new FunctionInvocation(name, List.of(Value.of(Long.toString(System.nanoTime())))));
+                        } catch (Throwable t) {
+                            errors.add(t);
+                        }
+                    }
+                });
+            }
+        }
+
+        assertThat(errors).isEmpty();
+    }
+
+    private static FunctionSpecification overload(String fullName, int arity) {
+        val dot       = fullName.indexOf('.');
+        val namespace = fullName.substring(0, dot);
+        val fn        = fullName.substring(dot + 1);
+        val params    = new ArrayList<Class<? extends Value>>();
+        for (int i = 0; i < arity; i++) {
+            params.add(TextValue.class);
+        }
+        return new FunctionSpecification(namespace, fn, params, null, invocation -> Value.UNDEFINED);
     }
 
     @ParameterizedTest(name = "{0}")

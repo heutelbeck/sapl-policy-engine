@@ -28,7 +28,9 @@ spring:
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=1000,expireAfterWrite=1h,recordStats
+      # expireAfterWrite is the auth revocation SLA: a revoked API key keeps working until its
+      # cache entry expires. 5m matches io.sapl.node.http.auth-cache.positive-ttl so both stacks agree.
+      spec: maximumSize=1000,expireAfterWrite=5m,recordStats
     cache-names:
       - ApiKeyCache
       - buckets
@@ -140,8 +142,9 @@ io.sapl:
     # --- Keep-Alive ---
     #
     # Interval in seconds between keep-alive comment frames on idle SSE
-    # streams. Prevents firewalls and proxies from dropping inactive TCP
-    # connections. Set to 0 to disable.
+    # streams. Prevents proxies and firewalls from dropping inactive
+    # connections and lets the server detect clients that drop without
+    # closing. Always on; default 15 seconds (values below 1 are raised).
     keep-alive: 15
 
   # --- PDP Policy Source ---

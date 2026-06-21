@@ -234,6 +234,24 @@ class NumeralFunctionLibraryTests {
                         493L, 2, "755"));
     }
 
+    @ParameterizedTest(name = "{0} rejects an oversized width")
+    @MethodSource("provideOversizedWidthCases")
+    void whenPaddedWidthExceedsMaximumThenError(String baseName, BiFunction<Value, Value, Value> formatFunction) {
+        val result = formatFunction.apply(Value.of(0), Value.of(1000));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceed");
+    }
+
+    private static Stream<Arguments> provideOversizedWidthCases() {
+        return Stream.of(
+                arguments("hex", (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toHexPadded),
+                arguments("binary",
+                        (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toBinaryPadded),
+                arguments("octal",
+                        (BiFunction<NumberValue, NumberValue, Value>) NumeralFunctionLibrary::toOctalPadded));
+    }
+
     @ParameterizedTest(name = "{0}")
     @ValueSource(ints = { 0, -1, -10 })
     void whenToPaddedFormatWithInvalidWidthThenReturnsError(int invalidWidth) {

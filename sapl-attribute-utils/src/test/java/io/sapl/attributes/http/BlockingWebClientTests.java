@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.test.stream;
+package io.sapl.attributes.http;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.api.test.stream.StreamAssertions;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -132,6 +132,32 @@ class BlockingWebClientTests {
         assertThat(url).contains("willi=wurst").contains("h%C3%A4nschen=klein").contains("/rainbow?");
         assertThat(headers.get("X-A")).contains("einmal");
         assertThat(headers.get("X-B")).contains("a", "b", "c");
+    }
+
+    @Test
+    @DisplayName("a malformed base URL never leaks a query-string secret into the error value")
+    void whenMalformedBaseUrlWithSecretThenErrorValueDoesNotLeakToken() {
+        val secret   = "SUPERSECRET-TOKEN-123";
+        val template = """
+                {
+                    "baseUrl" : "http://bad host:8082",
+                    "path" : "/api/positions",
+                    "accept" : "application/json",
+                    "urlParameters" : {
+                        "token" : "%s"
+                    }
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(secret));
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).doesNotContain(secret);
+            });
+        }
     }
 
     @Test

@@ -36,6 +36,7 @@ public final class StaticPluginsSource implements PluginsSource {
     private final PluginsBundle                bundle;
     private final Set<Consumer<PluginsBundle>> listeners = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean                closed    = new AtomicBoolean(false);
+    private final Object                       lock      = new Object();
 
     public StaticPluginsSource(@NonNull PluginsBundle bundle) {
         this.bundle = bundle;
@@ -43,11 +44,13 @@ public final class StaticPluginsSource implements PluginsSource {
 
     @Override
     public void subscribe(@NonNull Consumer<PluginsBundle> listener) {
-        if (closed.get()) {
-            return;
-        }
-        if (listeners.add(listener)) {
-            listener.accept(bundle);
+        synchronized (lock) {
+            if (closed.get()) {
+                return;
+            }
+            if (listeners.add(listener)) {
+                listener.accept(bundle);
+            }
         }
     }
 
@@ -63,7 +66,13 @@ public final class StaticPluginsSource implements PluginsSource {
 
     @Override
     public void close() {
-        closed.set(true);
-        listeners.clear();
+        synchronized (lock) {
+            closed.set(true);
+            listeners.clear();
+        }
+    }
+
+    int registeredListenerCount() {
+        return listeners.size();
     }
 }

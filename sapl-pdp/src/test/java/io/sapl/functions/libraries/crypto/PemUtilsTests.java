@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries.crypto;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,5 +69,14 @@ class PemUtilsTests {
 
         assertThat(Files.getPosixFilePermissions(file)).containsExactlyInAnyOrder(PosixFilePermission.OWNER_READ,
                 PosixFilePermission.OWNER_WRITE);
+    }
+
+    @Test
+    @DisplayName("oversized PEM input is rejected before decoding")
+    void whenPemInputExceedsMaxLengthThenThrows() {
+        val oversized = "x".repeat(256 * 1024 + 1);
+
+        assertThatThrownBy(() -> PemUtils.decodePem(oversized)).isInstanceOf(CryptoException.class)
+                .hasMessageContaining("exceeds the maximum length");
     }
 }

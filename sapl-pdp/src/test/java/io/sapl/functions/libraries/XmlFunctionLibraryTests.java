@@ -141,4 +141,45 @@ class XmlFunctionLibraryTests {
         val investigator = (ObjectValue) reparsed;
         assertThat(investigator).containsEntry("name", Value.of("Carter")).containsEntry("sanity", Value.of("77"));
     }
+
+    @Test
+    @DisplayName("xmlToVal rejects an external-entity (XXE) payload without resolving it")
+    void whenXmlHasExternalEntityThenErrorAndNoFileRead() {
+        val xml = """
+                <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+                <foo>&xxe;</foo>
+                """;
+
+        val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Failed to parse XML").doesNotContain("root:");
+    }
+
+    @Test
+    @DisplayName("xmlToVal rejects an entity-expansion (billion laughs) payload")
+    void whenXmlHasEntityExpansionThenError() {
+        val xml = """
+                <!DOCTYPE lolz [
+                  <!ENTITY lol "lol">
+                  <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;">
+                  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;">
+                ]>
+                <lolz>&lol3;</lolz>
+                """;
+
+        val result = XmlFunctionLibrary.xmlToVal(Value.of(xml));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("Failed to parse XML");
+    }
+
+    @Test
+    void whenXmlExceedsMaxInputThenError() {
+        val oversized = "<a>" + "x".repeat(2 * 1024 * 1024) + "</a>";
+        val result    = XmlFunctionLibrary.xmlToVal(Value.of(oversized));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum length");
+    }
 }

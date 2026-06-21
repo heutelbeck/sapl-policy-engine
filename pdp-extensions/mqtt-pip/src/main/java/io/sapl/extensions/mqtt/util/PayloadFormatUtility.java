@@ -42,6 +42,8 @@ public class PayloadFormatUtility {
 
     private static final String ERROR_MQTT_MESSAGE_JSON_CONVERSION_FAILED = "The mqtt message couldn't be converted to json.";
 
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
+
     /**
      * Looks up the payload format indicator from the mqtt publish message. By
      * default, it will be 0.
@@ -103,7 +105,7 @@ public class PayloadFormatUtility {
     }
 
     private static JsonNode convertBytesToJson(byte[] bytes) {
-        return JsonMapper.builder().build().readTree(bytes);
+        return MAPPER.readTree(bytes);
     }
 
     /**

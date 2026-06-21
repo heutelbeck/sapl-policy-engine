@@ -205,6 +205,19 @@ public class GraphQLFunctionLibrary {
             ## Error Handling
 
             Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - Reported query depth is capped at 100. The `depth` metric never exceeds this value regardless of how
+              deeply the query or its operations nest, so depth comparisons in policies saturate at 100.
+            - A schema passed to `validateQuery` or `parseSchema` may be at most 512 KB (524288 bytes). A larger schema
+              is rejected with an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy
+            information points, which are not vetted to the same degree as the policies and variables shipped with the
+            PDP configuration.
             """;
 
     // GraphQL operation types

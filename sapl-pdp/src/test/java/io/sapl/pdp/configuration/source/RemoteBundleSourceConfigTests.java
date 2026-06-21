@@ -53,6 +53,14 @@ class RemoteBundleSourceConfigTests {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("toString redacts the auth header value")
+    void whenToStringThenAuthHeaderValueRedacted() {
+        var cfg = config("https://bundles.example.com/bundles", "Authorization", "Bearer super-secret-token");
+
+        assertThat(cfg.toString()).doesNotContain("super-secret-token").contains("REDACTED");
+    }
+
     private static RemoteBundleSourceConfig config(String baseUrl, String authName, String authValue) {
         return new RemoteBundleSourceConfig(baseUrl, List.of("default"), RemoteBundleSourceConfig.FetchMode.POLLING,
                 Duration.ofMillis(100), Duration.ofSeconds(5), authName, authValue, true, POLICY, Map.of(),

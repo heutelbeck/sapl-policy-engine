@@ -18,6 +18,7 @@
 package io.sapl.functions.libraries;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -468,5 +470,80 @@ class GraphFunctionLibraryTests {
 
         assertThat(result).containsExactlyInAnyOrder(Value.of("cso"), Value.of("security-manager"), Value.of("analyst"),
                 Value.of("market-analyst"));
+    }
+
+    @Test
+    @DisplayName("transitiveClosure handles a deep graph without stack overflow")
+    void transitiveClosureWhenDeepChainThenNoStackOverflow() throws InterruptedException {
+        val depth = 1000;
+        val json  = new StringBuilder("{");
+        for (var i = 0; i < depth; i++) {
+            if (i > 0) {
+                json.append(',');
+            }
+            json.append("\"n").append(i).append("\":[");
+            if (i < depth - 1) {
+                json.append("\"n").append(i + 1).append('"');
+            }
+            json.append(']');
+        }
+        json.append('}');
+        val graph = (ObjectValue) Value.ofJson(json.toString());
+
+        val error  = new AtomicReference<Throwable>();
+        val result = new AtomicReference<Value>();
+        val worker = new Thread(null, () -> {
+                       try {
+                           result.set(GraphFunctionLibrary.transitiveClosure(graph));
+                       } catch (Throwable t) {
+                           error.set(t);
+                       }
+                   }, "graph-deep-closure", 128 * 1024);
+        worker.start();
+        worker.join();
+
+        val closure = (ObjectValue) result.get();
+        assertThat(error.get()).isNull();
+        assertThat((ArrayValue) closure.get("n0")).hasSize(depth);
+    }
+
+    @Test
+    void isReachableWhenPathExistsThenTrue() {
+        val graph = (ObjectValue) Value.ofJson("""
+                { "a": ["b"], "b": ["c"], "c": [] }
+                """);
+
+        assertThat(GraphFunctionLibrary.isReachable(graph, Value.of("a"), Value.of("c"))).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    void isReachableWhenNoPathThenFalse() {
+        val graph = (ObjectValue) Value.ofJson("""
+                { "a": ["b"], "b": ["c"], "c": [] }
+                """);
+
+        assertThat(GraphFunctionLibrary.isReachable(graph, Value.of("c"), Value.of("a"))).isEqualTo(Value.FALSE);
+    }
+
+    @Test
+    void isReachableWhenSourceEqualsTargetThenTrue() {
+        val graph = (ObjectValue) Value.ofJson("""
+                { "a": ["b"], "b": [] }
+                """);
+
+        assertThat(GraphFunctionLibrary.isReachable(graph, Value.of("a"), Value.of("a"))).isEqualTo(Value.TRUE);
+    }
+
+    @Test
+    void transitiveClosureWhenOutputExceedsMaximumThenError() {
+        val nodes   = 1500;
+        val builder = ObjectValue.builder();
+        for (var i = 0; i < nodes; i++) {
+            builder.put("n" + i, i < nodes - 1 ? Value.ofArray(Value.of("n" + (i + 1))) : Value.EMPTY_ARRAY);
+        }
+        val result = GraphFunctionLibrary.transitiveClosure(builder.build());
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
     }
 }

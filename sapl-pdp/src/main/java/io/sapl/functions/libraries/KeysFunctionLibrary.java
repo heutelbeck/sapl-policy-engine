@@ -200,6 +200,14 @@ public class KeysFunctionLibrary {
             - JWK fields use base64url encoding (no padding)
             - All conversions preserve key functionality (verified via signature operations)
             - Certificate extraction supports RSA and EC certificates
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - PEM-encoded keys are limited to 256 KB (262144 characters).
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String RETURNS_TEXT = """

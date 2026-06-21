@@ -21,6 +21,7 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.BoundedRegex;
 import lombok.val;
 
 import java.text.Normalizer;
@@ -196,7 +197,7 @@ public class SanitizationFunctionLibrary {
             }
             val normalizedInput = Normalizer.normalize(userInput, Normalizer.Form.NFKC);
             for (Pattern pattern : patterns) {
-                if (pattern.matcher(normalizedInput).find()) {
+                if (BoundedRegex.matcher(pattern, normalizedInput).find()) {
                     return true;
                 }
             }

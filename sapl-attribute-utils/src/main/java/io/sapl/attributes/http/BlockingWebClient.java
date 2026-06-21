@@ -15,13 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.sapl.api.stream;
+package io.sapl.attributes.http;
 
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
+import io.sapl.api.stream.Stream;
+import io.sapl.api.stream.Streams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -91,6 +93,7 @@ public class BlockingWebClient {
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
     private static final String ERROR_HTTP_RESPONSE_STATUS                  = "HTTP %d";
+    private static final String ERROR_MALFORMED_URI                         = "Malformed request URI: %s";
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
     private static final String ERROR_RESPONSE_TOO_LARGE                    = "HTTP response exceeded the configured limit of %d bytes.";
 
@@ -143,8 +146,8 @@ public class BlockingWebClient {
             if (MEDIATYPE_TEXT_EVENT_STREAM.equals(accept)) {
                 return openServerSentEventStream(request, maxBytes);
             }
-            // One asynchronous request-response, then complete. The attribute
-            // broker re-invokes per its poll interval, so the PIP never loops.
+            // One request-response then complete. The broker re-invokes per its poll
+            // interval, so the PIP never loops.
             val supplier  = jsonRequestSupplier(request, accept, maxBytes);
             val delivered = new AtomicBoolean(false);
             return Streams.fromBlockingSource(() -> delivered.compareAndSet(false, true) ? supplier.get() : null);
@@ -165,7 +168,7 @@ public class BlockingWebClient {
             val headers  = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val body     = jsonOrDefault(requestSettings, BODY, null);
             val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
-            val uri      = URI.create(baseUrl + path);
+            val uri      = createUri(baseUrl + path);
             return openWebSocket(uri, headers, body, maxBytes);
         } catch (RuntimeException e) {
             return Streams.error(messageOf(e));
@@ -181,8 +184,8 @@ public class BlockingWebClient {
                 }
                 final byte[] bytes;
                 try (val in = response.body()) {
-                    // Read one byte past the limit so an oversized body is detected
-                    // without buffering more than the cap plus a single byte.
+                    // Read one byte past the limit to detect an oversized body without buffering
+                    // more than the cap.
                     bytes = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE));
                 }
                 if (bytes.length > maxBytes) {
@@ -243,27 +246,32 @@ public class BlockingWebClient {
         while (!stopped.get() && iterator.hasNext()) {
             val line = iterator.next();
             if (line.isEmpty()) {
-                if (!data.isEmpty()) {
-                    emit.accept(parseServerSentEventData(data.toString()));
-                    data.setLength(0);
-                }
-                continue;
-            }
-            if (line.startsWith("data:")) {
-                if (!data.isEmpty()) {
-                    data.append('\n');
-                }
-                data.append(line.substring(5).stripLeading());
+                flushEvent(data, emit);
+            } else if (line.startsWith("data:")) {
+                appendDataLine(data, line);
                 if (data.length() > maxBytes) {
                     emit.accept(Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes)));
                     stopped.set(true);
-                    return;
                 }
             }
         }
-        if (!stopped.get() && !data.isEmpty()) {
-            emit.accept(parseServerSentEventData(data.toString()));
+        if (!stopped.get()) {
+            flushEvent(data, emit);
         }
+    }
+
+    private void flushEvent(StringBuilder data, Consumer<Value> emit) {
+        if (!data.isEmpty()) {
+            emit.accept(parseServerSentEventData(data.toString()));
+            data.setLength(0);
+        }
+    }
+
+    private static void appendDataLine(StringBuilder data, String line) {
+        if (!data.isEmpty()) {
+            data.append('\n');
+        }
+        data.append(line.substring(5).stripLeading());
     }
 
     private Value parseServerSentEventData(String data) {
@@ -321,7 +329,7 @@ public class BlockingWebClient {
     private static URI buildUri(String baseUrl, String path, Map<String, String> queryParams) {
         val uri = baseUrl + path;
         if (queryParams.isEmpty()) {
-            return URI.create(uri);
+            return createUri(uri);
         }
         val sb = new StringBuilder(uri);
         sb.append(uri.contains("?") ? '&' : '?');
@@ -335,7 +343,26 @@ public class BlockingWebClient {
             sb.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
             first = false;
         }
-        return URI.create(sb.toString());
+        return createUri(sb.toString());
+    }
+
+    private static URI createUri(String uri) {
+        try {
+            return URI.create(uri);
+        } catch (IllegalArgumentException e) {
+            // The query string and any userinfo can carry secrets (e.g. the Traccar
+            // token). Never let them reach the ErrorValue, report, or logs.
+            throw new IllegalArgumentException(ERROR_MALFORMED_URI.formatted(redactSecrets(uri)));
+        }
+    }
+
+    private static String redactSecrets(String uri) {
+        var redacted = uri;
+        val query    = redacted.indexOf('?');
+        if (query >= 0) {
+            redacted = redacted.substring(0, query) + "?<redacted>";
+        }
+        return redacted.replaceAll("//[^/@]*@", "//<redacted>@");
     }
 
     private HttpRequest buildRequest(URI uri, String method, JsonNode headers, String accept, String contentType,

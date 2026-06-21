@@ -136,6 +136,18 @@ public record RemoteBundleSourceConfig(
         }
     }
 
+    // Redacts the credential so it never reaches logs, dumps, or exception
+    // messages.
+    @Override
+    public String toString() {
+        return "RemoteBundleSourceConfig[baseUrl=" + baseUrl + ", pdpIds=" + pdpIds + ", mode=" + mode
+                + ", pollInterval=" + pollInterval + ", longPollTimeout=" + longPollTimeout + ", authHeaderName="
+                + authHeaderName + ", authHeaderValue=" + (authHeaderValue == null ? null : "REDACTED")
+                + ", followRedirects=" + followRedirects + ", securityPolicy=" + securityPolicy
+                + ", pdpIdPollIntervals=" + pdpIdPollIntervals + ", firstBackoff=" + firstBackoff + ", maxBackoff="
+                + maxBackoff + "]";
+    }
+
     /**
      * True when a credential sent to {@code baseUrl} would travel in cleartext.
      * That is the case when the scheme is not https and the host is not

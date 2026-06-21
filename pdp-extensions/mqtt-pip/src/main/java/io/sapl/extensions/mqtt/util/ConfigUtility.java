@@ -60,6 +60,7 @@ public class ConfigUtility {
     private static final String DEFAULT_BROKER_CONFIG_NAME             = "default";
     private static final String DEFAULT_PASSWORD                       = "";
 
+    private static final String ERROR_INVALID_QOS              = "The mqtt quality of service level must be a number.";
     private static final String ERROR_NO_VALID_MQTT_PIP_CONFIG = "No valid configuration for mqtt pip client connection provided.";
 
     /**
@@ -310,8 +311,10 @@ public class ConfigUtility {
      * @return returns the mqtt quality of service level
      */
     public static MqttQos getQos(Value qosVal) {
-        var qos = ((NumberValue) qosVal).value().intValue();
-        return MqttQos.fromCode(qos);
+        if (qosVal instanceof NumberValue number) {
+            return MqttQos.fromCode(number.value().intValue());
+        }
+        throw new IllegalArgumentException(ERROR_INVALID_QOS);
     }
 
     /**

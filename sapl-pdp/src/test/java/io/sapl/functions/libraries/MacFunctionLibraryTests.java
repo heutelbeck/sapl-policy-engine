@@ -238,4 +238,13 @@ class MacFunctionLibraryTests {
         assertThat(MacFunctionLibrary.isValidHmac(Value.of("{\"action\":\"opened\",\"number\":2}"),
                 (TextValue) originalSignature, secret, Value.of("HmacSHA256"))).isEqualTo(Value.FALSE);
     }
+
+    @Test
+    void whenHmacMessageExceedsMaxLengthThenError() {
+        var oversized = "x".repeat(10_000_001);
+        var result    = MacFunctionLibrary.hmacSha256(Value.of(oversized), Value.of("key"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum length");
+    }
 }

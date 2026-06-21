@@ -149,6 +149,18 @@ class PriorityBasedVoteCombinerTests {
         }
 
         @Test
+        @DisplayName("a NOT_APPLICABLE accumulator replaced by an INDETERMINATE vote preserves that vote's errors")
+        void whenNotApplicableReplacedByIndeterminateThenErrorsPreserved() {
+            val indeterminate = indeterminateVote("policy-1", Outcome.PERMIT);
+            val votes         = new ArrayList<>(List.of(indeterminate));
+
+            val result = PriorityBasedVoteCombiner.combineMultipleVotes(votes, Decision.PERMIT, TEST_METADATA);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+            assertThat(result.errors()).isNotEmpty();
+        }
+
+        @Test
         @DisplayName("single vote is wrapped with itself as contributing vote")
         void whenSingleVoteThenWrappedWithContributingVote() {
             val vote   = permitVote("policy-1");

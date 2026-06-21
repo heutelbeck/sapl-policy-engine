@@ -48,9 +48,14 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.ERROR_INVALID_B
 @UtilityClass
 public class PemUtils {
 
+    private static final String ERROR_INPUT_TOO_LARGE     = "Cryptographic input exceeds the maximum length of %d characters.";
     private static final String ERROR_NO_PEM_CONTENT      = "No PEM content found.";
     private static final String ERROR_PEM_DECODING_FAILED = "PEM decoding failed: %s.";
     private static final String ERROR_PEM_ENCODING_FAILED = "PEM encoding failed: %s.";
+
+    // Keys, certificates, and JWK sets are kilobyte-scale; this generous cap
+    // excludes pathological input.
+    private static final int MAX_INPUT_CHARS = 256 * 1024;
 
     /**
      * Decodes PEM-encoded content from a string to raw DER bytes.
@@ -64,6 +69,9 @@ public class PemUtils {
      * if no PEM content is found or decoding fails
      */
     public static byte[] decodePem(String pemContent) {
+        if (pemContent.length() > MAX_INPUT_CHARS) {
+            throw new CryptoException(ERROR_INPUT_TOO_LARGE.formatted(MAX_INPUT_CHARS));
+        }
         try (val reader = new PemReader(new StringReader(pemContent))) {
             val pemObject = reader.readPemObject();
             if (pemObject == null) {
@@ -212,6 +220,9 @@ public class PemUtils {
     }
 
     private static byte[] decodeBase64(String content, String context) {
+        if (content.length() > MAX_INPUT_CHARS) {
+            throw new CryptoException(ERROR_INPUT_TOO_LARGE.formatted(MAX_INPUT_CHARS));
+        }
         try {
             return Base64.getDecoder().decode(content);
         } catch (IllegalArgumentException exception) {

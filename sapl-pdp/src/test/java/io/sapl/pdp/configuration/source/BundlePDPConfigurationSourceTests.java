@@ -230,8 +230,8 @@ class BundlePDPConfigurationSourceTests {
 
         val recorder = new CapturingSubscriber();
         source.subscribe(recorder);
-        // A subscriber that always throws must not starve the others or kill the
-        // file-watch thread driving hot reload.
+        // A throwing subscriber must not starve the others or kill the hot-reload
+        // file-watch thread.
         source.subscribe(event -> {
             throw new IllegalStateException("subscriber boom");
         });
@@ -273,16 +273,14 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
-    void whenBundleContainsNestedDirectoriesThenNestedFilesAreSkipped() throws IOException {
+    void whenBundleContainsNestedDirectoriesThenBundleIsRejected() throws IOException {
         val bundlePath = tempDir.resolve("nested.saplbundle");
         createBundleWithNestedDirectory(bundlePath);
         source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
 
         val configs = captureConfigurations(source);
 
-        assertThat(configs).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments()).hasSize(1);
-        assertThat(configs.getFirst().saplDocuments().getFirst()).contains("root-policy");
+        assertThat(configs).isEmpty();
     }
 
     @Test

@@ -130,6 +130,23 @@ class TestCommandTests {
             assertThat(err.toString()).contains("Failed to read files");
         }
 
+        @Test
+        @DisplayName("an unreadable discovered file returns exit code 1 with the read-error message")
+        void whenDiscoveredFileUnreadableThenExitCode1(@TempDir Path tempDir) throws Exception {
+            // Invalid UTF-8 makes Files.readString throw after discovery has found the
+            // file.
+            Files.write(tempDir.resolve("broken.sapl"), new byte[] { (byte) 0xFF, (byte) 0xFE });
+            Files.writeString(tempDir.resolve("greet.sapltest"), TEST_PASSING);
+            val out = new StringWriter();
+            val err = new StringWriter();
+            val cmd = newCommand(out, err);
+
+            val exitCode = cmd.execute("--dir", tempDir.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Failed to read files");
+        }
+
     }
 
     @Nested

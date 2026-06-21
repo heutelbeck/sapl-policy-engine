@@ -74,9 +74,8 @@ class RegexCompilerTests {
     @org.junit.jupiter.api.Timeout(15)
     @DisplayName("a catastrophically backtracking pattern aborts within the budget instead of hanging")
     void whenCatastrophicBacktrackingThenReturnsTimeoutError() {
-        // (.*,){n}P against a comma-separated run with no trailing P forces
-        // exponential backtracking that would otherwise hang the thread for
-        // many seconds. The bounded matcher must abort it as an ErrorValue.
+        // Catastrophic backtracking that would hang the thread must be aborted by the
+        // bounded matcher as an ErrorValue.
         var input = "1,".repeat(30);
         assertCompilesToError("\"" + input + "\" =~ \"(.*,){30}P\"", "time budget");
     }

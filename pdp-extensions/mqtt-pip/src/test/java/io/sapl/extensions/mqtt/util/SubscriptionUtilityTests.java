@@ -23,6 +23,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("SubscriptionUtility")
 class SubscriptionUtilityTests {
@@ -54,5 +55,22 @@ class SubscriptionUtilityTests {
 
         assertThat(filters).hasSize(1);
         assertThat(filters.getFirst().toString()).isEqualTo("building/+/temperature");
+    }
+
+    @Test
+    @DisplayName("a non-text topic is rejected with a domain error, not a class cast")
+    void whenTopicIsNotTextThenThrows() {
+        val notText = Value.of(5);
+
+        assertThatThrownBy(() -> SubscriptionUtility.topicFilters(notText))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("a non-text array element is rejected with a domain error, not a class cast")
+    void whenArrayElementIsNotTextThenThrows() {
+        val topics = Value.ofArray(Value.of("sensors/temperature"), Value.of(7));
+
+        assertThatThrownBy(() -> SubscriptionUtility.topicFilters(topics)).isInstanceOf(IllegalArgumentException.class);
     }
 }

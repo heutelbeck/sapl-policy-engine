@@ -24,7 +24,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -70,11 +69,9 @@ public class RSocketSecurityConfiguration {
     private static final String ERROR_INVALID_BEARER    = "Invalid bearer token.";
     private static final String ERROR_MISSING_PDP_CLAIM = "JWT missing required claim: %s.";
     private static final String ERROR_NO_CREDENTIALS    = "No authentication credentials in setup frame.";
-    private static final String ERROR_UNKNOWN_USER      = "Unknown user: %s.";
 
     private final SaplNodeProperties   properties;
     private final UserLookupService    userLookupService;
-    private final PasswordEncoder      passwordEncoder;
     private final @Nullable JwtDecoder jwtDecoder;
 
     @Bean
@@ -94,10 +91,7 @@ public class RSocketSecurityConfiguration {
     private Mono<AuthenticationResult> authenticateSetup(ConnectionSetupPayload setup, boolean allowNoAuth) {
         val metadata = setup.metadata();
         if (metadata.readableBytes() == 0) {
-            // A connection with no credentials is accepted as the default PDP
-            // only when unauthenticated access is allowed. A presented
-            // credential is always verified and routed to its tenant, matching
-            // the HTTP authentication handler.
+            // No credentials maps to the default PDP only when anonymous access is allowed.
             return allowNoAuth ? Mono.just(new AuthenticationResult(properties.getDefaultPdpId(), null))
                     : Mono.error(new BadCredentialsException(ERROR_NO_CREDENTIALS));
         }
@@ -121,15 +115,13 @@ public class RSocketSecurityConfiguration {
         val passwordBuf = AuthMetadataCodec.readPassword(metadata);
         val username    = usernameBuf.toString(StandardCharsets.UTF_8);
         val password    = passwordBuf.toString(StandardCharsets.UTF_8);
-        val userOpt     = userLookupService.findByBasicUsername(username);
+        // Constant-time verification, so timing does not disclose whether a username
+        // exists.
+        val userOpt = userLookupService.verifyBasicCredentials(username, password);
         if (userOpt.isEmpty()) {
-            return Mono.error(new BadCredentialsException(ERROR_UNKNOWN_USER.formatted(username)));
-        }
-        val user = userOpt.get();
-        if (!passwordEncoder.matches(password, user.getBasic().getSecret())) {
             return Mono.error(new BadCredentialsException(ERROR_AUTH_FAILED));
         }
-        return Mono.just(new AuthenticationResult(user.getPdpId(), null));
+        return Mono.just(new AuthenticationResult(userOpt.get().getPdpId(), null));
     }
 
     private Mono<AuthenticationResult> authenticateBearer(ByteBuf metadata) {

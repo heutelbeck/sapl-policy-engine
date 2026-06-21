@@ -25,15 +25,28 @@ import lombok.val;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
 import org.locationtech.spatial4j.distance.DistanceUtils;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.BiFunction;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.*;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class GeographicFunctionLibraryTests {
 
@@ -221,7 +234,7 @@ class GeographicFunctionLibraryTests {
     @Test
     void bufferTest() {
         val expectedGeometry = geometryToGeoJSON(POINT_1_2_GEOMETRY.buffer(10.0D));
-        val actualGeometry   = buffer(POINT_1_2, Value.of(10.0D));
+        val actualGeometry   = buffer(POINT_1_2, (NumberValue) Value.of(10.0D));
         assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
@@ -483,6 +496,53 @@ class GeographicFunctionLibraryTests {
     @SneakyThrows
     private static ObjectValue geometryToGeoJSON(Geometry geo) {
         return (ObjectValue) json(GEOJSON_WRITER.write(geo));
+    }
+
+    @TempDir
+    Path tempDir;
+
+    private enum XxeCase {
+        KML,
+        GML2,
+        GML3
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesExternalEntityThenContentIsNotResolved(XxeCase xxeCase) throws IOException {
+        val payloadFile = tempDir.resolve("xxe-payload.txt");
+        // The entity is referenced inside the coordinates, so a parser that
+        // resolved it would surface this injected longitude in the output
+        // geometry. The hardened parser must not resolve the external entity,
+        // so this value must never appear in the result.
+        val injectedLon = "133.7";
+        val fileContent = xxeCase == XxeCase.KML ? injectedLon + ",42.0,0" : injectedLon + ",42.0";
+        Files.writeString(payloadFile, fileContent);
+        val externalUri = payloadFile.toUri().toString();
+
+        val document = switch (xxeCase) {
+        case KML        -> """
+                <?xml version="1.0"?>
+                <!DOCTYPE kml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                <kml xmlns="http://www.opengis.net/kml/2.2"><Placemark>
+                <Point><coordinates>&xxe;</coordinates></Point></Placemark></kml>
+                """.formatted(externalUri);
+        case GML2, GML3 ->
+            """
+                    <?xml version="1.0"?>
+                    <!DOCTYPE gml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                    <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326"><gml:coordinates>&xxe;</gml:coordinates></gml:Point>
+                    """
+                    .formatted(externalUri);
+        };
+
+        val result = switch (xxeCase) {
+        case KML  -> kmlToGeoJSON(Value.of(document));
+        case GML2 -> gml2ToGeoJSON(Value.of(document));
+        case GML3 -> gml3ToGeoJSON(Value.of(document));
+        };
+
+        assertThat(result.toString()).doesNotContain(injectedLon);
     }
 
     @Test
@@ -906,6 +966,77 @@ class GeographicFunctionLibraryTests {
         val result      = gml2ToGeoJSON(Value.of(gml2Invalid));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+    }
+
+    @Test
+    void kmlToGeoJSONIsThreadSafeUnderConcurrentCalls() {
+        val kml      = Value.of("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark><Point><coordinates>10,20,0</coordinates></Point></Placemark>
+                </kml>
+                """);
+        val expected = kmlToGeoJSON(kml);
+        assertThat(expected).isNotInstanceOf(ErrorValue.class);
+
+        val allMatch = IntStream.range(0, 500).parallel().allMatch(i -> kmlToGeoJSON(kml).equals(expected));
+
+        assertThat(allMatch).isTrue();
+    }
+
+    @Test
+    void geoJsonToGeometryWhenVertexCountExceedsMaximumThenThrows() {
+        val coordinates = new Coordinate[MAX_GEOMETRY_VERTICES + 1];
+        for (var i = 0; i < coordinates.length; i++) {
+            coordinates[i] = new Coordinate(i % 180, i % 90);
+        }
+        val tooManyVertices = geometryToGeoJSON(GEO_FACTORY.createLineString(coordinates));
+        assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyVertices))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("vertices");
+    }
+
+    @Test
+    void geoJsonToGeometryWhenMemberCountExceedsMaximumThenThrows() {
+        val geometries = new Geometry[MAX_GEOMETRY_COUNT + 1];
+        for (var i = 0; i < geometries.length; i++) {
+            geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
+        }
+        val tooManyMembers = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
+        assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyMembers))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("members");
+    }
+
+    @Test
+    void wktToGeoJSONWhenInputExceedsMaximumThenError() {
+        val oversizedWkt = "POINT(1 1)" + " ".repeat(MAX_GEO_INPUT_BYTES);
+        val result       = wktToGeoJSON(Value.of(oversizedWkt));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum size");
+    }
+
+    static Stream<Arguments> quadraticCollectionOperations() {
+        return Stream.of(
+                arguments("subset", (BiFunction<ObjectValue, ObjectValue, Value>) GeographicFunctionLibrary::subset),
+                arguments("atLeastOneMemberOf",
+                        (BiFunction<ObjectValue, ObjectValue, Value>) GeographicFunctionLibrary::atLeastOneMemberOf));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("quadraticCollectionOperations")
+    void whenPairwiseComparisonsExceedMaximumThenError(String name,
+            BiFunction<ObjectValue, ObjectValue, Value> operation) {
+        val first  = collectionOfPoints(1001);
+        val second = collectionOfPoints(1000);
+        val result = operation.apply(first, second);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    private static ObjectValue collectionOfPoints(int count) {
+        val geometries = new Geometry[count];
+        for (var i = 0; i < count; i++) {
+            geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
+        }
+        return geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
     }
 
 }

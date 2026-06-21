@@ -27,6 +27,7 @@ import io.sapl.api.stream.QueueStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -46,8 +47,11 @@ import reactor.core.publisher.Mono;
  * starter Servlet PEP, sapl-node CLI) work uniformly against remote
  * PDPs, which natively speak reactive over the wire.
  */
+@Slf4j
 @RequiredArgsConstructor
 public final class DelegatingBlockingPolicyDecisionPoint implements StreamingPolicyDecisionPoint {
+
+    private static final String WARN_DECISION_STREAM_FAILED = "Remote PDP decision stream terminated with an error: {}";
 
     private final ReactivePolicyDecisionPoint reactive;
 
@@ -72,8 +76,13 @@ public final class DelegatingBlockingPolicyDecisionPoint implements StreamingPol
     }
 
     private static <T> Stream<T> bridge(Flux<T> source) {
-        final var queue        = new QueueStream<T>();
-        final var subscription = source.subscribe(queue::put, error -> queue.complete(), queue::complete);
+        final var queue = new QueueStream<T>();
+        // onError is terminal here, firing at most once. Remote PDPs emit a
+        // fail-closed INDETERMINATE before erroring, so we log the cause and end.
+        final var subscription = source.subscribe(queue::put, error -> {
+            log.warn(WARN_DECISION_STREAM_FAILED, error.getMessage(), error);
+            queue.complete();
+        }, queue::complete);
         queue.onClose(subscription::dispose);
         return queue;
     }

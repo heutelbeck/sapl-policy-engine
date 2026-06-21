@@ -28,7 +28,6 @@ import java.util.HexFormat;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -67,14 +66,12 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
 
     private final SaplNodeProperties     properties;
     private final UserLookupService      userLookupService;
-    private final PasswordEncoder        passwordEncoder;
     private final @Nullable JwtDecoder   jwtDecoder;
     private final HttpAuthResult         defaultPdpResult;
     private final Cache<String, Outcome> cache;
 
     public CachingHttpAuthHandler(SaplNodeProperties properties,
             UserLookupService userLookupService,
-            PasswordEncoder passwordEncoder,
             @Nullable JwtDecoder jwtDecoder,
             Duration positiveTtl,
             Duration negativeTtl,
@@ -84,7 +81,6 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         }
         this.properties        = properties;
         this.userLookupService = userLookupService;
-        this.passwordEncoder   = passwordEncoder;
         this.jwtDecoder        = jwtDecoder;
         this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId());
         this.cache             = Caffeine.newBuilder().maximumSize(maxSize)
@@ -157,8 +153,8 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         }
         val username = text.substring(0, colon);
         val password = text.substring(colon + 1);
-        val userOpt  = userLookupService.findByBasicUsername(username);
-        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getBasic().getSecret())) {
+        val userOpt  = userLookupService.verifyBasicCredentials(username, password);
+        if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
         return new HttpAuthResult(userOpt.get().getPdpId());
@@ -240,10 +236,22 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         private long ttl(Outcome value) {
             return switch (value) {
             case Outcome.Failure ignored                               -> negativeNanos;
-            case Outcome.Success(var result, var exp) when exp != null ->
-                Math.clamp(Duration.between(Instant.now(), exp).toNanos(), 0L, positiveNanos);
+            case Outcome.Success(var result, var exp) when exp != null -> ttlUntil(exp);
             case Outcome.Success ignored                               -> positiveNanos;
             };
+        }
+
+        // Clamp to [0, positiveNanos] so a far-future exp does not overflow
+        // Duration.toNanos().
+        private long ttlUntil(Instant exp) {
+            val remaining = Duration.between(Instant.now(), exp);
+            if (remaining.isNegative()) {
+                return 0L;
+            }
+            if (remaining.compareTo(Duration.ofNanos(positiveNanos)) >= 0) {
+                return positiveNanos;
+            }
+            return remaining.toNanos();
         }
     }
 }

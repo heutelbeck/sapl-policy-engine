@@ -165,6 +165,21 @@ class PdpMetricsCollectorTests {
             assertThat(firstDecisionTimer.count()).isEqualTo(2);
         }
 
+        @Test
+        @DisplayName("a decision delivered after unsubscribe leaves no retained subscription state")
+        void whenDecisionArrivesAfterUnsubscribeThenNoStateRetained() {
+            interceptor.onSubscribe("sub-1", SUBSCRIPTION, "test-pdp");
+            interceptor.onDecision(voteWithDecision(Decision.PERMIT), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
+            interceptor.onUnsubscribe("sub-1");
+
+            // A value already in flight on another pump can be mapped after unsubscribe.
+            interceptor.onDecision(voteWithDecision(Decision.DENY), Instant.parse("2026-02-13T00:00:00Z"), "sub-1",
+                    SUBSCRIPTION);
+
+            assertThat(interceptor.trackedSubscriptionCount()).isZero();
+        }
+
     }
 
 }

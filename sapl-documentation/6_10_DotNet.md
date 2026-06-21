@@ -650,6 +650,32 @@ public interface IStreamingService
 
 At the service (proxy) layer the enforced stream keeps yielding the concrete element type. Boundary frames (`ACCESS_SUSPENDED` / `ACCESS_GRANTED` / `ACCESS_DENIED`) are a transport concern rendered by the SSE controller filter, and so `SignalTransitions` applies to controller-level streaming.
 
+### Transaction Integration
+
+A `[PreEnforce]` method's output obligations, and the entire `[PostEnforce]` decision, run *after* the protected method has executed and written to the database. Without a surrounding transaction, a denial at that point cannot undo the write: the row is committed, the caller gets a 403, and the database is left inconsistent.
+
+SAPL closes this with an opt-in transaction boundary backed by EF Core. Install the package and register it once, after `AddDbContext` and `AddSapl`:
+
+```bash
+dotnet add package Sapl.EntityFrameworkCore
+```
+
+```csharp
+builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(connectionString));
+builder.Services.AddSapl(o => o.BaseUrl = "https://pdp.example.com");
+builder.Services.AddSaplEntityFrameworkCoreTransactions<AppDbContext>();   // enables rollback
+```
+
+With the manager registered, both enforcement paths (the controller MVC filter and the service-layer proxy) wrap the method invocation and all enforcement stages in a single transaction on `AppDbContext`. The transaction commits only on a clean `PERMIT` with every obligation discharged; otherwise the `AccessDeniedException` propagates out of the boundary and the write is rolled back before the access-denied middleware turns it into a 403. Three situations roll back:
+
+- a `[PostEnforce]` decision that is not `PERMIT`,
+- a `[PostEnforce]` obligation handler failure (at the decision or the output stage),
+- a `[PreEnforce]` output-obligation failure (the pre-decision permits, but its output obligations run after the method has written).
+
+This is opt-in. Without `AddSaplEntityFrameworkCoreTransactions`, the enforcement paths run with no transaction boundary and behave exactly as before. `Sapl.Core` and `Sapl.AspNetCore` carry no Entity Framework dependency; only the separate `Sapl.EntityFrameworkCore` package does.
+
+The boundary is on the `TDbContext` you register. Any write made through that context anywhere in the call chain, including in nested services the protected method calls, is inside the transaction and rolls back. A write that goes through a different `DbContext`, a separate connection, or raw ADO.NET is outside the boundary and is not rolled back.
+
 ### Manual PDP Access
 
 For cases where attributes are not suitable, inject `IPolicyDecisionPoint` directly and call the PDP programmatically:

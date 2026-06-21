@@ -45,9 +45,8 @@ class PatternsFunctionLibraryTests {
     @Timeout(15)
     @DisplayName("a backtracking regex that slips the static blacklist still aborts as an error")
     void whenBacktrackingPatternSlipsBlacklistThenFindMatchesReturnsError() {
-        // (.*,){30}P passes the static blacklist (no nested (...)+, no |, no
-        // comma-bounded {n,m}) yet backtracks catastrophically. The bounded
-        // matcher must turn the hang into an ErrorValue.
+        // A pattern that slips the static blacklist yet backtracks catastrophically
+        // must become an ErrorValue via the bounded matcher.
         val pattern = (TextValue) Value.of("(.*,){30}P");
         val value   = (TextValue) Value.of("1,".repeat(30));
         val result  = PatternsFunctionLibrary.findMatches(pattern, value);
@@ -520,5 +519,15 @@ class PatternsFunctionLibraryTests {
         val redacted = PatternsFunctionLibrary.replaceAll(Value.of("SSN: 123-45-6789"),
                 Value.of("\\d{3}-\\d{2}-\\d{4}"), Value.of("[REDACTED]"));
         assertThat(redacted).isInstanceOf(TextValue.class).isEqualTo(Value.of("SSN: [REDACTED]"));
+    }
+
+    @Test
+    void whenReplaceAllOutputExceedsMaximumThenError() {
+        val value       = Value.of("a".repeat(100_000));
+        val replacement = Value.of("X".repeat(200));
+        val result      = PatternsFunctionLibrary.replaceAll(value, Value.of("a"), replacement);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("too long");
     }
 }

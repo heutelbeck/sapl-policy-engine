@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PolicyDecisionPointBuilder")
@@ -36,8 +37,8 @@ class PolicyDecisionPointBuilderTests {
         val nonDeliveringSource = new PluginsSource() {
                                     @Override
                                     public void subscribe(Consumer<PluginsBundle> listener) {
-                                        // Violates the deliver-on-subscribe contract, leaving the voter
-                                        // source without a plugins bundle.
+                                        // Violates deliver-on-subscribe, leaving the voter source without a plugins
+                                        // bundle.
                                     }
 
                                     @Override
@@ -58,5 +59,19 @@ class PolicyDecisionPointBuilderTests {
         val builder             = PolicyDecisionPointBuilder.withDefaults().withPluginsSource(nonDeliveringSource);
         assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("no plugins bundle is available");
+    }
+
+    @Test
+    @DisplayName("a builder-created plugins source is closed by PDPComponents.close()")
+    void whenBuilderOwnedPluginsSourceThenClosedOnClose() {
+        val components    = PolicyDecisionPointBuilder.withDefaults().build();
+        val pluginsSource = components.pluginsSource();
+
+        assertThat(pluginsSource).isNotNull();
+        assertThat(pluginsSource.isClosed()).isFalse();
+
+        components.close();
+
+        assertThat(pluginsSource.isClosed()).isTrue();
     }
 }

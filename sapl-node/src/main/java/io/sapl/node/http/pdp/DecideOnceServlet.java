@@ -73,11 +73,25 @@ public class DecideOnceServlet extends AbstractBypassServlet {
             return;
         }
 
-        val decision = pdp.decideOnce(subscription, pdpId);
+        AuthorizationDecision decision;
+        try {
+            decision = pdp.decideOnce(subscription, pdpId);
+        } catch (Exception e) {
+            // Fail closed: no raw 500 (stack leak); return INDETERMINATE like the streaming
+            // servlet.
+            log.error("Decision evaluation failed for decide-once; returning INDETERMINATE.", e);
+            decision = AuthorizationDecision.INDETERMINATE;
+        }
         // Serialize first so the status code reflects the actual outcome.
         // Writing 200 then mapper.writeValue would leave the client with
         // "200 OK" plus a truncated body on a Jackson failure mid-write.
-        val body = mapper.writeValueAsBytes(decision);
+        byte[] body;
+        try {
+            body = mapper.writeValueAsBytes(decision);
+        } catch (Exception e) {
+            log.error("Failed to serialize decision for decide-once; returning INDETERMINATE.", e);
+            body = mapper.writeValueAsBytes(AuthorizationDecision.INDETERMINATE);
+        }
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(CONTENT_TYPE_JSON);
         response.setContentLength(body.length);

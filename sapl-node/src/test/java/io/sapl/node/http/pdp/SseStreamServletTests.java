@@ -18,13 +18,20 @@
 package io.sapl.node.http.pdp;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -39,11 +46,13 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler.HttpAuthResult;
 import jakarta.servlet.AsyncContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -105,5 +114,78 @@ class SseStreamServletTests {
 
         verify(connectionRegistry).unregister(asyncContext);
         verify(asyncContext).complete();
+    }
+
+    @Test
+    @DisplayName("keep-alive cannot be disabled: a non-positive interval falls back to the default and a sub-floor one is raised")
+    void whenKeepAliveIntervalConfiguredThenNormalized() {
+        assertThat(SseStreamServlet.effectiveKeepAliveInterval(Duration.ZERO)).isEqualTo(Duration.ofSeconds(15));
+        assertThat(SseStreamServlet.effectiveKeepAliveInterval(Duration.ofSeconds(-5)))
+                .isEqualTo(Duration.ofSeconds(15));
+        assertThat(SseStreamServlet.effectiveKeepAliveInterval(null)).isEqualTo(Duration.ofSeconds(15));
+        assertThat(SseStreamServlet.effectiveKeepAliveInterval(Duration.ofMillis(200)))
+                .isEqualTo(Duration.ofSeconds(1));
+        assertThat(SseStreamServlet.effectiveKeepAliveInterval(Duration.ofSeconds(30)))
+                .isEqualTo(Duration.ofSeconds(30));
+    }
+
+    @Test
+    @DisplayName("a client that died without closing is detected via the keep-alive write failure: the stream is closed and the async context completed and unregistered")
+    void whenKeepAliveWriteFailsThenStreamClosedAndAsyncContextReclaimed() throws Exception {
+        val scheduler = Executors.newSingleThreadScheduledExecutor();
+        val pump      = Executors.newVirtualThreadPerTaskExecutor();
+        val stream    = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
+        try {
+            val brokenPipe = new PrintWriter(new Writer() {
+                               @Override
+                               public void write(char[] cbuf, int off, int len) throws IOException {
+                                   throw new IOException("broken pipe");
+                               }
+
+                               @Override
+                               public void flush() throws IOException {
+                                   throw new IOException("broken pipe");
+                               }
+
+                               @Override
+                               public void close() {
+                                   // no-op
+                               }
+                           });
+            val response   = mock(HttpServletResponse.class);
+            when(response.getWriter()).thenReturn(brokenPipe);
+            when(asyncContext.getResponse()).thenReturn(response);
+            when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+            val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
+            when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+            when(request.startAsync()).thenReturn(asyncContext);
+
+            val servlet = new SseStreamServlet<AuthorizationSubscription, AuthorizationDecision>(authHandler, mapper,
+                    Duration.ofSeconds(1), scheduler, pump, connectionRegistry) {
+                @Override
+                protected Class<AuthorizationSubscription> subscriptionType() {
+                    return AuthorizationSubscription.class;
+                }
+
+                @Override
+                protected Stream<AuthorizationDecision> openStream(AuthorizationSubscription subscription,
+                        String pdpId) {
+                    return stream;
+                }
+
+                @Override
+                protected AuthorizationDecision indeterminate() {
+                    return AuthorizationDecision.INDETERMINATE;
+                }
+            };
+
+            servlet.handlePost(request, response);
+
+            verify(connectionRegistry, timeout(10000)).unregister(asyncContext);
+            verify(asyncContext, timeout(10000)).complete();
+        } finally {
+            scheduler.shutdownNow();
+            pump.shutdownNow();
+        }
     }
 }

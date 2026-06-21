@@ -22,6 +22,7 @@ import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static io.sapl.functions.libraries.SchemaValidationLibrary.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,6 +35,32 @@ class SchemaValidationLibraryTests {
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
         assertThatCode(() -> functionBroker.load(new SchemaValidationLibrary())).doesNotThrowAnyException();
+    }
+
+    @Test
+    @Timeout(15)
+    @DisplayName("a catastrophically backtracking schema pattern aborts under the match budget instead of hanging the evaluation thread")
+    void whenSchemaPatternIsCatastrophicallyBacktrackingThenBoundedAbort() {
+        val schema  = ObjectValue.builder().put("type", Value.of("string")).put("pattern", Value.of("(.*a){30}$"))
+                .build();
+        val hostile = Value.of("a".repeat(50));
+
+        val result = isCompliant(hostile, schema);
+
+        assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("time budget"));
+    }
+
+    @Test
+    @DisplayName("a validator failure outside the expected exception types yields an ErrorValue, not an escape")
+    void whenValidatorThrowsUnexpectedlyThenErrorValue() {
+        // A self-referential $ref drives networknt into a StackOverflowError, which is
+        // neither SchemaException nor IllegalArgumentException.
+        val selfReferential = ObjectValue.builder().put("$ref", Value.of("#")).build();
+
+        val result = validateWithExternalSchemas(Value.of("x"), selfReferential, Value.EMPTY_ARRAY);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
     }
 
     @Test

@@ -178,4 +178,17 @@ class ConfigUtilityTests {
             assertThat(config.get(SaplMqttClient.ENVIRONMENT_CLIENT_ID).asString()).isEqualTo("production");
         }
     }
+
+    @Nested
+    @DisplayName("getQos")
+    class GetQos {
+
+        @Test
+        @DisplayName("a non-number qos is rejected with a domain error, not a class cast")
+        void whenQosIsNotANumberThenThrows() {
+            val notANumber = Value.of("two");
+
+            assertThatThrownBy(() -> ConfigUtility.getQos(notANumber)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 }

@@ -41,7 +41,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -68,9 +67,6 @@ class CachingHttpAuthHandlerTests {
     private UserLookupService userLookupService;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -81,12 +77,12 @@ class CachingHttpAuthHandlerTests {
     private static final String TENANT_PDP    = "tenant-x";
 
     private CachingHttpAuthHandler handler() {
-        return new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, jwtDecoder,
-                Duration.ofMinutes(5), Duration.ofSeconds(5), 100L);
+        return new CachingHttpAuthHandler(properties, userLookupService, jwtDecoder, Duration.ofMinutes(5),
+                Duration.ofSeconds(5), 100L);
     }
 
     private CachingHttpAuthHandler handlerWithoutJwtDecoder() {
-        return new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, null, Duration.ofMinutes(5),
+        return new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
                 Duration.ofSeconds(5), 100L);
     }
 
@@ -165,9 +161,8 @@ class CachingHttpAuthHandlerTests {
             val header = basicHeader("alice", "secret");
             when(request.getHeader(AUTHORIZATION)).thenReturn(header);
             when(properties.isAllowBasicAuth()).thenReturn(true);
-            when(userLookupService.findByBasicUsername("alice"))
+            when(userLookupService.verifyBasicCredentials("alice", "secret"))
                     .thenReturn(Optional.of(basicUser("alice", TENANT_PDP, "alice", "encoded-secret")));
-            when(passwordEncoder.matches("secret", "encoded-secret")).thenReturn(true);
 
             val sut = handler();
 
@@ -192,7 +187,7 @@ class CachingHttpAuthHandlerTests {
             val header = basicHeader("ghost", "anything");
             when(request.getHeader(AUTHORIZATION)).thenReturn(header);
             when(properties.isAllowBasicAuth()).thenReturn(true);
-            when(userLookupService.findByBasicUsername("ghost")).thenReturn(Optional.empty());
+            when(userLookupService.verifyBasicCredentials("ghost", "anything")).thenReturn(Optional.empty());
 
             val sut = handler();
 
@@ -205,9 +200,7 @@ class CachingHttpAuthHandlerTests {
             val header = basicHeader("alice", "wrong");
             when(request.getHeader(AUTHORIZATION)).thenReturn(header);
             when(properties.isAllowBasicAuth()).thenReturn(true);
-            when(userLookupService.findByBasicUsername("alice"))
-                    .thenReturn(Optional.of(basicUser("alice", TENANT_PDP, "alice", "encoded-secret")));
-            when(passwordEncoder.matches("wrong", "encoded-secret")).thenReturn(false);
+            when(userLookupService.verifyBasicCredentials("alice", "wrong")).thenReturn(Optional.empty());
 
             val sut = handler();
 
@@ -224,7 +217,7 @@ class CachingHttpAuthHandlerTests {
             val sut = handler();
 
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
-            verify(userLookupService, never()).findByBasicUsername(anyString());
+            verify(userLookupService, never()).verifyBasicCredentials(anyString(), anyString());
         }
 
         @Test
@@ -279,8 +272,8 @@ class CachingHttpAuthHandlerTests {
             when(properties.isAllowApiKeyAuth()).thenReturn(false);
             when(properties.isAllowOauth2Auth()).thenReturn(false);
 
-            val sut = new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, null,
-                    Duration.ofMinutes(5), Duration.ofSeconds(5), 100L);
+            val sut = new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
+                    Duration.ofSeconds(5), 100L);
 
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
             verify(userLookupService, never()).findByApiKey(anyString());
@@ -382,37 +375,34 @@ class CachingHttpAuthHandlerTests {
     class CacheReuse {
 
         @Test
-        @DisplayName("identical Basic header in two consecutive calls runs the password encoder only once")
-        void whenSameBasicHeaderTwiceThenPasswordEncoderCalledOnce() {
+        @DisplayName("identical Basic header in two consecutive calls verifies the credentials only once")
+        void whenSameBasicHeaderTwiceThenCredentialsVerifiedOnce() {
             val header = basicHeader("alice", "secret");
             when(request.getHeader(AUTHORIZATION)).thenReturn(header);
             when(properties.isAllowBasicAuth()).thenReturn(true);
-            when(userLookupService.findByBasicUsername("alice"))
+            when(userLookupService.verifyBasicCredentials("alice", "secret"))
                     .thenReturn(Optional.of(basicUser("alice", TENANT_PDP, "alice", "encoded-secret")));
-            when(passwordEncoder.matches("secret", "encoded-secret")).thenReturn(true);
 
             val sut = handler();
             sut.authenticate(request);
             sut.authenticate(request);
 
-            verify(passwordEncoder, times(1)).matches(any(), any());
+            verify(userLookupService, times(1)).verifyBasicCredentials(any(), any());
         }
 
         @Test
-        @DisplayName("identical failed Basic header in two consecutive calls hits the cache and only invokes the encoder once")
+        @DisplayName("identical failed Basic header in two consecutive calls hits the cache and only verifies once")
         void whenSameInvalidBasicHeaderTwiceThenSecondCallStillFailsFromCache() {
             val header = basicHeader("alice", "wrong");
             when(request.getHeader(AUTHORIZATION)).thenReturn(header);
             when(properties.isAllowBasicAuth()).thenReturn(true);
-            when(userLookupService.findByBasicUsername("alice"))
-                    .thenReturn(Optional.of(basicUser("alice", TENANT_PDP, "alice", "encoded-secret")));
-            when(passwordEncoder.matches("wrong", "encoded-secret")).thenReturn(false);
+            when(userLookupService.verifyBasicCredentials("alice", "wrong")).thenReturn(Optional.empty());
 
             val sut = handler();
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
             assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
 
-            verify(passwordEncoder, times(1)).matches(any(), any());
+            verify(userLookupService, times(1)).verifyBasicCredentials(any(), any());
         }
     }
 
@@ -426,16 +416,15 @@ class CachingHttpAuthHandlerTests {
         void whenMaxSizeNotPositiveThenThrows(long maxSize) {
             val positiveTtl = Duration.ofMinutes(5);
             val negativeTtl = Duration.ofSeconds(5);
-            assertThatThrownBy(() -> new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, null,
-                    positiveTtl, negativeTtl, maxSize)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("maxSize");
+            assertThatThrownBy(() -> new CachingHttpAuthHandler(properties, userLookupService, null, positiveTtl,
+                    negativeTtl, maxSize)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("maxSize");
         }
 
         @Test
         @DisplayName("accepts positive maxSize")
         void whenMaxSizePositiveThenConstructs() {
-            assertThatCode(() -> new CachingHttpAuthHandler(properties, userLookupService, passwordEncoder, null,
-                    Duration.ofMinutes(5), Duration.ofSeconds(5), 100L)).doesNotThrowAnyException();
+            assertThatCode(() -> new CachingHttpAuthHandler(properties, userLookupService, null, Duration.ofMinutes(5),
+                    Duration.ofSeconds(5), 100L)).doesNotThrowAnyException();
         }
     }
 
@@ -486,6 +475,16 @@ class CachingHttpAuthHandlerTests {
             val outcome = new Outcome.Success(new HttpAuthResult("default"), past);
 
             assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isZero();
+        }
+
+        @Test
+        @DisplayName("JWT success with an exp beyond the nanosecond range does not throw and clamps to the positive TTL")
+        void whenJwtExpiryBeyondNanoRangeThenPositiveTtlApplies() {
+            val expiry    = new TtlExpiry(POSITIVE, NEGATIVE);
+            val farBeyond = Instant.now().plus(Duration.ofDays(365L * 1000));
+            val outcome   = new Outcome.Success(new HttpAuthResult("default"), farBeyond);
+
+            assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
         }
 
         @Test

@@ -22,7 +22,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
-import io.sapl.api.stream.BlockingWebClient;
+import io.sapl.attributes.http.BlockingWebClient;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.stream.TimeScheduler;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
@@ -39,6 +39,7 @@ import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
+import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -104,11 +105,10 @@ public class PolicyDecisionPointBuilder {
     private final JsonMapper mapper;
     private Clock            clock;
 
-    // Timestamping source for observability stamps (decision trace, attribute
-    // value freshness). Distinct from the temporal-reasoning clock above. Null
-    // means it defaults to the temporal clock at build time. ownsTimestampSource
-    // is true only when this builder created the source (then the components
-    // close it); a caller-supplied source is left for the caller to close.
+    // Observability timestamp source (decision trace, attribute freshness),
+    // distinct from the temporal
+    // clock. Null defaults to the temporal clock. ownsTimestampSource gates
+    // closing.
     private InstantSource timestampSource;
     private boolean       ownsTimestampSource = false;
 
@@ -764,12 +764,13 @@ public class PolicyDecisionPointBuilder {
      * fails
      */
     public PDPComponents build() {
-        // Default the timestamp source to the temporal clock so a single clock
-        // governs everything unless the caller opts into a separate source.
+        // Default the timestamp source to the temporal clock unless the caller opted
+        // into a separate one.
         val resolvedTimestampSource = timestampSource != null ? timestampSource : clock;
         val ownsResolvedSource      = ownsTimestampSource;
         val attributeBroker         = resolveAttributeBroker(resolvedTimestampSource);
         val pluginsSource           = resolvePluginsSource();
+        val ownsPluginsSource       = externalPluginsSource == null;
         val voterSource             = new PdpVoterSource(pluginsSource, clock);
         val blockingPdp             = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
                 resolvedTimestampSource);
@@ -778,7 +779,7 @@ public class PolicyDecisionPointBuilder {
             // Create default configuration from collected policies
             if (!policyDocuments.isEmpty()) {
                 val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
-                val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
+                val config    = new PDPConfiguration("default", ConfigurationIds.generate("config"), algorithm,
                         List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
                 initialConfigurations.add(config);
             }
@@ -801,12 +802,14 @@ public class PolicyDecisionPointBuilder {
             }
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
                     configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
-                    plugins.lifecycleListeners());
+                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource);
         } catch (RuntimeException e) {
-            // A failed build never transfers ownership to PDPComponents, so close
-            // the resources this builder created to avoid leaking the coarse-clock
-            // thread, the voter-source scheduler, or a builder-created broker.
+            // A failed build never transfers ownership to PDPComponents, so close what this
+            // builder created.
             closeQuietly(voterSource);
+            if (ownsPluginsSource) {
+                closeQuietly(pluginsSource);
+            }
             if (ownsResolvedSource && resolvedTimestampSource instanceof AutoCloseable closeableSource) {
                 closeQuietly(closeableSource);
             }

@@ -39,9 +39,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
@@ -125,6 +127,56 @@ class MqttPolicyInformationPointIT {
                 .payload(json.getBytes(StandardCharsets.UTF_8)).build();
     }
 
+    private static AttributeAccessContext ctxForPort(int brokerPort) {
+        val pipConfig = json("""
+                {
+                  "defaultBrokerConfigName": "down",
+                  "emitAtRetry": "false",
+                  "brokerConfig": [
+                    { "name": "down", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                  ]
+                }
+                """.formatted(brokerHost, brokerPort, "sapl-down-" + CLIENT_SEQ.incrementAndGet()));
+        val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+        return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
+    }
+
+    @Test
+    @DisplayName("an unreachable broker yields an error value and the failed client is evicted from the cache by the failure path, not leaked until close")
+    void whenBrokerUnreachableThenErrorValueAndCacheEvicted() throws Exception {
+        final int closedPort;
+        try (val probe = new ServerSocket(0)) {
+            closedPort = probe.getLocalPort();
+        } // closed here: the port is now free, so a connect attempt is refused
+
+        val before   = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+        val sawError = new AtomicBoolean(false);
+        val stream   = pip.messages(Value.of("test/unreachable"), ctxForPort(closedPort));
+        val drainer  = Thread.startVirtualThread(() -> {
+                         try {
+                             Value value;
+                             while ((value = stream.awaitNext()) != null) {
+                                 if (value instanceof ErrorValue) {
+                                     sawError.set(true);
+                                 }
+                             }
+                         } catch (InterruptedException e) {
+                             Thread.currentThread().interrupt();
+                         }
+                     });
+        try {
+            // The connect refusal drives the failure path, which emits an error
+            // and releases the cache entry without waiting for the stream close.
+            Awaitility.await().atMost(Duration.ofSeconds(25)).untilAsserted(() -> {
+                assertThat(sawError).isTrue();
+                assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(before);
+            });
+        } finally {
+            stream.close();
+            drainer.interrupt();
+        }
+    }
+
     @Nested
     @DisplayName("Happy path")
     class HappyPath {
@@ -133,10 +185,11 @@ class MqttPolicyInformationPointIT {
         @DisplayName("subscribe + publish: a published message arrives as a TextValue")
         void whenMessagePublishedThenStreamEmitsIt() {
             val topic   = "test/happy/text";
-            val message = buildMqttPublishMessage(topic, "hello", false);
+            val message = buildMqttPublishMessage(topic, "hello", true);
 
+            // Retained publish before subscribing so delivery does not race the subscribe.
+            publisher.publish(message);
             try (val stream = pip.messages(Value.of(topic), freshCtx())) {
-                publishLater(message, 500L);
                 StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(10))
                         .awaitsNext(v -> assertThat(v).isInstanceOf(TextValue.class).isEqualTo(Value.of("hello")));
             }

@@ -34,6 +34,8 @@ import java.util.List;
 @UtilityClass
 public class SubscriptionUtility {
 
+    private static final String ERROR_TOPIC_NOT_TEXT = "An mqtt topic must be a text value.";
+
     /**
      * Returns the list of topic filters expressed by {@code topic}. A
      * {@link TextValue} yields a single-element list; an
@@ -43,11 +45,18 @@ public class SubscriptionUtility {
         val out = new ArrayList<MqttTopicFilter>();
         if (topic instanceof ArrayValue arrayTopics) {
             for (val element : arrayTopics) {
-                out.add(MqttTopicFilter.of(((TextValue) element).value()));
+                out.add(topicFilter(element));
             }
         } else {
-            out.add(MqttTopicFilter.of(((TextValue) topic).value()));
+            out.add(topicFilter(topic));
         }
         return out;
+    }
+
+    private static MqttTopicFilter topicFilter(Value topic) {
+        if (topic instanceof TextValue text) {
+            return MqttTopicFilter.of(text.value());
+        }
+        throw new IllegalArgumentException(ERROR_TOPIC_NOT_TEXT);
     }
 }
