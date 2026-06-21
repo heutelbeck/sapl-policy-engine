@@ -206,6 +206,42 @@ class ServletMutableHttpResponseTests {
             mutable.setContentLength(123);
             assertThat(mutable.getHeader("Content-Length")).isEqualTo("123");
         }
+
+        @Test
+        @DisplayName("commit reconciles a stale Content-Length with a replaced shorter body")
+        void commitReconcilesContentLengthAfterSetBody() throws Exception {
+            mutable.setContentLength(20);
+            mutable.setBody("hi");
+            mutable.commit();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getContentAsString()).isEqualTo("hi");
+                assertThat(d.getHeader("Content-Length")).isEqualTo("2");
+            });
+        }
+
+        @Test
+        @DisplayName("commit reconciles a stale Content-Length with a body replaced via writeBody")
+        void commitReconcilesContentLengthAfterWriteBody() throws Exception {
+            mutable.setContentLength(99);
+            mutable.writeBody("text/plain", "abcd");
+            mutable.commit();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getContentAsString()).isEqualTo("abcd");
+                assertThat(d.getHeader("Content-Length")).isEqualTo("4");
+            });
+        }
+
+        @Test
+        @DisplayName("commit reconciles a stale Content-Length with an error body")
+        void commitReconcilesContentLengthAfterSendError() throws Exception {
+            mutable.setContentLength(1000);
+            mutable.sendError(503, "service down");
+            mutable.commit();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getContentAsString()).isEqualTo("service down");
+                assertThat(d.getHeader("Content-Length")).isEqualTo("12");
+            });
+        }
     }
 
     @Nested

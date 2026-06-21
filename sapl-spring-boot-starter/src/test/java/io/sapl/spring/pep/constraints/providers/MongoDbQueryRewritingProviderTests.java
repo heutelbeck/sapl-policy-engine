@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.data.mongodb.core.query.Collation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.AccessDeniedException;
 
 import com.mongodb.ReadPreference;
 
@@ -245,6 +246,58 @@ class MongoDbQueryRewritingProviderTests {
                     """);
             val query  = new Query();
             assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Fail closed on unbuildable typed criteria")
+    class FailClosed {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("unbuildableCriteria")
+        @DisplayName("A present-but-unbuildable typed criterion denies the operation rather than being silently dropped")
+        void givenUnbuildableCriterionThenAccessDenied(String name, String criteriaJson) {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": %s}
+                    """.formatted(criteriaJson));
+            val query  = new Query();
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(AccessDeniedException.class);
+        }
+
+        static Stream<Arguments> unbuildableCriteria() {
+            return Stream.of(arguments("missing column", "[{\"op\": \"=\", \"value\": 7}]"),
+                    arguments("missing op", "[{\"column\": \"tenantId\", \"value\": 7}]"),
+                    arguments("missing value for binary op", "[{\"column\": \"tenantId\", \"op\": \"=\"}]"),
+                    arguments("unsupported op", "[{\"column\": \"tenantId\", \"op\": \"~~\", \"value\": 7}]"),
+                    arguments("in without a collection", "[{\"column\": \"tenantId\", \"op\": \"in\", \"value\": 7}]"),
+                    arguments("non-object entry", "[7]"), arguments("empty or group", "[{\"or\": []}]"),
+                    arguments("empty and group", "[{\"and\": []}]"), arguments("unbuildable child inside or group",
+                            "[{\"or\": [{\"column\": \"a\", \"op\": \"=\", \"value\": 1}, {\"op\": \"=\", \"value\": 2}]}]"));
+        }
+
+        @Test
+        @DisplayName("A valid criterion sibling alongside an unbuildable one still denies the whole operation")
+        void givenOneValidAndOneUnbuildableCriterionThenAccessDenied() {
+            val mapper = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": [
+                       {"column": "tenantId", "op": "=", "value": 7},
+                       {"op": "=", "value": 99}
+                     ]}
+                    """);
+            val query  = new Query();
+            assertThatThrownBy(() -> mapper.apply(query)).isInstanceOf(AccessDeniedException.class);
+        }
+
+        @Test
+        @DisplayName("An empty top-level criteria array declares no criteria and stays a no-op")
+        void givenEmptyCriteriaArrayThenNoHandlerRegistered() {
+            val result = provider.getConstraintHandlers(v("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": []}
+                    """), Set.of(MONGO_SIGNAL));
+            assertThat(result).isEmpty();
         }
     }
 

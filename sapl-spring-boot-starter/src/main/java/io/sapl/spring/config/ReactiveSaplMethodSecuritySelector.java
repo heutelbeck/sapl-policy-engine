@@ -20,6 +20,7 @@ package io.sapl.spring.config;
 import lombok.NonNull;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.AdviceModeImportSelector;
+import org.springframework.context.annotation.AutoProxyRegistrar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,9 @@ public class ReactiveSaplMethodSecuritySelector extends AdviceModeImportSelector
      */
     private String[] getProxyImports() {
         List<String> result = new ArrayList<>();
+        // Mirror the blocking selector: register the auto-proxy creator so enforcement
+        // advisors proxy beans even when Spring Boot AOP auto-config is absent.
+        result.add(AutoProxyRegistrar.class.getName());
         result.add(ReactiveSaplMethodSecurityConfiguration.class.getName());
         result.add(SaplTransactionManagementConfiguration.class.getName());
         return result.toArray(new String[0]);

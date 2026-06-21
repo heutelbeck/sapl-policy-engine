@@ -49,6 +49,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.update.Update;
 
@@ -106,6 +107,9 @@ import net.sf.jsqlparser.statement.update.Update;
  * {@code INSERT VALUES}, DDL)</li>
  * <li>SELECT is a {@code SetOperationList} (UNION/INTERSECT/EXCEPT) and
  * conditions are present</li>
+ * <li>A {@code columns} projection is present and the SELECT is not a
+ * {@code PlainSelect} (e.g. UNION/INTERSECT/EXCEPT or a parenthesized select);
+ * the projection cannot be narrowed safely, so it is not silently leaked</li>
  * </ul>
  */
 public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
@@ -128,6 +132,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     private static final String ERROR_PARSE_OBLIGATION_CONDITION = "Cannot parse obligation condition '%s': %s";
     private static final String ERROR_PARSE_SQL                  = "Cannot parse SQL '%s': %s";
     private static final String ERROR_UNSUPPORTED_OPERATOR       = "Unsupported operator in typed criterion: %s";
+    private static final String ERROR_UNSUPPORTED_PROJECTION     = "Statement type %s does not support column projection: %s";
     private static final String ERROR_UNSUPPORTED_STATEMENT      = "Statement type %s does not support WHERE injection: %s";
     private static final String ERROR_VALUE_KIND_FOR_OPERATOR    = "Value kind %s incompatible with operator %s";
     private static final String ERROR_VALUE_REQUIRED             = "Value required for operator %s";
@@ -164,7 +169,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         val statement = parse(sql);
         val injection = combineConditions(conditions);
         applyConditions(statement, injection, sql);
-        applyColumns(statement, columns);
+        applyColumns(statement, columns, sql);
         return statement.toString();
     }
 
@@ -222,12 +227,19 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         return (existing == null) ? injection : new AndExpression(new ParenthesedExpressionList<>(existing), injection);
     }
 
-    private static void applyColumns(Statement statement, List<String> columns) {
+    private static void applyColumns(Statement statement, List<String> columns, String originalSql) {
         if (columns.isEmpty()) {
             return;
         }
-        if (!(statement instanceof PlainSelect plainSelect)) {
+        // UPDATE/DELETE return no columns, so a projection is silently ignored.
+        if (!(statement instanceof Select)) {
             return;
+        }
+        // A SELECT that is not a PlainSelect (UNION/INTERSECT/EXCEPT, parenthesized)
+        // cannot be narrowed here. Fail closed so the projection is never leaked.
+        if (!(statement instanceof PlainSelect plainSelect)) {
+            throw new AccessDeniedException(
+                    ERROR_UNSUPPORTED_PROJECTION.formatted(statement.getClass().getSimpleName(), originalSql));
         }
         val originalItems = plainSelect.getSelectItems();
         if (isSelectStar(originalItems)) {

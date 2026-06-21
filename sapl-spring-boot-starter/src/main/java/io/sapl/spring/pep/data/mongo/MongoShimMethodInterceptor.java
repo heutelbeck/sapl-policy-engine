@@ -25,6 +25,7 @@ import static io.sapl.spring.pep.data.mongo.MongoShimSupport.METHOD_AS;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.METHOD_IN_COLLECTION;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.METHOD_MATCHING;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.METHOD_REMOVE;
+import static io.sapl.spring.pep.data.mongo.MongoShimSupport.METHOD_REPLACE_WITH;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.METHOD_UPDATE;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.applyShim;
 import static io.sapl.spring.pep.data.mongo.MongoShimSupport.deniedUnsupported;
@@ -267,6 +268,12 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
             }
             if (METHOD_IN_COLLECTION.equals(name)) {
                 return wrapUpdateBuilder(inv.proceed(), capturedQuery, capturedUpdate);
+            }
+            if (METHOD_REPLACE_WITH.equals(name) && capturedQuery != null) {
+                // replaceWith otherwise runs on the un-matched base, dropping the captured
+                // query.
+                val matched = ((UpdateWithQuery<?>) base).matching(capturedQuery);
+                return wrapDenyOnTerminal(invokeReflectively(matched, method, inv.getArguments()));
             }
             if (isReactiveReturn(method) && capturedUpdate != null) {
                 val update = capturedUpdate;

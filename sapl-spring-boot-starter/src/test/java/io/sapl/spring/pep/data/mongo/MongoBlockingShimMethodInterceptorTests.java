@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -35,7 +36,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.ExecutableFindOperation.FindWithQuery;
+import org.springframework.data.mongodb.core.ExecutableUpdateOperation.FindAndReplaceWithProjection;
+import org.springframework.data.mongodb.core.ExecutableUpdateOperation.UpdateWithQuery;
+import org.springframework.data.mongodb.core.ExecutableUpdateOperation.UpdateWithUpdate;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.UpdateDefinition;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.Value;
@@ -78,6 +83,12 @@ class MongoBlockingShimMethodInterceptorTests {
     @Mock
     private FindWithQuery<Object> delegate;
 
+    @Mock
+    private UpdateWithQuery<Object> updateBase;
+
+    @Mock
+    private FindAndReplaceWithProjection<Object> replaceProjection;
+
     private static Value v(String json) {
         return MAPPER.readValue(json, Value.class);
     }
@@ -94,6 +105,14 @@ class MongoBlockingShimMethodInterceptorTests {
                 FindWithQuery.class, Query.class);
         wrap.setAccessible(true);
         return wrap.invoke(null, delegate, capturedQuery);
+    }
+
+    private static Object wrapUpdate(Object base, Query capturedQuery, UpdateDefinition capturedUpdate)
+            throws Exception {
+        final Method wrap = MongoBlockingShimMethodInterceptor.class.getDeclaredMethod("wrapUpdate", Object.class,
+                Query.class, UpdateDefinition.class);
+        wrap.setAccessible(true);
+        return wrap.invoke(null, base, capturedQuery, capturedUpdate);
     }
 
     @Test
@@ -116,5 +135,21 @@ class MongoBlockingShimMethodInterceptorTests {
         verify(delegate, times(3)).matching(captor.capture());
         assertThat(captor.getAllValues().subList(1, 3))
                 .allSatisfy(query -> assertThat(query.getQueryObject().toJson()).contains("tenantId"));
+    }
+
+    @Test
+    @DisplayName("replaceWith carries the captured query into the matched stage so the replacement targets only matched documents, never the whole collection")
+    void givenCapturedQueryWhenReplaceWithThenQueryAppliedBeforeReplace() throws Exception {
+        val capturedQuery = Query.query(where("tenantId").is(7));
+        val replacement   = new Object();
+        when(updateBase.matching(capturedQuery)).thenReturn(updateBase);
+        when(updateBase.replaceWith(replacement)).thenReturn(replaceProjection);
+
+        @SuppressWarnings("unchecked")
+        val fluent = (UpdateWithUpdate<Object>) wrapUpdate(updateBase, capturedQuery, null);
+        fluent.replaceWith(replacement);
+
+        verify(updateBase).matching(capturedQuery);
+        verify(updateBase).replaceWith(replacement);
     }
 }

@@ -55,9 +55,11 @@ final class MongoShimSupport {
     static final String METHOD_UPDATE        = "update";
     static final String METHOD_REMOVE        = "remove";
     static final String METHOD_APPLY         = "apply";
+    static final String METHOD_REPLACE_WITH  = "replaceWith";
 
     static final Set<String> FLUENT_AGGREGATE_DENY = Set.of("aggregateAndReturn", "mapReduce");
-    static final Set<String> DIRECT_DENY_BUCKET    = Set.of("aggregate", "mapReduce", "geoNear", "estimatedCount");
+    static final Set<String> DIRECT_DENY_BUCKET    = Set.of("aggregate", "mapReduce", "geoNear", "estimatedCount",
+            "findById");
     static final Set<String> FLUENT_FIND_DENY      = Set.of("distinct", "near");
 
     private static final String FLUENT_PACKAGE_PREFIX  = "org.springframework.data.mongodb.core.";
@@ -157,9 +159,12 @@ final class MongoShimSupport {
         if (result.failureState()) {
             return new Denied(new AccessDeniedException(ERROR_ACCESS_DENIED_OBLIGATION_FAILED));
         }
-        if (result.value() instanceof Present<?>(var v) && v instanceof Query rewritten) {
-            return new Rewritten(rewritten);
+        if (result.value() instanceof Present<?>(var v)) {
+            // An obligation produced a value: it must be a Query, otherwise fail closed.
+            return v instanceof Query rewritten ? new Rewritten(rewritten)
+                    : new Denied(new AccessDeniedException(ERROR_ACCESS_DENIED_OBLIGATION_FAILED));
         }
+        // No obligation produced a value: nothing to narrow, pass through unchanged.
         return new Rewritten(originalQuery);
     }
 

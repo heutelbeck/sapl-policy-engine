@@ -504,6 +504,28 @@ class SqlQueryRewritingProviderTests {
     }
 
     @Nested
+    @DisplayName("Columns obligation on non-PlainSelect fails closed (no projection leak)")
+    class ColumnsOnNonPlainSelect {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("nonPlainSelects")
+        @DisplayName("A columns projection obligation on a non-PlainSelect SELECT throws instead of leaking columns")
+        void whenColumnsObligationOnNonPlainSelectThenThrows(String description, String inputSql) {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting", "columns": ["id"]}
+                    """);
+
+            assertThatThrownBy(() -> mapper.apply(inputSql)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("does not support column projection");
+        }
+
+        static Stream<Arguments> nonPlainSelects() {
+            return Stream.of(arguments("UNION set operation", "SELECT id, ssn FROM a UNION SELECT id, ssn FROM b"),
+                    arguments("parenthesized select", "(SELECT id, ssn FROM users)"));
+        }
+    }
+
+    @Nested
     @DisplayName("Column identifier injection is rejected (typed path is injection-safe)")
     class ColumnIdentifierInjection {
 

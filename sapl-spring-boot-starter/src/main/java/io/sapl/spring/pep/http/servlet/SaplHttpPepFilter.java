@@ -27,6 +27,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.Signal.HttpRequestMutationSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpResponseSignal;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -81,6 +82,15 @@ public class SaplHttpPepFilter extends OncePerRequestFilter {
 
     private static final String ERROR_REQUEST_MUTATION_OBLIGATION_FAILED = "Access Denied. An HTTP request-mutation obligation handler failed.";
     private static final String ERROR_RESPONSE_OBLIGATION_FAILED         = "Access Denied. An HTTP response obligation handler failed.";
+    private static final String MUTABLE_RESPONSE_ATTRIBUTE               = SaplHttpPepFilter.class.getName()
+            + ".MUTABLE_RESPONSE";
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        // The controller body of an async endpoint is produced on the ASYNC dispatch.
+        // The filter must run there to capture it and fire the response signal.
+        return false;
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -98,8 +108,12 @@ public class SaplHttpPepFilter extends OncePerRequestFilter {
             return;
         }
 
+        // On an ASYNC dispatch the controller already ran on the initial dispatch, so
+        // request mutation is not redone.
+        val initialDispatch = request.getDispatcherType() != DispatcherType.ASYNC;
+
         ServletRequest forwardedRequest = request;
-        if (requestHandlersScheduled) {
+        if (initialDispatch && requestHandlersScheduled) {
             val mutableRequest = new ServletMutableHttpRequest(request);
             if (plan.execute(HttpRequestMutationSignal.of(mutableRequest), false).failureState()) {
                 throw new AccessDeniedException(ERROR_REQUEST_MUTATION_OBLIGATION_FAILED);
@@ -114,12 +128,30 @@ public class SaplHttpPepFilter extends OncePerRequestFilter {
             return;
         }
 
-        val mutableResponse = new ServletMutableHttpResponse(response);
+        val mutableResponse = mutableResponseFor(request, response);
         chain.doFilter(forwardedRequest, mutableResponse);
+        if (request.isAsyncStarted()) {
+            // The body arrives on the ASYNC dispatch. Defer the response signal and commit
+            // to that dispatch.
+            return;
+        }
 
         if (plan.execute(HttpResponseSignal.of(mutableResponse), false).failureState()) {
             throw new AccessDeniedException(ERROR_RESPONSE_OBLIGATION_FAILED);
         }
         mutableResponse.commit();
+    }
+
+    private static ServletMutableHttpResponse mutableResponseFor(HttpServletRequest request,
+            HttpServletResponse response) {
+        if (response instanceof ServletMutableHttpResponse alreadyWrapped) {
+            return alreadyWrapped;
+        }
+        if (request.getAttribute(MUTABLE_RESPONSE_ATTRIBUTE) instanceof ServletMutableHttpResponse stored) {
+            return stored;
+        }
+        val created = new ServletMutableHttpResponse(response);
+        request.setAttribute(MUTABLE_RESPONSE_ATTRIBUTE, created);
+        return created;
     }
 }

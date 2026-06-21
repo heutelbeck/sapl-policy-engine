@@ -41,6 +41,8 @@ public class RemotePDPProperties implements Validator {
     private static final String TYPE_RSOCKET               = "rsocket";
     private static final String OAUTH2_CLIENT_REGISTRATION = "oauth2.clientRegistrationId";
 
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over an unencrypted channel. Use https (or rsocket tls), or set io.sapl.pdp.remote.allow-insecure-http=true to permit this for local development only.";
+
     private boolean enabled = false;
 
     @NotEmpty
@@ -104,6 +106,28 @@ public class RemotePDPProperties implements Validator {
                     "Invalid type specified, valid values are \"http\" and \"rsocket\"");
         }
         validateAuthentication(properties, errors);
+        validateCredentialTransportSecurity(properties, errors);
+    }
+
+    private void validateCredentialTransportSecurity(RemotePDPProperties properties, Errors errors) {
+        if (!hasCredentials(properties) || isChannelEncrypted(properties) || properties.allowInsecureHttp) {
+            return;
+        }
+        errors.reject("insecure-credential-transport", ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+    }
+
+    private boolean hasCredentials(RemotePDPProperties properties) {
+        return !properties.oauth2.clientRegistrationId.isEmpty() || properties.tokenRelay || !properties.key.isEmpty()
+                || !properties.bearerToken.isEmpty();
+    }
+
+    private boolean isChannelEncrypted(RemotePDPProperties properties) {
+        if (TYPE_HTTP.equals(properties.type)) {
+            return properties.host.regionMatches(true, 0, "https://", 0, "https://".length());
+        }
+        // A unix domain socket is local IPC with no network hop, so it counts as a
+        // secure channel.
+        return properties.tls || properties.ignoreCertificates || !properties.socketPath.isEmpty();
     }
 
     private void validateHttpHost(String hostValue, Errors errors) {

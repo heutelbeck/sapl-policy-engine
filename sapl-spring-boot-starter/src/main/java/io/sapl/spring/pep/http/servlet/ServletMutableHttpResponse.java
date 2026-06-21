@@ -288,12 +288,17 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         flushPending();
         val underlying = (HttpServletResponse) getResponse();
         underlying.setStatus(statusCode);
+        val body = bodyBuffer.toByteArray();
+        // A buffered Content-Length may be stale after a handler replaced the body.
+        // Reconcile it so the emitted body and the header always agree.
+        if (headers.containsHeader(HttpHeaders.CONTENT_LENGTH)) {
+            headers.set(HttpHeaders.CONTENT_LENGTH, Integer.toString(body.length));
+        }
         for (val entry : headers.headerSet()) {
             for (val value : entry.getValue()) {
                 underlying.addHeader(entry.getKey(), value);
             }
         }
-        val body = bodyBuffer.toByteArray();
         if (body.length > 0) {
             underlying.getOutputStream().write(body);
         }

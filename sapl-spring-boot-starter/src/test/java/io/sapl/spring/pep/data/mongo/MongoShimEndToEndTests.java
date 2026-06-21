@@ -467,6 +467,35 @@ class MongoShimEndToEndTests {
 
             verify(delegate).aggregate(any(Aggregation.class), eq(Citizen.class), eq(Citizen.class));
         }
+
+        @Test
+        @DisplayName("direct findById is denied while a narrowing obligation is in scope, without touching the delegate")
+        void givenObligationWhenFindByIdThenAccessDenied() {
+            val decision = permitWithObligation("""
+                    {
+                      "type": "mongo:queryRewriting",
+                      "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
+                    }
+                    """);
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+
+            StepVerifier
+                    .create(EnforcementPlanContext.withReactor(plan,
+                            shimmedTemplate.findById("id-1", Citizen.class).then()))
+                    .expectError(AccessDeniedException.class).verify();
+
+            verifyNoInteractions(delegate);
+        }
+
+        @Test
+        @DisplayName("direct findById proceeds untouched when no obligation is in scope")
+        void givenNoObligationWhenFindByIdThenProceeds() {
+            when(delegate.findById("id-1", Citizen.class)).thenReturn(Mono.empty());
+
+            StepVerifier.create(shimmedTemplate.findById("id-1", Citizen.class).then()).verifyComplete();
+
+            verify(delegate).findById("id-1", Citizen.class);
+        }
     }
 
     @Nested

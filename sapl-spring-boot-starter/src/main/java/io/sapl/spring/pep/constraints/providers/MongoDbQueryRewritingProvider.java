@@ -20,12 +20,12 @@ package io.sapl.spring.pep.constraints.providers;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.AccessDeniedException;
 
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.BooleanValue;
@@ -117,7 +117,8 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
 
     private static final JsonMapper STRICT_JSON = JsonMapper.builder().build();
 
-    private static final String ERROR_NON_JSON_CONDITION = "mongo:queryRewriting condition is not strict JSON: ";
+    private static final String ERROR_NON_JSON_CONDITION    = "mongo:queryRewriting condition is not strict JSON: ";
+    private static final String ERROR_UNBUILDABLE_CRITERION = "mongo:queryRewriting typed criterion is malformed and cannot be built: ";
 
     @Override
     public List<ScopedConstraintHandler> getConstraintHandlers(Value constraint, Set<SignalType> supportedSignals) {
@@ -126,17 +127,21 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
         if (signalOpt.isEmpty()) {
             return List.of();
         }
-        val criteria   = extractTopLevelCriteria(constraint);
-        val conditions = extractConditions(constraint);
-        if (criteria.isEmpty() && conditions.isEmpty()) {
+        val criterionEntries = extractTopLevelCriterionEntries(constraint);
+        val conditions       = extractConditions(constraint);
+        if (criterionEntries.isEmpty() && conditions.isEmpty()) {
             return List.of();
         }
-        Mapper<Query> mapper = query -> applyToQuery(query, criteria, conditions);
+        Mapper<Query> mapper = query -> applyToQuery(query, criterionEntries, conditions);
         return List.of(new ScopedConstraintHandler(mapper, signalOpt.get(), DEFAULT_PRIORITY));
     }
 
-    private static Query applyToQuery(Query query, List<Criteria> criteria, List<String> conditions) {
-        if (!criteria.isEmpty()) {
+    private static Query applyToQuery(Query query, List<Value> criterionEntries, List<String> conditions) {
+        if (!criterionEntries.isEmpty()) {
+            val criteria = new ArrayList<Criteria>(criterionEntries.size());
+            for (val entry : criterionEntries) {
+                criteria.add(buildCriterionNode(entry));
+            }
             // Wrap obligation criteria in $and so the resulting Criteria has a
             // null root key. Without this wrapping, addCriteria fails with
             // InvalidMongoDbApiUsageException whenever an obligation field
@@ -246,23 +251,19 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
         return new BasicQuery(condition).getQueryObject();
     }
 
-    private static List<Criteria> extractTopLevelCriteria(Value constraint) {
+    private static List<Value> extractTopLevelCriterionEntries(Value constraint) {
         if (!(constraint instanceof ObjectValue object)) {
             return List.of();
         }
         if (!(object.get(FIELD_CRITERIA) instanceof ArrayValue criteriaArray)) {
             return List.of();
         }
-        val result = new ArrayList<Criteria>(criteriaArray.size());
-        for (val element : criteriaArray) {
-            buildCriterionNode(element).ifPresent(result::add);
-        }
-        return List.copyOf(result);
+        return List.copyOf(criteriaArray);
     }
 
-    private static Optional<Criteria> buildCriterionNode(Value entry) {
+    private static Criteria buildCriterionNode(Value entry) {
         if (!(entry instanceof ObjectValue object)) {
-            return Optional.empty();
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + entry);
         }
         if (object.get(FIELD_OR) instanceof ArrayValue orChildren) {
             return buildGroup(orChildren, Criteria::orOperator);
@@ -273,49 +274,54 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
         return buildLeaf(object);
     }
 
-    private static Optional<Criteria> buildGroup(ArrayValue children, CriteriaCombiner combiner) {
+    private static Criteria buildGroup(ArrayValue children, CriteriaCombiner combiner) {
+        if (children.isEmpty()) {
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + children);
+        }
         val parts = new ArrayList<Criteria>(children.size());
         for (val child : children) {
-            buildCriterionNode(child).ifPresent(parts::add);
+            parts.add(buildCriterionNode(child));
         }
-        if (parts.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(combine(parts, combiner));
+        return combine(parts, combiner);
     }
 
-    private static Optional<Criteria> buildLeaf(ObjectValue object) {
+    private static Criteria buildLeaf(ObjectValue object) {
         if (!(object.get(FIELD_COLUMN) instanceof TextValue(String column))) {
-            return Optional.empty();
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + object);
         }
         if (!(object.get(FIELD_OP) instanceof TextValue(String op))) {
-            return Optional.empty();
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + object);
         }
         val builder = Criteria.where(column);
         if ("isNull".equals(op)) {
-            return Optional.of(builder.is(null));
+            return builder.is(null);
         }
         if ("isNotNull".equals(op)) {
-            return Optional.of(builder.ne(null));
+            return builder.ne(null);
         }
         val valueNode = object.get(FIELD_VALUE);
         if (valueNode == null || valueNode instanceof UndefinedValue) {
-            return Optional.empty();
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + object);
         }
-        return applyBinaryOp(builder, op, valueNode);
+        return applyBinaryOp(builder, op, valueNode, object);
     }
 
-    private static Optional<Criteria> applyBinaryOp(Criteria builder, String op, Value valueNode) {
+    private static Criteria applyBinaryOp(Criteria builder, String op, Value valueNode, ObjectValue object) {
         val javaValue = unwrap(valueNode);
         return switch (op) {
-        case "="  -> Optional.of(builder.is(javaValue));
-        case "!=" -> Optional.of(builder.ne(javaValue));
-        case ">"  -> Optional.of(builder.gt(javaValue));
-        case ">=" -> Optional.of(builder.gte(javaValue));
-        case "<"  -> Optional.of(builder.lt(javaValue));
-        case "<=" -> Optional.of(builder.lte(javaValue));
-        case "in" -> javaValue instanceof Collection<?> c ? Optional.of(builder.in(c)) : Optional.empty();
-        default   -> Optional.empty();
+        case "="  -> builder.is(javaValue);
+        case "!=" -> builder.ne(javaValue);
+        case ">"  -> builder.gt(javaValue);
+        case ">=" -> builder.gte(javaValue);
+        case "<"  -> builder.lt(javaValue);
+        case "<=" -> builder.lte(javaValue);
+        case "in" -> {
+            if (javaValue instanceof Collection<?> c) {
+                yield builder.in(c);
+            }
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + object);
+        }
+        default   -> throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + object);
         };
     }
 
