@@ -23,7 +23,6 @@ import io.sapl.api.model.Value;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 
-import java.lang.management.ManagementFactory;
 import java.time.Duration;
 
 /**
@@ -35,26 +34,29 @@ public class ExamplePolicyInformationPoint {
 
     public static final String NAME = "example";
 
-    private static final Duration POLL_INTERVAL = Duration.ofSeconds(5);
+    private static final Duration POLL_INTERVAL      = Duration.ofSeconds(5);
+    private static final long     BYTES_PER_MEGABYTE = 1024L * 1024L;
 
     /**
-     * Streams the operating-system load average (last minute), sampled every
-     * five seconds. It is read live from the OS through the JVM's
-     * {@code OperatingSystemMXBean},
-     * polled on a virtual thread, and republished only when the value actually
+     * Streams the JVM's currently used heap memory in whole megabytes, sampled
+     * every five seconds on a virtual thread and republished only when the value
      * changes.
      * <p>
-     * Emits {@code -1} on platforms that do not provide a load average (for example
-     * Windows).
+     * Used heap is {@code Runtime.totalMemory() - Runtime.freeMemory()} reduced to
+     * whole megabytes. It relies only on the portable {@link Runtime} API, so it
+     * behaves the same on every platform and never produces an undefined value.
      *
-     * @return a stream of the system load average as a numeric value
+     * @return a stream of the used heap size in megabytes as a numeric value
      */
-    @EnvironmentAttribute(docs = "```<example.systemLoadAverage>``` Operating-system load average (last minute), "
-            + "polled every 5 seconds. Emits -1 where the platform does not provide it (for example Windows).")
-    public Stream<Value> systemLoadAverage() {
-        var operatingSystem = ManagementFactory.getOperatingSystemMXBean();
-        return Streams.distinctUntilChanged(
-                Streams.poll(POLL_INTERVAL, () -> Value.of(operatingSystem.getSystemLoadAverage())));
+    @EnvironmentAttribute(docs = "```<example.usedHeapMemory>``` JVM heap memory currently in use, in whole "
+            + "megabytes, polled every 5 seconds.")
+    public Stream<Value> usedHeapMemory() {
+        return Streams.distinctUntilChanged(Streams.poll(POLL_INTERVAL, () -> Value.of(usedHeapMegabytes())));
+    }
+
+    private static long usedHeapMegabytes() {
+        final var runtime = Runtime.getRuntime();
+        return (runtime.totalMemory() - runtime.freeMemory()) / BYTES_PER_MEGABYTE;
     }
 
 }

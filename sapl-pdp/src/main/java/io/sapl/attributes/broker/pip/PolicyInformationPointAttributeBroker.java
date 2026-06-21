@@ -31,6 +31,7 @@ import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
 import io.sapl.attributes.broker.DispatchCoalescer;
 import io.sapl.documentation.LibraryDocumentationExtractor;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;

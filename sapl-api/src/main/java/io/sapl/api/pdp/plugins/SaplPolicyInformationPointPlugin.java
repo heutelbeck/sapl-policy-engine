@@ -18,9 +18,10 @@
 package io.sapl.api.pdp.plugins;
 
 import io.sapl.api.attributes.PolicyInformationPoint;
-import io.sapl.api.attributes.PolicyInformationPointProvider;
 
 import org.pf4j.ExtensionPoint;
+
+import java.util.Collection;
 
 /**
  * PF4J extension point through which a plugin contributes Policy Information
@@ -44,6 +45,11 @@ import org.pf4j.ExtensionPoint;
  *
  * @since 4.1.0
  */
-public interface SaplPolicyInformationPointPlugin extends PolicyInformationPointProvider, ExtensionPoint {
-
+public interface SaplPolicyInformationPointPlugin extends ExtensionPoint {
+    /**
+     * Returns the collection of Policy Information Point instances to register.
+     *
+     * @return collection of Policy Information Point instances
+     */
+    Collection<Object> policyInformationPoints();
 }

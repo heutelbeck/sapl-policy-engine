@@ -79,13 +79,12 @@ public final class HotReloadingPluginsSource implements PluginsSource {
     private final PolicyInformationPointAttributeBroker attributeBroker;
     private final int                                   functionCacheSize;
     private final boolean                               includeDefaultFunctionLibraries;
-    private final List<Object>                          baseFunctionLibraries;
     private final List<DecisionInterceptor>             decisionInterceptors;
     private final List<SubscriptionLifecycleListener>   lifecycleListeners;
 
     private final ReentrantLock                  stateLock  = new ReentrantLock();
     private final Set<Consumer<PluginsBundle>>   listeners  = ConcurrentHashMap.newKeySet();
-    private final AtomicReference<PluginsBundle> current    = new AtomicReference<>();
+    private final AtomicReference<PluginsBundle> bundle     = new AtomicReference<>();
     private final List<PipHandle>                loadedPips = new ArrayList<>();
     private final AtomicBoolean                  closed     = new AtomicBoolean(false);
 
@@ -96,8 +95,6 @@ public final class HotReloadingPluginsSource implements PluginsSource {
      * registers the initial plugin PIPs,
      * and begins watching the plugins directory.
      *
-     * @param pluginsRoot
-     * directory watched for plugin JAR changes
      * @param manager
      * the plugin manager providing the contributions
      * @param attributeBroker
@@ -106,34 +103,28 @@ public final class HotReloadingPluginsSource implements PluginsSource {
      * function result cache size for the rebuilt broker
      * @param includeDefaultFunctionLibraries
      * whether to include the SAPL default function libraries in the rebuilt broker
-     * @param baseFunctionLibraries
-     * host-provided function libraries kept across reloads (plugin libraries are
-     * added on top)
      * @param decisionInterceptors
      * decision interceptors carried in every bundle
      * @param lifecycleListeners
      * lifecycle listeners carried in every bundle
      */
-    public HotReloadingPluginsSource(@NonNull Path pluginsRoot,
-            @NonNull SaplPluginManager manager,
+    public HotReloadingPluginsSource(@NonNull SaplPluginManager manager,
             @NonNull PolicyInformationPointAttributeBroker attributeBroker,
             int functionCacheSize,
             boolean includeDefaultFunctionLibraries,
-            @NonNull List<Object> baseFunctionLibraries,
             @NonNull List<DecisionInterceptor> decisionInterceptors,
             @NonNull List<SubscriptionLifecycleListener> lifecycleListeners) {
         this.manager                         = manager;
         this.attributeBroker                 = attributeBroker;
         this.functionCacheSize               = functionCacheSize;
         this.includeDefaultFunctionLibraries = includeDefaultFunctionLibraries;
-        this.baseFunctionLibraries           = List.copyOf(baseFunctionLibraries);
         this.decisionInterceptors            = List.copyOf(decisionInterceptors);
         this.lifecycleListeners              = List.copyOf(lifecycleListeners);
 
         manager.start();
         republish();
 
-        this.monitor = startDirectoryMonitor(pluginsRoot);
+        this.monitor = startDirectoryMonitor(manager.getProperties().getPluginsPath());
     }
 
     /**
@@ -149,13 +140,15 @@ public final class HotReloadingPluginsSource implements PluginsSource {
             }
             reconcilePips();
 
-            val libraries = new ArrayList<>(baseFunctionLibraries);
-            libraries.addAll(manager.functionLibraries());
+            val libraries      = manager.functionLibraries();
             val functionBroker = PolicyDecisionPointBuilder.buildFunctionBroker(functionCacheSize,
                     includeDefaultFunctionLibraries, libraries);
 
-            val bundle = new PluginsBundle(functionBroker, decisionInterceptors, lifecycleListeners);
-            current.set(bundle);
+            val interceptors = new ArrayList<>(decisionInterceptors);
+            interceptors.addAll(manager.decisionInterceptors());
+
+            val bundle = new PluginsBundle(functionBroker, interceptors, lifecycleListeners);
+            this.bundle.set(bundle);
             for (val listener : listeners) {
                 notify(listener, bundle);
             }
@@ -184,6 +177,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
             fileMonitor.setThreadFactory(Thread.ofVirtual().name("sapl-plugin-watcher").factory());
             fileMonitor.addObserver(observer);
             fileMonitor.start();
+            log.info("Enabling hot-reloading SAPL plugins from directory: {}", pluginsRoot);
             return fileMonitor;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to watch plugins directory: " + pluginsRoot, e);
@@ -208,7 +202,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
             return;
         }
         if (listeners.add(listener)) {
-            val snapshot = current.get();
+            val snapshot = bundle.get();
             if (snapshot != null) {
                 notify(listener, snapshot);
             }
@@ -227,9 +221,8 @@ public final class HotReloadingPluginsSource implements PluginsSource {
 
     @Override
     public void close() {
-        if (!closed.compareAndSet(false, true)) {
-            return;
-        }
+        closed.set(true);
+
         stopMonitorSafely();
         stateLock.lock();
         try {

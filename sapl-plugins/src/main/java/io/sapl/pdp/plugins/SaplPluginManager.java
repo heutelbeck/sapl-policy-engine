@@ -18,10 +18,12 @@
 package io.sapl.pdp.plugins;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.attributes.PolicyInformationPointProvider;
 import io.sapl.api.functions.FunctionLibraryProvider;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.plugins.SaplDecisionInterceptorPlugin;
 import io.sapl.api.pdp.plugins.SaplFunctionLibraryPlugin;
 import io.sapl.api.pdp.plugins.SaplPolicyInformationPointPlugin;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.pf4j.JarPluginManager;
@@ -39,8 +41,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * {@link SaplFunctionLibraryPlugin} and
  * {@link SaplPolicyInformationPointPlugin} extensions.
  * <p>
- * The manager implements both {@link FunctionLibraryProvider} and
- * {@link PolicyInformationPointProvider} so a host
+ * The manager implements both {@link FunctionLibraryProvider} and so a host
  * application (for example the Spring Boot auto-configuration) discovers the
  * plugin contributions at startup with no
  * extra wiring. For runtime hot-reloading, drive a
@@ -52,7 +53,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * @since 4.1.0
  */
 @Slf4j
-public class SaplPluginManager implements FunctionLibraryProvider, PolicyInformationPointProvider, AutoCloseable {
+@Getter
+public class SaplPluginManager implements AutoCloseable {
 
     private final SaplPluginsProperties properties;
     private final PluginManager         pluginManager;
@@ -123,7 +125,6 @@ public class SaplPluginManager implements FunctionLibraryProvider, PolicyInforma
         }
     }
 
-    @Override
     public List<Object> functionLibraries() {
         lock.lock();
         try {
@@ -137,7 +138,6 @@ public class SaplPluginManager implements FunctionLibraryProvider, PolicyInforma
         }
     }
 
-    @Override
     public List<Object> policyInformationPoints() {
         lock.lock();
         try {
@@ -146,6 +146,19 @@ public class SaplPluginManager implements FunctionLibraryProvider, PolicyInforma
                 pips.addAll(extension.policyInformationPoints());
             }
             return List.copyOf(pips);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public List<DecisionInterceptor> decisionInterceptors() {
+        lock.lock();
+        try {
+            val interceptors = new ArrayList<DecisionInterceptor>();
+            for (val extension : pluginManager.getExtensions(SaplDecisionInterceptorPlugin.class)) {
+                interceptors.addAll(extension.decisionInterceptors());
+            }
+            return List.copyOf(interceptors);
         } finally {
             lock.unlock();
         }
