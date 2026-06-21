@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Two helpers that drive the standard eval loop against an
@@ -125,8 +126,16 @@ public class BrokerEvalLoops {
             BiFunction<R, Map<SubscriptionKey, AttributeSnapshot>, V> builder,
             Function<R, Set<SubscriptionKey>> nextDeps) throws InterruptedException, EvaluationException {
         val future = new CompletableFuture<V>();
+        // The broker dispatches the callback off the caller's thread and
+        // swallows any throw from it. Each callback stage is wrapped so a
+        // failure completes the future exceptionally instead of leaving
+        // future.get() blocked forever.
+        final Function<Map<SubscriptionKey, AttributeSnapshot>, R> guardedEvaluator = snap -> failFuture(future,
+                () -> evaluator.apply(snap));
+        final Function<R, Set<SubscriptionKey>>                    guardedNextDeps  = r -> failFuture(future,
+                () -> nextDeps.apply(r));
         try {
-            try (val ignored = openWithHead(broker, subscriptionId, initialDeps, evaluator, (r, snap) -> {
+            try (val ignored = openWithHead(broker, subscriptionId, initialDeps, guardedEvaluator, (r, snap) -> {
                 try {
                     val v = builder.apply(r, snap);
                     if (v != null) {
@@ -135,7 +144,7 @@ public class BrokerEvalLoops {
                 } catch (RuntimeException e) {
                     future.completeExceptionally(e);
                 }
-            }, nextDeps)) {
+            }, guardedNextDeps)) {
                 return future.get();
             }
         } catch (ExecutionException ee) {
@@ -143,6 +152,15 @@ public class BrokerEvalLoops {
             throw new EvaluationException(cause == null ? ee.toString() : cause.toString(), cause == null ? ee : cause);
         } catch (RuntimeException re) {
             throw new EvaluationException(re.getMessage(), re);
+        }
+    }
+
+    private static <T> T failFuture(CompletableFuture<?> future, Supplier<T> stage) {
+        try {
+            return stage.get();
+        } catch (RuntimeException e) {
+            future.completeExceptionally(e);
+            throw e;
         }
     }
 }

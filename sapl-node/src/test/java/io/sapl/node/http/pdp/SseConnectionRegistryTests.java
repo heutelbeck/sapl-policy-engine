@@ -108,4 +108,44 @@ class SseConnectionRegistryTests {
         assertThat(writeSawCompetitorHoldingLock).isFalse();
         verify(context).complete();
     }
+
+    @Test
+    @DisplayName("a connection registered after shutdown has begun is immediately drained, not leaked")
+    void whenConnectionRegisteredAfterShutdownBeganThenItIsImmediatelyDrained() throws Exception {
+        val registry = new SseConnectionRegistry();
+
+        // Shutdown begins with no connections yet open, so the terminal scan finds
+        // nothing to drain.
+        registry.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class)));
+
+        val shutdownFrameWritten = new AtomicBoolean(false);
+        val lateWriter           = new PrintWriter(new Writer() {
+                                     @Override
+                                     public void write(char[] cbuf, int off, int len) {
+                                         shutdownFrameWritten.set(true);
+                                     }
+
+                                     @Override
+                                     public void flush() {
+                                         // no-op
+                                     }
+
+                                     @Override
+                                     public void close() {
+                                         // no-op
+                                     }
+                                 });
+
+        val response = mock(HttpServletResponse.class);
+        when(response.getWriter()).thenReturn(lateWriter);
+        val lateContext = mock(AsyncContext.class);
+        when(lateContext.getResponse()).thenReturn(response);
+
+        // A client connects after draining started. It must receive the shutdown
+        // signal and be completed rather than linger as a leaked open connection.
+        registry.register(lateContext, new Object());
+
+        assertThat(shutdownFrameWritten).isTrue();
+        verify(lateContext).complete();
+    }
 }

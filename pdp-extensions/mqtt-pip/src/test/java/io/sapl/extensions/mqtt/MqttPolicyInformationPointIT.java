@@ -403,16 +403,40 @@ class MqttPolicyInformationPointIT {
         @Test
         @DisplayName("two streams subscribing to the same broker share one client cache entry")
         void whenTwoStreamsOnSameBrokerThenCacheEntryShared() {
-            val ctx = freshCtx();
+            // Both subscriptions must be alive at the same time for connection
+            // sharing to be observable. A default-response context makes each
+            // stream emit a deterministic UNDEFINED placeholder once subscribed,
+            // so awaitsNext registers the subscriber without closing the stream.
+            val ctx = sharedBrokerCtxWithDefaultResponse();
             try (val s1 = pip.messages(Value.of("test/share/a"), ctx)) {
-                StreamAssertions.assertThat(s1).withinTimeout(Duration.ofMillis(500)).drain();
-                int sizeWithOne = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+                StreamAssertions.assertThat(s1).withinTimeout(Duration.ofSeconds(5))
+                        .awaitsNext(v -> assertThat(v).isEqualTo(Value.UNDEFINED));
+                val sizeWithOne = SaplMqttClient.MQTT_CLIENT_CACHE.size();
                 try (val s2 = pip.messages(Value.of("test/share/b"), ctx)) {
-                    StreamAssertions.assertThat(s2).withinTimeout(Duration.ofMillis(500)).drain();
+                    StreamAssertions.assertThat(s2).withinTimeout(Duration.ofSeconds(5))
+                            .awaitsNext(v -> assertThat(v).isEqualTo(Value.UNDEFINED));
+                    // s1 and s2 are both still open here. Adding a second subscriber
+                    // to the same broker must not create a second cache entry.
                     val sizeWithTwo = SaplMqttClient.MQTT_CLIENT_CACHE.size();
                     assertThat(sizeWithTwo).isEqualTo(sizeWithOne);
                 }
             }
+        }
+
+        private static AttributeAccessContext sharedBrokerCtxWithDefaultResponse() {
+            val pipConfig = json("""
+                    {
+                      "defaultBrokerConfigName": "production",
+                      "emitAtRetry": "false",
+                      "defaultResponse": "undefined",
+                      "defaultResponseTimeout": 300,
+                      "brokerConfig": [
+                        { "name": "production", "brokerAddress": "%s", "brokerPort": %d, "clientId": "%s" }
+                      ]
+                    }
+                    """.formatted(brokerHost, brokerPort, "sapl-pip-share-" + CLIENT_SEQ.incrementAndGet()));
+            val variables = ObjectValue.builder().put("mqttPipConfig", pipConfig).build();
+            return new AttributeAccessContext(variables, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
         }
 
         @Test

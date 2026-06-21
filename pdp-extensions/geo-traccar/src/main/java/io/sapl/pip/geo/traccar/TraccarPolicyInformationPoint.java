@@ -814,6 +814,9 @@ public class TraccarPolicyInformationPoint {
     }
 
     private static Value takeFirstElementFromArray(Value maybeArray) {
+        if (maybeArray instanceof ErrorValue) {
+            return maybeArray;
+        }
         if (!(maybeArray instanceof ArrayValue array) || array.isEmpty()) {
             return Value.error(ERROR_BAD_RESPONSE_EXPECTED_ARRAY.formatted(maybeArray));
         }

@@ -64,6 +64,7 @@ class TraccarPolicyInformationPointIT {
 
     private static TextValue   deviceId;
     private static TextValue   geofenceId1;
+    private static TextValue   geofenceId2;
     private static ObjectValue config;
     private static ObjectValue badConfig;
     private static ObjectValue secrets;
@@ -119,7 +120,7 @@ class TraccarPolicyInformationPointIT {
                  "area":"POLYGON ((48.150402911178844 11.566792870984045, 48.1483205765966 11.56544925428264, 48.147576865197465 11.56800995875841, 48.14969540929175 11.56935357546081, 48.150402911178844 11.566792870984045))"
                 }
                 """;
-        traccarClient.createGeofence(geofence2);
+        geofenceId2 = Value.of(traccarClient.createGeofence(geofence2));
         traccarClient.addTraccarPosition(uniqueDeviceId, 51.4642414, 7.5789155, 198.8);
         config    = config(host, port);
         badConfig = config("some-bad-server.local", 8082);
@@ -380,7 +381,7 @@ class TraccarPolicyInformationPointIT {
                 position = s.awaitNext();
             }
             Value outsideFence;
-            try (val s = TRACCAR_PIP.geofenceGeometry(Value.of("2"), config, secrets)) {
+            try (val s = TRACCAR_PIP.geofenceGeometry(geofenceId2, config, secrets)) {
                 outsideFence = s.awaitNext();
             }
             assertThat(position).isNotNull();

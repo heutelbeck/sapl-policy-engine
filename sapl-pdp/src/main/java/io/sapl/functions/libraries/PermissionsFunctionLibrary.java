@@ -956,7 +956,11 @@ public class PermissionsFunctionLibrary {
             if (!isIntegral(numberValue.value())) {
                 return Value.error(ERROR_MASKS_MUST_BE_INTEGERS);
             }
-            result |= numberValue.value().longValue();
+            val elementValue = integralToLongInRange(numberValue.value());
+            if (elementValue == null) {
+                return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+            }
+            result |= elementValue;
         }
 
         return Value.of(result);
@@ -983,7 +987,11 @@ public class PermissionsFunctionLibrary {
             if (!isIntegral(numberValue.value())) {
                 return Value.error(ERROR_MASKS_MUST_BE_INTEGERS);
             }
-            result &= numberValue.value().longValue();
+            val elementValue = integralToLongInRange(numberValue.value());
+            if (elementValue == null) {
+                return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+            }
+            result &= elementValue;
         }
 
         return Value.of(result);
@@ -1009,6 +1017,16 @@ public class PermissionsFunctionLibrary {
             return null;
         }
         return value.longValue();
+    }
+
+    // Accepts integral values with non-zero scale (2.00); rejects
+    // out-of-long-range.
+    private static Long integralToLongInRange(BigDecimal integralValue) {
+        if (integralValue.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
+                || integralValue.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
+            return null;
+        }
+        return integralValue.longValue();
     }
 
     /**

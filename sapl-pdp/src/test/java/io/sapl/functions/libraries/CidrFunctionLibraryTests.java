@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
@@ -690,6 +692,79 @@ class CidrFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("out of range");
+    }
+
+    @Nested
+    @DisplayName("prefix length validation rejects malformed prefixes instead of silently wrapping")
+    class PrefixLengthValidation {
+
+        // 2^32 + 24: narrowing this to int via BigDecimal.intValue() wraps to 24, which
+        // would otherwise be silently accepted and produce a /24 anonymization instead
+        // of
+        // an error. An operator anonymizing for GDPR must never get a wrong
+        // granularity.
+        private static final BigDecimal WRAPPING_PREFIX   = BigDecimal.valueOf(4294967320L);
+        private static final BigDecimal FRACTIONAL_PREFIX = new BigDecimal("24.7");
+
+        @Test
+        @DisplayName("anonymizeIp rejects a huge prefix that would wrap to an in-range int")
+        void anonymizeIpWhenPrefixWrapsToInRangeIntThenReturnsError() {
+            val result = CidrFunctionLibrary.anonymizeIp(Value.of("192.168.1.123"),
+                    (NumberValue) Value.of(WRAPPING_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("out of range");
+        }
+
+        @Test
+        @DisplayName("anonymizeIp rejects a fractional prefix instead of truncating")
+        void anonymizeIpWhenPrefixIsFractionalThenReturnsError() {
+            val result = CidrFunctionLibrary.anonymizeIp(Value.of("192.168.1.123"),
+                    (NumberValue) Value.of(FRACTIONAL_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("integer");
+        }
+
+        @Test
+        @DisplayName("sameSubnet rejects a huge prefix that would wrap to an in-range int")
+        void sameSubnetWhenPrefixWrapsToInRangeIntThenReturnsError() {
+            val result = CidrFunctionLibrary.sameSubnet(Value.of("192.168.1.1"), Value.of("192.168.1.2"),
+                    (NumberValue) Value.of(WRAPPING_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("out of range");
+        }
+
+        @Test
+        @DisplayName("sameSubnet rejects a fractional prefix instead of truncating")
+        void sameSubnetWhenPrefixIsFractionalThenReturnsError() {
+            val result = CidrFunctionLibrary.sameSubnet(Value.of("192.168.1.1"), Value.of("192.168.1.2"),
+                    (NumberValue) Value.of(FRACTIONAL_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("integer");
+        }
+
+        @Test
+        @DisplayName("canSubdivide rejects a huge prefix that would wrap to an in-range int")
+        void canSubdivideWhenPrefixWrapsToInRangeIntThenReturnsError() {
+            val result = CidrFunctionLibrary.canSubdivide(Value.of("192.168.0.0/16"),
+                    (NumberValue) Value.of(WRAPPING_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("out of range");
+        }
+
+        @Test
+        @DisplayName("canSubdivide rejects a fractional prefix instead of truncating")
+        void canSubdivideWhenPrefixIsFractionalThenReturnsError() {
+            val result = CidrFunctionLibrary.canSubdivide(Value.of("192.168.0.0/16"),
+                    (NumberValue) Value.of(FRACTIONAL_PREFIX));
+
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("integer");
+        }
     }
 
     @Test

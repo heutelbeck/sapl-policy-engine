@@ -41,6 +41,9 @@ public class KeyUtils {
 
     private static final String ERROR_UNSUPPORTED_KEY_TYPE = "Unsupported key type or invalid key format. Tried algorithms: %s.";
 
+    private static final String CURVE_ED448         = "Ed448";
+    private static final int    ED448_KEY_SIZE_BITS = 448;
+
     /**
      * Parses a PEM-encoded public key using the specified algorithm.
      *
@@ -119,9 +122,23 @@ public class KeyUtils {
         return switch (publicKey) {
         case RSAPublicKey rsaKey   -> rsaKey.getModulus().bitLength();
         case ECPublicKey ecKey     -> ecKey.getParams().getOrder().bitLength();
-        case EdECPublicKey edEcKey -> EDDSA_KEY_SIZE_BITS;
+        case EdECPublicKey edEcKey -> edEdsaKeySize(edEcKey);
         default                    -> 0;
         };
+    }
+
+    /**
+     * Determines the security strength in bits of an EdDSA public key from its
+     * named parameter set. Ed448 keys carry a larger parameter set than Ed25519
+     * keys and must not be reported with the Ed25519 size.
+     *
+     * @param edEcKey
+     * the EdDSA public key
+     *
+     * @return the key size in bits (256 for Ed25519, 448 for Ed448)
+     */
+    private static int edEdsaKeySize(EdECPublicKey edEcKey) {
+        return CURVE_ED448.equals(edEcKey.getParams().getName()) ? ED448_KEY_SIZE_BITS : EDDSA_KEY_SIZE_BITS;
     }
 
     /**

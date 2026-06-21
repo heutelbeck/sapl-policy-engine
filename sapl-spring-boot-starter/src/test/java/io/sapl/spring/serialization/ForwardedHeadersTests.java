@@ -107,6 +107,22 @@ class ForwardedHeadersTests {
             val parsed = ForwardedHeaders.parse(sourceOf(src));
             assertThat(parsed.host()).isNull();
         }
+
+        @Test
+        void ipv4WithPortIsStrippedSoChainAgreesWithRfc7239() {
+            val src = headers();
+            src.put("x-forwarded-for", List.of("198.51.100.1:54402"));
+            val parsed = ForwardedHeaders.parse(sourceOf(src));
+            assertThat(parsed.forChain()).containsExactly("198.51.100.1");
+        }
+
+        @Test
+        void ipv6WithPortIsStrippedToBracketedAddressOnly() {
+            val src = headers();
+            src.put("x-forwarded-for", List.of("[2001:db8::1]:54402"));
+            val parsed = ForwardedHeaders.parse(sourceOf(src));
+            assertThat(parsed.forChain()).containsExactly("[2001:db8::1]");
+        }
     }
 
     @Nested

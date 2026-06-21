@@ -802,6 +802,12 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         lock.lock();
 
         try {
+            if (closed) {
+                // close() already drained and closed everything. Do not re-insert
+                // or start the replacement; that would leak its pump and source.
+                replacement.close();
+                return;
+            }
             val list = subscriptions.get(old.invocation());
             if (list != null) {
                 val idx = list.indexOf(old);

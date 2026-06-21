@@ -18,7 +18,6 @@
 package io.sapl.node.rsocket.pdp;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -178,18 +177,18 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
     }
 
     /**
-     * Walks the cause chain to recognise the address-in-use bind failure. The
-     * concrete root cause varies by transport: the NIO transport raises a
-     * {@link BindException}, while the native epoll transport raises a Netty
-     * {@code NativeIoException} carrying errno 98 whose message reads
-     * {@code "Address already in use"}. Only this condition gets the clean
-     * operator message; every other bind failure propagates unchanged.
+     * Walks the cause chain to recognise the address-in-use bind failure by its
+     * message. The concrete root cause varies by transport: the NIO transport
+     * raises a {@code java.net.BindException}, while the native epoll transport
+     * raises a Netty {@code NativeIoException} carrying errno 98. Both report
+     * the in-use condition with a message containing
+     * {@code "Address already in use"} (or {@code "error(-98)"}). Only this
+     * condition gets the clean operator message; every other bind failure,
+     * including a {@code BindException} for an unrelated reason such as
+     * "Cannot assign requested address", propagates unchanged.
      */
     static boolean isAddressInUse(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof BindException) {
-                return true;
-            }
             val message = cause.getMessage();
             if (message != null && (message.contains("Address already in use") || message.contains("error(-98)"))) {
                 return true;

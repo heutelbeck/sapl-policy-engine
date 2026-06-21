@@ -45,8 +45,10 @@ import org.springframework.expression.EvaluationException;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.mock.web.MockHttpServletRequest;
+import com.fasterxml.jackson.annotation.JsonValue;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
@@ -424,6 +426,25 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     }
 
     @Nested
+    @DisplayName("Default subject projection for non-object authentications")
+    class NonObjectAuthenticationSubjectTests {
+
+        @Test
+        @DisplayName("when authentication serializes to a JSON string, then the subject is that string rather than a ClassCastException")
+        void whenAuthenticationSerializesToStringThenSubjectIsThatString() {
+            val auth         = new StringSerializingAuthentication("opaque-principal");
+            val attribute    = attribute(null, null, null, null);
+            val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(auth, invocation,
+                    attribute);
+            val subject      = toJson(subscription.subject());
+
+            assertThat(subject.isString()).isTrue();
+            assertThat(subject.asString()).isEqualTo("opaque-principal");
+        }
+
+    }
+
+    @Nested
     @DisplayName("Secrets handling")
     class SecretsTests {
 
@@ -517,6 +538,37 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     public record CustomPrincipal(String tenantId, NestedCredentials nested) {}
 
     public record NestedCredentials(String accessToken) {}
+
+    /**
+     * An {@link Authentication} that Jackson serializes to a JSON string rather
+     * than a JSON object, exercising the default subject projection against a
+     * non-object serialization.
+     */
+    public static class StringSerializingAuthentication extends AbstractAuthenticationToken {
+
+        @Serial
+        private static final long serialVersionUID = SaplVersion.VERSION_UID;
+
+        private final String principal;
+
+        StringSerializingAuthentication(String principal) {
+            super(AuthorityUtils.createAuthorityList("ROLE_USER"));
+            this.principal = principal;
+            setAuthenticated(true);
+        }
+
+        @JsonValue
+        @Override
+        public Object getPrincipal() {
+            return principal;
+        }
+
+        @Override
+        public Object getCredentials() {
+            return "the credentials";
+        }
+
+    }
 
     static class MockSecurityContext implements SecurityContext {
 

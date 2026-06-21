@@ -28,11 +28,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpRequest;
+import org.springframework.mock.web.MockCookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationResult;
@@ -55,7 +57,12 @@ import io.sapl.spring.pep.constraints.Signal.HttpRequestSignal;
 import io.sapl.spring.pep.constraints.SignalType;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
 import io.sapl.spring.serialization.SaplServletJacksonModule;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import lombok.val;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -231,6 +238,64 @@ class SaplAuthorizationManagerTests {
             assertThat(captured.get()).containsExactlyInAnyOrder(Signal.DecisionSignal.SIGNAL_TYPE,
                     HttpRequestSignal.SIGNAL_TYPE, Signal.HttpRequestMutationSignal.SIGNAL_TYPE,
                     Signal.HttpResponseSignal.SIGNAL_TYPE, Signal.HttpDenialSignal.SIGNAL_TYPE);
+        }
+    }
+
+    @Nested
+    @DisplayName("Subscription logging")
+    class SubscriptionLogging {
+
+        private static final String BEARER_TOKEN = "Bearer eyJhbGciOiJIUzI1NiJ9.super-secret-jwt.signature";
+        private static final String SESSION_ID   = "JSESSIONID-secret-session-value-987654321";
+
+        private ListAppender<ILoggingEvent> appender;
+        private Logger                      logger;
+
+        @BeforeEach
+        void attachAppender() {
+            appender = new ListAppender<>();
+            appender.start();
+            logger = (Logger) LoggerFactory.getLogger(SaplAuthorizationManager.class);
+            logger.setLevel(Level.TRACE);
+            logger.addAppender(appender);
+        }
+
+        @AfterEach
+        void detachAppender() {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        private MockHttpServletRequest requestCarryingSecrets() {
+            val request = new MockHttpServletRequest("GET", "/orders/42");
+            request.addHeader("Authorization", BEARER_TOKEN);
+            request.setCookies(new MockCookie("SESSION", SESSION_ID));
+            return request;
+        }
+
+        @Test
+        @DisplayName("TRACE log of the subscription never leaks Authorization headers or cookie values")
+        void givenTraceLoggingWhenAuthorizeThenSecretsAreNotLogged() {
+            when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
+
+            managerWith().authorize(SaplAuthorizationManagerTests::userAuthentication,
+                    context(requestCarryingSecrets()));
+
+            val loggedLines = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+            assertThat(loggedLines).isNotEmpty()
+                    .noneMatch(line -> line.contains(BEARER_TOKEN) || line.contains(SESSION_ID));
+        }
+
+        @Test
+        @DisplayName("TRACE log still records the non-sensitive request method and URI for diagnostics")
+        void givenTraceLoggingWhenAuthorizeThenMethodAndUriAreLogged() {
+            when(pdp.decideOnce(any(), anyString())).thenReturn(AuthorizationDecision.PERMIT);
+
+            managerWith().authorize(SaplAuthorizationManagerTests::userAuthentication,
+                    context(requestCarryingSecrets()));
+
+            val loggedLines = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+            assertThat(loggedLines).anySatisfy(line -> assertThat(line).contains("GET").contains("/orders/42"));
         }
     }
 }

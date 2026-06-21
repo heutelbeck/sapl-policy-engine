@@ -17,6 +17,7 @@
  */
 package io.sapl.node.http.pdp;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -27,9 +28,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import io.sapl.api.model.jackson.SaplJacksonModule;
+import io.sapl.api.pdp.Decision;
+import io.sapl.api.pdp.MultiAuthorizationDecision;
 import io.sapl.node.auth.http.HttpAuthHandler;
 import io.sapl.node.auth.http.HttpAuthHandler.HttpAuthResult;
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
@@ -64,5 +68,35 @@ class MultiDecideAllOnceServletTests {
 
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
         verifyNoInteractions(pdp);
+    }
+
+    @Test
+    @DisplayName("a JSON literal null body is rejected with 400 and the PDP is never consulted")
+    void whenSubscriptionBodyIsJsonNullThenBadRequestAndPdpNotCalled() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        val request = new MockHttpServletRequest();
+        request.setContent("null".getBytes(UTF_8));
+        val response = new MockHttpServletResponse();
+
+        new MultiDecideAllOnceServlet(pdp, authHandler, mapper).handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_BAD_REQUEST);
+        verifyNoInteractions(pdp);
+    }
+
+    @Test
+    @DisplayName("a PDP runtime failure does not leak a 500 but fails closed to a 200 INDETERMINATE body")
+    void whenPdpEvaluationThrowsThenOkWithIndeterminateBody() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(pdp.decideAll(any(), any())).thenThrow(new IllegalStateException("evaluation exploded"));
+        val request = new MockHttpServletRequest();
+        request.setContent("{}".getBytes(UTF_8));
+        val response = new MockHttpServletResponse();
+
+        new MultiDecideAllOnceServlet(pdp, authHandler, mapper).handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_OK);
+        val decision = mapper.readValue(response.getContentAsByteArray(), MultiAuthorizationDecision.class);
+        assertThat(decision.getDecisionType("")).isEqualTo(Decision.INDETERMINATE);
     }
 }

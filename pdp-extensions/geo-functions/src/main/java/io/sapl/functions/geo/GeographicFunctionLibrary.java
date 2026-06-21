@@ -32,6 +32,7 @@ import org.geotools.referencing.GeodeticCalculator;
 import org.geotools.xsd.Configuration;
 import org.geotools.xsd.Parser;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 import org.xml.sax.ext.EntityResolver2;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
@@ -159,7 +160,8 @@ public class GeographicFunctionLibrary {
      * parsing, and resolves nothing else. This closes the XXE and external-entity
      * SSRF vector on caller-supplied documents: any entity or schema the document
      * declares is mapped to a bundled local resource if and only if it matches the
-     * allowlist, otherwise it expands to nothing. The resolver never returns
+     * allowlist, otherwise resolution is rejected by throwing so nothing is ever
+     * fetched. The resolver never returns
      * {@code null} for a non-null system identifier, because per the SAX
      * EntityResolver contract {@code null} tells the parser to fetch the URI
      * itself. An attacker-controlled URI such as
@@ -182,6 +184,8 @@ public class GeographicFunctionLibrary {
 
         private static final InputSource EMPTY_SOURCE = new InputSource(new StringReader(""));
 
+        private static final String EXTERNAL_REFERENCE_BLOCKED_ERROR = "External XML reference blocked (geo functions perform no I/O): ";
+
         // Bundled, classpath-local schema resources geotools ships for KML/GML.
         // Resolution is restricted to exactly these; nothing else is fetched.
         private static final List<String> ALLOWED_LOCAL_SCHEMA_RESOURCES = List.of("org/geotools/kml/v22/ogckml22.xsd",
@@ -193,17 +197,21 @@ public class GeographicFunctionLibrary {
         }
 
         @Override
-        public InputSource resolveEntity(String publicId, String systemId) {
+        public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
             return resolveEntity(null, publicId, null, systemId);
         }
 
         @Override
-        public InputSource resolveEntity(String name, String publicId, String baseUri, String systemId) {
+        public InputSource resolveEntity(String name, String publicId, String baseUri, String systemId)
+                throws SAXException {
             if (systemId == null) {
                 return EMPTY_SOURCE;
             }
             val resolved = resolveSystemId(baseUri, systemId);
-            return bundledLocalSchema(resolved).orElse(EMPTY_SOURCE);
+            // Fail closed: a non-bundled reference is rejected (throws), so geotools never
+            // fetches it.
+            return bundledLocalSchema(resolved)
+                    .orElseThrow(() -> new SAXException(EXTERNAL_REFERENCE_BLOCKED_ERROR + systemId));
         }
 
         private static Optional<InputSource> bundledLocalSchema(String resolved) {
@@ -1219,9 +1227,6 @@ public class GeographicFunctionLibrary {
 
     private static Boolean subset(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
         enforcePairwiseBound(geometryCollectionThis, geometryCollectionThat);
-        if (geometryCollectionThis.getNumGeometries() > geometryCollectionThat.getNumGeometries()) {
-            return false;
-        }
         var resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {

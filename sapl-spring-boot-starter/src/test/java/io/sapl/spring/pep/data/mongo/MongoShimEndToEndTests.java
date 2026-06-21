@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -42,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.ReactiveFindOperation.FindWithQuery;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.mapreduce.MapReduceOptions;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -433,6 +435,27 @@ class MongoShimEndToEndTests {
         }
 
         @Test
+        @SuppressWarnings("deprecation")
+        @DisplayName("query-first mapReduce is denied while a narrowing obligation is in scope, not narrowed-and-run")
+        void givenObligationWhenQueryFirstMapReduceThenAccessDenied() {
+            val decision = permitWithObligation("""
+                    {
+                      "type": "mongo:queryRewriting",
+                      "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
+                    }
+                    """);
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+
+            val callChain = shimmedTemplate.mapReduce(new Query(), Citizen.class, Citizen.class, "function () {}",
+                    "function () {}", MapReduceOptions.options());
+
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, callChain.then()))
+                    .expectError(AccessDeniedException.class).verify();
+
+            verifyNoInteractions(delegate);
+        }
+
+        @Test
         @DisplayName("aggregate proceeds untouched when no obligation is in scope")
         void givenNoObligationWhenAggregateThenProceeds() {
             val pipeline = Aggregation.newAggregation(Aggregation.match(Criteria.where("name").is("Vimes")));
@@ -443,6 +466,37 @@ class MongoShimEndToEndTests {
                     .verifyComplete();
 
             verify(delegate).aggregate(any(Aggregation.class), eq(Citizen.class), eq(Citizen.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Obligation application is pure across repeated subscriptions of a cold publisher")
+    class RepeatedSubscriptionPurity {
+
+        @Test
+        @DisplayName("Resubscribing the same narrowed find publisher narrows again cleanly, never double-applying or failing")
+        void givenObligationWhenFindPublisherResubscribedThenEachSubscriptionNarrowsIndependently() {
+            val decision = permitWithObligation("""
+                    {
+                      "type": "mongo:queryRewriting",
+                      "criteria": [{"column": "tenantId", "op": "=", "value": 7}]
+                    }
+                    """);
+            val plan     = planner.plan(decision, Set.<SignalType>of(MongoDbQueryShimSignal.SIGNAL_TYPE));
+
+            when(delegate.find(any(Query.class), eq(Citizen.class))).thenReturn(Flux.empty());
+
+            val originalQuery = new Query(Criteria.where("name").is("Vimes"));
+            val callChain     = shimmedTemplate.find(originalQuery, Citizen.class);
+
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, callChain.then())).verifyComplete();
+            StepVerifier.create(EnforcementPlanContext.withReactor(plan, callChain.then())).verifyComplete();
+
+            val captor = ArgumentCaptor.forClass(Query.class);
+            verify(delegate, times(2)).find(captor.capture(), eq(Citizen.class));
+            assertThat(captor.getAllValues()).hasSize(2).allSatisfy(
+                    query -> assertThat(query.getQueryObject().toJson()).contains("Vimes").contains("\"tenantId\": 7"));
+            assertThat(originalQuery.getQueryObject().toJson()).contains("Vimes").doesNotContain("tenantId");
         }
     }
 

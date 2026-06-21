@@ -141,18 +141,17 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
 
     @Override
     public @NonNull Mono<Void> writeWith(@NonNull Publisher<? extends DataBuffer> body) {
-        return Flux.from(body).collectList().doOnNext(buffers -> {
-            val total = buffers.stream().mapToInt(DataBuffer::readableByteCount).sum();
-            val all   = new byte[total];
-            var i     = 0;
-            for (val buf : buffers) {
-                val len = buf.readableByteCount();
-                buf.read(all, i, len);
-                DataBufferUtils.release(buf);
-                i += len;
+        // join releases accumulated buffers on error/cancel; we release the joined
+        // buffer on success.
+        return DataBufferUtils.join(Flux.from(body)).map(joined -> {
+            try {
+                val all = new byte[joined.readableByteCount()];
+                joined.read(all);
+                return all;
+            } finally {
+                DataBufferUtils.release(joined);
             }
-            capturedBody = all;
-        }).then();
+        }).doOnNext(all -> capturedBody = all).then();
     }
 
     @Override

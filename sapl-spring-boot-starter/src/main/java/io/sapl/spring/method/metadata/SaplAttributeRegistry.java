@@ -192,17 +192,23 @@ public final class SaplAttributeRegistry {
     }
 
     private <A extends Annotation> A findAnnotation(Method method, Class<?> targetClass, Class<A> annotationClass) {
-        // The method may be on an interface, but we need attributes from the target
-        // class. If the target class is null, the method will be unchanged.
-        // findMergedAnnotation walks meta-annotations and resolves @AliasFor so
-        // future meta-annotation wrappers carry their attributes through to the
-        // resolved annotation instance.
+        // Proximity precedence: concrete class (its method, then its type) beats
+        // inherited (interface/super method, then supertype).
         val specificMethod = ClassUtils.getMostSpecificMethod(method, targetClass);
-        val annotation     = AnnotatedElementUtils.findMergedAnnotation(specificMethod, annotationClass);
-        if (annotation != null) {
-            return annotation;
+        val effectiveClass = targetClass != null ? targetClass : specificMethod.getDeclaringClass();
+        if (specificMethod.getDeclaringClass() == effectiveClass) {
+            val onConcreteMethod = AnnotatedElementUtils.getMergedAnnotation(specificMethod, annotationClass);
+            if (onConcreteMethod != null) {
+                return onConcreteMethod;
+            }
         }
-        return AnnotatedElementUtils.findMergedAnnotation(specificMethod.getDeclaringClass(), annotationClass);
+        val onConcreteClass = AnnotatedElementUtils.getMergedAnnotation(effectiveClass, annotationClass);
+        if (onConcreteClass != null) {
+            return onConcreteClass;
+        }
+        val inheritedMethod = AnnotatedElementUtils.findMergedAnnotation(specificMethod, annotationClass);
+        return inheritedMethod != null ? inheritedMethod
+                : AnnotatedElementUtils.findMergedAnnotation(effectiveClass, annotationClass);
     }
 
     private Expression parseExpression(String source) {

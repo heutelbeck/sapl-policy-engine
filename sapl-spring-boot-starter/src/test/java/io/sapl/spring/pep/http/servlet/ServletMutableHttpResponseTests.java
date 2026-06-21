@@ -158,10 +158,17 @@ class ServletMutableHttpResponseTests {
         void typedHeaderHelpers() {
             mutable.setIntHeader("X-Count", 7);
             mutable.addIntHeader("X-Count", 8);
-            mutable.setDateHeader("X-When", 1700000000000L);
+            assertThat(mutable.getHeaders("X-Count")).containsExactly("7", "8");
+        }
+
+        @Test
+        @DisplayName("setDateHeader and addDateHeader emit RFC-1123 HTTP-date strings, not raw epoch millis")
+        void dateHeadersAreRfc1123() {
+            mutable.setDateHeader("Last-Modified", 1700000000000L);
+            mutable.addDateHeader("Expires", 1700000000000L);
             assertThat(mutable).satisfies(m -> {
-                assertThat(m.getHeaders("X-Count")).containsExactly("7", "8");
-                assertThat(m.getHeader("X-When")).isEqualTo("1700000000000");
+                assertThat(m.getHeader("Last-Modified")).isEqualTo("Tue, 14 Nov 2023 22:13:20 GMT");
+                assertThat(m.getHeaders("Expires")).containsExactly("Tue, 14 Nov 2023 22:13:20 GMT");
             });
         }
 

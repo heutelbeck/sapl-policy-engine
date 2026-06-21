@@ -55,6 +55,10 @@ public class RemotePDPProperties implements Validator {
 
     private boolean tls = false;
 
+    // Opt-in (development only) to send credentials over an unencrypted channel:
+    // plain http for HTTP, or RSocket without TLS.
+    private boolean allowInsecureHttp = false;
+
     private Duration keepAlive   = Duration.ofSeconds(20);
     private Duration maxLifeTime = Duration.ofSeconds(90);
 

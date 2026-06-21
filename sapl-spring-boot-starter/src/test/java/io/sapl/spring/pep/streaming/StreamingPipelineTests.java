@@ -407,6 +407,43 @@ class StreamingPipelineTests {
         }
 
         @Test
+        void subscriptionSignalDoesNotFireOnDownstreamRequestWhileSuspended() {
+            Harness         h    = new Harness();
+            EnforcementPlan plan = permittingPlanWithoutFailures();
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out, 0).then(h::emitPermit).thenRequest(1).then(() -> h.emitRap("a")).expectNext("a")
+                    .then(h::emitSuspend).thenRequest(1).then(() -> h.emitRap("dropped")).thenAwait(TIMEOUT)
+                    .thenCancel().verify(TIMEOUT);
+
+            // While suspended the active plan is gone, so the stale plan's
+            // subscription obligation must not be enforced. Exactly one
+            // enforcement happened, for the request issued while permitting.
+            verify(plan, times(1)).enforceSubscription(anyLong());
+        }
+
+        @Test
+        void failingSubscriptionObligationWhileSuspendedDoesNotTerminateRecoverableSubscription() {
+            Harness         h    = new Harness();
+            EnforcementPlan plan = permittingPlanWithoutFailures();
+            doThrow(new AccessDeniedException("subscription obligation failed")).when(plan)
+                    .enforceSubscription(anyLong());
+            h.plan = plan;
+            Flux<Object> out = h.create();
+
+            // Initial demand of 1 is requested while still Pending, before any
+            // plan exists, so it is never enforced. Permit and consume an item,
+            // then suspend. A request issued while suspended must not enforce the
+            // stale plan's failing subscription obligation, which would otherwise
+            // terminate the suspended but recoverable subscription. On resume,
+            // items flow again.
+            StepVerifier.create(out, 1).then(h::emitPermit).then(() -> h.emitRap("a")).expectNext("a")
+                    .then(h::emitSuspend).thenRequest(1).then(h::emitPermit).then(() -> h.emitRap("b")).expectNext("b")
+                    .thenCancel().verify(TIMEOUT);
+        }
+
+        @Test
         void errorSignalHandlersRunOnRapErrorAndMayRewriteTheThrowable() {
             Harness               h      = new Harness();
             EnforcementPlan       plan   = permittingPlanWithoutFailures();

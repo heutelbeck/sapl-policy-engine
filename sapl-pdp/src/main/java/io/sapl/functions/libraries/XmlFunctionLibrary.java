@@ -141,6 +141,9 @@ public class XmlFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value valToXml(Value value) {
+        if (!ValueJsonMarshaller.isJsonCompatible(value)) {
+            return Value.error(ERROR_FAILED_TO_CONVERT, value);
+        }
         try {
             val jsonNode  = ValueJsonMarshaller.toJsonNode(value);
             val xmlString = XML_MAPPER.writeValueAsString(jsonNode);

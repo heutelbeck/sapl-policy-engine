@@ -40,6 +40,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -485,6 +487,23 @@ class X509FunctionLibraryTests {
             val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(pem), (TextValue) Value.of(policyIp));
 
             assertThat(result).as(description).isEqualTo(Value.TRUE);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "300.300.300.300", "192.168.1.256", "999.0.0.1" })
+        @DisplayName("out-of-range dotted quad never triggers DNS name resolution and does not match")
+        void whenHasIpAddressWithOutOfRangeQuadThenNoNameResolutionAndNoMatch(String maliciousIp) throws Exception {
+            val cert = generateCertificateWithIpSan(DEFAULT_IP);
+            val pem  = toPem(cert);
+
+            try (MockedStatic<InetAddress> inetAddressMock = Mockito.mockStatic(InetAddress.class,
+                    Mockito.CALLS_REAL_METHODS)) {
+                val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(pem),
+                        (TextValue) Value.of(maliciousIp));
+
+                inetAddressMock.verify(() -> InetAddress.getByName(maliciousIp), Mockito.never());
+                assertThat(result).isEqualTo(Value.FALSE);
+            }
         }
 
         @ParameterizedTest(name = "{1}")

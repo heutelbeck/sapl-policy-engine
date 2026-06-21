@@ -92,12 +92,14 @@ public class FilterFunctionLibrary {
 
             To bound memory and computation on untrusted input, the following limits apply:
 
-            - `blacken` rejects a blacken length above 10,000 for the optional length override, returning an error.
+            - `blacken` rejects a blacken length above 10,000, whether derived from the input or supplied as the optional length override, returning an error.
+            - `blacken` rejects an output that would exceed 10,000,000 characters once the replacement string is repeated, returning an error.
 
             These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_BLACKEN_LENGTH_EXCEEDS_MAXIMUM   = "Illegal parameter for BLACKEN_LENGTH. Maximum allowed is %d.";
+    private static final String ERROR_BLACKEN_OUTPUT_EXCEEDS_MAXIMUM   = "Blacken output exceeds the limit. Maximum allowed output length is %d.";
     private static final String ERROR_ILLEGAL_PARAMETER_BLACKEN_LENGTH = "Illegal parameter for BLACKEN_LENGTH. Expecting a positive integer. Got: %s.";
     private static final String ERROR_ILLEGAL_PARAMETER_DISCLOSE_LEFT  = "Illegal parameter for DISCLOSE_LEFT. Expecting a positive integer. Got: %s.";
     private static final String ERROR_ILLEGAL_PARAMETER_DISCLOSE_RIGHT = "Illegal parameter for DISCLOSE_RIGHT. Expecting a positive integer. Got: %s.";
@@ -111,6 +113,7 @@ public class FilterFunctionLibrary {
     private static final int    REPLACEMENT_INDEX                          = 3;
     private static final int    BLACKEN_LENGTH_INDEX                       = 4;
     private static final int    MAX_BLACKEN_LENGTH                         = 10_000;
+    private static final long   MAX_BLACKEN_OUTPUT_LENGTH                  = 10_000_000L;
     private static final int    MAXIMAL_NUMBER_OF_PARAMETERS_FOR_BLACKEN   = 5;
     private static final int    DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_LEFT  = 0;
     private static final int    DEFAULT_NUMBER_OF_CHARACTERS_TO_SHOW_RIGHT = 0;
@@ -176,7 +179,15 @@ public class FilterFunctionLibrary {
         }
 
         val blackenFinalLength = blackenLength != null ? blackenLength : replacedChars;
-        result.append(String.valueOf(replacement).repeat(blackenFinalLength));
+        if (blackenFinalLength > MAX_BLACKEN_LENGTH) {
+            throw new IllegalArgumentException(ERROR_BLACKEN_LENGTH_EXCEEDS_MAXIMUM.formatted(MAX_BLACKEN_LENGTH));
+        }
+        val replacementText = String.valueOf(replacement);
+        if ((long) replacementText.length() * blackenFinalLength > MAX_BLACKEN_OUTPUT_LENGTH) {
+            throw new IllegalArgumentException(
+                    ERROR_BLACKEN_OUTPUT_EXCEEDS_MAXIMUM.formatted(MAX_BLACKEN_OUTPUT_LENGTH));
+        }
+        result.append(replacementText.repeat(blackenFinalLength));
 
         if (discloseRight > 0) {
             result.append(originalString.substring(discloseLeft + replacedChars));

@@ -147,6 +147,18 @@ class SqlQueryRewritingProviderTests {
         }
 
         @Test
+        @DisplayName("OR in the first obligation condition is parenthesized so a later AND cannot leak rows")
+        void givenFirstConditionContainsOrThenItIsParenthesizedAsSingleAndOperand() {
+            val mapper    = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "conditions": ["a = 1 OR b = 2", "tenant_id = 7"]}
+                    """);
+            val rewritten = mapper.apply("SELECT * FROM users");
+            assertThat(rewritten).contains("(a = 1 OR b = 2)").contains("tenant_id = 7").contains("AND")
+                    .doesNotContain("b = 2 AND");
+        }
+
+        @Test
         @DisplayName("String literals containing the word 'where' do not confuse the rewriter")
         void givenWhereInsideStringLiteralThenRewriteIsCorrect() {
             val mapper    = mapperFor("""

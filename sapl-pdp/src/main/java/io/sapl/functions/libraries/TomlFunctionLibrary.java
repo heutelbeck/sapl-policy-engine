@@ -129,7 +129,7 @@ public class TomlFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val tomlString = TOML_MAPPER.writeValueAsString(jsonNode);
             return Value.of(tomlString);
-        } catch (JacksonException exception) {
+        } catch (JacksonException | IllegalArgumentException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

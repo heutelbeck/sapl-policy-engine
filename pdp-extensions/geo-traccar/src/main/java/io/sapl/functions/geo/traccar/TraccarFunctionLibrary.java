@@ -102,11 +102,11 @@ public class TraccarFunctionLibrary {
         if (latitudeNode == null || !latitudeNode.isNumber()) {
             return Value.error(NO_VALID_LATITUDE_FIELD_ERROR);
         }
-        val      latitude = latitudeNode.asDouble();
+        val      latitude     = latitudeNode.asDouble();
         Geometry geometry;
-        if (positionJson.has(TraccarSchemata.ALTITUDE)) {
-            val altitude = positionJson.get(TraccarSchemata.ALTITUDE).asDouble();
-            geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude, altitude));
+        val      altitudeNode = positionJson.get(TraccarSchemata.ALTITUDE);
+        if (altitudeNode != null && altitudeNode.isNumber()) {
+            geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude, altitudeNode.asDouble()));
         } else {
             geometry = WGS84_GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
         }
@@ -166,7 +166,7 @@ public class TraccarFunctionLibrary {
     public static Value traccarGeofenceToGeoJson(ObjectValue geofence) {
         val geofenceJson = ValueJsonMarshaller.toJsonNode(geofence);
         val area         = geofenceJson.get(TraccarSchemata.AREA);
-        if (area == null) {
+        if (area == null || !area.isString()) {
             return Value.error(GEOFENCE_MISSING_AREA_ERROR);
         }
         try {

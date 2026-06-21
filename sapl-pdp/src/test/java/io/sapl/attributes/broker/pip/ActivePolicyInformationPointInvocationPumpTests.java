@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.sapl.api.attributes.AttributeAccessContext;
@@ -273,5 +274,65 @@ class ActivePolicyInformationPointInvocationPumpTests {
         assertThat(stream.maxConcurrent.get()).isEqualTo(1);
 
         invocation.close();
+    }
+
+    /**
+     * Domain requirements for a terminal publish during broker discard. When the
+     * broker unloads or evicts a PIP it publishes a terminal value (UNDEFINED on
+     * unload/eviction, an error on rebind failure) before discarding the active
+     * invocation. The contract is that this terminal value is the last thing any
+     * consumer observes. A still-live pump that pulls a stale source value after
+     * the terminal publish must not overwrite the terminal value nor dispatch the
+     * stale value to consumers, otherwise consumers would see a value sourced from
+     * an already-unloaded PIP.
+     */
+    @Nested
+    @DisplayName("a terminal publish wins over a still-running pump")
+    class TerminalPublish {
+
+        @Test
+        @DisplayName("a stale pump value pulled after a terminal publish is not dispatched to consumers")
+        void whenPumpEmitsAfterTerminalPublishThenStaleValueNotDispatched() {
+            val published  = new CopyOnWriteArrayList<Value>();
+            val stream     = new ControllableStream();
+            val invocation = pump(stream, published::add);
+            invocation.start();
+            await().atMost(LIMIT).until(() -> stream.awaitCalls.get() >= 1);
+
+            // The broker discards this active invocation by publishing UNDEFINED as
+            // the terminal value while the pump is still parked in awaitNext.
+            invocation.publishImmediate(Value.UNDEFINED);
+            await().atMost(LIMIT).until(() -> published.contains(Value.UNDEFINED));
+
+            // A value the pump pulls afterwards is stale: the PIP is gone.
+            stream.emit(Value.of("stale-after-unload"));
+            await().atMost(LIMIT).until(() -> stream.awaitCalls.get() >= 2);
+
+            await().during(HOLD).atMost(LIMIT)
+                    .untilAsserted(() -> assertThat(published).doesNotContain(Value.of("stale-after-unload")));
+
+            invocation.close();
+        }
+
+        @Test
+        @DisplayName("the terminal value remains the latest snapshot even after the pump pulls a stale value")
+        void whenPumpEmitsAfterTerminalPublishThenSnapshotStaysTerminal() {
+            val stream     = new ControllableStream();
+            val invocation = pump(stream, value -> {});
+            invocation.start();
+            await().atMost(LIMIT).until(() -> stream.awaitCalls.get() >= 1);
+
+            invocation.publishImmediate(Value.UNDEFINED);
+            await().atMost(LIMIT)
+                    .until(() -> invocation.snapshot().map(s -> Value.UNDEFINED.equals(s.value())).orElse(false));
+
+            stream.emit(Value.of("stale-after-unload"));
+            await().atMost(LIMIT).until(() -> stream.awaitCalls.get() >= 2);
+
+            await().during(HOLD).atMost(LIMIT).untilAsserted(() -> assertThat(invocation.snapshot())
+                    .hasValueSatisfying(s -> assertThat(s.value()).isEqualTo(Value.UNDEFINED)));
+
+            invocation.close();
+        }
     }
 }

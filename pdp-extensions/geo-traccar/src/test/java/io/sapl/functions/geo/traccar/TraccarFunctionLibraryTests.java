@@ -98,6 +98,30 @@ class TraccarFunctionLibraryTests {
     }
 
     @Test
+    void when_traccarPositionToGeoJSON_withNonNumericAltitude_then_returnGeoJSONPointWithoutAltitude() {
+        val position = (ObjectValue) json("""
+                {
+                  "latitude" : 37.7749,
+                  "longitude": -122.4194,
+                  "altitude" : "not-a-number"
+                }
+                """);
+        val expected = json("""
+                {
+                    "type":"Point",
+                    "coordinates":[-122.4194,37.7749],
+                    "crs":{
+                        "type":"name",
+                        "properties":{
+                            "name":"EPSG:4326"
+                            }
+                        }
+                }
+                """);
+        assertThat(traccarPositionToGeoJSON(position)).isEqualTo(expected);
+    }
+
+    @Test
     void when_coordinateFlippingFilter_then_swapXandY() {
         val filter = new CoordinateFlippingFilter();
         val coord  = new Coordinate(10, 20);
@@ -151,6 +175,18 @@ class TraccarFunctionLibraryTests {
         var result   = traccarGeofenceToGeoJson(geofence);
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("Error processing geometry:");
+    }
+
+    @Test
+    void when_traccarGeofenceToGeoJson_nonStringArea_then_returnError() {
+        val geofence = (ObjectValue) json("""
+                {
+                  "area" : 12345
+                }
+                """);
+        var result   = traccarGeofenceToGeoJson(geofence);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains(GEOFENCE_MISSING_AREA_ERROR);
     }
 
     @Test

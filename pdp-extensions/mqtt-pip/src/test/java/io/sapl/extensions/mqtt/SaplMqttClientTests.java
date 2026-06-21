@@ -17,6 +17,8 @@
  */
 package io.sapl.extensions.mqtt;
 
+import com.hivemq.client.mqtt.datatypes.MqttQos;
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5SimpleAuth;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -24,8 +26,10 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.Cancellable;
 import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.StreamAssertions;
+import io.sapl.extensions.mqtt.SaplMqttClient.SubscriptionContext;
 import io.sapl.extensions.mqtt.util.MqttClientValues;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +41,9 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
@@ -229,6 +236,93 @@ class SaplMqttClientTests {
 
             assertThat(registered).isSameAs(first).isNotSameAs(second);
             assertThat(registered.decrementBrokerSubscribers()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("partial-subscribe teardown")
+    class PartialSubscribeTeardown {
+
+        private final SaplMqttClient saplMqttClient = new SaplMqttClient(Clock.systemUTC(),
+                new RealTimeScheduler(Clock.systemUTC()));
+
+        private MqttClientValues sharedClient() {
+            // A broker key that is never registered in the cache, so the broker
+            // eviction inside teardown finds no entry and never disconnects the
+            // mock client. The test asserts on per-topic counts only.
+            return new MqttClientValues("shared", mock(Mqtt5AsyncClient.class),
+                    JsonNodeFactory.instance.objectNode().put("brokerAddress", "localhost"));
+        }
+
+        private SubscriptionContext context(MqttClientValues client, List<MqttTopicFilter> requested,
+                Set<MqttTopicFilter> subscribed) {
+            return new SubscriptionContext(client, client.getMqttAsyncClient(), requested, MqttQos.AT_MOST_ONCE,
+                    new AtomicBoolean(false), 1024, subscribed);
+        }
+
+        private JsonNode key() {
+            return JsonNodeFactory.instance.objectNode().put("brokerAddress", "localhost");
+        }
+
+        @Test
+        @DisplayName("a subscriber whose subscribe failed entirely never decrements topics it never subscribed")
+        void whenSubscribeFailedThenSharedTopicCountIsNotCorrupted() throws Exception {
+            val client    = sharedClient();
+            val liveTopic = MqttTopicFilter.of("live/topic");
+            // A genuine subscriber holds live/topic with a count of one.
+            client.subscribeTopicAtomically(liveTopic.toString(), () -> {});
+            // A second subscriber requested live/topic but its broker subscribe
+            // failed, so its subscribed set is empty.
+            val failedSub = context(client, List.of(liveTopic), Set.of());
+
+            saplMqttClient.teardown(key(), failedSub, Cancellable.NOOP, null, new AtomicBoolean(false));
+
+            // The failed subscriber must not have decremented live/topic: the
+            // genuine subscriber's count of one is intact, so the very next
+            // decrement is the last one and leaves no remainder.
+            assertThat(client.decrementTopicSubscribers(liveTopic.toString())).isFalse();
+        }
+
+        @Test
+        @DisplayName("a subscriber that subscribed only a subset releases exactly that subset")
+        void whenSubscribedSubsetThenOnlySubsetIsReleased() throws Exception {
+            val client     = sharedClient();
+            val subscribed = MqttTopicFilter.of("subscribed/topic");
+            val notReached = MqttTopicFilter.of("never/reached");
+            // The subset topic also has a co-subscriber, so this teardown's
+            // decrement leaves a positive count rather than reaching zero.
+            client.subscribeTopicAtomically(subscribed.toString(), () -> {});
+            client.subscribeTopicAtomically(subscribed.toString(), () -> {});
+            val partialSub = context(client, List.of(subscribed, notReached), Set.of(subscribed));
+
+            saplMqttClient.teardown(key(), partialSub, Cancellable.NOOP, null, new AtomicBoolean(false));
+
+            // Exactly one count was released from the subscribed topic, leaving the
+            // co-subscriber's count of one. The never-reached topic was never
+            // incremented and was never spuriously decremented.
+            assertThat(client.decrementTopicSubscribers(subscribed.toString())).isFalse();
+            assertThat(client.decrementTopicSubscribers(notReached.toString())).isFalse();
+        }
+
+        @Test
+        @DisplayName("teardown runs once even when the failure path and the close callback share the done flag")
+        void whenDoneFlagAlreadySetThenTeardownIsIdempotent() throws Exception {
+            val client     = sharedClient();
+            val topic      = MqttTopicFilter.of("live/topic");
+            val subscriber = context(client, List.of(topic), Set.of(topic));
+            // Two holders so the single legitimate decrement leaves a positive
+            // count and never reaches the broker unsubscribe path.
+            client.subscribeTopicAtomically(topic.toString(), () -> {});
+            client.subscribeTopicAtomically(topic.toString(), () -> {});
+            val done = new AtomicBoolean(false);
+
+            saplMqttClient.teardown(key(), subscriber, Cancellable.NOOP, null, done);
+            saplMqttClient.teardown(key(), subscriber, Cancellable.NOOP, null, done);
+
+            // The first teardown decremented the topic once; the second, sharing the
+            // consumed done flag, was a no-op. Only one decrement happened, so one
+            // holder remains and the next decrement is the last.
+            assertThat(client.decrementTopicSubscribers(topic.toString())).isFalse();
         }
     }
 }

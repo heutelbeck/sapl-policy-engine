@@ -116,6 +116,40 @@ class JWTKeyProviderCacheScopingTests {
     }
 
     @Nested
+    @DisplayName("concurrent cache eviction during lookup")
+    class ConcurrentEvictionRace {
+
+        @Test
+        @DisplayName("a cache entry evicted between the cached-check and the read does not throw, it falls back to a fresh fetch")
+        void whenEntryIsEvictedBetweenCheckAndReadThenNoNullPointerAndFreshFetch() throws Exception {
+            val httpClient = mock(HttpClient.class);
+
+            @SuppressWarnings("unchecked")
+            val response = (HttpResponse<String>) mock(HttpResponse.class);
+            when(response.statusCode()).thenReturn(404);
+            doReturn(response).when(httpClient).send(any(HttpRequest.class), any());
+
+            val provider = new JWTKeyProvider(httpClient, new MutableClock(NOW)) {
+                @Override
+                public boolean isCached(String keyServerUri, String kid) {
+                    // Models a concurrent pruneCache() that removes the entry
+                    // in the window between observing it as cached and reading
+                    // it back: the cached-check reports a hit, but the entry is
+                    // already gone by the time the value is read. The lookup
+                    // must survive this race rather than dereferencing null.
+                    return true;
+                }
+            };
+
+            val config = MAPPER.readTree("{\"uri\":\"" + URI_A + "\"}");
+            val result = provider.provide(KID, config);
+
+            assertThat(result).isEmpty();
+            verify(httpClient).send(any(HttpRequest.class), any());
+        }
+    }
+
+    @Nested
     @DisplayName("https-by-default with explicit named opt-in")
     class SchemeEnforcement {
 

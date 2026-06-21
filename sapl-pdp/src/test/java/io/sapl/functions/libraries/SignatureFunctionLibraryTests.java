@@ -24,6 +24,7 @@ import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -377,6 +378,45 @@ class SignatureFunctionLibraryTests {
                 (TextValue) Value.of(signatureHex), (TextValue) Value.of(publicKeyPem));
 
         assertThat(result).isEqualTo(Value.TRUE);
+    }
+
+    /* Curve Enforcement Tests */
+
+    @Nested
+    @DisplayName("Curve enforcement")
+    class CurveEnforcement {
+
+        @ParameterizedTest(name = "[{index}] {0} rejects a key on the wrong NIST curve")
+        @MethodSource("io.sapl.functions.libraries.SignatureFunctionLibraryTests#wrongCurveScenarios")
+        @DisplayName("ECDSA curve functions reject keys on a different NIST curve")
+        void isValidEcdsaWhenKeyOnDifferentNistCurveReturnsError(String scenarioName,
+                Function<SignatureParams, Value> verifyFunction, KeyPair wrongCurveKeyPair, String javaAlgorithm)
+                throws Exception {
+            var signature    = createSignature(wrongCurveKeyPair.getPrivate(), javaAlgorithm, RITUAL_INCANTATION);
+            var publicKeyPem = toPem(wrongCurveKeyPair.getPublic());
+            var signatureHex = HexFormat.of().formatHex(signature);
+
+            var result = verifyFunction.apply(new SignatureParams(RITUAL_INCANTATION, signatureHex, publicKeyPem));
+
+            assertThat(result).as("%s must not accept a key from another NIST curve", scenarioName)
+                    .isInstanceOf(ErrorValue.class);
+        }
+    }
+
+    static Stream<Arguments> wrongCurveScenarios() {
+        return Stream.of(
+                arguments("isValidEcdsaP256 with P-384 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256),
+                        ecP384KeyPair, "SHA256withECDSA"),
+                arguments("isValidEcdsaP256 with P-521 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256),
+                        ecP521KeyPair, "SHA256withECDSA"),
+                arguments("isValidEcdsaP384 with P-256 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384),
+                        ecP256KeyPair, "SHA384withECDSA"),
+                arguments("isValidEcdsaP384 with P-521 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP384),
+                        ecP521KeyPair, "SHA384withECDSA"),
+                arguments("isValidEcdsaP521 with P-256 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521),
+                        ecP256KeyPair, "SHA512withECDSA"),
+                arguments("isValidEcdsaP521 with P-384 key", wrapVerify(SignatureFunctionLibrary::isValidEcdsaP521),
+                        ecP384KeyPair, "SHA512withECDSA"));
     }
 
     /* Helper Methods and Classes */

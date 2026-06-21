@@ -51,8 +51,21 @@ public class SseConnectionRegistry {
 
     private final Map<AsyncContext, Object> open = new ConcurrentHashMap<>();
 
+    private volatile boolean shuttingDown = false;
+
     void register(AsyncContext context, Object writerLock) {
+        if (shuttingDown) {
+            drain(context, writerLock);
+            return;
+        }
         open.put(context, writerLock);
+        if (shuttingDown) {
+            // Shutdown began between the flag check and the put. Drain here so the
+            // connection cannot leak past a terminal scan that already happened.
+            if (open.remove(context) != null) {
+                drain(context, writerLock);
+            }
+        }
     }
 
     void unregister(AsyncContext context) {
@@ -61,26 +74,30 @@ public class SseConnectionRegistry {
 
     @EventListener
     void onContextClosed(ContextClosedEvent event) {
+        shuttingDown = true;
         if (open.isEmpty()) {
             return;
         }
         log.info(LOG_DRAINING, open.size());
         for (val entry : open.entrySet()) {
-            val context    = entry.getKey();
-            val writerLock = entry.getValue();
-            try {
-                val response = (HttpServletResponse) context.getResponse();
-                val writer   = response.getWriter();
-                synchronized (writerLock) {
-                    writer.write(SHUTDOWN_EVENT);
-                    writer.flush();
-                }
-                context.complete();
-            } catch (Exception e) {
-                log.debug(LOG_DRAIN_FAILED, e.getMessage());
+            if (open.remove(entry.getKey()) != null) {
+                drain(entry.getKey(), entry.getValue());
             }
         }
-        open.clear();
+    }
+
+    private void drain(AsyncContext context, Object writerLock) {
+        try {
+            val response = (HttpServletResponse) context.getResponse();
+            val writer   = response.getWriter();
+            synchronized (writerLock) {
+                writer.write(SHUTDOWN_EVENT);
+                writer.flush();
+            }
+            context.complete();
+        } catch (Exception e) {
+            log.debug(LOG_DRAIN_FAILED, e.getMessage());
+        }
     }
 
 }

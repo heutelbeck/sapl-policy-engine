@@ -225,8 +225,10 @@ public class JWTKeyProvider {
         }
 
         val resolvedUri = publicKeyUri.replace("{kid}", kid);
-        if (isCached(resolvedUri, kid)) {
-            return Optional.of(keyCache.get(new CacheKey(resolvedUri, kid)));
+        pruneCache();
+        val cached = keyCache.get(new CacheKey(resolvedUri, kid));
+        if (null != cached) {
+            return Optional.of(cached);
         }
 
         if (!isSecureScheme(resolvedUri)) {

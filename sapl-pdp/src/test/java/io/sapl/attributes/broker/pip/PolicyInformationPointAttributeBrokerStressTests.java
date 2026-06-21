@@ -117,11 +117,10 @@ class PolicyInformationPointAttributeBrokerStressTests {
 
         emitOneRoundFromEveryPipAttribute();
 
-        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> {
-            long fired = recorders.stream().mapToLong(Recorder::callbacks).sum();
-            assertThat(fired).as("every consumer should fire at least once after the emission round")
-                    .isGreaterThanOrEqualTo(CONSUMERS_BASELINE);
-        });
+        Awaitility.await().atMost(TEST_BUDGET)
+                .untilAsserted(() -> assertThat(recorders)
+                        .as("every consumer should fire at least once after the emission round")
+                        .allMatch(r -> r.callbacks() >= 1));
 
         closeAll(recorders);
         assertEveryPipReachedZeroBackings();
@@ -147,11 +146,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
         // fires at least once.
         emitOneRoundFromEveryPipAttribute();
 
-        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> {
-            long fired = recorders.stream().mapToLong(Recorder::callbacks).sum();
-            assertThat(fired).as("every consumer should have fired at least once")
-                    .isGreaterThanOrEqualTo(CONSUMERS_LARGE);
-        });
+        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> assertThat(recorders)
+                .as("every consumer should have fired at least once").allMatch(r -> r.callbacks() >= 1));
 
         closeAll(recorders);
     }
@@ -167,7 +163,10 @@ class PolicyInformationPointAttributeBrokerStressTests {
                 .untilAsserted(() -> assertThat(recorders.stream().mapToLong(Recorder::callbacks).sum())
                         .isGreaterThanOrEqualTo(CONSUMERS_BASELINE));
 
-        val firesBefore = recorders.stream().mapToLong(Recorder::callbacks).sum();
+        val firesBefore = new HashMap<Recorder, Long>();
+        for (val rec : recorders) {
+            firesBefore.put(rec, rec.callbacks());
+        }
 
         // Swap every PIP. Active invocations rebind to the new instance. Pair
         // old handle to fresh instance by namespace because broker.catalog()
@@ -187,11 +186,9 @@ class PolicyInformationPointAttributeBrokerStressTests {
         // Emit from the fresh fleet. Every consumer should fire again.
         emitOneRoundFromEveryPipAttribute();
 
-        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> {
-            long firesAfter = recorders.stream().mapToLong(Recorder::callbacks).sum();
-            assertThat(firesAfter - firesBefore).as("every consumer should fire again after the hot swap")
-                    .isGreaterThanOrEqualTo(CONSUMERS_BASELINE);
-        });
+        Awaitility.await().atMost(TEST_BUDGET)
+                .untilAsserted(() -> assertThat(recorders).as("every consumer should fire again after the hot swap")
+                        .allMatch(r -> r.callbacks() > firesBefore.get(r)));
 
         closeAll(recorders);
     }

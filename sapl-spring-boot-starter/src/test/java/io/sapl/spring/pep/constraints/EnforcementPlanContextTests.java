@@ -20,6 +20,7 @@ package io.sapl.spring.pep.constraints;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,11 +40,18 @@ import reactor.test.StepVerifier;
 class EnforcementPlanContextTests {
 
     private static final EnforcementPlan PLAN_A = new EnforcementPlan(Map.of());
-    private static final EnforcementPlan PLAN_B = new EnforcementPlan(Map.of());
+    private static final EnforcementPlan PLAN_B = new EnforcementPlan(
+            Map.of(Signal.CancelSignal.SIGNAL_TYPE, List.of()));
 
     @AfterEach
     void clearThreadLocal() {
         EnforcementPlanContext.bindBlocking(null);
+    }
+
+    @Test
+    @DisplayName("The two fixture plans are value-distinct so equals-based isolation assertions can tell them apart")
+    void givenTwoFixturePlansThenTheyAreNotEqual() {
+        assertThat(PLAN_A).isNotEqualTo(PLAN_B);
     }
 
     @Nested

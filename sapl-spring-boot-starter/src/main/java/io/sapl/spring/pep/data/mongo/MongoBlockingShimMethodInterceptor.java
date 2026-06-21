@@ -175,7 +175,11 @@ public class MongoBlockingShimMethodInterceptor implements MethodInterceptor {
 
     private static Object narrowAndInvokeFind(FindWithQuery<?> delegate, Query capturedQuery, Method method,
             Object[] args) throws Throwable {
-        return invokeBlocking(delegate.matching(narrow(capturedQuery)), method, args);
+        // Narrow a fresh copy so reusing the captured builder for a second
+        // terminal does not re-apply the obligation to an already-narrowed
+        // query (which throws InvalidMongoDbApiUsageException on the duplicate
+        // criteria).
+        return invokeBlocking(delegate.matching(narrow(Query.of(capturedQuery))), method, args);
     }
 
     private static Object wrapUpdate(Object base, Query capturedQuery, UpdateDefinition capturedUpdate) {

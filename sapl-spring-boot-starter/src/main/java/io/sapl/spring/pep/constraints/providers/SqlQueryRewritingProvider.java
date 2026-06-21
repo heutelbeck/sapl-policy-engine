@@ -182,9 +182,9 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         }
         Expression combined = null;
         for (val condition : conditions) {
-            val parsed = parseCondition(condition);
-            combined = (combined == null) ? parsed
-                    : new AndExpression(combined, new ParenthesedExpressionList<>(parsed));
+            val parsed  = parseCondition(condition);
+            val wrapped = new ParenthesedExpressionList<>(parsed);
+            combined = (combined == null) ? wrapped : new AndExpression(combined, wrapped);
         }
         return combined;
     }

@@ -19,6 +19,7 @@ package io.sapl.spring.pep.constraints.providers;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -252,32 +253,48 @@ public class ContentFilter {
         return switch (type) {
         case EQUALS -> equalsCondition(condition, path, conditionValue, objectMapper);
         case NEQ    -> Predicate.not(equalsCondition(condition, path, conditionValue, objectMapper));
-        case GEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a >= b);
-        case LEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a <= b);
-        case LT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a < b);
-        case GT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a > b);
+        case GEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) >= 0);
+        case LEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) <= 0);
+        case LT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) < 0);
+        case GT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) > 0);
         case REGEX  -> regexCondition(condition, path, conditionValue, objectMapper);
         default     -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         };
     }
 
     @FunctionalInterface
-    private interface DoubleComparison {
-        boolean test(double payloadValue, double conditionValue);
+    private interface NumericComparison {
+        boolean test(BigDecimal payloadValue, BigDecimal conditionValue);
     }
 
     private static Predicate<Object> numericCondition(Value condition, String path, Value conditionValue,
-            ObjectMapper objectMapper, DoubleComparison comparison) {
+            ObjectMapper objectMapper, NumericComparison comparison) {
         if (!(conditionValue instanceof NumberValue(var conditionNumber))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        val threshold = conditionNumber.doubleValue();
         return original -> {
             val value = getValueAtPath(original, path, objectMapper);
             if (!(value instanceof Number numberValue)) {
                 return false;
             }
-            return comparison.test(numberValue.doubleValue(), threshold);
+            return asBigDecimal(numberValue).map(payload -> comparison.test(payload, conditionNumber)).orElse(false);
+        };
+    }
+
+    // Compare on the exact BigDecimal; double would conflate distinct integers
+    // beyond 2^53.
+    private static Optional<BigDecimal> asBigDecimal(Number number) {
+        return switch (number) {
+        case BigDecimal bd -> Optional.of(bd);
+        case BigInteger bi -> Optional.of(new BigDecimal(bi));
+        case Integer i     -> Optional.of(BigDecimal.valueOf(i));
+        case Long l        -> Optional.of(BigDecimal.valueOf(l));
+        case Short s       -> Optional.of(BigDecimal.valueOf(s));
+        case Byte b        -> Optional.of(BigDecimal.valueOf(b));
+        default            -> {
+            val d = number.doubleValue();
+            yield (Double.isNaN(d) || Double.isInfinite(d)) ? Optional.empty() : Optional.of(BigDecimal.valueOf(d));
+        }
         };
     }
 
@@ -305,11 +322,8 @@ public class ContentFilter {
     private static Predicate<Object> equalsCondition(Value condition, String path, Value conditionValue,
             ObjectMapper objectMapper) {
         return switch (conditionValue) {
-        case NumberValue(var bd) -> {
-            val threshold = bd.doubleValue();
-            yield original -> getValueAtPath(original, path, objectMapper) instanceof Number n
-                    && n.doubleValue() == threshold;
-        }
+        case NumberValue(var bd) -> original -> getValueAtPath(original, path, objectMapper) instanceof Number n
+                && asBigDecimal(n).map(payload -> payload.compareTo(bd) == 0).orElse(false);
         case TextValue(var s)    ->
             original -> getValueAtPath(original, path, objectMapper) instanceof String str && s.equals(str);
         default                  -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
@@ -416,7 +430,7 @@ public class ContentFilter {
 
     private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
             int blackenLength) {
-        if (discloseLeft + discloseRight >= originalString.length()) {
+        if ((long) discloseLeft + discloseRight >= originalString.length()) {
             return originalString;
         }
         val result = new StringBuilder();
@@ -425,6 +439,11 @@ public class ContentFilter {
         }
         val replacedChars      = originalString.length() - discloseLeft - discloseRight;
         val blackenFinalLength = (blackenLength == BLACKEN_LENGTH_INVALID_VALUE) ? replacedChars : blackenLength;
+        // Bound total output (replacement length x repetitions); replacement length is
+        // otherwise uncapped.
+        if ((long) replacement.length() * blackenFinalLength > MAX_BLACKEN.longValue()) {
+            throw new AccessDeniedException(ERROR_LENGTH_TOO_LARGE);
+        }
         result.repeat(replacement, blackenFinalLength);
         if (discloseRight > 0) {
             result.append(originalString.substring(discloseLeft + replacedChars));

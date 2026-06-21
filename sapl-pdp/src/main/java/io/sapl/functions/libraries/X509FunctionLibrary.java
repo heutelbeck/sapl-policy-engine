@@ -173,7 +173,9 @@ public class X509FunctionLibrary {
     private static final String ERROR_INVALID_TIMESTAMP          = "Invalid timestamp: %s.";
     private static final String ERROR_NO_COMMON_NAME             = "Certificate subject does not contain a Common Name.";
 
-    private static final Pattern IPV4_LITERAL = Pattern.compile("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}");
+    private static final String  IPV4_OCTET   = "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
+    private static final Pattern IPV4_LITERAL = Pattern
+            .compile(IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET + "\\." + IPV4_OCTET);
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 

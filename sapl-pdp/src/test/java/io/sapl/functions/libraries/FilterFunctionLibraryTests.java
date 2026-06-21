@@ -302,4 +302,25 @@ class FilterFunctionLibraryTests {
         assertThatThrownBy(() -> FilterFunctionLibrary.blacken(parameters)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Maximum allowed");
     }
+
+    @Test
+    void blackenWhenLargeUntrustedInputWithoutOverrideThenBounded() {
+        val hugeSecret = "s".repeat(2_000_000);
+        val parameters = new Value[] { Value.of(hugeSecret), Value.of(0), Value.of(0), Value.of("X") };
+
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(parameters)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Maximum allowed");
+    }
+
+    @Test
+    void blackenWhenLongReplacementAmplifiesOutputThenBounded() {
+        val longReplacement = "X".repeat(2_000);
+        val parameters      = new Value[] { Value.of("secret"), Value.of(0), Value.of(0), Value.of(longReplacement),
+                Value.of(MAX_BLACKEN_LENGTH_FOR_TEST) };
+
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(parameters)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Maximum allowed");
+    }
+
+    private static final int MAX_BLACKEN_LENGTH_FOR_TEST = 10_000;
 }

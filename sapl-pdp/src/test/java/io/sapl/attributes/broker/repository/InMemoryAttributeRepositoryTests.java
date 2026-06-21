@@ -326,6 +326,7 @@ class InMemoryAttributeRepositoryTests {
     class WhenSlowObserverInFlight {
 
         @Test
+        @Timeout(5)
         @DisplayName("then a TTL expiry on an unrelated key fires its own observer concurrently "
                 + "rather than queuing behind the slow callback")
         void thenTtlExpiryOnUnrelatedKeyFiresWhileSlowConsumerStillRunning() throws Exception {
@@ -335,6 +336,14 @@ class InMemoryAttributeRepositoryTests {
             val slowObserver = new Consumer<Value>() {
                                  @Override
                                  public void accept(Value value) {
+                                     // The synchronous initial UNDEFINED delivery happens on the
+                                     // main thread inside observe(...). Blocking on it would park the
+                                     // main thread, so the concurrent scenario could never be set up.
+                                     // Only the real "trigger" value, delivered from the separate
+                                     // virtual thread below, parks the slow callback.
+                                     if (Value.UNDEFINED.equals(value)) {
+                                         return;
+                                     }
                                      slowEntered.countDown();
                                      try {
                                          unblockSlow.await(5, java.util.concurrent.TimeUnit.SECONDS);
@@ -343,11 +352,16 @@ class InMemoryAttributeRepositoryTests {
                                      }
                                  }
                              };
+            val ttlValueSeen = new java.util.concurrent.atomic.AtomicBoolean(false);
             val fastObserver = new Consumer<Value>() {
                                  @Override
                                  public void accept(Value value) {
-                                     if (Value.UNDEFINED.equals(value)) {
-                                         // TTL expiry path delivers UNDEFINED to the observer.
+                                     if (!Value.UNDEFINED.equals(value)) {
+                                         // The published value precedes the expiry UNDEFINED.
+                                         ttlValueSeen.set(true);
+                                     } else if (ttlValueSeen.get()) {
+                                         // Only the expiry UNDEFINED (after the published value)
+                                         // counts, not the initial registration UNDEFINED.
                                          ttlObserved.countDown();
                                      }
                                  }

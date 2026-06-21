@@ -199,7 +199,9 @@ class ContentFilterTests {
                     {"conditions": [{"path": "$.age", "type": "<", "value": 30}]}
                     """, Map.of("age", 30), false), arguments(">  matches above", """
                     {"conditions": [{"path": "$.age", "type": ">", "value": 30}]}
-                    """, Map.of("age", 31), true));
+                    """, Map.of("age", 31), true), arguments("number-equal distinguishes integers beyond 2^53", """
+                    {"conditions": [{"path": "$.age", "type": "==", "value": 9007199254740993}]}
+                    """, Map.of("age", 9007199254740992L), false));
         }
 
         @Test
@@ -312,7 +314,12 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.name", "type": "blacken", "replacement": "*"}]}
                     """, "*****"), arguments("returns original when full disclosure exceeds string length", """
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": 100}]}
-                    """, "Alice"));
+                    """, "Alice"),
+                    arguments("disclose values overflowing int are handled gracefully",
+                            """
+                                    {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": 2000000000, "discloseRight": 2000000000}]}
+                                    """,
+                            "Alice"));
         }
     }
 
@@ -336,6 +343,8 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": -2}]}
                     """), arguments("negative discloseRight is rejected", """
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseRight": -2}]}
+                    """), arguments("replacement-length amplification beyond the budget is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "length": 600000, "replacement": "ab"}]}
                     """));
         }
     }

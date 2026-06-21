@@ -28,6 +28,7 @@ import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -397,7 +398,7 @@ public class PatternsFunctionLibrary {
         if (limitError != null)
             return limitError;
 
-        val cappedLimit = Math.min(limit.value().intValue(), MAX_MATCHES);
+        val cappedLimit = limit.value().min(BigDecimal.valueOf(MAX_MATCHES)).intValueExact();
         return findMatchesWithLimit(pattern, value, cappedLimit);
     }
 
@@ -446,7 +447,7 @@ public class PatternsFunctionLibrary {
         if (limitError != null)
             return limitError;
 
-        val cappedLimit = Math.min(limit.value().intValue(), MAX_MATCHES);
+        val cappedLimit = limit.value().min(BigDecimal.valueOf(MAX_MATCHES)).intValueExact();
         return findAllSubmatchWithLimit(pattern, value, cappedLimit);
     }
 
@@ -697,7 +698,7 @@ public class PatternsFunctionLibrary {
      * Validates limit parameter is a non-negative number.
      */
     private static Value validateLimit(NumberValue limit) {
-        if (limit.value().intValue() < 0) {
+        if (limit.value().signum() < 0) {
             return Value.error(ERROR_LIMIT_NEGATIVE);
         }
 

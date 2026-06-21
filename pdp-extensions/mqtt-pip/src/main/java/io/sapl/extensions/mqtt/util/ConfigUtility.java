@@ -309,7 +309,7 @@ public class ConfigUtility {
      */
     public static MqttQos getQos(Value qosVal) {
         if (qosVal instanceof NumberValue number) {
-            return MqttQos.fromCode(number.value().intValue());
+            return MqttQos.fromCode(number.value().intValueExact());
         }
         throw new IllegalArgumentException(ERROR_INVALID_QOS);
     }

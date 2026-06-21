@@ -176,7 +176,7 @@ public record ForwardedHeaders(
             for (val element : headerValue.split(",")) {
                 val trimmed = element.trim();
                 if (!trimmed.isEmpty()) {
-                    parts.add(trimmed);
+                    parts.add(stripPort(trimmed));
                 }
             }
         }

@@ -203,7 +203,12 @@ public final class StreamingPipeline {
         EnforcementPlan        plan;
         synchronized (lock) {
             subscriberDemand = Operators.addCap(subscriberDemand, n);
-            plan             = lastPermittingPlan;
+            // Enforce the subscription signal only against the currently active
+            // plan. While suspended, the last Permitting plan is no longer
+            // active; firing its subscription obligation against a stale plan
+            // would let an obligation failure terminate a suspended but
+            // otherwise-recoverable subscription.
+            plan = state instanceof Permitting(var permittingPlan) ? permittingPlan : null;
             if (rapReady && rapSubscription != null) {
                 sub = rapSubscription;
             }

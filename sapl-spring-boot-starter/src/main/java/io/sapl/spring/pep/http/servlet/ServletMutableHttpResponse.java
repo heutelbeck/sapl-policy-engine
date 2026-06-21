@@ -23,6 +23,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 
@@ -184,12 +187,12 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
 
     @Override
     public void setDateHeader(String name, long date) {
-        setHeader(name, Long.toString(date));
+        setHeader(name, formatHttpDate(date));
     }
 
     @Override
     public void addDateHeader(String name, long date) {
-        addHeader(name, Long.toString(date));
+        addHeader(name, formatHttpDate(date));
     }
 
     @Override
@@ -311,6 +314,10 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
 
     private void markModified() {
         modified = true;
+    }
+
+    private static String formatHttpDate(long epochMillis) {
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneOffset.UTC));
     }
 
     private static final class BufferingServletOutputStream extends ServletOutputStream {

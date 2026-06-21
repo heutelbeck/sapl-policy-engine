@@ -244,6 +244,29 @@ class AttributeStreamTests {
     }
 
     @Nested
+    @DisplayName("inner stream interrupt")
+    class InnerStreamInterrupt {
+
+        @Test
+        @org.junit.jupiter.api.Timeout(10)
+        @DisplayName("an untrusted inner stream that throws InterruptedException while the AttributeStream is open is "
+                + "treated as a transient failure: the pump recovers and delivers the next cycle's value")
+        void whenInnerThrowsInterruptedWhileOpenThenPumpRecoversAndDeliversNextValue() throws Exception {
+            val interrupting = new InterruptingStream();
+            val good         = new ScriptedStream();
+            good.emit(Value.of("recovered"));
+            good.complete();
+            val source = new ControlledSource(() -> interrupting, () -> good);
+
+            try (val stream = new AttributeStream(
+                    invocation("innerInterrupt", INITIAL_TIMEOUT, POLL_INTERVAL, BACKOFF, 1L), source)) {
+
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("recovered"));
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("close")
     class Close {
 
@@ -447,6 +470,32 @@ class AttributeStreamTests {
         @Override
         public void close() {
             backing.close();
+        }
+    }
+
+    /**
+     * Inner stream double modelling an untrusted PIP that throws
+     * {@link InterruptedException} from {@code awaitNext} although the
+     * AttributeStream did not request the interrupt. The first call
+     * throws; later calls would block, but the pump never reaches them
+     * once it correctly treats the interrupt as a transient failure
+     * and moves to the next cycle.
+     */
+    private static final class InterruptingStream implements Stream<Value> {
+
+        @Override
+        public Value awaitNext() throws InterruptedException {
+            throw new InterruptedException("untrusted inner interrupt");
+        }
+
+        @Override
+        public Poll<Value> tryNext() {
+            return Poll.empty();
+        }
+
+        @Override
+        public void close() {
+            // no resources to release
         }
     }
 

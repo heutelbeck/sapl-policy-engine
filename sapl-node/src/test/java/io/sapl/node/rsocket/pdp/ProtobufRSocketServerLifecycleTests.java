@@ -211,6 +211,15 @@ class ProtobufRSocketServerLifecycleTests {
 
             assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(nativeStyle)).isTrue();
         }
+
+        @Test
+        @DisplayName("a BindException for a non-in-use reason is not misreported as a port conflict to the operator")
+        void whenBindExceptionIsNotAddressInUseThenNotRecognisedAsAddressInUse() {
+            val cannotAssign = new IllegalStateException("failed to bind",
+                    new BindException("Cannot assign requested address"));
+
+            assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(cannotAssign)).isFalse();
+        }
     }
 
     @Nested

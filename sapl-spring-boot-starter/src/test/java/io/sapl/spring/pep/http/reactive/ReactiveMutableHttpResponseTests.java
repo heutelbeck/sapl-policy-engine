@@ -31,11 +31,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.core.io.buffer.NettyDataBuffer;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpResponse;
 
 import lombok.val;
+import io.netty.buffer.UnpooledByteBufAllocator;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -174,6 +179,46 @@ class ReactiveMutableHttpResponseTests {
             val buffer  = factory.wrap("from controller".getBytes(StandardCharsets.UTF_8));
             StepVerifier.create(mutable.writeWith(Mono.just(buffer))).verifyComplete();
             assertThat(mutable.getBody()).isEqualTo("from controller");
+        }
+    }
+
+    @Nested
+    @DisplayName("Pooled buffer release")
+    class BufferRelease {
+
+        private final NettyDataBufferFactory factory = new NettyDataBufferFactory(UnpooledByteBufAllocator.DEFAULT);
+
+        private NettyDataBuffer pooled(String content) {
+            return (NettyDataBuffer) factory.wrap(content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        @Test
+        @DisplayName("releases the buffer and captures the body on success")
+        void whenWriteWithCompletesThenBufferIsReleased() {
+            val buffer = pooled("hi");
+            StepVerifier.create(mutable.writeWith(Mono.just(buffer))).verifyComplete();
+            assertThat(buffer.getNativeBuffer().refCnt()).isZero();
+            assertThat(mutable.getBody()).isEqualTo("hi");
+        }
+
+        @Test
+        @DisplayName("releases accumulated buffers when the upstream errors")
+        void whenUpstreamErrorsThenBuffersAreReleased() {
+            val first  = pooled("a");
+            val second = pooled("b");
+            val body   = Flux.<DataBuffer>just(first, second).concatWith(Mono.error(new IllegalStateException("boom")));
+            StepVerifier.create(mutable.writeWith(body)).verifyError(IllegalStateException.class);
+            assertThat(first.getNativeBuffer().refCnt()).isZero();
+            assertThat(second.getNativeBuffer().refCnt()).isZero();
+        }
+
+        @Test
+        @DisplayName("releases accumulated buffers when the subscriber cancels")
+        void whenSubscriberCancelsThenBuffersAreReleased() {
+            val buffer = pooled("a");
+            val body   = Flux.<DataBuffer>just(buffer).concatWith(Mono.never());
+            StepVerifier.create(mutable.writeWith(body)).expectSubscription().thenCancel().verify();
+            assertThat(buffer.getNativeBuffer().refCnt()).isZero();
         }
     }
 

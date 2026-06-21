@@ -18,6 +18,7 @@
 package io.sapl.spring.pep.http.servlet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Collections;
 import java.util.List;
@@ -182,6 +183,28 @@ class ServletMutableHttpRequestTests {
         void getDateHeaderReadsOverride() {
             mutable.setHeader("X-When", "1700000000000");
             assertThat(mutable.getDateHeader("X-When")).isEqualTo(1700000000000L);
+        }
+
+        @Test
+        @DisplayName("getDateHeader parses an overridden RFC-1123 HTTP date into epoch millis")
+        void getDateHeaderParsesRfc1123Override() {
+            mutable.setHeader("If-Modified-Since", "Wed, 21 Oct 2015 07:28:00 GMT");
+            assertThat(mutable.getDateHeader("If-Modified-Since")).isEqualTo(1445412480000L);
+        }
+
+        @Test
+        @DisplayName("getDateHeader returns -1 when the overridden header was removed")
+        void getDateHeaderReturnsMinusOneWhenRemoved() {
+            mutable.removeHeader("If-Modified-Since");
+            assertThat(mutable.getDateHeader("If-Modified-Since")).isEqualTo(-1L);
+        }
+
+        @Test
+        @DisplayName("getDateHeader throws IllegalArgumentException for an unparseable overridden value")
+        void getDateHeaderThrowsForUnparseableOverride() {
+            mutable.setHeader("If-Modified-Since", "not-a-date");
+            assertThatExceptionOfType(IllegalArgumentException.class)
+                    .isThrownBy(() -> mutable.getDateHeader("If-Modified-Since"));
         }
     }
 

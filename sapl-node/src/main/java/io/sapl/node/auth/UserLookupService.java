@@ -74,9 +74,15 @@ public class UserLookupService {
      */
     public Optional<UserEntry> verifyBasicCredentials(String username, String password) {
         val userOpt = findByBasicUsername(username);
-        val encoded = userOpt.map(user -> user.getBasic().getSecret()).orElse(dummyArgon2Hash);
-        val matches = passwordEncoder.matches(password, encoded);
-        return userOpt.isPresent() && matches ? userOpt : Optional.empty();
+        val secret  = userOpt.map(user -> user.getBasic().getSecret()).orElse(null);
+        // A found user with a missing or blank secret must not short-circuit the
+        // Argon2 verification (which would leak the username via timing); verify
+        // against the dummy hash so exactly one full-cost verification runs on
+        // every path, and such a user can never authenticate.
+        val hasSecret = secret != null && !secret.isBlank();
+        val encoded   = hasSecret ? secret : dummyArgon2Hash;
+        val matches   = passwordEncoder.matches(password, encoded);
+        return userOpt.isPresent() && hasSecret && matches ? userOpt : Optional.empty();
     }
 
     /**

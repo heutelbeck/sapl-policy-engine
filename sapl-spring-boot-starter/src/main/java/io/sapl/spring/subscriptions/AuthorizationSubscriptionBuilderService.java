@@ -361,7 +361,7 @@ public class AuthorizationSubscriptionBuilderService {
             return evaluateToJson(subjectExpr, ctx);
         }
 
-        ObjectNode subject = mapper().valueToTree(authentication);
+        JsonNode subject = mapper().valueToTree(authentication);
         redactCredentials(subject);
         return subject;
     }

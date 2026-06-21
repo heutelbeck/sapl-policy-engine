@@ -97,14 +97,14 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         if (isFluentAggregateDenyEntry(method)) {
             return wrapDenyOnTerminal(invocation.proceed());
         }
+        if (DIRECT_DENY_BUCKET.contains(method.getName()) && isReactiveReturn(method)) {
+            return denyDirect(invocation);
+        }
         if (isQueryFirst(method) && isReactiveReturn(method)) {
             return narrowLegacyQuery(invocation);
         }
         if (isFindAllEntry(method)) {
             return rerouteFindAll(invocation);
-        }
-        if (DIRECT_DENY_BUCKET.contains(method.getName()) && isReactiveReturn(method)) {
-            return denyDirect(invocation);
         }
         return invocation.proceed();
     }
@@ -129,7 +129,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         if (planOpt.isEmpty()) {
             return invokeAsFlux(target, method, args);
         }
-        return switch (applyShim(planOpt.get(), (Query) args[0])) {
+        return switch (applyShim(planOpt.get(), Query.of((Query) args[0]))) {
         case Denied(Throwable cause)    -> Flux.error(cause);
         case Rewritten(Query rewritten) -> invokeAsFlux(target, method, withQuery(args, rewritten));
         };
@@ -140,7 +140,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         if (planOpt.isEmpty()) {
             return invokeAsMono(target, method, args);
         }
-        return switch (applyShim(planOpt.get(), (Query) args[0])) {
+        return switch (applyShim(planOpt.get(), Query.of((Query) args[0]))) {
         case Denied(Throwable cause)    -> Mono.error(cause);
         case Rewritten(Query rewritten) -> invokeAsMono(target, method, withQuery(args, rewritten));
         };
@@ -238,7 +238,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         val   planOpt    = EnforcementPlanContext.currentReactor(ctx);
         Query queryToUse = originalQuery;
         if (planOpt.isPresent()) {
-            switch (applyShim(planOpt.get(), originalQuery)) {
+            switch (applyShim(planOpt.get(), Query.of(originalQuery))) {
             case Denied(Throwable cause)    -> {
                 return Mono.error(cause);
             }
@@ -331,7 +331,7 @@ public class MongoShimMethodInterceptor implements MethodInterceptor {
         Query queryToUse = capturedQuery != null ? capturedQuery : new Query();
         val   planOpt    = EnforcementPlanContext.currentReactor(ctx);
         if (planOpt.isPresent()) {
-            switch (applyShim(planOpt.get(), queryToUse)) {
+            switch (applyShim(planOpt.get(), Query.of(queryToUse))) {
             case Denied(Throwable cause)    -> {
                 return Mono.error(cause);
             }

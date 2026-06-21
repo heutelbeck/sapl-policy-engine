@@ -27,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -473,6 +474,26 @@ class PatternsFunctionLibraryTests {
                 (TextValue) Value.of("123"), (NumberValue) Value.of(limit));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("negative");
+    }
+
+    @Test
+    @DisplayName("a limit larger than 2^32 is clamped to the 10,000 cap, not wrapped to zero")
+    void whenLimitExceedsIntRangeThenClampedToMaxMatchesNotWrapped() {
+        val manyMatches = "a ".repeat(20);
+        val hugeLimit   = Value.of(BigDecimal.valueOf(1L << 32));
+        val result      = PatternsFunctionLibrary.findMatchesLimited((TextValue) Value.of("a"),
+                (TextValue) Value.of(manyMatches), (NumberValue) hugeLimit);
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, array -> assertThat(array).hasSize(20));
+    }
+
+    @Test
+    @DisplayName("a submatch limit larger than 2^32 is clamped to the cap, not wrapped to zero")
+    void whenSubmatchLimitExceedsIntRangeThenClampedToMaxMatchesNotWrapped() {
+        val manyMatches = "a ".repeat(20);
+        val hugeLimit   = Value.of(BigDecimal.valueOf(1L << 32));
+        val result      = PatternsFunctionLibrary.findAllSubmatchLimited((TextValue) Value.of("(a)"),
+                (TextValue) Value.of(manyMatches), (NumberValue) hugeLimit);
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, array -> assertThat(array).hasSize(20));
     }
 
     @Test

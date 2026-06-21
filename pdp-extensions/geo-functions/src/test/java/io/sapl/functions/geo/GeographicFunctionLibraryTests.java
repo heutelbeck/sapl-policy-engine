@@ -33,7 +33,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.spatial4j.distance.DistanceUtils;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -420,6 +419,15 @@ class GeographicFunctionLibraryTests {
     }
 
     @Test
+    void subsetWhenThisHasMoreRawMembersButAllDistinctMembersPresentThenTrue() {
+        val geometryCollectionThis = geometryToGeoJSON(
+                GEO_FACTORY.createGeometryCollection(new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_1_GEOMETRY }));
+        val geometryCollectionThat = geometryToGeoJSON(
+                GEO_FACTORY.createGeometryCollection(new Geometry[] { POLYGON_1_GEOMETRY }));
+        assertThat(subset(geometryCollectionThis, geometryCollectionThat)).isEqualTo(Value.TRUE);
+    }
+
+    @Test
     void subsetTest_returnsFalseWhenThisIsLarger() {
         val geometryCollectionThis = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(
                 new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_3_GEOMETRY, POINT_1_2_GEOMETRY }));
@@ -455,21 +463,21 @@ class GeographicFunctionLibraryTests {
     }
 
     @Test
-    void testMilesToMeterJsonNode() {
-        val miles    = 1.0;
-        val milesVal = Value.of(miles);
-        val expected = miles * DistanceUtils.MILES_TO_KM * 1000;
+    void whenConvertingOneMileToMeterThenResultIsStatuteMileInMeters() {
+        val milesVal = Value.of(1.0);
+        // The international statute mile is defined as exactly 1609.344 meters.
+        val expected = 1609.344;
         val actual   = milesToMeter((NumberValue) milesVal);
         assertThat(actual).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.001));
     }
 
     @Test
-    void testYardToMeter() {
-        val yards    = 1.0;
-        val yardVal  = Value.of(yards);
+    void whenConvertingOneYardToMeterThenResultIsInternationalYardInMeters() {
+        val yardVal = Value.of(1.0);
+        // The international yard is defined as exactly 0.9144 meters.
+        val expected = 0.9144;
         val actual   = yardToMeter((NumberValue) yardVal);
-        val expected = (yards / 1760) * DistanceUtils.MILES_TO_KM * 1000;
         assertThat(actual).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.001));
     }
@@ -596,6 +604,58 @@ class GeographicFunctionLibraryTests {
 
             assertThat(requestCount).hasValue(0);
             assertThat(result.toString()).doesNotContain("133.7");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesRemoteSchemaViaSchemaLocationThenNoOutboundRequestIsIssued(XxeCase xxeCase)
+            throws IOException {
+        val requestCount = new AtomicInteger();
+        val server       = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            requestCount.incrementAndGet();
+            val body = "<schema/>".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (val responseBody = exchange.getResponseBody()) {
+                responseBody.write(body);
+            }
+        });
+        server.start();
+        try {
+            // xsi:schemaLocation is a separate fetch path from DOCTYPE entities; geotools'
+            // schema loader fetched it whenever the resolver did not throw. A function
+            // library must never reach out, so this resolves to an error with no I/O.
+            val externalUri = "http://%s:%d/leak.xsd".formatted(server.getAddress().getHostString(),
+                    server.getAddress().getPort());
+            val document    = switch (xxeCase) {
+                            case KML        ->
+                                """
+                                        <?xml version="1.0"?>
+                                        <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://attacker.example/ns %s">
+                                        <Placemark><Point><coordinates>133.7,42.0,0</coordinates></Point></Placemark></kml>
+                                        """
+                                        .formatted(externalUri);
+                            case GML2, GML3 ->
+                                """
+                                        <?xml version="1.0"?>
+                                        <gml:Point xmlns:gml="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://attacker.example/ns %s" srsName="EPSG:4326"><gml:coordinates>133.7,42.0</gml:coordinates></gml:Point>
+                                        """
+                                        .formatted(externalUri);
+                            };
+
+            val result = switch (xxeCase) {
+            case KML  -> kmlToGeoJSON(Value.of(document));
+            case GML2 -> gml2ToGeoJSON(Value.of(document));
+            case GML3 -> gml3ToGeoJSON(Value.of(document));
+            };
+
+            assertThat(requestCount).hasValue(0);
+            // No outbound fetch: resolution falls back to the bundled schema and the
+            // document still parses.
+            assertThat(result).isNotInstanceOf(ErrorValue.class);
         } finally {
             server.stop(0);
         }

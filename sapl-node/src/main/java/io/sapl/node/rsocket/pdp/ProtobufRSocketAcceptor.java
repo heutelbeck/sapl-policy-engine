@@ -163,7 +163,12 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         }
         val delayMillis = Math.max(0L, Duration.between(Instant.now(), expiresAt).toMillis());
         try {
-            Schedulers.parallel().schedule(connection::dispose, delayMillis, TimeUnit.MILLISECONDS);
+            val expiryTask = Schedulers.parallel().schedule(connection::dispose, delayMillis, TimeUnit.MILLISECONDS);
+            // Cancel the expiry timer if the connection closes before the token
+            // expires, so an early disconnect releases the timer task and the
+            // RSocket reference it captures immediately rather than leaking until
+            // expiry under connection churn.
+            connection.onClose().doFinally(ignored -> expiryTask.dispose()).subscribe();
         } catch (RejectedExecutionException e) {
             log.warn(WARN_EXPIRY_SCHEDULE_REJECTED);
             connection.dispose();

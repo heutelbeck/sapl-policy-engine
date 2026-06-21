@@ -80,12 +80,22 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed multi-subscription.");
             return;
         }
+        if (subscription == null) {
+            log.debug("Rejected null multi-subscription.");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed multi-subscription.");
+            return;
+        }
 
         MultiAuthorizationDecision decision;
         try (Stream<MultiAuthorizationDecision> stream = pdp.decideAll(subscription, pdpId)) {
             decision = stream.awaitNext();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            decision = MultiAuthorizationDecision.indeterminate();
+        } catch (Exception e) {
+            // Fail closed: no raw 500 (stack leak); return INDETERMINATE like the streaming
+            // servlet.
+            log.error("Decision evaluation failed for multi-decide-all-once; returning INDETERMINATE.", e);
             decision = MultiAuthorizationDecision.indeterminate();
         }
         if (decision == null) {
@@ -95,7 +105,13 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
         // Serialize first so the status code reflects the actual outcome.
         // Writing 200 then mapper.writeValue would leave the client with
         // "200 OK" plus a truncated body on a Jackson failure mid-write.
-        val body = mapper.writeValueAsBytes(decision);
+        byte[] body;
+        try {
+            body = mapper.writeValueAsBytes(decision);
+        } catch (Exception e) {
+            log.error("Failed to serialize decision for multi-decide-all-once; returning INDETERMINATE.", e);
+            body = mapper.writeValueAsBytes(MultiAuthorizationDecision.indeterminate());
+        }
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(CONTENT_TYPE_JSON);
         response.setContentLength(body.length);

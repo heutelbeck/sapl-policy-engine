@@ -32,6 +32,7 @@ import lombok.val;
 
 import java.security.cert.CertificateException;
 import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Policy Information Point for reactive X.509 certificate validity monitoring.
@@ -94,6 +95,17 @@ public class X509PolicyInformationPoint {
 
     private static final String ERROR_FAILED_TO_PARSE_CERTIFICATE = "Failed to parse certificate: %s.";
 
+    /**
+     * Upper bound on how far ahead a validity transition may be scheduled. The
+     * scheduler converts the delay to nanoseconds, and
+     * {@link java.time.Duration#toNanos()} overflows for delays beyond roughly
+     * 292 years. Certificates with a far-future boundary such as the RFC 5280
+     * "no well-defined expiration" value 99991231235959Z are common for CA
+     * roots. A boundary beyond this bound is treated as never reached, so the
+     * certificate simply stays in its current validity state.
+     */
+    private static final long MAX_SCHEDULABLE_DELAY_MILLIS = 100L * 365 * 24 * 60 * 60 * 1000;
+
     private final Clock         clock;
     private final TimeScheduler scheduler;
 
@@ -139,8 +151,19 @@ public class X509PolicyInformationPoint {
             }
 
             if (now.isBefore(notBefore)) {
+                if (isBeyondSchedulingHorizon(notBefore, now)) {
+                    return Streams.just(Value.FALSE);
+                }
+                if (isBeyondSchedulingHorizon(notAfter, now)) {
+                    return Streams.concat(Streams.just(Value.FALSE),
+                            Streams.scheduledAt(Value.TRUE, notBefore, scheduler));
+                }
                 return Streams.concat(Streams.just(Value.FALSE), Streams.scheduledAt(Value.TRUE, notBefore, scheduler),
                         Streams.scheduledAt(Value.FALSE, notAfter, scheduler));
+            }
+
+            if (isBeyondSchedulingHorizon(notAfter, now)) {
+                return Streams.just(Value.TRUE);
             }
 
             return Streams.concat(Streams.just(Value.TRUE), Streams.scheduledAt(Value.FALSE, notAfter, scheduler));
@@ -178,6 +201,10 @@ public class X509PolicyInformationPoint {
             """)
     public Stream<Value> isExpired(TextValue certPem) {
         return Streams.map(isCurrentlyValid(certPem), v -> v instanceof BooleanValue(var b) ? Value.of(!b) : v);
+    }
+
+    private static boolean isBeyondSchedulingHorizon(Instant when, Instant now) {
+        return when.toEpochMilli() - now.toEpochMilli() > MAX_SCHEDULABLE_DELAY_MILLIS;
     }
 
 }

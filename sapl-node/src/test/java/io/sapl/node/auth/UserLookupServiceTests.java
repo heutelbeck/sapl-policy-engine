@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -159,6 +160,42 @@ class UserLookupServiceTests {
             val unknownUser = counter.matchInvocations.get();
 
             assertThat(wrongPassword).isEqualTo(unknownUser).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("a known username whose configured secret is null still costs one full Argon2 verification, like an unknown username, and is rejected")
+        void whenKnownUserHasNullSecretThenFullVerificationAndEmpty() {
+            val real    = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val counter = new CountingPasswordEncoder(real);
+            val sut     = new UserLookupService(properties, counter);
+            when(properties.getUsers()).thenReturn(List.of(alice(null)));
+
+            assertThat(sut.verifyBasicCredentials("alice", "whatever")).isEmpty();
+            val nullSecretUser = counter.matchInvocations.getAndSet(0);
+
+            assertThat(sut.verifyBasicCredentials("ghost", "whatever")).isEmpty();
+            val unknownUser = counter.matchInvocations.get();
+
+            assertThat(counter.encodedArguments).containsOnly(false);
+            assertThat(nullSecretUser).isEqualTo(unknownUser).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("a known username whose configured secret is blank still costs one full Argon2 verification, like an unknown username, and is rejected")
+        void whenKnownUserHasBlankSecretThenFullVerificationAndEmpty() {
+            val real    = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val counter = new CountingPasswordEncoder(real);
+            val sut     = new UserLookupService(properties, counter);
+            when(properties.getUsers()).thenReturn(List.of(alice("   ")));
+
+            assertThat(sut.verifyBasicCredentials("alice", "whatever")).isEmpty();
+            val blankSecretUser = counter.matchInvocations.getAndSet(0);
+
+            assertThat(sut.verifyBasicCredentials("ghost", "whatever")).isEmpty();
+            val unknownUser = counter.matchInvocations.get();
+
+            assertThat(counter.encodedArguments).containsOnly(false);
+            assertThat(blankSecretUser).isEqualTo(unknownUser).isEqualTo(1);
         }
     }
 
@@ -302,6 +339,7 @@ class UserLookupServiceTests {
 
         private final PasswordEncoder delegate;
         private final AtomicInteger   matchInvocations = new AtomicInteger();
+        private final List<Boolean>   encodedArguments = new ArrayList<>();
 
         private CountingPasswordEncoder(PasswordEncoder delegate) {
             this.delegate = delegate;
@@ -315,6 +353,7 @@ class UserLookupServiceTests {
         @Override
         public boolean matches(CharSequence rawPassword, String encodedPassword) {
             matchInvocations.incrementAndGet();
+            encodedArguments.add(encodedPassword == null || encodedPassword.isBlank());
             return delegate.matches(rawPassword, encodedPassword);
         }
     }

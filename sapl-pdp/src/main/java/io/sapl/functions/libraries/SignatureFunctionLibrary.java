@@ -28,8 +28,10 @@ import lombok.val;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.interfaces.ECPublicKey;
 import java.util.Base64;
 import java.util.HexFormat;
 
@@ -139,9 +141,13 @@ public class SignatureFunctionLibrary {
             }
             """;
 
+    private static final int NO_CURVE_CHECK = 0;
+
     private static final String ERROR_ALGORITHM_NOT_SUPPORTED  = "Signature algorithm not supported: ";
+    private static final String ERROR_CURVE_MISMATCH           = "Public key is not on the expected elliptic curve. Expected a %d-bit curve but the key uses a %d-bit curve.";
     private static final String ERROR_FAILED_TO_VERIFY         = "Failed to verify signature: ";
     private static final String ERROR_INVALID_PUBLIC_KEY       = "Invalid public key: ";
+    private static final String ERROR_NOT_EC_KEY               = "Public key is not an elliptic curve key.";
     private static final String ERROR_SIGNATURE_FORMAT_INVALID = "Signature must be in hexadecimal or Base64 format. Hex parsing failed: %s. Base64 parsing failed: %s";
     private static final String ERROR_VERIFICATION_FAILED      = "Signature verification failed: ";
 
@@ -171,7 +177,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidRsaSha256(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_RSA_SHA256,
-                ALGORITHM_RSA);
+                ALGORITHM_RSA, NO_CURVE_CHECK);
     }
 
     @Function(docs = """
@@ -194,7 +200,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidRsaSha384(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_RSA_SHA384,
-                ALGORITHM_RSA);
+                ALGORITHM_RSA, NO_CURVE_CHECK);
     }
 
     @Function(docs = """
@@ -217,7 +223,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidRsaSha512(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_RSA_SHA512,
-                ALGORITHM_RSA);
+                ALGORITHM_RSA, NO_CURVE_CHECK);
     }
 
     @Function(docs = """
@@ -241,7 +247,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidEcdsaP256(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_ECDSA_SHA256,
-                ALGORITHM_EC);
+                ALGORITHM_EC, EC_P256_BITS);
     }
 
     @Function(docs = """
@@ -264,7 +270,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidEcdsaP384(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_ECDSA_SHA384,
-                ALGORITHM_EC);
+                ALGORITHM_EC, EC_P384_BITS);
     }
 
     @Function(docs = """
@@ -287,7 +293,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidEcdsaP521(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_ECDSA_SHA512,
-                ALGORITHM_EC);
+                ALGORITHM_EC, EC_P521_BITS);
     }
 
     @Function(docs = """
@@ -312,7 +318,7 @@ public class SignatureFunctionLibrary {
             """, schema = RETURNS_BOOLEAN)
     public static Value isValidEd25519(TextValue message, TextValue signature, TextValue publicKeyPem) {
         return verifySignature(message.value(), signature.value(), publicKeyPem.value(), ALGORITHM_ED25519,
-                ALGORITHM_EDDSA);
+                ALGORITHM_EDDSA, NO_CURVE_CHECK);
     }
 
     /**
@@ -330,14 +336,23 @@ public class SignatureFunctionLibrary {
      * the signature algorithm name
      * @param keyAlgorithm
      * the key algorithm name
+     * @param expectedCurveBits
+     * the expected elliptic curve order bit length the parsed key must match, or
+     * {@code NO_CURVE_CHECK} to skip the check for non-EC algorithms
      *
      * @return Value containing true if signature is valid, FALSE if invalid, or an
      * error
      */
     private static Value verifySignature(String message, String signatureString, String publicKeyPem,
-            String signatureAlgorithm, String keyAlgorithm) {
+            String signatureAlgorithm, String keyAlgorithm, int expectedCurveBits) {
         try {
-            val publicKey      = KeyUtils.parsePublicKey(publicKeyPem, keyAlgorithm);
+            val publicKey = KeyUtils.parsePublicKey(publicKeyPem, keyAlgorithm);
+            if (expectedCurveBits != NO_CURVE_CHECK) {
+                val curveError = checkEcCurve(publicKey, expectedCurveBits);
+                if (curveError != null) {
+                    return curveError;
+                }
+            }
             val signatureBytes = parseSignature(signatureString);
             val messageBytes   = message.getBytes(StandardCharsets.UTF_8);
 
@@ -358,6 +373,33 @@ public class SignatureFunctionLibrary {
         } catch (Exception exception) {
             return Value.error(ERROR_FAILED_TO_VERIFY + exception.getMessage());
         }
+    }
+
+    /**
+     * Enforces that an EC public key sits on the NIST curve promised by the calling
+     * function. The Java {@code Signature} verification only constrains the hash,
+     * not
+     * the curve, so an EC key on any curve would otherwise be accepted regardless
+     * of
+     * the {@code P-256}, {@code P-384}, or {@code P-521} name of the function.
+     *
+     * @param publicKey
+     * the parsed public key
+     * @param expectedCurveBits
+     * the expected curve order bit length
+     *
+     * @return an error Value if the key is not an EC key or sits on a different
+     * curve, or {@code null} if the curve matches
+     */
+    private static Value checkEcCurve(PublicKey publicKey, int expectedCurveBits) {
+        if (!(publicKey instanceof ECPublicKey ecPublicKey)) {
+            return Value.error(ERROR_NOT_EC_KEY);
+        }
+        val actualCurveBits = ecPublicKey.getParams().getOrder().bitLength();
+        if (actualCurveBits != expectedCurveBits) {
+            return Value.error(ERROR_CURVE_MISMATCH.formatted(expectedCurveBits, actualCurveBits));
+        }
+        return null;
     }
 
     /**

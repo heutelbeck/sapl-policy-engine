@@ -175,6 +175,29 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
+    @ParameterizedTest(name = "{0} element = {1}")
+    @MethodSource("provideArrayElementOutOfLongRangeCases")
+    void whenArrayMaskElementIsOutOfLongRangeThenReturnsError(String functionName, String element) {
+        val         outOfRange = Value.of(new BigDecimal(element));
+        val         masks      = ArrayValue.builder().add(Value.of(1L)).add(outOfRange).build();
+        final Value actual     = switch (functionName) {
+                               case "combine"    -> PermissionsFunctionLibrary.combine(masks);
+                               case "combineAll" -> PermissionsFunctionLibrary.combineAll(masks);
+                               default           ->
+                                   throw new IllegalArgumentException("Unknown function: " + functionName);
+                               };
+
+        assertThat(actual).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) actual).message()).contains("64-bit range");
+    }
+
+    private static Stream<Arguments> provideArrayElementOutOfLongRangeCases() {
+        val aboveLongMax = "9223372036854775808";  // Long.MAX_VALUE + 1
+        val belowLongMin = "-9223372036854775809"; // Long.MIN_VALUE - 1
+        return Stream.of(arguments("combine", aboveLongMax), arguments("combine", belowLongMin),
+                arguments("combineAll", aboveLongMax), arguments("combineAll", belowLongMin));
+    }
+
     @Test
     void whenCombineAllWithEmptyArrayThenReturnsError() {
         val emptyArray = ArrayValue.builder().build();

@@ -95,8 +95,11 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     private @Nullable StreamAttributeFinderSpecification sourceSpec;
     private boolean                                      closed             = false;
     private boolean                                      inRebindTransition = false;
+    private boolean                                      terminal           = false;
 
     // Rate-limits the onValue-handler-threw warning to one per minute.
+    // Guarded by `lock`: the pump thread and the broker thread both reach
+    // logHandlerFailure, so the read-modify-write must be serialized.
     private long    lastWarnLogNanos;
     private boolean warnLogged;
 
@@ -226,6 +229,11 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * <p>
      * Bypasses the rebind-transition gate (see {@link #rebind}): the
      * caller has explicitly chosen this value as terminal.
+     * <p>
+     * Marks the active invocation as terminal so a still-running pump
+     * cannot overwrite this terminal value with a stale source value
+     * after the PIP was unloaded or evicted: subsequent pump-path
+     * publishes are suppressed.
      */
     void publishImmediate(Value value) {
         publishInternal(value, false);
@@ -340,8 +348,14 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
             if (closed) {
                 return;
             }
+            if (gatedByRebind && terminal) {
+                return;
+            }
             if (gatedByRebind && inRebindTransition && Value.UNDEFINED.equals(value)) {
                 return;
+            }
+            if (!gatedByRebind) {
+                terminal = true;
             }
             inRebindTransition = false;
             latestSnapshot     = Optional.of(new AttributeSnapshot(value, timestampSource.instant()));
@@ -354,11 +368,17 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
     }
 
     private void logHandlerFailure(RuntimeException failure) {
-        val now = System.nanoTime();
-        if (!warnLogged || now - lastWarnLogNanos >= WARN_LOG_INTERVAL_NANOS) {
+        val           now = System.nanoTime();
+        final boolean shouldLog;
+        synchronized (lock) {
+            shouldLog = !warnLogged || now - lastWarnLogNanos >= WARN_LOG_INTERVAL_NANOS;
+            if (shouldLog) {
+                lastWarnLogNanos = now;
+                warnLogged       = true;
+            }
+        }
+        if (shouldLog) {
             log.warn(WARN_ONVALUE_THREW, id, failure.getMessage(), failure);
-            lastWarnLogNanos = now;
-            warnLogged       = true;
         }
     }
 

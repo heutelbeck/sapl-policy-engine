@@ -60,6 +60,7 @@ import java.security.KeyStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -206,25 +207,26 @@ public class SaplMqttClient implements Closeable {
             val closed       = new AtomicBoolean(false);
             val teardownDone = new AtomicBoolean(false);
             val ctx          = new SubscriptionContext(cached, cached.getMqttAsyncClient(), filters, qos, closed,
-                    maxPayloadBytes);
+                    maxPayloadBytes, ConcurrentHashMap.newKeySet());
 
             val onDisconnect = registerDisconnectListener(cached, emitAtRetry, closed, emit);
             val timerCancel  = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
 
             Thread.startVirtualThread(() -> connectAndSubscribe(ctx, firstMessage, emit, complete,
-                    () -> brokerLevelTeardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone)));
+                    () -> teardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone)));
 
-            return () -> fullTeardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone);
+            return () -> teardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone);
         });
     }
 
-    private record SubscriptionContext(
+    record SubscriptionContext(
             MqttClientValues cached,
             Mqtt5AsyncClient client,
             List<MqttTopicFilter> filters,
             MqttQos qos,
             AtomicBoolean closed,
-            int maxPayloadBytes) {}
+            int maxPayloadBytes,
+            Set<MqttTopicFilter> subscribedFilters) {}
 
     private static void connectAndSubscribe(SubscriptionContext ctx, AtomicBoolean firstMessage, Consumer<Value> emit,
             Runnable complete, Runnable onFailure) {
@@ -244,6 +246,11 @@ public class SaplMqttClient implements Closeable {
                         () -> ctx.client.subscribeWith().topicFilter(filter).qos(ctx.qos).callback(
                                 publish -> deliverPublish(publish, ctx.closed, firstMessage, emit, ctx.maxPayloadBytes))
                                 .send().get(SUBSCRIBE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
+                // Record the filter only after the subscribe-and-count critical
+                // section succeeds, so teardown decrements and unsubscribes
+                // exactly the filters this subscriber actually subscribed, never
+                // the ones a partial failure left unsubscribed.
+                ctx.subscribedFilters.add(filter);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -267,33 +274,25 @@ public class SaplMqttClient implements Closeable {
         emit.accept(decodePublish(publish, maxPayloadBytes));
     }
 
-    // Full teardown for an established subscription (the stream close callback):
-    // unsubscribes this subscriber's topics, then releases its broker reference.
-    private void fullTeardown(JsonNode brokerKey, SubscriptionContext ctx, Cancellable timerCancel,
-            Runnable onDisconnect, AtomicBoolean done) {
+    // Teardown for both the stream close callback and the connect/subscribe
+    // failure path: unsubscribes exactly the filters this subscriber actually
+    // subscribed (a partial-failure subscriber may have subscribed a subset, or
+    // none), then releases its broker reference. The shared done flag makes the
+    // two callers idempotent, so a failure-path teardown and a later close
+    // callback never double-decrement or skip cleanup.
+    void teardown(JsonNode brokerKey, SubscriptionContext ctx, Cancellable timerCancel, Runnable onDisconnect,
+            AtomicBoolean done) {
         if (!done.compareAndSet(false, true)) {
             return;
         }
         cancelSubscriptionResources(ctx, timerCancel, onDisconnect);
-        for (val filter : ctx.filters) {
+        for (val filter : ctx.subscribedFilters) {
             // Decrement the count and, when the last subscriber leaves, unsubscribe
             // on the broker as one critical section guarded by the same lock the
             // subscribe path uses, so the count and the broker subscription state
             // change atomically per topic.
             ctx.cached.unsubscribeTopicAtomically(filter.toString(), () -> unsubscribeQuietly(ctx.client, filter));
         }
-        evictBrokerSubscriber(brokerKey);
-    }
-
-    // Teardown for the connect/subscribe failure path: no per-topic unsubscribe
-    // (nothing was subscribed yet, and the client is unconnected), just release
-    // the broker reference so the cache entry and counter do not leak.
-    private void brokerLevelTeardown(JsonNode brokerKey, SubscriptionContext ctx, Cancellable timerCancel,
-            Runnable onDisconnect, AtomicBoolean done) {
-        if (!done.compareAndSet(false, true)) {
-            return;
-        }
-        cancelSubscriptionResources(ctx, timerCancel, onDisconnect);
         evictBrokerSubscriber(brokerKey);
     }
 
