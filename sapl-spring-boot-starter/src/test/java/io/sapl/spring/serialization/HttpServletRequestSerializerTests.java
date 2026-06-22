@@ -141,6 +141,14 @@ class HttpServletRequestSerializerTests {
             val parsed = serialize(request).get("queryParameters");
             assertThat(parsed.get(key).get(0).asString()).isEqualTo(expected);
         }
+
+        @Test
+        void valuelessQueryParameterSerializesAsNullMatchingTheReactiveStack() {
+            val request = new MockHttpServletRequest();
+            request.setQueryString("flag");
+            val parsed = serialize(request).get("queryParameters");
+            assertThat(parsed.get("flag").get(0).isNull()).isTrue();
+        }
     }
 
     @Nested

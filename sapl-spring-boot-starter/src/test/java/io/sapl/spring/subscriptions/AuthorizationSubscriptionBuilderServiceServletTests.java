@@ -285,6 +285,21 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     }
 
     @Test
+    @DisplayName("when a method argument carries a nested credential field, then it is stripped from the action arguments")
+    void whenArgumentCarriesNestedCredentialThenItIsStrippedFromActionArguments() {
+        val attribute          = attribute(null, null, null, null);
+        val secretBearingArg   = new CustomPrincipal("tenant-1", new NestedCredentials("super-secret-token"));
+        val invocationWithArgs = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                "publicVoidCredentialArg", new Class<?>[] { CustomPrincipal.class }, new Object[] { secretBearingArg });
+        val subscription       = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                invocationWithArgs, attribute);
+
+        val argument = toJson(subscription.action()).get("java").get("arguments").get(0);
+        assertThat(argument.get("tenantId").asString()).isEqualTo("tenant-1");
+        assertThat(argument.get("nested").has("accessToken")).isFalse();
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void when_nullParametersInvocationHasArgumentsThatCannotBeMappedToJson_then_FactoryConstructsFromContextExcludingProblematicArguments() {
         val failMapper = spy(ObjectMapper.class);
@@ -523,6 +538,10 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
         }
 
         public void publicVoidProblemArg(BadForJackson param) {
+            /* NOOP */
+        }
+
+        public void publicVoidCredentialArg(CustomPrincipal param) {
             /* NOOP */
         }
 

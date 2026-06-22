@@ -420,6 +420,34 @@ class SaplJacksonModuleTests {
     }
 
     @Test
+    void when_deserializingCombiningAlgorithmWithUnknownNestedObjectField_then_validConfigurationIsAccepted()
+            throws JacksonException {
+        val json      = """
+                {"comment":{"author":"Wilbur","note":"keep"},"votingMode":"PRIORITY_DENY","defaultDecision":"DENY","errorHandling":"ABSTAIN"}""";
+        val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
+        assertThat(algorithm).isEqualTo(
+                new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY, ErrorHandling.ABSTAIN));
+    }
+
+    @Test
+    void when_deserializingCombiningAlgorithmWithUnknownNestedArrayField_then_validConfigurationIsAccepted()
+            throws JacksonException {
+        val json      = """
+                {"tags":["legacy","ignored"],"votingMode":"UNIQUE","defaultDecision":"ABSTAIN","errorHandling":"PROPAGATE"}""";
+        val algorithm = mapper.readValue(json, CombiningAlgorithm.class);
+        assertThat(algorithm)
+                .isEqualTo(new CombiningAlgorithm(VotingMode.UNIQUE, DefaultDecision.ABSTAIN, ErrorHandling.PROPAGATE));
+    }
+
+    @Test
+    void when_deserializingCombiningAlgorithmWithUnknownFieldBeforeRequiredFields_then_noNullPointerExceptionLeaks() {
+        val json = """
+                {"extra":["a","b"],"votingMode":"PRIORITY_DENY"}""";
+        assertThatThrownBy(() -> mapper.readValue(json, CombiningAlgorithm.class)).isInstanceOf(JacksonException.class)
+                .hasMessageContaining("defaultDecision");
+    }
+
+    @Test
     void when_serializingPDPConfiguration_then_allFieldsSerialized() throws JacksonException {
         val algorithm     = new CombiningAlgorithm(VotingMode.PRIORITY_DENY, DefaultDecision.DENY,
                 ErrorHandling.ABSTAIN);
@@ -565,6 +593,27 @@ class SaplJacksonModuleTests {
 
         assertThat(configuration.saplDocuments()).isEmpty();
         assertThat(configuration.data().variables()).isEmpty();
+    }
+
+    @ParameterizedTest(name = "saplDocuments element {0}")
+    @MethodSource("nonStringSaplDocumentElementCases")
+    void when_deserializingPDPConfigurationWithNonStringSaplDocument_then_throwsException(String element) {
+        val json = """
+                {
+                    "pdpId": "test-pdp",
+                    "configurationId": "test-security",
+                    "combiningAlgorithm": {"votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "ABSTAIN"},
+                    "saplDocuments": ["policy valid permit", %s],
+                    "variables": {}
+                }"""
+                .formatted(element);
+        assertThatThrownBy(() -> mapper.readValue(json, PDPConfiguration.class)).isInstanceOf(JacksonException.class)
+                .hasMessageContaining("saplDocuments");
+    }
+
+    static Stream<Arguments> nonStringSaplDocumentElementCases() {
+        return Stream.of(arguments("42"), arguments("true"), arguments("null"), arguments("{\"policy\":\"bad\"}"),
+                arguments("[\"nested\"]"));
     }
 
     @Test

@@ -95,6 +95,21 @@ class SAPLTestSemanticTokensProviderTests {
                                     sourceLines[p.line()].length())
                             .isLessThanOrEqualTo(sourceLines[p.line()].length()));
         }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("multiLineCases")
+        @DisplayName("on Windows CRLF line endings the highlighted length excludes the carriage return")
+        void whenTokenSpansMultipleCrlfLines_thenHighlightedLengthExcludesCarriageReturn(String description,
+                String content, int tokenType) {
+            var sourceLines = content.split("\n", -1);
+            var crlfContent = content.replace("\n", "\r\n");
+            var positions   = rawTokenPositions(crlfContent);
+
+            assertThat(positions).isNotEmpty().allSatisfy(p -> assertThat(p.column() + p.length())
+                    .as("token on line %d must end at or before the visible line length %d, "
+                            + "not extending over the carriage return", p.line(), sourceLines[p.line()].length())
+                    .isLessThanOrEqualTo(sourceLines[p.line()].length()));
+        }
     }
 
     private List<RawToken> rawTokenPositions(String content) {

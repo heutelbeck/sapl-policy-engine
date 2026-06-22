@@ -42,7 +42,7 @@ import lombok.val;
  *     "defaultDecision": "ABSTAIN",
  *     "errorHandling": "PROPAGATE"
  *   },
- *   "compilerFlags": {
+ *   "compilerOptions": {
  *     "indexing": "AUTO",
  *     "unrollInOperator": false,
  *     "minPoliciesForIndexing": 10,

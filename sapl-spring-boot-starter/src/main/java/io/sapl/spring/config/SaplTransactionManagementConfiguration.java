@@ -44,10 +44,10 @@ import org.springframework.transaction.interceptor.BeanFactoryTransactionAttribu
  * {@link EnableReactiveSaplMethodSecurity}.
  * <p>
  * The adjustment only applies when the transaction advisor still has the
- * default order
- * ({@link Ordered#LOWEST_PRECEDENCE}). If the user has explicitly configured a
- * custom order via
- * {@code @EnableTransactionManagement(order = ...)}, it is left unchanged.
+ * default order ({@link Ordered#LOWEST_PRECEDENCE}). A custom order configured
+ * via {@code @EnableTransactionManagement(order = ...)} is left unchanged, with
+ * one caveat: an explicit order equal to {@link Ordered#LOWEST_PRECEDENCE} is
+ * indistinguishable from the unconfigured default and will still be adjusted.
  * <p>
  * To disable this automatic adjustment entirely, set the property
  * {@code io.sapl.method-security.adjust-transaction-order=false}.

@@ -140,6 +140,22 @@ class AuthorizationSubscriptionSecretsTests {
     }
 
     @Nested
+    @DisplayName("Default mapper used by of(...) factories")
+    class DefaultMapperContract {
+
+        @Test
+        @DisplayName("no-mapper of(...) marshals identically to an explicit bare JsonMapper")
+        void whenNoMapperGiven_thenMarshalsLikeBareDefaultJsonMapper() {
+            val bareMapper     = JsonMapper.builder().build();
+            val payload        = Map.of("k", "v");
+            val withoutMapper  = AuthorizationSubscription.of("user", "read", payload);
+            val withBareMapper = AuthorizationSubscription.of("user", "read", payload, bareMapper);
+
+            assertThat(withoutMapper).isEqualTo(withBareMapper);
+        }
+    }
+
+    @Nested
     @DisplayName("Jackson serialization of secrets")
     class JacksonSecretsSerialization {
 

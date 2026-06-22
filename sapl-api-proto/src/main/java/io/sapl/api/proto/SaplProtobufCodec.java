@@ -76,8 +76,7 @@ public class SaplProtobufCodec {
     private static final int MAP_ENTRY_VALUE = 2;
 
     // ErrorValue field numbers
-    private static final int ERROR_MESSAGE   = 1;
-    private static final int ERROR_ARGUMENTS = 2;
+    private static final int ERROR_MESSAGE = 1;
 
     // Bounds decode nesting so a deep payload fails closed instead of overflowing
     // the stack. Matches the JSON parser's limit.
@@ -200,7 +199,7 @@ public class SaplProtobufCodec {
         } catch (NumberFormatException e) {
             throw new IOException(ERROR_MALFORMED_NUMBER, e);
         }
-        if (Math.abs(number.scale()) > MAX_NUMBER_SCALE || number.precision() > MAX_NUMBER_PRECISION) {
+        if (Math.abs((long) number.scale()) > MAX_NUMBER_SCALE || number.precision() > MAX_NUMBER_PRECISION) {
             throw new IOException(ERROR_NUMBER_OUT_OF_BOUNDS);
         }
         return new NumberValue(number);
@@ -261,9 +260,8 @@ public class SaplProtobufCodec {
             val tag         = input.readTag();
             val fieldNumber = getTagFieldNumber(tag);
             switch (fieldNumber) {
-            case ERROR_MESSAGE   -> message = input.readString();
-            case ERROR_ARGUMENTS -> input.readString(); // ErrorValue only uses message
-            default              -> input.skipField(tag);
+            case ERROR_MESSAGE -> message = input.readString();
+            default            -> input.skipField(tag);
             }
         }
         input.popLimit(limit);

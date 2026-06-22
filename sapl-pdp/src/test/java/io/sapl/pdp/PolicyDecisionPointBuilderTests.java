@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
 import lombok.val;
@@ -73,5 +74,62 @@ class PolicyDecisionPointBuilderTests {
         components.close();
 
         assertThat(pluginsSource.isClosed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("a failed build closes the activated configuration source so its background threads do not leak")
+    void whenBuildFailsThenConfigurationSourceIsClosed() {
+        val configurationSource  = new TrackingConfigurationSource();
+        val nonDeliveringPlugins = new PluginsSource() {
+                                     @Override
+                                     public void subscribe(Consumer<PluginsBundle> listener) {
+                                         // Never delivers, so build() fails.
+                                     }
+
+                                     @Override
+                                     public void unsubscribe(Consumer<PluginsBundle> listener) {
+                                         // no-op
+                                     }
+
+                                     @Override
+                                     public void close() {
+                                         // no-op
+                                     }
+
+                                     @Override
+                                     public boolean isClosed() {
+                                         return false;
+                                     }
+                                 };
+        val builder              = PolicyDecisionPointBuilder.withDefaults()
+                .withConfigurationSource(configurationSource).withPluginsSource(nonDeliveringPlugins);
+
+        assertThatThrownBy(builder::build).isInstanceOf(IllegalStateException.class);
+        assertThat(configurationSource.isClosed()).isTrue();
+    }
+
+    private static final class TrackingConfigurationSource implements PDPConfigurationSource {
+
+        private boolean closed;
+
+        @Override
+        public void subscribe(Consumer<ConfigurationEvent> listener) {
+            // Activated but emits nothing.
+        }
+
+        @Override
+        public void unsubscribe(Consumer<ConfigurationEvent> listener) {
+            // no-op
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
+        }
     }
 }

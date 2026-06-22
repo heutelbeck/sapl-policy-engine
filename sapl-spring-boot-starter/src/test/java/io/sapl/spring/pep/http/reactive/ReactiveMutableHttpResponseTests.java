@@ -183,6 +183,25 @@ class ReactiveMutableHttpResponseTests {
     }
 
     @Nested
+    @DisplayName("Content-Length consistency")
+    class ContentLength {
+
+        @Test
+        @DisplayName("commit emits a Content-Length matching the rewritten body, not the controller's stale value")
+        void whenBodyRewrittenThenContentLengthMatchesActualBytes() {
+            val original = "the controller produced this long body";
+            mutable.getHeaders().setContentLength(original.getBytes(StandardCharsets.UTF_8).length);
+            mutable.setBody("short");
+            StepVerifier.create(mutable.commit()).verifyComplete();
+            assertThat(delegate).satisfies(d -> {
+                assertThat(d.getBodyAsString().block()).isEqualTo("short");
+                assertThat(d.getHeaders().getContentLength())
+                        .isEqualTo("short".getBytes(StandardCharsets.UTF_8).length);
+            });
+        }
+    }
+
+    @Nested
     @DisplayName("Pooled buffer release")
     class BufferRelease {
 

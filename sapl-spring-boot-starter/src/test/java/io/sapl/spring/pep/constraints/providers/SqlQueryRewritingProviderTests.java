@@ -332,6 +332,36 @@ class SqlQueryRewritingProviderTests {
         }
 
         @Test
+        @DisplayName("Trailing backslash is escaped so it cannot break out of the quoted literal on backslash-honoring databases")
+        void whenTextValueEndsWithBackslashThenBackslashIsEscaped() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "name", "op": "=", "value": "evil\\\\"},
+                                  {"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM users");
+
+            // A doubled backslash keeps the closing quote literal; tenant_id must stay
+            // inside the AND chain.
+            assertThat(rewritten).contains("name = 'evil\\\\'").contains("tenant_id = 7");
+        }
+
+        @Test
+        @DisplayName("Backslash inside a LIKE pattern is escaped so the literal cannot be broken out of")
+        void whenLikeValueContainsBackslashThenBackslashIsEscaped() {
+            val mapper = mapperFor("""
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "path", "op": "like", "value": "a\\\\"},
+                                  {"column": "tenant_id", "op": "=", "value": 7}]}
+                    """);
+
+            val rewritten = mapper.apply("SELECT * FROM files");
+
+            assertThat(rewritten).contains("path LIKE 'a\\\\'").contains("tenant_id = 7");
+        }
+
+        @Test
         @DisplayName("Boolean value renders as true / false literal")
         void whenBooleanValueThenLiteralTrueOrFalse() {
             val mapper = mapperFor("""

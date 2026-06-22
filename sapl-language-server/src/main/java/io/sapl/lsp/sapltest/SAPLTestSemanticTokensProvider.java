@@ -77,7 +77,7 @@ public class SAPLTestSemanticTokensProvider {
         var line      = startLine;
         for (var i = 0; i < text.length(); i++) {
             if (text.charAt(i) == '\n') {
-                var lineLength = i - lineStart;
+                var lineLength = (i > lineStart && text.charAt(i - 1) == '\r') ? i - lineStart - 1 : i - lineStart;
                 if (lineLength > 0 && line == startLine) {
                     semanticInfos.add(new SemanticTokenInfo(line, startCol, lineLength, tokenType, 0));
                 } else if (lineLength > 0) {

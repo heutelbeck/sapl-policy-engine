@@ -90,12 +90,16 @@ public class BlockingWebClient {
     public static final String PATH                       = "path";
     public static final String URL_PARAMS                 = "urlParameters";
     static final long          DEFAULT_MAX_RESPONSE_BYTES = 1_048_576L;
+    // Ceiling for an in-memory response buffer, well below Integer.MAX_VALUE so the
+    // +1 sentinel read can never overflow or request a multi-gigabyte allocation.
+    static final long MAX_ALLOWED_RESPONSE_BYTES = 268_435_456L;
 
     private static final String ERROR_BASE_URL_MUST_BE_TEXT                 = "baseUrl must be a text value.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_NULL             = "%s must be a number in HTTP requestSpecification, but was: null.";
     private static final String ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE       = "%s must be a number in HTTP requestSpecification, but was: %s.";
     private static final String ERROR_HTTP_RESPONSE_STATUS                  = "HTTP %d";
     private static final String ERROR_MALFORMED_URI                         = "Malformed request URI: %s";
+    private static final String ERROR_MAX_RESPONSE_BYTES_NOT_POSITIVE       = "maxResponseBytes must be a positive number, but was: %d.";
     private static final String ERROR_NO_BASE_URL_SPECIFIED_FOR_WEB_REQUEST = "No base URL specified for web request.";
     private static final String ERROR_RESPONSE_TOO_LARGE                    = "HTTP response exceeded the configured limit of %d bytes.";
 
@@ -140,7 +144,7 @@ public class BlockingWebClient {
             val accept        = jsonOrDefault(requestSettings, ACCEPT_MEDIATYPE, APPLICATION_JSON).asString();
             val contentType   = jsonOrDefault(requestSettings, CONTENT_MEDIATYPE, APPLICATION_JSON).asString();
             val body          = jsonOrDefault(requestSettings, BODY, null);
-            val maxBytes      = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
+            val maxBytes      = maxResponseBytesOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
 
             val uri     = buildUri(baseUrl, path, urlParameters);
             val request = buildRequest(uri, httpMethod, headers, accept, contentType, body);
@@ -169,7 +173,7 @@ public class BlockingWebClient {
             val path     = textOrDefault(requestSettings, PATH, "");
             val headers  = jsonOrDefault(requestSettings, HEADERS, JSON.objectNode());
             val body     = jsonOrDefault(requestSettings, BODY, null);
-            val maxBytes = longOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
+            val maxBytes = maxResponseBytesOrDefault(requestSettings, MAX_RESPONSE_BYTES, maxResponseBytes);
             val uri      = createUri(baseUrl + path);
             return openWebSocket(uri, headers, body, maxBytes);
         } catch (RuntimeException e) {
@@ -182,13 +186,17 @@ public class BlockingWebClient {
             try {
                 val response = httpClient.send(request, BodyHandlers.ofInputStream());
                 if (response.statusCode() >= 400) {
-                    return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
+                    // Close the body to release the connection on the error branch.
+                    try (val ignored = response.body()) {
+                        return Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode()));
+                    }
                 }
                 final byte[] bytes;
                 try (val in = response.body()) {
                     // Read one byte past the limit to detect an oversized body without buffering
-                    // more than the cap.
-                    bytes = in.readNBytes((int) Math.min(maxBytes + 1, Integer.MAX_VALUE));
+                    // more than the cap. Clamp before +1 so the sentinel can never overflow.
+                    val limit = (int) Math.min(maxBytes, Integer.MAX_VALUE - 1L) + 1;
+                    bytes = in.readNBytes(limit);
                 }
                 if (bytes.length > maxBytes) {
                     return Value.error(ERROR_RESPONSE_TOO_LARGE.formatted(maxBytes));
@@ -214,12 +222,14 @@ public class BlockingWebClient {
             val thread  = Thread.startVirtualThread(() -> {
                             try {
                                 val response = httpClient.send(request, BodyHandlers.ofInputStream());
-                                if (response.statusCode() >= 400) {
-                                    emit.accept(
-                                            Value.error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode())));
-                                    return;
-                                }
+                                // Open the body before the status check to release the connection on the error
+                                // branch too.
                                 try (val body = response.body()) {
+                                    if (response.statusCode() >= 400) {
+                                        emit.accept(Value
+                                                .error(ERROR_HTTP_RESPONSE_STATUS.formatted(response.statusCode())));
+                                        return;
+                                    }
                                     bodyRef.set(body);
                                     pumpServerSentEvents(body, emit, stopped, maxBytes);
                                 }
@@ -526,7 +536,7 @@ public class BlockingWebClient {
         return ValueJsonMarshaller.toJsonNode(requestSettings.get(fieldName));
     }
 
-    private long longOrDefault(ObjectValue requestSettings, String fieldName, long defaultValue) {
+    private long maxResponseBytesOrDefault(ObjectValue requestSettings, String fieldName, long defaultValue) {
         if (!requestSettings.containsKey(fieldName)) {
             return defaultValue;
         }
@@ -535,7 +545,11 @@ public class BlockingWebClient {
             throw new IllegalArgumentException(ERROR_FIELD_MUST_BE_NUMBER_NULL.formatted(fieldName));
         }
         if (value instanceof NumberValue(var n)) {
-            return n.longValue();
+            val requested = n.longValue();
+            if (requested <= 0L) {
+                throw new IllegalArgumentException(ERROR_MAX_RESPONSE_BYTES_NOT_POSITIVE.formatted(requested));
+            }
+            return Math.min(requested, MAX_ALLOWED_RESPONSE_BYTES);
         }
         throw new IllegalArgumentException(
                 ERROR_FIELD_MUST_BE_NUMBER_WRONG_TYPE.formatted(fieldName, value.getClass().getSimpleName()));

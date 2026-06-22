@@ -187,6 +187,8 @@ public final class ReactiveMutableHttpResponse extends ServerHttpResponseDecorat
             if (capturedBody.length == 0) {
                 return delegate.setComplete();
             }
+            // Sync Content-Length with the written bytes in case the body was rewritten.
+            delegate.getHeaders().setContentLength(capturedBody.length);
             val buffer = delegate.bufferFactory().wrap(capturedBody);
             return delegate.writeWith(Mono.just(buffer));
         });

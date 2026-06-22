@@ -20,6 +20,7 @@ package io.sapl.functions.libraries;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
+import io.sapl.functions.libraries.crypto.SubjectAlternativeName;
 import lombok.val;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -58,6 +59,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -380,6 +382,23 @@ class X509FunctionLibraryTests {
                 (TextValue) Value.of(DEFAULT_IP));
 
         assertThat(result).isEqualTo(Value.FALSE);
+    }
+
+    @Test
+    @DisplayName("non-IP-literal target never matches an IP SAN by raw string comparison")
+    void whenHasIpAddressWithNonIpLiteralTargetEqualToRawSanThenReturnsFalse() {
+        val ipSan = new SubjectAlternativeName(7, "not-a-normalized-ip");
+
+        try (MockedStatic<CertificateUtils> certificateUtilsMock = Mockito.mockStatic(CertificateUtils.class,
+                Mockito.CALLS_REAL_METHODS)) {
+            certificateUtilsMock.when(() -> CertificateUtils.extractSubjectAlternativeNames(Mockito.any()))
+                    .thenReturn(List.of(ipSan));
+
+            val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(cthulhuCertPem),
+                    (TextValue) Value.of("not-a-normalized-ip"));
+
+            assertThat(result).isEqualTo(Value.FALSE);
+        }
     }
 
     /* Validity Check Tests */

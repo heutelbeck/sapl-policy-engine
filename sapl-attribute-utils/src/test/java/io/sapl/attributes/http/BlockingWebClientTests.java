@@ -36,6 +36,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Authenticator;
@@ -50,6 +51,7 @@ import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.PushPromiseHandler;
 import java.net.http.HttpResponse.ResponseInfo;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLContext;
@@ -410,6 +413,47 @@ class BlockingWebClientTests {
         }
     }
 
+    @ParameterizedTest(name = "maxResponseBytes={0}")
+    @ValueSource(longs = { 0L, -1L })
+    @DisplayName("a non-positive maxResponseBytes is rejected with an error value")
+    void whenMaxResponseBytesNotPositiveThenError(long maxBytes) {
+        val template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "application/json",
+                    "maxResponseBytes" : %d
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl, maxBytes));
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).contains("maxResponseBytes");
+            });
+        }
+    }
+
+    @Test
+    @DisplayName("a huge maxResponseBytes does not overflow the read limit and still delivers the body")
+    void whenMaxResponseBytesIsHugeThenBodyIsStillDelivered() {
+        server.enqueue(DEFAULT_RESPONSE);
+        val template = """
+                {
+                    "baseUrl" : "%s",
+                    "accept" : "application/json",
+                    "maxResponseBytes" : 9223372036854775807
+                }
+                """;
+        val request  = (ObjectValue) ValueJsonMarshaller.json(template.formatted(baseUrl));
+
+        try (val stream = client.httpRequest("GET", request)) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(toJsonString(v)).isEqualTo(DEFAULT_BODY));
+        }
+    }
+
     @Test
     @DisplayName("missing base URL emits an error value")
     void whenNoBaseUrlThenError() {
@@ -495,6 +539,49 @@ class BlockingWebClientTests {
             }
             assertThat(err.message()).contains("64");
         });
+    }
+
+    @Test
+    @DisplayName("a one-shot request against a failing endpoint closes the response body so no connection leaks")
+    void whenOneShotRequestReturnsErrorStatusThenResponseBodyIsClosed() {
+        val bodyStream    = new TrackingInputStream("{}");
+        val failingClient = new BlockingWebClient(MAPPER, new StatusInputStreamHttpClient(503, bodyStream));
+
+        try (val stream = failingClient.httpRequest("GET", defaultRequest("application/json"))) {
+            StreamAssertions.assertThat(stream).awaitsNext(v -> {
+                if (!(v instanceof ErrorValue err)) {
+                    throw new AssertionError("Expected ErrorValue, got: " + v);
+                }
+                assertThat(err.message()).contains("503");
+            });
+        }
+
+        assertThat(bodyStream.wasClosed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("an SSE source against a failing endpoint closes the response body so no connection leaks")
+    void whenServerSentEventSourceReturnsErrorStatusThenResponseBodyIsClosed() {
+        val bodyStream    = new TrackingInputStream("");
+        val failingClient = new BlockingWebClient(MAPPER, new StatusInputStreamHttpClient(503, bodyStream));
+        val template      = """
+                {
+                    "baseUrl" : "http://localhost:1",
+                    "accept" : "text/event-stream"
+                }
+                """;
+        val request       = (ObjectValue) ValueJsonMarshaller.json(template.formatted());
+
+        val drained = StreamAssertions.assertThat(failingClient.httpRequest("GET", request))
+                .withinTimeout(Duration.ofSeconds(2L)).drain();
+
+        assertThat(drained).anySatisfy(v -> {
+            if (!(v instanceof ErrorValue err)) {
+                throw new AssertionError("Expected ErrorValue, got: " + v);
+            }
+            assertThat(err.message()).contains("503");
+        });
+        assertThat(bodyStream.wasClosed()).isTrue();
     }
 
     /**
@@ -700,6 +787,153 @@ class BlockingWebClientTests {
             } catch (IOException e) {
                 return CompletableFuture.failedFuture(e);
             }
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request, BodyHandler<T> responseBodyHandler,
+                PushPromiseHandler<T> pushPromiseHandler) {
+            return sendAsync(request, responseBodyHandler);
+        }
+
+        @Override
+        public Optional<CookieHandler> cookieHandler() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Duration> connectTimeout() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Redirect followRedirects() {
+            return Redirect.NEVER;
+        }
+
+        @Override
+        public Optional<ProxySelector> proxy() {
+            return Optional.empty();
+        }
+
+        @Override
+        public SSLContext sslContext() {
+            return null;
+        }
+
+        @Override
+        public SSLParameters sslParameters() {
+            return null;
+        }
+
+        @Override
+        public Optional<Authenticator> authenticator() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Version version() {
+            return Version.HTTP_1_1;
+        }
+
+        @Override
+        public Optional<Executor> executor() {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Byte source over a fixed string that records whether it was closed.
+     */
+    private static final class TrackingInputStream extends InputStream {
+        private final InputStream   delegate;
+        private final AtomicBoolean closed = new AtomicBoolean(false);
+
+        TrackingInputStream(String content) {
+            this.delegate = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public int read() throws IOException {
+            return delegate.read();
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws IOException {
+            return delegate.read(buffer, offset, length);
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed.set(true);
+            delegate.close();
+        }
+
+        boolean wasClosed() {
+            return closed.get();
+        }
+    }
+
+    /**
+     * Stand-in transport answering every send with the given status code
+     * and {@link InputStream} body.
+     */
+    @RequiredArgsConstructor
+    private static final class StatusInputStreamHttpClient extends HttpClient {
+        private final int         status;
+        private final InputStream body;
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> responseBodyHandler) {
+            // Return the tracking stream directly so the test can observe close(),
+            // which BodyHandlers.ofInputStream would hide behind its own wrapper.
+            return new HttpResponse<>() {
+                @Override
+                public int statusCode() {
+                    return status;
+                }
+
+                @Override
+                public HttpRequest request() {
+                    return request;
+                }
+
+                @Override
+                public Optional<HttpResponse<T>> previousResponse() {
+                    return Optional.empty();
+                }
+
+                @Override
+                public HttpHeaders headers() {
+                    return HttpHeaders.of(Map.of(), (a, b) -> true);
+                }
+
+                @Override
+                public T body() {
+                    return (T) body;
+                }
+
+                @Override
+                public Optional<SSLSession> sslSession() {
+                    return Optional.empty();
+                }
+
+                @Override
+                public URI uri() {
+                    return request.uri();
+                }
+
+                @Override
+                public Version version() {
+                    return Version.HTTP_1_1;
+                }
+            };
+        }
+
+        @Override
+        public <T> CompletableFuture<HttpResponse<T>> sendAsync(HttpRequest request,
+                BodyHandler<T> responseBodyHandler) {
+            return CompletableFuture.completedFuture(send(request, responseBodyHandler));
         }
 
         @Override

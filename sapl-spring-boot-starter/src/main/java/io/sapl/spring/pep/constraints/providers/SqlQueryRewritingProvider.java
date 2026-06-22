@@ -366,7 +366,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
 
     private static String renderValue(Value value, String op) {
         return switch (value) {
-        case TextValue(String text)              -> "'" + text.replace("'", "''") + "'";
+        case TextValue(String text)              -> quote(text);
         case NumberValue(java.math.BigDecimal n) -> n.toPlainString();
         case BooleanValue(boolean b)             -> b ? "TRUE" : "FALSE";
         case NullValue ignored                   -> "NULL";
@@ -395,6 +395,12 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
             throw new AccessDeniedException(
                     ERROR_VALUE_KIND_FOR_OPERATOR.formatted(value.getClass().getSimpleName(), op));
         }
-        return "'" + text.replace("'", "''") + "'";
+        return quote(text);
+    }
+
+    // Escape backslash before the quote so a trailing backslash cannot break out of
+    // the literal on backslash-honoring databases.
+    private static String quote(String text) {
+        return "'" + text.replace("\\", "\\\\").replace("'", "''") + "'";
     }
 }

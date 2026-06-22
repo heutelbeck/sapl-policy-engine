@@ -65,7 +65,7 @@ public record AuthorizationSubscription(
     /**
      * Creates an AuthorizationSubscription with the given subject, action, and
      * resource. Environment defaults to UNDEFINED. Objects are marshaled using a
-     * default ObjectMapper with Jdk8Module registered.
+     * bare default JsonMapper.
      *
      * @param subject an object describing the subject
      * @param action an object describing the action
@@ -93,7 +93,7 @@ public record AuthorizationSubscription(
 
     /**
      * Creates an AuthorizationSubscription with all four attributes. Objects are
-     * marshaled using a default ObjectMapper with Jdk8Module registered.
+     * marshaled using a bare default JsonMapper.
      *
      * @param subject an object describing the subject
      * @param action an object describing the action

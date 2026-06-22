@@ -17,11 +17,11 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.CompiledExpression;
 import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.api.pdp.AuthorizationSubscription;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -70,15 +70,19 @@ class InArrayUnrollingCompilerTests {
         @Test
         @DisplayName("runtime erroring needle in [] propagates the error rather than folding to false")
         void whenRuntimeErroringNeedleInEmptyArrayThenErrorPropagates() {
-            val variables = Value.ofObject(Map.of("x", Value.of(0)));
-            val data      = new PdpData(variables, Value.EMPTY_OBJECT);
-            val ctx       = unrollingContext(new CompilationContext(data, FUNCTION_BROKER));
+            // A subscription-dependent needle stays a PureOperator, so the empty-array
+            // branch must propagate the runtime error rather than fold to false.
+            val ast      = parseExpression("(10/subject.x) in []");
+            val compiled = ExpressionCompiler.compile(ast, unrollingContext());
 
-            val ast      = parseExpression("(10/x) in []");
-            val compiled = ExpressionCompiler.compile(ast, ctx);
-            val result   = evaluate(compiled);
+            assertThat(compiled).isInstanceOf(PureOperator.class);
 
-            assertThat(result).isInstanceOf(ErrorValue.class);
+            val subject      = ObjectValue.builder().put("x", Value.of(0)).build();
+            val subscription = AuthorizationSubscription.of(subject, Value.NULL, Value.NULL, Value.NULL);
+            val result       = ((PureOperator) compiled).evaluate(evaluationContext(subscription));
+
+            assertThat(result).asInstanceOf(type(ErrorValue.class)).extracting(ErrorValue::message).asString()
+                    .containsIgnoringCase("zero");
         }
 
         @Test
@@ -90,13 +94,31 @@ class InArrayUnrollingCompilerTests {
             assertThat(unrolled).isInstanceOf(ErrorValue.class);
             assertThat(baseline).isInstanceOf(ErrorValue.class);
         }
+    }
 
-        private Value evaluate(CompiledExpression compiled) {
-            return switch (compiled) {
-            case Value v         -> v;
-            case PureOperator op -> op.evaluate(evaluationContext());
-            default              -> Value.errorAt(null, "unexpected compiled shape: %s", compiled);
-            };
+    @Nested
+    @DisplayName("runtime (non-constant) haystack elements")
+    class RuntimeHaystackElements {
+
+        @Test
+        @DisplayName("needle in array with an erroring runtime element matches the standard in path")
+        void whenHaystackHasErroringRuntimeElementThenUnrolledMatchesStandardPath() {
+            // (10/subject.x) is a subscription-dependent element that errors at
+            // runtime when subject.x is 0. Unrolling such a haystack diverges
+            // from standard IN error propagation, so it must not unroll.
+            val expression  = "\"a\" in [\"a\", (10/subject.x)]";
+            val unrolledAst = parseExpression(expression);
+            val baselineAst = parseExpression(expression);
+            val unrolled    = ExpressionCompiler.compile(unrolledAst, unrollingContext());
+            val baseline    = ExpressionCompiler.compile(baselineAst, new CompilationContext(FUNCTION_BROKER));
+
+            val subject        = ObjectValue.builder().put("x", Value.of(0)).build();
+            val subscription   = AuthorizationSubscription.of(subject, Value.NULL, Value.NULL, Value.NULL);
+            val ctx            = evaluationContext(subscription);
+            val unrolledResult = ((PureOperator) unrolled).evaluate(ctx);
+            val baselineResult = ((PureOperator) baseline).evaluate(ctx);
+
+            assertThat(unrolledResult).isEqualTo(baselineResult);
         }
     }
 }

@@ -502,15 +502,14 @@ public class X509FunctionLibrary {
      */
     private static boolean containsIpAddress(List<SubjectAlternativeName> subjectAltNames, String targetIp) {
         val targetAddress = parseInetAddress(targetIp);
+        if (targetAddress == null) {
+            return false;
+        }
         for (var san : subjectAltNames) {
             if (san.type() != SAN_TYPE_IP_ADDRESS) {
                 continue;
             }
-            if (targetAddress == null) {
-                if (targetIp.equals(san.value())) {
-                    return true;
-                }
-            } else if (targetAddress.equals(parseInetAddress(san.value()))) {
+            if (targetAddress.equals(parseInetAddress(san.value()))) {
                 return true;
             }
         }

@@ -950,28 +950,41 @@ public class SaplTestFixture {
     }
 
     private String extractPolicyName(String policySource) {
-        // Simple regex-free extraction of policy/set name
-        val trimmed    = policySource.trim();
-        var startIndex = -1;
-        if (trimmed.startsWith("policy")) {
-            startIndex = 6;
-        } else if (trimmed.startsWith("set")) {
-            startIndex = 3;
+        // Scan lines for the policy/set declaration, since imports and schemas may
+        // precede it.
+        for (val line : policySource.split("\n", -1)) {
+            val trimmedLine = line.trim();
+            var startIndex  = -1;
+            if (trimmedLine.startsWith("policy") && isKeywordBoundary(trimmedLine, 6)) {
+                startIndex = 6;
+            } else if (trimmedLine.startsWith("set") && isKeywordBoundary(trimmedLine, 3)) {
+                startIndex = 3;
+            }
+            if (startIndex < 0) {
+                continue;
+            }
+            val name = extractQuotedName(trimmedLine, startIndex);
+            if (name != null) {
+                return name;
+            }
         }
-        if (startIndex < 0) {
-            return null;
-        }
+        return null;
+    }
 
-        // Find the quoted name
-        val quoteStart = trimmed.indexOf('"', startIndex);
+    private boolean isKeywordBoundary(String line, int keywordLength) {
+        return line.length() == keywordLength || !Character.isJavaIdentifierPart(line.charAt(keywordLength));
+    }
+
+    private String extractQuotedName(String declarationLine, int fromIndex) {
+        val quoteStart = declarationLine.indexOf('"', fromIndex);
         if (quoteStart < 0) {
             return null;
         }
-        val quoteEnd = trimmed.indexOf('"', quoteStart + 1);
+        val quoteEnd = declarationLine.indexOf('"', quoteStart + 1);
         if (quoteEnd < 0) {
             return null;
         }
-        return trimmed.substring(quoteStart + 1, quoteEnd);
+        return declarationLine.substring(quoteStart + 1, quoteEnd);
     }
 
     private void validatePolicyAddition() {
@@ -1302,6 +1315,11 @@ public class SaplTestFixture {
             } catch (TimeoutException e) {
                 writeCoverage();
                 throw enhanceWithVoteTrace(new AssertionError(ERROR_TIMEOUT_AWAITING_DECISION, e));
+            } catch (IllegalStateException | IllegalArgumentException e) {
+                // Usage errors (e.g. emit on an unknown mockId) must fail loudly, not be
+                // folded into a discarded TestResult that leaves the test silently green.
+                writeCoverage();
+                throw enhanceWithVoteTrace(new AssertionError(e.getMessage(), e));
             } catch (Exception e) {
                 writeCoverage();
                 return TestResult.failure(e, coverageRecord);

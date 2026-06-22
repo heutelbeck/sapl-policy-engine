@@ -375,7 +375,7 @@ public class AuthorizationSubscriptionBuilderService {
         val actionBuilder = ObjectValue.builder();
 
         if (requestObject != null) {
-            actionBuilder.put("http", fromJsonNode(mapper().valueToTree(requestObject)));
+            actionBuilder.put("http", fromJsonNode(redacted(mapper().valueToTree(requestObject))));
         }
 
         val javaBuilder = ObjectValue.builder().putAll(toValue(mi));
@@ -385,7 +385,7 @@ public class AuthorizationSubscriptionBuilderService {
             val argsBuilder = ArrayValue.builder();
             for (val arg : arguments) {
                 try {
-                    argsBuilder.add(fromJsonNode(mapper().valueToTree(arg)));
+                    argsBuilder.add(fromJsonNode(redacted(mapper().valueToTree(arg))));
                 } catch (IllegalArgumentException e) {
                     // drop if not mappable to JSON
                 }
@@ -426,6 +426,11 @@ public class AuthorizationSubscriptionBuilderService {
             return null;
         }
         return evaluateToJson(environmentExpr, ctx);
+    }
+
+    private static JsonNode redacted(JsonNode node) {
+        redactCredentials(node);
+        return node;
     }
 
     private static void redactCredentials(JsonNode node) {

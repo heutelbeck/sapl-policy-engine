@@ -181,7 +181,10 @@ class SmtddPolicyIndexTests {
                 return true;
             });
 
-            assertThat(errors).isNotEmpty();
+            assertThat(errors).singleElement().satisfies(step -> {
+                assertThat(step.errorMatches()).hasSize(1);
+                assertThat(step.trueMatches()).isEmpty();
+            });
         }
     }
 

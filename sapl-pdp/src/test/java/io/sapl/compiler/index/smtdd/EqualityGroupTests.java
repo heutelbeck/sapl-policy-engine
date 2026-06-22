@@ -90,6 +90,26 @@ class EqualityGroupTests {
         }
 
         @Test
+        @DisplayName("exclusion-key branch is materialized even when empty so != does not leak into default")
+        void whenExclusionKeyBranchEmptyThenStillMaterialized() {
+            // Formula 0: == "a", Formula 1: != "b". When the operand IS "b",
+            // formula 1 (!= b) must NOT match. Without an explicit "b" branch the
+            // operand would fall through to default, where != b wrongly counts as
+            // satisfied.
+            val group = new EqualityGroup(stubOperand(100L));
+            group.addEquals(Value.of("a"), 0, predicate(1L));
+            group.addExclude(Value.of("b"), 1, predicate(2L));
+
+            val bucket = new BitSet();
+            bucket.set(0);
+            bucket.set(1);
+            val result = group.compact(bucket);
+
+            assertThat(result.branchFormulas()).containsKey(Value.of("b"));
+            assertThat(result.branchFormulas().get(Value.of("b")).get(1)).isFalse();
+        }
+
+        @Test
         @DisplayName("unconstrained formulas appear in all branches and default")
         void whenUnconstrainedFormulaThenInAllBranches() {
             // Formula 0: == "a", Formula 1: == "b", Formula 2: unconstrained

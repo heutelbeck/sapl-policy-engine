@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.api.shared.NameValidator.requireValidName;
 
 @UtilityClass
 public class AttributeCompiler {
@@ -84,6 +85,13 @@ public class AttributeCompiler {
     private static CompiledExpression compileAttribute(Expression entityExpr, String attributeName,
             @NonNull List<Expression> arguments, Expression optionsExpr, boolean head, @NonNull SourceLocation location,
             CompilationContext ctx) {
+
+        // Reject identifiers that are not valid attribute names.
+        try {
+            requireValidName(attributeName);
+        } catch (IllegalArgumentException e) {
+            return Value.errorAt(location, "%s", e.getMessage());
+        }
 
         val options = compileOptions(optionsExpr, ctx);
 

@@ -17,6 +17,7 @@
  */
 package io.sapl.playground.embed;
 
+import static io.sapl.playground.embed.EmbeddedSaplPlayground.isExplicitAttributeValue;
 import static io.sapl.playground.embed.EmbeddedSaplPlayground.isLiveEmission;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -51,6 +52,27 @@ class EmbeddedSaplPlaygroundTests {
                 long activeGeneration, boolean subscriptionActive, boolean expectedLive) {
             assertThat(isLiveEmission(emissionGeneration, activeGeneration, subscriptionActive)).as(scenario)
                     .isEqualTo(expectedLive);
+        }
+    }
+
+    @Nested
+    @DisplayName("Web-component attribute guard")
+    class AttributeGuard {
+
+        static Stream<Arguments> attributeScenarios() {
+            return Stream.of(
+                    arguments("explicit non-blank policy replaces the in-editor default", "policy \"p\" permit", true),
+                    arguments("omitted attribute defaults to empty string and keeps in-editor default", "", false),
+                    arguments("null attribute keeps in-editor default", null, false),
+                    arguments("blank whitespace attribute keeps in-editor default", "   \n\t", false));
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @MethodSource("attributeScenarios")
+        @DisplayName("only an explicitly supplied non-blank attribute may overwrite the in-editor default")
+        void whenAttributeValueThenOnlyExplicitNonBlankOverwritesDefault(String scenario, String value,
+                boolean expectedApplied) {
+            assertThat(isExplicitAttributeValue(value)).as(scenario).isEqualTo(expectedApplied);
         }
     }
 }

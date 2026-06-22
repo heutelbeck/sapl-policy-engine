@@ -25,6 +25,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -186,19 +187,18 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      */
     private void pump(AsyncContext asyncContext, S subscription, String pdpId, Object writerLock) {
         val                response      = (HttpServletResponse) asyncContext.getResponse();
+        val                closed        = new AtomicBoolean(false);
         ScheduledFuture<?> keepAliveTask = null;
-        try (PrintWriter writer = response.getWriter(); Stream<D> stream = openStream(subscription, pdpId)) {
-            keepAliveTask = scheduleKeepAlive(writer, writerLock, stream);
+        PrintWriter        writer        = null;
+        try (Stream<D> stream = openStream(subscription, pdpId)) {
+            writer        = response.getWriter();
+            keepAliveTask = scheduleKeepAlive(writer, writerLock, stream, closed);
             try {
                 while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, writer, writerLock, pdpId)) {
                     // loop body intentionally empty; processNextEvent drives one iteration
                 }
             } catch (Exception e) {
                 log.debug("SSE stream terminated for pdpId={}: {}", pdpId, e.getMessage());
-                if (keepAliveTask != null) {
-                    keepAliveTask.cancel(false);
-                    keepAliveTask = null;
-                }
                 if (!writer.checkError()) {
                     writeEvent(writer, indeterminate(), writerLock);
                 }
@@ -206,8 +206,20 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         } catch (Exception e) {
             log.debug("SSE stream setup failed for pdpId={}: {}", pdpId, e.getMessage());
         } finally {
+            // Cancel before teardown closes the response under the writer lock.
             if (keepAliveTask != null) {
                 keepAliveTask.cancel(false);
+            }
+            teardown(writerLock, closed, writer, asyncContext);
+        }
+    }
+
+    private void teardown(Object writerLock, AtomicBoolean closed, @Nullable PrintWriter writer,
+            AsyncContext asyncContext) {
+        synchronized (writerLock) {
+            closed.set(true);
+            if (writer != null) {
+                writer.close();
             }
             connectionRegistry.unregister(asyncContext);
             asyncContext.complete();
@@ -241,7 +253,8 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     }
 
     @Nullable
-    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+    private ScheduledFuture<?> scheduleKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream,
+            AtomicBoolean closed) {
         if (keepAliveScheduler == null) {
             return null;
         }
@@ -250,21 +263,25 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         // per-connection virtual-thread pump. A slow client that stalls the flush via
         // TCP flow control therefore parks a cheap virtual thread, never a thread of
         // the bounded keep-alive scheduler pool.
-        return keepAliveScheduler.scheduleAtFixedRate(() -> dispatchKeepAlive(writer, writerLock, stream), periodMillis,
-                periodMillis, TimeUnit.MILLISECONDS);
+        return keepAliveScheduler.scheduleAtFixedRate(() -> dispatchKeepAlive(writer, writerLock, stream, closed),
+                periodMillis, periodMillis, TimeUnit.MILLISECONDS);
     }
 
-    private void dispatchKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+    private void dispatchKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream, AtomicBoolean closed) {
         try {
-            pumpExecutor.execute(() -> sendKeepAlive(writer, writerLock, stream));
+            pumpExecutor.execute(() -> sendKeepAlive(writer, writerLock, stream, closed));
         } catch (RejectedExecutionException e) {
             log.debug("Keep-alive dispatch rejected; pump executor is shutting down: {}", e.getMessage());
         }
     }
 
-    private void sendKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream) {
+    private void sendKeepAlive(PrintWriter writer, Object writerLock, Stream<D> stream, AtomicBoolean closed) {
         boolean clientGone;
         synchronized (writerLock) {
+            // Skip a keep-alive dispatched after teardown began; the writer is gone.
+            if (closed.get()) {
+                return;
+            }
             writer.write(KEEP_ALIVE_FRAME);
             writer.flush();
             // PrintWriter swallows a broken-pipe write but sets the error flag, the only

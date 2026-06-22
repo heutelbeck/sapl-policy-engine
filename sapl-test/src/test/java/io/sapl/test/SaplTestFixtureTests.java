@@ -28,12 +28,14 @@ import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -342,5 +344,73 @@ class SaplTestFixtureTests {
 
         var timeout = Duration.ofMillis(200);
         assertThatThrownBy(() -> decisionResult.verify(timeout)).isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    @DisplayName("emit on an unknown mockId fails the test loudly so discarded-result callers do not stay green")
+    void whenEmittingToUnknownMockId_thenVerifyThrowsAssertionError() {
+        var decisionResult = SaplTestFixture.createSingleTest().withPolicy(PERMIT_ALL_POLICY)
+                .givenEnvironmentAttribute("known", "test.pending", args())
+                .whenDecide(AuthorizationSubscription.of("willi", "read", "something"))
+                .thenEmit("typo-not-a-real-mock", Value.of("ready"));
+
+        var timeout = Duration.ofMillis(200);
+        assertThatThrownBy(() -> decisionResult.verify(timeout)).isInstanceOf(AssertionError.class);
+    }
+
+    @Nested
+    @DisplayName("policy name recovery for coverage reporting")
+    class PolicyNameRecovery {
+
+        private String extractPolicyName(String policySource) throws Exception {
+            var    fixture = SaplTestFixture.createSingleTest();
+            Method method  = SaplTestFixture.class.getDeclaredMethod("extractPolicyName", String.class);
+            method.setAccessible(true);
+            return (String) method.invoke(fixture, policySource);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("documentShapes")
+        @DisplayName("documents that begin with imports or schemas still expose their name")
+        void whenDocumentBeginsWithLeadingStatements_thenPolicyNameIsRecovered(String shape, String document,
+                String expectedName) throws Exception {
+            assertThat(extractPolicyName(document)).isEqualTo(expectedName);
+        }
+
+        static Stream<Arguments> documentShapes() {
+            var policyAfterImport          = """
+                    import filter.blacken
+                    policy "show account"
+                    permit
+                    transform resource |- { @.cardNumber : blacken(4) }
+                    """;
+            var policyAfterSchema          = """
+                    subject enforced schema { "type": "object" }
+                    policy "schema-guarded"
+                    permit
+                    """;
+            var policyAfterImportAndSchema = """
+                    import time.now as currentTime
+                    subject enforced schema { "type": "object" }
+                    policy "imports-and-schemas"
+                    permit
+                    """;
+            var setAfterImport             = """
+                    import filter.blacken
+                    set "account policies"
+                    deny-overrides
+                    policy "first"
+                    permit
+                    """;
+            var plainPolicy                = """
+                    policy "plain"
+                    permit
+                    """;
+            return Stream.of(arguments("policy after import", policyAfterImport, "show account"),
+                    arguments("policy after schema", policyAfterSchema, "schema-guarded"),
+                    arguments("policy after import and schema", policyAfterImportAndSchema, "imports-and-schemas"),
+                    arguments("set after import", setAfterImport, "account policies"),
+                    arguments("plain policy without leading statements", plainPolicy, "plain"));
+        }
     }
 }

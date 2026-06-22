@@ -807,6 +807,9 @@ public class PolicyDecisionPointBuilder {
             // A failed build never transfers ownership to PDPComponents, so close what this
             // builder created.
             closeQuietly(voterSource);
+            if (configurationSource != null) {
+                closeQuietly(configurationSource);
+            }
             if (ownsPluginsSource) {
                 closeQuietly(pluginsSource);
             }

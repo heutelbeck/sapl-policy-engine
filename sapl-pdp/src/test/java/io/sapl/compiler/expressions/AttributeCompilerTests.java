@@ -21,12 +21,34 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import static io.sapl.util.SaplTesting.compileExpression;
 import static io.sapl.util.SaplTesting.evaluate;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 @DisplayName("AttributeCompiler")
 class AttributeCompilerTests {
+
+    @DisplayName("Attribute name rejected by the name pattern but accepted by the grammar")
+    @ParameterizedTest(name = "<{0}>")
+    @ValueSource(strings = { "test_lib.attr", "test.at_tr", "lib$.attr", "^lib.attr" })
+    void whenAttributeNameViolatesNamePatternThenCompilesToErrorWithoutThrowing(String attributeName) {
+        var source = "<" + attributeName + ">";
+
+        assertThatCode(() -> compileExpression(source)).doesNotThrowAnyException();
+        assertThat(compileExpression(source)).isInstanceOf(ErrorValue.class);
+    }
+
+    @Test
+    void whenEntityAttributeNameViolatesNamePatternThenEvaluationReturnsErrorWithoutThrowing() {
+        var eval = evaluate("subject.<user_lib.role>").withSubject(Value.of("alice"));
+
+        assertThatCode(eval::value).doesNotThrowAnyException();
+        assertThat(eval.value()).isInstanceOf(ErrorValue.class);
+    }
 
     @Test
     void whenEnvironmentAttributeWithBrokerThenReturnsResultValue() {

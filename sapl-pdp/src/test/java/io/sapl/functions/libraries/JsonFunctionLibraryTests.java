@@ -21,6 +21,7 @@ import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -242,5 +243,37 @@ class JsonFunctionLibraryTests {
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds");
+    }
+
+    @Nested
+    @DisplayName("valToJson serialization failures fail closed")
+    class ValToJsonFailures {
+
+        @Test
+        void whenUndefinedValueThenReturnsSerializeErrorAndDoesNotThrow() {
+            val result = JsonFunctionLibrary.valToJson(Value.UNDEFINED);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
+        }
+
+        @Test
+        void whenErrorValueThenReturnsSerializeErrorAndDoesNotThrow() {
+            val result = JsonFunctionLibrary.valToJson(Value.error("ritual already underway"));
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
+        }
+
+        @Test
+        void whenObjectContainsUndefinedThenReturnsSerializeErrorAndDoesNotThrow() {
+            val object = ObjectValue.builder().put("artifact", Value.of("Necronomicon"))
+                    .put("custodian", Value.UNDEFINED).build();
+
+            val result = JsonFunctionLibrary.valToJson(object);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    error -> assertThat(error.message()).startsWith("Failed to serialize to JSON:"));
+        }
     }
 }

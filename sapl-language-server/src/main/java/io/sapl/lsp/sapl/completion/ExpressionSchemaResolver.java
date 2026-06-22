@@ -197,53 +197,60 @@ class ExpressionSchemaResolver {
 
     private BasicExpressionContext findBasicExpression(ExpressionContext expression) {
         // Navigate through expression hierarchy: expression -> lazyOr -> lazyAnd -> ...
-        // -> basicExpression
+        // -> basicExpression. At every binary level a single operand means no operator
+        // was applied; more than one operand means the value is a binary expression and
+        // must not inherit its left operand's schema.
         if (expression == null || expression.lazyOr() == null) {
             return null;
         }
 
         var lazyOr = expression.lazyOr();
-        if (lazyOr.lazyAnd().isEmpty()) {
+        if (lazyOr.lazyAnd().size() != 1) {
             return null;
         }
 
         var lazyAnd = lazyOr.lazyAnd(0);
-        if (lazyAnd.eagerOr().isEmpty()) {
+        if (lazyAnd.eagerOr().size() != 1) {
             return null;
         }
 
         var eagerOr = lazyAnd.eagerOr(0);
-        if (eagerOr.exclusiveOr().isEmpty()) {
+        if (eagerOr.exclusiveOr().size() != 1) {
             return null;
         }
 
         var exclusiveOr = eagerOr.exclusiveOr(0);
-        if (exclusiveOr.eagerAnd().isEmpty()) {
+        if (exclusiveOr.eagerAnd().size() != 1) {
             return null;
         }
 
         var eagerAnd = exclusiveOr.eagerAnd(0);
-        if (eagerAnd.equality().isEmpty()) {
+        if (eagerAnd.equality().size() != 1) {
             return null;
         }
 
         var equality = eagerAnd.equality(0);
-        if (equality.hasExpression().isEmpty()) {
+        if (equality.hasExpression().size() != 1) {
             return null;
         }
 
-        var comparison = equality.hasExpression(0).comparison(0);
-        if (comparison.addition().isEmpty()) {
+        var hasExpression = equality.hasExpression(0);
+        if (hasExpression.comparison().size() != 1) {
+            return null;
+        }
+
+        var comparison = hasExpression.comparison(0);
+        if (comparison.addition().size() != 1) {
             return null;
         }
 
         var addition = comparison.addition(0);
-        if (addition.multiplication().isEmpty()) {
+        if (addition.multiplication().size() != 1) {
             return null;
         }
 
         var multiplication = addition.multiplication(0);
-        if (multiplication.unaryExpression().isEmpty()) {
+        if (multiplication.unaryExpression().size() != 1) {
             return null;
         }
 
@@ -374,11 +381,39 @@ class ExpressionSchemaResolver {
     private List<JsonNode> lookupSchemasByName(String resolvedName, Map<String, JsonNode> schemasByCodeTemplate) {
         var discoveredSchemas = new ArrayList<JsonNode>();
         for (var schemaEntry : schemasByCodeTemplate.entrySet()) {
-            if (schemaEntry.getKey().contains(resolvedName)) {
+            // Match on the function identity, not on substring containment, so a short
+            // name cannot pick up the schema of an unrelated longer-named function.
+            if (qualifiedNameOf(schemaEntry.getKey()).equals(resolvedName)) {
                 discoveredSchemas.add(schemaEntry.getValue());
             }
         }
         return discoveredSchemas;
+    }
+
+    private String qualifiedNameOf(String codeTemplate) {
+        // Function templates read library.name(args); attribute templates read
+        // <library.name(args)> or <library.name>. Strip decorations to the bare name.
+        var name = codeTemplate;
+        if (name.startsWith("<")) {
+            name = name.substring(1);
+        }
+        var firstDecoration = indexOfFirstDecoration(name);
+        if (firstDecoration >= 0) {
+            name = name.substring(0, firstDecoration);
+        }
+        return name;
+    }
+
+    private int indexOfFirstDecoration(String name) {
+        var parenIndex = name.indexOf('(');
+        var angleIndex = name.indexOf('>');
+        if (parenIndex < 0) {
+            return angleIndex;
+        }
+        if (angleIndex < 0) {
+            return parenIndex;
+        }
+        return Math.min(parenIndex, angleIndex);
     }
 
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, SaplContext sapl, int cursorOffset,
@@ -483,7 +518,7 @@ class ExpressionSchemaResolver {
         return schemaStatement.subscriptionElement.getText();
     }
 
-    private String resolveImport(String nameReference, SaplContext sapl) {
+    String resolveImport(String nameReference, SaplContext sapl) {
         if (nameReference.contains(".")) {
             return nameReference;
         }
@@ -497,7 +532,8 @@ class ExpressionSchemaResolver {
             var importedFunction = fullyQualifiedFunctionName(currentImport);
             var alias            = currentImport.functionAlias != null ? currentImport.functionAlias.getText() : null;
 
-            if (nameReference.equals(alias) || importedFunction.endsWith(nameReference)) {
+            if (nameReference.equals(alias) || importedFunction.equals(nameReference)
+                    || importedFunction.endsWith("." + nameReference)) {
                 return importedFunction;
             }
         }

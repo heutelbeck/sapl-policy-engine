@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static io.sapl.api.test.pdp.PdpTestHelper.configuration;
 import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
@@ -341,25 +342,38 @@ class PdpHotReloadSemanticsTests {
     @PolicyInformationPoint(name = "flag")
     public static class FlagPip {
 
-        private volatile Value                      current     = null;
+        private final ReentrantLock                 lock        = new ReentrantLock();
+        private Value                               current     = null;
         private final List<LatestSlotStream<Value>> openStreams = new CopyOnWriteArrayList<>();
 
         @EnvironmentAttribute
         public Stream<Value> value() {
             val stream = new LatestSlotStream<Value>();
-            val seed   = current;
-            if (seed != null) {
-                stream.put(seed);
+            // Seed and register under the publish lock so a concurrent publish is never
+            // lost across the register window.
+            lock.lock();
+            try {
+                val seed = current;
+                if (seed != null) {
+                    stream.put(seed);
+                }
+                openStreams.add(stream);
+            } finally {
+                lock.unlock();
             }
-            openStreams.add(stream);
             stream.onClose(() -> openStreams.remove(stream));
             return stream;
         }
 
         public void publish(Value v) {
-            current = v;
-            for (val s : openStreams) {
-                s.put(v);
+            lock.lock();
+            try {
+                current = v;
+                for (val s : openStreams) {
+                    s.put(v);
+                }
+            } finally {
+                lock.unlock();
             }
         }
     }

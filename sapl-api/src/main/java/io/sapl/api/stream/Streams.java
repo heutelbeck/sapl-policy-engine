@@ -482,6 +482,11 @@ public class Streams {
             try {
                 val nextInstant = clock.instant().plus(interval);
                 cancelHolder.set(scheduler.scheduleAt(nextInstant, tick.get()));
+                // A close racing this reschedule cancels the prior handle; cancel the
+                // freshly stored one too so the scheduled tick cannot leak.
+                if (stopped.get()) {
+                    cancelHolder.get().cancel();
+                }
             } catch (RuntimeException reschedulingFailure) {
                 // Preserve the supplier's diagnostic (the user-visible error) by not
                 // overwriting it in the latest-wins slot. If only rescheduling failed,

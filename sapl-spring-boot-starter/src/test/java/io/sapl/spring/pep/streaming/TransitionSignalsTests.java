@@ -19,8 +19,10 @@ package io.sapl.spring.pep.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -270,6 +272,25 @@ class TransitionSignalsTests {
         void completesWhenSourceIsEmpty() {
             StepVerifier.create(TransitionSignals.onTransitions(Flux.<String>empty(), s -> {}, g -> {}))
                     .verifyComplete();
+        }
+    }
+
+    @Nested
+    @DisplayName("substitution path backpressure")
+    class SubstitutionPathBackpressure {
+
+        @Test
+        @DisplayName("bounded downstream demand bounds upstream consumption (no unbounded buffering)")
+        void boundedDownstreamDemandBoundsUpstreamConsumption() {
+            var requested = new AtomicLong();
+            var source    = Flux.range(0, 1_000_000).map(Object::toString).doOnRequest(requested::addAndGet);
+
+            // A slow subscriber that takes a single item must not cause the source to be
+            // drained unboundedly into an internal buffer; demand must propagate upstream.
+            StepVerifier.create(TransitionSignals.onSuspend(source, e -> {}, () -> "SUB"), 1L).expectNext("0")
+                    .thenCancel().verify(Duration.ofSeconds(2));
+
+            assertThat(requested.get()).isLessThan(1_000_000L);
         }
     }
 

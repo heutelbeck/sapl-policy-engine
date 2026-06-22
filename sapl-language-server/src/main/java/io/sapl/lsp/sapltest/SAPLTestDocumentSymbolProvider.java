@@ -80,15 +80,28 @@ class SAPLTestDocumentSymbolProvider {
 
     private static Range rangeOf(ParserRuleContext ctx) {
         val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
-        val stop  = ctx.getStop();
-        val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());
-        return new Range(start, end);
+        return new Range(start, endPosition(ctx.getStop()));
     }
 
     private static Range rangeOfToken(Token token) {
         val start = new Position(token.getLine() - 1, token.getCharPositionInLine());
-        val end   = new Position(token.getLine() - 1, token.getCharPositionInLine() + token.getText().length());
-        return new Range(start, end);
+        return new Range(start, endPosition(token));
+    }
+
+    /**
+     * Computes the end {@link Position} of a token, accounting for newlines in the
+     * token text so multi-line literals do not overshoot the start column.
+     */
+    private static Position endPosition(Token token) {
+        val text         = token.getText();
+        val lastNewline  = text.lastIndexOf('\n');
+        val newlineCount = (int) text.chars().filter(c -> c == '\n').count();
+        if (newlineCount == 0) {
+            return new Position(token.getLine() - 1, token.getCharPositionInLine() + text.length());
+        }
+        val endLine      = token.getLine() - 1 + newlineCount;
+        val endCharacter = text.length() - lastNewline - 1;
+        return new Position(endLine, endCharacter);
     }
 
     private static String stripQuotes(String text) {

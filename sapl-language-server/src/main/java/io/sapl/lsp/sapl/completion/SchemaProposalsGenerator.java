@@ -198,7 +198,7 @@ public class SchemaProposalsGenerator {
 
     private JsonNode lookupAnchorReferenceInObject(ObjectNode objectNode, String anchor) {
         var anchorField = objectNode.get(ANCHOR);
-        if (anchorField != null && anchorField.asString().equals(anchor)) {
+        if (anchorField != null && anchorField.isString() && anchorField.asString().equals(anchor)) {
             return objectNode;
         }
         for (var entry : objectNode.properties()) {
@@ -247,20 +247,24 @@ public class SchemaProposalsGenerator {
 
     private static void addProposals(JsonNode baseSchema, String prefix, JsonNode schema,
             Map<String, JsonNode> definitions, Collection<String> proposals, int recursionDepth) {
-        if (recursionDepth == MAX_DEPTH || schema == null || !schema.isObject()) {
+        if (recursionDepth >= MAX_DEPTH || schema == null || !schema.isObject()) {
             return;
         }
 
         if (schema.has(REF)) {
+            // Increment depth on the $ref edge so a self-referential $ref that never
+            // passes through properties/items still advances toward MAX_DEPTH instead
+            // of recursing forever (StackOverflowError on a cyclic schema).
             addProposals(baseSchema, prefix, lookupReferencedSchema(baseSchema, schema.get(REF), definitions),
-                    definitions, proposals, recursionDepth);
+                    definitions, proposals, recursionDepth + 1);
             return;
         }
 
         for (var multiTypeKeyword : KEYWORDS_INDICATING_TYPE_ARRAY) {
             if (hasArrayFieldNamed(schema, multiTypeKeyword)) {
+                // Increment depth so an allOf/anyOf/oneOf cycle is bounded too.
                 addMultipleProposals(baseSchema, prefix, schema.get(multiTypeKeyword), definitions, proposals,
-                        recursionDepth);
+                        recursionDepth + 1);
                 return;
             }
         }

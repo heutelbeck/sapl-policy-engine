@@ -81,6 +81,8 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     private static final String ERROR_FAILED_TO_START_MONITOR       = "Failed to start directory monitor.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY         = "Configuration path is not a directory.";
 
+    private static final String WARN_SUBSCRIBER_THREW = "Configuration subscriber threw on event {}: {}.";
+
     private final Path                                         directoryPath;
     private final boolean                                      includeRootFiles;
     private final FileAlterationMonitor                        monitor;
@@ -155,7 +157,12 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
             return;
         }
         for (val subscriber : subscribers) {
-            subscriber.accept(event);
+            try {
+                subscriber.accept(event);
+            } catch (Exception e) {
+                // Isolate a failing subscriber so delivery to others continues.
+                log.warn(WARN_SUBSCRIBER_THREW, event, e.getMessage());
+            }
         }
     }
 
@@ -205,8 +212,15 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
 
         try {
             val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, () -> removeChildSource(pdpId));
-            source.subscribe(this::emit);
+            // Register before subscribing so a removal callback during activation can clean
+            // up.
             childSources.put(pdpId, source);
+            try {
+                source.subscribe(this::emit);
+            } catch (Exception e) {
+                childSources.remove(pdpId, source);
+                throw e;
+            }
             log.debug("Created child source for PDP '{}'.", pdpId);
         } catch (Exception e) {
             log.error("Failed to create child source for PDP '{}': {}.", pdpId, e.getMessage(), e);

@@ -252,6 +252,7 @@ public class JsonGraphVisualization extends Component implements HasSize, HasSty
         visualization.setSizeFull();
         visualization.getElement().setAttribute(HIDE_BUTTON_ATTRIBUTE, "true");
         visualization.setDarkTheme(getElement().getProperty("isDarkTheme", false));
+        visualization.setValueMode(valueMode);
         return visualization;
     }
 

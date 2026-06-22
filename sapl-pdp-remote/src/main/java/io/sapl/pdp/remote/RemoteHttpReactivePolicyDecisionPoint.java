@@ -233,7 +233,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         return client.post().uri(MULTI_DECIDE_ALL_ONCE).accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(multiAuthzSubscription).retrieve().bodyToMono(type)
                 .timeout(Duration.ofMillis(timeoutMillis)).doOnError(this::logStreamError)
-                .onErrorReturn(MultiAuthorizationDecision.indeterminate());
+                .onErrorReturn(MultiAuthorizationDecision.indeterminate())
+                .defaultIfEmpty(MultiAuthorizationDecision.indeterminate());
     }
 
     private <T> Flux<T> streamSse(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,

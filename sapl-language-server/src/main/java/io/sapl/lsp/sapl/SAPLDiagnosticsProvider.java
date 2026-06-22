@@ -72,10 +72,11 @@ public class SAPLDiagnosticsProvider {
     private Diagnostic createDiagnostic(int line, int charPositionInLine, String message, String offendingSymbol,
             DiagnosticSeverity severity) {
         // Convert from ANTLR's 1-based line to LSP's 0-based line
-        var startLine = line - 1;
-        var endLine   = startLine;
-        var startChar = charPositionInLine;
-        var endChar   = startChar + (offendingSymbol != null ? offendingSymbol.length() : 1);
+        var startLine    = line - 1;
+        var endLine      = startLine;
+        var startChar    = charPositionInLine;
+        var symbolLength = (offendingSymbol == null || offendingSymbol.isEmpty()) ? 1 : offendingSymbol.length();
+        var endChar      = startChar + symbolLength;
 
         var range = new Range(new Position(startLine, startChar), new Position(endLine, endChar));
         return new Diagnostic(range, message, severity, SOURCE);

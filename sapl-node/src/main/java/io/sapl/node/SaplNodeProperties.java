@@ -236,6 +236,9 @@ public class SaplNodeProperties implements InitializingBean {
     public static class OAuthConfig {
         private String       pdpIdClaim = "sapl_pdp_id";
         private List<String> audiences  = new ArrayList<>();
+        // Secure by default: a JWT without an exp claim is rejected; it would grant
+        // non-expiring access.
+        private boolean allowJwtWithoutExpiry = false;
     }
 
 }

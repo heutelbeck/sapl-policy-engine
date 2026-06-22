@@ -159,6 +159,31 @@ class SAPLRenameProviderTests {
         }
 
         @Test
+        @DisplayName("renaming set-level variable rewrites references preceding a shadowing redefinition")
+        void whenRenamingSetVarReferencedBeforeShadowing_thenRenamesPrecedingReference() {
+            var document = new SAPLParsedDocument("test.sapl", """
+                    set "test"
+                    first or abstain
+                    var config = "default";
+
+                    policy "p2"
+                    permit
+                        config == "default";
+                        var config = "local";
+                        config == "local";
+                    """);
+
+            var workspaceEdit = provider.provideRename(document, new Position(2, 4), "settings");
+
+            assertThat(workspaceEdit).isNotNull();
+            var edits = workspaceEdit.getChanges().get("test.sapl");
+            // definition (line 2) plus the reference on line 6 that precedes the shadowing
+            // redefinition
+            assertThat(edits).hasSize(2).anyMatch(edit -> edit.getRange().getStart().getLine() == 6)
+                    .noneMatch(edit -> edit.getRange().getStart().getLine() >= 7);
+        }
+
+        @Test
         @DisplayName("renaming a shadowing policy-level variable does not rewrite the set-level variable")
         void whenRenamingPolicyVarShadowingSetVar_thenLeavesSetVarUntouched() {
             var document = new SAPLParsedDocument("test.sapl", """

@@ -99,7 +99,10 @@ public class EqualityGroup {
             if (excludedHere != null) {
                 members.andNot(excludedHere);
             }
-            if (!members.isEmpty()) {
+            // An exclusion-key value must own a branch even when empty, so the operand
+            // routes there instead of falling through to default where its != formula
+            // would wrongly count as matching.
+            if (!members.isEmpty() || excludeInBucket.containsKey(value)) {
                 branchFormulas.put(value, members);
             }
         }

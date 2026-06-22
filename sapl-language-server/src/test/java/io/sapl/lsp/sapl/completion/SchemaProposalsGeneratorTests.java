@@ -18,6 +18,7 @@
 package io.sapl.lsp.sapl.completion;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.HashMap;
@@ -25,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -160,6 +163,32 @@ class SchemaProposalsGeneratorTests {
                         """,
                         new String[] { ".A", ".A.x", ".A.y", ".A.z", ".B", ".B.x", ".B.y", ".B.z", ".C", ".C.x", ".C.y",
                                 ".C.z" }),
+                arguments("absoluteToExternalSchemaWithNonStringAnchor", List.of("""
+                            {
+                            "$id": "https://example.com/coordinates",
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "$anchor": { "not": "a string" },
+                            "title": "Coordinates",
+                            "type": "object",
+                            "properties" : {
+                                "x": { "type": "integer" },
+                                "y": { "type": "integer" },
+                                "z": { "type": "integer" }
+                            }
+                        }
+                        """), """
+                         {
+                            "$id": "https://example.com/triangle.schema.json",
+                            "$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "title": "Triangle",
+                            "type": "object",
+                            "properties": {
+                                "A": { "$ref": "https://example.com/coordinates#coordis" },
+                                "B": { "$ref": "https://example.com/coordinates#coordis" },
+                                "C": { "$ref": "https://example.com/coordinates#coordis" }
+                            }
+                        }
+                        """, new String[] { ".A", ".B", ".C" }),
                 arguments("absoluteToExternalSchemaAnchorButTheAnchorIsNotMathing", List.of("""
                             {
                             "$id": "https://example.com/coordinates",
@@ -679,23 +708,14 @@ class SchemaProposalsGeneratorTests {
     }
 
     private static String[] recursiveSchemaExpectedProposals() {
+        // A self-referential $ref unrolls to a bounded depth. The $ref edge advances
+        // the recursion bound (so a pure $ref cycle terminates), so each .parent level
+        // consumes two depth units and the unrolling stops after five levels.
         return new String[] { ".firstName", ".age", ".parent", ".parent.firstName", ".parent.age", ".parent.parent",
                 ".parent.parent.firstName", ".parent.parent.age", ".parent.parent.parent",
                 ".parent.parent.parent.firstName", ".parent.parent.parent.age", ".parent.parent.parent.parent",
                 ".parent.parent.parent.parent.firstName", ".parent.parent.parent.parent.age",
-                ".parent.parent.parent.parent.parent", ".parent.parent.parent.parent.parent.firstName",
-                ".parent.parent.parent.parent.parent.age", ".parent.parent.parent.parent.parent.parent",
-                ".parent.parent.parent.parent.parent.parent.firstName",
-                ".parent.parent.parent.parent.parent.parent.age", ".parent.parent.parent.parent.parent.parent.parent",
-                ".parent.parent.parent.parent.parent.parent.parent.firstName",
-                ".parent.parent.parent.parent.parent.parent.parent.age",
-                ".parent.parent.parent.parent.parent.parent.parent.parent",
-                ".parent.parent.parent.parent.parent.parent.parent.parent.firstName",
-                ".parent.parent.parent.parent.parent.parent.parent.parent.age",
-                ".parent.parent.parent.parent.parent.parent.parent.parent.parent",
-                ".parent.parent.parent.parent.parent.parent.parent.parent.parent.firstName",
-                ".parent.parent.parent.parent.parent.parent.parent.parent.parent.age",
-                ".parent.parent.parent.parent.parent.parent.parent.parent.parent.parent" };
+                ".parent.parent.parent.parent.parent" };
     }
 
     @SneakyThrows
@@ -714,6 +734,42 @@ class SchemaProposalsGeneratorTests {
         variablesMap.put("schemas", schemasArray.build());
         var actualProposals = SchemaProposalsGenerator.getCodeTemplates("", schemaJson, variablesMap);
         assertThat(actualProposals).containsExactlyInAnyOrder(expectedProposals);
+    }
+
+    @Nested
+    @DisplayName("Cyclic schemas terminate instead of crashing the completion request")
+    class CyclicSchemas {
+
+        @SneakyThrows
+        private List<String> proposalsFor(String schema) {
+            var schemaJson = JsonMapper.builder().build().readTree(schema);
+            return SchemaProposalsGenerator.getCodeTemplates("", schemaJson, Map.of());
+        }
+
+        @Test
+        @DisplayName("a self-referential $ref at the root does not cause a StackOverflowError")
+        void when_selfReferentialRootRef_then_terminatesWithoutStackOverflow() {
+            var schema = """
+                    {
+                        "$id": "https://example.com/loop.schema.json",
+                        "$ref": "https://example.com/loop.schema.json"
+                    }
+                    """;
+            assertThatCode(() -> proposalsFor(schema)).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("a self-referential allOf cycle does not cause a StackOverflowError")
+        void when_selfReferentialAllOfCycle_then_terminatesWithoutStackOverflow() {
+            var schema    = """
+                    {
+                        "$id": "https://example.com/loop.schema.json",
+                        "allOf": [ { "$ref": "https://example.com/loop.schema.json" } ]
+                    }
+                    """;
+            var proposals = proposalsFor(schema);
+            assertThat(proposals).isEmpty();
+        }
     }
 
     @Test

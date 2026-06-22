@@ -125,4 +125,87 @@ class JUnitTestAdapterTests {
                     .satisfies(pips -> assertThat(pips).containsEntry("testPip", pipInstance));
         }
     }
+
+    @Nested
+    @DisplayName("fixture registration wiring tests")
+    class FixtureRegistrationWiringTests {
+
+        @Test
+        @DisplayName("instance function library registrations reach the test configuration")
+        void whenRegisteringInstanceFunctionLibrary_thenLibraryReachesConfiguration() {
+            var library = new Object();
+            var adapter = new JUnitTestAdapter() {
+                            @Override
+                            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                                return Map.of(ImportType.FUNCTION_LIBRARY, Map.of("instanceLib", library));
+                            }
+                        };
+
+            assertThat(adapter.createConfiguration().functionLibraries()).containsExactly(library);
+        }
+
+        @Test
+        @DisplayName("static function library registrations reach the test configuration")
+        void whenRegisteringStaticFunctionLibrary_thenLibraryReachesConfiguration() {
+            var library = new Object();
+            var adapter = new JUnitTestAdapter() {
+                            @Override
+                            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                                return Map.of(ImportType.STATIC_FUNCTION_LIBRARY, Map.of("staticLib", library));
+                            }
+                        };
+
+            assertThat(adapter.createConfiguration().functionLibraries()).containsExactly(library);
+        }
+
+        @Test
+        @DisplayName("instance PIP registrations reach the test configuration")
+        void whenRegisteringInstancePip_thenPipReachesConfiguration() {
+            var pip     = new Object();
+            var adapter = new JUnitTestAdapter() {
+                            @Override
+                            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                                return Map.of(ImportType.PIP, Map.of("instancePip", pip));
+                            }
+                        };
+
+            assertThat(adapter.createConfiguration().policyInformationPoints()).containsExactly(pip);
+        }
+
+        @Test
+        @DisplayName("static PIP registrations reach the test configuration")
+        void whenRegisteringStaticPip_thenPipReachesConfiguration() {
+            var pip     = new Object();
+            var adapter = new JUnitTestAdapter() {
+                            @Override
+                            protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                                return Map.of(ImportType.STATIC_PIP, Map.of("staticPip", pip));
+                            }
+                        };
+
+            assertThat(adapter.createConfiguration().policyInformationPoints()).containsExactly(pip);
+        }
+
+        @Test
+        @DisplayName("all four import types are wired into the test configuration together")
+        void whenRegisteringAllImportTypes_thenAllReachConfiguration() {
+            var instanceLib = new Object();
+            var staticLib   = new Object();
+            var instancePip = new Object();
+            var staticPip   = new Object();
+            var adapter     = new JUnitTestAdapter() {
+                                @Override
+                                protected Map<ImportType, Map<String, Object>> getFixtureRegistrations() {
+                                    return Map.of(ImportType.FUNCTION_LIBRARY, Map.of("instanceLib", instanceLib),
+                                            ImportType.STATIC_FUNCTION_LIBRARY, Map.of("staticLib", staticLib),
+                                            ImportType.PIP, Map.of("instancePip", instancePip), ImportType.STATIC_PIP,
+                                            Map.of("staticPip", staticPip));
+                                }
+                            };
+
+            var configuration = adapter.createConfiguration();
+            assertThat(configuration.functionLibraries()).containsExactlyInAnyOrder(instanceLib, staticLib);
+            assertThat(configuration.policyInformationPoints()).containsExactlyInAnyOrder(instancePip, staticPip);
+        }
+    }
 }

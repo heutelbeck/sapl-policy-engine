@@ -168,6 +168,21 @@ class SonarQubeCoverageReportGeneratorTests {
     }
 
     @Test
+    @DisplayName("emits a single aggregated lineToCover when two conditions share a source line")
+    void whenTwoConditionsOnSameLine_thenSingleAggregatedLineToCover() throws IOException {
+        writeCoverageNdjson(
+                """
+                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":1,"targetFalseHits":0,"branches":[{"statementId":0,"startLine":5,"endLine":5,"startChar":4,"endChar":10,"trueHits":1,"falseHits":1},{"statementId":1,"startLine":5,"endLine":5,"startChar":20,"endChar":30,"trueHits":1,"falseHits":0}]}]}
+                        """);
+
+        val generator = new SonarQubeCoverageReportGenerator(tempDir);
+        val xml       = generator.generate();
+
+        assertThat(countOccurrences(xml, "lineNumber=\"5\"")).isOne();
+        assertThat(xml).contains("lineNumber=\"5\" covered=\"true\" branchesToCover=\"4\" coveredBranches=\"3\"");
+    }
+
+    @Test
     @DisplayName("createDefault uses target/sapl-coverage directory")
     void whenCreateDefault_thenUsesTargetDirectory() {
         val generator = SonarQubeCoverageReportGenerator.createDefault();

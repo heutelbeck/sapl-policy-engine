@@ -261,12 +261,12 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 return Mono.just(MultiAuthorizationDecision.indeterminate());
             }
         })
-                // Bound the wait for the response so a silent live server fails closed instead
-                // of
-                // hanging the caller. Mirrors the HTTP client.
-                .timeout(Duration.ofMillis(timeoutMillis)).doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION,
-                        error.getClass().getSimpleName(), error.getMessage()))
-                .onErrorReturn(MultiAuthorizationDecision.indeterminate());
+                // Bound the wait so a silent server fails closed. Mirrors the HTTP client.
+                .timeout(Duration.ofMillis(timeoutMillis))
+                .doOnError(error -> log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(),
+                        error.getMessage()))
+                .onErrorReturn(MultiAuthorizationDecision.indeterminate())
+                .defaultIfEmpty(MultiAuthorizationDecision.indeterminate());
     }
 
     private Payload createPayload(String route, byte[] data) {

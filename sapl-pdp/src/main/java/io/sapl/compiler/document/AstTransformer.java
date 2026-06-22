@@ -52,7 +52,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_UNHANDLED_CONTEXT            = "Unhandled parse context: %s - visitor method not implemented";
     private static final String ERROR_ATTRIBUTE_IN_FILTER_TARGET   = "Attribute finder steps not allowed in filter targets";
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
+    private static final String ERROR_INDEX_NOT_REPRESENTABLE      = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
+    private static final String ERROR_NUMBER_NOT_REPRESENTABLE     = "Numeric literal '%s' is out of range and cannot be represented.";
     private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
     private static final String ERROR_UNKNOWN_EFFECT               = "Unknown effect.";
     private static final String ERROR_UNKNOWN_ERROR_HANDLING       = "Unknown error handling.";
@@ -682,8 +684,13 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public AstNode visitNumberLiteral(NumberLiteralContext ctx) {
-        val value = new BigDecimal(ctx.NUMBER().getText());
-        return new Literal(Value.of(value), fromContext(ctx));
+        val text = ctx.NUMBER().getText();
+        try {
+            val value = new BigDecimal(text);
+            return new Literal(Value.of(value), fromContext(ctx));
+        } catch (NumberFormatException e) {
+            throw new SaplCompilerException(ERROR_NUMBER_NOT_REPRESENTABLE.formatted(text), e, fromContext(ctx));
+        }
     }
 
     @Override
@@ -788,7 +795,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     private int parseSignedNumber(SignedNumberContext ctx) {
         val text = ctx.getText();
-        return Integer.parseInt(text);
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            throw new SaplCompilerException(ERROR_INDEX_NOT_REPRESENTABLE.formatted(text), e, fromContext(ctx));
+        }
     }
 
     private QualifiedName toQualifiedName(FunctionIdentifierContext ctx) {

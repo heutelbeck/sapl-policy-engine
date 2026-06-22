@@ -20,6 +20,7 @@ package io.sapl.node.http.pdp;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -31,12 +32,19 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.DisplayName;
@@ -213,6 +221,116 @@ class SseStreamServletTests {
             scheduler.shutdownNow();
             pump.shutdownNow();
         }
+    }
+
+    @Test
+    @DisplayName("a keep-alive dispatched during teardown does not write to the closed writer after the stream has ended")
+    void whenKeepAliveDispatchedDuringTeardownThenItDoesNotWriteToClosedWriter() throws Exception {
+        val writerClosed       = new AtomicBoolean(false);
+        val wroteAfterClose    = new AtomicBoolean(false);
+        val deferredKeepAlives = new ConcurrentLinkedQueue<Runnable>();
+
+        // submit runs synchronously; execute defers keep-alives until after teardown.
+        val deferringPump = new AbstractExecutorService() {
+            @Override
+            public void execute(Runnable command) {
+                deferredKeepAlives.add(command);
+            }
+
+            @Override
+            public Future<?> submit(Runnable task) {
+                task.run();
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public void shutdown() {
+                // no-op
+            }
+
+            @Override
+            public List<Runnable> shutdownNow() {
+                return List.of();
+            }
+
+            @Override
+            public boolean isShutdown() {
+                return false;
+            }
+
+            @Override
+            public boolean isTerminated() {
+                return false;
+            }
+
+            @Override
+            public boolean awaitTermination(long timeout, TimeUnit unit) {
+                return true;
+            }
+        };
+
+        // Run the keep-alive once, synchronously, at schedule time.
+        when(keepAliveScheduler.scheduleAtFixedRate(any(Runnable.class), anyLong(), anyLong(), any()))
+                .thenAnswer(invocation -> {
+                    invocation.<Runnable>getArgument(0).run();
+                    return mock(ScheduledFuture.class);
+                });
+
+        val recordingWriter = new PrintWriter(new Writer() {
+                                @Override
+                                public void write(char[] cbuf, int off, int len) {
+                                    if (writerClosed.get()) {
+                                        wroteAfterClose.set(true);
+                                    }
+                                }
+
+                                @Override
+                                public void flush() {
+                                    // no-op
+                                }
+
+                                @Override
+                                public void close() {
+                                    writerClosed.set(true);
+                                }
+                            });
+        val response        = mock(HttpServletResponse.class);
+        when(response.getWriter()).thenReturn(recordingWriter);
+        when(asyncContext.getResponse()).thenReturn(response);
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
+        when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+        when(request.startAsync()).thenReturn(asyncContext);
+
+        // Stream ends immediately so the pump exits and teardown closes the writer.
+        val endedStream = new LatestSlotStream<AuthorizationDecision>();
+        endedStream.close();
+
+        val servlet = new SseStreamServlet<AuthorizationSubscription, AuthorizationDecision>(authHandler, mapper,
+                Duration.ofSeconds(1), keepAliveScheduler, deferringPump, connectionRegistry) {
+            @Override
+            protected Class<AuthorizationSubscription> subscriptionType() {
+                return AuthorizationSubscription.class;
+            }
+
+            @Override
+            protected Stream<AuthorizationDecision> openStream(AuthorizationSubscription subscription, String pdpId) {
+                return endedStream;
+            }
+
+            @Override
+            protected AuthorizationDecision indeterminate() {
+                return AuthorizationDecision.INDETERMINATE;
+            }
+        };
+
+        servlet.handlePost(request, response);
+
+        assertThat(writerClosed).isTrue();
+        deferredKeepAlives.forEach(Runnable::run);
+
+        assertThat(wroteAfterClose).as("late keep-alive must not write to the closed writer").isFalse();
+        verify(asyncContext).complete();
     }
 
     @Test

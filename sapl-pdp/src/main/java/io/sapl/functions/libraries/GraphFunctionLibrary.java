@@ -241,7 +241,9 @@ public class GraphFunctionLibrary {
      */
     @Function(name = "reachable_paths", docs = """
             ```graph.reachable_paths(OBJECT graph, STRING|ARRAY initial)```: Single-source shortest
-            paths via BFS. O(V + E). Returns array of paths (each an array of node IDs).
+            paths via BFS. O(V + E). Returns array of paths (each an array of node IDs). The total
+            emitted path steps are capped at 1000000 and an error value is returned above that, since
+            paths can grow to O(V^2) on a large or runtime-supplied graph.
             """, schema = SCHEMA_RETURNS_ARRAY)
     public static Value reachablePaths(ObjectValue graph, Value initial) {
         val visited      = new LinkedHashSet<String>();
@@ -261,10 +263,16 @@ public class GraphFunctionLibrary {
 
         val pathsBuilder = ArrayValue.builder();
         val steps        = new ArrayList<String>();
+        var emittedSteps = 0L;
         for (val nodeId : visited) {
             steps.clear();
             for (var c = nodeId; c != null; c = predecessors.get(c)) {
                 steps.add(c);
+            }
+            // Cap total path steps, they can grow O(V^2) on untrusted graphs.
+            emittedSteps += steps.size();
+            if (emittedSteps > MAX_CLOSURE_ENTRIES) {
+                return Value.error(ERROR_CLOSURE_TOO_LARGE.formatted(MAX_CLOSURE_ENTRIES));
             }
             val pathBuilder = ArrayValue.builder();
             for (val step : steps.reversed()) {

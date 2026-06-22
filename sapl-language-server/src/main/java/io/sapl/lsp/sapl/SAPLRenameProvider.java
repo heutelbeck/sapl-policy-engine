@@ -132,12 +132,28 @@ class SAPLRenameProvider {
                 collectReferencesInTree(varDef.eval, targetName, edits, newName);
             }
         }
-        // A policy that re-declares the same name shadows the set-level variable,
-        // so its body must not be rewritten when renaming the set-level definition.
+        // A policy that re-declares the same name shadows the set-level variable only
+        // from its redefinition onward; references preceding it still bind to the set
+        // var.
         for (val policy : policySet.policy()) {
-            if (!policyRedeclares(policy, targetName)) {
+            if (policyRedeclares(policy, targetName)) {
+                collectSetLevelReferencesBeforeShadowing(policy, targetName, newName, edits);
+            } else {
                 collectReferencesInTree(policy, targetName, edits, newName);
             }
+        }
+    }
+
+    private void collectSetLevelReferencesBeforeShadowing(PolicyContext policy, String targetName, String newName,
+            List<TextEdit> edits) {
+        for (val statement : policy.policyBody().statements) {
+            if (statement instanceof ValueDefinitionStatementContext varDefStmt) {
+                val varDef = varDefStmt.valueDefinition();
+                if (varDef.name != null && varDef.name.getText().equals(targetName)) {
+                    return;
+                }
+            }
+            collectReferencesInTree(statement, targetName, edits, newName);
         }
     }
 

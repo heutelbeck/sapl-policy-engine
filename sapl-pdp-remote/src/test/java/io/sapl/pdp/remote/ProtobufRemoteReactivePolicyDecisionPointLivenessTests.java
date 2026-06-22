@@ -126,6 +126,20 @@ class ProtobufRemoteReactivePolicyDecisionPointLivenessTests {
 
     @Test
     @Timeout(10)
+    @DisplayName("A server that completes a one-shot decide-all-once with no decision fails closed to INDETERMINATE")
+    void whenDecideAllOnceResponseIsEmptyThenFailsClosedToIndeterminate() {
+        when(rSocket.requestResponse(any(Payload.class))).thenAnswer(invocation -> {
+            ((Payload) invocation.getArgument(0)).release();
+            return Mono.empty();
+        });
+        val pdp = new ProtobufRemoteReactivePolicyDecisionPoint(Mono.just(rSocket), 1, 2, 200);
+
+        StepVerifier.create(pdp.decideAllOnce(MULTI_SUBSCRIPTION))
+                .expectNext(MultiAuthorizationDecision.indeterminate()).verifyComplete();
+    }
+
+    @Test
+    @Timeout(10)
     @DisplayName("Disposing the client while a connect is in flight disposes the socket that arrives afterwards")
     void whenDisposeRunsDuringInFlightConnectThenLateSocketIsDisposed() {
         val           connectStarted = new AtomicBoolean();

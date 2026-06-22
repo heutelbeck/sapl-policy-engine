@@ -17,11 +17,15 @@
  */
 package io.sapl.lsp.sapl.util;
 
+import static io.sapl.grammar.antlr.SAPLParser.RULE_basicGroup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.antlr.v4.runtime.tree.Trees;
 import org.junit.jupiter.api.Test;
 
+import io.sapl.grammar.antlr.SAPLParser.BasicGroupContext;
+import io.sapl.grammar.antlr.SAPLParser.ConditionStatementContext;
 import io.sapl.grammar.antlr.SAPLParser.ExpressionContext;
 import io.sapl.lsp.sapl.TestParsing;
 import io.sapl.grammar.antlr.SAPLParser.PolicyBodyContext;
@@ -100,14 +104,24 @@ class TreeNavigationUtilTests {
             return;
         }
         var statement = body.statement(0);
-        if (!(statement instanceof io.sapl.grammar.antlr.SAPLParser.ConditionStatementContext conditionStmt)) {
+        if (!(statement instanceof ConditionStatementContext conditionStmt)) {
             return;
         }
         var outerExpression = conditionStmt.expression();
 
-        var result = TreeNavigationUtil.goToFirstParent(outerExpression, ExpressionContext.class);
+        // "(1 + 2)" nests an inner ExpressionContext inside the outer one. The search
+        // must resolve to
+        // the closest enclosing ExpressionContext, not the outer.
+        var groups = Trees.findAllRuleNodes(outerExpression, RULE_basicGroup);
+        if (groups.size() != 1 || !(groups.iterator().next() instanceof BasicGroupContext basicGroup)) {
+            return;
+        }
+        var innerExpression = basicGroup.expression();
+        var startNode       = innerExpression.getChild(0);
 
-        assertThat(result).isSameAs(outerExpression);
+        var result = TreeNavigationUtil.goToFirstParent(startNode, ExpressionContext.class);
+
+        assertThat(result).isSameAs(innerExpression).isNotSameAs(outerExpression);
     }
 
     @Test

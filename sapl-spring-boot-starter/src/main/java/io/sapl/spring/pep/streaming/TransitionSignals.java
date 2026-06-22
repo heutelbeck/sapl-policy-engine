@@ -20,10 +20,12 @@ package io.sapl.spring.pep.streaming;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.reactivestreams.Subscription;
 import org.springframework.security.access.AccessDeniedException;
 
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
@@ -192,26 +194,31 @@ public class TransitionSignals {
 
     /**
      * Substitution path: a wrapping {@code Flux.create} sink so the boundary-error
-     * callback can
-     * {@code sink.next(emit.get())} a substitute item. This costs one extra
-     * subscription and
-     * {@code OverflowStrategy.BUFFER} on the sink (the {@code Flux.create}
-     * default); the inner subscription is bound to
-     * the sink's lifetime via {@code sink.onDispose(...)}, so a downstream cancel
-     * propagates upstream.
+     * callback can {@code sink.next(emit.get())} a substitute item. The inner
+     * subscription is a {@link BaseSubscriber} driven by
+     * {@link FluxSink#onRequest},
+     * so downstream demand is relayed upstream and a slow subscriber cannot force
+     * unbounded buffering. A downstream cancel disposes the subscription.
      */
     private static <T> Flux<T> observeAndSubstitute(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
             Supplier<T> emitOnSuspend, Consumer<AccessGrantedException> onGranted, Supplier<T> emitOnGranted) {
         return Flux.deferContextual(contextView -> Flux.create(downstream -> {
-            val subscription = source.contextWrite(contextView).doOnNext(downstream::next)
+            val subscriber = new BaseSubscriber<T>() {
+                @Override
+                protected void hookOnSubscribe(Subscription subscription) {
+                    // No initial request; demand is driven by downstream via onRequest.
+                }
+            };
+            source.contextWrite(contextView).doOnNext(downstream::next)
                     .onErrorContinue(TransitionSignals::isBoundarySignal, (error, value) -> {
                         if (error instanceof AccessDeniedException suspended) {
                             handleBoundary(suspended, onSuspend, emitOnSuspend, downstream);
                         } else if (error instanceof AccessGrantedException granted) {
                             handleBoundary(granted, onGranted, emitOnGranted, downstream);
                         }
-                    }).doOnComplete(downstream::complete).doOnError(downstream::error).subscribe();
-            downstream.onDispose(subscription);
+                    }).doOnComplete(downstream::complete).doOnError(downstream::error).subscribe(subscriber);
+            downstream.onRequest(subscriber::request);
+            downstream.onDispose(subscriber);
         }));
     }
 

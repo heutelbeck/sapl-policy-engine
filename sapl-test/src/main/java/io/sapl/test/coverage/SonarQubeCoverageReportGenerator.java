@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Generates SonarQube generic test coverage XML from NDJSON coverage data.
@@ -245,29 +246,44 @@ public class SonarQubeCoverageReportGenerator {
         xml.writeAttribute("path", filePath);
         xml.writeCharacters("\n");
 
-        // Write target line coverage (line 1 for policy declaration)
-        val targetLineEmitted = coverage.wasTargetEvaluated();
-        if (targetLineEmitted) {
-            writeLineCoverage(xml, 1, coverage.wasTargetMatched(), 0, 0);
-        }
-
-        // Write branch coverage for each condition. SonarQube rejects a <file>
-        // with two lineToCover elements sharing a lineNumber, so the line-1
-        // branch is skipped when the target already claimed that line.
-        for (val branch : coverage.getBranchHits()) {
-            val line = branch.line();
-            if (line == 1 && targetLineEmitted) {
-                continue;
-            }
-            val covered         = branch.isPartiallyCovered();
-            val branchesToCover = branch.totalBranchCount();
-            val coveredBranches = branch.coveredBranchCount();
-            writeLineCoverage(xml, line, covered, branchesToCover, coveredBranches);
+        // SonarQube rejects duplicate lineToCover lineNumbers, so coverage is
+        // aggregated per line.
+        for (val entry : aggregateCoverageByLine(coverage).entrySet()) {
+            val aggregate = entry.getValue();
+            writeLineCoverage(xml, entry.getKey(), aggregate.covered, aggregate.branchesToCover,
+                    aggregate.coveredBranches);
         }
 
         xml.writeCharacters("  ");
         xml.writeEndElement();
         xml.writeCharacters("\n");
+    }
+
+    private Map<Integer, LineAggregate> aggregateCoverageByLine(PolicyCoverageData coverage) {
+        val byLine = new TreeMap<Integer, LineAggregate>();
+
+        if (coverage.wasTargetEvaluated()) {
+            byLine.computeIfAbsent(1, l -> new LineAggregate()).accumulate(coverage.wasTargetMatched(), 0, 0);
+        }
+
+        for (val branch : coverage.getBranchHits()) {
+            byLine.computeIfAbsent(branch.line(), l -> new LineAggregate()).accumulate(branch.isPartiallyCovered(),
+                    branch.totalBranchCount(), branch.coveredBranchCount());
+        }
+
+        return byLine;
+    }
+
+    private static final class LineAggregate {
+        private boolean covered;
+        private int     branchesToCover;
+        private int     coveredBranches;
+
+        private void accumulate(boolean lineCovered, int totalBranches, int hitBranches) {
+            this.covered          = this.covered || lineCovered;
+            this.branchesToCover += totalBranches;
+            this.coveredBranches += hitBranches;
+        }
     }
 
     private void writeLineCoverage(XMLStreamWriter xml, int lineNumber, boolean covered, int branchesToCover,

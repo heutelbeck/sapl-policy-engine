@@ -178,7 +178,7 @@ public class JsonFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val jsonString = JSON_MAPPER.writeValueAsString(jsonNode);
             return Value.of(jsonString);
-        } catch (JacksonException exception) {
+        } catch (JacksonException | IllegalArgumentException exception) {
             return Value.error(ERROR_FAILED_TO_SERIALIZE, exception.getMessage());
         }
     }

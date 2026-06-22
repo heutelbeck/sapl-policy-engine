@@ -206,9 +206,21 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
      * @param policy the SAPL policy text
      */
     public void setPolicy(String policy) {
-        if (policyEditor != null && policy != null) {
+        if (policyEditor != null && isExplicitAttributeValue(policy)) {
             policyEditor.setDocument(policy);
         }
+    }
+
+    /**
+     * Whether an attribute value should replace the in-editor default. The web
+     * component initializes attributes to the empty string, so blank values must
+     * not overwrite editor defaults.
+     *
+     * @param value the raw attribute value from the web component
+     * @return {@code true} if the value should replace the in-editor default
+     */
+    static boolean isExplicitAttributeValue(String value) {
+        return value != null && !value.isBlank();
     }
 
     /**
@@ -226,7 +238,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
      * @param subscription the authorization subscription JSON
      */
     public void setSubscription(String subscription) {
-        if (subscriptionEditor != null && subscription != null) {
+        if (subscriptionEditor != null && isExplicitAttributeValue(subscription)) {
             try {
                 val json = mapper.readTree(subscription);
                 subscriptionEditor.setDocument(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));

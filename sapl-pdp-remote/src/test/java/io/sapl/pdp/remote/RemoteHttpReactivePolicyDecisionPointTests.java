@@ -283,6 +283,20 @@ class RemoteHttpReactivePolicyDecisionPointTests {
 
             assertThat(server.getRequestCount()).isEqualTo(1);
         }
+
+        @Test
+        @Timeout(5)
+        @DisplayName("decideAllOnce maps an empty server response to an indeterminate decision (fail closed)")
+        void whenDecideAllOnceReceivesEmptyResponseThenIndeterminate() {
+            server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .setResponseCode(HttpStatus.OK.value()));
+
+            val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                    JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
+
+            StepVerifier.create(pdp.decideAllOnce(subscription)).expectNext(MultiAuthorizationDecision.indeterminate())
+                    .verifyComplete();
+        }
     }
 
     @Nested

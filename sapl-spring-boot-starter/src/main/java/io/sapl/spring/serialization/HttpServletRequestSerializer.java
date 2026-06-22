@@ -139,9 +139,11 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
             if (pair.isEmpty()) {
                 continue;
             }
-            val eq    = pair.indexOf('=');
-            val key   = eq < 0 ? decode(pair) : decode(pair.substring(0, eq));
-            val value = eq < 0 ? "" : decode(pair.substring(eq + 1));
+            val eq  = pair.indexOf('=');
+            val key = eq < 0 ? decode(pair) : decode(pair.substring(0, eq));
+            // null (not "") for a valueless param to match the reactive stack's
+            // getQueryParams().
+            val value = eq < 0 ? null : decode(pair.substring(eq + 1));
             out.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
         }
         return out;
