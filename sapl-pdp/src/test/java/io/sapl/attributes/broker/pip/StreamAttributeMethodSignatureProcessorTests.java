@@ -47,7 +47,7 @@ class StreamAttributeMethodSignatureProcessorTests {
 
     private static AttributeFinderInvocation invocationFor(String attributeName) {
         val ctx = new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT);
-        return new AttributeFinderInvocation("config", attributeName, List.of(), Duration.ofSeconds(1),
+        return new AttributeFinderInvocation("test-pdp", "config", attributeName, List.of(), Duration.ofSeconds(1),
                 Duration.ofSeconds(1), Duration.ofSeconds(1), 3, false, ctx);
     }
 

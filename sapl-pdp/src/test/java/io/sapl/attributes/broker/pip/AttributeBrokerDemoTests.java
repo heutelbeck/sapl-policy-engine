@@ -178,7 +178,7 @@ class AttributeBrokerDemoTests {
     }
 
     private static SubscriptionKey key(String fqn) {
-        val invocation = new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1),
+        val invocation = new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         return new SubscriptionKey(invocation, false);
@@ -216,8 +216,8 @@ class AttributeBrokerDemoTests {
             assertThat(jwtHandle.isLoaded()).isTrue();
 
             // Sanity: an environment attribute on the time PIP resolves.
-            val timeNow = new AttributeFinderInvocation("default", "time.now", List.of(), Duration.ofSeconds(1),
-                    Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
+            val timeNow = new AttributeFinderInvocation("test-pdp", "default", "time.now", List.of(),
+                    Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                     new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
             assertThat(broker.resolve(timeNow)).isPresent();
 

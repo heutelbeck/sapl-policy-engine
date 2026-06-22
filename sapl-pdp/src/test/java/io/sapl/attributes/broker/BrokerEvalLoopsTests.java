@@ -52,8 +52,8 @@ class BrokerEvalLoopsTests {
             Value.EMPTY_OBJECT);
 
     private static SubscriptionKey liveKey() {
-        val invocation = new AttributeFinderInvocation("default", "test.attribute", List.of(), Duration.ofSeconds(1),
-                Duration.ofMillis(100), Duration.ofMillis(100), 0L, false, CTX);
+        val invocation = new AttributeFinderInvocation("test-pdp", "default", "test.attribute", List.of(),
+                Duration.ofSeconds(1), Duration.ofMillis(100), Duration.ofMillis(100), 0L, false, CTX);
         return new SubscriptionKey(invocation, false);
     }
 

@@ -65,7 +65,7 @@ class MigrateGraceWindowReclaimTests {
     }
 
     private static SubscriptionKey envKey(String fqn) {
-        val invocation = new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1),
+        val invocation = new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
         return new SubscriptionKey(invocation, false);

@@ -660,9 +660,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         if (!invocation.fresh()) {
             return invocation;
         }
-        return new AttributeFinderInvocation(invocation.configurationId(), invocation.attributeName(),
-                invocation.entity(), invocation.arguments(), invocation.initialTimeOut(), invocation.pollInterval(),
-                invocation.backoff(), invocation.retries(), false, invocation.ctx());
+        return new AttributeFinderInvocation(invocation.pdpId(), invocation.configurationId(),
+                invocation.attributeName(), invocation.entity(), invocation.arguments(), invocation.initialTimeOut(),
+                invocation.pollInterval(), invocation.backoff(), invocation.retries(), false, invocation.ctx());
     }
 
     /**

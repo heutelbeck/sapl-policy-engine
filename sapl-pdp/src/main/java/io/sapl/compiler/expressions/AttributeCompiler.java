@@ -315,8 +315,8 @@ public class AttributeCompiler {
             val fresh        = freshOption();
             val accessCtx    = new AttributeAccessContext(pdpData.variables(), pdpData.secrets(),
                     ctx.authorizationSubscription().secrets());
-            return new AttributeFinderInvocation(ctx.configurationId(), attributeName, entityValue, argValues, timeout,
-                    pollInterval, backoff, retries, fresh, accessCtx);
+            return new AttributeFinderInvocation(ctx.pdpId(), ctx.configurationId(), attributeName, entityValue,
+                    argValues, timeout, pollInterval, backoff, retries, fresh, accessCtx);
         }
 
         private long longOption(String key, long defaultValue) {

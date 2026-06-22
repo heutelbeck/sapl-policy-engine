@@ -61,8 +61,8 @@ class AttributeStreamTests {
 
     private static AttributeFinderInvocation invocation(String name, Duration initialTimeOut, Duration pollInterval,
             Duration backoff, long retries) {
-        return new AttributeFinderInvocation("default", "test." + name, List.of(), initialTimeOut, pollInterval,
-                backoff, retries, false, EMPTY_CONTEXT);
+        return new AttributeFinderInvocation("test-pdp", "default", "test." + name, List.of(), initialTimeOut,
+                pollInterval, backoff, retries, false, EMPTY_CONTEXT);
     }
 
     private static Value valueOrNull(Poll<Value> poll) {

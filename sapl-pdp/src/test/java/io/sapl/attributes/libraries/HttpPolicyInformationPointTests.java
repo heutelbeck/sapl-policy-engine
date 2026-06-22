@@ -553,7 +553,7 @@ class HttpPolicyInformationPointTests {
                     new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient())));
             val request    = ObjectValue.builder().put("baseUrl", Value.of("http://localhost:" + server.getPort()))
                     .build();
-            val invocation = new AttributeFinderInvocation("default", "http.get", List.of(request),
+            val invocation = new AttributeFinderInvocation("test-pdp", "default", "http.get", List.of(request),
                     Duration.ofSeconds(1), Duration.ofMillis(50), Duration.ofMillis(50), 0L, false, EMPTY_CTX);
             val key        = new SubscriptionKey(invocation, false);
 

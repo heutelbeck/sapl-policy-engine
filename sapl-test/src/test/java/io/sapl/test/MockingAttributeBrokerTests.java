@@ -73,13 +73,15 @@ class MockingAttributeBrokerTests {
     }
 
     private static SubscriptionKey envKey(String name, Value... arguments) {
-        return new SubscriptionKey(new AttributeFinderInvocation(CONFIG_ID, name, List.of(arguments), DEFAULT_TIMEOUT,
-                DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX), false);
+        return new SubscriptionKey(new AttributeFinderInvocation("test-pdp", CONFIG_ID, name, List.of(arguments),
+                DEFAULT_TIMEOUT, DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX), false);
     }
 
     private static SubscriptionKey entityKey(String name, Value entity, Value... arguments) {
-        return new SubscriptionKey(new AttributeFinderInvocation(CONFIG_ID, name, entity, List.of(arguments),
-                DEFAULT_TIMEOUT, DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX), false);
+        return new SubscriptionKey(
+                new AttributeFinderInvocation("test-pdp", CONFIG_ID, name, entity, List.of(arguments), DEFAULT_TIMEOUT,
+                        DEFAULT_POLL, DEFAULT_BACKOFF, DEFAULT_RETRIES, DEFAULT_FRESH, EMPTY_CTX),
+                false);
     }
 
     /**

@@ -88,8 +88,8 @@ class PolicyInformationPointAttributeBrokerTests {
     }
 
     private static AttributeFinderInvocation envInvocation(String fqn, boolean fresh, List<Value> arguments) {
-        return new AttributeFinderInvocation("default", fqn, arguments, Duration.ofSeconds(1), Duration.ofMillis(100),
-                Duration.ofMillis(100), 0L, fresh,
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, arguments, Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, fresh,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 

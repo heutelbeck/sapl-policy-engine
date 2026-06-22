@@ -80,14 +80,14 @@ class PipBrokerSpecTests {
     }
 
     private static AttributeFinderInvocation invocation(String fqn, boolean fresh) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(1), Duration.ofMillis(100),
-                Duration.ofMillis(100), 0L, fresh, EMPTY_CONTEXT);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, fresh, EMPTY_CONTEXT);
     }
 
     private static AttributeFinderInvocation invocation(String fqn, boolean fresh, Duration initialTimeOut,
             long retries) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), initialTimeOut, Duration.ofMillis(50),
-                Duration.ofMillis(30), retries, fresh, EMPTY_CONTEXT);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), initialTimeOut,
+                Duration.ofMillis(50), Duration.ofMillis(30), retries, fresh, EMPTY_CONTEXT);
     }
 
     private static SubscriptionKey key(String fqn) {

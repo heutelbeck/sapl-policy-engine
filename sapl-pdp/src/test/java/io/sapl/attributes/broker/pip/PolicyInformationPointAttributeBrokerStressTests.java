@@ -650,8 +650,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
     }
 
     private static AttributeFinderInvocation invocation(String fqn) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(10), Duration.ofSeconds(30),
-                Duration.ofMillis(50), 1L, false, EMPTY_CTX);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(10),
+                Duration.ofSeconds(30), Duration.ofMillis(50), 1L, false, EMPTY_CTX);
     }
 
     // recorder types --------------------------------------------------------

@@ -302,8 +302,8 @@ class ReportBuilderUtilTests {
     }
 
     private static SubscriptionKey environmentKey(String attributeName) {
-        val invocation = new AttributeFinderInvocation("test-config", attributeName, List.of(), Duration.ofSeconds(10),
-                Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
+        val invocation = new AttributeFinderInvocation("test-pdp", "test-config", attributeName, List.of(),
+                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         return new SubscriptionKey(invocation, false);
     }
 

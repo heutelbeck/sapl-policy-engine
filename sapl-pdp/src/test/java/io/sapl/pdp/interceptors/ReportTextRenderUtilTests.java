@@ -231,15 +231,15 @@ class ReportTextRenderUtilTests {
 
     private static AttributeContribution environmentAttribute(String attributeName, Value value, Instant publishedAt,
             String documentName) {
-        val invocation = new AttributeFinderInvocation("test-config", attributeName, List.of(), Duration.ofSeconds(10),
-                Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
+        val invocation = new AttributeFinderInvocation("test-pdp", "test-config", attributeName, List.of(),
+                Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val key        = new SubscriptionKey(invocation, false);
         return new AttributeContribution(key, value, publishedAt, List.of(occurrence(documentName)));
     }
 
     private static AttributeContribution entityAttribute(Value entity, String attributeName, Value value,
             Instant publishedAt, String documentName) {
-        val invocation = new AttributeFinderInvocation("test-config", attributeName, entity, List.of(),
+        val invocation = new AttributeFinderInvocation("test-pdp", "test-config", attributeName, entity, List.of(),
                 Duration.ofSeconds(10), Duration.ofSeconds(30), Duration.ofSeconds(1), 3, false, EMPTY_CTX);
         val key        = new SubscriptionKey(invocation, false);
         return new AttributeContribution(key, value, publishedAt, List.of(occurrence(documentName)));

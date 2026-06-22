@@ -58,7 +58,7 @@ class ActivePolicyInformationPointInvocationPumpTests {
     private static final Duration LIMIT = Duration.ofSeconds(3);
 
     private static AttributeFinderInvocation invocation() {
-        return new AttributeFinderInvocation("default", "test.attr", List.of(), Duration.ofSeconds(1),
+        return new AttributeFinderInvocation("test-pdp", "default", "test.attr", List.of(), Duration.ofSeconds(1),
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false, EMPTY_CONTEXT);
     }
 
