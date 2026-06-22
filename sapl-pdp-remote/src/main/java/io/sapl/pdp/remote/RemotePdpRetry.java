@@ -42,11 +42,10 @@ class RemotePdpRetry {
 
     static final int RETRY_ESCALATION_THRESHOLD = 5;
 
-    // consecutiveFailures counts failures since the last genuine decision; the
-    // caller resets
-    // it to zero on each genuine emission, so an occasionally-reconnecting healthy
-    // stream
-    // never escalates or exhausts. Permanent client errors propagate without retry.
+    // consecutiveFailures counts failures since the last genuine decision.
+    // The caller resets it on each genuine emission, so an occasionally
+    // reconnecting healthy stream never escalates or exhausts. Permanent
+    // client errors propagate without retry.
     static Retry createRetrySpec(AtomicLong consecutiveFailures, long maxRetries, int firstBackoffMillis,
             int maxBackOffMillis) {
         return Retry.from(retrySignals -> retrySignals.concatMap(retrySignal -> {
@@ -67,9 +66,8 @@ class RemotePdpRetry {
         }));
     }
 
-    // Exponential backoff capped at maxBackOffMillis, with 50% jitter to avoid
-    // synchronized
-    // reconnect storms across clients.
+    // Exponential backoff capped at maxBackOffMillis, with 50% jitter
+    // to avoid synchronized reconnect storms across clients.
     private static Duration backoffWithJitter(long attempt, int firstBackoffMillis, int maxBackOffMillis) {
         val exponential = firstBackoffMillis * Math.pow(2d, attempt - 1d);
         val capped      = (long) Math.min(exponential, maxBackOffMillis);
