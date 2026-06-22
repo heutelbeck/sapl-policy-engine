@@ -60,6 +60,18 @@ class PDPConfigurationLoaderTests {
     }
 
     @Test
+    @DisplayName("an explicit null algorithm degrades gracefully to the default, like an absent field (run2-078)")
+    void whenLoadingWithExplicitNullAlgorithmThenFallsBackToDefault() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"algorithm": null}
+                """);
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
+    }
+
+    @Test
     void whenLoadingWithPdpJsonThenParsesAlgorithmAndVariables() throws IOException {
         val pdpJson = """
                 {

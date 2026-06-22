@@ -130,6 +130,13 @@ public class RemotePDPAutoConfiguration {
                 || !configuration.getSocketPath().isEmpty();
         enforceCredentialTransportSecurity(channelEncrypted);
         applyRSocketTls(builder);
+        // applyRSocketTls marks the builder secure only for tls/ignoreCertificates.
+        // For a plaintext or unix-socket channel carrying credentials, forward the
+        // transport decision already vetted by enforceCredentialTransportSecurity, so
+        // the builder's own fail-closed guard is satisfied rather than throwing.
+        if (hasCredentials() && !configuration.isTls() && !configuration.isIgnoreCertificates()) {
+            builder.allowInsecureTransport();
+        }
         return builder.build();
     }
 

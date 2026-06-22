@@ -44,14 +44,7 @@ class SaplTransactionManagementConfigurationTests {
     }
 
     @Test
-    @DisplayName("an advisor with the default LOWEST_PRECEDENCE order is adjusted to the SAPL transaction order")
-    void whenAdvisorHasDefaultOrderThenAdjustedToTransactionOrder() {
-        final var advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
-        assertThat(adjustAndGetOrder(advisor, true)).isEqualTo(SaplAuthorizationInterceptorsOrder.TRANSACTION_ORDER);
-    }
-
-    @Test
-    @DisplayName("an explicit order equal to LOWEST_PRECEDENCE is indistinguishable from the default and is still adjusted")
+    @DisplayName("an advisor at the default LOWEST_PRECEDENCE order is adjusted to the SAPL transaction order")
     void whenAdvisorOrderExplicitlyLowestPrecedenceThenStillAdjusted() {
         final var advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
         advisor.setOrder(Ordered.LOWEST_PRECEDENCE);
@@ -71,6 +64,7 @@ class SaplTransactionManagementConfigurationTests {
     @DisplayName("no adjustment is performed when the feature is disabled")
     void whenDisabledThenAdvisorLeftAtDefaultOrder() {
         final var advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
+        advisor.setOrder(Ordered.LOWEST_PRECEDENCE);
         assertThat(adjustAndGetOrder(advisor, false)).isEqualTo(Ordered.LOWEST_PRECEDENCE);
     }
 

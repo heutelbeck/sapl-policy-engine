@@ -279,11 +279,13 @@ public class PDPConfigurationLoader {
             val node = MAPPER.readTree(content);
 
             CombiningAlgorithm algorithm;
-            if (!node.has("algorithm")) {
+            val                algorithmNode = node.get("algorithm");
+            // A present-but-null algorithm degrades to the default, exactly like an absent
+            // field, rather than yielding a null algorithm that crashes compilation.
+            if (algorithmNode == null || algorithmNode.isNull()) {
                 log.warn(WARN_PDP_JSON_MISSING_ALGORITHM, CombiningAlgorithm.DEFAULT.toCanonicalString());
                 algorithm = CombiningAlgorithm.DEFAULT;
             } else {
-                val algorithmNode = node.get("algorithm");
                 if (algorithmNode.has("votingMode") && "FIRST".equals(algorithmNode.path("votingMode").asString())) {
                     throw new PDPConfigurationException(ERROR_PDP_JSON_FIRST_NOT_ALLOWED);
                 }
