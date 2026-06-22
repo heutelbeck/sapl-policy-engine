@@ -43,7 +43,8 @@ class TraccarPolicyInformationPointTests {
 
     private static final ObjectValue BASE_CONFIG = (ObjectValue) json("""
             {
-                "baseUrl": "http://localhost:8082"
+                "baseUrl": "http://localhost:8082",
+                "allowInsecureHttp": true
             }
             """);
 

@@ -82,7 +82,8 @@ class TraccarPolicyInformationPointIT {
     private static ObjectValue config(String host, int port) {
         return (ObjectValue) json("""
                 {
-                    "baseUrl": "http://%s:%d"
+                    "baseUrl": "http://%s:%d",
+                    "allowInsecureHttp": true
                 }""".formatted(host, port));
     }
 
@@ -134,7 +135,8 @@ class TraccarPolicyInformationPointIT {
         static java.util.stream.Stream<Arguments> serverSettingsVariations() {
             return Stream.of(arguments("default config", """
                     {
-                        "baseUrl": "http://%s:%d"
+                        "baseUrl": "http://%s:%d",
+                        "allowInsecureHttp": true
                     }"""));
         }
 
@@ -405,7 +407,8 @@ class TraccarPolicyInformationPointIT {
             val testPip      = new TraccarPolicyInformationPoint(mockWebClient);
             val testConfig   = (ObjectValue) json("""
                     {
-                        "baseUrl": "http://test.de:8082"
+                        "baseUrl": "http://test.de:8082",
+                        "allowInsecureHttp": true
                     }
                     """);
             val testSecrets  = secrets("email@address.org", "password");

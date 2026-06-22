@@ -23,14 +23,23 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
+import tools.jackson.databind.node.ObjectNode;
 import io.sapl.api.model.Value;
 import lombok.val;
 
 @DisplayName("DefaultResponseUtility")
 class DefaultResponseUtilityTests {
+
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
+    // Operator pip config whose single-object brokerConfig (resolved when the
+    // policy supplies no broker selector) carries the given malformed field.
+    private static ObjectNode pipConfigWithBrokerField(String field, JsonNode malformedValue) {
+        val broker = JSON.objectNode().set(field, malformedValue);
+        return JSON.objectNode().set("brokerConfig", broker);
+    }
 
     @Nested
     @DisplayName("Malformed broker config falls back to defaults")
@@ -39,11 +48,9 @@ class DefaultResponseUtilityTests {
         @Test
         @DisplayName("a non-numeric defaultResponseTimeout falls back to the 2000ms default instead of throwing")
         void whenDefaultResponseTimeoutIsMalformedThenDefaultTimeoutUsed() {
-            val brokerConfig = ObjectValue.builder().put("defaultResponseTimeout", ObjectValue.builder().build())
-                    .build();
+            val pipConfig = pipConfigWithBrokerField("defaultResponseTimeout", JSON.objectNode());
 
-            val config = DefaultResponseUtility.getDefaultResponseConfig(JsonNodeFactory.instance.objectNode(),
-                    brokerConfig);
+            val config = DefaultResponseUtility.getDefaultResponseConfig(pipConfig, Value.UNDEFINED);
 
             assertThat(config).satisfies(c -> assertThat(c.getDefaultResponseTimeout()).isEqualTo(2000L));
         }
@@ -51,10 +58,9 @@ class DefaultResponseUtilityTests {
         @Test
         @DisplayName("a non-textual defaultResponse falls back to the undefined default instead of throwing")
         void whenDefaultResponseIsMalformedThenUndefinedDefaultUsed() {
-            val brokerConfig = ObjectValue.builder().put("defaultResponse", ArrayValue.builder().build()).build();
+            val pipConfig = pipConfigWithBrokerField("defaultResponse", JSON.arrayNode());
 
-            val config = DefaultResponseUtility.getDefaultResponseConfig(JsonNodeFactory.instance.objectNode(),
-                    brokerConfig);
+            val config = DefaultResponseUtility.getDefaultResponseConfig(pipConfig, Value.UNDEFINED);
 
             assertThat(config)
                     .satisfies(c -> assertThat(DefaultResponseUtility.getDefaultValue(c)).isEqualTo(Value.UNDEFINED));

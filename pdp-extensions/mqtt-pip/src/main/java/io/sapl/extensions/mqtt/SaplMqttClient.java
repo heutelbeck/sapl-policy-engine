@@ -131,10 +131,11 @@ public class SaplMqttClient implements Closeable {
     private static final Duration UNSUBSCRIBE_TIMEOUT = Duration.ofSeconds(5L);
     private static final Duration DISCONNECT_TIMEOUT  = Duration.ofSeconds(5L);
 
-    private static final String ERROR_INVALID_QOS         = "Invalid MQTT QoS: must be 0, 1, or 2.";
-    private static final String ERROR_MQTT_CONNECT_FAILED = "Failed to connect or subscribe to MQTT broker: %s";
-    private static final String ERROR_PAYLOAD_TOO_LARGE   = "MQTT message exceeded the configured limit of %d bytes.";
-    private static final String WARN_INSECURE_CREDENTIALS = "MQTT broker credentials are being transmitted over an "
+    private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
+    private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
+    private static final String ERROR_MQTT_CONNECT_FAILED              = "Failed to connect or subscribe to MQTT broker: %s";
+    private static final String ERROR_PAYLOAD_TOO_LARGE                = "MQTT message exceeded the configured limit of %d bytes.";
+    private static final String WARN_INSECURE_CREDENTIALS              = "MQTT broker credentials are being transmitted over an "
             + "unencrypted connection (tls=false). Enable 'tls' whenever credentials are configured.";
 
     // Keyed on the broker configuration node itself (content-based equals), not
@@ -162,6 +163,11 @@ public class SaplMqttClient implements Closeable {
     public Stream<Value> buildSaplMqttMessageStream(Value topic, AttributeAccessContext ctx, Value qos,
             Value mqttPipConfigVal) {
         try {
+            // A policy may only select a broker by name or use the default. An inline
+            // broker object would let it pair an operator secret with a policy-chosen host.
+            if (mqttPipConfigVal instanceof ObjectValue) {
+                return Streams.error(ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED);
+            }
             val variables    = ctx.variables();
             val pdpSecrets   = ctx.pdpSecrets();
             val pipConfig    = resolvePipConfig(variables);

@@ -17,7 +17,6 @@
  */
 package io.sapl.pip.geo.traccar;
 
-import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
@@ -40,12 +39,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("Traccar inline configuration form")
-class TraccarInlineConfigTests {
+@DisplayName("Traccar request URL path encoding")
+class TraccarPathEncodingTests {
 
     private static final ObjectValue BASE_CONFIG = (ObjectValue) json("""
             {
-                "baseUrl": "http://localhost:8082"
+                "baseUrl": "http://localhost:8082",
+                "allowInsecureHttp": true
             }
             """);
 
@@ -55,27 +55,6 @@ class TraccarInlineConfigTests {
     private static ObjectValue secretsWithToken(String token) {
         return ObjectValue.builder().put("traccar", ObjectValue.builder().put("token", Value.of(token)).build())
                 .build();
-    }
-
-    private static AttributeAccessContext ctxWithSecrets(ObjectValue pdpSecrets) {
-        return new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
-    }
-
-    @Test
-    @DisplayName("when inline config form is used then credentials come from pdpSecrets")
-    void whenInlineConfigFormUsedThenCredentialsComeFromPdpSecrets() {
-        when(mockWebClient.httpRequest(any(), any())).thenAnswer(invocation -> Streams.just(json("{}")));
-        val pip = new TraccarPolicyInformationPoint(mockWebClient);
-        val ctx = ctxWithSecrets(secretsWithToken("my-api-token"));
-
-        try (val stream = pip.server(ctx, BASE_CONFIG)) {
-            StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(v).isNotInstanceOf(ErrorValue.class));
-        }
-
-        verify(mockWebClient).httpRequest(any(), argThat(settings -> {
-            val urlParams = settings.get(BlockingWebClient.URL_PARAMS);
-            return urlParams instanceof ObjectValue paramsObj && paramsObj.containsKey("token");
-        }));
     }
 
     @Test

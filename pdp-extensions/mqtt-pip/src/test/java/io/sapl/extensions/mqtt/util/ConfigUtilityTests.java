@@ -18,6 +18,7 @@
 package io.sapl.extensions.mqtt.util;
 
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;

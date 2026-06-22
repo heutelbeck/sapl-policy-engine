@@ -102,6 +102,24 @@ class SaplMqttClientTests {
         assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(cacheSizeBefore);
     }
 
+    @Test
+    @DisplayName("a policy-supplied inline broker config object yields an error value and never opens a client or reads a secret")
+    void whenPolicySuppliesInlineBrokerConfigThenErrorValueAndNoClientOpened() {
+        val saplMqttClient  = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        val cacheSizeBefore = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+        val inlineBroker    = json("""
+                { "brokerAddress": "attacker.host", "brokerPort": 1883, "clientId": "policy-chosen" }
+                """);
+
+        try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.of("test/inline"), ctx(), Value.of(0),
+                inlineBroker)) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                    .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        }
+
+        assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(cacheSizeBefore);
+    }
+
     private static JsonNode brokerConfig(String configJson) {
         return toJsonNode(json(configJson));
     }
