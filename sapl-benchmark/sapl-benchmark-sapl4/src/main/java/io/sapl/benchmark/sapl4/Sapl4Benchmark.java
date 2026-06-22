@@ -323,10 +323,18 @@ class Sapl4Benchmark implements Callable<Integer> {
         return throughputs.size() >= convergenceWindow && computeCoV(throughputs) <= convergenceThresholdPercent;
     }
 
-    private double computeCoV(List<Double> throughputs) {
+    // The trailing convergence-window forks. Statistics and the convergence check
+    // both use
+    // this window, so reported CoV/CI match the criterion and exclude
+    // pre-convergence warmup.
+    private List<Double> trailingWindow(List<Double> throughputs) {
         var windowStart = Math.max(0, throughputs.size() - convergenceWindow);
-        var recent      = throughputs.subList(windowStart, throughputs.size());
-        var mean        = recent.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        return throughputs.subList(windowStart, throughputs.size());
+    }
+
+    private double computeCoV(List<Double> throughputs) {
+        var recent = trailingWindow(throughputs);
+        var mean   = recent.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         if (mean <= 0 || recent.size() < 2) {
             return Double.MAX_VALUE;
         }
@@ -339,11 +347,12 @@ class Sapl4Benchmark implements Callable<Integer> {
         out.println();
         out.println("Result:");
         if (!forkThroughputs.isEmpty()) {
-            var mean                   = forkThroughputs.stream().mapToDouble(Double::doubleValue).average()
-                    .orElse(0.0);
-            var count                  = forkThroughputs.size();
-            var sumSquaredDeviation    = forkThroughputs.stream().mapToDouble(value -> (value - mean) * (value - mean))
-                    .sum();
+            // Statistics are over the trailing convergence window, matching the convergence
+            // criterion; pre-convergence warmup forks are excluded.
+            var window                 = trailingWindow(forkThroughputs);
+            var mean                   = window.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+            var count                  = window.size();
+            var sumSquaredDeviation    = window.stream().mapToDouble(value -> (value - mean) * (value - mean)).sum();
             var standardDeviation      = count > 1 ? Math.sqrt(sumSquaredDeviation / (count - 1)) : 0.0;
             var coefficientOfVariation = mean > 0 ? (standardDeviation / mean) * 100.0 : 0.0;
             var confidenceInterval95   = count > 1 ? tCritical95(count - 1) * standardDeviation / Math.sqrt(count)
@@ -353,8 +362,9 @@ class Sapl4Benchmark implements Callable<Integer> {
             out.println(String.format(Locale.US, "  CoV:     %.2f%%", coefficientOfVariation));
             out.println(String.format(Locale.US, "  95%% CI:  +/- %,.0f ops/s (t-distribution, df=%d)",
                     confidenceInterval95, count - 1));
-            out.println(String.format(Locale.US, "  Forks:   %d", count));
-            out.println(String.format(Locale.US, "  Per fork: %s", forkThroughputs.stream()
+            out.println(String.format(Locale.US, "  Forks:   %d of %d run (trailing window used for statistics)", count,
+                    forkThroughputs.size()));
+            out.println(String.format(Locale.US, "  Per fork: %s", window.stream()
                     .map(value -> String.format(Locale.US, "%,.0f", value)).collect(Collectors.joining(", "))));
         }
         if (latencyResult != null) {

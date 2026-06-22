@@ -19,6 +19,8 @@ package io.sapl.benchmark.sapl4;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Method;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -48,6 +50,39 @@ class Sapl4BenchmarkTests {
 
             assertThat(exitCode).isEqualTo(1);
             assertThat(errWriter.toString()).contains("Unknown indexing strategy").contains("FOO");
+        }
+    }
+
+    @Nested
+    @DisplayName("reported statistics windowing")
+    class StatisticsWindowing {
+
+        @Test
+        @DisplayName("final statistics use only the trailing convergence window, not pre-convergence warmup forks")
+        void whenWarmupForksPresentThenStatsUseTrailingWindowOnly() throws Exception {
+            val benchmark = new Sapl4Benchmark();
+            val window    = Sapl4Benchmark.class.getDeclaredField("convergenceWindow");
+            window.setAccessible(true);
+            window.setInt(benchmark, 3);
+
+            // Two low warmup forks then a stable high window. All-5 mean is 606; window
+            // mean is 1,000.
+            val forks = List.of(10.0, 20.0, 1000.0, 1010.0, 990.0);
+            val sw    = new StringWriter();
+            val out   = new PrintWriter(sw);
+
+            Method printResults = null;
+            for (val method : Sapl4Benchmark.class.getDeclaredMethods()) {
+                if ("printResults".equals(method.getName())) {
+                    printResults = method;
+                    break;
+                }
+            }
+            printResults.setAccessible(true);
+            printResults.invoke(benchmark, forks, null, out);
+            out.flush();
+
+            assertThat(sw.toString()).contains("1,000 ops/s").contains("3 of 5 run").doesNotContain("606 ops/s");
         }
     }
 }
