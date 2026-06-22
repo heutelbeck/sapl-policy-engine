@@ -54,6 +54,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_IMPORT_CONFLICT              = "Import conflict: '%s' already imported as '%s' from '%s'.";
     private static final String ERROR_INDEX_NOT_REPRESENTABLE      = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INVALID_QUALIFIED_NAME       = "Invalid qualified name '%s': too many segments (max: library.function).";
+    private static final String ERROR_NUMBER_LITERAL_TOO_LONG      = "Numeric literal is too long (%d characters, max %d).";
     private static final String ERROR_NUMBER_NOT_REPRESENTABLE     = "Numeric literal '%s' is out of range and cannot be represented.";
     private static final String ERROR_UNKNOWN_DEFAULT_VOTE         = "Unknown default vote.";
     private static final String ERROR_UNKNOWN_EFFECT               = "Unknown effect.";
@@ -68,6 +69,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private static final String ERROR_UNKNOWN_SUBSCRIPTION_ELEMENT = "Unknown subscription element.";
     private static final String ERROR_UNKNOWN_SUBSCRIPT_TYPE       = "Unknown subscript type: %s";
     private static final String ERROR_UNRESOLVED_REFERENCE         = "Unresolved reference '%s': not imported and not fully qualified.";
+
+    /** Caps numeric literal length to bound BigDecimal construction cost. */
+    private static final int MAX_NUMBER_LITERAL_LENGTH = 1000;
 
     private static final String DEFAULT_PDP_ID           = "defaultPdpId";
     private static final String DEFAULT_CONFIGURATION_ID = "defaultConfigurationId";
@@ -305,7 +309,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
 
     @Override
     public VarDef visitValueDefinition(ValueDefinitionContext ctx) {
-        val name    = ctx.name.getText();
+        val name    = stripBackticks(ctx.name.getText());
         val value   = expr(ctx.eval);
         val schemas = ctx.schemaVarExpression.stream().map(this::expr).toList();
         return new VarDef(name, value, schemas, fromContext(ctx));
@@ -685,6 +689,11 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     @Override
     public AstNode visitNumberLiteral(NumberLiteralContext ctx) {
         val text = ctx.NUMBER().getText();
+        if (text.length() > MAX_NUMBER_LITERAL_LENGTH) {
+            throw new SaplCompilerException(
+                    ERROR_NUMBER_LITERAL_TOO_LONG.formatted(text.length(), MAX_NUMBER_LITERAL_LENGTH),
+                    fromContext(ctx));
+        }
         try {
             val value = new BigDecimal(text);
             return new Literal(Value.of(value), fromContext(ctx));
@@ -728,8 +737,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         val loc = fromContext(ctx);
         return switch (ctx) {
         case KeyDotStepContext c                  -> new KeyPath(idText(c.keyStep().saplId()), loc);
-        case EscapedKeyDotStepContext c           ->
-            new KeyPath(unquoteString(c.escapedKeyStep().STRING().getText()), loc);
+        case EscapedKeyDotStepContext c           -> new KeyPath(escapedKeyName(c.escapedKeyStep()), loc);
         case WildcardDotStepContext c             -> new WildcardPath(loc);
         case RecursiveKeyDotDotStepContext c      -> buildRecursiveKeyPath(c.recursiveKeyStep(), loc);
         case RecursiveWildcardDotDotStepContext c -> new RecursiveWildcardPath(loc);
@@ -748,7 +756,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private PathElement buildSubscriptPath(SubscriptContext ctx) {
         val loc = fromContext(ctx);
         return switch (ctx) {
-        case EscapedKeySubscriptContext c     -> new KeyPath(unquoteString(c.escapedKeyStep().STRING().getText()), loc);
+        case EscapedKeySubscriptContext c     -> new KeyPath(escapedKeyName(c.escapedKeyStep()), loc);
         case WildcardSubscriptContext c       -> new WildcardPath(loc);
         case IndexSubscriptContext c          -> new IndexPath(parseSignedNumber(c.indexStep().signedNumber()), loc);
         case SlicingSubscriptContext c        -> {
@@ -782,7 +790,20 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     }
 
     private String idText(SaplIdContext ctx) {
-        return ctx.getText();
+        return stripBackticks(ctx.getText());
+    }
+
+    // A backtick-escaped name (`permit`) carries its literal identifier without the
+    // backticks.
+    private static String stripBackticks(String text) {
+        return text.length() >= 2 && text.charAt(0) == '`' && text.charAt(text.length() - 1) == '`'
+                ? text.substring(1, text.length() - 1)
+                : text;
+    }
+
+    private static String escapedKeyName(EscapedKeyStepContext ctx) {
+        return ctx.STRING() != null ? unquoteString(ctx.STRING().getText())
+                : stripBackticks(ctx.BACKTICK_ID().getText());
     }
 
     private String pairKeyText(PairKeyContext ctx) {
@@ -912,8 +933,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         val loc = fromContext(ctx);
         return switch (ctx) {
         case KeyDotStepContext c                  -> new KeyStep(base, idText(c.keyStep().saplId()), loc);
-        case EscapedKeyDotStepContext c           ->
-            new KeyStep(base, unquoteString(c.escapedKeyStep().STRING().getText()), loc);
+        case EscapedKeyDotStepContext c           -> new KeyStep(base, escapedKeyName(c.escapedKeyStep()), loc);
         case WildcardDotStepContext c             -> new WildcardStep(base, loc);
         case AttributeFinderDotStepContext c      -> {
             val stepCtx = c.attributeFinderStep();
@@ -938,8 +958,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private Step buildSubscriptStep(Expression base, SubscriptContext ctx) {
         val loc = fromContext(ctx);
         return switch (ctx) {
-        case EscapedKeySubscriptContext c     ->
-            new KeyStep(base, unquoteString(c.escapedKeyStep().STRING().getText()), loc);
+        case EscapedKeySubscriptContext c     -> new KeyStep(base, escapedKeyName(c.escapedKeyStep()), loc);
         case WildcardSubscriptContext c       -> new WildcardStep(base, loc);
         case IndexSubscriptContext c          ->
             new IndexStep(base, parseSignedNumber(c.indexStep().signedNumber()), loc);

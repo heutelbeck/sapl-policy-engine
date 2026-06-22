@@ -109,7 +109,12 @@ STRING
 
 // Identifiers
 ID
-    : '^'? [a-zA-Z_$] [a-zA-Z_$0-9]*
+    : [a-zA-Z_$] [a-zA-Z_$0-9]*
+    ;
+
+// Backtick-escaped identifier: a literal name even when it spells a keyword.
+BACKTICK_ID
+    : '`' [a-zA-Z_$] [a-zA-Z_$0-9]* '`'
     ;
 
 // Whitespace and Comments (hidden)

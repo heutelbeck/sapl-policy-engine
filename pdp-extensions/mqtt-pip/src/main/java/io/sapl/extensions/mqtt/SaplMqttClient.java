@@ -163,8 +163,8 @@ public class SaplMqttClient implements Closeable {
     public Stream<Value> buildSaplMqttMessageStream(Value topic, AttributeAccessContext ctx, Value qos,
             Value mqttPipConfigVal) {
         try {
-            // A policy may only select a broker by name or use the default. An inline
-            // broker object would let it pair an operator secret with a policy-chosen host.
+            // Policy may select a broker only by name or default; an inline object could
+            // pair a secret with a policy-chosen host.
             if (mqttPipConfigVal instanceof ObjectValue) {
                 return Streams.error(ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED);
             }

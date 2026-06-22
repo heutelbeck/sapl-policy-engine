@@ -20,6 +20,7 @@ package io.sapl.compiler.document;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -52,6 +53,18 @@ class AstTransformerTests {
             assertThat(document.isInvalid()).isTrue();
         }
 
+        // A literal with millions of digits is lexically valid but would drive an
+        // expensive BigDecimal construction. It must be rejected at the length cap.
+        @Test
+        @DisplayName("reports invalid document instead of building a giant BigDecimal for an over-length literal")
+        void whenNumericLiteralExceedsLengthCapThenDocumentIsInvalid() {
+            val definition = "policy \"p\" permit " + "9".repeat(1001) + " == 1;";
+            val parse      = (Runnable) () -> DocumentCompiler.parseDocument(definition);
+
+            assertThatCode(parse::run).doesNotThrowAnyException();
+            assertThat(DocumentCompiler.parseDocument(definition).isInvalid()).isTrue();
+        }
+
         static Stream<Arguments> grammarValidButUnrepresentableNumbers() {
             return Stream.of(arguments("oversized positive exponent", "policy \"p\" permit 1e9999999999 == 1;"),
                     arguments("oversized negative exponent", "policy \"p\" permit 1e-9999999999 == 1;"));
@@ -82,6 +95,32 @@ class AstTransformerTests {
                     arguments("scientific-notation index", "policy \"p\" permit [1,2,3][1e3] == 1;"),
                     arguments("out-of-range slice bound", "policy \"p\" permit [1,2,3][9999999999:] == 1;"),
                     arguments("out-of-range index-union member", "policy \"p\" permit [1,2,3][0,9999999999] == 1;"));
+        }
+    }
+
+    @Nested
+    @DisplayName("backtick-escaped identifiers and tight XOR")
+    class EscapingTests {
+
+        @Test
+        @DisplayName("bitwise XOR written without whitespace parses (the ^ no longer starts an identifier)")
+        void whenXorWrittenTightThenDocumentIsValid() {
+            assertThat(DocumentCompiler.parseDocument("policy \"p\" permit 5^3 == 6;").isInvalid()).isFalse();
+        }
+
+        @Test
+        @DisplayName("a keyword can be a variable name via backtick escape, and the reference resolves to it")
+        void whenKeywordEscapedAsVariableThenDocumentIsValid() {
+            assertThat(
+                    DocumentCompiler.parseDocument("policy \"p\" permit var `permit` = 5; `permit` == 5;").isInvalid())
+                    .isFalse();
+        }
+
+        @Test
+        @DisplayName("a keyword-named object key is accessed via backtick escape")
+        void whenKeywordKeyEscapedThenDocumentIsValid() {
+            assertThat(DocumentCompiler.parseDocument("policy \"p\" permit {\"in\": 5}.`in` == 5;").isInvalid())
+                    .isFalse();
         }
     }
 }

@@ -952,10 +952,7 @@ public class TraccarPolicyInformationPoint {
     }
 
     private static Value enforceTransportSecurity(Value baseUrl, ObjectValue serverConfig) {
-        // Fail closed: only a secure-scheme text baseUrl passes without the opt-in. A
-        // non-text
-        // (malformed) baseUrl is treated as insecure rather than silently passing the
-        // gate.
+        // Fail closed: only a secure-scheme text baseUrl passes without the opt-in.
         if (baseUrl instanceof TextValue(var baseUrlText) && isSecureScheme(baseUrlText)) {
             return Value.UNDEFINED;
         }
@@ -1075,10 +1072,7 @@ public class TraccarPolicyInformationPoint {
         return Value.error(ERROR_SERVER_NOT_FOUND.formatted(targetName));
     }
 
-    // Back-compat: a flat single-object config is the implicit default server. A
-    // no-arg call
-    // always uses it; a named call must match its configured (or literal "default")
-    // name.
+    // Back-compat: a flat single-object config is the implicit default server.
     private static Value resolveSingleObjectServer(ObjectValue traccarConfig, String requestedName) {
         if (requestedName != null && !requestedName.equals(defaultServerName(traccarConfig))) {
             return Value.error(ERROR_SERVER_NOT_FOUND.formatted(requestedName));
