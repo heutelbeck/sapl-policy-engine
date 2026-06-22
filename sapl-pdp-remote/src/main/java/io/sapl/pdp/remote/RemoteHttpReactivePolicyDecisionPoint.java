@@ -62,6 +62,7 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -165,12 +166,13 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+        val consecutiveFailures = new AtomicLong();
+        val type                = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(DECIDE, type, authzSubscription).doOnError(this::logStreamError)
-                        .concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(DECIDE, type, authzSubscription).doOnNext(d -> consecutiveFailures.set(0))
+                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error)))
-                .retryWhen(createRetrySpec()).distinctUntilChanged();
+                .retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     @Override
@@ -193,13 +195,15 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+        val consecutiveFailures = new AtomicLong();
+        val type                = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription).doOnError(this::logStreamError)
+                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription)
+                        .doOnNext(d -> consecutiveFailures.set(0)).doOnError(this::logStreamError)
                         .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE),
                         Flux.error(error)))
-                .retryWhen(createRetrySpec()).distinctUntilChanged();
+                .retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     @Override
@@ -209,13 +213,15 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+        val consecutiveFailures = new AtomicLong();
+        val type                = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription).doOnError(this::logStreamError)
+                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
+                        .doOnNext(d -> consecutiveFailures.set(0)).doOnError(this::logStreamError)
                         .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(
                         error -> Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error)))
-                .retryWhen(createRetrySpec()).distinctUntilChanged();
+                .retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     /**
@@ -249,8 +255,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
                 .mapNotNull(ServerSentEvent::data);
     }
 
-    private Retry createRetrySpec() {
-        return RemotePdpRetry.createRetrySpec(maxRetries, firstBackoffMillis, maxBackOffMillis);
+    private Retry createRetrySpec(AtomicLong consecutiveFailures) {
+        return RemotePdpRetry.createRetrySpec(consecutiveFailures, maxRetries, firstBackoffMillis, maxBackOffMillis);
     }
 
     private void logStreamError(Throwable error) {

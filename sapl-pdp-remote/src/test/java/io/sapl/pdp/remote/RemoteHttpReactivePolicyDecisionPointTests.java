@@ -120,6 +120,29 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     }
 
     @Test
+    @Timeout(30)
+    @DisplayName("a healthy stream that reconnects more often than maxRetries survives: the retry budget resets on each genuine decision (run2-103)")
+    void whenStreamRecoversBetweenFailuresThenRetryBudgetResetsAndStreamSurvives() throws JacksonException {
+        pdp.setMaxRetries(3);
+        // Each connection delivers one genuine DENY then an invalid event forcing a
+        // reconnect. Five DENYs require surviving four reconnects; a cumulative budget
+        // of
+        // 3 would have terminated the stream before the fifth DENY.
+        for (var i = 0; i < 6; i++) {
+            prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.DENY, null });
+        }
+
+        val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY).thenCancel().verify();
+    }
+
+    @Test
     @DisplayName("a client built via a public constructor round-trips SAPL values in decisions")
     void whenBuiltViaPublicConstructorThenSaplValuesRoundTrip() throws JacksonException {
         // Without SaplJacksonModule the WebClient cannot deserialize SAPL Value types

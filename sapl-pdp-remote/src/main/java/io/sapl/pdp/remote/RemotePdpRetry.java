@@ -18,12 +18,15 @@
 package io.sapl.pdp.remote;
 
 import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 /**
@@ -39,17 +42,39 @@ class RemotePdpRetry {
 
     static final int RETRY_ESCALATION_THRESHOLD = 5;
 
-    static Retry createRetrySpec(long maxRetries, int firstBackoffMillis, int maxBackOffMillis) {
-        return Retry.backoff(maxRetries, Duration.ofMillis(firstBackoffMillis))
-                .maxBackoff(Duration.ofMillis(maxBackOffMillis)).filter(RemotePdpRetry::isRetryable)
-                .doBeforeRetry(signal -> {
-                    val attempt = signal.totalRetries() + 1;
-                    if (attempt >= RETRY_ESCALATION_THRESHOLD) {
-                        log.error(ERROR_STREAM_RECONNECT, attempt);
-                    } else {
-                        log.warn(ERROR_STREAM_RECONNECT, attempt);
-                    }
-                });
+    // consecutiveFailures counts failures since the last genuine decision; the
+    // caller resets
+    // it to zero on each genuine emission, so an occasionally-reconnecting healthy
+    // stream
+    // never escalates or exhausts. Permanent client errors propagate without retry.
+    static Retry createRetrySpec(AtomicLong consecutiveFailures, long maxRetries, int firstBackoffMillis,
+            int maxBackOffMillis) {
+        return Retry.from(retrySignals -> retrySignals.concatMap(retrySignal -> {
+            val failure = retrySignal.failure();
+            if (!isRetryable(failure)) {
+                return Mono.error(failure);
+            }
+            val attempt = consecutiveFailures.incrementAndGet();
+            if (attempt > maxRetries) {
+                return Mono.error(failure);
+            }
+            if (attempt >= RETRY_ESCALATION_THRESHOLD) {
+                log.error(ERROR_STREAM_RECONNECT, attempt);
+            } else {
+                log.warn(ERROR_STREAM_RECONNECT, attempt);
+            }
+            return Mono.delay(backoffWithJitter(attempt, firstBackoffMillis, maxBackOffMillis));
+        }));
+    }
+
+    // Exponential backoff capped at maxBackOffMillis, with 50% jitter to avoid
+    // synchronized
+    // reconnect storms across clients.
+    private static Duration backoffWithJitter(long attempt, int firstBackoffMillis, int maxBackOffMillis) {
+        val exponential = firstBackoffMillis * Math.pow(2d, attempt - 1d);
+        val capped      = (long) Math.min(exponential, maxBackOffMillis);
+        val jittered    = capped / 2L + (long) (ThreadLocalRandom.current().nextDouble() * (capped / 2d));
+        return Duration.ofMillis(Math.max(1L, jittered));
     }
 
     // A permanent client error (auth failure, malformed subscription) must not be

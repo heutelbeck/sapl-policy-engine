@@ -22,6 +22,7 @@ import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.buffer.ByteBufAllocator;
@@ -135,8 +136,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         this.timeoutMillis      = timeoutMillis;
     }
 
-    private Retry createRetrySpec() {
-        return RemotePdpRetry.createRetrySpec(Long.MAX_VALUE, firstBackoffMillis, maxBackOffMillis);
+    private Retry createRetrySpec(AtomicLong consecutiveFailures) {
+        return RemotePdpRetry.createRetrySpec(consecutiveFailures, Long.MAX_VALUE, firstBackoffMillis,
+                maxBackOffMillis);
     }
 
     @Override
@@ -145,11 +147,13 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
+        val consecutiveFailures = new AtomicLong();
         return rSocketMono.flatMapMany(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_DECIDE,
                         SaplProtobufCodec.writeAuthorizationSubscription(authzSubscription));
-                return rSocket.requestStream(payload).map(this::decodeAuthorizationDecision);
+                return rSocket.requestStream(payload).map(this::decodeAuthorizationDecision)
+                        .doOnNext(d -> consecutiveFailures.set(0));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_SUBSCRIPTION, e.getMessage());
                 return Flux.just(AuthorizationDecision.INDETERMINATE);
@@ -161,7 +165,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
                     log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
                     return Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error));
-                }).retryWhen(createRetrySpec()).distinctUntilChanged();
+                }).retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     @Override
@@ -196,11 +200,13 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
+        val consecutiveFailures = new AtomicLong();
         return rSocketMono.flatMapMany(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
-                return rSocket.requestStream(payload).map(this::decodeIdentifiableAuthorizationDecision);
+                return rSocket.requestStream(payload).map(this::decodeIdentifiableAuthorizationDecision)
+                        .doOnNext(d -> consecutiveFailures.set(0));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE);
@@ -212,7 +218,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
                     log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
                     return Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE), Flux.error(error));
-                }).retryWhen(createRetrySpec()).distinctUntilChanged();
+                }).retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     @Override
@@ -222,11 +228,13 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
+        val consecutiveFailures = new AtomicLong();
         return rSocketMono.flatMapMany(rSocket -> {
             try {
                 val payload = createPayload(ROUTE_MULTI_DECIDE_ALL,
                         SaplProtobufCodec.writeMultiAuthorizationSubscription(multiAuthzSubscription));
-                return rSocket.requestStream(payload).map(this::decodeMultiAuthorizationDecision);
+                return rSocket.requestStream(payload).map(this::decodeMultiAuthorizationDecision)
+                        .doOnNext(d -> consecutiveFailures.set(0));
             } catch (IOException e) {
                 log.error(ERROR_ENCODE_MULTI_SUBSCRIPTION, e.getMessage());
                 return Flux.just(MultiAuthorizationDecision.indeterminate());
@@ -238,7 +246,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
                 .concatWith(Flux.error(new StreamEndedException())).onErrorResume(error -> {
                     log.debug(ERROR_RSOCKET_CONNECTION, error.getClass().getSimpleName(), error.getMessage());
                     return Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error));
-                }).retryWhen(createRetrySpec()).distinctUntilChanged();
+                }).retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     /**
