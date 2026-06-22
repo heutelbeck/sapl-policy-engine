@@ -67,7 +67,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -499,6 +501,14 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private <T> void driveConfigChanges(Stream<Optional<CompiledPdp>> configEvents,
             AtomicReference<Stream<T>> innerStreamRef, AtomicReference<Thread> innerPumpRef, Consumer<T> outputSink,
             Function<Optional<CompiledPdp>, Stream<T>> innerFactory) {
+        // Each config swap bumps the generation. A pump may only latch a value while
+        // its
+        // generation is current, so a stale decision from a superseded configuration
+        // can
+        // never overwrite the fresh one (the check and latch are atomic under
+        // sinkLock).
+        val sinkLock   = new ReentrantLock();
+        val generation = new AtomicLong();
         try {
             while (!Thread.interrupted()) {
                 val configState = configEvents.awaitNext();
@@ -507,13 +517,27 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
                 }
                 terminateCurrentInner(innerPumpRef, innerStreamRef);
                 val newInner = innerFactory.apply(configState);
+                val myGen    = generation.incrementAndGet();
                 innerStreamRef.set(newInner);
-                innerPumpRef.set(Thread.startVirtualThread(() -> pumpInto(newInner, outputSink)));
+                innerPumpRef.set(Thread.startVirtualThread(() -> pumpInto(newInner,
+                        value -> latchIfCurrent(sinkLock, generation, myGen, outputSink, value))));
             }
         } catch (InterruptedException expected) {
             Thread.currentThread().interrupt();
         } finally {
             terminateCurrentInner(innerPumpRef, innerStreamRef);
+        }
+    }
+
+    private static <T> void latchIfCurrent(ReentrantLock sinkLock, AtomicLong generation, long myGen, Consumer<T> sink,
+            T value) {
+        sinkLock.lock();
+        try {
+            if (generation.get() == myGen) {
+                sink.accept(value);
+            }
+        } finally {
+            sinkLock.unlock();
         }
     }
 

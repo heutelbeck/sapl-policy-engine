@@ -83,7 +83,9 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
     private static final String ERROR_DECODE_MULTI_AUTHORIZATION_DECISION        = "Failed to decode multi authorization decision: {}";
     private static final String ERROR_ENCODE_MULTI_SUBSCRIPTION                  = "Failed to encode multi-subscription: {}";
     private static final String ERROR_ENCODE_SUBSCRIPTION                        = "Failed to encode subscription: {}";
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT              = "Refusing to send remote PDP credentials over a plaintext RSocket connection. Enable TLS with secure(...), or explicitly accept the risk with allowInsecureTransport().";
     private static final String ERROR_RSOCKET_CONNECTION                         = "RSocket connection error: {} ({})";
+    private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT               = "Sending remote PDP credentials over a plaintext RSocket connection because allowInsecureTransport() is set. A network attacker can capture the credential. Do not use in production.";
 
     static final int RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
@@ -373,6 +375,8 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         private Duration      keepAlive   = Duration.ofSeconds(20);
         private Duration      maxLifeTime = Duration.ofSeconds(60);
         private Mono<Payload> setupPayloadMono;
+        private boolean       secure;
+        private boolean       allowInsecureTransport;
 
         /**
          * Configure insecure SSL (development only).
@@ -393,6 +397,18 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
          */
         public Builder secure() {
             tcpClient = tcpClient.secure();
+            secure    = true;
+            return this;
+        }
+
+        /**
+         * Accept sending credentials over a plaintext (non-TLS) connection. Insecure,
+         * opt-in only.
+         *
+         * @return this builder
+         */
+        public Builder allowInsecureTransport() {
+            allowInsecureTransport = true;
             return this;
         }
 
@@ -404,6 +420,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
          */
         public Builder secure(SslContext sslContext) {
             tcpClient = tcpClient.secure(spec -> spec.sslContext(sslContext));
+            secure    = true;
             return this;
         }
 
@@ -568,6 +585,12 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
          * @return a new instance
          */
         public ProtobufRemoteReactivePolicyDecisionPoint build() {
+            if (setupPayloadMono != null && !secure) {
+                if (!allowInsecureTransport) {
+                    throw new IllegalStateException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+                }
+                log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
+            }
             val connector = RSocketConnector.create().keepAlive(keepAlive, maxLifeTime);
             if (setupPayloadMono != null) {
                 connector.setupPayload(setupPayloadMono);

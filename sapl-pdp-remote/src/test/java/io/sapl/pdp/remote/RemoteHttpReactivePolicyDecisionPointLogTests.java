@@ -189,25 +189,20 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
 
         @Test
         @Timeout(10)
-        @DisplayName("401/403 auth errors are logged at ERROR on every occurrence (REQ-STREAM-5)")
-        void whenAuthErrorThenLoggedAtErrorOnEveryOccurrence() {
+        @DisplayName("a 401/403 auth error is terminal: logged once at ERROR, not retried (REQ-STREAM-5)")
+        void whenAuthErrorThenLoggedOnceAndNotRetried() {
             val pdp = createPdpWithBasicAuth("user", "pass");
             pdp.setMaxRetries(2);
 
-            for (var i = 0; i < 3; i++) {
-                server.enqueue(new MockResponse().setResponseCode(HttpStatus.UNAUTHORIZED.value()));
-            }
+            server.enqueue(new MockResponse().setResponseCode(HttpStatus.UNAUTHORIZED.value()));
 
             val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
 
             StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE).verifyError();
 
-            Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-                val authErrorLogs = logAppender.list.stream().filter(e -> e.getLevel() == Level.ERROR)
-                        .filter(e -> e.getFormattedMessage().contains("PDP authentication failed")).toList();
-                assertThat(authErrorLogs).as("Auth errors should be logged at ERROR every time")
-                        .hasSizeGreaterThanOrEqualTo(2);
-            });
+            val authErrorLogs = logAppender.list.stream().filter(e -> e.getLevel() == Level.ERROR)
+                    .filter(e -> e.getFormattedMessage().contains("PDP authentication failed")).toList();
+            assertThat(authErrorLogs).as("a permanent auth error is logged once and not retried").hasSize(1);
         }
     }
 

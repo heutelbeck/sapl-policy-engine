@@ -19,6 +19,8 @@ package io.sapl.pdp.remote;
 
 import java.time.Duration;
 
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -39,7 +41,8 @@ class RemotePdpRetry {
 
     static Retry createRetrySpec(long maxRetries, int firstBackoffMillis, int maxBackOffMillis) {
         return Retry.backoff(maxRetries, Duration.ofMillis(firstBackoffMillis))
-                .maxBackoff(Duration.ofMillis(maxBackOffMillis)).doBeforeRetry(signal -> {
+                .maxBackoff(Duration.ofMillis(maxBackOffMillis)).filter(RemotePdpRetry::isRetryable)
+                .doBeforeRetry(signal -> {
                     val attempt = signal.totalRetries() + 1;
                     if (attempt >= RETRY_ESCALATION_THRESHOLD) {
                         log.error(ERROR_STREAM_RECONNECT, attempt);
@@ -47,6 +50,18 @@ class RemotePdpRetry {
                         log.warn(ERROR_STREAM_RECONNECT, attempt);
                     }
                 });
+    }
+
+    // A permanent client error (auth failure, malformed subscription) must not be
+    // retried; only
+    // 408 (request timeout) and 429 (too many requests) among 4xx are transient.
+    // Non-HTTP errors retry.
+    private static boolean isRetryable(Throwable error) {
+        if (error instanceof WebClientResponseException wcre) {
+            val status = wcre.getStatusCode();
+            return !status.is4xxClientError() || status.value() == 408 || status.value() == 429;
+        }
+        return true;
     }
 
     static void logInsecureSslWarning() {
