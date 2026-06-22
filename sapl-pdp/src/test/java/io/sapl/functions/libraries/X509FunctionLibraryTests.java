@@ -315,6 +315,34 @@ class X509FunctionLibraryTests {
     }
 
     @Test
+    void whenDnsNameOnlyInSubjectCommonNameThenReturnsFalse()
+            throws OperatorCreationException, CertificateException, IOException {
+        val now  = REFERENCE;
+        val cert = generateCertificate("CN=secure.rlyeh.deep,O=CN Only Services,C=US", now.minus(1, ChronoUnit.DAYS),
+                now.plus(365, ChronoUnit.DAYS), false, null);
+        val pem  = toPem(cert);
+
+        val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem),
+                (TextValue) Value.of("secure.rlyeh.deep"));
+
+        assertThat(result).isEqualTo(Value.FALSE);
+    }
+
+    @Test
+    void whenDnsNameInSubjectAlternativeNameThenReturnsTrue()
+            throws OperatorCreationException, CertificateException, IOException {
+        val now  = REFERENCE;
+        val cert = generateCertificate("CN=other.rlyeh.deep,O=SAN Services,C=US", now.minus(1, ChronoUnit.DAYS),
+                now.plus(365, ChronoUnit.DAYS), true, new String[] { "secure.rlyeh.deep" });
+        val pem  = toPem(cert);
+
+        val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem),
+                (TextValue) Value.of("secure.rlyeh.deep"));
+
+        assertThat(result).isEqualTo(Value.TRUE);
+    }
+
+    @Test
     void whenHasDnsNameWithWildcardCertThenMatchesSubdomain()
             throws OperatorCreationException, CertificateException, IOException {
         val now  = REFERENCE;

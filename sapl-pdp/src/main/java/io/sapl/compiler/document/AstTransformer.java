@@ -504,12 +504,18 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         val operand  = expr(ctx.unaryExpression());
         val location = fromContext(ctx);
         return switch (operand) {
-        case BinaryOperator(var op, var l, var r, var ignored) when NEGATION_MAP.containsKey(op) ->
+        case
+
+                BinaryOperator(var op, var l, var r, var ignored) when NEGATION_MAP.containsKey(op) ->
             new BinaryOperator(NEGATION_MAP.get(op), l, r, location);
-        case UnaryOperator(var op, var inner, var ignored) when op == UnaryOperatorType.NOT      -> inner;
+        case
+
+                UnaryOperator(var op, var inner, var ignored) when op == UnaryOperatorType.NOT   ->
+            inner;
         default                                                                                  ->
             new UnaryOperator(UnaryOperatorType.NOT, operand, location);
         };
+
     }
 
     @Override
@@ -932,20 +938,28 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
     private Step buildStep(Expression base, StepContext ctx) {
         val loc = fromContext(ctx);
         return switch (ctx) {
-        case KeyDotStepContext c                  -> new KeyStep(base, idText(c.keyStep().saplId()), loc);
-        case EscapedKeyDotStepContext c           -> new KeyStep(base, escapedKeyName(c.escapedKeyStep()), loc);
-        case WildcardDotStepContext c             -> new WildcardStep(base, loc);
-        case AttributeFinderDotStepContext c      -> {
+        case KeyDotStepContext c                 -> new KeyStep(base, idText(c.keyStep().saplId()), loc);
+        case EscapedKeyDotStepContext c          -> new KeyStep(base, escapedKeyName(c.escapedKeyStep()), loc);
+        case WildcardDotStepContext c            -> new WildcardStep(base, loc);
+        case AttributeFinderDotStepContext c     -> {
             val stepCtx = c.attributeFinderStep();
+
             yield buildAttributeFinderStep(base, stepCtx.functionIdentifier(), stepCtx.arguments(),
                     stepCtx.attributeFinderOptions, false, ctx);
         }
-        case HeadAttributeFinderDotStepContext c  -> {
+        case
+
+                HeadAttributeFinderDotStepContext c -> {
             val stepCtx = c.headAttributeFinderStep();
+
             yield buildAttributeFinderStep(base, stepCtx.functionIdentifier(), stepCtx.arguments(),
                     stepCtx.attributeFinderOptions, true, ctx);
         }
-        case RecursiveKeyDotDotStepContext c      -> buildRecursiveKeyStep(base, c.recursiveKeyStep(), loc);
+        case
+
+                RecursiveKeyDotDotStepContext c  ->
+
+            buildRecursiveKeyStep(base, c.recursiveKeyStep(), loc);
         case RecursiveWildcardDotDotStepContext c -> new RecursiveWildcardStep(base, loc);
         case RecursiveIndexDotDotStepContext c    ->
             new RecursiveIndexStep(base, parseSignedNumber(c.recursiveIndexStep().signedNumber()), loc);
@@ -953,6 +967,7 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         default                                   ->
             throw new SaplCompilerException(ERROR_UNKNOWN_STEP_TYPE.formatted(ctx.getClass().getSimpleName()), loc);
         };
+
     }
 
     private Step buildSubscriptStep(Expression base, SubscriptContext ctx) {

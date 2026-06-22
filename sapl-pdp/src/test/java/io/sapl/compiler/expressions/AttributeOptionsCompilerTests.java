@@ -32,6 +32,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.expressions.AttributeCompiler.*;
@@ -281,6 +283,36 @@ class AttributeOptionsCompilerTests {
                 val result = AttributeCompiler.compileOptions(expr, ctx);
                 assertThat(((ObjectValue) result).get(OPTION_RETRIES)).isEqualTo(Value.of(0L));
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("when a numeric option is not a whole millisecond/count value")
+    class WhenNumericOptionIsNotIntegral {
+
+        @MethodSource
+        @ParameterizedTest(name = "{0}")
+        @DisplayName("a fractional or out-of-range numeric option is rejected rather than silently truncated")
+        void throwsException(String description, String optionKey, Value badValue) {
+            val options = ObjectValue.builder().put(optionKey, badValue).build();
+            val expr    = new Literal(options, TEST_LOCATION);
+            val ctx     = compilationContext();
+
+            try (MockedStatic<ExpressionCompiler> mockedCompiler = mockStatic(ExpressionCompiler.class)) {
+                mockedCompiler.when(() -> ExpressionCompiler.compile(expr, ctx)).thenReturn(options);
+
+                assertThatThrownBy(() -> AttributeCompiler.compileOptions(expr, ctx))
+                        .isInstanceOf(SaplCompilerException.class).hasMessageContaining(optionKey);
+            }
+        }
+
+        static Stream<Arguments> throwsException() {
+            val outOfRange = new BigDecimal(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE));
+            return Stream.of(
+                    arguments("fractional initialTimeOutMs", OPTION_INITIAL_TIMEOUT, Value.of(new BigDecimal("2.5"))),
+                    arguments("fractional pollIntervalMs", OPTION_POLL_INTERVAL, Value.of(new BigDecimal("1.5"))),
+                    arguments("fractional retries", OPTION_RETRIES, Value.of(new BigDecimal("2.5"))),
+                    arguments("out-of-long-range initialTimeOutMs", OPTION_INITIAL_TIMEOUT, Value.of(outOfRange)));
         }
     }
 

@@ -61,6 +61,7 @@ public class AttributeCompiler {
     private static final String ERROR_OPTION_MUST_BE_NON_NEGATIVE             = "Attribute option '%s' must be non-negative, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_NUMBER                   = "Attribute option '%s' must be a number, but was: %s.";
     private static final String ERROR_OPTION_MUST_BE_POSITIVE                 = "Attribute option '%s' must be positive, but was: %s.";
+    private static final String ERROR_OPTION_MUST_BE_WHOLE_NUMBER             = "Attribute option '%s' must be a whole number within long range, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_BE_OBJECT                  = "Attribute options must be an object, but was: %s.";
     private static final String ERROR_OPTIONS_MUST_NOT_DEPEND_ON_SUBSCRIPTION = "Attribute options must not depend on any element of the authorization subscription";
     private static final String ERROR_PDP_DEFAULTS_MUST_BE_OBJECT             = "If defined, PDP wide defaults (%s) for attribute options must be an object, but was: %s.";
@@ -209,6 +210,13 @@ public class AttributeCompiler {
     private static BigDecimal requireNumber(ObjectValue settings, String key, @Nullable SourceLocation location) {
         val value = settings.get(key);
         if (value instanceof NumberValue(BigDecimal n)) {
+            // Every numeric option is consumed as a long; reject fractional or
+            // out-of-long-range values instead of silently truncating them.
+            try {
+                n.longValueExact();
+            } catch (ArithmeticException e) {
+                throw new SaplCompilerException(ERROR_OPTION_MUST_BE_WHOLE_NUMBER.formatted(key, n), location);
+            }
             return n;
         }
         throw new SaplCompilerException(ERROR_OPTION_MUST_BE_NUMBER.formatted(key, value), location);

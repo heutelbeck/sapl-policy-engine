@@ -427,11 +427,10 @@ public class X509FunctionLibrary {
     @Function(docs = """
             ```hasDnsName(TEXT certPem, TEXT dnsName)```: Checks if certificate contains a specific DNS name.
 
-            Checks both the subject CN and all Subject Alternative Names for the specified DNS
-            name. This is simpler than extracting SANs and checking manually. A wildcard
-            certificate matches exactly one label in the wildcard position, so `*.example.com`
-            matches `a.example.com` but not `a.b.example.com` or `example.com`, and a wildcard
-            spanning a public suffix such as `*.com` matches nothing.
+            Checks the dNSName Subject Alternative Names for the specified DNS name. The subject
+            Common Name is deliberately not consulted, since RFC 9525 deprecates CN-based hostname
+            matching. This is simpler than extracting SANs and checking manually, and handles
+            wildcard certificates correctly.
 
             Example - Verify certificate is valid for accessed domain:
             ```sapl
@@ -443,11 +442,6 @@ public class X509FunctionLibrary {
     public static Value hasDnsName(TextValue certificatePem, TextValue dnsName) {
         return withCertificate(certificatePem.value(), certificate -> {
             val targetDnsName = dnsName.value().toLowerCase();
-
-            val commonName = extractCnFromDn(certificate.getSubjectX500Principal().getName());
-            if (commonName != null && matchesDnsName(commonName, targetDnsName)) {
-                return Value.of(true);
-            }
 
             try {
                 val subjectAltNames = CertificateUtils.extractSubjectAlternativeNames(certificate);

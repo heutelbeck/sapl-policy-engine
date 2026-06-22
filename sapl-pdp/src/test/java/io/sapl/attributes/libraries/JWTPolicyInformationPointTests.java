@@ -677,12 +677,14 @@ class JWTPolicyInformationPointTests {
     @DisplayName("with HMAC keys")
     class HmacKeyTests {
 
-        @Test
-        @DisplayName("HS256 signed token with whitelisted key emits VALID")
-        void whenValidHmacTokenThenValid() throws JOSEException {
-            val secretKey = Base64DataUtil.generateHmacKey(32);
-            val hmacKid   = "hmac-key-1";
-            val header    = new JWSHeader.Builder(JWSAlgorithm.HS256).keyID(hmacKid).build();
+        @ParameterizedTest(name = "{0} token whose secret is a whitelist entry is not VALID")
+        @MethodSource("hmacAlgorithms")
+        @DisplayName("a whitelisted secret never validates an HS-family token (no HS256 confusion forgery)")
+        void whenHmacTokenSecretIsWhitelistedThenNotValid(JWSAlgorithm algorithm, int keyLengthBytes)
+                throws JOSEException {
+            val secretKey = Base64DataUtil.generateHmacKey(keyLengthBytes);
+            val hmacKid   = "hmac-key-" + algorithm.getName();
+            val header    = new JWSHeader.Builder(algorithm).keyID(hmacKid).build();
             val claims    = new JWTClaimsSet.Builder().subject("user").build();
             val source    = JWTTestUtility.buildAndSignHmacJwt(header, claims, secretKey);
             val encoded   = JWTTestUtility.encodeSecretKey(secretKey);
@@ -690,10 +692,8 @@ class JWTPolicyInformationPointTests {
                     Map.of("jwt", source));
 
             try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream).awaitsNext(v -> {
-                    assertThat(field(v, "valid")).isEqualTo(Value.TRUE);
-                    assertThat(validity(v)).isEqualTo("VALID");
-                });
+                StreamAssertions.assertThat(stream)
+                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.FALSE));
             }
         }
 
@@ -715,40 +715,9 @@ class JWTPolicyInformationPointTests {
             }
         }
 
-        @Test
-        @DisplayName("HS384 signed token with correct key emits VALID")
-        void whenHs384TokenThenValid() throws JOSEException {
-            val secretKey = Base64DataUtil.generateHmacKey(48);
-            val hmacKid   = "hmac-key-384";
-            val header    = new JWSHeader.Builder(JWSAlgorithm.HS384).keyID(hmacKid).build();
-            val claims    = new JWTClaimsSet.Builder().subject("user").build();
-            val source    = JWTTestUtility.buildAndSignHmacJwt(header, claims, secretKey);
-            val encoded   = JWTTestUtility.encodeSecretKey(secretKey);
-            val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariablesForHmac(hmacKid, encoded),
-                    Map.of("jwt", source));
-
-            try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream)
-                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.TRUE));
-            }
-        }
-
-        @Test
-        @DisplayName("HS512 signed token with correct key emits VALID")
-        void whenHs512TokenThenValid() throws JOSEException {
-            val secretKey = Base64DataUtil.generateHmacKey(64);
-            val hmacKid   = "hmac-key-512";
-            val header    = new JWSHeader.Builder(JWSAlgorithm.HS512).keyID(hmacKid).build();
-            val claims    = new JWTClaimsSet.Builder().subject("user").build();
-            val source    = JWTTestUtility.buildAndSignHmacJwt(header, claims, secretKey);
-            val encoded   = JWTTestUtility.encodeSecretKey(secretKey);
-            val accessCtx = ctx(JsonTestUtility.publicKeyWhitelistVariablesForHmac(hmacKid, encoded),
-                    Map.of("jwt", source));
-
-            try (val stream = sut.token(accessCtx)) {
-                StreamAssertions.assertThat(stream)
-                        .awaitsNext(v -> assertThat(field(v, "valid")).isEqualTo(Value.TRUE));
-            }
+        static Stream<Arguments> hmacAlgorithms() {
+            return Stream.of(arguments(JWSAlgorithm.HS256, 32), arguments(JWSAlgorithm.HS384, 48),
+                    arguments(JWSAlgorithm.HS512, 64));
         }
     }
 
