@@ -105,8 +105,6 @@ class X509FunctionLibraryTests {
                 now.plus(365, ChronoUnit.DAYS), true, new String[] { DEFAULT_DNS_1, DEFAULT_DNS_2 }));
     }
 
-    /* Certificate Parsing Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("validCertificates")
     void whenParseCertificateWithValidPemThenExtractsAllFields(String certPem, String expectedFragment,
@@ -173,8 +171,6 @@ class X509FunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
 
-    /* Field Extraction Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("fieldExtractors")
     void whenExtractFieldWithValidCertThenReturnsExpectedValue(Function<TextValue, Value> extractor,
@@ -218,8 +214,6 @@ class X509FunctionLibraryTests {
         return Stream.of(arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotBefore, "NotBefore"),
                 arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotAfter, "NotAfter"));
     }
-
-    /* Fingerprint Tests */
 
     @ParameterizedTest(name = "{0}")
     @CsvSource({ "SHA-256, 64", "SHA-1, 40", "SHA-512, 128" })
@@ -275,8 +269,6 @@ class X509FunctionLibraryTests {
                 Value.of("SHA-256"))).isEqualTo(Value.TRUE);
     }
 
-    /* Subject Alternative Names Tests */
-
     @Test
     void whenExtractSubjectAltNamesWithNoSansThenReturnsEmptyArray() {
         val result = X509FunctionLibrary.extractSubjectAltNames(Value.of(cthulhuCertPem));
@@ -295,8 +287,6 @@ class X509FunctionLibraryTests {
         assertThat(firstSan.containsKey("type")).isTrue();
         assertThat(firstSan.containsKey("value")).isTrue();
     }
-
-    /* DNS Name Tests */
 
     @Test
     void whenHasDnsNameWithMatchingDnsThenReturnsTrue() {
@@ -386,8 +376,6 @@ class X509FunctionLibraryTests {
         assertThat(result).isEqualTo(Value.TRUE);
     }
 
-    /* IP Address Tests */
-
     @Test
     void whenHasIpAddressWithMatchingIpThenReturnsTrue() {
         val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(certWithSansPem),
@@ -429,8 +417,6 @@ class X509FunctionLibraryTests {
         }
     }
 
-    /* Validity Check Tests */
-
     @ParameterizedTest(name = "{0}")
     @CsvSource({ "1, DAYS, true, Within validity period", "-365, DAYS, false, Before validity start",
             "400, DAYS, false, After validity end" })
@@ -467,8 +453,6 @@ class X509FunctionLibraryTests {
                 arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotAfter));
     }
 
-    /* Unicode Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("unicodeDns")
     void whenParseAndExtractWithVariousUnicodeScriptsThenSucceeds(String dn, String description)
@@ -497,8 +481,6 @@ class X509FunctionLibraryTests {
                 // Greek: "CN=Yog-Sothoth,O=Beyond the Gate,C=GR"
                 arguments("CN=Γιογκ-Σόθοθ,O=Πέρα από την Πύλη,C=GR", "Greek"));
     }
-
-    /* Temporal Edge Cases */
 
     @Test
     void whenIsValidAtWithCertValidForOneHourThenHandlesCorrectly()
@@ -611,8 +593,6 @@ class X509FunctionLibraryTests {
 
         return new JcaX509CertificateConverter().getCertificate(holder);
     }
-
-    /* Helper Methods */
 
     private static X509Certificate generateCertificate(String subjectDn, Instant notBefore, Instant notAfter,
             boolean withSans, String[] dnsNames) throws OperatorCreationException, CertificateException, IOException {

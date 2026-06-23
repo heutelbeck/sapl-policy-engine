@@ -37,15 +37,16 @@ import static io.sapl.compiler.combining.CombiningUtils.*;
  * <ul>
  * <li><b>Zero applicable:</b> Returns NOT_APPLICABLE</li>
  * <li><b>All agree:</b> Returns merged decision with combined constraints</li>
- * <li><b>Disagreement:</b> Returns INDETERMINATE(PERMIT_OR_DENY)</li>
+ * <li><b>Disagreement:</b> Returns INDETERMINATE</li>
  * </ul>
  * <p>
  * Supports two modes:
  * <ul>
- * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY), constraints
- * merged</li>
- * <li><b>Strict mode:</b> Exact equality required (decision + all
- * constraints)</li>
+ * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY); constraints are
+ * merged, but two agreeing votes that define different resource transformations
+ * yield INDETERMINATE (transformation uncertainty)</li>
+ * <li><b>Strict mode:</b> Exact equality required (decision, obligations,
+ * advice, and resource); any difference yields INDETERMINATE</li>
  * </ul>
  */
 @UtilityClass
@@ -135,6 +136,11 @@ public class UnanimousVoteCombiner {
      * INDETERMINATE    | any             | INDETERMINATE
      * any              | INDETERMINATE   | INDETERMINATE
      * </pre>
+     * <p>
+     * In normal mode, two votes with the same effect but conflicting resource
+     * transformations also yield INDETERMINATE (transformation uncertainty). In
+     * strict mode the merge requires exact equality of decision, obligations,
+     * advice, and resource; any difference yields INDETERMINATE.
      *
      * @param accumulatorVote the accumulated result
      * @param newVote the new vote to incorporate

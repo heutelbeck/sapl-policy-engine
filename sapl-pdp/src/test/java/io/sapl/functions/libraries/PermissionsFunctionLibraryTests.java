@@ -43,8 +43,6 @@ class PermissionsFunctionLibraryTests {
         assertThatCode(() -> functionBroker.load(new PermissionsFunctionLibrary())).doesNotThrowAnyException();
     }
 
-    /* Core Permission Semantics Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideHasAllTestCases")
     void whenHasAllThenReturnsCorrectResult(long value, long[] masks, boolean expected) {
@@ -261,8 +259,6 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    /* Unix/POSIX Permission Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideUnixExtractTestCases")
     void whenUnixExtractThenReturnsCorrectPermissions(long mode, long owner, long group, long other) {
@@ -339,8 +335,6 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    /* POSIX Constants Tests */
-
     @Test
     void whenPosixConstantsThenReturnCorrectValues() {
         assertThat(PermissionsFunctionLibrary.posixRead()).isEqualTo(Value.of(4L));
@@ -361,8 +355,6 @@ class PermissionsFunctionLibraryTests {
         assertThat(PermissionsFunctionLibrary.posixMode600()).isEqualTo(Value.of(384L));
         assertThat(PermissionsFunctionLibrary.posixMode666()).isEqualTo(Value.of(438L));
     }
-
-    /* Manipulation Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideGrantTestCases")
@@ -418,8 +410,6 @@ class PermissionsFunctionLibraryTests {
         );
     }
 
-    /* Universal Constants Tests */
-
     @Test
     void whenNoneThenReturnsZero() {
         val actual = PermissionsFunctionLibrary.none();
@@ -463,8 +453,6 @@ class PermissionsFunctionLibraryTests {
                 .contains("Bit position must be between 0 and 63");
     }
 
-    /* Error Handling Tests */
-
     @Test
     void whenHasAllWithNonArrayMaskThenReturnsError() {
         // This test verifies error handling for incorrect parameter type
@@ -497,8 +485,6 @@ class PermissionsFunctionLibraryTests {
         val actual = PermissionsFunctionLibrary.combine(array);
         assertThat(actual).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
-
-    /* Integration Tests */
 
     @Test
     void whenUnixPermissionWorkflowThenWorksCorrectly() {
@@ -550,8 +536,6 @@ class PermissionsFunctionLibraryTests {
         val combined = PermissionsFunctionLibrary.combine(array);
         assertThat(combined).isInstanceOf(NumberValue.class).isEqualTo(Value.of(7L));
     }
-
-    /* Scalar Argument Validation Tests */
 
     @ParameterizedTest(name = "{0} arg = {1}")
     @MethodSource("provideScalarArgumentValidationCases")
@@ -615,8 +599,6 @@ class PermissionsFunctionLibraryTests {
                 arguments(1, "18446744073709551623"), arguments(1, "6.9"), arguments(2, "18446744073709551623"),
                 arguments(2, "6.9"));
     }
-
-    /* Helper Methods */
 
     private static ArrayValue createLongArray(long[] values) {
         val builder = ArrayValue.builder();

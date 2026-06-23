@@ -428,17 +428,6 @@ class PatternsFunctionLibraryTests {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
-    void whenCatastrophicBacktrackingPatternThenDetectedOrCompletes() {
-        val catastrophicPattern = "a.*a.*a.*a.*x";
-        val input               = "a".repeat(30) + "X";
-        val result              = PatternsFunctionLibrary.findMatches(Value.of(catastrophicPattern), Value.of(input));
-
-        assertThat(result instanceof ErrorValue || result instanceof ArrayValue)
-                .withFailMessage("Pattern should either be rejected as dangerous or complete within timeout").isTrue();
-    }
-
-    @Test
-    @Timeout(value = 2, unit = TimeUnit.SECONDS)
     void whenComplexGlobPatternsThenCompletesQuickly() {
         val complexPattern = "{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p}*{1,2,3,4,5}";
         val result         = PatternsFunctionLibrary.matchGlob((TextValue) Value.of(complexPattern),

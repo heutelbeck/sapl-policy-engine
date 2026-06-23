@@ -563,8 +563,8 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when invalid JSON Schema then throws at compile time")
-        void whenInvalidJsonSchemaThenThrowsAtCompileTime() {
+        @DisplayName("when schema type is unknown then it compiles and never matches at runtime")
+        void whenSchemaTypeIsUnknownThenCompilesAndNeverMatches() {
             // "type" must be a valid JSON Schema type
             val invalidSchema = (ObjectValue) obj("type", Value.of("not-a-valid-type"));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, invalidSchema));

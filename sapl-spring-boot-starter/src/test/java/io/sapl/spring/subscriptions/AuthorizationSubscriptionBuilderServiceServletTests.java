@@ -154,7 +154,7 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
     @Test
     @SuppressWarnings("unchecked")
-    void when_expressionHandlerProvided_then_FactoryThrows() {
+    void when_noExpressionHandlerProvided_then_usesGrantedAuthorityDefaults() {
         val mockContext        = mock(ApplicationContext.class);
         val mockMapperProvider = mock(ObjectProvider.class);
         when(mockMapperProvider.getIfAvailable(any())).thenReturn(mapper);

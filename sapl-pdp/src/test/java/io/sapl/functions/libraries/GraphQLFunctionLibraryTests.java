@@ -145,8 +145,6 @@ class GraphQLFunctionLibraryTests {
             }
             """;
 
-    /* Basic Parsing Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideBasicParsingTestCases")
     void whenParseQueryThenReturnsExpectedResult(String query, String schema, boolean useSchema, boolean expectedValid,
@@ -199,8 +197,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(result).isNotNull();
         assertThat(parsed.get("ast").get("operationName").asString()).isEqualTo(expectedName);
     }
-
-    /* Field Analysis Tests */
 
     @Test
     void whenParseNestedFieldsThenExtractsAllFields() {
@@ -268,8 +264,6 @@ class GraphQLFunctionLibraryTests {
                         "security.aliasCount", 3, "multiple aliases"));
     }
 
-    /* Depth Analysis Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideDepthTestCases")
     void whenParseQueryThenCalculatesDepth(String query, int expectedDepth, String scenario) {
@@ -300,8 +294,6 @@ class GraphQLFunctionLibraryTests {
                 + " }".repeat(nestingLevel) + " } }";
     }
 
-    /* Introspection Detection Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideIntrospectionTestCases")
     void whenParseQueryThenDetectsIntrospectionCorrectly(String query, boolean expectedIntrospection, String scenario) {
@@ -317,8 +309,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { __typename name } }", true, "typename introspection"),
                 arguments("query { investigator(id: \"1\") { name } }", false, "no introspection"));
     }
-
-    /* Complexity Tests */
 
     @Test
     void whenParseQueryThenCalculatesBasicComplexity() {
@@ -402,8 +392,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("{\"fields\": [\"name\", 42, \"sanity\", null], \"depth\": 2}", "{}", 6));
     }
 
-    /* Alias and Batching Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideAliasBatchingTestCases")
     void whenParseQueryWithAliasesThenCalculatesBatchingMetrics(String query, int expectedAliasCount,
@@ -431,8 +419,6 @@ class GraphQLFunctionLibraryTests {
                         }
                         """, 0, 2, "no aliases"));
     }
-
-    /* Argument Analysis Tests */
 
     @Test
     void whenParseQueryWithArgumentsThenExtractsArguments() {
@@ -537,8 +523,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("valid").asBoolean()).isTrue();
     }
 
-    /* Fragment Analysis Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideFragmentCircularityTestCases")
     void whenParseQueryWithFragmentsThenDetectsCircularityCorrectly(String query, boolean expectedCircular,
@@ -629,8 +613,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(fragments.get("InvestigatorDetails").get("fields")).hasSize(2);
     }
 
-    /* Directive Analysis Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideDirectiveTestCases")
     void whenParseQueryWithDirectivesThenAnalyzesCorrectly(String query, int expectedCount, double minRatio,
@@ -674,8 +656,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { " + "name " + "@include(if: true) ".repeat(50) + "} }", 50,
                         10.0, "directive abuse attack"));
     }
-
-    /* Variable Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideVariableTestCases")
@@ -726,8 +706,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { name } }", Map.of(), "no variables"));
     }
 
-    /* Type Information Tests */
-
     @Test
     void whenParseQueryWithInlineFragmentsThenExtractsTypes() {
         val query  = """
@@ -747,8 +725,6 @@ class GraphQLFunctionLibraryTests {
         val types = parsed.get("ast").get("types");
         assertThat(types.size()).isGreaterThan(0);
     }
-
-    /* Realistic Use Case Tests */
 
     @Test
     void whenParseTypicalInvestigationQueryThenAnalyzesCorrectly() {
@@ -827,8 +803,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(complexity).isNotNull();
         assertThat(((NumberValue) complexity).value().intValue()).isGreaterThan(50);
     }
-
-    /* Security Tests - Malicious Queries */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideMaliciousQueryTestCases")
@@ -918,8 +892,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("security").get("maxPaginationLimit").asInt()).isGreaterThan(800000);
     }
 
-    /* Edge Case Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideEdgeCaseTestCases")
     void whenParseEdgeCasesThenHandlesCorrectly(String query, boolean shouldBeValid, String scenario) {
@@ -975,8 +947,6 @@ class GraphQLFunctionLibraryTests {
         return Stream.of(arguments("query { investigator(id: \"1\") { name } }", ""),
                 arguments("query { investigator(id: \"1\") { name } }", "type Query { investigator(id: ID! }"));
     }
-
-    /* Schema Parsing Tests */
 
     @Test
     void whenParseValidSchemaThenReturnsValidResult() {
@@ -1067,8 +1037,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("errors").size()).isGreaterThan(0);
         assertThat(parsed.get("errors").get(0).asString()).contains("maximum size");
     }
-
-    /* Performance Tests */
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
