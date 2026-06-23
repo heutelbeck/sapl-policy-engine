@@ -219,6 +219,8 @@ public class PDPAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     SaplPluginManager saplPluginManager(EmbeddedPDPProperties properties) {
         var pluginsPath = PdpIdValidator.resolveHomeFolderIfPresent(properties.getPluginsPath());
         return new SaplPluginManager(pluginsPath);
@@ -236,7 +238,6 @@ public class PDPAutoConfiguration {
             log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
                     lifecycleListeners.size());
         }
-//        new PluginsBundle(functionBroker, decisionInterceptors, lifecycleListeners)
         return new HotReloadingPluginsSource(pluginManager, attributeBroker, properties.getFunctionCacheSize(), true,
                 decisionInterceptors, lifecycleListeners);
     }

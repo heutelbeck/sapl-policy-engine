@@ -49,9 +49,7 @@
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
-		<!-- PF4J extension-point interfaces for plugin authors. Optional so it
-			stays off the transitive classpath of regular sapl-api consumers; the
-			PF4J runtime supplies these classes when plugins are in use. -->
+		<!-- PF4J Plugins -->
 		<dependency>
 			<groupId>org.pf4j</groupId>
 			<artifactId>pf4j</artifactId>

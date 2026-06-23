@@ -285,8 +285,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
                 manager.reload();
                 republish();
             } catch (Exception e) {
-//                e.printStackTrace();
-                log.warn("Plugin reload after directory change failed: {}", e.getMessage());
+                log.error("Plugin reload after directory change failed.", e);
             }
         }
     }

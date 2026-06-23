@@ -17,17 +17,14 @@
  */
 package io.sapl.pdp.plugins.example;
 
-import io.sapl.api.pdp.Decision;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.plugins.SaplDecisionInterceptorPlugin;
-import io.sapl.api.pdp.plugins.SaplFunctionLibraryPlugin;
 import org.pf4j.Extension;
 
-import java.util.Collection;
 import java.util.List;
 
 /**
- * Contributes {@link ExampleFunctionLibrary} to the PDP.
+ * Contributes {@link ExampleDecisionInterceptor} to the PDP.
  */
 @Extension
 public class ExampleDecisionInterceptorPlugin implements SaplDecisionInterceptorPlugin {

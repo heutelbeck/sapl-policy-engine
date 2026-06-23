@@ -18,7 +18,6 @@
 package io.sapl.pdp.plugins;
 
 import io.sapl.api.SaplVersion;
-import io.sapl.api.functions.FunctionLibraryProvider;
 import io.sapl.api.pdp.DecisionInterceptor;
 import io.sapl.api.pdp.plugins.SaplDecisionInterceptorPlugin;
 import io.sapl.api.pdp.plugins.SaplFunctionLibraryPlugin;
@@ -42,10 +41,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * {@link SaplFunctionLibraryPlugin} and
  * {@link SaplPolicyInformationPointPlugin} extensions.
  * <p>
- * The manager implements both {@link FunctionLibraryProvider} and so a host
- * application (for example the Spring Boot auto-configuration) discovers the
- * plugin contributions at startup with no
- * extra wiring. For runtime hot-reloading, drive a
+ * The manager exposes the plugin contributions through accessor methods
+ * ({@link #functionLibraries()}, {@link #policyInformationPoints()}, and
+ * {@link #decisionInterceptors()}) so a host application (for example the
+ * Spring Boot auto-configuration) can pick them up at startup with no extra
+ * wiring. For runtime hot-reloading, drive a
  * {@link HotReloadingPluginsSource} from this manager.
  * <p>
  * All public methods are guarded by a single {@link ReentrantLock}, in line
@@ -129,6 +129,7 @@ public class SaplPluginManager implements AutoCloseable {
     public List<Object> functionLibraries() {
         lock.lock();
         try {
+            ensureOpen();
             val libraries = new ArrayList<>();
             for (val extension : pluginManager.getExtensions(SaplFunctionLibraryPlugin.class)) {
                 libraries.addAll(extension.functionLibraries());
@@ -142,6 +143,7 @@ public class SaplPluginManager implements AutoCloseable {
     public List<Object> policyInformationPoints() {
         lock.lock();
         try {
+            ensureOpen();
             val pips = new ArrayList<>();
             for (val extension : pluginManager.getExtensions(SaplPolicyInformationPointPlugin.class)) {
                 pips.addAll(extension.policyInformationPoints());
@@ -155,6 +157,7 @@ public class SaplPluginManager implements AutoCloseable {
     public List<DecisionInterceptor> decisionInterceptors() {
         lock.lock();
         try {
+            ensureOpen();
             val interceptors = new ArrayList<DecisionInterceptor>();
             for (val extension : pluginManager.getExtensions(SaplDecisionInterceptorPlugin.class)) {
                 interceptors.addAll(extension.decisionInterceptors());

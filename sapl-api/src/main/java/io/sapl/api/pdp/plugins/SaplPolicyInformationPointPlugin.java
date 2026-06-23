@@ -36,12 +36,10 @@ import java.util.Collection;
  * fully constructed object whose class carries the
  * {@link PolicyInformationPoint} annotation.
  * <p>
- * This interface extends {@link PolicyInformationPointProvider}, so the very
- * same implementation can be discovered
- * either through PF4J (when packaged as a plugin JAR) or through the host
- * application's dependency injection (when
- * placed on the classpath and registered as a
- * {@code PolicyInformationPointProvider} bean, for example in tests).
+ * This interface is intended to be discovered by PF4J when packaged as a plugin
+ * JAR. The engine discovers all such extensions, collects their
+ * {@link #policyInformationPoints()}, and registers them with the attribute
+ * broker.
  *
  * @since 4.1.0
  */
