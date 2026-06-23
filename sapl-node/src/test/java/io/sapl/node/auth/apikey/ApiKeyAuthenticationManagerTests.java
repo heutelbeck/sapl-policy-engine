@@ -55,6 +55,9 @@ class ApiKeyAuthenticationManagerTests {
         @DisplayName("a SaplAuthenticationToken is returned authenticated")
         void whenSaplAuthenticationTokenThenAuthenticated() {
             val token = new SaplAuthenticationToken(new SaplUser("alice", "tenant-a"), "raw-api-key");
+            // Start unauthenticated so the assertion proves authenticate() did the work
+            // rather than echoing the constructor's already-authenticated state.
+            token.setAuthenticated(false);
 
             val result = manager.authenticate(token);
 

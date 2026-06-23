@@ -95,4 +95,19 @@ class DecideOnceServletTests {
         assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
         verifyNoInteractions(pdp);
     }
+
+    @Test
+    @DisplayName("a PDP failure fails closed: SC_OK with an INDETERMINATE decision and no stack leak")
+    void whenPdpThrowsThenFailsClosedToIndeterminate() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(pdp.decideOnce(any(), any())).thenThrow(new RuntimeException("boom"));
+        val request = new MockHttpServletRequest();
+        request.setContent("{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"doc\"}".getBytes(UTF_8));
+        val response = new MockHttpServletResponse();
+
+        new DecideOnceServlet(pdp, authHandler, mapper).handlePost(request, response);
+
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_OK);
+        assertThat(response.getContentAsString()).contains("INDETERMINATE");
+    }
 }

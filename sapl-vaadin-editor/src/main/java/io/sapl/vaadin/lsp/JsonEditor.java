@@ -112,6 +112,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param isDarkTheme true for dark theme
      */
     public void setDarkTheme(boolean isDarkTheme) {
+        getElement().setProperty(PROP_IS_DARK_THEME, isDarkTheme);
         getElement().callJsFunction("setDarkTheme", isDarkTheme);
     }
 
@@ -130,6 +131,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param isReadOnly true for read-only mode
      */
     public void setReadOnly(boolean isReadOnly) {
+        getElement().setProperty(PROP_IS_READ_ONLY, isReadOnly);
         getElement().callJsFunction("setReadOnly", isReadOnly);
     }
 
@@ -148,6 +150,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param isLint true to enable linting
      */
     public void setLint(boolean isLint) {
+        getElement().setProperty(PROP_IS_LINT, isLint);
         getElement().callJsFunction("setLint", isLint);
     }
 
@@ -166,6 +169,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param enabled true to enable merge mode
      */
     public void setMergeModeEnabled(boolean enabled) {
+        getElement().setProperty(PROP_IS_MERGE_MODE, enabled);
         getElement().callJsFunction("setMergeModeEnabled", enabled);
     }
 
@@ -184,6 +188,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param content the content for the right pane
      */
     public void setMergeRightContent(String content) {
+        getElement().setProperty(PROP_MERGE_RIGHT_CONTENT, content);
         getElement().callJsFunction("setMergeRightContent", content);
     }
 
@@ -202,6 +207,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param enabled true to enable bracket matching
      */
     public void setMatchBrackets(boolean enabled) {
+        getElement().setProperty(PROP_MATCH_BRACKETS, enabled);
         getElement().callJsFunction("setMatchBrackets", enabled);
     }
 
@@ -220,6 +226,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param enabled true to enable auto-close brackets
      */
     public void setAutoCloseBrackets(boolean enabled) {
+        getElement().setProperty(PROP_AUTO_CLOSE_BRACKETS, enabled);
         getElement().callJsFunction("setAutoCloseBrackets", enabled);
     }
 
@@ -238,6 +245,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param enabled true to highlight changes
      */
     public void setHighlightChanges(boolean enabled) {
+        getElement().setProperty(PROP_HIGHLIGHT_CHANGES, enabled);
         getElement().callJsFunction("setHighlightChanges", enabled);
     }
 
@@ -256,6 +264,7 @@ public class JsonEditor extends Component implements HasSize {
      * @param enabled true to collapse unchanged regions
      */
     public void setCollapseUnchanged(boolean enabled) {
+        getElement().setProperty(PROP_COLLAPSE_UNCHANGED, enabled);
         getElement().callJsFunction("setCollapseUnchanged", enabled);
     }
 

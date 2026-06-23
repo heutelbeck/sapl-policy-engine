@@ -226,5 +226,13 @@ class AuthorizationSubscriptionSecretsTests {
             assertThatThrownBy(() -> MAPPER.readValue(json, AuthorizationSubscription.class))
                     .isInstanceOf(MismatchedInputException.class).hasMessageContaining("secrets");
         }
+
+        @Test
+        @DisplayName("of(...) rejects a non-object secrets argument instead of silently dropping it")
+        void whenOfWithNonObjectSecrets_thenRejected() {
+            assertThatThrownBy(
+                    () -> AuthorizationSubscription.of("user", "read", "data", null, "not-an-object", MAPPER))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("secrets");
+        }
     }
 }

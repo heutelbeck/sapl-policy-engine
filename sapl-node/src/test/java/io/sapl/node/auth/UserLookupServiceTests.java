@@ -239,18 +239,28 @@ class UserLookupServiceTests {
         }
 
         @Test
-        @DisplayName("an entry without api-key-id is not authenticated, even if its key matches")
-        void whenEntryHasNoApiKeyIdThenReturnsEmpty() {
-            val userEntry = new UserEntry();
-            userEntry.setId("api-user");
-            userEntry.setApiKey(ENCODED_API_KEY);
-
+        @DisplayName("returns empty when the api-key-id index is empty (entries without an api-key-id are not indexed)")
+        void whenApiKeyIdIndexEmptyThenReturnsEmpty() {
+            // findByApiKey consults only the api-key-id index; an entry that carries no
+            // api-key-id never enters it, so it cannot be matched.
             when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
-            // Lookup uses only the api-key-id index, never the user list. An entry
-            // absent from the index is ignored even when its key matches.
-            lenient().when(properties.getUsers()).thenReturn(List.of(userEntry));
 
             val result = service.findByApiKey(RAW_API_KEY);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("returns empty when the api-key-id is indexed but the secret does not match")
+        void whenApiKeyIdIndexedButSecretMismatchThenReturnsEmpty() {
+            val userEntry = new UserEntry();
+            userEntry.setId("api-user");
+            userEntry.setApiKey(ENCODED_API_KEY); // hash of RAW_API_KEY
+            userEntry.setApiKeyId("7A7ByyQd6U");
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of("7A7ByyQd6U", userEntry));
+
+            // Same api-key-id as RAW_API_KEY, different secret: the hash must not match.
+            val result = service.findByApiKey("sapl_7A7ByyQd6U_WRONGSECRET00000000000000000000000");
 
             assertThat(result).isEmpty();
         }

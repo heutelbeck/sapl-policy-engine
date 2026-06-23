@@ -59,6 +59,7 @@ public record AuthorizationSubscription(
         @NonNull ObjectValue secrets) {
 
     private static final ObjectMapper DEFAULT_MAPPER = JsonMapper.builder().build();
+    private static final String ERROR_SECRETS_NOT_OBJECT = "secrets must be a JSON object, but marshalled to %s.";
     private static final String SECRETS_KEY = "secrets";
     private static final Value SECRETS_REDACTED = Value.of("SECRETS REDACTED");
 
@@ -129,9 +130,10 @@ public record AuthorizationSubscription(
         val value = toValue(secrets, mapper);
         if (value instanceof ObjectValue ov) {
             return ov;
-        } else {
-            return Value.EMPTY_OBJECT;
         }
+        // Fail-fast: a malformed (non-object) secrets config is rejected, not silently
+        // emptied. secrets must be a JSON object.
+        throw new IllegalArgumentException(ERROR_SECRETS_NOT_OBJECT.formatted(value.getClass().getSimpleName()));
     }
 
     private static Value toValue(Object object, ObjectMapper mapper) {

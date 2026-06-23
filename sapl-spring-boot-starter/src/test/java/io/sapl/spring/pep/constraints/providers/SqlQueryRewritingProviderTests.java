@@ -455,7 +455,8 @@ class SqlQueryRewritingProviderTests {
 
             val rewritten = mapper.apply("SELECT * FROM resources");
 
-            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = true").contains("OR");
+            assertThat(rewritten).contains("owner_id = 'alice'").contains("is_public = true")
+                    .containsPattern("\\([^()]*OR[^()]*\\)");
         }
 
         @Test
