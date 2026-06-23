@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 import jakarta.servlet.AsyncContext;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -127,7 +126,7 @@ final class SseConnection {
     private PrintWriter writer() {
         if (writer == null && !writerUnavailable) {
             try {
-                writer = ((HttpServletResponse) asyncContext.getResponse()).getWriter();
+                writer = asyncContext.getResponse().getWriter();
             } catch (IOException | IllegalStateException e) {
                 writerUnavailable = true;
                 log.debug("SSE writer unavailable: {}", e.getMessage());
