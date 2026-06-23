@@ -58,6 +58,7 @@ import java.util.function.Consumer;
 @Slf4j
 public class PdpVoterSource implements AutoCloseable {
 
+    private static final String ERROR_RECOMPILE_FAILED      = "Recompilation failed: %s";
     private static final String WARN_CONFIGURATION_REJECTED = "Configuration rejected:\n{}";
     private static final String WARN_DEFERRED_CONFIGURATION = "Configuration for pdpId '{}' arrived before plugins source delivered an initial snapshot. Retained and will compile when plugins are available.";
     private static final String WARN_LISTENER_THREW         = "Update listener for pdpId '{}' threw: {}";
@@ -165,6 +166,10 @@ public class PdpVoterSource implements AutoCloseable {
                 // keepOld semantics are meaningful only for config updates, where the
                 // runtime is unchanged.
                 loadConfigurationLocked(config, OnCompileError.FAIL_CLOSED, plugins);
+                // Stamp the generation actually compiled against. This is the live
+                // pluginGeneration (the generation of currentPlugins read above), which under
+                // a concurrent newer snapshot may exceed targetGeneration; both were read
+                // under this single lock hold, so they are consistent.
                 servedGeneration.put(pdpId, pluginGeneration);
             } catch (Exception e) {
                 log.warn("Recompile of pdpId '{}' after plugins push threw: {}", pdpId, e.getMessage());
@@ -248,36 +253,15 @@ public class PdpVoterSource implements AutoCloseable {
         try {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext, plugins);
         } catch (SaplCompilerException compilerException) {
-            val formattedError = CompilationErrorFormatter.format(compilerException);
-            if (onCompileError == OnCompileError.THROW) {
-                // Fail-fast must leave state unchanged: restore the previously
-                // retained configuration so the rejected one is not retained.
-                if (priorRetained == null) {
-                    retainedConfigurations.remove(pdpConfiguration.pdpId());
-                } else {
-                    retainedConfigurations.put(pdpConfiguration.pdpId(), priorRetained);
-                }
-                throw new PDPConfigurationException(formattedError, compilerException);
-            }
-            val now          = clock.instant();
-            val currentState = getStatusRef(pdpConfiguration.pdpId()).get().state();
-            // Keep serving the last-good voter (STALE) only on a config update, where that
-            // voter is still bound to the live runtime. A plugin swap (FAIL_CLOSED) must
-            // fail closed instead: the last-good voter is bound to the retired bundle.
-            if (onCompileError == OnCompileError.RETAIN_LAST_GOOD
-                    && (currentState == PdpState.LOADED || currentState == PdpState.STALE)) {
-                getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.STALE,
-                        current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
-                        current.lastSuccessfulLoad(), now, formattedError));
-            } else {
-                val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, plugins);
-                getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(errorVoter));
-                notifyListeners(pdpConfiguration.pdpId(),
-                        new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), errorVoter));
-                getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null,
-                        0, current.lastSuccessfulLoad(), now, formattedError));
-            }
-            log.warn(WARN_CONFIGURATION_REJECTED, formattedError);
+            handleCompileFailure(pdpConfiguration, onCompileError, plugins, priorRetained, compilerException);
+            return;
+        } catch (RuntimeException unexpected) {
+            // A compile-time hook (e.g. a plugin function broker invoked during constant
+            // folding) violated the never-throw contract. Treat any compile fault as a
+            // compile failure so the swap path fails closed rather than stranding a voter
+            // bound to the retired bundle.
+            handleCompileFailure(pdpConfiguration, onCompileError, plugins, priorRetained,
+                    new SaplCompilerException(ERROR_RECOMPILE_FAILED.formatted(unexpected.getMessage()), unexpected));
             return;
         }
 
@@ -287,6 +271,39 @@ public class PdpVoterSource implements AutoCloseable {
         val now = clock.instant();
         getStatusRef(pdpConfiguration.pdpId()).set(new PdpStatus(PdpState.LOADED, pdpConfiguration.configurationId(),
                 pdpConfiguration.combiningAlgorithm(), pdpConfiguration.saplDocuments().size(), now, null, null));
+    }
+
+    private void handleCompileFailure(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
+            PluginsBundle plugins, PDPConfiguration priorRetained, SaplCompilerException compilerException) {
+        val formattedError = CompilationErrorFormatter.format(compilerException);
+        if (onCompileError == OnCompileError.THROW) {
+            // Fail-fast must leave state unchanged: restore the previously
+            // retained configuration so the rejected one is not retained.
+            if (priorRetained == null) {
+                retainedConfigurations.remove(pdpConfiguration.pdpId());
+            } else {
+                retainedConfigurations.put(pdpConfiguration.pdpId(), priorRetained);
+            }
+            throw new PDPConfigurationException(formattedError, compilerException);
+        }
+        val now          = clock.instant();
+        val currentState = getStatusRef(pdpConfiguration.pdpId()).get().state();
+        // Keep serving the last-good voter (STALE) only on a config update, where that
+        // voter is still bound to the live runtime. A plugin swap (FAIL_CLOSED) must
+        // fail closed instead: the last-good voter is bound to the retired bundle.
+        if (onCompileError == OnCompileError.RETAIN_LAST_GOOD
+                && (currentState == PdpState.LOADED || currentState == PdpState.STALE)) {
+            getStatusRef(pdpConfiguration.pdpId()).updateAndGet(
+                    current -> new PdpStatus(PdpState.STALE, current.configurationId(), current.combiningAlgorithm(),
+                            current.documentCount(), current.lastSuccessfulLoad(), now, formattedError));
+        } else {
+            val errorVoter = PdpCompiler.createErrorVoter(pdpConfiguration, compilerException, plugins);
+            getConfigRef(pdpConfiguration.pdpId()).set(Optional.of(errorVoter));
+            notifyListeners(pdpConfiguration.pdpId(), new PdpUpdateEvent.Voter(pdpConfiguration.pdpId(), errorVoter));
+            getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.ERROR, null, null, 0,
+                    current.lastSuccessfulLoad(), now, formattedError));
+        }
+        log.warn(WARN_CONFIGURATION_REJECTED, formattedError);
     }
 
     /**

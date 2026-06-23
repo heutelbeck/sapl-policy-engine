@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.DecisionInterceptor;
@@ -71,6 +73,38 @@ class PdpVoterSourceDynamicRecompileTests {
     private static PDPConfiguration brokenConfig() {
         return new PDPConfiguration(PDP_ID, "config-broken", CombiningAlgorithm.DEFAULT,
                 List.of("this is not valid sapl"), EMPTY);
+    }
+
+    /**
+     * A policy whose compilation constant-folds a function call, so the compiler
+     * invokes the plugins' function broker at compile time.
+     */
+    private static PDPConfiguration configFoldingFunction(String configId) {
+        return new PDPConfiguration(PDP_ID, configId, CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit\nstandard.length(\"abc\") == 3;"), EMPTY);
+    }
+
+    /**
+     * A contract-violating function broker that throws instead of returning
+     * ErrorValue.
+     */
+    private static FunctionBroker throwingFunctionBroker() {
+        return new FunctionBroker() {
+            @Override
+            public void load(Object libraryInstance) {
+                // no-op
+            }
+
+            @Override
+            public Value evaluateFunction(FunctionInvocation invocation) {
+                throw new IllegalStateException("plugin function broker boom");
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
     }
 
     @Test
@@ -282,10 +316,56 @@ class PdpVoterSourceDynamicRecompileTests {
             // voter would serve one bound to the retired bundle, so it must fail closed.
             pluginsSource.publish(pluginsOf(brokerWithStandard()));
 
+            // ERROR with the error-voter status shape (no configurationId, zero documents),
+            // pinning that this is a fail-closed error voter, not a
+            // STALE-reported-as-ERROR.
+            assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(s -> {
+                assertThat(s.state()).isEqualTo(PdpState.ERROR);
+                assertThat(s.configurationId()).isNull();
+                assertThat(s.documentCount()).isZero();
+            });
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(after -> assertThat(after).isNotSameAs(lastGood));
+        }
+    }
+
+    @Test
+    @DisplayName("a plugins swap whose broker throws during compile fails closed, not stranding the retired-bundle voter")
+    void whenPluginsSwapBrokerThrowsDuringCompileThenFailsClosed() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(configFoldingFunction(CONFIG_A), false);
+            val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.LOADED));
+
+            // The swapped-in bundle's broker throws (non-SaplCompilerException) during the
+            // compile-time fold. A voter bound to the retired bundle must not keep serving.
+            pluginsSource.publish(new PluginsBundle(throwingFunctionBroker(), List.of(), List.of()));
+
             assertThat(voterSource.getPdpStatus(PDP_ID))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
             assertThat(voterSource.getCurrentConfiguration(PDP_ID))
                     .hasValueSatisfying(after -> assertThat(after).isNotSameAs(lastGood));
+        }
+    }
+
+    @Test
+    @DisplayName("a deferred broken config compiles to ERROR on first plugins arrival, regardless of keepOld (no last-good to retain)")
+    void whenDeferredBrokenConfigThenFirstSnapshotErrors() {
+        val pluginsSource = new MutablePluginsSource();
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            // keepOld=true, but deferred because no plugins have arrived yet.
+            voterSource.loadConfiguration(brokenConfig(), true);
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));
+
+            // First snapshot recompiles under FAIL_CLOSED; with no last-good voter it
+            // errors.
+            pluginsSource.publish(pluginsOf(brokerWithStandard()));
+
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
         }
     }
 
