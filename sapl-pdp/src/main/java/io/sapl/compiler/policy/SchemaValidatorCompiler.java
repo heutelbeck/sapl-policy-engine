@@ -205,16 +205,19 @@ public class SchemaValidatorCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
+            // Kleene OR: a TRUE from any schema wins even if another errors; surface an
+            // error only if none pass.
+            ErrorValue firstError = null;
             for (val validator : validators) {
                 val result = validator.evaluate(ctx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
                 if (Value.TRUE.equals(result)) {
                     return Value.TRUE;
                 }
+                if (result instanceof ErrorValue error && firstError == null) {
+                    firstError = error;
+                }
             }
-            return Value.FALSE;
+            return firstError != null ? firstError : Value.FALSE;
         }
 
         @Override

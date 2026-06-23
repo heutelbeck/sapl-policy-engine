@@ -376,6 +376,27 @@ class FilterExpressionTests {
     }
 
     @Nested
+    @DisplayName("Condition filter on a non-boolean condition")
+    class NonBooleanConditionFilter {
+
+        @Test
+        @DisplayName("an array filter condition that is non-boolean fails closed instead of keeping the element")
+        void whenArrayConditionNonBooleanThenError() {
+            val result = evaluate("[1, 2, 3] |- { @[?(@)] : simple.doubleValue }");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("boolean");
+        }
+
+        @Test
+        @DisplayName("an object filter condition that is non-boolean fails closed instead of keeping the entry")
+        void whenObjectConditionNonBooleanThenError() {
+            val result = evaluate("{\"a\": 1, \"b\": 2} |- { @[?(@)] : simple.doubleValue }");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("boolean");
+        }
+    }
+
+    @Nested
     @DisplayName("Subtemplate Operations")
     class SubtemplateOperations {
 

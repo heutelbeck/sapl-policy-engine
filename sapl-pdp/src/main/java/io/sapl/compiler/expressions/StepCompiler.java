@@ -20,6 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -745,21 +746,25 @@ public class StepCompiler {
 
     private static Value filterElements(int size, IntFunction<Value> elementAt, IntFunction<Value> keyAt,
             Value constantCond, PureOperator condOp, EvaluationContext ctx, SourceLocation loc) {
-        val builder = ArrayValue.builder();
-        for (int i = 0; i < size; i++) {
-            val element = elementAt.apply(i);
-            val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
-            val result  = evaluateCondition(constantCond, condOp, elemCtx);
-            if (result instanceof BooleanValue(boolean val)) {
-                if (val)
-                    builder.add(element);
-            } else if (result instanceof ErrorValue) {
-                return result;
-            } else {
-                return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+        // Shared regex budget across all elements so a per-element =~ cannot amplify
+        // cost with array size.
+        return BoundedRegex.runWithSharedMatchBudget(() -> {
+            val builder = ArrayValue.builder();
+            for (int i = 0; i < size; i++) {
+                val element = elementAt.apply(i);
+                val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
+                val result  = evaluateCondition(constantCond, condOp, elemCtx);
+                if (result instanceof BooleanValue(boolean val)) {
+                    if (val)
+                        builder.add(element);
+                } else if (result instanceof ErrorValue) {
+                    return result;
+                } else {
+                    return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+                }
             }
-        }
-        return builder.build();
+            return builder.build();
+        });
     }
 
     private static Value evaluateCondition(Value constantCond, PureOperator condOp, EvaluationContext elemCtx) {
