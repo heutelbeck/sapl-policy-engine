@@ -139,6 +139,16 @@ class ValueJsonMarshallerTests {
         assertThat(Value.of(-0.0)).isEqualTo(Value.of(0.0));
     }
 
+    @Test
+    @DisplayName("pretty-printing an error with a null message does not throw")
+    void whenPrettyPrintingErrorWithNullMessageThenRendersWithoutThrowing() {
+        var errorWithNullMessage = new ErrorValue(new RuntimeException());
+        var array                = Value.ofArray(errorWithNullMessage);
+
+        assertThat(ValueJsonMarshaller.toPrettyString(errorWithNullMessage)).contains("ERROR");
+        assertThat(ValueJsonMarshaller.toPrettyString(array)).contains("ERROR");
+    }
+
     // Round-trip Conversion Tests - Collections
 
     @ParameterizedTest(name = "round-trip empty: {0}")

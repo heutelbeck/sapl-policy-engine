@@ -265,6 +265,15 @@ class SaplJacksonModuleTests {
     }
 
     @Test
+    void when_subscriptionIdIsExplicitNull_then_rejectedNotCoercedToNullString() {
+        val json = """
+                {"subscriptionId": null, "subscription": {"subject": "s", "action": "a", "resource": "r"}}""";
+
+        assertThatThrownBy(() -> mapper.readValue(json, IdentifiableAuthorizationSubscription.class))
+                .isInstanceOf(JacksonException.class);
+    }
+
+    @Test
     void when_serializingIdentifiableDecision_then_containsIdAndDecision() throws JacksonException {
         val identifiable = new IdentifiableAuthorizationDecision("read-tome", AuthorizationDecision.PERMIT);
         val json         = mapper.writeValueAsString(identifiable);

@@ -454,12 +454,10 @@ class PermissionsFunctionLibraryTests {
     }
 
     @Test
-    void whenHasAllWithNonArrayMaskThenReturnsError() {
-        // This test verifies error handling for incorrect parameter type
-        // We need to pass something that's not an ArrayValue to test the error case
-        val singleValue = ArrayValue.builder().build(); // Pass empty array to trigger different error
-        val actual      = PermissionsFunctionLibrary.hasAll((NumberValue) Value.of(42L), singleValue);
-        // Empty array should return true (vacuous truth: has all of zero elements)
+    void whenHasAllWithEmptyMaskThenReturnsTrue() {
+        val emptyMask = ArrayValue.builder().build();
+        val actual    = PermissionsFunctionLibrary.hasAll((NumberValue) Value.of(42L), emptyMask);
+        // Vacuous truth: a permission has all of zero required bits.
         assertThat(actual).isInstanceOf(BooleanValue.class).isEqualTo(Value.TRUE);
     }
 

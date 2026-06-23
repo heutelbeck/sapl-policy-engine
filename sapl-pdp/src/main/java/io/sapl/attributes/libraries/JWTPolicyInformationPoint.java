@@ -414,7 +414,10 @@ public class JWTPolicyInformationPoint {
     }
 
     private void ifPresentReplaceEpochFieldWithIsoTime(JsonNode payload, String key) {
-        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber())) {
+        // canConvertToLong guards asLong(), which throws on a numeric value outside
+        // 64-bit long range (e.g. a hostile out-of-range or non-finite exp/nbf/iat).
+        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()
+                && payload.get(key).canConvertToLong())) {
             return;
         }
 

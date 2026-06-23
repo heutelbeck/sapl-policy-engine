@@ -111,7 +111,10 @@ public class LspWebSocketEndpoint extends TextWebSocketHandler implements Dispos
             var finalServerInput = serverInput;
             executor.submit(() -> launchLanguageServer(session, finalServerInput, serverToClient));
         } catch (Exception e) {
+            // Remove the stored input so afterConnectionClosed (which Spring still
+            // calls) does not decrement the session counter a second time.
             closeQuietly(serverInput);
+            session.getAttributes().remove(SESSION_KEY_SERVER_INPUT);
             activeSessions.decrementAndGet();
             throw e;
         }

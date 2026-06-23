@@ -198,6 +198,20 @@ class JWTPolicyInformationPointTests {
                 });
             }
         }
+
+        @Test
+        @DisplayName("an out-of-long-range numeric exp does not crash the PIP")
+        void whenExpOutOfLongRangeThenPipDoesNotThrow() throws JOSEException {
+            val header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build();
+            val claims = new JWTClaimsSet.Builder().claim("exp", 1.0E33).build();
+            val source = JWTTestUtility.buildAndSignJwt(header, claims, keyPair);
+            cacheServerKey(kid, KeyTestUtility.generateInvalidRSAPublicKey());
+            val accessCtx = ctx(JsonTestUtility.publicKeyUriVariables(server, null), Map.of("jwt", source));
+
+            try (val stream = sut.token(accessCtx)) {
+                StreamAssertions.assertThat(stream).awaitsNext(v -> assertThat(field(v, "validity")).isNotNull());
+            }
+        }
     }
 
     @Nested

@@ -146,6 +146,9 @@ public class GdriveScenarioGenerator {
      * @return scenario with 5 policies and 500 subscriptions
      */
     public static Scenario generate(int n, long seed) {
+        if (n <= 0) {
+            throw new IllegalArgumentException("entity count must be a positive integer, got: " + n);
+        }
         val rng = new Random(seed);
 
         val entityGraph = ObjectValue.builder();

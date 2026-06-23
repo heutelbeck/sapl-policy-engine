@@ -221,6 +221,35 @@ class DirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("a subscriber that throws does not stop hot-reload for other subscribers")
+    void whenSubscriberThrowsThenOtherSubscribersKeepReceivingUpdates() throws IOException {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+        val configs = capture.configs();
+        source.subscribe(event -> {
+            throw new RuntimeException("hostile subscriber");
+        });
+
+        assertThat(configs).hasSize(1);
+
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2));
+
+        createFile(tempDir.resolve("second.sapl"), "policy \"second\" deny true;");
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(3));
+    }
+
+    @Test
     void whenFileIsAddedThenVoterSourceReceivesUpdatedConfiguration() throws IOException {
         writePdpJson(tempDir);
         createFile(tempDir.resolve("first.sapl"), "policy \"first\" permit true;");

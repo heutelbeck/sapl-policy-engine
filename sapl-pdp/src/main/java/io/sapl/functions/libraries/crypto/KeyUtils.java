@@ -32,8 +32,8 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 
@@ -57,14 +57,18 @@ public class KeyUtils {
      * shares P-256's 256-bit order) or substring-matching a provider-specific
      * {@code toString()}.
      */
-    private static final Map<String, ECParameterSpec> NIST_CURVES = referenceNistCurves();
+    private static final String[] NIST_CURVE_NAMES = { CURVE_SECP256R1, CURVE_SECP384R1, CURVE_SECP521R1 };
 
-    private static Map<String, ECParameterSpec> referenceNistCurves() {
-        val curves = new LinkedHashMap<String, ECParameterSpec>();
-        for (val standardName : new String[] { CURVE_SECP256R1, CURVE_SECP384R1, CURVE_SECP521R1 }) {
+    private static final List<NistCurve> NIST_CURVES = referenceNistCurves();
+
+    private record NistCurve(String name, ECParameterSpec parameters) {}
+
+    private static List<NistCurve> referenceNistCurves() {
+        val curves = new ArrayList<NistCurve>();
+        for (val standardName : NIST_CURVE_NAMES) {
             val spec = referenceCurve(standardName);
             if (spec != null) {
-                curves.put(standardName, spec);
+                curves.add(new NistCurve(standardName, spec));
             }
         }
         return curves;
@@ -219,9 +223,9 @@ public class KeyUtils {
      */
     private static String matchNistCurveName(ECPublicKey ecKey) {
         val keySpec = ecKey.getParams();
-        for (val entry : NIST_CURVES.entrySet()) {
-            if (sameCurve(keySpec, entry.getValue())) {
-                return entry.getKey();
+        for (val curve : NIST_CURVES) {
+            if (sameCurve(keySpec, curve.parameters())) {
+                return curve.name();
             }
         }
         return null;

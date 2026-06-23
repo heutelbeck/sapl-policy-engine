@@ -99,11 +99,13 @@ public class ValueToGraphJsonMapper {
      * @return pretty-printed JSON string representation
      */
     public static String toPrettyJsonString(Value value) {
-        val json = toGraphJsonNode(value);
         try {
+            val json = toGraphJsonNode(value);
             return OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
         } catch (Exception exception) {
-            return json.toString();
+            // toGraphJsonNode can reject a null or over-deep Value; never let that
+            // escape the editor's pretty-printer.
+            return String.valueOf(value);
         }
     }
 

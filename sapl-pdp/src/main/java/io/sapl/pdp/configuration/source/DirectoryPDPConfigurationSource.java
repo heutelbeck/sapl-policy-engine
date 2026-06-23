@@ -84,6 +84,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
     private static final String ERROR_FAILED_TO_LOAD_INITIAL_CONFIGURATION = "The configuration for PDP '{}' could not be loaded: {}. Every decision is INDETERMINATE until a valid configuration is in place. Decisions resume automatically once it is corrected.";
     private static final String ERROR_FAILED_TO_START_FILE_MONITOR         = "Failed to start file monitor for configuration directory: '%s'.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY                = "Configuration path is not a directory: '%s'.";
+    private static final String WARN_SUBSCRIBER_THREW                      = "Configuration subscriber for PDP '{}' threw and was isolated; other subscribers and hot-reload are unaffected: {}";
 
     private final Path                              directoryPath;
     private final String                            pdpId;
@@ -204,7 +205,13 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
             return;
         }
         for (val subscriber : subscribers) {
-            subscriber.accept(event);
+            try {
+                subscriber.accept(event);
+            } catch (Exception e) {
+                // Isolate subscribers: a throwing one must not skip the others or
+                // escape onto the file-monitor thread.
+                log.warn(WARN_SUBSCRIBER_THREW, pdpId, e.getMessage());
+            }
         }
     }
 

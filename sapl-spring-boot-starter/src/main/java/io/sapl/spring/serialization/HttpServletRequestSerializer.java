@@ -21,6 +21,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -182,10 +183,13 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
         }
         gen.writeName(HEADERS);
         gen.writeStartObject();
+        val writtenHeaderNames = new HashSet<String>();
         while (headerNames.hasMoreElements()) {
             val name    = headerNames.nextElement();
             val headers = request.getHeaders(name);
-            if (headers != null && headers.hasMoreElements()) {
+            // Dedup case-variant header names (getHeaders is case-insensitive); two
+            // names differing only in case would otherwise emit a duplicate JSON key.
+            if (headers != null && headers.hasMoreElements() && writtenHeaderNames.add(name.toLowerCase(Locale.ROOT))) {
                 gen.writeName(name.toLowerCase(Locale.ROOT));
                 gen.writeStartArray();
                 while (headers.hasMoreElements()) {

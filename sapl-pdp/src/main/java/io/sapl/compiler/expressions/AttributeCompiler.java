@@ -215,7 +215,7 @@ public class AttributeCompiler {
             try {
                 n.longValueExact();
             } catch (ArithmeticException e) {
-                throw new SaplCompilerException(ERROR_OPTION_MUST_BE_WHOLE_NUMBER.formatted(key, n), location);
+                throw new SaplCompilerException(ERROR_OPTION_MUST_BE_WHOLE_NUMBER.formatted(key, n), e, location);
             }
             return n;
         }

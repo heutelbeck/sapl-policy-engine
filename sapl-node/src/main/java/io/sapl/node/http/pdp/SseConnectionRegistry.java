@@ -17,29 +17,26 @@
  */
 package io.sapl.node.http.pdp;
 
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import jakarta.servlet.AsyncContext;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 /**
- * Tracks open SSE AsyncContexts so that on Spring context close each
- * connection receives a final shutdown event before the pump executor is
- * interrupted. Without this hook clients see an abrupt TCP close and have
- * no signal to stop reconnecting.
+ * Tracks open SSE connections so that on Spring context close each connection
+ * receives a final shutdown event before the pump executor is interrupted.
+ * Without this hook clients see an abrupt TCP close and have no signal to stop
+ * reconnecting.
  * <p>
- * Each connection is registered together with its per-connection writer lock,
- * the same lock the pump and keep-alive writes synchronize on. The shutdown
- * write acquires that lock so the final frame cannot interleave with a
- * concurrent pump or keep-alive write to the same non-thread-safe
- * {@code PrintWriter}.
+ * The shutdown drain and the pump teardown both finish a connection through the
+ * same {@link SseConnection}, which serializes the writes on its own monitor so
+ * the final frame cannot interleave with a concurrent pump or keep-alive write,
+ * and completes the async context at most once.
  */
 @Slf4j
 @Component
@@ -49,27 +46,25 @@ public class SseConnectionRegistry {
     private static final String LOG_DRAINING     = "Draining {} active SSE connection(s)";
     private static final String LOG_DRAIN_FAILED = "Failed to drain SSE connection: {}";
 
-    private final Map<AsyncContext, Object> open = new ConcurrentHashMap<>();
+    private final Set<SseConnection> open = ConcurrentHashMap.newKeySet();
 
     private volatile boolean shuttingDown = false;
 
-    void register(AsyncContext context, Object writerLock) {
+    void register(SseConnection connection) {
         if (shuttingDown) {
-            drain(context, writerLock);
+            drain(connection);
             return;
         }
-        open.put(context, writerLock);
-        if (shuttingDown) {
-            // Shutdown began between the flag check and the put. Drain here so the
-            // connection cannot leak past a terminal scan that already happened.
-            if (open.remove(context) != null) {
-                drain(context, writerLock);
-            }
+        open.add(connection);
+        // Shutdown may have begun between the flag check and the add. Drain here so
+        // the connection cannot leak past a terminal scan that already happened.
+        if (shuttingDown && open.remove(connection)) {
+            drain(connection);
         }
     }
 
-    void unregister(AsyncContext context) {
-        open.remove(context);
+    void unregister(SseConnection connection) {
+        open.remove(connection);
     }
 
     @EventListener
@@ -79,22 +74,17 @@ public class SseConnectionRegistry {
             return;
         }
         log.info(LOG_DRAINING, open.size());
-        for (val entry : open.entrySet()) {
-            if (open.remove(entry.getKey()) != null) {
-                drain(entry.getKey(), entry.getValue());
+        for (val connection : open) {
+            if (open.remove(connection)) {
+                drain(connection);
             }
         }
     }
 
-    private void drain(AsyncContext context, Object writerLock) {
+    private void drain(SseConnection connection) {
         try {
-            val response = (HttpServletResponse) context.getResponse();
-            val writer   = response.getWriter();
-            synchronized (writerLock) {
-                writer.write(SHUTDOWN_EVENT);
-                writer.flush();
-            }
-            context.complete();
+            connection.writeQuietly(SHUTDOWN_EVENT);
+            connection.complete();
         } catch (Exception e) {
             log.debug(LOG_DRAIN_FAILED, e.getMessage());
         }

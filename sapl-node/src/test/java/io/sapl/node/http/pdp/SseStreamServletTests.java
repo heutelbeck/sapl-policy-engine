@@ -124,7 +124,7 @@ class SseStreamServletTests {
 
         servlet().handlePost(request, new MockHttpServletResponse());
 
-        verify(connectionRegistry).unregister(asyncContext);
+        verify(connectionRegistry).unregister(any(SseConnection.class));
         verify(asyncContext).complete();
     }
 
@@ -385,7 +385,7 @@ class SseStreamServletTests {
 
             servlet.handlePost(request, response);
 
-            verify(connectionRegistry, timeout(10000)).unregister(asyncContext);
+            verify(connectionRegistry, timeout(10000)).unregister(any(SseConnection.class));
             verify(asyncContext, timeout(10000)).complete();
         } finally {
             scheduler.shutdownNow();

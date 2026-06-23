@@ -259,9 +259,10 @@ public class SaplProtobufCodec {
         while (!input.isAtEnd()) {
             val tag         = input.readTag();
             val fieldNumber = getTagFieldNumber(tag);
-            switch (fieldNumber) {
-            case ERROR_MESSAGE -> message = input.readString();
-            default            -> input.skipField(tag);
+            if (fieldNumber == ERROR_MESSAGE) {
+                message = input.readString();
+            } else {
+                input.skipField(tag);
             }
         }
         input.popLimit(limit);

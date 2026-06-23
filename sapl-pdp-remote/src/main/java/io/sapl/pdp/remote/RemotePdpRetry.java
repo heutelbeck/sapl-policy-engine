@@ -71,7 +71,7 @@ class RemotePdpRetry {
     private static Duration backoffWithJitter(long attempt, int firstBackoffMillis, int maxBackOffMillis) {
         val exponential = firstBackoffMillis * Math.pow(2d, attempt - 1d);
         val capped      = (long) Math.min(exponential, maxBackOffMillis);
-        val jittered    = capped / 2L + (long) (ThreadLocalRandom.current().nextDouble() * (capped / 2d));
+        val jittered    = capped / 2L + ThreadLocalRandom.current().nextLong(capped / 2L + 1L);
         return Duration.ofMillis(Math.max(1L, jittered));
     }
 

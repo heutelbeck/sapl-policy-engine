@@ -19,6 +19,7 @@ package io.sapl.node.http.pdp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,72 +41,72 @@ import lombok.val;
 @DisplayName("SseConnectionRegistry")
 class SseConnectionRegistryTests {
 
-    private final AtomicBoolean competitorHoldsLock = new AtomicBoolean(false);
-
     @Test
-    @DisplayName("the shutdown write is serialized through the same per-connection writer lock the pump and keep-alive use")
-    void whenConnectionRegisteredThenShutdownWriteHoldsTheWriterLock() throws Exception {
-        val registry   = new SseConnectionRegistry();
-        val writerLock = new Object();
+    @DisplayName("the shutdown write is serialized through the connection's monitor and never interleaves with a concurrent write")
+    void whenConnectionRegisteredThenShutdownWriteIsSerializedWithConcurrentWrites() throws Exception {
+        val registry = new SseConnectionRegistry();
 
-        val writeSawCompetitorHoldingLock = new AtomicBoolean(false);
-        val recordingWriter               = new PrintWriter(new Writer() {
-                                              @Override
-                                              public void write(char[] cbuf, int off, int len) {
-                                                  if (competitorHoldsLock.get()) {
-                                                      writeSawCompetitorHoldingLock.set(true);
-                                                  }
-                                              }
+        val competitorInsideWrite         = new AtomicBoolean(false);
+        val shutdownWroteDuringCompetitor = new AtomicBoolean(false);
+        val competitorEntered             = new CountDownLatch(1);
+        val releaseCompetitor             = new CountDownLatch(1);
 
-                                              @Override
-                                              public void flush() {
-                                                  // no-op
-                                              }
+        val recordingWriter = new PrintWriter(new Writer() {
+            @Override
+            public void write(char[] cbuf, int off, int len) {
+                if (new String(cbuf, off, len).contains("competitor")) {
+                    competitorInsideWrite.set(true);
+                    competitorEntered.countDown();
+                    try {
+                        releaseCompetitor.await();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    competitorInsideWrite.set(false);
+                } else if (competitorInsideWrite.get()) {
+                    shutdownWroteDuringCompetitor.set(true);
+                }
+            }
 
-                                              @Override
-                                              public void close() {
-                                                  // no-op
-                                              }
-                                          });
+            @Override
+            public void flush() {
+                // no-op
+            }
+
+            @Override
+            public void close() {
+                // no-op
+            }
+        });
 
         val response = mock(HttpServletResponse.class);
         when(response.getWriter()).thenReturn(recordingWriter);
         val context = mock(AsyncContext.class);
         when(context.getResponse()).thenReturn(response);
 
-        registry.register(context, writerLock);
+        val connection = new SseConnection(context);
+        registry.register(connection);
 
-        val lockAcquired = new CountDownLatch(1);
-        val releaseLock  = new CountDownLatch(1);
-        val competitor   = new Thread(() -> {
-                             synchronized (writerLock) {
-                                 competitorHoldsLock.set(true);
-                                 lockAcquired.countDown();
-                                 try {
-                                     releaseLock.await();
-                                 } catch (InterruptedException e) {
-                                     Thread.currentThread().interrupt();
-                                 }
-                                 competitorHoldsLock.set(false);
-                             }
-                         });
+        // A competitor write enters the connection's monitor and parks inside the
+        // write, holding the lock the shutdown drain must also acquire.
+        val competitor = new Thread(() -> connection.write("competitor"));
         competitor.start();
-        lockAcquired.await();
+        competitorEntered.await();
 
         val shutdown = new Thread(
                 () -> registry.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class))));
         shutdown.start();
 
-        // While the competitor holds the lock the shutdown write must block, not race
-        // in.
+        // While the competitor holds the monitor the shutdown write must block, not
+        // race in.
         shutdown.join(300);
         assertThat(shutdown.isAlive()).isTrue();
 
-        releaseLock.countDown();
+        releaseCompetitor.countDown();
         shutdown.join(TimeUnit.SECONDS.toMillis(5));
         competitor.join(TimeUnit.SECONDS.toMillis(5));
 
-        assertThat(writeSawCompetitorHoldingLock).isFalse();
+        assertThat(shutdownWroteDuringCompetitor).isFalse();
         verify(context).complete();
     }
 
@@ -143,9 +144,32 @@ class SseConnectionRegistryTests {
 
         // A client connects after draining started. It must receive the shutdown
         // signal and be completed rather than linger as a leaked open connection.
-        registry.register(lateContext, new Object());
+        registry.register(new SseConnection(lateContext));
 
         assertThat(shutdownFrameWritten).isTrue();
         verify(lateContext).complete();
+    }
+
+    @Test
+    @DisplayName("a connection finished by both the pump teardown and the shutdown drain completes the async context exactly once")
+    void whenTeardownAndDrainBothFinishConnectionThenAsyncContextCompletedOnce() throws Exception {
+        val registry = new SseConnectionRegistry();
+        val response = mock(HttpServletResponse.class);
+        when(response.getWriter()).thenReturn(new PrintWriter(Writer.nullWriter()));
+        val context = mock(AsyncContext.class);
+        when(context.getResponse()).thenReturn(response);
+
+        val connection = new SseConnection(context);
+        registry.register(connection);
+
+        // Pump teardown finishes the connection.
+        connection.close();
+        connection.complete();
+
+        // Shutdown then drains the same connection; it must not complete a second
+        // time.
+        registry.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class)));
+
+        verify(context, times(1)).complete();
     }
 }
