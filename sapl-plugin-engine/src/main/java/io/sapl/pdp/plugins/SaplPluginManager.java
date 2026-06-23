@@ -30,6 +30,7 @@ import org.pf4j.JarPluginManager;
 import org.pf4j.PluginManager;
 import org.pf4j.PluginWrapper;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -56,10 +57,10 @@ import java.util.concurrent.locks.ReentrantLock;
 @Getter
 public class SaplPluginManager implements AutoCloseable {
 
-    private final SaplPluginsProperties properties;
-    private final PluginManager         pluginManager;
-    private final ReentrantLock         lock = new ReentrantLock();
-    private boolean                     closed;
+    private final Path          pluginsPath;
+    private final PluginManager pluginManager;
+    private final ReentrantLock lock = new ReentrantLock();
+    private boolean             closed;
 
     /**
      * Creates a manager over the configured plugins directory, backed by a
@@ -67,28 +68,28 @@ public class SaplPluginManager implements AutoCloseable {
      * {@link SaplVersion#SEMANTIC_VERSION} so that a plugin declaring an
      * incompatible {@code Plugin-Requires} range is rejected at load time.
      *
-     * @param properties
-     * the plugin configuration, including the directory scanned for plugin JARs
+     * @param pluginsPath
+     * the directory scanned for plugin JARs
      */
-    public SaplPluginManager(SaplPluginsProperties properties) {
-        this(new JarPluginManager(properties.getPluginsPath()), properties);
+    public SaplPluginManager(Path pluginsPath) {
+        this(new JarPluginManager(pluginsPath), pluginsPath);
         pluginManager.setSystemVersion(SaplVersion.SEMANTIC_VERSION);
     }
 
     /**
      * Creates a manager around a pre-configured PF4J {@link PluginManager}.
      * Mainly intended for tests and advanced customization. Unlike
-     * {@link #SaplPluginManager(SaplPluginsProperties)} this does not pin the
+     * {@link #SaplPluginManager(Path)} this does not pin the
      * system version; the caller configures the supplied manager.
      *
      * @param pluginManager
      * the PF4J plugin manager to delegate to
-     * @param properties
-     * the plugin configuration
+     * @param pluginsPath
+     * the directory scanned for plugin JARs
      */
-    public SaplPluginManager(PluginManager pluginManager, SaplPluginsProperties properties) {
+    public SaplPluginManager(PluginManager pluginManager, Path pluginsPath) {
         this.pluginManager = pluginManager;
-        this.properties    = properties;
+        this.pluginsPath   = pluginsPath;
     }
 
     /**

@@ -124,7 +124,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
         manager.start();
         republish();
 
-        this.monitor = startDirectoryMonitor(manager.getProperties().getPluginsPath());
+        this.monitor = startDirectoryMonitor(manager.getPluginsPath());
     }
 
     /**
@@ -285,6 +285,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
                 manager.reload();
                 republish();
             } catch (Exception e) {
+//                e.printStackTrace();
                 log.warn("Plugin reload after directory change failed: {}", e.getMessage());
             }
         }

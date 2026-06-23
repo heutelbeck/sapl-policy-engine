@@ -29,7 +29,7 @@
 		<version>4.1.0-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>sapl-plugins</artifactId>
+	<artifactId>sapl-plugin-engine</artifactId>
 	<name>SAPL Plugin Engine</name>
 	<description>PF4J-based engine that loads function libraries and Policy
 		Information Points from plugin JARs and hot-reloads them at runtime.</description>
@@ -72,18 +72,5 @@
 			<version>1.9.24</version>
 			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-autoconfigure</artifactId>
-		</dependency>
-        <dependency>
-            <groupId>io.sapl</groupId>
-            <artifactId>sapl-spring-pdp</artifactId>
-            <version>4.1.0-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 </project>

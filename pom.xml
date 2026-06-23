@@ -688,7 +688,7 @@
 		<module>sapl-pdp-reactive</module>
 
 		<!-- Plugin engine (PF4J-based hot-reloading of function libraries and PIPs) -->
-		<module>sapl-plugins</module>
+		<module>sapl-plugin-engine</module>
 
 		<!-- PDP extensions (depend on sapl-api) -->
 		<module>pdp-extensions/geo-functions</module>

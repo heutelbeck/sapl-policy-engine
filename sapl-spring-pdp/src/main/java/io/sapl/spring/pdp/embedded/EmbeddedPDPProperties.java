@@ -88,6 +88,16 @@ public class EmbeddedPDPProperties {
     private String policiesPath = "/policies";
 
     /**
+     * This property sets the path to the folder where the plugins are located.
+     * <p>
+     * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
+     * For DIRECTORY, MULTI_DIRECTORY, or BUNDLES, it must be a valid path on the
+     * system's file system.
+     */
+    @NotEmpty
+    private String pluginsPath = "/plugins";
+
+    /**
      * Use a coarse-resolution cached clock for observability timestamps (decision
      * trace and attribute value freshness) instead of the accurate system clock.
      * Cheaper per decision at high throughput, at the cost of coarser timestamp
