@@ -52,12 +52,14 @@ import java.util.Set;
 public class CompilationContext {
     public static final String OPTION_INDEXING                  = "indexing";
     public static final String OPTION_LOW_LATENCY_MODE          = "lowLatencyMode";
+    public static final String OPTION_MAX_DNF_CLAUSES           = "maxDnfClauses";
     public static final String OPTION_MAX_INDEX_NODES           = "maxIndexNodes";
     public static final String OPTION_MAX_POLICY_DOCUMENTS      = "maxPolicyDocuments";
     public static final String OPTION_MIN_POLICIES_FOR_INDEXING = "minPoliciesForIndexing";
     public static final String OPTION_UNROLL_IN_OPERATOR        = "unrollInOperator";
 
     public static final String DEFAULT_INDEXING                  = "AUTO";
+    public static final int    DEFAULT_MAX_DNF_CLAUSES           = 10_000;
     public static final int    DEFAULT_MAX_INDEX_NODES           = 500_000;
     public static final int    DEFAULT_MAX_POLICY_DOCUMENTS      = 10_000;
     public static final int    DEFAULT_MIN_POLICIES_FOR_INDEXING = 10;
@@ -346,6 +348,18 @@ public class CompilationContext {
      */
     public int minPoliciesForIndexing() {
         return intCompilerOption(OPTION_MIN_POLICIES_FOR_INDEXING, DEFAULT_MIN_POLICIES_FOR_INDEXING);
+    }
+
+    /**
+     * Maximum number of DNF conjunctive clauses permitted while normalizing a
+     * policy applicability for the canonical index; exceeding this triggers
+     * fallback to the naive index (AUTO) or a logged degrade (explicit CANONICAL).
+     * Bounds the exponential AND-of-ORs blow-up.
+     *
+     * @return the DNF clause budget
+     */
+    public int maxDnfClauses() {
+        return intCompilerOption(OPTION_MAX_DNF_CLAUSES, DEFAULT_MAX_DNF_CLAUSES);
     }
 
     /**

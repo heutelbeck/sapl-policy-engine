@@ -73,6 +73,21 @@ public class CanonicalPolicyIndex implements PolicyIndex {
      * @return a canonical policy index
      */
     public static CanonicalPolicyIndex create(List<CompiledDocument> documents) {
+        return create(documents, Integer.MAX_VALUE);
+    }
+
+    /**
+     * As {@link #create(List)}, bounding DNF normalization to {@code maxClauses}
+     * conjunctive clauses per applicability so a pathological AND-of-ORs cannot
+     * explode the heap during index construction.
+     *
+     * @param documents the compiled documents to index
+     * @param maxClauses the DNF clause budget per applicability
+     * @return a canonical policy index
+     * @throws io.sapl.compiler.index.IndexSizeLimitExceededException if any
+     * applicability's DNF exceeds {@code maxClauses}
+     */
+    public static CanonicalPolicyIndex create(List<CompiledDocument> documents, int maxClauses) {
         val formulaToDocuments = new HashMap<DisjunctiveFormula, List<CompiledDocument>>();
         val alwaysApplicable   = new ArrayList<CompiledDocument>();
         val alwaysErrorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
@@ -84,7 +99,7 @@ public class CanonicalPolicyIndex implements PolicyIndex {
             case BooleanValue ignored       -> { /* constant false, drop */ }
             case ErrorValue error           -> alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
             case PureOperator pureOp        -> {
-                val formula = DnfNormalizer.normalize(pureOp.booleanExpression());
+                val formula = DnfNormalizer.normalize(pureOp.booleanExpression(), maxClauses);
                 formulaToDocuments.computeIfAbsent(formula, k -> new ArrayList<>()).add(document);
             }
             default                         ->
