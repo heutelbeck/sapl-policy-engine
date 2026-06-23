@@ -19,7 +19,6 @@ package io.sapl.spring.config;
 
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.Ordered;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -31,6 +30,12 @@ import java.lang.annotation.Target;
  * Provide the @EnableReactiveSaplMethodSecurity annotation on any configuration
  * class to activate the reactive method
  * security for methods returning a Publisher.
+ * <p>
+ * Advisor ordering is fixed (see SaplAuthorizationInterceptorsOrder) and
+ * intentionally not configurable: the enforcement advisors must run inside any
+ * surrounding transaction so a deny or constraint failure rolls the transaction
+ * back. An {@code order} attribute would let callers break that invariant, so
+ * none is exposed.
  */
 @Documented
 @Target(ElementType.TYPE)
@@ -67,14 +72,5 @@ public @interface EnableReactiveSaplMethodSecurity {
      * @return the {@link AdviceMode} to use
      */
     AdviceMode mode() default AdviceMode.PROXY;
-
-    /**
-     * Indicate the ordering of the execution of the security advisor when advice is
-     * applied at a specific join point.
-     * The default is {@link Ordered#LOWEST_PRECEDENCE}.
-     *
-     * @return the order the security advisor should be applied
-     */
-    int order() default Ordered.LOWEST_PRECEDENCE;
 
 }
