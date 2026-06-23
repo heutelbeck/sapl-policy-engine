@@ -105,23 +105,23 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
 
     @Setter
     @Getter
-    private int firstBackoffMillis = 1000;
+    private volatile int firstBackoffMillis = 1000;
 
     @Setter
     @Getter
-    private int maxBackOffMillis = 30000;
+    private volatile int maxBackOffMillis = 30000;
 
     @Setter
     @Getter
-    private long maxRetries = Long.MAX_VALUE;
+    private volatile long maxRetries = Long.MAX_VALUE;
 
     @Setter
     @Getter
-    private int timeoutMillis = 5000;
+    private volatile int timeoutMillis = 5000;
 
     @Setter
     @Getter
-    private int inactivityTimeoutMillis = 60_000;
+    private volatile int inactivityTimeoutMillis = 60_000;
 
     public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
             String clientKey,

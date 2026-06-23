@@ -183,8 +183,8 @@ public class PatternsFunctionLibrary {
      * ensure safe detection.
      */
     private static final Pattern NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
-    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)]*\\|[^)]*\\)[*+]");
-    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)]*\\*[^)]*\\)[^)]*\\*");
+    private static final Pattern ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*\\|[^)]*\\)[*+]");
+    private static final Pattern NESTED_WILDCARDS       = Pattern.compile("\\([^)*]*\\*[^)]*\\)[^)*]*\\*");
     private static final Pattern NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
 
     @Function(docs = """

@@ -116,9 +116,14 @@ class SAPLTestDocumentSymbolProviderTests {
         @Test
         @DisplayName("a name spanning multiple lines yields a range that ends on the later line, not an over-wide single-line range")
         void whenNameSpansMultipleLinesThenRangeEndsOnLaterLine() {
-            var document = new SAPLTestParsedDocument("test.sapltest",
-                    "requirement \"first\nsecond\" {\n" + "    scenario \"s1\"\n"
-                            + "        when \"u\" attempts \"a\" on \"r\"\n" + "        expect permit;\n" + "}\n");
+            var document = new SAPLTestParsedDocument("test.sapltest", """
+                    requirement "first
+                    second" {
+                        scenario "s1"
+                            when "u" attempts "a" on "r"
+                            expect permit;
+                    }
+                    """);
 
             var symbols = provider.provideDocumentSymbols(document);
 

@@ -18,14 +18,19 @@
 package io.sapl.spring.serialization;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import lombok.val;
 
@@ -56,12 +61,20 @@ class ForwardedHeadersTests {
     @Nested
     class LegacyXForwardedFamily {
 
-        @Test
-        void singleClientInChainIsExposedAsListOfOne() {
+        @ParameterizedTest(name = "{2}")
+        @MethodSource("singleForwardedForValues")
+        void singleForwardedForValueIsNormalisedIntoOneElementChain(String value, String expected, String description) {
             val src = headers();
-            src.put("x-forwarded-for", List.of("198.51.100.1"));
+            src.put("x-forwarded-for", List.of(value));
             val parsed = ForwardedHeaders.parse(sourceOf(src));
-            assertThat(parsed.forChain()).containsExactly("198.51.100.1");
+            assertThat(parsed.forChain()).containsExactly(expected);
+        }
+
+        private static Stream<Arguments> singleForwardedForValues() {
+            return Stream.of(arguments("198.51.100.1", "198.51.100.1", "single client is exposed as a list of one"),
+                    arguments("198.51.100.1:54402", "198.51.100.1", "ipv4 with port is stripped per RFC 7239"),
+                    arguments("[2001:db8::1]:54402", "[2001:db8::1]",
+                            "ipv6 with port is stripped to bracketed address"));
         }
 
         @Test
@@ -108,21 +121,6 @@ class ForwardedHeadersTests {
             assertThat(parsed.host()).isNull();
         }
 
-        @Test
-        void ipv4WithPortIsStrippedSoChainAgreesWithRfc7239() {
-            val src = headers();
-            src.put("x-forwarded-for", List.of("198.51.100.1:54402"));
-            val parsed = ForwardedHeaders.parse(sourceOf(src));
-            assertThat(parsed.forChain()).containsExactly("198.51.100.1");
-        }
-
-        @Test
-        void ipv6WithPortIsStrippedToBracketedAddressOnly() {
-            val src = headers();
-            src.put("x-forwarded-for", List.of("[2001:db8::1]:54402"));
-            val parsed = ForwardedHeaders.parse(sourceOf(src));
-            assertThat(parsed.forChain()).containsExactly("[2001:db8::1]");
-        }
     }
 
     @Nested

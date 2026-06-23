@@ -207,7 +207,7 @@ class LatencyCollectorTests {
                     expectedMax  = Math.max(expectedMax, value);
                 }
             }
-            val expectedMean = (double) (expectedSum / total);
+            val expectedMean = (double) expectedSum / total;
             val expectedLow  = (double) expectedMin;
             val expectedHigh = (double) expectedMax;
 
