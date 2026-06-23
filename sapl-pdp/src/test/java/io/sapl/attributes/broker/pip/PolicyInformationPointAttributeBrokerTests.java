@@ -529,6 +529,53 @@ class PolicyInformationPointAttributeBrokerTests {
     }
 
     @Nested
+    @DisplayName("Callback contract-violation backstop")
+    class CallbackContractViolation {
+
+        @Test
+        @DisplayName("a callback that returns empty deps on a fire is ignored without crashing the broker dispatch")
+        void whenCallbackReturnsEmptyDepsOnFireThenBrokerSurvivesAndOtherConsumersStillFire() {
+            broker.load(new ControllablePip());
+            val key   = envKey("ctrl.latest", false, false);
+            val fired = new CountDownLatch(1);
+            broker.open("bad", Set.of(key), snapshot -> {
+                fired.countDown();
+                return Set.<SubscriptionKey>of();
+            });
+            val good = new Recorder(Set.of(key));
+            broker.open("good", Set.of(key), good.asCallback());
+
+            ControllablePip.emitToAll(Value.of("v1"));
+
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(fired.getCount()).isZero();
+                assertThat(good.snapshots).hasSizeGreaterThanOrEqualTo(1);
+            });
+        }
+
+        @Test
+        @DisplayName("a callback that throws on a fire is ignored without crashing the broker dispatch")
+        void whenCallbackThrowsOnFireThenBrokerSurvivesAndOtherConsumersStillFire() {
+            broker.load(new ControllablePip());
+            val key   = envKey("ctrl.latest", false, false);
+            val fired = new CountDownLatch(1);
+            broker.open("bad", Set.of(key), snapshot -> {
+                fired.countDown();
+                throw new IllegalStateException("callback boom");
+            });
+            val good = new Recorder(Set.of(key));
+            broker.open("good", Set.of(key), good.asCallback());
+
+            ControllablePip.emitToAll(Value.of("v1"));
+
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(fired.getCount()).isZero();
+                assertThat(good.snapshots).hasSizeGreaterThanOrEqualTo(1);
+            });
+        }
+    }
+
+    @Nested
     @DisplayName("Sharing and fresh")
     class SharingAndFresh {
 
@@ -850,9 +897,10 @@ class PolicyInformationPointAttributeBrokerTests {
     class CatalogMutationRacingClose {
 
         /**
-         * Fallback that keeps a registered observer alive without ever emitting,
-         * so an unmatched invocation becomes a live repository-backed active
-         * invocation eligible for promotion when a matching PIP is loaded.
+         * Fallback that keeps a registered observer alive without ever emitting, so an
+         * unmatched invocation becomes a
+         * live repository-backed active invocation eligible for promotion when a
+         * matching PIP is loaded.
          */
         private AttributeRepository idleFallback() {
             return new AttributeRepository() {
@@ -1030,9 +1078,9 @@ class PolicyInformationPointAttributeBrokerTests {
     }
 
     /**
-     * Each invocation creates a fresh {@link LatestSlotStream}; the
-     * test pushes via {@link #emitToAll} to deliver values to all
-     * currently open backing subscriptions.
+     * Each invocation creates a fresh {@link LatestSlotStream}; the test pushes via
+     * {@link #emitToAll} to deliver
+     * values to all currently open backing subscriptions.
      */
     @PolicyInformationPoint(name = "ctrl")
     static class ControllablePip {
@@ -1065,8 +1113,9 @@ class PolicyInformationPointAttributeBrokerTests {
 
     /**
      * PIP whose attribute blocks during its synchronous first open until
-     * {@link #PROCEED_GATE} is released, then returns a tracked stream.
-     * Lets a test deterministically interleave a catalog mutation with
+     * {@link #PROCEED_GATE} is released, then
+     * returns a tracked stream. Lets a test deterministically interleave a catalog
+     * mutation with
      * {@code broker.close()}: the load thread parks here while close runs.
      */
     @PolicyInformationPoint(name = "promote")

@@ -432,6 +432,8 @@ class CidrFunctionLibraryTests {
             2001:1::1          | true
             2001:db8::1        | true
             2001:db8:ffff::    | true
+            fc00::1            | true
+            fd00::1            | true
             # Not Reserved
             239.255.255.255    | false
             192.168.1.1        | false
@@ -480,6 +482,8 @@ class CidrFunctionLibraryTests {
             ::1                | false
             fe80::1            | false
             2001:db8::1        | false
+            fc00::1            | false
+            fd00::1            | false
             """)
     void isPublicRoutableWhenValidInputThenReturnsExpectedResult(String ipAddress, boolean expected) {
         val result = CidrFunctionLibrary.isPublicRoutable(Value.of(ipAddress));

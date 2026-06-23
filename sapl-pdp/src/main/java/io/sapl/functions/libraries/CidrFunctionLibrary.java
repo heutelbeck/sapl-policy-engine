@@ -144,7 +144,7 @@ public class CidrFunctionLibrary {
     private static final List<String> IPV6_LOOPBACK_RANGES      = List.of("::1/128");
     private static final List<String> IPV6_MULTICAST_RANGES     = List.of("ff00::/8");
     private static final List<String> IPV6_RESERVED_RANGES      = List.of("::/128", "::ffff:0:0/96", "100::/64",
-            "2001::/23");
+            "2001::/23", "fc00::/7");
     private static final List<String> RFC1918_PRIVATE_RANGES    = List.of("10.0.0.0/8", "172.16.0.0/12",
             "192.168.0.0/16");
 
@@ -583,7 +583,7 @@ public class CidrFunctionLibrary {
 
             Tests if an address is in ranges reserved for future use or special purposes.
             IPv4: 240.0.0.0/4
-            IPv6: ::/128, ::ffff:0:0/96, 100::/64, 2001::/23, 2001:db8::/32
+            IPv6: ::/128, ::ffff:0:0/96, 100::/64, 2001::/23, 2001:db8::/32, fc00::/7
 
             Parameters:
             - ipAddress: IP address to test
@@ -1351,9 +1351,10 @@ public class CidrFunctionLibrary {
      * Validates that a prefix length is an integer within the address range.
      * <p>
      * The raw value is checked before narrowing to {@code int} so that fractional
-     * values and values outside the addressable range are rejected rather than
-     * silently truncated or wrapped by {@link BigDecimal#intValue()}, which would
-     * produce a wrong anonymization granularity.
+     * values and values outside the
+     * addressable range are rejected rather than silently truncated or wrapped by
+     * {@link BigDecimal#intValue()}, which
+     * would produce a wrong anonymization granularity.
      *
      * @param value
      * the requested prefix length

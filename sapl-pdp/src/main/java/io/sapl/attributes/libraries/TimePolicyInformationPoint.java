@@ -74,8 +74,7 @@ public class TimePolicyInformationPoint {
     private final TimeScheduler scheduler;
 
     /**
-     * Stream of the current ISO-8601 UTC timestamp, emitted once per
-     * second.
+     * Stream of the current ISO-8601 UTC timestamp, emitted once per second.
      *
      * @return a stream of {@link TextValue} timestamps
      */
@@ -100,8 +99,9 @@ public class TimePolicyInformationPoint {
      * Stream of the current ISO-8601 UTC timestamp, emitted once per
      * {@code updateIntervalInMillis}.
      *
-     * @param updateIntervalInMillis polling interval in milliseconds; must be
-     * positive and non-zero
+     * @param updateIntervalInMillis
+     * polling interval in milliseconds; must be positive and non-zero
+     *
      * @return a stream of {@link TextValue} timestamps, or an error value if the
      * interval is invalid
      */
@@ -126,8 +126,8 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream of the JVM default time zone identifier, re-emitted only
-     * when it changes (checked every five minutes).
+     * Stream of the JVM default time zone identifier, re-emitted only when it
+     * changes (checked every five minutes).
      *
      * @return a stream of {@link TextValue} zone identifiers
      */
@@ -146,11 +146,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code false} until the {@code checkpoint}
-     * instant is reached, then emits {@code true}. Boundary-driven; no
-     * polling.
+     * Stream that emits {@code false} until the {@code checkpoint} instant is
+     * reached, then emits {@code true}.
+     * Boundary-driven; no polling.
      *
-     * @param checkpoint an ISO-8601 UTC instant to compare against
+     * @param checkpoint
+     * an ISO-8601 UTC instant to compare against
+     *
      * @return a stream of {@link BooleanValue}, or an error value if the checkpoint
      * is malformed
      */
@@ -179,11 +181,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that compares the current local time of day in the clock's
-     * configured zone against {@code checkpoint}, toggling at the
-     * checkpoint and at midnight.
+     * Stream that compares the current local time of day in the clock's configured
+     * zone against {@code checkpoint},
+     * toggling at the checkpoint and at midnight.
      *
-     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @param checkpoint
+     * a local time of day, e.g. {@code "17:00"}
+     *
      * @return a stream of {@link BooleanValue}, or an error value if the checkpoint
      * is malformed
      */
@@ -207,11 +211,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #localTimeIsAfter(TextValue)} but evaluated in
-     * {@code timezone}.
+     * Like {@link #localTimeIsAfter(TextValue)} but evaluated in {@code timezone}.
      *
-     * @param checkpoint a local time of day, e.g. {@code "17:00"}
-     * @param timezone an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     * @param checkpoint
+     * a local time of day, e.g. {@code "17:00"}
+     * @param timezone
+     * an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -238,7 +244,9 @@ public class TimePolicyInformationPoint {
     /**
      * Logical inverse of {@link #localTimeIsAfter(TextValue)}.
      *
-     * @param checkpoint a local time of day, e.g. {@code "17:00"}
+     * @param checkpoint
+     * a local time of day, e.g. {@code "17:00"}
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -262,11 +270,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #localTimeIsBefore(TextValue)} but evaluated in
-     * {@code timezone}.
+     * Like {@link #localTimeIsBefore(TextValue)} but evaluated in {@code timezone}.
      *
-     * @param checkpoint a local time of day, e.g. {@code "17:00"}
-     * @param timezone an IANA zone identifier, e.g. {@code "America/New_York"}
+     * @param checkpoint
+     * a local time of day, e.g. {@code "17:00"}
+     * @param timezone
+     * an IANA zone identifier, e.g. {@code "America/New_York"}
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -292,14 +302,17 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code true} while the current local time of
-     * day is within {@code [startTime, endTime]} in the clock's
-     * configured zone, transitioning at each boundary. When
-     * {@code startTime > endTime} the interval is treated as wrapping
-     * past midnight.
+     * Stream that emits {@code true} while the current local time of day is within
+     * {@code [startTime, endTime]} in the
+     * clock's configured zone, transitioning at each boundary. When
+     * {@code startTime > endTime} the interval is treated
+     * as wrapping past midnight.
      *
-     * @param startTime a local time of day, e.g. {@code "09:00"}
-     * @param endTime a local time of day, e.g. {@code "17:00"}
+     * @param startTime
+     * a local time of day, e.g. {@code "09:00"}
+     * @param endTime
+     * a local time of day, e.g. {@code "17:00"}
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -326,12 +339,16 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #localTimeIsBetween(TextValue, TextValue)} but
-     * evaluated in {@code timezone}.
+     * Like {@link #localTimeIsBetween(TextValue, TextValue)} but evaluated in
+     * {@code timezone}.
      *
-     * @param startTime a local time of day, e.g. {@code "09:00"}
-     * @param endTime a local time of day, e.g. {@code "17:00"}
-     * @param timezone an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     * @param startTime
+     * a local time of day, e.g. {@code "09:00"}
+     * @param endTime
+     * a local time of day, e.g. {@code "17:00"}
+     * @param timezone
+     * an IANA zone identifier, e.g. {@code "Europe/Berlin"}
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -359,10 +376,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Logical inverse of {@link #nowIsAfter(TextValue)}: emits
-     * {@code true} until {@code time} is reached, then {@code false}.
+     * Logical inverse of {@link #nowIsAfter(TextValue)}: emits {@code true} until
+     * {@code time} is reached, then
+     * {@code false}.
      *
-     * @param time an ISO-8601 UTC instant
+     * @param time
+     * an ISO-8601 UTC instant
+     *
      * @return a stream of {@link BooleanValue}, or an error value if {@code time}
      * is malformed
      */
@@ -392,12 +412,15 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code true} while the current instant lies
-     * inside {@code [startTime, endTime]}, transitioning at each
-     * boundary.
+     * Stream that emits {@code true} while the current instant lies inside
+     * {@code [startTime, endTime]}, transitioning
+     * at each boundary.
      *
-     * @param startTime an ISO-8601 UTC instant
-     * @param endTime an ISO-8601 UTC instant
+     * @param startTime
+     * an ISO-8601 UTC instant
+     * @param endTime
+     * an ISO-8601 UTC instant
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -426,11 +449,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code true} when today's weekday is contained
-     * in {@code days} (in the clock's configured zone), transitioning
-     * at each midnight crossing.
+     * Stream that emits {@code true} when today's weekday is contained in
+     * {@code days} (in the clock's configured
+     * zone), transitioning at each midnight crossing.
      *
-     * @param days an array of day-of-week names (e.g., {@code "MONDAY"})
+     * @param days
+     * an array of day-of-week names (e.g., {@code "MONDAY"})
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -451,11 +476,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #weekdayIn(ArrayValue)} but evaluated in
-     * {@code timezone}.
+     * Like {@link #weekdayIn(ArrayValue)} but evaluated in {@code timezone}.
      *
-     * @param days an array of day-of-week names
-     * @param timezone an IANA zone identifier
+     * @param days
+     * an array of day-of-week names
+     * @param timezone
+     * an IANA zone identifier
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -480,11 +507,14 @@ public class TimePolicyInformationPoint {
 
     /**
      * Stream that emits {@code true} when today's weekday lies within
-     * {@code [startDay, endDay]} (in the clock's configured zone),
-     * wrapping past Sunday when {@code startDay > endDay}.
+     * {@code [startDay, endDay]} (in the clock's
+     * configured zone), wrapping past Sunday when {@code startDay > endDay}.
      *
-     * @param startDay a day-of-week name
-     * @param endDay a day-of-week name
+     * @param startDay
+     * a day-of-week name
+     * @param endDay
+     * a day-of-week name
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -506,12 +536,16 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #dayOfWeekBetween(TextValue, TextValue)} but
-     * evaluated in {@code timezone}.
+     * Like {@link #dayOfWeekBetween(TextValue, TextValue)} but evaluated in
+     * {@code timezone}.
      *
-     * @param startDay a day-of-week name
-     * @param endDay a day-of-week name
-     * @param timezone an IANA zone identifier
+     * @param startDay
+     * a day-of-week name
+     * @param endDay
+     * a day-of-week name
+     * @param timezone
+     * an IANA zone identifier
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -537,11 +571,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code true} when the current month is in
-     * {@code months} (in the clock's configured zone), transitioning
-     * at month boundaries.
+     * Stream that emits {@code true} when the current month is in {@code months}
+     * (in the clock's configured zone),
+     * transitioning at month boundaries.
      *
-     * @param months an array of month names or 1-based numbers
+     * @param months
+     * an array of month names or 1-based numbers
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -563,11 +599,13 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #monthIn(ArrayValue)} but evaluated in
-     * {@code timezone}.
+     * Like {@link #monthIn(ArrayValue)} but evaluated in {@code timezone}.
      *
-     * @param months an array of month names or 1-based numbers
-     * @param timezone an IANA zone identifier
+     * @param months
+     * an array of month names or 1-based numbers
+     * @param timezone
+     * an IANA zone identifier
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -591,12 +629,15 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that emits {@code true} when the current month lies
-     * within {@code [startMonth, endMonth]} (1=January, 12=December),
-     * wrapping past December when {@code startMonth > endMonth}.
+     * Stream that emits {@code true} when the current month lies within
+     * {@code [startMonth, endMonth]} (1=January,
+     * 12=December), wrapping past December when {@code startMonth > endMonth}.
      *
-     * @param startMonth 1-based month number
-     * @param endMonth 1-based month number
+     * @param startMonth
+     * 1-based month number
+     * @param endMonth
+     * 1-based month number
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -618,12 +659,16 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Like {@link #monthBetween(NumberValue, NumberValue)} but
-     * evaluated in {@code timezone}.
+     * Like {@link #monthBetween(NumberValue, NumberValue)} but evaluated in
+     * {@code timezone}.
      *
-     * @param startMonth 1-based month number
-     * @param endMonth 1-based month number
-     * @param timezone an IANA zone identifier
+     * @param startMonth
+     * 1-based month number
+     * @param endMonth
+     * 1-based month number
+     * @param timezone
+     * an IANA zone identifier
+     *
      * @return a stream of {@link BooleanValue}, or an error value on bad input
      */
     @EnvironmentAttribute(docs = """
@@ -649,12 +694,15 @@ public class TimePolicyInformationPoint {
     }
 
     /**
-     * Stream that toggles between {@code true} for
-     * {@code trueDurationMs} milliseconds and {@code false} for
+     * Stream that toggles between {@code true} for {@code trueDurationMs}
+     * milliseconds and {@code false} for
      * {@code falseDurationMs} milliseconds, repeating indefinitely.
      *
-     * @param trueDurationMs duration of the {@code true} phase, in milliseconds
-     * @param falseDurationMs duration of the {@code false} phase, in milliseconds
+     * @param trueDurationMs
+     * duration of the {@code true} phase, in milliseconds
+     * @param falseDurationMs
+     * duration of the {@code false} phase, in milliseconds
+     *
      * @return a stream of {@link BooleanValue}, or an error value if a duration is
      * invalid
      */
@@ -705,6 +753,9 @@ public class TimePolicyInformationPoint {
 
     private Stream<Value> nowIsBetweenStream(Instant start, Instant end) {
         val now = clock.instant();
+        if (!start.isBefore(end)) {
+            return Streams.just(Value.FALSE);
+        }
         if (now.isAfter(end)) {
             return Streams.just(Value.FALSE);
         }

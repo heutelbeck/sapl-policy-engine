@@ -59,38 +59,41 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * In-memory {@link AttributeBroker} backed by a runtime catalog of
- * Policy Information Points, with an optional
- * {@link AttributeRepository} fallback for invocations that have no
- * matching PIP.
+ * In-memory {@link AttributeBroker} backed by a runtime catalog of Policy
+ * Information Points, with an optional
+ * {@link AttributeRepository} fallback for invocations that have no matching
+ * PIP.
  * <p>
  * Two surfaces on one object: consumers use the {@link AttributeBroker}
- * interface (open / close, snapshot callbacks); plugin engines and
- * tests use {@link #load}, {@link #swap}, {@link PipHandle#unload}
- * via the returned {@link PipHandle} to change the catalog at
- * runtime.
+ * interface (open / close, snapshot callbacks);
+ * plugin engines and tests use {@link #load}, {@link #swap},
+ * {@link PipHandle#unload} via the returned
+ * {@link PipHandle} to change the catalog at runtime.
  * <p>
- * Catalog mutations are atomic. A failed {@link #load} or
- * {@link #swap} leaves the catalog unchanged; the collision rule
- * (no two specs of the same fully-qualified name and parameter
- * shape) is enforced at load time so resolution at evaluation time
- * is unambiguous.
+ * Catalog mutations are atomic. A failed {@link #load} or {@link #swap} leaves
+ * the catalog unchanged; the collision
+ * rule (no two specs of the same fully-qualified name and parameter shape) is
+ * enforced at load time so resolution at
+ * evaluation time is unambiguous.
  * <p>
- * Routing is fixed for each active invocation when it is created.
- * A PIP match produces an {@link ActivePolicyInformationPointInvocation}
- * that observes the PIP exclusively. A non-match produces an
- * {@link ActiveRepositoryInvocation} that observes the fallback. No
- * fallback yields a terminal UNDEFINED active invocation. The PIP is
- * authoritative for its invocations. A PIP's UNDEFINED is propagated
- * as UNDEFINED, never silently replaced by the fallback.
+ * Routing is fixed for each active invocation when it is created. A PIP match
+ * produces an
+ * {@link ActivePolicyInformationPointInvocation} that observes the PIP
+ * exclusively. A non-match produces an
+ * {@link ActiveRepositoryInvocation} that observes the fallback. No fallback
+ * yields a terminal UNDEFINED active
+ * invocation. The PIP is authoritative for its invocations. A PIP's UNDEFINED
+ * is propagated as UNDEFINED, never
+ * silently replaced by the fallback.
  * <p>
- * Catalog mutations migrate routing as needed. A {@link #swap} that
- * keeps a spec rebinds the existing active invocation in place. A
- * {@link #swap} or {@link PipHandle#unload} that removes a spec
- * migrates the active invocation to the fallback, or terminates it
- * with UNDEFINED when no fallback is configured. A {@link #load}
- * that adds a spec promotes any matching repository-backed or
- * terminal active invocations to PIP-backed ones.
+ * Catalog mutations migrate routing as needed. A {@link #swap} that keeps a
+ * spec rebinds the existing active invocation
+ * in place. A {@link #swap} or {@link PipHandle#unload} that removes a spec
+ * migrates the active invocation to the
+ * fallback, or terminates it with UNDEFINED when no fallback is configured. A
+ * {@link #load} that adds a spec promotes
+ * any matching repository-backed or terminal active invocations to PIP-backed
+ * ones.
  *
  * @since 4.1.0
  */
@@ -104,20 +107,20 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private static final String ERROR_GRACE_DURATION_NEGATIVE = "gracePeriodDuration must not be negative";
     private static final String ERROR_HANDLE_NOT_LOADED       = "Cannot swap PIP: handle for '%s' is not currently loaded.";
     private static final String ERROR_LOAD_PROCESSOR_FAILED   = "Failed to register PIP '%s': %s";
-    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
+    private static final String ERROR_ONUPDATE_THREW          = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
+    private static final String ERROR_RETURNED_DEPS_INVALID   = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SPEC_COLLISION          = "Cannot register PIP '%s': attribute '%s' (parameter shape %s) collides with already-registered PIP '%s'.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK   = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE  = "subscriptionId already open: %s";
-    private static final String WARN_ONUPDATE_THREW           = "Consumer {} onUpdate threw: {}";
 
-    private static final long WARN_LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
+    private static final long LOG_INTERVAL_NANOS = Duration.ofMinutes(1).toNanos();
 
-    private final ReentrantLock                                                lock                  = new ReentrantLock(
+    private final ReentrantLock                                                lock                          = new ReentrantLock(
             true);
-    private final Map<PipHandleImpl, List<StreamAttributeFinderSpecification>> handleSpecs           = new LinkedHashMap<>();
-    private final Map<AttributeFinderInvocation, List<ActiveInvocation>>       subscriptions         = new HashMap<>();
-    private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns      = new HashMap<>();
-    private final Map<String, BrokerSubscription>                              consumerSubscriptions = new HashMap<>();
+    private final Map<PipHandleImpl, List<StreamAttributeFinderSpecification>> handleSpecs                   = new LinkedHashMap<>();
+    private final Map<AttributeFinderInvocation, List<ActiveInvocation>>       activeInvocationsByInvocation = new HashMap<>();
+    private final Map<ActiveInvocation, ScheduledFuture<?>>                    pendingTeardowns              = new HashMap<>();
+    private final Map<String, BrokerSubscription>                              consumerSubscriptions         = new HashMap<>();
 
     private final Duration                      gracePeriodDuration;
     private final ScheduledExecutorService      teardownScheduler;
@@ -134,32 +137,35 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
     /**
      * Constructs a broker with the given grace period and no fallback.
-     * Refcount-to-zero leads to teardown after the grace duration,
-     * or immediately if the duration is {@link Duration#ZERO}.
+     * Refcount-to-zero leads to teardown after the
+     * grace duration, or immediately if the duration is {@link Duration#ZERO}.
      *
-     * @param gracePeriodDuration teardown delay after refcount-zero;
-     * {@link Duration#ZERO} disables grace
+     * @param gracePeriodDuration
+     * teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
      */
     public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration) {
         this(gracePeriodDuration, null);
     }
 
     /**
-     * Constructs a broker with a fallback. Invocations that have no
-     * matching PIP are served by {@code fallback} (typically an
+     * Constructs a broker with a fallback. Invocations that have no matching PIP
+     * are served by {@code fallback}
+     * (typically an
      * {@link io.sapl.attributes.broker.repository.InMemoryAttributeRepository}).
-     * PIP-served invocations are served exclusively by the PIP.
-     * Runtime UNDEFINED from a PIP is propagated as UNDEFINED, never
-     * silently replaced by the fallback's value. Routing is decided
-     * once when an active invocation is created and re-evaluated only
-     * on catalog mutations ({@link #load}, {@link #swap},
+     * PIP-served invocations
+     * are served exclusively by the PIP. Runtime UNDEFINED from a PIP is propagated
+     * as UNDEFINED, never silently
+     * replaced by the fallback's value. Routing is decided once when an active
+     * invocation is created and re-evaluated
+     * only on catalog mutations ({@link #load}, {@link #swap},
      * {@link PipHandle#unload}).
      *
-     * @param gracePeriodDuration teardown delay after refcount-zero;
-     * {@link Duration#ZERO} disables grace
-     * @param fallback repository that serves invocations with no
-     * matching PIP; {@code null} means consumers see UNDEFINED for
-     * unmatched invocations
+     * @param gracePeriodDuration
+     * teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
+     * @param fallback
+     * repository that serves invocations with no matching PIP; {@code null} means
+     * consumers see UNDEFINED
+     * for unmatched invocations
      */
     public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration,
             @Nullable AttributeRepository fallback) {
@@ -169,15 +175,19 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     /**
      * As
      * {@link #PolicyInformationPointAttributeBroker(Duration, AttributeRepository)},
-     * with an explicit source for attribute value-arrival timestamps. The source
-     * is read whenever a value enters an active invocation's mailbox, so the
-     * snapshot timestamp reflects arrival time, not read time.
+     * with an explicit source for
+     * attribute value-arrival timestamps. The source is read whenever a value
+     * enters an active invocation's mailbox, so
+     * the snapshot timestamp reflects arrival time, not read time.
      *
-     * @param gracePeriodDuration teardown delay after refcount-zero;
-     * {@link Duration#ZERO} disables grace
-     * @param fallback repository that serves invocations with no matching PIP;
-     * {@code null} means consumers see UNDEFINED for unmatched invocations
-     * @param timestampSource source for value-arrival timestamps
+     * @param gracePeriodDuration
+     * teardown delay after refcount-zero; {@link Duration#ZERO} disables grace
+     * @param fallback
+     * repository that serves invocations with no matching PIP; {@code null} means
+     * consumers see UNDEFINED
+     * for unmatched invocations
+     * @param timestampSource
+     * source for value-arrival timestamps
      */
     public PolicyInformationPointAttributeBroker(@NonNull Duration gracePeriodDuration,
             @Nullable AttributeRepository fallback,
@@ -196,16 +206,21 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Loads the given PIP instance and registers all of its annotated
-     * attribute methods. Atomic: either every spec the instance
-     * contributes is registered and a handle is returned, or the call
-     * throws {@link PipLoadException} and the catalog is unchanged.
+     * Loads the given PIP instance and registers all of its annotated attribute
+     * methods. Atomic: either every spec the
+     * instance contributes is registered and a handle is returned, or the call
+     * throws {@link PipLoadException} and the
+     * catalog is unchanged.
      *
-     * @param pipInstance a fully-constructed PIP instance whose class
-     * is annotated with {@link PolicyInformationPoint}
+     * @param pipInstance
+     * a fully-constructed PIP instance whose class is annotated with
+     * {@link PolicyInformationPoint}
+     *
      * @return a handle the caller may use to unload or swap this PIP
-     * @throws PipLoadException if the class is not annotated, if any
-     * annotated method has an invalid signature, or if any of the
+     *
+     * @throws PipLoadException
+     * if the class is not annotated, if any annotated method has an invalid
+     * signature, or if any of the
      * instance's specs collides with an already-registered spec
      */
     public PipHandle load(@NonNull Object pipInstance) {
@@ -237,43 +252,47 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
         }
         for (val entry : promotions.entrySet()) {
-            val old         = entry.getKey();
-            val replacement = newActivePipInvocation(old.invocation(), entry.getValue());
-            migrate(old, replacement);
+            val previousActive = entry.getKey();
+            val replacement    = newActivePipInvocation(previousActive.invocation(), entry.getValue());
+            migrate(previousActive, replacement);
         }
         return handle;
     }
 
     /**
-     * Atomically replaces the specs registered by {@code oldHandle}
-     * with the specs contributed by {@code newInstance}. Active
-     * invocations whose source resolved through {@code oldHandle}
-     * are rebound to the matching new spec without publishing a
-     * transient value to their consumers. Specs that exist in
+     * Atomically replaces the specs registered by {@code oldHandle} with the specs
+     * contributed by {@code newInstance}.
+     * Active invocations whose source resolved through {@code oldHandle} are
+     * rebound to the matching new spec without
+     * publishing a transient value to their consumers. Specs that exist in
      * {@code oldHandle} but have no shape match in
-     * {@code newInstance} are evicted. Their active invocations
-     * migrate to the fallback when one is configured, otherwise they
-     * publish {@link Value#UNDEFINED} and close. Specs new in
-     * {@code newInstance} are available for future invocations.
+     * {@code newInstance} are evicted. Their active invocations migrate to the
+     * fallback when one is configured,
+     * otherwise they publish {@link Value#UNDEFINED} and close. Specs new in
+     * {@code newInstance} are available for
+     * future invocations.
      * <p>
-     * Atomic: either the swap completes or the call throws and the
-     * catalog still reflects {@code oldHandle}.
+     * Atomic: either the swap completes or the call throws and the catalog still
+     * reflects {@code oldHandle}.
      *
-     * @param oldHandle the handle to replace (must currently be
-     * loaded)
-     * @param newInstance the replacement PIP instance
-     * @return a fresh handle for {@code newInstance}; {@code oldHandle}
-     * is marked unloaded
-     * @throws PipLoadException on the same conditions as
-     * {@link #load}, plus when {@code oldHandle} is not currently
-     * loaded
+     * @param oldHandle
+     * the handle to replace (must currently be loaded)
+     * @param newInstance
+     * the replacement PIP instance
+     *
+     * @return a fresh handle for {@code newInstance}; {@code oldHandle} is marked
+     * unloaded
+     *
+     * @throws PipLoadException
+     * on the same conditions as {@link #load}, plus when {@code oldHandle} is not
+     * currently loaded
      */
     public PipHandle swap(@NonNull PipHandle oldHandle, @NonNull Object newInstance) {
-        if (!(oldHandle instanceof PipHandleImpl old) || old.broker() != this) {
+        if (!(oldHandle instanceof PipHandleImpl existingHandle) || existingHandle.broker() != this) {
             throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(oldHandle.pipName()));
         }
         val newNamespace = readNamespace(newInstance);
-        log.debug("Swapping PIP '{}' -> '{}' (new class {})", old.pipName(), newNamespace,
+        log.debug("Swapping PIP '{}' -> '{}' (new class {})", existingHandle.pipName(), newNamespace,
                 newInstance.getClass().getName());
 
         val newSpecs         = extractSpecs(newInstance, newNamespace);
@@ -286,16 +305,16 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         lock.lock();
 
         try {
-            val oldSpecs = handleSpecs.get(old);
-            if (oldSpecs == null || !old.loaded.get()) {
-                throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(old.pipName()));
+            val oldSpecs = handleSpecs.get(existingHandle);
+            if (oldSpecs == null || !existingHandle.loaded.get()) {
+                throw new PipLoadException(ERROR_HANDLE_NOT_LOADED.formatted(existingHandle.pipName()));
             }
             checkCollisions(newNamespace, newSpecs, oldSpecs);
 
             plan = buildSwapPlan(oldSpecs, newSpecs);
 
-            handleSpecs.remove(old);
-            old.loaded.set(false);
+            handleSpecs.remove(existingHandle);
+            existingHandle.loaded.set(false);
             newHandle = new PipHandleImpl(newNamespace, newDocumentation);
             handleSpecs.put(newHandle, List.copyOf(newSpecs));
 
@@ -308,13 +327,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
         // Outside the lock: rebind / evict. invoke(...) on the new spec may throw or
         // block.
-        val fb = fallback;
+        val fallbackRepository = fallback;
         for (val entry : affected.swapped.entrySet()) {
             rebind(entry.getKey(), entry.getValue());
         }
         for (val active : affected.evicted) {
-            if (fb != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fb));
+            if (fallbackRepository != null) {
+                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
             } else {
                 discard(active);
             }
@@ -388,10 +407,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * @return the {@link LibraryDocumentation} for every PIP currently
-     * in the catalog, suitable for IDE hover/completion and offline
-     * documentation generation. Returned in load order; reflects the
-     * catalog at the moment of the call.
+     * @return the {@link LibraryDocumentation} for every PIP currently in the
+     * catalog, suitable for IDE
+     * hover/completion and offline documentation generation. Returned in load
+     * order; reflects the catalog at
+     * the moment of the call.
      */
     public List<LibraryDocumentation> documentation() {
         lock.lock();
@@ -410,14 +430,16 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Resolves an invocation to its serving spec. By the catalog's
-     * collision rule, at most one spec matches. Visible mainly for
-     * tests; consumers normally exercise resolution implicitly via
+     * Resolves an invocation to its serving spec. By the catalog's collision rule,
+     * at most one spec matches. Visible
+     * mainly for tests; consumers normally exercise resolution implicitly via
      * {@link #open}.
      *
-     * @param invocation the policy-driven invocation
-     * @return the matching spec, or {@link Optional#empty()} if no
-     * loaded PIP serves this invocation
+     * @param invocation
+     * the policy-driven invocation
+     *
+     * @return the matching spec, or {@link Optional#empty()} if no loaded PIP
+     * serves this invocation
      */
     public Optional<StreamAttributeFinderSpecification> resolve(@NonNull AttributeFinderInvocation invocation) {
         lock.lock();
@@ -476,7 +498,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 // Get the active invocation for this key, reusing an existing one if possible.
                 val activeInvocation = activeInvocationFor(key);
                 // Record the route so dispatch can find the active invocation for this key.
-                subscription.route.put(key, activeInvocation);
+                subscription.routingTable.put(key, activeInvocation);
                 // Attach this subscription to the active invocation for refcount bookkeeping.
                 activeInvocation.attach(subscription);
             }
@@ -486,7 +508,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             // open the gate and fire synchronously with the cached snapshot.
             fireImmediately = subscription.tryFireGate();
         } catch (RuntimeException e) {
-            // Roll back deps attached so far; the subscription was never registered.
+            // Roll back dependencies attached so far; the subscription was never
+            // registered.
             if (subscription != null) {
                 subscription.close();
             }
@@ -514,9 +537,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             toClose       = new ArrayList<>(consumerSubscriptions.values());
             activeToClose = new ArrayList<>(allActive());
             consumerSubscriptions.clear();
-            subscriptions.clear();
-            for (val task : pendingTeardowns.values()) {
-                task.cancel(false);
+            activeInvocationsByInvocation.clear();
+            for (val teardownTask : pendingTeardowns.values()) {
+                teardownTask.cancel(false);
             }
             pendingTeardowns.clear();
         } finally {
@@ -524,11 +547,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
-        for (val c : toClose) {
-            c.markClosed();
+        for (val subscription : toClose) {
+            subscription.markClosed();
         }
-        for (val a : activeToClose) {
-            a.close();
+        for (val active : activeToClose) {
+            active.close();
         }
         teardownScheduler.shutdownNow();
     }
@@ -614,26 +637,28 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     /**
      * Caller holds the broker lock.
      * <p>
-     * {@code fresh=true}: always creates a new active invocation and
-     * appends it to the per-invocation list. {@code fresh=false}:
-     * attaches to the first live entry in that list, cancelling any
-     * pending teardown on it (warm reconnect during the grace window).
+     * {@code fresh=true}: always creates a new active invocation and appends it to
+     * the per-invocation list.
+     * {@code fresh=false}: attaches to the first live entry in that list,
+     * cancelling any pending teardown on it (warm
+     * reconnect during the grace window).
      * <p>
-     * The list is keyed by the normalized invocation, which drops the
-     * {@code fresh} flag. So fresh and non-fresh subscriptions for an
-     * otherwise-identical invocation land in the same list. A fresh
-     * stream stays private while it's alive, but a later non-fresh
-     * consumer can attach to it once the original head has been torn
-     * down.
+     * The list is keyed by the normalized invocation, which drops the {@code fresh}
+     * flag. So fresh and non-fresh
+     * subscriptions for an otherwise-identical invocation land in the same list. A
+     * fresh stream stays private while
+     * it's alive, but a later non-fresh consumer can attach to it once the original
+     * head has been torn down.
      */
     private ActiveInvocation activeInvocationFor(SubscriptionKey key) {
         val invocation = key.invocation();
         // Normalize to ignore the "fresh" flag for deduping. Ugly but functional.
         val normalizedInvocation = normalizeInvocation(invocation);
-        val list                 = subscriptions.computeIfAbsent(normalizedInvocation, k -> new ArrayList<>());
+        val activeInvocations    = activeInvocationsByInvocation.computeIfAbsent(normalizedInvocation,
+                key2 -> new ArrayList<>());
         if (!invocation.fresh()) {
             // Attempt to reuse an existing active invocation.
-            for (val candidate : list) {
+            for (val candidate : activeInvocations) {
                 // Defensive. Every tear-down path removes from this list under the broker
                 // lock before calling close(), so a candidate found here should never be
                 // closed. Inexpensive safety net for that invariant.
@@ -646,14 +671,14 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         // No reusable entry or a fresh stream was explicitly requested. Create one.
         val active = activateInvocationFor(normalizedInvocation);
         // Add to per-invocation list so future non-fresh consumers can attach to it.
-        list.add(active);
+        activeInvocations.add(active);
         return active;
     }
 
     /**
-     * Returns the invocation with its {@code fresh} flag zeroed. Used
-     * as the dedup-map key so consumers with different {@code fresh}
-     * values for the same underlying attribute share a per-invocation
+     * Returns the invocation with its {@code fresh} flag zeroed. Used as the
+     * dedup-map key so consumers with different
+     * {@code fresh} values for the same underlying attribute share a per-invocation
      * list.
      */
     private static AttributeFinderInvocation normalizeInvocation(AttributeFinderInvocation invocation) {
@@ -668,17 +693,17 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     /**
      * Caller holds the broker lock.
      * <p>
-     * Routes by catalog state at activation time. A PIP match yields
-     * an {@link ActivePolicyInformationPointInvocation} fed by an
-     * {@link AttributeStream} (poll / retry / timeout cycle around
-     * the PIP). No PIP match and a configured fallback yields an
-     * {@link ActiveRepositoryInvocation} observing the fallback. No
-     * PIP match and no fallback yields a terminal active invocation
-     * preloaded with {@link Value#UNDEFINED}.
+     * Routes by catalog state at activation time. A PIP match yields an
+     * {@link ActivePolicyInformationPointInvocation}
+     * fed by an {@link AttributeStream} (poll / retry / timeout cycle around the
+     * PIP). No PIP match and a configured
+     * fallback yields an {@link ActiveRepositoryInvocation} observing the fallback.
+     * No PIP match and no fallback yields
+     * a terminal active invocation preloaded with {@link Value#UNDEFINED}.
      * <p>
-     * The PIP receives the normalized invocation (with {@code fresh}
-     * zeroed). {@code fresh} is a broker-internal flag and never
-     * leaves this layer.
+     * The PIP receives the normalized invocation (with {@code fresh} zeroed).
+     * {@code fresh} is a broker-internal flag
+     * and never leaves this layer.
      */
     private ActiveInvocation activateInvocationFor(AttributeFinderInvocation invocation) {
         val maybeAttributeFinderSpec = resolve(invocation);
@@ -687,9 +712,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             activeInvocation.start();
             return activeInvocation;
         }
-        val fb = fallback;
-        if (fb != null) {
-            val active = newActiveRepositoryInvocation(invocation, fb);
+        val fallbackRepository = fallback;
+        if (fallbackRepository != null) {
+            val active = newActiveRepositoryInvocation(invocation, fallbackRepository);
             active.start();
             return active;
         }
@@ -702,32 +727,32 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         Supplier<Stream<Value>> innerOpen = openSyncFirstThenLazy(innerStreamSupplier(spec, normalized));
         val                     stream    = new AttributeStream(normalized, innerOpen);
         holder[0] = new ActivePolicyInformationPointInvocation(normalized, stream, spec, timestampSource,
-                v -> dispatchValue(holder[0]));
+                value -> dispatchValue(holder[0]));
         return holder[0];
     }
 
     /**
      * Wraps {@code supplier} so the first call returns a stream opened
-     * synchronously on the current (broker) thread, and every
-     * subsequent call delegates to {@code supplier} directly. The
-     * synchronous first open lets PIPs register subscribers, open
-     * connections, and take other setup side effects before this
-     * method returns, so values emitted on the PIP side land on a
-     * registered subscriber rather than being dropped.
+     * synchronously on the current (broker) thread,
+     * and every subsequent call delegates to {@code supplier} directly. The
+     * synchronous first open lets PIPs register
+     * subscribers, open connections, and take other setup side effects before this
+     * method returns, so values emitted on
+     * the PIP side land on a registered subscriber rather than being dropped.
      * <p>
-     * If the synchronous first open throws (transient connect-time
-     * failure), the wrapper stores no cached first; the AttributeStream
-     * is still constructed, and the pump's first cycle re-invokes the
-     * supplier where the exception propagates into the retry burst.
-     * Without this, broker.open / load / swap would surface the
-     * transient failure on the caller's thread instead of recovering
-     * under backoff.
+     * If the synchronous first open throws (transient connect-time failure), the
+     * wrapper stores no cached first; the
+     * AttributeStream is still constructed, and the pump's first cycle re-invokes
+     * the supplier where the exception
+     * propagates into the retry burst. Without this, broker.open / load / swap
+     * would surface the transient failure on
+     * the caller's thread instead of recovering under backoff.
      * <p>
-     * The wrapper is {@link AutoCloseable} so the consumer (the
-     * AttributeStream) can release the synchronously-opened stream
-     * if it is closed before the pump consumed it. Without this,
-     * fast activate-then-deactivate churn leaks PIP streams nobody
-     * drains.
+     * The wrapper is {@link AutoCloseable} so the consumer (the AttributeStream)
+     * can release the synchronously-opened
+     * stream if it is closed before the pump consumed it. Without this, fast
+     * activate-then-deactivate churn leaks PIP
+     * streams nobody drains.
      */
     private static Supplier<Stream<Value>> openSyncFirstThenLazy(Supplier<Stream<Value>> supplier) {
         return new SyncFirstThenLazySupplier(supplier);
@@ -752,8 +777,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
         @Override
         public Stream<Value> get() {
-            val pre = first.getAndSet(null);
-            return pre != null ? pre : delegate.get();
+            val preopenedStream = first.getAndSet(null);
+            return preopenedStream != null ? preopenedStream : delegate.get();
         }
 
         @Override
@@ -773,32 +798,33 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             AttributeRepository repository) {
         val holder = new ActiveRepositoryInvocation[1];
         holder[0] = new ActiveRepositoryInvocation(normalized, repository, timestampSource,
-                v -> dispatchValue(holder[0]));
+                value -> dispatchValue(holder[0]));
         return holder[0];
     }
 
     private ActivePolicyInformationPointInvocation newTerminalActiveInvocation(AttributeFinderInvocation normalized) {
         val holder = new ActivePolicyInformationPointInvocation[1];
         holder[0] = new ActivePolicyInformationPointInvocation(normalized, null, null, timestampSource,
-                v -> dispatchValue(holder[0]));
+                value -> dispatchValue(holder[0]));
         holder[0].publishImmediate(Value.UNDEFINED);
         return holder[0];
     }
 
     /**
-     * Replaces {@code old} with {@code replacement} in the
-     * per-invocation list and in every subscribed consumer's routing
-     * table. Subscriber refcount is preserved across the swap. Starts
-     * {@code replacement} and closes {@code old} after the state move
-     * is committed.
+     * Replaces {@code previous} with {@code replacement} in the per-invocation list
+     * and in every subscribed consumer's
+     * routing table. Subscriber refcount is preserved across the swap. Starts
+     * {@code replacement} and closes
+     * {@code previous} after the state move is committed.
      * <p>
-     * Used by catalog mutations to re-route active invocations when
-     * their source changes. {@link #load} promotes repository-backed
-     * or terminal active invocations to PIP-backed ones. {@link #swap}
-     * or {@link PipHandle#unload} demotes PIP-backed active
-     * invocations whose spec is gone to repository-backed or terminal.
+     * Used by catalog mutations to re-route active invocations when their source
+     * changes. {@link #load} promotes
+     * repository-backed or terminal active invocations to PIP-backed ones.
+     * {@link #swap} or {@link PipHandle#unload}
+     * demotes PIP-backed active invocations whose spec is gone to repository-backed
+     * or terminal.
      */
-    private void migrate(ActiveInvocation old, ActiveInvocation replacement) {
+    private void migrate(ActiveInvocation previous, ActiveInvocation replacement) {
         lock.lock();
 
         try {
@@ -808,24 +834,25 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 replacement.close();
                 return;
             }
-            val list = subscriptions.get(old.invocation());
-            if (list != null) {
-                val idx = list.indexOf(old);
-                if (idx >= 0) {
-                    list.set(idx, replacement);
+            val activeInvocations = activeInvocationsByInvocation.get(previous.invocation());
+            if (activeInvocations != null) {
+                val index = activeInvocations.indexOf(previous);
+                if (index >= 0) {
+                    activeInvocations.set(index, replacement);
                 } else {
-                    list.add(replacement);
+                    activeInvocations.add(replacement);
                 }
             } else {
-                subscriptions.computeIfAbsent(old.invocation(), k -> new ArrayList<>()).add(replacement);
+                activeInvocationsByInvocation.computeIfAbsent(previous.invocation(), key -> new ArrayList<>())
+                        .add(replacement);
             }
-            cancelPendingTeardown(old);
-            val subscribersSnapshot = new ArrayList<>(old.subscribers());
+            cancelPendingTeardown(previous);
+            val subscribersSnapshot = new ArrayList<>(previous.subscribers());
             for (val consumer : subscribersSnapshot) {
-                for (val entry : consumer.route.entrySet()) {
-                    if (entry.getValue() == old) {
+                for (val entry : consumer.routingTable.entrySet()) {
+                    if (entry.getValue() == previous) {
                         entry.setValue(replacement);
-                        old.detach(consumer);
+                        previous.detach(consumer);
                         replacement.attach(consumer);
                     }
                 }
@@ -836,21 +863,24 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
 
         }
         replacement.start();
-        old.close();
+        previous.close();
         reclaimIfOrphaned(replacement);
     }
 
     /**
      * Caller must not hold the broker lock. If {@code invocation} has no
-     * subscribers, applies the same teardown policy as a refcount-zero drop:
-     * schedules a grace-period teardown, or removes and closes it when there is
-     * no grace window. {@link #migrate} transfers the old invocation's
-     * subscribers to the replacement, but when the old invocation was in its
-     * refcount-zero grace window there are none to transfer, so the replacement
-     * is promoted with no subscribers. Because {@code handleRefcountZero} only
-     * fires on a consumer detach, such a born-orphaned replacement would never
-     * be reclaimed and its pump would run for the life of the broker. This
-     * closes that gap defensively.
+     * subscribers, applies the same teardown policy
+     * as a refcount-zero drop: schedules a grace-period teardown, or removes and
+     * closes it when there is no grace
+     * window. {@link #migrate} transfers the old invocation's subscribers to the
+     * replacement, but when the old
+     * invocation was in its refcount-zero grace window there are none to transfer,
+     * so the replacement is promoted with
+     * no subscribers. Because {@code handleRefcountZero} only fires on a consumer
+     * detach, such a born-orphaned
+     * replacement would never be reclaimed and its pump would run for the life of
+     * the broker. This closes that gap
+     * defensively.
      */
     private void reclaimIfOrphaned(ActiveInvocation invocation) {
         lock.lock();
@@ -858,8 +888,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             if (invocation.refcount() > 0) {
                 return;
             }
-            val list        = subscriptions.get(invocation.invocation());
-            val teardownNow = (list != null && list.size() > 1) || gracePeriodDuration.isZero();
+            val activeInvocations = activeInvocationsByInvocation.get(invocation.invocation());
+            val teardownNow       = (activeInvocations != null && activeInvocations.size() > 1)
+                    || gracePeriodDuration.isZero();
             if (!teardownNow) {
                 if (!pendingTeardowns.containsKey(invocation)) {
                     scheduleTeardown(invocation);
@@ -874,15 +905,15 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Builds the inner-stream supplier that {@link AttributeStream}
-     * calls at the start of each cycle. Lets invoke-time
+     * Builds the inner-stream supplier that {@link AttributeStream} calls at the
+     * start of each cycle. Lets invoke-time
      * {@link RuntimeException}s propagate so the retry/burst logic in
-     * {@link AttributeStream#attemptWithRetries} treats an open-time
-     * failure the same as a mid-stream failure (failed attempt,
-     * jittered backoff, eventual retries-exhausted ErrorValue). A
-     * transient connect-time error (MQTT broker briefly down,
-     * HTTP 503 on send) recovers on the same schedule as a transient
-     * mid-stream error.
+     * {@link AttributeStream#attemptWithRetries} treats
+     * an open-time failure the same as a mid-stream failure (failed attempt,
+     * jittered backoff, eventual
+     * retries-exhausted ErrorValue). A transient connect-time error (MQTT broker
+     * briefly down, HTTP 503 on send)
+     * recovers on the same schedule as a transient mid-stream error.
      */
     private static Supplier<Stream<Value>> innerStreamSupplier(StreamAttributeFinderSpecification spec,
             AttributeFinderInvocation invocation) {
@@ -890,15 +921,15 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Returns a snapshot of every live active invocation across all
-     * per-invocation lists. Caller holds the broker lock.
+     * Returns a snapshot of every live active invocation across all per-invocation
+     * lists. Caller holds the broker lock.
      */
     private List<ActiveInvocation> allActive() {
-        val all = new ArrayList<ActiveInvocation>();
-        for (val list : subscriptions.values()) {
-            all.addAll(list);
+        val everyActive = new ArrayList<ActiveInvocation>();
+        for (val activeInvocations : activeInvocationsByInvocation.values()) {
+            everyActive.addAll(activeInvocations);
         }
-        return all;
+        return everyActive;
     }
 
     private void rebind(ActivePolicyInformationPointInvocation active, StreamAttributeFinderSpecification newSpec) {
@@ -908,10 +939,11 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Publishes UNDEFINED to the active invocation's mailbox, removes
-     * it from the per-invocation list and any pending teardown
-     * registration, and closes it. Used by catalog mutations that
-     * remove the serving PIP when no fallback exists.
+     * Publishes UNDEFINED to the active invocation's mailbox, removes it from the
+     * per-invocation list and any pending
+     * teardown registration, and closes it. Used by catalog mutations that remove
+     * the serving PIP when no fallback
+     * exists.
      */
     private void discard(ActivePolicyInformationPointInvocation active) {
         active.publishImmediate(Value.UNDEFINED);
@@ -929,45 +961,46 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Caller holds the broker lock. Removes the active invocation
-     * from its invocation's list, dropping the list itself when it
-     * becomes empty.
+     * Caller holds the broker lock. Removes the active invocation from its
+     * invocation's list, dropping the list itself
+     * when it becomes empty.
      */
     private void removeFromList(ActiveInvocation activeInvocation) {
-        val list = subscriptions.get(activeInvocation.invocation());
-        if (list == null) {
+        val activeInvocations = activeInvocationsByInvocation.get(activeInvocation.invocation());
+        if (activeInvocations == null) {
             return;
         }
-        list.remove(activeInvocation);
-        if (list.isEmpty()) {
-            subscriptions.remove(activeInvocation.invocation());
+        activeInvocations.remove(activeInvocation);
+        if (activeInvocations.isEmpty()) {
+            activeInvocationsByInvocation.remove(activeInvocation.invocation());
         }
     }
 
     /**
-     * Caller holds the broker lock. Cancels a scheduled grace-period
-     * teardown for {@code activeInvocation}, if one is pending.
+     * Caller holds the broker lock. Cancels a scheduled grace-period teardown for
+     * {@code activeInvocation}, if one is
+     * pending.
      */
     private void cancelPendingTeardown(ActiveInvocation activeInvocation) {
-        val task = pendingTeardowns.remove(activeInvocation);
-        if (task != null) {
-            task.cancel(false);
+        val teardownTask = pendingTeardowns.remove(activeInvocation);
+        if (teardownTask != null) {
+            teardownTask.cancel(false);
         }
     }
 
     /**
-     * Caller holds the broker lock. Schedules the active invocation
-     * for teardown after the configured grace duration. The task is
-     * idempotent against cancellation via {@link #pendingTeardowns}.
+     * Caller holds the broker lock. Schedules the active invocation for teardown
+     * after the configured grace duration.
+     * The task is idempotent against cancellation via {@link #pendingTeardowns}.
      */
     private void scheduleTeardown(ActiveInvocation activeInvocation) {
         if (closed) {
             // close() already tears down everything and shut down the scheduler.
             return;
         }
-        val task = teardownScheduler.schedule(() -> runScheduledTeardown(activeInvocation),
+        val teardownTask = teardownScheduler.schedule(() -> runScheduledTeardown(activeInvocation),
                 gracePeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
-        pendingTeardowns.put(activeInvocation, task);
+        pendingTeardowns.put(activeInvocation, teardownTask);
     }
 
     private void runScheduledTeardown(ActiveInvocation activeInvocation) {
@@ -990,9 +1023,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Called by an {@link ActiveInvocation} on each value publication.
-     * Iterates only this active invocation's own subscriber set (a
-     * reverse index maintained by attach/detach), so dispatch is
+     * Called by an {@link ActiveInvocation} on each value publication. Iterates
+     * only this active invocation's own
+     * subscriber set (a reverse index maintained by attach/detach), so dispatch is
      * O(consumers-of-this-active-invocation), not O(all-consumers).
      */
     private void dispatchValue(ActiveInvocation active) {
@@ -1011,8 +1044,8 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
-        for (val c : toFire) {
-            c.fireCallback();
+        for (val subscription : toFire) {
+            subscription.fireCallback();
         }
     }
 
@@ -1043,10 +1076,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             lock.unlock();
 
         }
-        val fb = fallback;
+        val fallbackRepository = fallback;
         for (val active : evictedActive) {
-            if (fb != null) {
-                migrate(active, newActiveRepositoryInvocation(active.invocation(), fb));
+            if (fallbackRepository != null) {
+                migrate(active, newActiveRepositoryInvocation(active.invocation(), fallbackRepository));
             } else {
                 discard(active);
             }
@@ -1055,38 +1088,40 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Subscription handle for one consumer. Owns the per-consumer
-     * routing table, the gate state, and the callback. Serializes
-     * onUpdate firing through a {@link DispatchCoalescer}: rapid
-     * publishes during an in-flight {@code onUpdate} collapse into one
-     * re-fire afterwards, against the latest mailbox snapshot.
+     * Subscription handle for one consumer. Owns the per-consumer routing table,
+     * the gate state, and the callback.
+     * Serializes onUpdate firing through a {@link DispatchCoalescer}: rapid
+     * publishes during an in-flight
+     * {@code onUpdate} collapse into one re-fire afterwards, against the latest
+     * mailbox snapshot.
      */
     final class BrokerSubscription implements Subscription {
 
         final String                                                                  id;
         final DispatchCoalescer                                                       coalescer;
         final Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate;
-        Set<SubscriptionKey>                                                          deps;
-        Map<SubscriptionKey, ActiveInvocation>                                        route    = new HashMap<>();
-        boolean                                                                       gateOpen = false;
-        boolean                                                                       closed   = false;
+        Set<SubscriptionKey>                                                          dependencies;
+        Map<SubscriptionKey, ActiveInvocation>                                        routingTable = new HashMap<>();
+        boolean                                                                       gateOpen     = false;
+        boolean                                                                       closed       = false;
 
-        // Rate-limits the onUpdate-threw warning to one per minute.
-        private long    lastWarnLogNanos;
-        private boolean warnLogged;
+        // Rate-limits the should-never-happen onUpdate contract-violation error logs to
+        // one per minute.
+        private long    lastErrorLogNanos;
+        private boolean errorLogged;
 
         BrokerSubscription(String id,
-                Set<SubscriptionKey> deps,
+                Set<SubscriptionKey> dependencies,
                 Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> onUpdate) {
-            this.id        = id;
-            this.deps      = deps;
-            this.onUpdate  = onUpdate;
-            this.coalescer = new DispatchCoalescer(this::runOneFire);
+            this.id           = id;
+            this.dependencies = dependencies;
+            this.onUpdate     = onUpdate;
+            this.coalescer    = new DispatchCoalescer(this::runOneFire);
         }
 
         @Override
         public void close() {
-            List<ActiveInvocation> zeroed;
+            List<ActiveInvocation> refcountZeroed;
             lock.lock();
 
             try {
@@ -1095,19 +1130,19 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 }
                 closed = true;
                 consumerSubscriptions.remove(id);
-                zeroed = new ArrayList<>();
-                for (val active : route.values()) {
+                refcountZeroed = new ArrayList<>();
+                for (val active : routingTable.values()) {
                     if (active.detach(this) <= 0) {
-                        zeroed.add(active);
+                        refcountZeroed.add(active);
                     }
                 }
-                route.clear();
+                routingTable.clear();
             } finally {
 
                 lock.unlock();
 
             }
-            for (val active : zeroed) {
+            for (val active : refcountZeroed) {
                 handleRefcountZero(active);
             }
             log.trace("Closed subscription '{}'", id);
@@ -1126,12 +1161,13 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Caller holds the broker lock. Returns {@code true} iff every
-         * current dep has a value in its active invocation's mailbox.
+         * Caller holds the broker lock. Returns {@code true} iff every current dep has
+         * a value in its active
+         * invocation's mailbox.
          */
-        boolean allDepsHaveValues() {
-            for (val key : deps) {
-                val active = route.get(key);
+        boolean allDependenciesHaveValues() {
+            for (val key : dependencies) {
+                val active = routingTable.get(key);
                 if (active == null || active.snapshot().isEmpty()) {
                     return false;
                 }
@@ -1140,33 +1176,33 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Caller holds the broker lock. Returns {@code true} iff the
-         * consumer is ready to fire: the gate is already open, or it
-         * opens now because every dep has a value. The caller is
-         * responsible for invoking {@link #fireCallback} after the
-         * lock is released.
+         * Caller holds the broker lock. Returns {@code true} iff the consumer is ready
+         * to fire: the gate is already
+         * open, or it opens now because every dep has a value. The caller is
+         * responsible for invoking
+         * {@link #fireCallback} after the lock is released.
          */
         boolean tryFireGate() {
             if (gateOpen) {
                 return true;
             }
-            if (!allDepsHaveValues()) {
+            if (!allDependenciesHaveValues()) {
                 return false;
             }
             gateOpen = true;
             return true;
         }
 
-        Map<SubscriptionKey, AttributeSnapshot> currentSnapshot() {
-            val result = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(deps.size());
-            for (val key : deps) {
-                val active = route.get(key);
+        Map<SubscriptionKey, AttributeSnapshot> currentSnapshots() {
+            val snapshotsByKey = HashMap.<SubscriptionKey, AttributeSnapshot>newHashMap(dependencies.size());
+            for (val key : dependencies) {
+                val active = routingTable.get(key);
                 if (active == null) {
                     continue;
                 }
-                active.snapshot().ifPresent(snapshot -> result.put(key, snapshot));
+                active.snapshot().ifPresent(snapshot -> snapshotsByKey.put(key, snapshot));
             }
-            return Map.copyOf(result);
+            return Map.copyOf(snapshotsByKey);
         }
 
         void fireCallback() {
@@ -1174,51 +1210,58 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Body of a single coalesced fire. Reads the current snapshot
-         * under the broker lock, invokes the consumer callback outside
-         * the lock, and applies the returned dep diff. See
-         * {@link DispatchCoalescer} for the surrounding flag dance.
+         * Body of a single coalesced fire. Reads the current snapshot under the broker
+         * lock, invokes the consumer
+         * callback outside the lock, and applies the returned dep diff. See
+         * {@link DispatchCoalescer} for the
+         * surrounding flag dance.
          */
         private void runOneFire() {
-            Map<SubscriptionKey, AttributeSnapshot>                                 snapshot;
-            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> cb;
+            Map<SubscriptionKey, AttributeSnapshot>                                 snapshotsByKey;
+            Function<Map<SubscriptionKey, AttributeSnapshot>, Set<SubscriptionKey>> updateCallback;
             lock.lock();
 
             try {
                 if (closed) {
                     return;
                 }
-                snapshot = currentSnapshot();
-                cb       = onUpdate;
+                snapshotsByKey = currentSnapshots();
+                updateCallback = onUpdate;
             } finally {
 
                 lock.unlock();
 
             }
-            Set<SubscriptionKey> newDeps;
+            Set<SubscriptionKey> nextDependencies;
             try {
-                newDeps = cb.apply(snapshot);
+                nextDependencies = updateCallback.apply(snapshotsByKey);
             } catch (RuntimeException e) {
-                logOnUpdateFailure(e);
+                // Engine invariant: the callback must never throw. Defensive backstop -
+                // log loudly and survive; never propagate onto this shared dispatch thread.
+                logRateLimited(() -> log.error(ERROR_ONUPDATE_THREW, id, e.getMessage(), e));
                 return;
             }
-            if (newDeps == null || newDeps.isEmpty()) {
-                throw new IllegalStateException(ERROR_RETURNED_DEPS_INVALID.formatted(id));
+            if (nextDependencies == null || nextDependencies.isEmpty()) {
+                // Engine invariant: the callback must return a non-empty dep set. Defensive
+                // backstop - log loudly, keep the current dep set, never throw onto this
+                // thread.
+                logRateLimited(() -> log.error(ERROR_RETURNED_DEPS_INVALID, id));
+                return;
             }
-            applyDepDiff(newDeps);
+            applyDependencyDiff(nextDependencies);
         }
 
-        private void logOnUpdateFailure(RuntimeException failure) {
+        private void logRateLimited(Runnable logCall) {
             val now = System.nanoTime();
-            if (!warnLogged || now - lastWarnLogNanos >= WARN_LOG_INTERVAL_NANOS) {
-                log.warn(WARN_ONUPDATE_THREW, id, failure.getMessage(), failure);
-                lastWarnLogNanos = now;
-                warnLogged       = true;
+            if (!errorLogged || now - lastErrorLogNanos >= LOG_INTERVAL_NANOS) {
+                logCall.run();
+                lastErrorLogNanos = now;
+                errorLogged       = true;
             }
         }
 
-        private void applyDepDiff(Set<SubscriptionKey> newDeps) {
-            List<ActiveInvocation> zeroed = new ArrayList<>();
+        private void applyDependencyDiff(Set<SubscriptionKey> nextDependencies) {
+            List<ActiveInvocation> refcountZeroed = new ArrayList<>();
             boolean                refire;
             lock.lock();
 
@@ -1226,34 +1269,34 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 if (closed) {
                     return;
                 }
-                if (newDeps.equals(deps)) {
+                if (nextDependencies.equals(dependencies)) {
                     return;
                 }
-                val added = new HashSet<>(newDeps);
-                added.removeAll(deps);
-                val removed = new HashSet<>(deps);
-                removed.removeAll(newDeps);
+                val added = new HashSet<>(nextDependencies);
+                added.removeAll(dependencies);
+                val removed = new HashSet<>(dependencies);
+                removed.removeAll(nextDependencies);
 
                 for (val key : added) {
                     val active = activeInvocationFor(key);
-                    route.put(key, active);
+                    routingTable.put(key, active);
                     active.attach(this);
                 }
                 for (val key : removed) {
-                    val active = route.remove(key);
+                    val active = routingTable.remove(key);
                     if (active != null && active.detach(this) <= 0) {
-                        zeroed.add(active);
+                        refcountZeroed.add(active);
                     }
                 }
-                deps     = new HashSet<>(newDeps);
-                gateOpen = allDepsHaveValues();
-                refire   = gateOpen && added.stream().anyMatch(k -> route.get(k).snapshot().isPresent());
+                dependencies = new HashSet<>(nextDependencies);
+                gateOpen     = allDependenciesHaveValues();
+                refire       = gateOpen && added.stream().anyMatch(key -> routingTable.get(key).snapshot().isPresent());
             } finally {
 
                 lock.unlock();
 
             }
-            for (val active : zeroed) {
+            for (val active : refcountZeroed) {
                 handleRefcountZero(active);
             }
             if (refire) {
@@ -1262,20 +1305,21 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         }
 
         /**
-         * Called when an active invocation's refcount drops to zero as a
-         * result of this consumer detaching from it.
+         * Called when an active invocation's refcount drops to zero as a result of this
+         * consumer detaching from it.
          * <p>
          * Three cases:
          * <ul>
-         * <li>The per-invocation list has more than one entry: tear down
-         * immediately. The other entries already serve future
-         * {@code fresh=false} arrivals, so a grace window here would just
-         * delay reclaiming the resource.</li>
+         * <li>The per-invocation list has more than one entry: tear down immediately.
+         * The other entries already serve
+         * future {@code fresh=false} arrivals, so a grace window here would just delay
+         * reclaiming the resource.</li>
          * <li>Grace duration is zero: tear down immediately.</li>
-         * <li>Otherwise: schedule teardown after the grace duration. The
-         * active invocation stays in the list during the window. A
-         * re-attaching {@code fresh=false} consumer cancels the scheduled
-         * teardown and reuses the warm connection.</li>
+         * <li>Otherwise: schedule teardown after the grace duration. The active
+         * invocation stays in the list during the
+         * window. A re-attaching {@code fresh=false} consumer cancels the scheduled
+         * teardown and reuses the warm
+         * connection.</li>
          * </ul>
          */
         private void handleRefcountZero(ActiveInvocation activeInvocation) {
@@ -1284,8 +1328,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 if (activeInvocation.refcount() > 0) {
                     return;
                 }
-                val list        = subscriptions.get(activeInvocation.invocation());
-                val teardownNow = (list != null && list.size() > 1) || gracePeriodDuration.isZero();
+                val activeInvocations = activeInvocationsByInvocation.get(activeInvocation.invocation());
+                val teardownNow       = (activeInvocations != null && activeInvocations.size() > 1)
+                        || gracePeriodDuration.isZero();
                 if (!teardownNow) {
                     scheduleTeardown(activeInvocation);
                     return;
@@ -1299,9 +1344,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     }
 
     /**
-     * Internal handle implementation. Tied to its enclosing broker
-     * instance so that {@code unload()} routes back to the correct
-     * catalog and so that {@code swap()} can reject foreign handles.
+     * Internal handle implementation. Tied to its enclosing broker instance so that
+     * {@code unload()} routes back to the
+     * correct catalog and so that {@code swap()} can reject foreign handles.
      */
     final class PipHandleImpl implements PipHandle {
 

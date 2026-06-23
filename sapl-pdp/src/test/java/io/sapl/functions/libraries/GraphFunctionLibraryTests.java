@@ -103,6 +103,24 @@ class GraphFunctionLibraryTests {
                 Value.of("unaussprechlichen-kulten"));
     }
 
+    @Test
+    void reachableWhenNullNeighborThenDoesNotCollideWithNodeNamedNull() {
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "necronomicon":         ["pnakotic-manuscripts", null],
+                  "pnakotic-manuscripts": [],
+                  "null":                 ["rlyeh-text"],
+                  "rlyeh-text":           []
+                }
+                """);
+        val initial = Value.of("necronomicon");
+
+        val result = GraphFunctionLibrary.reachable(graph, initial);
+
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, resultArray -> assertThat(resultArray)
+                .containsExactlyInAnyOrder(Value.of("necronomicon"), Value.of("pnakotic-manuscripts")));
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("emptyInputCases")
     void reachableWhenEmptyInputsThenReturnsExpectedSize(String description, ObjectValue graph, Value initial,

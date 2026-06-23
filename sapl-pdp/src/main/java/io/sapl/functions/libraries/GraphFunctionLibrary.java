@@ -38,8 +38,8 @@ import java.util.function.Consumer;
  * "attributes": { ... } } }}</li>
  * </ul>
  * Transitive closure uses Tarjan's SCC decomposition (1972) + memoized DAG
- * closure. O(V + E + S) where S = total output size. Functions fold at compile
- * time when the input is a PDP variable.
+ * closure. O(V + E + S) where S = total output
+ * size. Functions fold at compile time when the input is a PDP variable.
  */
 @FunctionLibrary(name = GraphFunctionLibrary.NAME, description = GraphFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphFunctionLibrary.DOCUMENTATION)
 public class GraphFunctionLibrary {
@@ -91,8 +91,11 @@ public class GraphFunctionLibrary {
     /**
      * Single-source BFS reachability. O(V + E).
      *
-     * @param graph adjacency list
-     * @param initial root node(s) for BFS
+     * @param graph
+     * adjacency list
+     * @param initial
+     * root node(s) for BFS
+     *
      * @return array of reachable node IDs in discovery order
      */
     @Function(name = "reachable", docs = """
@@ -121,7 +124,9 @@ public class GraphFunctionLibrary {
     /**
      * All-pairs transitive closure (adjacency list). O(V + E + S).
      *
-     * @param graph adjacency list
+     * @param graph
+     * adjacency list
+     *
      * @return closure where each node maps to array of reachable nodes
      */
     @Function(name = "transitiveClosure", docs = """
@@ -142,8 +147,11 @@ public class GraphFunctionLibrary {
     /**
      * All-pairs transitive closure (entity graph). O(V + E + S).
      *
-     * @param graph entity graph
-     * @param edgeKey field name for neighbor references
+     * @param graph
+     * entity graph
+     * @param edgeKey
+     * field name for neighbor references
+     *
      * @return closure where each node maps to array of reachable nodes
      */
     @Function(name = "transitiveClosure", docs = """
@@ -162,7 +170,9 @@ public class GraphFunctionLibrary {
     /**
      * All-pairs transitive closure with O(1) membership lookup. O(V + E + S).
      *
-     * @param graph adjacency list
+     * @param graph
+     * adjacency list
+     *
      * @return closure where each node maps to object with reachable nodes as keys
      */
     @Function(name = "transitiveClosureSet", docs = """
@@ -179,11 +189,14 @@ public class GraphFunctionLibrary {
     }
 
     /**
-     * All-pairs transitive closure with O(1) membership lookup (entity graph).
-     * O(V + E + S).
+     * All-pairs transitive closure with O(1) membership lookup (entity graph). O(V
+     * + E + S).
      *
-     * @param graph entity graph
-     * @param edgeKey field name for neighbor references
+     * @param graph
+     * entity graph
+     * @param edgeKey
+     * field name for neighbor references
+     *
      * @return closure where each node maps to object with reachable nodes as keys
      */
     @Function(name = "transitiveClosureSet", docs = """
@@ -202,9 +215,13 @@ public class GraphFunctionLibrary {
     /**
      * All-pairs transitive closure with attribute projection. O(V + E + S).
      *
-     * @param graph entity graph
-     * @param edgeKey field name for neighbor references
-     * @param attrKey field name within attributes to collect
+     * @param graph
+     * entity graph
+     * @param edgeKey
+     * field name for neighbor references
+     * @param attrKey
+     * field name within attributes to collect
+     *
      * @return closure where each node maps to collected attribute values
      */
     @Function(name = "transitiveClosureProjection", docs = """
@@ -235,8 +252,11 @@ public class GraphFunctionLibrary {
     /**
      * Single-source shortest paths via BFS. O(V + E).
      *
-     * @param graph adjacency list
-     * @param initial root node(s) for BFS
+     * @param graph
+     * adjacency list
+     * @param initial
+     * root node(s) for BFS
+     *
      * @return array of shortest paths from roots to all reachable nodes
      */
     @Function(name = "reachable_paths", docs = """
@@ -284,8 +304,8 @@ public class GraphFunctionLibrary {
     }
 
     /**
-     * Tarjan's SCC (1972) + condensation to DAG + bottom-up memoized closure.
-     * O(V + E + S) where S = total output size.
+     * Tarjan's SCC (1972) + condensation to DAG + bottom-up memoized closure. O(V +
+     * E + S) where S = total output size.
      */
     private static Map<String, Set<String>> computeAllPairsClosure(ObjectValue graph, String edgeKey) {
         val nodeIds    = new ArrayList<>(graph.keySet());
@@ -317,8 +337,9 @@ public class GraphFunctionLibrary {
     }
 
     /**
-     * Tarjan's SCC algorithm state. Encapsulates index, lowlink, stack, and
-     * counter to avoid passing 8 parameters through recursive DFS.
+     * Tarjan's SCC algorithm state. Encapsulates index, lowlink, stack, and counter
+     * to avoid passing 8 parameters
+     * through recursive DFS.
      */
     private static class TarjanState {
         private final Map<String, Integer> index       = new HashMap<>();
@@ -329,8 +350,8 @@ public class GraphFunctionLibrary {
         private int                        counter     = 0;
 
         /**
-         * Finds all SCCs via Tarjan's algorithm (1972). O(V + E). Returns SCCs
-         * in reverse topological order.
+         * Finds all SCCs via Tarjan's algorithm (1972). O(V + E). Returns SCCs in
+         * reverse topological order.
          */
         List<Set<String>> findSccs(List<String> nodeIds, Map<String, Set<String>> adjacency) {
             for (val nodeId : nodeIds) {
@@ -445,8 +466,8 @@ public class GraphFunctionLibrary {
 
     /**
      * Bottom-up memoized closure on the condensed DAG. Tarjan returns SCCs in
-     * reverse topological order, so forward iteration visits children before
-     * parents. O(S) where S = total output size.
+     * reverse topological order, so forward
+     * iteration visits children before parents. O(S) where S = total output size.
      */
     private static List<Set<String>> memoizedDagClosure(List<Set<String>> sccs, Map<Integer, Set<Integer>> dagAdj) {
         val closures      = new ArrayList<Set<String>>(sccs.size());
@@ -523,6 +544,9 @@ public class GraphFunctionLibrary {
         }
         if (edgesValue instanceof ArrayValue edgesArray) {
             for (val neighbor : edgesArray) {
+                if (neighbor == null || neighbor == Value.UNDEFINED || neighbor == Value.NULL) {
+                    continue;
+                }
                 consumer.accept(nodeIdOf(neighbor));
             }
         }

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -65,8 +66,8 @@ class TimePolicyInformationPointTests {
 
     private record Fixture(MutableClock clock, TestTimeScheduler scheduler, TimePolicyInformationPoint sut) {
         /**
-         * Advances clock and scheduler together so PIPs that
-         * re-compute boundaries from the clock on each cycle
+         * Advances clock and scheduler together so PIPs that re-compute boundaries from
+         * the clock on each cycle
          * (weekdayIn, monthIn, etc.) see consistent state.
          */
         void advanceTo(Instant target) {
@@ -254,6 +255,16 @@ class TimePolicyInformationPointTests {
                 f.advanceTo(start);
                 StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
                 f.advanceTo(end);
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
+        }
+
+        @ParameterizedTest(name = "start={0} end={1}")
+        @CsvSource({ "2021-11-08T13:00:10Z, 2021-11-08T13:00:05Z", "2021-11-08T13:00:05Z, 2021-11-08T13:00:05Z" })
+        @DisplayName("an empty interval (start not before end) stays false and never latches true")
+        void whenStartNotBeforeEndThenEmitsFalse(String start, String end) {
+            val f = fixtureAt("2021-11-08T13:00:00Z");
+            try (val stream = f.sut.nowIsBetween(Value.of(start), Value.of(end))) {
                 StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
             }
         }
