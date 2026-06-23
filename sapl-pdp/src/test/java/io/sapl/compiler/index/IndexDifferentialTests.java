@@ -213,6 +213,29 @@ class IndexDifferentialTests {
             assertThat(erroredKleene(naive)).containsExactly("errors");
             assertAgreesWithNaiveKleene("shared error", documents, ctx);
         }
+
+        @Test
+        @DisplayName("an erroring predicate spanning two clauses of one policy does not silently drop a sibling sharing a conjunction")
+        void whenErrorPredicateSpansTwoClausesThenSharedSiblingNotDropped() {
+            val sources = new ArrayList<String>();
+            sources.add("policy \"f\" permit (10 / subject.n1 > 0 && subject.r2 == \"w\") "
+                    + "|| (10 / subject.n1 > 0 && subject.r3 == \"z\") || subject.r1 == \"v\"");
+            sources.add("policy \"k\" permit subject.r1 == \"v\"");
+            sources.add("policy \"h\" permit subject.r2 == \"w\" || subject.r1 == \"v\"");
+            // Distinct fillers force the predicate order error < r2 < shared, so the
+            // shared conjunction is orphaned before it is evaluated.
+            for (var j = 0; j < 6; j++) {
+                sources.add("policy \"ew%d\" permit 10 / subject.n1 > 0 && subject.w%d == \"q\"".formatted(j, j));
+            }
+            for (var j = 0; j < 3; j++) {
+                sources.add("policy \"xv%d\" permit subject.r2 == \"w\" && subject.v%d == \"q\"".formatted(j, j));
+            }
+            val documents = policies(sources.toArray(String[]::new));
+            val ctx       = subscriptionContext(wrap("{\"n1\": 0, \"r1\": \"v\", \"r2\": \"w\", \"r3\": \"other\"}"));
+            assertThat(matchedKleene(NaivePolicyIndex.create(documents).matchKleene(ctx)))
+                    .containsExactlyInAnyOrder("f", "h", "k");
+            assertAgreesWithNaiveKleene("error predicate spanning two clauses", documents, ctx);
+        }
     }
 
     private static List<CompiledDocument> buildCorpus() {

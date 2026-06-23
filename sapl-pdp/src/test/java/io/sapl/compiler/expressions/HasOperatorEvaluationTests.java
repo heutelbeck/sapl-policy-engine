@@ -109,31 +109,19 @@ class HasOperatorEvaluationTests {
                     arguments("array has any", "x has any [\"a\"]", Map.of("x", Value.ofJson("[1]")), Value.FALSE));
         }
 
-        @DisplayName("errors on non-array keys")
+        @DisplayName("errors on a non-array argument or a non-string element")
         @ParameterizedTest(name = "{0}")
         @MethodSource
-        void whenHasAnyNonArrayThenError(String description, String expression, Map<String, Value> vars) {
+        void whenHasAnyInvalidArgumentThenError(String description, String expression, Map<String, Value> vars) {
             val ctx    = testContext(vars);
             val result = evaluateExpression(expression, ctx);
             assertThat(result).isInstanceOf(ErrorValue.class);
         }
 
-        static Stream<Arguments> whenHasAnyNonArrayThenError() {
+        static Stream<Arguments> whenHasAnyInvalidArgumentThenError() {
             return Stream.of(arguments("string instead of array", "x has any \"a\"", Map.of("x", OBJ_AB)),
-                    arguments("number instead of array", "x has any 42", Map.of("x", OBJ_AB)));
-        }
-
-        @DisplayName("errors on non-string element regardless of base type")
-        @ParameterizedTest(name = "{0}")
-        @MethodSource
-        void whenHasAnyNonStringElementThenError(String description, String expression, Map<String, Value> vars) {
-            val ctx    = testContext(vars);
-            val result = evaluateExpression(expression, ctx);
-            assertThat(result).isInstanceOf(ErrorValue.class);
-        }
-
-        static Stream<Arguments> whenHasAnyNonStringElementThenError() {
-            return Stream.of(arguments("object base", "x has any [\"a\", 42]", Map.of("x", OBJ_AB)),
+                    arguments("number instead of array", "x has any 42", Map.of("x", OBJ_AB)),
+                    arguments("object base", "x has any [\"a\", 42]", Map.of("x", OBJ_AB)),
                     arguments("empty object base", "x has any [\"a\", 42]", Map.of("x", EMPTY_OBJ)),
                     arguments("string base", "x has any [\"a\", 42]", Map.of("x", Value.of("text"))),
                     arguments("array base", "x has any [\"a\", 42]", Map.of("x", Value.ofJson("[1]"))),

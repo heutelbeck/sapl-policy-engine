@@ -79,10 +79,11 @@ class CanonicalIndexSearch {
 
         val remainingFormulasWithConjunction = data.numberOfFormulasWithConjunction().clone();
 
-        val matchedFormulas = new BitSet(numberOfFormulas);
-        val errorFormulas   = new BitSet(numberOfFormulas);
-        val predicates      = data.predicateOrder();
-        val originalIndices = data.predicateOriginalIndices();
+        val matchedFormulas  = new BitSet(numberOfFormulas);
+        val errorFormulas    = new BitSet(numberOfFormulas);
+        val orphanedFormulas = new BitSet(numberOfFormulas);
+        val predicates       = data.predicateOrder();
+        val originalIndices  = data.predicateOriginalIndices();
 
         for (var i = 0; i < predicates.size(); i++) {
             if (candidateConjunctions.isEmpty()) {
@@ -102,7 +103,7 @@ class CanonicalIndexSearch {
             // the suspect path and reconcile it through Kleene naive.
             if (!(evaluationResult instanceof BooleanValue(var b))) {
                 eliminateAllPredicateConjunctions(p, data, candidateConjunctions, remainingFormulasWithConjunction,
-                        matchedFormulas, errorFormulas, scratch);
+                        matchedFormulas, errorFormulas, orphanedFormulas, scratch);
                 continue;
             }
 
@@ -155,10 +156,11 @@ class CanonicalIndexSearch {
 
         val remainingFormulasWithConjunction = data.numberOfFormulasWithConjunction().clone();
 
-        val matchedFormulas = new BitSet(numberOfFormulas);
-        val errorFormulas   = new BitSet(numberOfFormulas);
-        val predicates      = data.predicateOrder();
-        val originalIndices = data.predicateOriginalIndices();
+        val matchedFormulas  = new BitSet(numberOfFormulas);
+        val errorFormulas    = new BitSet(numberOfFormulas);
+        val orphanedFormulas = new BitSet(numberOfFormulas);
+        val predicates       = data.predicateOrder();
+        val originalIndices  = data.predicateOriginalIndices();
 
         for (var i = 0; i < predicates.size(); i++) {
             if (candidateConjunctions.isEmpty()) {
@@ -178,7 +180,7 @@ class CanonicalIndexSearch {
             // the suspect path and reconcile it through Kleene naive.
             if (!(evaluationResult instanceof BooleanValue(var b))) {
                 eliminateAllPredicateConjunctions(p, data, candidateConjunctions, remainingFormulasWithConjunction,
-                        matchedFormulas, errorFormulas, scratch);
+                        matchedFormulas, errorFormulas, orphanedFormulas, scratch);
                 continue;
             }
 
@@ -296,14 +298,20 @@ class CanonicalIndexSearch {
     }
 
     private static void eliminateAllPredicateConjunctions(int p, CanonicalIndexData data, BitSet candidateConjunctions,
-            int[] remainingFormulasWithConjunction, BitSet matchedFormulas, BitSet errorFormulas, BitSet scratch) {
+            int[] remainingFormulasWithConjunction, BitSet matchedFormulas, BitSet errorFormulas,
+            BitSet orphanedFormulas, BitSet scratch) {
         andInto(scratch, data.conjunctionsWithPredicate()[p], candidateConjunctions);
         candidateConjunctions.andNot(scratch);
 
         for (var c = scratch.nextSetBit(0); c >= 0; c = scratch.nextSetBit(c + 1)) {
             markConjunctionFormulas(c, data, matchedFormulas, errorFormulas);
             for (val f : data.conjunctionToFormulaIndices()[c]) {
-                if (!matchedFormulas.get(f)) {
+                // A formula referencing the errored predicate in more than one conjunction
+                // resolves once, so its siblings are decremented once. Decrementing per
+                // errored conjunction drives a shared conjunction's count below its true
+                // users and silently drops a sibling policy.
+                if (!matchedFormulas.get(f) && !orphanedFormulas.get(f)) {
+                    orphanedFormulas.set(f);
                     for (val sibling : data.formulaConjunctionIndices()[f]) {
                         remainingFormulasWithConjunction[sibling]--;
                         if (remainingFormulasWithConjunction[sibling] <= 0) {

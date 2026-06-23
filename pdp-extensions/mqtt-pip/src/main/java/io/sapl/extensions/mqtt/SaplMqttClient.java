@@ -208,6 +208,9 @@ public class SaplMqttClient implements Closeable {
             // surplus. The atomic region does only the cheap count increment, so a
             // concurrent close() cannot evict between lookup and increment.
             val cached = registerSubscriber(brokerConfig, candidate);
+            // The caller whose prebuilt candidate was the one inserted owns the
+            // shared connection and connects it; all others reuse it.
+            val owner = cached == candidate;
 
             val firstMessage = new AtomicBoolean(false);
             val closed       = new AtomicBoolean(false);
@@ -218,7 +221,7 @@ public class SaplMqttClient implements Closeable {
             val onDisconnect = registerDisconnectListener(cached, emitAtRetry, closed, emit);
             val timerCancel  = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
 
-            Thread.startVirtualThread(() -> connectAndSubscribe(ctx, firstMessage, emit, complete,
+            Thread.startVirtualThread(() -> connectAndSubscribe(ctx, owner, firstMessage, emit, complete,
                     () -> teardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone)));
 
             return () -> teardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone);
@@ -234,10 +237,10 @@ public class SaplMqttClient implements Closeable {
             int maxPayloadBytes,
             Set<MqttTopicFilter> subscribedFilters) {}
 
-    private static void connectAndSubscribe(SubscriptionContext ctx, AtomicBoolean firstMessage, Consumer<Value> emit,
-            Runnable complete, Runnable onFailure) {
+    private static void connectAndSubscribe(SubscriptionContext ctx, boolean owner, AtomicBoolean firstMessage,
+            Consumer<Value> emit, Runnable complete, Runnable onFailure) {
         try {
-            ctx.client.connect().get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            establishConnection(ctx, owner);
             for (val filter : ctx.filters) {
                 if (ctx.closed.get()) {
                     return;
@@ -269,6 +272,24 @@ public class SaplMqttClient implements Closeable {
             onFailure.run();
             complete.run();
         }
+    }
+
+    // The owning subscriber connects the shared client once and publishes the
+    // outcome; reusing subscribers wait for that outcome instead of connecting
+    // again, which the broker would reject as an illegal client state.
+    private static void establishConnection(SubscriptionContext ctx, boolean owner)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        if (!owner) {
+            ctx.cached.awaitConnectionEstablished(CONNECT_TIMEOUT.toMillis());
+            return;
+        }
+        try {
+            ctx.client.connect().get(CONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException | RuntimeException e) {
+            ctx.cached.markConnectionFailed(e);
+            throw e;
+        }
+        ctx.cached.markConnectionEstablished();
     }
 
     private static void deliverPublish(Mqtt5Publish publish, AtomicBoolean closed, AtomicBoolean firstMessage,

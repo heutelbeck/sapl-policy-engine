@@ -21,13 +21,17 @@ import tools.jackson.databind.node.ObjectNode;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,6 +53,13 @@ public final class MqttClientValues {
     private final List<Runnable>       onDisconnectCallbacks;
     @Getter(AccessLevel.NONE)
     private final ReentrantLock        topicTransitionLock = new ReentrantLock(true);
+    // Resolved once by the subscriber that owns this shared client: normally on a
+    // successful connect, exceptionally on a connect failure. Reusing subscribers
+    // wait on it instead of connecting the shared client a second time.
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final CompletableFuture<Void> connectionEstablished = new CompletableFuture<>();
 
     public MqttClientValues(String clientId,
             Mqtt5AsyncClient mqttAsyncClient,
@@ -168,5 +179,36 @@ public final class MqttClientValues {
         } finally {
             topicTransitionLock.unlock();
         }
+    }
+
+    /**
+     * Signals that the owning subscriber connected the shared client, releasing
+     * any reusing subscribers waiting to subscribe.
+     */
+    public void markConnectionEstablished() {
+        connectionEstablished.complete(null);
+    }
+
+    /**
+     * Signals that the owning subscriber failed to connect the shared client, so
+     * reusing subscribers fail with the same cause instead of waiting.
+     *
+     * @param cause the connect failure
+     */
+    public void markConnectionFailed(Throwable cause) {
+        connectionEstablished.completeExceptionally(cause);
+    }
+
+    /**
+     * Waits until the owning subscriber has established the shared connection.
+     *
+     * @param timeoutMs the maximum time to wait in milliseconds
+     * @throws InterruptedException if interrupted while waiting
+     * @throws ExecutionException if the connect failed
+     * @throws TimeoutException if the connection was not established in time
+     */
+    public void awaitConnectionEstablished(long timeoutMs)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        connectionEstablished.get(timeoutMs, TimeUnit.MILLISECONDS);
     }
 }
