@@ -72,9 +72,7 @@ class TreeNavigationUtilTests {
     void whenGoToFirstParent_parentIsRequestedType_thenReturnsParent() {
         var sapl = parse(SIMPLE_POLICY);
         var body = getPolicyBody(sapl);
-        if (body == null) {
-            return;
-        }
+        assertThat(body).isNotNull();
         var statement = body.statement(0);
 
         var result = TreeNavigationUtil.goToFirstParent(statement, PolicyBodyContext.class);
@@ -100,22 +98,20 @@ class TreeNavigationUtilTests {
                 """;
         var sapl     = parse(document);
         var body     = getPolicyBody(sapl);
-        if (body == null) {
-            return;
-        }
+        assertThat(body).isNotNull();
         var statement = body.statement(0);
-        if (!(statement instanceof ConditionStatementContext conditionStmt)) {
-            return;
-        }
+        assertThat(statement).isInstanceOf(ConditionStatementContext.class);
+        var conditionStmt   = (ConditionStatementContext) statement;
         var outerExpression = conditionStmt.expression();
 
         // "(1 + 2)" nests an inner ExpressionContext inside the outer one. The search
         // must resolve to
         // the closest enclosing ExpressionContext, not the outer.
         var groups = Trees.findAllRuleNodes(outerExpression, RULE_basicGroup);
-        if (groups.size() != 1 || !(groups.iterator().next() instanceof BasicGroupContext basicGroup)) {
-            return;
-        }
+        assertThat(groups).hasSize(1);
+        var firstGroup = groups.iterator().next();
+        assertThat(firstGroup).isInstanceOf(BasicGroupContext.class);
+        var basicGroup      = (BasicGroupContext) firstGroup;
         var innerExpression = basicGroup.expression();
         var startNode       = innerExpression.getChild(0);
 
@@ -159,14 +155,11 @@ class TreeNavigationUtilTests {
     void whenGoToLastParent_fromDeepNode_thenReturnsRootMatch() {
         var sapl = parse(SIMPLE_POLICY);
         var body = getPolicyBody(sapl);
-        if (body == null) {
-            return;
-        }
+        assertThat(body).isNotNull();
         var statement = body.statement(0);
-        if (!(statement instanceof ValueDefinitionStatementContext valueDefStmt)) {
-            return;
-        }
-        var valueDef = valueDefStmt.valueDefinition();
+        assertThat(statement).isInstanceOf(ValueDefinitionStatementContext.class);
+        var valueDefStmt = (ValueDefinitionStatementContext) statement;
+        var valueDef     = valueDefStmt.valueDefinition();
 
         var result = TreeNavigationUtil.goToLastParent(valueDef, SaplContext.class);
 
@@ -186,9 +179,7 @@ class TreeNavigationUtilTests {
     void whenOffsetOf_policyBody_thenReturnsBodyOffset() {
         var sapl = parse(SIMPLE_POLICY);
         var body = getPolicyBody(sapl);
-        if (body == null) {
-            return;
-        }
+        assertThat(body).isNotNull();
 
         var offset = TreeNavigationUtil.offsetOf(body);
 
@@ -199,14 +190,11 @@ class TreeNavigationUtilTests {
     void whenOffsetOf_valueDefinition_thenReturnsVarOffset() {
         var sapl = parse(SIMPLE_POLICY);
         var body = getPolicyBody(sapl);
-        if (body == null) {
-            return;
-        }
+        assertThat(body).isNotNull();
         var statement = body.statement(0);
-        if (!(statement instanceof ValueDefinitionStatementContext valueDefStmt)) {
-            return;
-        }
-        var valueDef = valueDefStmt.valueDefinition();
+        assertThat(statement).isInstanceOf(ValueDefinitionStatementContext.class);
+        var valueDefStmt = (ValueDefinitionStatementContext) statement;
+        var valueDef     = valueDefStmt.valueDefinition();
 
         var offset = TreeNavigationUtil.offsetOf(valueDef);
 
@@ -224,9 +212,7 @@ class TreeNavigationUtilTests {
     void whenGoToFirstParent_fromPolicy_thenFindsPolicyContext() {
         var sapl   = parse(SIMPLE_POLICY);
         var policy = getPolicy(sapl);
-        if (policy == null) {
-            return;
-        }
+        assertThat(policy).isNotNull();
 
         var result = TreeNavigationUtil.goToFirstParent(policy, PolicyContext.class);
 

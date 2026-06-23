@@ -220,10 +220,16 @@ public class FilterFunctionLibrary {
         }
 
         val parameter = parameters[index];
-        if (!(parameter instanceof NumberValue(BigDecimal value)) || value.intValue() < 0) {
+        if (!(parameter instanceof NumberValue(BigDecimal value)) || !isNonNegativeInteger(value)) {
             throw new IllegalArgumentException(errorMessage.formatted(parameter));
         }
         return value.intValue();
+    }
+
+    // Reject fractions and negatives that intValue() would otherwise silently
+    // truncate.
+    private static boolean isNonNegativeInteger(BigDecimal value) {
+        return value.signum() >= 0 && value.stripTrailingZeros().scale() <= 0;
     }
 
     private static int extractDiscloseLeft(Value... parameters) {
@@ -273,7 +279,7 @@ public class FilterFunctionLibrary {
         }
 
         val parameter = parameters[BLACKEN_LENGTH_INDEX];
-        if (!(parameter instanceof NumberValue(BigDecimal value)) || value.intValue() < 0) {
+        if (!(parameter instanceof NumberValue(BigDecimal value)) || !isNonNegativeInteger(value)) {
             throw new IllegalArgumentException(ERROR_ILLEGAL_PARAMETER_BLACKEN_LENGTH);
         }
         if (value.compareTo(BigDecimal.valueOf(MAX_BLACKEN_LENGTH)) > 0) {

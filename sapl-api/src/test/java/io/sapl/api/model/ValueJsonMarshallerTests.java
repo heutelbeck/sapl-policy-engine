@@ -129,8 +129,14 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> doubleValues() {
-        return Stream.of(arguments("zero", 0.0), arguments("negative zero", -0.0), arguments("min", Double.MIN_VALUE),
-                arguments("max", Double.MAX_VALUE), arguments("e", Math.E), arguments("pi", Math.PI));
+        return Stream.of(arguments("zero", 0.0), arguments("min", Double.MIN_VALUE), arguments("max", Double.MAX_VALUE),
+                arguments("e", Math.E), arguments("pi", Math.PI));
+    }
+
+    @Test
+    @DisplayName("negative zero collapses to the canonical zero value")
+    void whenNegativeZeroThenCollapsesToZero() {
+        assertThat(Value.of(-0.0)).isEqualTo(Value.of(0.0));
     }
 
     // Round-trip Conversion Tests - Collections

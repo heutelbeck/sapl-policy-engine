@@ -114,6 +114,35 @@ class FilterFunctionLibraryTests {
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("BLACKEN_LENGTH");
     }
 
+    @Test
+    void blackenFractionalDiscloseLeftThrowsException() {
+        val text       = Value.of("test");
+        val fractional = Value.of(2.5);
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(text, fractional))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("DISCLOSE_LEFT");
+    }
+
+    @Test
+    void blackenFractionalDiscloseRightThrowsException() {
+        val text         = Value.of("test");
+        val discloseLeft = Value.of(2);
+        val fractional   = Value.of(2.5);
+        assertThatThrownBy(() -> FilterFunctionLibrary.blacken(text, discloseLeft, fractional))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("DISCLOSE_RIGHT");
+    }
+
+    @Test
+    void blackenFractionalLengthThrowsException() {
+        val text          = Value.of("test");
+        val discloseLeft  = Value.of(2);
+        val discloseRight = Value.of(2);
+        val replacement   = Value.of("*");
+        val fractional    = Value.of(2.5);
+        assertThatThrownBy(
+                () -> FilterFunctionLibrary.blacken(text, discloseLeft, discloseRight, replacement, fractional))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("BLACKEN_LENGTH");
+    }
+
     @ParameterizedTest(name = "Blacken {0}: left={1}, right={2}, replacement={3} -> {4}")
     @CsvSource(delimiter = '|', textBlock = """
             Necronomicon      | 5 | 3 | *   | Necro****con

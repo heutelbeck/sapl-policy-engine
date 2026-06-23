@@ -203,11 +203,15 @@ public class TransitionSignals {
      * still-queued data item before it, so the substitute overtakes that item.
      * <p>
      * Unbounded inner demand means this path buffers, unlike the observe-only paths
-     * which are pure pass-throughs with full backpressure. The buffering is accepted
-     * by design: substitutes are injected only at suspend or grant boundaries, which
-     * are rare, and the buffer grows without bound only under a slow consumer against
+     * which are pure pass-throughs with full backpressure. The buffering is
+     * accepted
+     * by design: substitutes are injected only at suspend or grant boundaries,
+     * which
+     * are rare, and the buffer grows without bound only under a slow consumer
+     * against
      * a high-volume source, a trade accepted for this opt-in helper. Do not relay
-     * downstream demand to the inner subscription to bound it; that reintroduces the
+     * downstream demand to the inner subscription to bound it; that reintroduces
+     * the
      * reordering above. A downstream cancel disposes the subscription.
      */
     private static <T> Flux<T> observeAndSubstitute(Flux<T> source, Consumer<AccessDeniedException> onSuspend,
