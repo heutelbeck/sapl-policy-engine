@@ -348,7 +348,13 @@ public class PdpVoterSource implements AutoCloseable {
      * @return the current configuration, or empty if none is loaded
      */
     public Optional<CompiledPdp> getCurrentConfiguration(String pdpId) {
-        return getConfigRef(pdpId).get();
+        // Non-inserting read: a query for an unknown pdpId must not create a cache
+        // entry,
+        // otherwise configCache grows without bound as distinct pdpIds are read over
+        // the
+        // PDP's lifetime (tenant churn, removed or transient pdpIds).
+        val ref = configCache.get(pdpId);
+        return ref != null ? ref.get() : Optional.empty();
     }
 
     /**

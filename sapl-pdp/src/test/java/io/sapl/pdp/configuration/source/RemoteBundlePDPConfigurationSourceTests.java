@@ -28,6 +28,7 @@ import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -695,6 +696,40 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             awaitRetries();
             assertThat(configs).isEmpty();
+        }
+
+        @Test
+        @DisplayName("F4: a redirect is not followed when an auth header is configured, so the credential is never replayed to the redirect target")
+        void whenRedirectWithAuthHeaderThenNotFollowedAndCredentialNotReplayed() throws Exception {
+            // followRedirects is enabled, but a custom auth header is configured. Following
+            // a
+            // redirect would replay that credential to a cross-origin target, so the client
+            // must not follow. The first fetch is redirected (treated as an error); the
+            // retry
+            // serves a valid bundle from the original, configured URL.
+            val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
+                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
+                    "X-Auth-Token", "secret", true, developmentPolicy, Map.of(), Duration.ofMillis(50),
+                    Duration.ofMillis(200));
+
+            server.enqueue(
+                    new MockResponse().setResponseCode(301).setHeader("Location", server.url("/other").toString()));
+            enqueueBundle(createUnsignedBundle(), "\"v1\"");
+            enqueueNotModified();
+
+            source = new RemoteBundlePDPConfigurationSource(config);
+            val configs = captureConfigurations(source);
+
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
+
+            // Every request must target the configured base URL and carry the credential;
+            // none may hit the redirect target (which would be a cross-origin credential
+            // replay).
+            RecordedRequest request;
+            while ((request = server.takeRequest(50, TimeUnit.MILLISECONDS)) != null) {
+                assertThat(request.getPath()).doesNotStartWith("/other");
+                assertThat(request.getHeader("X-Auth-Token")).isEqualTo("secret");
+            }
         }
 
         @Test

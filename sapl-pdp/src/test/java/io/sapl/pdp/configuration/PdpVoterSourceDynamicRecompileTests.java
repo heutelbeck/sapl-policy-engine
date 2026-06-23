@@ -189,6 +189,27 @@ class PdpVoterSourceDynamicRecompileTests {
         return ((Map<String, ?>) field.get(source)).containsKey(pdpId);
     }
 
+    @SuppressWarnings("unchecked")
+    private static int configCacheSize(PdpVoterSource source) throws Exception {
+        val field = PdpVoterSource.class.getDeclaredField("configCache");
+        field.setAccessible(true);
+        return ((Map<String, ?>) field.get(source)).size();
+    }
+
+    @Test
+    @DisplayName("reading the configuration for an unknown pdpId does not create a cache entry")
+    void whenReadingUnknownPdpIdThenNoCacheEntryCreated() throws Exception {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            assertThat(voterSource.getCurrentConfiguration("never-loaded-1")).isEmpty();
+            assertThat(voterSource.getCurrentConfiguration("never-loaded-2")).isEmpty();
+
+            // A read for an unknown pdpId must not grow the cache; otherwise configCache
+            // leaks one entry per distinct pdpId ever read over the PDP's lifetime.
+            assertThat(configCacheSize(voterSource)).isZero();
+        }
+    }
+
     @Test
     @DisplayName("plugins push recompiles every retained configuration with the new broker")
     void whenPluginsPushedThenAllRetainedConfigurationsRecompileWithNewBroker() {

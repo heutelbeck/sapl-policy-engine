@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp;
 
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.pdp.configuration.source.PDPConfigurationSource;
 import io.sapl.pdp.plugins.PluginsBundle;
 import io.sapl.pdp.plugins.PluginsSource;
@@ -74,6 +76,40 @@ class PolicyDecisionPointBuilderTests {
         components.close();
 
         assertThat(pluginsSource.isClosed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("a builder-created default repository is closed by PDPComponents.close() so its scheduler does not leak")
+    void whenBuilderOwnedRepositoryThenClosedOnClose() throws Exception {
+        val components = PolicyDecisionPointBuilder.withDefaults().build();
+        val repository = components.ownedRepository();
+
+        assertThat(repository).isNotNull();
+        assertThat(repositoryClosed(repository)).isFalse();
+
+        components.close();
+
+        assertThat(repositoryClosed(repository)).isTrue();
+    }
+
+    @Test
+    @DisplayName("a caller-supplied repository is not owned and is left open by PDPComponents.close()")
+    void whenExternalRepositoryThenNotOwnedAndLeftOpen() throws Exception {
+        val external   = new InMemoryAttributeRepository();
+        val components = PolicyDecisionPointBuilder.withDefaults().withRepository(external).build();
+
+        assertThat(components.ownedRepository()).isNull();
+
+        components.close();
+
+        assertThat(repositoryClosed(external)).isFalse();
+        external.close();
+    }
+
+    private static boolean repositoryClosed(AttributeRepository repository) throws Exception {
+        val field = repository.getClass().getDeclaredField("closed");
+        field.setAccessible(true);
+        return (boolean) field.get(repository);
     }
 
     @Test
