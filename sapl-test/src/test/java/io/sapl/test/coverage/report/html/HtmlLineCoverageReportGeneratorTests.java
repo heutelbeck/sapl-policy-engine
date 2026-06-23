@@ -107,6 +107,33 @@ class HtmlLineCoverageReportGeneratorTests {
     }
 
     @Nested
+    @DisplayName("template placeholder injection")
+    class TemplatePlaceholderInjectionTests {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        @DisplayName("a document name that looks like a template placeholder is not substituted as one")
+        void whenDocumentNameLooksLikePlaceholderThenItIsNotSubstituted() throws IOException {
+            val policy    = new PolicyCoverageData("{{lineModelsJson}}", "policy \"x\"\npermit;", "policy");
+            val generator = new HtmlLineCoverageReportGenerator();
+            generator.generateHtmlReport(List.of(policy), tempDir, POLICY_SET_HIT_RATIO, POLICY_HIT_RATIO,
+                    POLICY_CONDITION_HIT_RATIO);
+
+            String content;
+            val    policiesDir = tempDir.resolve("html").resolve("policies");
+            try (val generated = Files.walk(policiesDir)) {
+                val file = generated.filter(Files::isRegularFile).findFirst().orElseThrow();
+                content = Files.readString(file);
+            }
+
+            assertThat(content).contains("{{lineModelsJson}}");
+        }
+
+    }
+
+    @Nested
     @DisplayName("document name sanitization")
     class DocumentNameSanitizationTests {
 

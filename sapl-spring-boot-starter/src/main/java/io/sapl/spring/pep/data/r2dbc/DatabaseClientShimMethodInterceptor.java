@@ -26,6 +26,7 @@ import org.springframework.r2dbc.core.PreparedOperation;
 import org.springframework.r2dbc.core.binding.BindTarget;
 import org.springframework.security.access.AccessDeniedException;
 
+import io.sapl.spring.pep.constraints.ConstraintType;
 import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.EnforcementPlanContext;
 import io.sapl.spring.pep.constraints.Signal.SqlShimSignal;
@@ -112,7 +113,18 @@ public class DatabaseClientShimMethodInterceptor implements MethodInterceptor {
         if (result.value() instanceof Present<?>(var v) && v instanceof String rewritten) {
             return rewritten;
         }
+        // A SQL-rewrite obligation that ran without producing usable rewritten SQL
+        // must fail closed: running the original, un-narrowed query would silently
+        // drop the obligation. Advice-only rewrites degrade to the original.
+        if (hasSqlRewriteObligation(plan)) {
+            throw new AccessDeniedException(ERROR_ACCESS_DENIED_OBLIGATION_FAILED);
+        }
         return originalSql;
+    }
+
+    private static boolean hasSqlRewriteObligation(EnforcementPlan plan) {
+        return plan.entriesFor(SqlShimSignal.SIGNAL_TYPE).stream()
+                .anyMatch(entry -> entry.constraintType() == ConstraintType.OBLIGATION);
     }
 
     /**

@@ -289,8 +289,9 @@ public class PriorityBasedVoteCombiner {
             List<Vote> contributingVotes, Vote accVote, Vote newVote, VoterMetadata voterMetadata) {
         val resourceA = accAuthz.resource();
         val resourceB = newAuthz.resource();
-        // Transformation uncertainty: both define different resources
-        if (!Value.UNDEFINED.equals(resourceA) && !Value.UNDEFINED.equals(resourceB)) {
+        // Transformation uncertainty: both define different resources. Identical
+        // transformations are unambiguous and merge, matching UnanimousVoteCombiner.
+        if (!Value.UNDEFINED.equals(resourceA) && !Value.UNDEFINED.equals(resourceB) && !resourceA.equals(resourceB)) {
             val transformationError = Value.error(ERROR_TRANSFORMATION_UNCERTAINTY);
             return indeterminateResult(combineOutcomes(accVote.outcome(), newVote.outcome()),
                     List.of(transformationError), contributingVotes, voterMetadata);

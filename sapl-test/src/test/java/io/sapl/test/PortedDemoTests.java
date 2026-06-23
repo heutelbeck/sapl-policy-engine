@@ -148,8 +148,10 @@ class PortedDemoTests {
 
     /**
      * Tests when the "for" clause matches but no inner policy is applicable.
-     * A regular visitor (not cultist or high-clearance researcher) produces no inner
-     * vote, so the policy set's "first ... or deny" default decision applies and the
+     * A regular visitor (not cultist or high-clearance researcher) produces no
+     * inner
+     * vote, so the policy set's "first ... or deny" default decision applies and
+     * the
      * set decides DENY.
      */
     @Test

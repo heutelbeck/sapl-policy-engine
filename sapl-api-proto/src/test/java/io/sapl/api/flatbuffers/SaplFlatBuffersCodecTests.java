@@ -18,9 +18,11 @@
 package io.sapl.api.flatbuffers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.math.BigDecimal;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
@@ -305,6 +307,34 @@ class SaplFlatBuffersCodecTests {
                 assertThat(d.decision().decision()).isEqualTo(Decision.PERMIT);
                 assertThat(d.decision().obligations()).hasSize(1);
             });
+        }
+    }
+
+    @Nested
+    @DisplayName("malformed buffer handling")
+    class MalformedBufferTests {
+
+        static Stream<Arguments> decoders() {
+            return Stream.of(arguments("readValue", (Consumer<byte[]>) SaplFlatBuffersCodec::readValue),
+                    arguments("readAuthorizationSubscription",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readAuthorizationSubscription),
+                    arguments("readAuthorizationDecision",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readAuthorizationDecision),
+                    arguments("readMultiAuthorizationSubscription",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readMultiAuthorizationSubscription),
+                    arguments("readMultiAuthorizationDecision",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readMultiAuthorizationDecision),
+                    arguments("readIdentifiableAuthorizationDecision",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readIdentifiableAuthorizationDecision));
+        }
+
+        @ParameterizedTest(name = "{0} rejects a truncated buffer")
+        @MethodSource("decoders")
+        @DisplayName("a malformed buffer fails closed with a controlled exception, not a leaked decode error")
+        void whenBufferTruncatedThenFailsClosed(String name, Consumer<byte[]> decoder) {
+            var malformed = new byte[] { 1, 2, 3 };
+
+            assertThatThrownBy(() -> decoder.accept(malformed)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 }

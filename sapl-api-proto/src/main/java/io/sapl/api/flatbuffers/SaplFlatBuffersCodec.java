@@ -20,6 +20,7 @@ package io.sapl.api.flatbuffers;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.function.Supplier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,8 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 public class SaplFlatBuffersCodec {
+
+    private static final String ERROR_MALFORMED_BUFFER = "Malformed FlatBuffers buffer.";
 
     // ValueUnion type codes (matching sapl_types.fbs)
     private static final byte VALUE_NONE      = 0;
@@ -92,9 +95,25 @@ public class SaplFlatBuffersCodec {
      * @return the deserialized Value
      */
     public static Value readValue(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-        FbValue    table  = new FbValue().__assign(buffer.getInt(buffer.position()) + buffer.position(), buffer);
-        return readValue(table);
+        return decodeFailClosed(() -> {
+            ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+            FbValue    table  = new FbValue().__assign(buffer.getInt(buffer.position()) + buffer.position(), buffer);
+            return readValue(table);
+        });
+    }
+
+    /**
+     * Decodes an attacker-controlled buffer, converting any decode failure
+     * (out-of-range offsets, truncation) into a controlled
+     * {@link IllegalArgumentException} so a malformed buffer fails closed
+     * instead of leaking a raw {@code IndexOutOfBoundsException}.
+     */
+    private static <T> T decodeFailClosed(Supplier<T> decoder) {
+        try {
+            return decoder.get();
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException(ERROR_MALFORMED_BUFFER, e);
+        }
     }
 
     private static int createValue(FlatBufferBuilder builder, Value value) {
@@ -248,9 +267,12 @@ public class SaplFlatBuffersCodec {
      * @return the deserialized AuthorizationSubscription
      */
     public static AuthorizationSubscription readAuthorizationSubscription(byte[] bytes) {
-        ByteBuffer                  buffer = ByteBuffer.wrap(bytes);
-        FbAuthorizationSubscription table  = FbAuthorizationSubscription.getRootAsFbAuthorizationSubscription(buffer);
-        return readAuthorizationSubscription(table);
+        return decodeFailClosed(() -> {
+            ByteBuffer                  buffer = ByteBuffer.wrap(bytes);
+            FbAuthorizationSubscription table  = FbAuthorizationSubscription
+                    .getRootAsFbAuthorizationSubscription(buffer);
+            return readAuthorizationSubscription(table);
+        });
     }
 
     private static AuthorizationSubscription readAuthorizationSubscription(FbAuthorizationSubscription table) {
@@ -298,9 +320,11 @@ public class SaplFlatBuffersCodec {
      * @return the deserialized AuthorizationDecision
      */
     public static AuthorizationDecision readAuthorizationDecision(byte[] bytes) {
-        ByteBuffer              buffer = ByteBuffer.wrap(bytes);
-        FbAuthorizationDecision table  = FbAuthorizationDecision.getRootAsFbAuthorizationDecision(buffer);
-        return readAuthorizationDecision(table);
+        return decodeFailClosed(() -> {
+            ByteBuffer              buffer = ByteBuffer.wrap(bytes);
+            FbAuthorizationDecision table  = FbAuthorizationDecision.getRootAsFbAuthorizationDecision(buffer);
+            return readAuthorizationDecision(table);
+        });
     }
 
     private static AuthorizationDecision readAuthorizationDecision(FbAuthorizationDecision table) {
@@ -372,17 +396,19 @@ public class SaplFlatBuffersCodec {
      * @return the deserialized MultiAuthorizationSubscription
      */
     public static MultiAuthorizationSubscription readMultiAuthorizationSubscription(byte[] bytes) {
-        ByteBuffer                       buffer = ByteBuffer.wrap(bytes);
-        FbMultiAuthorizationSubscription table  = FbMultiAuthorizationSubscription
-                .getRootAsFbMultiAuthorizationSubscription(buffer);
-        MultiAuthorizationSubscription   result = new MultiAuthorizationSubscription();
-        int                              length = table.subscriptionsLength();
-        for (int i = 0; i < length; i++) {
-            FbIdentifiableAuthorizationSubscription idSub = table.subscriptions(i);
-            AuthorizationSubscription               sub   = readAuthorizationSubscription(idSub.subscription());
-            result.addSubscription(idSub.subscriptionId(), sub);
-        }
-        return result;
+        return decodeFailClosed(() -> {
+            ByteBuffer                       buffer = ByteBuffer.wrap(bytes);
+            FbMultiAuthorizationSubscription table  = FbMultiAuthorizationSubscription
+                    .getRootAsFbMultiAuthorizationSubscription(buffer);
+            MultiAuthorizationSubscription   result = new MultiAuthorizationSubscription();
+            int                              length = table.subscriptionsLength();
+            for (int i = 0; i < length; i++) {
+                FbIdentifiableAuthorizationSubscription idSub = table.subscriptions(i);
+                AuthorizationSubscription               sub   = readAuthorizationSubscription(idSub.subscription());
+                result.addSubscription(idSub.subscriptionId(), sub);
+            }
+            return result;
+        });
     }
 
     /**
@@ -420,17 +446,19 @@ public class SaplFlatBuffersCodec {
      * @return the deserialized MultiAuthorizationDecision
      */
     public static MultiAuthorizationDecision readMultiAuthorizationDecision(byte[] bytes) {
-        ByteBuffer                   buffer = ByteBuffer.wrap(bytes);
-        FbMultiAuthorizationDecision table  = FbMultiAuthorizationDecision
-                .getRootAsFbMultiAuthorizationDecision(buffer);
-        MultiAuthorizationDecision   result = new MultiAuthorizationDecision();
-        int                          length = table.decisionsLength();
-        for (int i = 0; i < length; i++) {
-            FbDecisionEntry       entry = table.decisions(i);
-            AuthorizationDecision dec   = readAuthorizationDecision(entry.decision());
-            result.setDecision(entry.subscriptionId(), dec);
-        }
-        return result;
+        return decodeFailClosed(() -> {
+            ByteBuffer                   buffer = ByteBuffer.wrap(bytes);
+            FbMultiAuthorizationDecision table  = FbMultiAuthorizationDecision
+                    .getRootAsFbMultiAuthorizationDecision(buffer);
+            MultiAuthorizationDecision   result = new MultiAuthorizationDecision();
+            int                          length = table.decisionsLength();
+            for (int i = 0; i < length; i++) {
+                FbDecisionEntry       entry = table.decisions(i);
+                AuthorizationDecision dec   = readAuthorizationDecision(entry.decision());
+                result.setDecision(entry.subscriptionId(), dec);
+            }
+            return result;
+        });
     }
 
     /**
@@ -456,11 +484,13 @@ public class SaplFlatBuffersCodec {
      * @return the deserialized IdentifiableAuthorizationDecision
      */
     public static IdentifiableAuthorizationDecision readIdentifiableAuthorizationDecision(byte[] bytes) {
-        ByteBuffer                          buffer = ByteBuffer.wrap(bytes);
-        FbIdentifiableAuthorizationDecision table  = FbIdentifiableAuthorizationDecision
-                .getRootAsFbIdentifiableAuthorizationDecision(buffer);
-        AuthorizationDecision               dec    = readAuthorizationDecision(table.decision());
-        return new IdentifiableAuthorizationDecision(table.subscriptionId(), dec);
+        return decodeFailClosed(() -> {
+            ByteBuffer                          buffer = ByteBuffer.wrap(bytes);
+            FbIdentifiableAuthorizationDecision table  = FbIdentifiableAuthorizationDecision
+                    .getRootAsFbIdentifiableAuthorizationDecision(buffer);
+            AuthorizationDecision               dec    = readAuthorizationDecision(table.decision());
+            return new IdentifiableAuthorizationDecision(table.subscriptionId(), dec);
+        });
     }
 
     private static int[] toIntArray(List<Integer> list) {
