@@ -18,6 +18,8 @@
 package io.sapl.attributes.libraries;
 
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.proc.JWSVerifierFactory;
@@ -42,6 +44,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.security.Key;
+import java.security.PublicKey;
 import java.text.ParseException;
 import java.time.Clock;
 import java.time.Instant;
@@ -51,8 +54,9 @@ import java.util.Optional;
  * Policy Information Point for validating and monitoring JSON Web Tokens.
  * <p>
  * Tokens are read from subscription secrets for security. Public key
- * configuration is read from policy variables. The PIP supports all standard
- * JWS algorithms (RSA, EC, HMAC) via Nimbus DefaultJWSVerifierFactory.
+ * configuration is read from policy variables. The PIP supports RSA, EC, and
+ * HMAC via Nimbus DefaultJWSVerifierFactory, plus EdDSA (Ed25519, Ed448) via a
+ * JDK-native {@link EdDsaJwsVerifier}.
  */
 @Slf4j
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION, pipDocumentation = JWTPolicyInformationPoint.DOCUMENTATION)
@@ -112,6 +116,7 @@ public class JWTPolicyInformationPoint {
             * RSA: RS256, RS384, RS512, PS256, PS384, PS512
             * ECDSA: ES256, ES384, ES512
             * HMAC: HS256, HS384, HS512
+            * EdDSA: Ed25519 and Ed448
 
             Public keys for signature verification are sourced from:
             * A whitelist of trusted keys configured in policy variables
@@ -501,7 +506,7 @@ public class JWTPolicyInformationPoint {
     private boolean verifySignatureOf(String keyId, SignedJWT signedJwt, Key key, boolean isFromWhitelist,
             String keyServerUri, long cacheTtlMillis) {
         try {
-            JWSVerifier verifier = VERIFIER_FACTORY.createJWSVerifier(signedJwt.getHeader(), key);
+            JWSVerifier verifier = verifierFor(signedJwt.getHeader(), key);
             val         isValid  = signedJwt.verify(verifier);
             if (isValid && !isFromWhitelist && null != keyServerUri) {
                 keyProvider.cache(keyServerUri, keyId, key, cacheTtlMillis);
@@ -510,6 +515,19 @@ public class JWTPolicyInformationPoint {
         } catch (JOSEException e) {
             return false;
         }
+    }
+
+    /**
+     * Builds the JWS verifier for the token's algorithm. RSA, EC, and HMAC are
+     * delegated to Nimbus' {@link DefaultJWSVerifierFactory}; EdDSA is handled by
+     * {@link EdDsaJwsVerifier} (JDK-native, Ed25519 and Ed448), which Nimbus'
+     * default factory does not cover without Google Tink.
+     */
+    private static JWSVerifier verifierFor(JWSHeader header, Key key) throws JOSEException {
+        if (JWSAlgorithm.EdDSA.equals(header.getAlgorithm()) && key instanceof PublicKey publicKey) {
+            return new EdDsaJwsVerifier(publicKey);
+        }
+        return VERIFIER_FACTORY.createJWSVerifier(header, key);
     }
 
     private Stream<Value> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
