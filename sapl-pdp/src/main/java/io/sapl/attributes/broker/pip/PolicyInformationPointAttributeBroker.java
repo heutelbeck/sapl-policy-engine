@@ -238,25 +238,43 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             checkCollisions(namespace, newSpecs, null);
             handle = new PipHandleImpl(namespace, documentation);
             handleSpecs.put(handle, List.copyOf(newSpecs));
-            for (val active : allActive()) {
-                if (active.sourceSpec() != null) {
-                    continue;
-                }
-                val match = resolve(active.invocation());
-                match.ifPresent(spec -> promotions.put(active, spec));
-            }
+            promotions.putAll(collectPromotions());
             log.debug("Loaded PIP '{}' with {} attribute(s)", namespace, newSpecs.size());
         } finally {
 
             lock.unlock();
 
         }
-        for (val entry : promotions.entrySet()) {
-            val previousActive = entry.getKey();
-            val replacement    = newActivePipInvocation(previousActive.invocation(), entry.getValue());
-            migrate(previousActive, replacement);
-        }
+        applyPromotions(promotions);
         return handle;
+    }
+
+    /**
+     * Collects fallback-backed or terminal active invocations that now resolve to
+     * a registered spec, so they can be promoted to PIP-backed. Must be called
+     * holding {@link #lock} after the new specs are installed; the migrations
+     * themselves run outside the lock via {@link #applyPromotions}.
+     */
+    private Map<ActiveInvocation, StreamAttributeFinderSpecification> collectPromotions() {
+        val promotions = new LinkedHashMap<ActiveInvocation, StreamAttributeFinderSpecification>();
+        for (val active : allActive()) {
+            if (active.sourceSpec() != null) {
+                continue;
+            }
+            resolve(active.invocation()).ifPresent(spec -> promotions.put(active, spec));
+        }
+        return promotions;
+    }
+
+    /**
+     * Migrates the collected promotions to PIP-backed invocations. Call outside
+     * {@link #lock}; {@link #migrate} preserves the prior value until the new
+     * source emits, so a promotion is invisible to consumers.
+     */
+    private void applyPromotions(Map<ActiveInvocation, StreamAttributeFinderSpecification> promotions) {
+        for (val entry : promotions.entrySet()) {
+            migrate(entry.getKey(), newActivePipInvocation(entry.getKey().invocation(), entry.getValue()));
+        }
     }
 
     /**
@@ -269,8 +287,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * {@code newInstance} are evicted. Their active invocations migrate to the
      * fallback when one is configured,
      * otherwise they publish {@link Value#UNDEFINED} and close. Specs new in
-     * {@code newInstance} are available for
-     * future invocations.
+     * {@code newInstance} promote any existing fallback-backed or terminal
+     * active invocation that now resolves to them, exactly as {@link #load}
+     * does, as well as serving future invocations.
      * <p>
      * Atomic: either the swap completes or the call throws and the catalog still
      * reflects {@code oldHandle}.
@@ -298,9 +317,10 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         val newSpecs         = extractSpecs(newInstance, newNamespace);
         val newDocumentation = LibraryDocumentationExtractor.extractPolicyInformationPoint(newInstance.getClass());
 
-        SwapPlan      plan;
-        Affected      affected;
-        PipHandleImpl newHandle;
+        SwapPlan                                                  plan;
+        Affected                                                  affected;
+        PipHandleImpl                                             newHandle;
+        Map<ActiveInvocation, StreamAttributeFinderSpecification> promotions;
 
         lock.lock();
 
@@ -319,6 +339,9 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             handleSpecs.put(newHandle, List.copyOf(newSpecs));
 
             affected = collectAffected(plan);
+            // New specs are installed; promote any fallback/terminal invocation that now
+            // resolves to one of them, mirroring load(). Migration runs outside the lock.
+            promotions = collectPromotions();
         } finally {
 
             lock.unlock();
@@ -338,6 +361,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 discard(active);
             }
         }
+        applyPromotions(promotions);
 
         log.debug("Swapped PIP '{}': {} attribute(s) rebound, {} evicted, {} added", newNamespace, plan.swapped.size(),
                 plan.evictedOnly.size(), plan.addedOnly.size());

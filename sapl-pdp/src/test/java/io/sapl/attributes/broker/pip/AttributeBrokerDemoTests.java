@@ -235,6 +235,57 @@ class AttributeBrokerDemoTests {
         }
     }
 
+    @Test
+    @DisplayName("swap promotes an existing terminal invocation to a spec the replacement newly provides")
+    void whenSwapAddsSpecThenExistingUnmatchedInvocationIsPromoted() {
+        try (val broker = new PolicyInformationPointAttributeBroker()) {
+            val handle    = broker.load(new ProvPipX());
+            val yKey      = key("prov.y");
+            val snapshots = new CopyOnWriteArrayList<Map<SubscriptionKey, AttributeSnapshot>>();
+
+            // prov.y is not provided by ProvPipX, so with no fallback the invocation is
+            // terminal UNDEFINED.
+            val sub = broker.open("s1", Set.of(yKey), snapshot -> {
+                snapshots.add(snapshot);
+                return Set.of(yKey);
+            });
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(snapshots)
+                    .anySatisfy(s -> assertThat(s.get(yKey).value()).isEqualTo(Value.UNDEFINED)));
+
+            // The replacement adds prov.y. The existing terminal invocation must be
+            // promoted
+            // to the new PIP, exactly as load() promotes a newly matching invocation.
+            broker.swap(handle, new ProvPipXY());
+
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(snapshots)
+                    .anySatisfy(s -> assertThat(s.get(yKey).value()).isEqualTo(Value.of("y"))));
+            sub.close();
+        }
+    }
+
+    @PolicyInformationPoint(name = "prov")
+    static class ProvPipX {
+
+        @EnvironmentAttribute
+        public static Value x() {
+            return Value.of("x");
+        }
+    }
+
+    @PolicyInformationPoint(name = "prov")
+    static class ProvPipXY {
+
+        @EnvironmentAttribute
+        public static Value x() {
+            return Value.of("x");
+        }
+
+        @EnvironmentAttribute
+        public static Value y() {
+            return Value.of("y");
+        }
+    }
+
     @PolicyInformationPoint(name = "greeting")
     static class GreetingPipV1 {
 

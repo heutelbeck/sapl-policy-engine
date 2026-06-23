@@ -69,11 +69,11 @@ public class PdpVoterSource implements AutoCloseable {
     private volatile boolean              closed         = false;
 
     /**
-     * Per-pdpId retained source configuration. Recompile triggered by a
-     * plugins snapshot reuses the last successfully-loaded
-     * {@link PDPConfiguration} for the affected pdpId. Removed when the
-     * configuration source emits a {@link ConfigurationEvent.Remove}.
-     * Mutated only under {@link #stateLock}.
+     * Per-pdpId most recently submitted source configuration. A plugins snapshot
+     * recompiles this retained config for the affected pdpId; the served voter
+     * remains the last successfully-compiled one until a recompile succeeds.
+     * Removed when the configuration source emits a
+     * {@link ConfigurationEvent.Remove}. Mutated only under {@link #stateLock}.
      */
     private final Map<String, PDPConfiguration> retainedConfigurations = new HashMap<>();
 
@@ -113,7 +113,12 @@ public class PdpVoterSource implements AutoCloseable {
             currentPlugins = newPlugins;
             for (val entry : retainedConfigurations.entrySet()) {
                 try {
-                    loadConfigurationLocked(entry.getValue(), true, newPlugins);
+                    // A plugin swap changes the compile-time runtime. A voter compiled
+                    // against the retired bundle must not keep being served, so a recompile
+                    // failure fails closed to an error voter rather than retaining the old
+                    // one (STALE). keepOld semantics are meaningful only for config updates,
+                    // where the runtime is unchanged.
+                    loadConfigurationLocked(entry.getValue(), OnCompileError.FAIL_CLOSED, newPlugins);
                 } catch (Exception e) {
                     log.warn("Recompile of pdpId '{}' after plugins push threw: {}", entry.getKey(), e.getMessage());
                 }
@@ -164,13 +169,27 @@ public class PdpVoterSource implements AutoCloseable {
                 log.warn(WARN_DEFERRED_CONFIGURATION, pdpConfiguration.pdpId());
                 return;
             }
-            loadConfigurationLocked(pdpConfiguration, keepOldConfigOnError, plugins);
+            loadConfigurationLocked(pdpConfiguration,
+                    keepOldConfigOnError ? OnCompileError.RETAIN_LAST_GOOD : OnCompileError.THROW, plugins);
         } finally {
             stateLock.unlock();
         }
     }
 
-    private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, boolean keepOldConfigOnError,
+    /**
+     * How {@link #loadConfigurationLocked} reacts to a compilation failure.
+     * {@code THROW} and {@code RETAIN_LAST_GOOD} are the two config-update modes
+     * (the runtime is unchanged); {@code FAIL_CLOSED} is the plugin-swap mode
+     * (the runtime changed, so the last-good voter is bound to a retired bundle
+     * and cannot be retained).
+     */
+    private enum OnCompileError {
+        THROW,
+        RETAIN_LAST_GOOD,
+        FAIL_CLOSED
+    }
+
+    private void loadConfigurationLocked(PDPConfiguration pdpConfiguration, OnCompileError onCompileError,
             PluginsBundle plugins) {
         val priorRetained      = retainedConfigurations.put(pdpConfiguration.pdpId(), pdpConfiguration);
         val compilationContext = new CompilationContext(pdpConfiguration.pdpId(), pdpConfiguration.configurationId(),
@@ -181,7 +200,7 @@ public class PdpVoterSource implements AutoCloseable {
             newConfiguration = PdpCompiler.compilePDPConfiguration(pdpConfiguration, compilationContext, plugins);
         } catch (SaplCompilerException compilerException) {
             val formattedError = CompilationErrorFormatter.format(compilerException);
-            if (!keepOldConfigOnError) {
+            if (onCompileError == OnCompileError.THROW) {
                 // Fail-fast must leave state unchanged: restore the previously
                 // retained configuration so the rejected one is not retained.
                 if (priorRetained == null) {
@@ -193,7 +212,11 @@ public class PdpVoterSource implements AutoCloseable {
             }
             val now          = clock.instant();
             val currentState = getStatusRef(pdpConfiguration.pdpId()).get().state();
-            if (currentState == PdpState.LOADED || currentState == PdpState.STALE) {
+            // Keep serving the last-good voter (STALE) only on a config update, where that
+            // voter is still bound to the live runtime. A plugin swap (FAIL_CLOSED) must
+            // fail closed instead: the last-good voter is bound to the retired bundle.
+            if (onCompileError == OnCompileError.RETAIN_LAST_GOOD
+                    && (currentState == PdpState.LOADED || currentState == PdpState.STALE)) {
                 getStatusRef(pdpConfiguration.pdpId()).updateAndGet(current -> new PdpStatus(PdpState.STALE,
                         current.configurationId(), current.combiningAlgorithm(), current.documentCount(),
                         current.lastSuccessfulLoad(), now, formattedError));

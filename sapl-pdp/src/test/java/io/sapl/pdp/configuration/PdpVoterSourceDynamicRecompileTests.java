@@ -68,6 +68,11 @@ class PdpVoterSourceDynamicRecompileTests {
                 EMPTY);
     }
 
+    private static PDPConfiguration brokenConfig() {
+        return new PDPConfiguration(PDP_ID, "config-broken", CombiningAlgorithm.DEFAULT,
+                List.of("this is not valid sapl"), EMPTY);
+    }
+
     @Test
     @DisplayName("a fail-fast rejected configuration is not retained for later recompiles")
     void whenLoadFailsFastThenRejectedConfigurationIsNotRetained() {
@@ -255,6 +260,49 @@ class PdpVoterSourceDynamicRecompileTests {
             pluginsSource.publish(new PluginsBundle(brokerWithStandard(), List.of(), List.of(listener)));
 
             assertThat(voterSource.getPlugins().lifecycleListeners()).containsExactly(listener);
+        }
+    }
+
+    @Test
+    @DisplayName("a plugins swap while STALE fails closed to ERROR and drops the voter bound to the retired bundle")
+    void whenPluginsSwapWhileStaleThenFailsClosedToErrorAndOldVoterDropped() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            // LOADED against the first bundle.
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+            // A broken config update with keepOld leaves the pdpId STALE, still serving the
+            // last-good voter, which is bound to the first bundle's broker.
+            voterSource.loadConfiguration(brokenConfig(), true);
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
+
+            // A plugins swap recompiles the retained (still broken) config. Keeping the old
+            // voter would serve one bound to the retired bundle, so it must fail closed.
+            pluginsSource.publish(pluginsOf(brokerWithStandard()));
+
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(after -> assertThat(after).isNotSameAs(lastGood));
+        }
+    }
+
+    @Test
+    @DisplayName("a config-update compile failure with keepOld still goes STALE and keeps serving the last-good voter")
+    void whenConfigUpdateFailsWithKeepOldThenStaleKeepsServingLastGoodVoter() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            val good = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+            voterSource.loadConfiguration(brokenConfig(), true);
+
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(after -> assertThat(after).isSameAs(good));
         }
     }
 
