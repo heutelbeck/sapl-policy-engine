@@ -30,7 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -78,6 +80,20 @@ public class PdpVoterSource implements AutoCloseable {
     private final Map<String, PDPConfiguration> retainedConfigurations = new HashMap<>();
 
     /**
+     * Monotonic plugins-snapshot counter, bumped under {@link #stateLock} on each
+     * snapshot. Paired with {@link #servedGeneration} so an incremental migration
+     * can skip a pdpId a concurrent config update already brought current.
+     */
+    private long pluginGeneration = 0;
+
+    /**
+     * Per-pdpId plugins generation the served voter was compiled against. Lets the
+     * per-pdpId migration triggered by a snapshot skip pdpIds already migrated to
+     * (or past) the snapshot's generation. Mutated only under {@link #stateLock}.
+     */
+    private final Map<String, Long> servedGeneration = new HashMap<>();
+
+    /**
      * Per-PDP configuration cache. Lock-free volatile reads via
      * {@link AtomicReference} for snapshot consumers.
      */
@@ -108,20 +124,50 @@ public class PdpVoterSource implements AutoCloseable {
     }
 
     private void onPluginsSnapshot(PluginsBundle newPlugins) {
+        long         targetGeneration;
+        List<String> pdpIds;
         stateLock.lock();
         try {
-            currentPlugins = newPlugins;
-            for (val entry : retainedConfigurations.entrySet()) {
-                try {
-                    // A plugin swap changes the compile-time runtime. A voter compiled
-                    // against the retired bundle must not keep being served, so a recompile
-                    // failure fails closed to an error voter rather than retaining the old
-                    // one (STALE). keepOld semantics are meaningful only for config updates,
-                    // where the runtime is unchanged.
-                    loadConfigurationLocked(entry.getValue(), OnCompileError.FAIL_CLOSED, newPlugins);
-                } catch (Exception e) {
-                    log.warn("Recompile of pdpId '{}' after plugins push threw: {}", entry.getKey(), e.getMessage());
-                }
+            currentPlugins   = newPlugins;
+            targetGeneration = ++pluginGeneration;
+            pdpIds           = new ArrayList<>(retainedConfigurations.keySet());
+        } finally {
+            stateLock.unlock();
+        }
+        // Migrate each pdpId under a short lock hold, releasing the lock between them
+        // so a
+        // config update is blocked for at most one pdpId rather than the whole
+        // snapshot.
+        // pdpIds are independent decision domains; eventual consistency across them is
+        // fine.
+        for (val pdpId : pdpIds) {
+            migratePdpId(pdpId, targetGeneration);
+        }
+    }
+
+    private void migratePdpId(String pdpId, long targetGeneration) {
+        stateLock.lock();
+        try {
+            if (closed || servedGeneration.getOrDefault(pdpId, Long.MIN_VALUE) >= targetGeneration) {
+                // A concurrent config update already brought this pdpId to the target
+                // generation, or the source is closing.
+                return;
+            }
+            val config  = retainedConfigurations.get(pdpId);
+            val plugins = currentPlugins;
+            if (config == null || plugins == null) {
+                return;
+            }
+            try {
+                // A plugin swap changes the compile-time runtime. A voter compiled against
+                // the retired bundle must not keep being served, so a recompile failure
+                // fails closed to an error voter rather than retaining the old one (STALE).
+                // keepOld semantics are meaningful only for config updates, where the
+                // runtime is unchanged.
+                loadConfigurationLocked(config, OnCompileError.FAIL_CLOSED, plugins);
+                servedGeneration.put(pdpId, pluginGeneration);
+            } catch (Exception e) {
+                log.warn("Recompile of pdpId '{}' after plugins push threw: {}", pdpId, e.getMessage());
             }
         } finally {
             stateLock.unlock();
@@ -171,6 +217,9 @@ public class PdpVoterSource implements AutoCloseable {
             }
             loadConfigurationLocked(pdpConfiguration,
                     keepOldConfigOnError ? OnCompileError.RETAIN_LAST_GOOD : OnCompileError.THROW, plugins);
+            // Reached only when compilation did not fail fast: this pdpId is now current
+            // for the live plugins generation, so an in-flight snapshot migration skips it.
+            servedGeneration.put(pdpConfiguration.pdpId(), pluginGeneration);
         } finally {
             stateLock.unlock();
         }
@@ -264,6 +313,7 @@ public class PdpVoterSource implements AutoCloseable {
         stateLock.lock();
         try {
             retainedConfigurations.remove(pdpId);
+            servedGeneration.remove(pdpId);
             getConfigRef(pdpId).set(Optional.empty());
             notifyListeners(pdpId, new PdpUpdateEvent.Removed(pdpId));
             statusCache.remove(pdpId);
@@ -383,6 +433,7 @@ public class PdpVoterSource implements AutoCloseable {
             configCache.clear();
             statusCache.clear();
             retainedConfigurations.clear();
+            servedGeneration.clear();
         } finally {
             stateLock.unlock();
         }

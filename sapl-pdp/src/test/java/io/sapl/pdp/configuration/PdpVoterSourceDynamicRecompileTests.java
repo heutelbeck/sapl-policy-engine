@@ -306,6 +306,25 @@ class PdpVoterSourceDynamicRecompileTests {
         }
     }
 
+    @Test
+    @DisplayName("a plugins push migrates every retained pdpId to the new bundle, not just the first")
+    void whenPluginsPushedThenAllRetainedPdpIdsMigrateToNewBundle() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(new PDPConfiguration("pdp-2", "config-2", CombiningAlgorithm.DEFAULT,
+                    List.of("policy \"p\" permit"), EMPTY), false);
+
+            val newBroker = brokerWithStandard();
+            pluginsSource.publish(pluginsOf(newBroker));
+
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(v -> assertThat(v.plugins().functionBroker()).isSameAs(newBroker));
+            assertThat(voterSource.getCurrentConfiguration("pdp-2"))
+                    .hasValueSatisfying(v -> assertThat(v.plugins().functionBroker()).isSameAs(newBroker));
+        }
+    }
+
     static final class RecordingDecisionInterceptor implements DecisionInterceptor {
         final AtomicInteger calls = new AtomicInteger();
 
