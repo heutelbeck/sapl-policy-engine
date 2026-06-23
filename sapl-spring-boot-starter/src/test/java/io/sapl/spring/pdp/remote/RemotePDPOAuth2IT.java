@@ -140,7 +140,8 @@ class RemotePDPOAuth2IT {
                 "spring.security.oauth2.client.registration." + REGISTRATION_ID + ".client-secret=" + CLIENT_SECRET,
                 "spring.security.oauth2.client.registration." + REGISTRATION_ID
                         + ".authorization-grant-type=client_credentials",
-                "spring.security.oauth2.client.provider." + REGISTRATION_ID + ".token-uri=" + tokenUri };
+                "spring.security.oauth2.client.provider." + REGISTRATION_ID + ".token-uri=" + tokenUri,
+                "io.sapl.pdp.remote.allow-insecure-http=true" };
     }
 
     private void runWithPdp(String[] properties, AuthorizationDecision expected) {

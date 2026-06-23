@@ -115,12 +115,13 @@ class RSocketTransportIT extends BaseIntegrationTest {
 
     private ReactivePolicyDecisionPoint connectBasic(GenericContainer<?> container, String username, String password) {
         return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                .port(container.getMappedPort(RSOCKET_PORT)).basicAuth(username, password).build();
+                .port(container.getMappedPort(RSOCKET_PORT)).basicAuth(username, password).allowInsecureTransport()
+                .build();
     }
 
     private ReactivePolicyDecisionPoint connectApiKey(GenericContainer<?> container, String apiKey) {
         return RemotePolicyDecisionPoint.builder().rsocket().host(container.getHost())
-                .port(container.getMappedPort(RSOCKET_PORT)).apiKey(apiKey).build();
+                .port(container.getMappedPort(RSOCKET_PORT)).apiKey(apiKey).allowInsecureTransport().build();
     }
 
     private void expectDecision(ReactivePolicyDecisionPoint pdp, AuthorizationSubscription subscription,
@@ -245,7 +246,7 @@ class RSocketTransportIT extends BaseIntegrationTest {
                     saplNode.start();
                     val token = acquireToken(keycloak, username, password);
                     val pdp   = RemotePolicyDecisionPoint.builder().rsocket().host(saplNode.getHost())
-                            .port(saplNode.getMappedPort(RSOCKET_PORT)).apiKey(token).build();
+                            .port(saplNode.getMappedPort(RSOCKET_PORT)).apiKey(token).allowInsecureTransport().build();
                     expectDecision(pdp, subscription, expected);
                 }
             }
