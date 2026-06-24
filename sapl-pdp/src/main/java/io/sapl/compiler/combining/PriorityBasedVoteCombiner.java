@@ -47,7 +47,7 @@ import static io.sapl.compiler.combining.CombiningUtils.*;
  * the error blocks an otherwise-winning concrete decision.
  * <p>
  * <b>Outcome shape principle:</b> concrete results carry single-bit outcomes
- * (the decision itself); INDETERMINATE results carry multi-bit outcomes
+ * (the decision itself). INDETERMINATE results carry multi-bit outcomes
  * (the union of contributing votes' could-have-beens). Combining two
  * matching concrete outcomes via {@link CombiningUtils#combineOutcomes}
  * is idempotent and preserves the single-bit shape.
@@ -154,7 +154,7 @@ public class PriorityBasedVoteCombiner {
      * foldable votes list. In this case, the new vote replaces the accumulator
      * while preserving contributing votes.
      * <p>
-     * Decision table (assuming permit-overrides; swap P/D for deny-overrides):
+     * Decision table (assuming permit-overrides, swap P/D for deny-overrides):
      *
      * <pre>
      * Accumulator              | New Vote             | Result          | Outcome
@@ -270,7 +270,7 @@ public class PriorityBasedVoteCombiner {
 
         // Two distinct concrete non-priority decisions disagree. The
         // per-priority chain selects the winner (see nonPriorityChainHead).
-        // Winner-only authz and outcome; both votes remain in contributingVotes.
+        // Winner-only authz and outcome. Both votes remain in contributingVotes.
         val winner = (accDec == nonPriorityChainHead(priorityDecision)) ? accumulatorVote : newVote;
         return concreteResult(winner.authorizationDecision(), winner.outcome(), contributingVotes, voterMetadata);
     }

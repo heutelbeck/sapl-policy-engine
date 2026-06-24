@@ -40,9 +40,9 @@ import java.util.function.Predicate;
  * <ol>
  * <li>Skip if no remaining candidate conjunctions reference it</li>
  * <li>Evaluate the predicate once against the context</li>
- * <li>Increment true-literal counts for satisfied literals; mark conjunctions
+ * <li>Increment true-literal counts for satisfied literals. Mark conjunctions
  * as satisfied when all literals are true</li>
- * <li>Mark formulas of satisfied conjunctions as matched; decrement remaining
+ * <li>Mark formulas of satisfied conjunctions as matched. Decrement remaining
  * formula counts for sibling conjunctions (orphan detection)</li>
  * <li>Identify unsatisfiable conjunctions from bitmasks</li>
  * <li>Remove satisfied, unsatisfied, and orphaned conjunctions from
@@ -125,8 +125,8 @@ class CanonicalIndexSearch {
      *
      * @param data the precomputed index data structures
      * @param ctx the evaluation context for predicate evaluation
-     * @param shouldContinue called with incremental matches after each step;
-     * returns false to stop
+     * @param shouldContinue called with incremental matches after each step.
+     * Returns false to stop
      */
     static void searchKleeneWhile(CanonicalIndexData data, EvaluationContext ctx,
             Predicate<PolicyMatches> shouldContinue) {

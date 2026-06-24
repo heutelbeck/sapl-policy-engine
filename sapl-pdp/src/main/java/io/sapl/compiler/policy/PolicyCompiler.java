@@ -90,7 +90,7 @@ public class PolicyCompiler {
     /**
      * Builds the voter combining the pure applicability section with the body
      * (the {@code voter}) used by policy sets walking contained policies and by
-     * the first-applicable algorithm. Constant cases fold; when applicability is
+     * the first-applicable algorithm. Constant cases fold. When applicability is
      * pure and a streaming section remains, a {@link PolicyBodyVoter} applies the
      * cross-stratum Kleene AND so a streaming FALSE can dominate a pure error.
      *
@@ -324,8 +324,8 @@ public class PolicyCompiler {
      * <p>
      * The strata combine order-independently: a FALSE in either section
      * dominates and yields NOT_APPLICABLE (so a streaming FALSE dominates a pure
-     * error); otherwise an error in either section yields INDETERMINATE;
-     * otherwise both are TRUE and the constraints voter produces the vote. The
+     * error). Otherwise an error in either section yields INDETERMINATE.
+     * Otherwise both are TRUE and the constraints voter produces the vote. The
      * constraints voter is evaluated only when the body is TRUE, so an erroring
      * or non-applicable body never triggers obligation, advice, or
      * transformation attribute reads.

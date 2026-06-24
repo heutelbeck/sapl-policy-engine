@@ -53,7 +53,7 @@ class SchemaRemoteRefSecurityTests {
                                  connected.set(true);
                                  socket.close();
                              } catch (Exception ignored) {
-                                 // the test asserts on 'connected'; a failed accept is a non-connection
+                                 // the test asserts on 'connected'. A failed accept is a non-connection
                              }
                          });
             acceptor.setDaemon(true);

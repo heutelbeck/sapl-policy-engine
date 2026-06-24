@@ -53,8 +53,8 @@ import io.sapl.spring.pep.streaming.MealyMachine.Step;
  * Each row of {@code /mealy-table.csv} is one cell of the transition function:
  * a
  * {@code (source, event, outcome) -> (next, emissions)} record. This class is
- * one parameterised test over the table;
- * the CSV is the executable spec, the test is the witness that the
+ * one parameterised test over the table.
+ * The CSV is the executable spec, the test is the witness that the
  * implementation renders the spec faithfully.
  * <p>
  * This file performs content checks only. Semantic-subset claims (Lean theorems

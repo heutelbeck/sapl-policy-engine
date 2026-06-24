@@ -57,7 +57,7 @@ import lombok.val;
  * via the {@code sql(Supplier<String>)} overload;</li>
  * <li>{@code @Query}-annotated repository methods ->
  * {@code DatabaseClient.sql(PreparedOperation)} via the same
- * overload;</li>
+ * overload.</li>
  * <li>direct user calls to {@code databaseClient.sql(...)}.</li>
  * </ul>
  * <p>
@@ -132,7 +132,7 @@ public class DatabaseClientShimMethodInterceptor implements MethodInterceptor {
      * {@link #get()} while delegating
      * {@link #bindTo(BindTarget)} to the original. Bind positions/names stay valid
      * because the rewrite only adds new
-     * conditions; it never reorders or removes existing parameter placeholders.
+     * conditions. It never reorders or removes existing parameter placeholders.
      */
     private record RewritingPreparedOperation(PreparedOperation<?> delegate) implements PreparedOperation<Object> {
 

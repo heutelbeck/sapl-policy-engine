@@ -203,7 +203,7 @@ class SaplAttributeRegistryTests {
         class TestClass implements DefaultPreEnforceMethodInterface {
         }
 
-        // A real target is required so the concrete class is known; an unoverridden
+        // A real target is required so the concrete class is known. An unoverridden
         // default method's declaring class is the interface, not the bean class.
         final var sut        = new SaplAttributeRegistry();
         final var mi         = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class, "doSomething",

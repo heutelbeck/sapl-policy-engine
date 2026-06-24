@@ -166,7 +166,7 @@ class SseConnectionRegistryTests {
         connection.close();
         connection.complete();
 
-        // Shutdown then drains the same connection; it must not complete a second
+        // Shutdown then drains the same connection. It must not complete a second
         // time.
         registry.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class)));
 

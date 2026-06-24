@@ -206,7 +206,7 @@ class PostEnforcePolicyEnforcementPointTests {
 
             archive.closeTheWardedDoor();
 
-            // Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran; it skipped
+            // Mapper would have substituted REDACTED_BY_LIBRARIAN if it ran. It skipped
             // because the OutputSignal value is Maybe.absent for void. The PEP still
             // consulted the PDP. Verifying that consultation proves the obligation
             // was processed.

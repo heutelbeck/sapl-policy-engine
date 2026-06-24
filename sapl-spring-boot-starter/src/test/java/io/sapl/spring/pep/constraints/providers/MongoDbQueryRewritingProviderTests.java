@@ -238,6 +238,21 @@ class MongoDbQueryRewritingProviderTests {
         }
 
         @Test
+        @DisplayName("the rewrite does not mutate the caller's Query (defensive copy), so a reused Query does not accumulate criteria")
+        void givenReusedQueryThenCallerQueryNotMutated() {
+            val mapper   = mapperFor("""
+                    {"type": "mongo:queryRewriting",
+                     "criteria": [{"column": "tenantId", "op": "=", "value": 7}]}
+                    """);
+            val original = new Query(Criteria.where("status").is("active"));
+            val before   = renderQueryDocument(original);
+
+            mapper.apply(original);
+
+            assertThat(renderQueryDocument(original)).isEqualTo(before);
+        }
+
+        @Test
         @DisplayName("Malformed JSON in a condition raises a parse exception that the planner treats as obligation failure")
         void givenMalformedJsonInConditionThenMapperThrows() {
             val mapper = mapperFor("""

@@ -50,14 +50,14 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  * select the body-walk strategy at compile time:
  * <ul>
  * <li>{@link Lazy} subscribes lazily, stopping at the first {@link Value#FALSE}
- * or incomplete child. Minimal subscription set; convergence may take multiple
+ * or incomplete child. Minimal subscription set. Convergence may take multiple
  * trigger-loop rounds when independent dependencies are missing.</li>
  * <li>{@link Eager} walks every condition unconditionally to gather the full
- * subscription set, then resolves the body value. Larger subscription set;
- * single-round convergence once the snapshot is sufficient.</li>
+ * subscription set, then resolves the body value. Larger subscription set.
+ * Single-round convergence once the snapshot is sufficient.</li>
  * </ul>
  * Observable {@link VoteResultWithCoverage} is identical across both
- * variants; only the per-pass subscription set differs.
+ * variants. Only the per-pass subscription set differs.
  *
  * @since 4.1.0
  */

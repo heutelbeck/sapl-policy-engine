@@ -38,7 +38,7 @@ import org.jspecify.annotations.Nullable;
  * {@link io.sapl.api.attributes.AttributeFinderInvocation} with the
  * head flag). The list of {@link Occurrence}s per key captures every
  * call site that depends on this subscription, with its source
- * location, for trace and coverage purposes. Not a delta; the full
+ * location, for trace and coverage purposes. Not a delta. The full
  * current picture. The trigger loop diffs this against the
  * previously-held dependency map to decide what to subscribe
  * (additions) and what to release (removals). The "or less"

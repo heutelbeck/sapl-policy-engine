@@ -60,7 +60,7 @@ class AttributeCompilerTests {
 
     @Test
     void whenEnvironmentAttributeWithoutBindingThenResultIsNull() {
-        // No binding means the attribute has no snapshot value; evaluate returns null
+        // No binding means the attribute has no snapshot value. Evaluate returns null
         // (incomplete) and the dependency is recorded in the result.
         var eval = evaluate("<test.attr>");
 
@@ -77,7 +77,7 @@ class AttributeCompilerTests {
 
     @Test
     void whenHeadEnvironmentAttributeThenSnapshotValueReturned() {
-        // The head marker (|) flips SubscriptionKey.head; the bound value still
+        // The head marker (|) flips SubscriptionKey.head. The bound value still
         // resolves because the binding is by attribute name and matches both
         // head=true and head=false keys.
         var eval = evaluate("|<test.attr>").with("test.attr", Value.of(1));
@@ -103,7 +103,7 @@ class AttributeCompilerTests {
         // every round (the outer's invocation key changes when inner changes).
         var driver = evaluate("<outer.attr(<inner.attr>)>");
 
-        // Round 1: empty snapshot. Inner discovered; outer cannot be invoked yet.
+        // Round 1: empty snapshot. Inner discovered. Outer cannot be invoked yet.
         var r1 = driver.step();
         assertThat(r1.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                 .containsExactly("inner.attr");
@@ -120,7 +120,7 @@ class AttributeCompilerTests {
         // Round 3: bind outer's per-arg1 instance to a result, plus update inner=arg2.
         driver.with("outer.attr", Value.of("result-arg1")).with("inner.attr", Value.of("arg2"));
         var r3 = driver.step();
-        // Outer's invocation key now carries arg2; the previous arg1-keyed binding
+        // Outer's invocation key now carries arg2. The previous arg1-keyed binding
         // does not match, so result is null until the new outer key is bound.
         var r3Outer = r3.dependencies().keySet().stream()
                 .filter(k -> "outer.attr".equals(k.invocation().attributeName())).findFirst().orElseThrow();
@@ -134,7 +134,7 @@ class AttributeCompilerTests {
         // invocation's argument list as the stream value evolves.
         var driver = evaluate("<test.attr(\"fixed\", <stream.attr>)>");
 
-        // Round 1: stream.attr discovered; test.attr cannot resolve yet.
+        // Round 1: stream.attr discovered. Test.attr cannot resolve yet.
         var r1 = driver.step();
         assertThat(r1.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                 .containsExactly("stream.attr");

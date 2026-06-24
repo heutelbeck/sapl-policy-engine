@@ -51,8 +51,8 @@ import lombok.val;
  * </ul>
  * Optional fields:
  * <ul>
- * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.);
- * defaults to an empty ObjectValue</li>
+ * <li>compilerFlags - compiler tuning (indexing, unrollInOperator, etc.).
+ * Defaults to an empty ObjectValue</li>
  * </ul>
  */
 public class PDPConfigurationDeserializer extends StdDeserializer<PDPConfiguration> {

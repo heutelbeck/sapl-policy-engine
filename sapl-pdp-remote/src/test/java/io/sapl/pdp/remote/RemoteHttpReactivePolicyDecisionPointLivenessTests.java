@@ -77,7 +77,7 @@ class RemoteHttpReactivePolicyDecisionPointLivenessTests {
                              out.flush();
                              script.write(out);
                          } catch (IOException | InterruptedException ignored) {
-                             // The client cancels or the test tears down; nothing to recover.
+                             // The client cancels or the test tears down. Nothing to recover.
                          }
                      });
         serverThread.setDaemon(true);

@@ -78,7 +78,7 @@ class CoverageStratumKleeneTests {
     void whenConstantFalseAfterPureThenPureNotHit(boolean lowLatencyMode) throws InterruptedException {
         val result = coverage("policy \"p\" permit subject == \"alice\"; false;", lowLatencyMode, broker -> {});
         assertThat(result.voteResult().vote().authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-        // The constant FALSE is statement 1; the pure equality is statement 0 and must
+        // The constant FALSE is statement 1. The pure equality is statement 0 and must
         // not be hit.
         assertThat(hitStatementIds(result)).containsExactly(1L);
     }
@@ -92,7 +92,7 @@ class CoverageStratumKleeneTests {
         val result = coverage("policy \"p\" permit <never.attr>; subject == \"bob\";", lowLatencyMode,
                 broker -> broker.register("never.attr"));
         assertThat(result.voteResult().vote().authorizationDecision().decision()).isEqualTo(Decision.NOT_APPLICABLE);
-        // Only the pure equality (statement 1) is reached; the never-arriving stream
+        // Only the pure equality (statement 1) is reached. The never-arriving stream
         // (statement 0) is not.
         assertThat(hitStatementIds(result)).containsExactly(1L);
     }

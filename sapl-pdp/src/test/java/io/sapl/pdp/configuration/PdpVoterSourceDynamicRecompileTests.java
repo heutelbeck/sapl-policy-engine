@@ -204,7 +204,7 @@ class PdpVoterSourceDynamicRecompileTests {
             assertThat(voterSource.getCurrentConfiguration("never-loaded-1")).isEmpty();
             assertThat(voterSource.getCurrentConfiguration("never-loaded-2")).isEmpty();
 
-            // A read for an unknown pdpId must not grow the cache; otherwise configCache
+            // A read for an unknown pdpId must not grow the cache. Otherwise configCache
             // leaks one entry per distinct pdpId ever read over the PDP's lifetime.
             assertThat(configCacheSize(voterSource)).isZero();
         }
@@ -381,7 +381,7 @@ class PdpVoterSourceDynamicRecompileTests {
             assertThat(voterSource.getPdpStatus(PDP_ID))
                     .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));
 
-            // First snapshot recompiles under FAIL_CLOSED; with no last-good voter it
+            // First snapshot recompiles under FAIL_CLOSED. With no last-good voter it
             // errors.
             pluginsSource.publish(pluginsOf(brokerWithStandard()));
 

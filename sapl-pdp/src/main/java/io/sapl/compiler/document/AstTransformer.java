@@ -838,8 +838,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         if (parts.size() == 2) {
             return new QualifiedName(parts);
         }
-        // Single-part name: resolve via imports
-        val resolved = importMap.get(parts.getFirst());
+        // Single-part name resolved via imports. importMap is null on the
+        // bare-expression path.
+        val resolved = importMap == null ? null : importMap.get(parts.getFirst());
         if (resolved != null) {
             return new QualifiedName(resolved);
         }

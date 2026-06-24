@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 
 /**
  * Active invocation fed by a PIP. One instance per unique invocation across the
- * broker's consumers; many consumers can
+ * broker's consumers. Many consumers can
  * attach to the same instance.
  * <p>
  * What it owns: a single-slot mailbox (the latest value), a pump on a virtual
@@ -118,7 +118,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
      * @param timestampSource
      * source for value-arrival timestamps
      * @param onValue
-     * callback invoked on each new value emitted by the source stream; the broker
+     * callback invoked on each new value emitted by the source stream. The broker
      * wires this to its dispatch
      * path
      */
@@ -196,7 +196,7 @@ final class ActivePolicyInformationPointInvocation implements ActiveInvocation {
 
     /**
      * Returns the current consumer set for dispatch. Caller must hold the broker
-     * lock; the returned view aliases the
+     * lock. The returned view aliases the
      * underlying map's keySet and is invalidated by concurrent attach/detach.
      */
     @Override

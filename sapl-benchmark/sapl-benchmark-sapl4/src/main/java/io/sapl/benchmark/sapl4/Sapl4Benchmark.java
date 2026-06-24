@@ -348,7 +348,7 @@ class Sapl4Benchmark implements Callable<Integer> {
         out.println("Result:");
         if (!forkThroughputs.isEmpty()) {
             // Statistics are over the trailing convergence window, matching the convergence
-            // criterion; pre-convergence warmup forks are excluded.
+            // criterion. Pre-convergence warmup forks are excluded.
             var window                 = trailingWindow(forkThroughputs);
             var mean                   = window.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
             var count                  = window.size();

@@ -304,8 +304,8 @@ public class JWTPolicyInformationPoint {
      * as the key, otherwise behaves like {@link #token(AttributeAccessContext)}.
      *
      * @param ctx the attribute access context (variables, subscription secrets)
-     * @param secretsKeyName the name of the secrets entry holding the token;
-     * falls back to the default {@code "jwt"} key when {@code null}
+     * @param secretsKeyName the name of the secrets entry holding the token.
+     * Falls back to the default {@code "jwt"} key when {@code null}
      * @return a stream of token-state {@link ObjectValue}s
      */
     @EnvironmentAttribute(docs = """

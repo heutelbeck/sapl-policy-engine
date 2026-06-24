@@ -230,7 +230,7 @@ class SseStreamServletTests {
         val wroteAfterClose    = new AtomicBoolean(false);
         val deferredKeepAlives = new ConcurrentLinkedQueue<Runnable>();
 
-        // submit runs synchronously; execute defers keep-alives until after teardown.
+        // submit runs synchronously. Execute defers keep-alives until after teardown.
         val deferringPump = new AbstractExecutorService() {
             @Override
             public void execute(Runnable command) {

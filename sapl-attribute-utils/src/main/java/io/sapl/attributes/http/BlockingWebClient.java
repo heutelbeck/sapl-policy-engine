@@ -64,7 +64,7 @@ import java.util.function.Supplier;
  * <p>
  * For request-response media types ({@code application/json} and
  * arbitrary text), the request is issued once and the response is
- * emitted as a single value, then the stream completes; repetition is
+ * emitted as a single value, then the stream completes. Repetition is
  * the caller's concern (the attribute broker re-invokes per its
  * configured poll interval). For {@code text/event-stream}, the
  * connection is held open and SSE events are emitted as parsed values.
@@ -72,7 +72,7 @@ import java.util.function.Supplier;
  * until the session is closed.
  * <p>
  * The response body, each SSE event, and each WebSocket message are
- * capped at a configurable size; an oversized payload fails closed to
+ * capped at a configurable size. An oversized payload fails closed to
  * an error value rather than buffering without bound.
  * <p>
  * Read and connect timeouts protect against slow or unresponsive
@@ -249,7 +249,7 @@ public class BlockingWebClient {
                     try {
                         body.close();
                     } catch (IOException ignored) {
-                        // Closing the aborted stream is best-effort; nothing to recover.
+                        // Closing the aborted stream is best-effort. Nothing to recover.
                     }
                 }
             };
@@ -261,10 +261,10 @@ public class BlockingWebClient {
      * while scanning for a line terminator so a single newline-free
      * payload cannot exhaust the heap. Line terminators ({@code \n},
      * {@code \r}, {@code \r\n}) are recognized and stripped, matching the
-     * previous line-stream behavior; a trailing un-terminated line is
+     * previous line-stream behavior. A trailing un-terminated line is
      * still dispatched at end of stream. The cap is enforced in UTF-8
      * bytes across the in-flight accumulated event plus the line being
-     * read; once it is crossed the read is aborted before any further
+     * read. Once it is crossed the read is aborted before any further
      * bytes are buffered.
      */
     private void pumpServerSentEvents(InputStream body, Consumer<Value> emit, AtomicBoolean stopped, long maxBytes)

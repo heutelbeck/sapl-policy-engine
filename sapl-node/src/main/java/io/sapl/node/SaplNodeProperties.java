@@ -174,7 +174,7 @@ public class SaplNodeProperties implements InitializingBean {
      * {@link #setUsers} time; users without an {@code api-key-id} configured
      * are omitted.
      *
-     * @return immutable map by api-key-id; empty when no users configured
+     * @return immutable map by api-key-id. Empty when no users configured
      */
     public Map<String, UserEntry> getApiKeyIdIndex() {
         return apiKeyIdIndex;
@@ -236,7 +236,7 @@ public class SaplNodeProperties implements InitializingBean {
     public static class OAuthConfig {
         private String       pdpIdClaim = "sapl_pdp_id";
         private List<String> audiences  = new ArrayList<>();
-        // Secure by default: a JWT without an exp claim is rejected; it would grant
+        // Secure by default: a JWT without an exp claim is rejected. It would grant
         // non-expiring access.
         private boolean allowJwtWithoutExpiry = false;
     }

@@ -355,6 +355,17 @@ class BundleBuilderTests {
                 assertThat(c.saplDocuments()).hasSize(1).first().asString().contains("arkham-asylum");
             });
         }
+
+        @Test
+        void whenParsingSignedBundleWithVerificationDisabledThenSucceeds() {
+            val bundle = BundleBuilder.create().withPdpJson(VALID_PDP_JSON)
+                    .signWith(cultKeyPair.getPrivate(), "necronomicon-key").build();
+
+            val config = BundleParser.parse(bundle, "arkham-pdp", developmentPolicy);
+
+            assertThat(config).isNotNull();
+            assertThat(config.pdpId()).isEqualTo("arkham-pdp");
+        }
     }
 
     @Nested

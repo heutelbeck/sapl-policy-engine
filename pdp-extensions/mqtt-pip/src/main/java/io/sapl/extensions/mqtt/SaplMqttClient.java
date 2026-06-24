@@ -134,6 +134,7 @@ public class SaplMqttClient implements Closeable {
     private static final String ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED = "A policy may only select an mqtt broker by name or use the default. Supplying an inline broker configuration object is not permitted.";
     private static final String ERROR_INVALID_QOS                      = "Invalid MQTT QoS: must be 0, 1, or 2.";
     private static final String ERROR_MQTT_CONNECT_FAILED              = "Failed to connect or subscribe to MQTT broker: %s";
+    private static final String ERROR_NO_TOPICS                        = "MQTT subscription requires at least one topic.";
     private static final String ERROR_PAYLOAD_TOO_LARGE                = "MQTT message exceeded the configured limit of %d bytes.";
     private static final String WARN_INSECURE_CREDENTIALS              = "MQTT broker credentials are being transmitted over an "
             + "unencrypted connection (tls=false). Enable 'tls' whenever credentials are configured.";
@@ -142,7 +143,12 @@ public class SaplMqttClient implements Closeable {
     // on its 32-bit hashCode, so two distinct broker configs whose hashes
     // collide cannot share a client (which would route to the wrong broker with
     // the wrong credentials).
-    static final ConcurrentHashMap<JsonNode, MqttClientValues> MQTT_CLIENT_CACHE = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<JsonNode, MqttClientValues> mqttClientCache = new ConcurrentHashMap<>();
+
+    // Package-private view of the per-instance client cache for tests.
+    ConcurrentHashMap<JsonNode, MqttClientValues> cache() {
+        return mqttClientCache;
+    }
 
     // Guards the single runtime warning about credentials being sent over an
     // unencrypted connection, so the insecure transport is observable once
@@ -163,7 +169,7 @@ public class SaplMqttClient implements Closeable {
     public Stream<Value> buildSaplMqttMessageStream(Value topic, AttributeAccessContext ctx, Value qos,
             Value mqttPipConfigVal) {
         try {
-            // Policy may select a broker only by name or default; an inline object could
+            // Policy may select a broker only by name or default. An inline object could
             // pair a secret with a policy-chosen host.
             if (mqttPipConfigVal instanceof ObjectValue) {
                 return Streams.error(ERROR_INLINE_BROKER_CONFIG_NOT_ALLOWED);
@@ -174,13 +180,18 @@ public class SaplMqttClient implements Closeable {
             val brokerConfig = getMqttBrokerConfig(pipConfig, mqttPipConfigVal);
             val effectiveQos = getQos(
                     qos != null ? qos : Value.of(getConfigValueOrDefault(pipConfig, ENVIRONMENT_QOS, DEFAULT_QOS)));
-            // A policy-supplied QoS outside 0..2 yields a null MqttQos; fail with
+            // A policy-supplied QoS outside 0..2 yields a null MqttQos. Fail with
             // an error value instead of opening a subscription that would later
             // throw on the worker thread and hang the consumer.
             if (effectiveQos == null) {
                 return Streams.error(ERROR_INVALID_QOS);
             }
-            val filters               = topicFilters(topic);
+            val filters = topicFilters(topic);
+            // No topics means nothing to subscribe. Fail closed instead of opening
+            // an authenticated connection with zero subscriptions.
+            if (filters.isEmpty()) {
+                return Streams.error(ERROR_NO_TOPICS);
+            }
             val defaultResponseConfig = getDefaultResponseConfig(pipConfig, mqttPipConfigVal);
             val defaultValue          = getDefaultValue(defaultResponseConfig);
             val timeoutMs             = defaultResponseConfig.getDefaultResponseTimeout();
@@ -209,7 +220,7 @@ public class SaplMqttClient implements Closeable {
             // concurrent close() cannot evict between lookup and increment.
             val cached = registerSubscriber(brokerConfig, candidate);
             // The caller whose prebuilt candidate was the one inserted owns the
-            // shared connection and connects it; all others reuse it.
+            // shared connection and connects it. All others reuse it.
             val owner = cached == candidate;
 
             val firstMessage = new AtomicBoolean(false);
@@ -262,8 +273,11 @@ public class SaplMqttClient implements Closeable {
                 ctx.subscribedFilters.add(filter);
             }
         } catch (InterruptedException e) {
+            // Interrupt is a shutdown signal, not a broker error. Tear down and
+            // complete the stream so the consumer sees a terminal signal.
             Thread.currentThread().interrupt();
             onFailure.run();
+            complete.run();
         } catch (ExecutionException | TimeoutException | RuntimeException e) {
             // Tear the subscriber down before completing so a connect/subscribe
             // failure (or any unexpected worker-thread error) cannot leave the
@@ -275,7 +289,7 @@ public class SaplMqttClient implements Closeable {
     }
 
     // The owning subscriber connects the shared client once and publishes the
-    // outcome; reusing subscribers wait for that outcome instead of connecting
+    // outcome. Reusing subscribers wait for that outcome instead of connecting
     // again, which the broker would reject as an illegal client state.
     private static void establishConnection(SubscriptionContext ctx, boolean owner)
             throws InterruptedException, ExecutionException, TimeoutException {
@@ -333,12 +347,12 @@ public class SaplMqttClient implements Closeable {
     }
 
     // Registers one broker reference against a prebuilt candidate client. The
-    // candidate is inserted only if no entry exists yet; otherwise the existing
+    // candidate is inserted only if no entry exists yet. Otherwise the existing
     // shared client is reused and the surplus candidate (never connected) is
     // discarded. The atomic map operation does only the count increment, never
     // client construction or trust-store I/O.
-    static MqttClientValues registerSubscriber(JsonNode brokerKey, MqttClientValues candidate) {
-        return MQTT_CLIENT_CACHE.compute(brokerKey, (key, existing) -> {
+    MqttClientValues registerSubscriber(JsonNode brokerKey, MqttClientValues candidate) {
+        return mqttClientCache.compute(brokerKey, (key, existing) -> {
             val values = existing != null ? existing : candidate;
             values.incrementBrokerSubscribers();
             return values;
@@ -347,10 +361,10 @@ public class SaplMqttClient implements Closeable {
 
     // Releases one broker reference. The decrement and the eviction decision run
     // inside a single atomic map operation so a concurrent open() cannot attach
-    // to an entry being removed; the client is disconnected outside the lock.
+    // to an entry being removed. The client is disconnected outside the lock.
     private void evictBrokerSubscriber(JsonNode brokerKey) {
         val toDisconnect = new MqttClientValues[1];
-        MQTT_CLIENT_CACHE.compute(brokerKey, (key, existing) -> {
+        mqttClientCache.compute(brokerKey, (key, existing) -> {
             if (existing == null) {
                 return null;
             }
@@ -563,7 +577,7 @@ public class SaplMqttClient implements Closeable {
 
     @Override
     public void close() {
-        MQTT_CLIENT_CACHE.forEach((hash, values) -> {
+        mqttClientCache.forEach((hash, values) -> {
             try {
                 values.getMqttAsyncClient().disconnect().get(DISCONNECT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
@@ -572,7 +586,7 @@ public class SaplMqttClient implements Closeable {
                 log.debug("Error disconnecting client {}: {}", values.getClientId(), messageOf(e));
             }
         });
-        MQTT_CLIENT_CACHE.clear();
+        mqttClientCache.clear();
     }
 
     /**

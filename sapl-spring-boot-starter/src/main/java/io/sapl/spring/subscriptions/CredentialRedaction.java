@@ -41,8 +41,9 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public final class CredentialRedaction {
 
-    private static final Set<String> CREDENTIAL_FIELD_NAMES = Set.of("accesstoken", "apikey", "clientsecret",
-            "credentials", "idtoken", "password", "privatekey", "refreshtoken", "salt", "secret", "tokenvalue");
+    private static final Set<String> CREDENTIAL_FIELD_NAMES = Set.of("accesstoken", "apikey", "authorization",
+            "clientsecret", "cookie", "credentials", "idtoken", "password", "privatekey", "proxy-authorization",
+            "refreshtoken", "salt", "secret", "set-cookie", "tokenvalue");
 
     private CredentialRedaction() {
     }

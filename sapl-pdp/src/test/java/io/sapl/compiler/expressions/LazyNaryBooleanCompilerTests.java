@@ -335,7 +335,7 @@ class LazyNaryBooleanCompilerTests {
             // a.attr=TRUE forces the lazy AND to evaluate the right operand. The
             // right side <b.attr> is discovered as a new subscription this round.
             // Result is null because b.attr was unknown when this round's snapshot
-            // was bound; the dependency set proves the right subscription request.
+            // was bound. The dependency set proves the right subscription request.
             var result = evaluate("<a.attr> && <b.attr>").with("a.attr", Value.TRUE).result();
 
             assertThat(result.result()).isNull();
@@ -380,7 +380,7 @@ class LazyNaryBooleanCompilerTests {
             // a.attr=FALSE forces the lazy OR to evaluate the right operand. The
             // right side <b.attr> is discovered as a new subscription this round.
             // Result is null because b.attr was unknown when this round's snapshot
-            // was bound; the dependency set proves the right subscription request.
+            // was bound. The dependency set proves the right subscription request.
             var result = evaluate("<a.attr> || <b.attr>").with("a.attr", Value.FALSE).result();
 
             assertThat(result.result()).isNull();
@@ -456,7 +456,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionSingleStreamMultipleEmissionsTracksAllChanges() {
-            // Each rebinding of test.attr is one round; the value flows through
+            // Each rebinding of test.attr is one round. The value flows through
             // the bare attribute access immediately.
             var driver = evaluate("<test.attr>");
             driver.step(); // discovery
@@ -469,7 +469,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionStreamTransitionsToFalseOutputReflectsChange() {
-            // true && <stream>: pure constant on left is folded; only the stream
+            // true && <stream>: pure constant on left is folded. Only the stream
             // attribute is in the dep set. Each round reflects the new value.
             var driver = evaluate("true && <test.attr>");
             driver.step();
@@ -501,7 +501,7 @@ class LazyNaryBooleanCompilerTests {
             // * lazy short-circuit : when a flips back to FALSE, b leaves the dep set
             // * lazy re-subscribe : when a returns to TRUE, b re-enters
             // Each round's deps reflect exactly the subscriptions the expression
-            // touched that round; pre-snapshot, this property was not directly
+            // touched that round. Pre-snapshot, this property was not directly
             // observable - it was hidden in switchMap chains.
             var driver = evaluate("<a.attr> && <b.attr>");
 
@@ -511,28 +511,28 @@ class LazyNaryBooleanCompilerTests {
             assertThat(r1.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                     .containsExactly("a.attr");
 
-            // Round 2: bind a=TRUE. Lazy AND now needs the right side; b is discovered.
+            // Round 2: bind a=TRUE. Lazy AND now needs the right side. B is discovered.
             driver.with("a.attr", Value.TRUE);
             var r2 = driver.step();
             assertThat(r2.result()).isNull();
             assertThat(r2.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                     .containsExactlyInAnyOrder("a.attr", "b.attr");
 
-            // Round 3: bind b=TRUE. Both resolved; lazy AND walks both sides.
+            // Round 3: bind b=TRUE. Both resolved. Lazy AND walks both sides.
             driver.with("b.attr", Value.TRUE);
             var r3 = driver.step();
             assertThat(r3.result()).isEqualTo(Value.TRUE);
             assertThat(r3.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                     .containsExactlyInAnyOrder("a.attr", "b.attr");
 
-            // Round 4: flip a to FALSE. Lazy short-circuits at left; b drops from deps.
+            // Round 4: flip a to FALSE. Lazy short-circuits at left. B drops from deps.
             driver.with("a.attr", Value.FALSE);
             var r4 = driver.step();
             assertThat(r4.result()).isEqualTo(Value.FALSE);
             assertThat(r4.dependencies().keySet()).extracting(k -> k.invocation().attributeName())
                     .containsExactly("a.attr");
 
-            // Round 5: a returns to TRUE. b re-subscribes; its prior binding still applies.
+            // Round 5: a returns to TRUE. b re-subscribes. Its prior binding still applies.
             driver.with("a.attr", Value.TRUE);
             var r5 = driver.step();
             assertThat(r5.result()).isEqualTo(Value.TRUE);
@@ -597,7 +597,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionThreeStreamsMiddleIsFalseShortCircuitsThirdNeverDiscovered() {
-            // <a> && <b> && <c> with a=TRUE, b=FALSE: short-circuits at b; c
+            // <a> && <b> && <c> with a=TRUE, b=FALSE: short-circuits at b. C
             // never enters the dep set.
             var driver = evaluate("<a.attr> && <b.attr> && <c.attr>");
 
@@ -615,7 +615,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunctionThreeStreamsMiddleIsTrueShortCircuitsThirdNeverDiscovered() {
-            // <a> || <b> || <c> with a=FALSE, b=TRUE: short-circuits at b; c
+            // <a> || <b> || <c> with a=FALSE, b=TRUE: short-circuits at b. C
             // never enters the dep set.
             var driver = evaluate("<a.attr> || <b.attr> || <c.attr>");
 
@@ -633,7 +633,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void barAttributeErrorPropagatesPerRound() {
-            // <test.attr> rebound each round; an error binding propagates as the
+            // <test.attr> rebound each round. An error binding propagates as the
             // round's value just like a normal value would.
             var driver = evaluate("<test.attr>");
             driver.step();
@@ -696,7 +696,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionPureAndStreamPureEvaluatedOncePerStreamEmission() {
-            // subject && <test.attr> with subject=TRUE; the pure left is
+            // subject && <test.attr> with subject=TRUE. The pure left is
             // evaluated each round, the stream right is rebound per round.
             var driver = evaluate("subject && <test.attr>")
                     .withSubscription(AuthorizationSubscription.of(Value.TRUE, Value.NULL, Value.NULL, Value.NULL));
@@ -710,7 +710,7 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionLongSequenceAllTrueProducesTrueEachRound() {
-            // Drives true && <test.attr> through 10 rounds with TRUE; each
+            // Drives true && <test.attr> through 10 rounds with TRUE. Each
             // round emits TRUE.
             var driver = evaluate("true && <test.attr>");
             driver.step();
@@ -723,8 +723,8 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void conjunctionTwoStreamsBothEmitMultipleCombinesCorrectly() {
-            // <a> && <b> where a flips TRUE, TRUE, FALSE; b held at TRUE.
-            // First two rounds full-eval to TRUE; third round short-circuits
+            // <a> && <b> where a flips TRUE, TRUE, FALSE. B held at TRUE.
+            // First two rounds full-eval to TRUE. Third round short-circuits
             // (b drops from deps).
             var driver = evaluate("<a.attr> && <b.attr>");
             driver.step();
@@ -735,7 +735,7 @@ class LazyNaryBooleanCompilerTests {
             driver.with("b.attr", Value.TRUE);
             assertThat(driver.step().result()).isEqualTo(Value.TRUE);
 
-            // a still TRUE; b still TRUE; deps still both
+            // a still TRUE. B still TRUE. Deps still both
             assertThat(driver.step().result()).isEqualTo(Value.TRUE);
 
             driver.with("a.attr", Value.FALSE);
@@ -747,8 +747,8 @@ class LazyNaryBooleanCompilerTests {
 
         @Test
         void disjunctionTwoStreamsFirstFalseThenTrueSecondNotInDepsAfterShortCircuit() {
-            // <a> || <b>: a=FALSE, b=FALSE; both in deps and resolve to FALSE.
-            // Then a=TRUE; lazy OR short-circuits and b drops from deps.
+            // <a> || <b>: a=FALSE, b=FALSE. Both in deps and resolve to FALSE.
+            // Then a=TRUE. Lazy OR short-circuits and b drops from deps.
             var driver = evaluate("<a.attr> || <b.attr>");
             driver.step();
 

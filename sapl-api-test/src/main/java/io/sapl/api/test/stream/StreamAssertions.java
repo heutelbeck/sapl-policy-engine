@@ -109,7 +109,7 @@ public final class StreamAssertions<T> extends AbstractAssert<StreamAssertions<T
                 return this;
             }
             case Poll.Value<T> ignored                      -> {
-                // Value does not match the selector; keep polling.
+                // Value does not match the selector. Keep polling.
             }
             case Poll.Done<T> ignored                       -> {
                 failWithMessage("Stream completed before producing a matching value");

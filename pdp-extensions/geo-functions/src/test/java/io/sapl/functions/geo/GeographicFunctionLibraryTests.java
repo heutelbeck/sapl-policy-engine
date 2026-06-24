@@ -625,7 +625,7 @@ class GeographicFunctionLibraryTests {
         });
         server.start();
         try {
-            // xsi:schemaLocation is a separate fetch path from DOCTYPE entities; geotools'
+            // xsi:schemaLocation is a separate fetch path from DOCTYPE entities. Geotools'
             // schema loader fetched it whenever the resolver did not throw. A function
             // library must never reach out, so this resolves to an error with no I/O.
             val externalUri = "http://%s:%d/leak.xsd".formatted(server.getAddress().getHostString(),

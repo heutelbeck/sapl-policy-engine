@@ -93,7 +93,7 @@ public class MultiDecideAllOnceServlet extends AbstractBypassServlet {
             Thread.currentThread().interrupt();
             decision = MultiAuthorizationDecision.indeterminate();
         } catch (Exception e) {
-            // Fail closed: no raw 500 (stack leak); return INDETERMINATE like the streaming
+            // Fail closed: no raw 500 (stack leak). Return INDETERMINATE like the streaming
             // servlet.
             log.error("Decision evaluation failed for multi-decide-all-once; returning INDETERMINATE.", e);
             decision = MultiAuthorizationDecision.indeterminate();

@@ -66,7 +66,7 @@ class BrokerEvalLoopsTests {
      * Broker that fires the consumer callback once, asynchronously, on a separate
      * thread. Any throw from the callback
      * escapes onto that thread, mirroring how the real broker dispatches off the
-     * caller's thread; the caller is left
+     * caller's thread. The caller is left
      * blocked on the future unless the helper routes the failure to it.
      */
     private static AttributeBroker asyncFiringBroker(SubscriptionKey key) {
@@ -79,7 +79,7 @@ class BrokerEvalLoopsTests {
                                  try {
                                      onUpdate.apply(Map.of(key, snapshot));
                                  } catch (RuntimeException ignored) {
-                                     // The real broker swallows callback throws; the helper must
+                                     // The real broker swallows callback throws. The helper must
                                      // not depend on the broker re-surfacing them to the caller.
                                  }
                              });

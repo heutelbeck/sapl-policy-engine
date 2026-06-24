@@ -37,7 +37,7 @@ import reactor.util.context.Context;
  * propagates it through the Reactor
  * Context. Cooperates with {@link DefaultReactiveTenantResolver}, which reads
  * the same key on the consumer side. The
- * PDP itself never reads the Reactor Context; tenant resolution happens here,
+ * PDP itself never reads the Reactor Context. Tenant resolution happens here,
  * in application infrastructure.
  * <p>
  * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the id from

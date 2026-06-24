@@ -32,7 +32,7 @@ import java.util.Map;
  * {@link OpenIdEvaluationResponse} per the OpenID Authorization API 1.0
  * binary-decision contract.
  * <p>
- * SAPL has five decision verbs and three constraint slots; the OpenID
+ * SAPL has five decision verbs and three constraint slots. The OpenID
  * boolean is necessarily lossy. The mapping is:
  * <ul>
  * <li><b>true</b>: only for a PERMIT carrying no obligations and no
@@ -42,7 +42,7 @@ import java.util.Map;
  * <li><b>false</b>: every other case, including DENY, INDETERMINATE,
  * NOT_APPLICABLE, SUSPEND, and any PERMIT that carries obligations or
  * a transformed resource. Obligations MUST be enforced and a
- * transformed resource MUST replace the original on the wire; a PEP
+ * transformed resource MUST replace the original on the wire. A PEP
  * that cannot read and act on the context must therefore treat such a
  * decision as a denial.</li>
  * </ul>
@@ -92,7 +92,7 @@ class DecisionMapper {
 
         // Always surface the SAPL verb under sapl.decision. The OpenID boolean
         // is lossy (PERMIT with obligations or a transformed resource also maps
-        // to false); SAPL-aware clients reconstruct the original decision here.
+        // to false). SAPL-aware clients reconstruct the original decision here.
         saplExt.put(SAPL_DECISION_KEY, sapl.decision().name());
 
         // A reason is present whenever the boolean is false, so a vanilla OpenID

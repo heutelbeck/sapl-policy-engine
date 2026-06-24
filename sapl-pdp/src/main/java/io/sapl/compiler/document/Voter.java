@@ -26,7 +26,7 @@ import java.util.Map;
  * voter (its evaluation is itself). {@link PureVoter} evaluates
  * synchronously against an {@link EvaluationContext} and produces a
  * {@link Vote}. {@link StreamVoter} is the migration target for the
- * snapshot path; concrete StreamVoter records override
+ * snapshot path. Concrete StreamVoter records override
  * {@link StreamVoter#evaluate(EvaluationContext)}.
  */
 public sealed interface Voter permits Vote, PureVoter, StreamVoter {

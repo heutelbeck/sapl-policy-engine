@@ -482,7 +482,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
 
         /**
          * Configure bearer token authentication via RSocket setup frame
-         * metadata. The token is sent verbatim and is not refreshed; if it
+         * metadata. The token is sent verbatim and is not refreshed. If it
          * expires the connection cannot recover. Use
          * {@link #oauth2(ReactiveClientRegistrationRepository, String)} for
          * managed JWT lifecycle.
@@ -515,7 +515,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
         /**
          * Configure OAuth2 client_credentials grant authentication. The
          * supplied Spring Security {@code OAuth2AuthorizedClientManager} is
-         * queried on every connect attempt; the cached token is reused while
+         * queried on every connect attempt. The cached token is reused while
          * valid and refreshed automatically as it approaches its expiry
          * (Spring's default 60 s clock skew). When the SAPL Node server
          * disposes the RSocket connection on JWT {@code exp}, the client's
@@ -523,7 +523,7 @@ public class ProtobufRemoteReactivePolicyDecisionPoint implements ReactivePolicy
          * <p>
          * The token is fetched lazily inside the connect path. Identity
          * provider outages at connect time propagate as connection errors and
-         * are retried by the streaming decision path; one-shot calls
+         * are retried by the streaming decision path. One-shot calls
          * (decideOnce) fail closed to {@code INDETERMINATE}.
          *
          * @param clientRegistrationRepository the Spring OAuth2 client

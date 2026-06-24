@@ -82,7 +82,7 @@ public class IndexFactory {
     /**
      * Builds an explicitly-selected index, degrading to the naive index if it
      * exceeds its configured size limit. The degrade is logged at WARN because the
-     * operator asked for this strategy specifically; the naive index always
+     * operator asked for this strategy specifically. The naive index always
      * produces correct (if unindexed) matches, so the PDP stays available.
      */
     private static PolicyIndex explicitWithNaiveFallback(Supplier<PolicyIndex> build, String name,

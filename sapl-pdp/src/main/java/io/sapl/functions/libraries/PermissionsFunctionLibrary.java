@@ -1019,7 +1019,7 @@ public class PermissionsFunctionLibrary {
         return value.longValue();
     }
 
-    // Accepts integral values with non-zero scale (2.00); rejects
+    // Accepts integral values with non-zero scale (2.00), rejects
     // out-of-long-range.
     private static Long integralToLongInRange(BigDecimal integralValue) {
         if (integralValue.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0

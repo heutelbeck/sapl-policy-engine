@@ -1149,7 +1149,7 @@ public class SaplTestFixture {
     /**
      * Result of a policy decision providing step-by-step verification.
      * <p>
-     * Each expect/then method adds an action to a queue; terminal
+     * Each expect/then method adds an action to a queue. Terminal
      * {@link #verify()} drives the underlying {@link Stream} of
      * coverage-instrumented decisions, executing each action in order
      * against the next emission or against the mock attribute broker.

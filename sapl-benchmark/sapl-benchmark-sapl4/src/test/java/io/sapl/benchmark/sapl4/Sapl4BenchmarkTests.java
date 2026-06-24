@@ -65,7 +65,7 @@ class Sapl4BenchmarkTests {
             window.setAccessible(true);
             window.setInt(benchmark, 3);
 
-            // Two low warmup forks then a stable high window. All-5 mean is 606; window
+            // Two low warmup forks then a stable high window. All-5 mean is 606. Window
             // mean is 1,000.
             val forks = List.of(10.0, 20.0, 1000.0, 1010.0, 990.0);
             val sw    = new StringWriter();

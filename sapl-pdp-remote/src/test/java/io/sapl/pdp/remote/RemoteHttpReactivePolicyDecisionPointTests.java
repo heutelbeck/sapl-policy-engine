@@ -125,7 +125,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     void whenStreamRecoversBetweenFailuresThenRetryBudgetResetsAndStreamSurvives() throws JacksonException {
         pdp.setMaxRetries(3);
         // Each connection delivers one genuine DENY then an invalid event forcing a
-        // reconnect. Five DENYs require surviving four reconnects; a cumulative budget
+        // reconnect. Five DENYs require surviving four reconnects. A cumulative budget
         // of
         // 3 would have terminated the stream before the fifth DENY.
         for (var i = 0; i < 6; i++) {

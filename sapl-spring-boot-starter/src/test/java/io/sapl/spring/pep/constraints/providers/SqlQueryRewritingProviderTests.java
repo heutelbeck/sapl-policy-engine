@@ -365,7 +365,7 @@ class SqlQueryRewritingProviderTests {
 
             val rewritten = mapper.apply("SELECT * FROM users");
 
-            // A doubled backslash keeps the closing quote literal; tenant_id must stay
+            // A doubled backslash keeps the closing quote literal. Tenant_id must stay
             // inside the AND chain.
             assertThat(rewritten).contains("name = 'evil\\\\'").contains("tenant_id = 7");
         }

@@ -55,7 +55,7 @@ import reactor.core.publisher.Mono;
  * Multi-tenant routing: the per-request PDP id extracted from the
  * authentication
  * must reach the reactive authorization manager. The PdpIdWebFilter has to run
- * after authentication but before authorization; if it does not, the manager
+ * after authentication but before authorization. If it does not, the manager
  * silently falls back to the default PDP id for every tenant.
  */
 @SpringBootTest(classes = SaplHttpReactivePdpIdRoutingTests.TestApp.class, properties = "spring.main.web-application-type=reactive")

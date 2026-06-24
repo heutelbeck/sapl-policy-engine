@@ -44,7 +44,7 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
 @UtilityClass
 public class SourceLocationUtil {
 
-    // ANTLR getText copies the whole document per call, once per AST node; share
+    // ANTLR getText copies the whole document per call, once per AST node. Share
     // one copy per parse.
     private static final Map<CharStream, String> DOCUMENT_SOURCE_BY_STREAM = Collections
             .synchronizedMap(new WeakHashMap<>());

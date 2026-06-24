@@ -467,7 +467,7 @@ public class SaplTesting {
      * Drives the production voter ({@code applicabilityAndVote}) and the
      * coverage voter through the same {@link TestAttributeBroker}, asserting
      * that both produce equivalent emissions per round. Round 0 fires when
-     * the gate opens with primed values; subsequent rounds publish the
+     * the gate opens with primed values. Subsequent rounds publish the
      * next value for each attribute (sequences are consumed in order).
      */
     public static void assertCoverageMatchesProduction(String subscriptionJson, String policySource,

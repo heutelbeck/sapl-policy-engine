@@ -107,7 +107,7 @@ public interface AttributeRepository extends AutoCloseable {
     interface Registration extends AutoCloseable {
 
         /**
-         * Unregisters the observer. Idempotent; safe to call from any
+         * Unregisters the observer. Idempotent. Safe to call from any
          * thread.
          */
         @Override

@@ -210,7 +210,7 @@ public class AttributeCompiler {
     private static BigDecimal requireNumber(ObjectValue settings, String key, @Nullable SourceLocation location) {
         val value = settings.get(key);
         if (value instanceof NumberValue(BigDecimal n)) {
-            // Every numeric option is consumed as a long; reject fractional or
+            // Every numeric option is consumed as a long. Reject fractional or
             // out-of-long-range values instead of silently truncating them.
             try {
                 n.longValueExact();
@@ -236,7 +236,7 @@ public class AttributeCompiler {
      * {@link StreamOperator#evalChild}, accumulating dependencies even past
      * any encountered {@link ErrorValue}. Holds the first error and returns
      * it after the full walk completes. {@code null} from a child sets the
-     * incomplete flag; on a clean walk with no error the attribute
+     * incomplete flag. On a clean walk with no error the attribute
      * invocation is built and looked up against the snapshot. Precedence at
      * the end: error &gt; null &gt; lookup result.
      */

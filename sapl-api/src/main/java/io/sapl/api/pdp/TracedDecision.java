@@ -47,7 +47,7 @@ public interface TracedDecision {
 
     /**
      * @return a structured trace of the evaluation that produced the
-     * decision. Implementations build this on demand; cheap to call
+     * decision. Implementations build this on demand. Cheap to call
      * once, computed once.
      */
     Value trace();

@@ -200,7 +200,7 @@ class DocumentCompilerTests {
     class ConcurrentCompilationTests {
 
         // Single-part attribute name shared by both documents. Document A imports it
-        // (so it resolves); document B does not import it (so it must stay
+        // (so it resolves). Document B does not import it (so it must stay
         // unresolved). If two parseDocument calls share mutable transformer state,
         // B can pick up A's import map and resolve a name the author never imported,
         // or A can lose its import map and fail a valid policy.

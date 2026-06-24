@@ -121,7 +121,7 @@ public interface ConstraintHandlerProvider {
      * the field names that must all be present and textual.
      *
      * @return all fields as a name-to-value map when every field is present and
-     * textual; empty otherwise.
+     * textual. Empty otherwise.
      */
     static Optional<Map<String, String>> requiredStringFields(Value constraint, String... fieldNames) {
         var map = new LinkedHashMap<String, String>();

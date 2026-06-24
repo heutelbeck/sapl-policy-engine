@@ -39,7 +39,7 @@ import java.util.List;
  * collects the documents whose applicability touched an error branch and hands
  * them here. Each suspect is re-evaluated directly, which is exactly what the
  * naive index does, so all backends agree on the error-meets-dominator corner.
- * The cost falls only on the rare error path; clean matches and clean drops are
+ * The cost falls only on the rare error path. Clean matches and clean drops are
  * resolved by the index without re-evaluation.
  */
 @UtilityClass

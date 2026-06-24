@@ -72,13 +72,14 @@ import reactor.util.context.ContextView;
  * subscriber.
  * <p>
  * One pipeline per method invocation. Owns the per-subscription mutable state
- * (current FSM state, RAP subscription,
- * sink) and serializes all event delivery through a single lock so the FSM
- * never observes concurrency.
+ * (current FSM state, RAP subscription, sink). Events arrive from independent
+ * threads (the PDP decision stream, the RAP publisher, downstream requests). A
+ * single lock serializes them so the FSM is advanced by one thread at a time
+ * and always sees a strictly sequential event stream.
  * <p>
  * Output shape: {@code Flux.create(...)} emits {@link ProtectedPayload}
  * wrappers (private nested record) carrying
- * either a data value or an error; the chain ends with
+ * either a data value or an error. The chain ends with
  * {@code .flatMap(ProtectedPayload::unwrap)} which re-emits the
  * value or raises the error from inside the per-item processing of
  * {@code flatMap}. That positioning is what lets a
@@ -96,6 +97,7 @@ import reactor.util.context.ContextView;
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class StreamingPipeline {
 
+    private static final String ERROR_PDP_STREAM_COMPLETED               = "PDP decision stream completed unexpectedly; a streaming PDP must not complete.";
     private static final String ERROR_STREAM_SUSPENDED                   = "Stream suspended: %s";
     private static final String WARN_AFTER_TERMINATION_OBLIGATION_FAILED = "After-termination obligation handler failed after the stream had already terminated; the completion cannot be retracted: {}";
     private static final String WARN_CANCEL_OBLIGATION_FAILED            = "Cancel obligation handler failed after the subscriber had already cancelled: {}";
@@ -128,10 +130,10 @@ public final class StreamingPipeline {
      * whether the RAP subscription is disposed on entering suspended state and
      * re-subscribed on resume. When
      * {@code false} (default), the RAP stays connected and items are dropped
-     * silently by the FSM; when
+     * silently by the FSM. When
      * {@code true}, RAP-side side effects pause for the duration of the suspension.
      * @param decisions
-     * the PDP decision flux for this subscription; an empty flux is treated as a
+     * the PDP decision flux for this subscription. An empty flux is treated as a
      * single DENY decision.
      * @param planner
      * a closure that maps each {@link AuthorizationDecision} to its
@@ -205,7 +207,7 @@ public final class StreamingPipeline {
             subscriberDemand = Operators.addCap(subscriberDemand, n);
             // Enforce the subscription signal only against the currently active
             // plan. While suspended, the last Permitting plan is no longer
-            // active; firing its subscription obligation against a stale plan
+            // active. Firing its subscription obligation against a stale plan
             // would let an obligation failure terminate a suspended but
             // otherwise-recoverable subscription.
             plan = state instanceof Permitting(var permittingPlan) ? permittingPlan : null;
@@ -246,14 +248,19 @@ public final class StreamingPipeline {
     }
 
     private void startPdpSubscription() {
-        // The PDP decision flux is contractually infinite for streaming
-        // subscriptions. The 2-arg subscribe variant is correct: any
-        // (out-of-contract) onComplete from the PDP is silently
-        // ignored; the subscription continues to gate items against the
-        // last-known plan until cancelled or the RAP terminates.
+        // The PDP decision flux is contractually infinite for streaming subscriptions,
+        // and PDP
+        // clients own reconnection/retry. A completion reaching the PEP therefore means
+        // a defective
+        // PDP: fail closed by terminating the protected stream with an error (no retry
+        // here).
         val pdpSub = decisions.switchIfEmpty(Flux.just(io.sapl.api.pdp.AuthorizationDecision.DENY))
-                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError);
+                .contextWrite(subscriberContext).subscribe(this::onPdpDecision, this::onPdpError, this::onPdpComplete);
         subscriptions.add(pdpSub);
+    }
+
+    private void onPdpComplete() {
+        onPdpError(new IllegalStateException(ERROR_PDP_STREAM_COMPLETED));
     }
 
     private void onPdpDecision(AuthorizationDecision decision) {
@@ -356,7 +363,7 @@ public final class StreamingPipeline {
                 }
                 // Item arrived outside Permitting (typically Suspended).
                 // The plan is not active here, so per-item enforcement is
-                // not attempted; the FSM routes the absent-value, non-failure
+                // not attempted. The FSM routes the absent-value, non-failure
                 // result through the silent-drop branch.
                 process(new RapItem(payload, ENFORCEMENT_NOT_ATTEMPTED));
                 return;
@@ -393,7 +400,7 @@ public final class StreamingPipeline {
      * to a terminal {@link AccessDeniedException} routed through the error path
      * instead
      * of a normal completion. The after-termination signal fires once the terminal
-     * emission has been rendered; a failure there cannot retract the
+     * emission has been rendered. A failure there cannot retract the
      * already-delivered
      * completion and is therefore best-effort.
      */

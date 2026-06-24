@@ -115,7 +115,7 @@ public final class SAPLParsedDocument implements ParsedDocument {
 
     @Override
     public synchronized List<Token> getTokens() {
-        // The shared CommonTokenStream is filled lazily and mutably; serialize so
+        // The shared CommonTokenStream is filled lazily and mutably. Serialize so
         // concurrent provider requests cannot fill it at the same time.
         tokenStream.fill();
         return tokenStream.getTokens();

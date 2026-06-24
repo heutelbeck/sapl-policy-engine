@@ -91,23 +91,21 @@ class SaplMqttClientTests {
     @Test
     @DisplayName("a policy-supplied QoS outside 0..2 yields an error value and never opens a client (no hang, no cache leak)")
     void whenQosOutOfRangeThenErrorValueAndNoClientOpened() {
-        val saplMqttClient  = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
-        val cacheSizeBefore = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
 
         try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.of("test/qos"), ctx(), Value.of(5))) {
             StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
                     .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
         }
 
-        assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(cacheSizeBefore);
+        assertThat(saplMqttClient.cache()).isEmpty();
     }
 
     @Test
     @DisplayName("a policy-supplied inline broker config object yields an error value and never opens a client or reads a secret")
     void whenPolicySuppliesInlineBrokerConfigThenErrorValueAndNoClientOpened() {
-        val saplMqttClient  = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
-        val cacheSizeBefore = SaplMqttClient.MQTT_CLIENT_CACHE.size();
-        val inlineBroker    = json("""
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+        val inlineBroker   = json("""
                 { "brokerAddress": "attacker.host", "brokerPort": 1883, "clientId": "policy-chosen" }
                 """);
 
@@ -117,7 +115,20 @@ class SaplMqttClientTests {
                     .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
         }
 
-        assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(cacheSizeBefore);
+        assertThat(saplMqttClient.cache()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an empty topic array yields an error value and never opens a client (no zero-subscription connection)")
+    void whenTopicArrayIsEmptyThenErrorValueAndNoClientOpened() {
+        val saplMqttClient = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
+
+        try (val stream = saplMqttClient.buildSaplMqttMessageStream(Value.EMPTY_ARRAY, ctx(), Value.of(0))) {
+            StreamAssertions.assertThat(stream).withinTimeout(Duration.ofSeconds(5))
+                    .awaitsNext(v -> assertThat(v).isInstanceOf(ErrorValue.class));
+        }
+
+        assertThat(saplMqttClient.cache()).isEmpty();
     }
 
     private static JsonNode brokerConfig(String configJson) {
@@ -233,24 +244,26 @@ class SaplMqttClientTests {
         @Test
         @DisplayName("the first subscriber inserts the prebuilt client and counts itself")
         void whenFirstSubscriberThenPrebuiltClientInserted() {
+            val client   = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
             val key      = brokerKey();
             val prebuilt = candidate();
 
-            val registered = SaplMqttClient.registerSubscriber(key, prebuilt);
+            val registered = client.registerSubscriber(key, prebuilt);
 
             assertThat(registered).isSameAs(prebuilt);
-            assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).containsEntry(key, prebuilt);
+            assertThat(client.cache()).containsEntry(key, prebuilt);
         }
 
         @Test
         @DisplayName("a second subscriber reuses the cached client and discards its surplus candidate")
         void whenSecondSubscriberThenSurplusCandidateDiscarded() {
+            val client = new SaplMqttClient(Clock.systemUTC(), new RealTimeScheduler(Clock.systemUTC()));
             val key    = brokerKey();
             val first  = candidate();
             val second = candidate();
-            SaplMqttClient.registerSubscriber(key, first);
+            client.registerSubscriber(key, first);
 
-            val registered = SaplMqttClient.registerSubscriber(key, second);
+            val registered = client.registerSubscriber(key, second);
 
             assertThat(registered).isSameAs(first).isNotSameAs(second);
             assertThat(registered.decrementBrokerSubscribers()).isEqualTo(1);
@@ -337,7 +350,7 @@ class SaplMqttClientTests {
             saplMqttClient.teardown(key(), subscriber, Cancellable.NOOP, null, done);
             saplMqttClient.teardown(key(), subscriber, Cancellable.NOOP, null, done);
 
-            // The first teardown decremented the topic once; the second, sharing the
+            // The first teardown decremented the topic once. The second, sharing the
             // consumed done flag, was a no-op. Only one decrement happened, so one
             // holder remains and the next decrement is the last.
             assertThat(client.decrementTopicSubscribers(topic.toString())).isFalse();

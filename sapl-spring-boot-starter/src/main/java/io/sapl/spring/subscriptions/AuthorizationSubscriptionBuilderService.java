@@ -44,6 +44,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -373,8 +374,9 @@ public class AuthorizationSubscriptionBuilderService {
             for (val arg : arguments) {
                 try {
                     argsBuilder.add(fromJsonNode(CredentialRedaction.redact(mapper().valueToTree(arg))));
-                } catch (IllegalArgumentException e) {
-                    // drop if not mappable to JSON
+                } catch (IllegalArgumentException | JacksonException e) {
+                    // drop if not mappable to JSON (Jackson 3 raises JacksonException, not
+                    // IllegalArgumentException)
                 }
             }
             val argsArray = argsBuilder.build();
@@ -396,7 +398,7 @@ public class AuthorizationSubscriptionBuilderService {
         val resourceBuilder = ObjectValue.builder();
 
         if (httpRequest != null) {
-            resourceBuilder.put("http", fromJsonNode(mapper().valueToTree(httpRequest)));
+            resourceBuilder.put("http", fromJsonNode(CredentialRedaction.redact(mapper().valueToTree(httpRequest))));
         }
 
         resourceBuilder.put("java", toValue(mi));

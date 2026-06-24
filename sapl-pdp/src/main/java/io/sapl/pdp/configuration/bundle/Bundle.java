@@ -53,6 +53,11 @@ record Bundle(String pdpJson, Map<String, String> saplDocuments, BundleManifest 
             return;
         }
 
+        if (!securityPolicy.signatureRequired()) {
+            // Verification disabled, so accept the signed bundle without demanding a key.
+            return;
+        }
+
         val keyId                = manifest.signature().keyId();
         val publicKey            = securityPolicy.resolvePublicKey(pdpId, keyId);
         val filesForVerification = buildVerificationMap();

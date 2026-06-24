@@ -241,7 +241,7 @@ class UserLookupServiceTests {
         @Test
         @DisplayName("returns empty when the api-key-id index is empty (entries without an api-key-id are not indexed)")
         void whenApiKeyIdIndexEmptyThenReturnsEmpty() {
-            // findByApiKey consults only the api-key-id index; an entry that carries no
+            // findByApiKey consults only the api-key-id index. An entry that carries no
             // api-key-id never enters it, so it cannot be matched.
             when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
 

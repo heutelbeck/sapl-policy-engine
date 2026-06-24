@@ -97,7 +97,7 @@ public final class DelegatingReactivePolicyDecisionPoint implements ReactivePoli
     /**
      * Bridges a SAPL {@link Stream} to a Reactor {@link Flux} via a
      * virtual-thread pump. The stream is opened lazily on subscription
-     * and closed on cancel; the pump exits when the source completes
+     * and closed on cancel. The pump exits when the source completes
      * (returns {@code null}) or when the subscriber cancels.
      * <p>
      * Overflow strategy is {@link FluxSink.OverflowStrategy#LATEST}:

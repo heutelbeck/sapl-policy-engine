@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  * Runs regular-expression matching under a wall-clock budget so that a
  * catastrophically backtracking pattern on attacker-influenced input cannot
  * hang the evaluation thread (a ReDoS denial of service). The blacklist-style
- * pattern detectors used elsewhere are incomplete; a bounded matcher is the
+ * pattern detectors used elsewhere are incomplete. A bounded matcher is the
  * general defence.
  * <p>
  * The Java regex engine reads the input character by character while

@@ -53,7 +53,7 @@ public class PemUtils {
     private static final String ERROR_PEM_DECODING_FAILED = "PEM decoding failed: %s.";
     private static final String ERROR_PEM_ENCODING_FAILED = "PEM encoding failed: %s.";
 
-    // Keys, certificates, and JWK sets are kilobyte-scale; this generous cap
+    // Keys, certificates, and JWK sets are kilobyte-scale. This generous cap
     // excludes pathological input.
     private static final int MAX_INPUT_CHARS = 256 * 1024;
 

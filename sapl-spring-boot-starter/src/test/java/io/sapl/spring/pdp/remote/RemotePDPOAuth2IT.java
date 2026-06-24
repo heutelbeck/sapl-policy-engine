@@ -53,7 +53,7 @@ import reactor.test.StepVerifier;
  * starter on both HTTP and RSocket
  * transports. Starts a Keycloak container with a service-account client and a
  * SAPL Node container configured for OAuth2
- * JWT resource-server validation; the autowired remote PDP authenticates by
+ * JWT resource-server validation. The autowired remote PDP authenticates by
  * minting a JWT via Spring's
  * {@code OAuth2AuthorizedClientManager}.
  */

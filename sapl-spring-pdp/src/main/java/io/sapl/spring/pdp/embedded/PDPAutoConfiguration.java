@@ -94,7 +94,7 @@ import java.util.Set;
  * {@link PDPConfigurationSource}, {@link PdpVoterSource},
  * {@link IdFactory}, and the {@link ReactivePolicyDecisionPoint} itself. Beans
  * that hold real resources implement {@link AutoCloseable} (the voter
- * source and the configuration source); Spring invokes their
+ * source and the configuration source). Spring invokes their
  * {@code close()} method on context shutdown.
  * <p>
  * Every bean is declared {@link ConditionalOnMissingBean} so an

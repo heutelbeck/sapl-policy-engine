@@ -39,7 +39,7 @@ import lombok.val;
  */
 public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
 
-    /** A signal that carries no value; only runners are admissible here. */
+    /** A signal that carries no value. Only runners are admissible here. */
     sealed interface VoidSignal extends Signal
             permits CancelSignal, CompleteSignal, TerminationSignal, AfterTerminationSignal {
     }
@@ -284,7 +284,7 @@ public sealed interface Signal permits Signal.VoidSignal, Signal.ValueSignal {
      * query execution. Mappers attached here
      * may textually rewrite the SQL (e.g. inject WHERE clauses) before the
      * underlying driver receives it.
-     * Dialect-agnostic at the signal level; mapper authors handle dialect concerns.
+     * Dialect-agnostic at the signal level. Mapper authors handle dialect concerns.
      */
     record SqlShimSignal(String value) implements ValueSignal<String> {
         public static final ResolvableType VALUE_TYPE = ResolvableType.forClass(String.class);

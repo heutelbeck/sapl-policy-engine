@@ -42,11 +42,11 @@ import static io.sapl.compiler.combining.CombiningUtils.*;
  * <p>
  * Supports two modes:
  * <ul>
- * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY); constraints are
+ * <li><b>Normal mode:</b> Agreement on effect (PERMIT/DENY). Constraints are
  * merged, but two agreeing votes that define different resource transformations
  * yield INDETERMINATE (transformation uncertainty)</li>
  * <li><b>Strict mode:</b> Exact equality required (decision, obligations,
- * advice, and resource); any difference yields INDETERMINATE</li>
+ * advice, and resource). Any difference yields INDETERMINATE</li>
  * </ul>
  */
 @UtilityClass
@@ -63,7 +63,7 @@ public class UnanimousVoteCombiner {
      *
      * @param votes the votes to combine (may be empty)
      * @param voterMetadata metadata for the combined vote
-     * @param strictMode if true, requires exact equality; if false, only
+     * @param strictMode if true, requires exact equality. If false, only
      * effect agreement
      * @return combined vote, or abstain if input is empty
      */
@@ -92,7 +92,7 @@ public class UnanimousVoteCombiner {
      * @param accumulator the existing accumulator to fold into
      * @param votes the votes to combine into the accumulator
      * @param voterMetadata metadata for the combined vote
-     * @param strictMode if true, requires exact equality; if false, only
+     * @param strictMode if true, requires exact equality. If false, only
      * effect agreement
      * @return combined vote
      */
@@ -140,7 +140,7 @@ public class UnanimousVoteCombiner {
      * In normal mode, two votes with the same effect but conflicting resource
      * transformations also yield INDETERMINATE (transformation uncertainty). In
      * strict mode the merge requires exact equality of decision, obligations,
-     * advice, and resource; any difference yields INDETERMINATE.
+     * advice, and resource. Any difference yields INDETERMINATE.
      *
      * @param accumulatorVote the accumulated result
      * @param newVote the new vote to incorporate
@@ -196,7 +196,7 @@ public class UnanimousVoteCombiner {
         val accDec   = accAuthz.decision();
         val newDec   = newAuthz.decision();
 
-        // Disagreement on effect produces an INDETERMINATE result; the
+        // Disagreement on effect produces an INDETERMINATE result. The
         // multi-bit outcome captures both effects as the would-have-been set.
         if (accDec != newDec) {
             val error   = Value.error(ERROR_EFFECT_DISAGREEMENT);
@@ -230,7 +230,7 @@ public class UnanimousVoteCombiner {
                     decisionToOutcome(accAuthz.decision()));
         }
 
-        // Not identical produces an INDETERMINATE; the outcome captures the
+        // Not identical produces an INDETERMINATE. The outcome captures the
         // union of both effects (single-bit when decisions match, multi-bit
         // when they differ).
         val error   = Value.error(ERROR_NOT_IDENTICAL);

@@ -73,7 +73,7 @@ public class PdpVoterSource implements AutoCloseable {
 
     /**
      * Per-pdpId most recently submitted source configuration. A plugins snapshot
-     * recompiles this retained config for the affected pdpId; the served voter
+     * recompiles this retained config for the affected pdpId. The served voter
      * remains the last successfully-compiled one until a recompile succeeds.
      * Removed when the configuration source emits a
      * {@link ConfigurationEvent.Remove}. Mutated only under {@link #stateLock}.
@@ -139,7 +139,7 @@ public class PdpVoterSource implements AutoCloseable {
         // so a
         // config update is blocked for at most one pdpId rather than the whole
         // snapshot.
-        // pdpIds are independent decision domains; eventual consistency across them is
+        // pdpIds are independent decision domains. Eventual consistency across them is
         // fine.
         for (val pdpId : pdpIds) {
             migratePdpId(pdpId, targetGeneration);
@@ -168,7 +168,7 @@ public class PdpVoterSource implements AutoCloseable {
                 loadConfigurationLocked(config, OnCompileError.FAIL_CLOSED, plugins);
                 // Stamp the generation actually compiled against. This is the live
                 // pluginGeneration (the generation of currentPlugins read above), which under
-                // a concurrent newer snapshot may exceed targetGeneration; both were read
+                // a concurrent newer snapshot may exceed targetGeneration. Both were read
                 // under this single lock hold, so they are consistent.
                 servedGeneration.put(pdpId, pluginGeneration);
             } catch (Exception e) {
@@ -187,7 +187,7 @@ public class PdpVoterSource implements AutoCloseable {
      * On compilation failure:
      * <ul>
      * <li>{@code keepOldConfigOnError == true}: the PDP transitions to
-     * STALE (if a valid config exists) or stores an error voter; this
+     * STALE (if a valid config exists) or stores an error voter. This
      * method does not throw.</li>
      * <li>{@code keepOldConfigOnError == false}: this method throws
      * {@link PDPConfigurationException} wrapping the compilation error.
@@ -203,7 +203,7 @@ public class PdpVoterSource implements AutoCloseable {
      *
      * @param pdpConfiguration the configuration to load
      * @param keepOldConfigOnError if true, retains existing configuration
-     * on compilation errors and does not throw; if false, propagates the
+     * on compilation errors and does not throw. If false, propagates the
      * compilation error to the caller
      * @throws PDPConfigurationException if {@code keepOldConfigOnError}
      * is false and synchronous compilation fails

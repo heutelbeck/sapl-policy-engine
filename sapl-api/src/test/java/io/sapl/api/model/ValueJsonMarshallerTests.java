@@ -110,6 +110,20 @@ class ValueJsonMarshallerTests {
                 arguments("extreme positive scale", new BigDecimal("1E-1000000000")));
     }
 
+    @ParameterizedTest(name = "non-finite: {0}")
+    @MethodSource
+    @DisplayName("a non-finite number node (NaN/Infinity) becomes an error instead of throwing on the eval path")
+    void whenNonFiniteNumberThenError(String description, double value) {
+        var node   = FACTORY.numberNode(value);
+        var result = ValueJsonMarshaller.fromJsonNode(node);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> whenNonFiniteNumberThenError() {
+        return Stream.of(arguments("NaN", Double.NaN), arguments("positive infinity", Double.POSITIVE_INFINITY),
+                arguments("negative infinity", Double.NEGATIVE_INFINITY));
+    }
+
     @ParameterizedTest(name = "round-trip text: {0}")
     @MethodSource("textValues")
     @DisplayName("Round-trip text preserves value")

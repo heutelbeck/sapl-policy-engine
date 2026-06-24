@@ -60,7 +60,7 @@ import java.util.function.UnaryOperator;
  * Blocking operations inside these streams (HTTP polling, MQTT
  * receive, {@link Stream#awaitNext()}) <strong>must not</strong>
  * run on a Reactor scheduler thread or a Netty event loop. SAPL
- * consumers run on dedicated virtual threads; the helpers themselves
+ * consumers run on dedicated virtual threads. The helpers themselves
  * also spawn virtual threads. Consumers that bridge from Reactor /
  * WebFlux are expected to spawn or hop onto a virtual thread before
  * calling {@code awaitNext()}.
@@ -237,7 +237,7 @@ public class Streams {
      * the returned stream to invoke it.
      * <p>
      * A synchronous throw from {@code producer.produce(...)} is not caught
-     * here; it propagates so an enclosing retry layer can handle it. Attribute
+     * here. It propagates so an enclosing retry layer can handle it. Attribute
      * sources built on this helper run under the broker's retrying
      * {@code AttributeStream}, which re-opens the source with backoff. A caller
      * not under such a wrapper must guard the producer itself.
@@ -482,7 +482,7 @@ public class Streams {
             try {
                 val nextInstant = clock.instant().plus(interval);
                 cancelHolder.set(scheduler.scheduleAt(nextInstant, tick.get()));
-                // A close racing this reschedule cancels the prior handle; cancel the
+                // A close racing this reschedule cancels the prior handle. Cancel the
                 // freshly stored one too so the scheduled tick cannot leak.
                 if (stopped.get()) {
                     cancelHolder.get().cancel();

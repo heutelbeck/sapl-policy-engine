@@ -37,7 +37,7 @@ import java.io.Serial;
  * {@link org.springframework.security.access.AccessDeniedException} by design.
  * A naive subscriber that
  * does not opt into the transition-signalling contract would not expect a grant
- * signal; routing it through a separate
+ * signal. Routing it through a separate
  * exception type makes the contract explicit and lets subscribers pattern-match
  * without inspecting payloads.
  *
@@ -53,7 +53,7 @@ public final class AccessGrantedException extends RuntimeException {
 
     /**
      * @param decision
-     * the PERMIT decision that established access; the subscriber may inspect it to
+     * the PERMIT decision that established access. The subscriber may inspect it to
      * apply decision-specific
      * logic
      */

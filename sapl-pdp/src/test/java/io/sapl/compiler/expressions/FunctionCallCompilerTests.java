@@ -112,7 +112,7 @@ class FunctionCallCompilerTests {
     @Test
     void whenFunctionCallWithStreamArgThenComputesPerStreamValueAcrossRounds() {
         // Drives test.fn(<stream.attr>) where the function multiplies its arg by 10.
-        // Each round binds a new value for stream.attr; the function is invoked
+        // Each round binds a new value for stream.attr. The function is invoked
         // synchronously and the new value flows out per round.
         var fnBroker = functionBroker("test.fn",
                 args -> Value.of(((NumberValue) args.getFirst()).value().intValue() * 10));

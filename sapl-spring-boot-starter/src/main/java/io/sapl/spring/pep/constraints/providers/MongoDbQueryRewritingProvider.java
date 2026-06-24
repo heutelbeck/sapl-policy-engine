@@ -95,7 +95,7 @@ import tools.jackson.databind.json.JsonMapper;
  * resulting query by AND-ing the original BSON
  * document and each condition document inside a top-level {@code $and} array.
  * The obligation never replaces or widens
- * the user's filter; it can only narrow it.
+ * the user's filter. It can only narrow it.
  * </p>
  * Supported {@code op} values for typed criteria: {@code =}, {@code !=},
  * {@code >}, {@code >=}, {@code <}, {@code <=},
@@ -137,7 +137,17 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
     }
 
     private static Query applyToQuery(Query query, List<Value> criterionEntries, List<String> conditions) {
+        Query working = query;
         if (!criterionEntries.isEmpty()) {
+            // Defensive copy: addCriteria mutates in place, and a reused caller Query must
+            // not
+            // accumulate obligation criteria across calls (which would eventually
+            // over-restrict).
+            // Query.of drops the read preference, so carry it over explicitly.
+            working = Query.of(query);
+            if (query.getReadPreference() != null) {
+                working.withReadPreference(query.getReadPreference());
+            }
             val criteria = new ArrayList<Criteria>(criterionEntries.size());
             for (val entry : criterionEntries) {
                 criteria.add(buildCriterionNode(entry));
@@ -148,12 +158,12 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
             // collides with a field already present in the user's query
             // (e.g. obligation requires moon IN [...] and the user query
             // already filters on moon).
-            query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+            working.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
         }
         if (conditions.isEmpty()) {
-            return query;
+            return working;
         }
-        return rebuildWithMergedBson(query, conditions);
+        return rebuildWithMergedBson(working, conditions);
     }
 
     @FunctionalInterface
@@ -184,7 +194,7 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
      * </p>
      * The original-query document is included as the first element of the
      * {@code $and} so the user's filter still
-     * applies; the obligation conditions are AND-ed onto it, never replacing it.
+     * applies. The obligation conditions are AND-ed onto it, never replacing it.
      * This matches the intersection semantic
      * of the typed-criteria path: an obligation can only narrow access, never widen
      * it.
@@ -192,7 +202,7 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
      * Rebuilding (rather than mutating {@code getQueryObject()}) is required
      * because for queries built from typed
      * {@link Criteria} the document is a fresh snapshot computed from the criteria
-     * tree on each call; in-place
+     * tree on each call. In-place
      * mutations there are dropped on the next access.
      */
     private static Query rebuildWithMergedBson(Query query, List<String> conditions) {
@@ -237,7 +247,7 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
      * unquoted keys).
      * The fragment must be strict JSON so the same condition string parses
      * identically on every
-     * SAPL Mongo PEP; the Python sapl-pymongo shim parses conditions with
+     * SAPL Mongo PEP. The Python sapl-pymongo shim parses conditions with
      * bson.json_util, which
      * accepts strict JSON only. A non-JSON fragment raises, so the planner fails
      * closed.

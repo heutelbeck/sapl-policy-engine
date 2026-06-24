@@ -23,7 +23,7 @@ package io.sapl.api.model;
  * <p>
  * Two predicates are equal when their semantic hashes match and their operators
  * are {@link PureOperator#semanticEquals(PureOperator) semantically equal}. The
- * hash is a fast pre-filter; the structural check guards against a hash
+ * hash is a fast pre-filter. The structural check guards against a hash
  * collision merging two different predicates, which would change which
  * documents the index reports as applicable. The operator is retained for
  * evaluation when the index needs to determine the predicate's value for a

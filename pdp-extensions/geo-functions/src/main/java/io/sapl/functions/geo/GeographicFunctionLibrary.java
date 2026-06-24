@@ -136,7 +136,7 @@ public class GeographicFunctionLibrary {
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    // GeoTools Parser is stateful and not thread-safe; a fresh one is built per
+    // GeoTools Parser is stateful and not thread-safe. A fresh one is built per
     // call
     // (see hardenedParser). gml2/gml3 GMLConfiguration share a class name, hence
     // the FQNs.
@@ -170,7 +170,7 @@ public class GeographicFunctionLibrary {
      * <p>
      * Geotools loads its own bundled schemas through its internal schema index
      * rather than through this resolver, so in normal operation the allowlist
-     * branch is not exercised by legitimate documents; it exists to keep local
+     * branch is not exercised by legitimate documents. It exists to keep local
      * schema resolution available without ever permitting a remote or arbitrary
      * local fetch.
      * <p>
@@ -187,7 +187,7 @@ public class GeographicFunctionLibrary {
         private static final String EXTERNAL_REFERENCE_BLOCKED_ERROR = "External XML reference blocked (geo functions perform no I/O): ";
 
         // Bundled, classpath-local schema resources geotools ships for KML/GML.
-        // Resolution is restricted to exactly these; nothing else is fetched.
+        // Resolution is restricted to exactly these. Nothing else is fetched.
         private static final List<String> ALLOWED_LOCAL_SCHEMA_RESOURCES = List.of("org/geotools/kml/v22/ogckml22.xsd",
                 "org/geotools/kml/kml21.xsd", "org/geotools/gml3/gml.xsd", "org/geotools/gml2/feature.xsd");
 

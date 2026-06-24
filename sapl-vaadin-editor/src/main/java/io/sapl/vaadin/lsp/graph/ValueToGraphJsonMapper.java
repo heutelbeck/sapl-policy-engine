@@ -103,7 +103,7 @@ public class ValueToGraphJsonMapper {
             val json = toGraphJsonNode(value);
             return OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
         } catch (Exception exception) {
-            // toGraphJsonNode can reject a null or over-deep Value; never let that
+            // toGraphJsonNode can reject a null or over-deep Value. Never let that
             // escape the editor's pretty-printer.
             return String.valueOf(value);
         }

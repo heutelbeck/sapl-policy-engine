@@ -97,8 +97,8 @@ class PolicyCrossStratumKleeneTests {
     static Stream<Arguments> cells() {
         // pure subject.pure: true -> TRUE, false -> FALSE, 42 -> non-boolean -> ERROR
         // (runtime). stream <test.attr>: TRUE / FALSE / error value.
-        // Kleene AND: FALSE dominates (including over ERROR); else ERROR if any error;
-        // else TRUE. Body TRUE -> PERMIT, FALSE -> NOT_APPLICABLE, ERROR ->
+        // Kleene AND: FALSE dominates (including over ERROR). Else ERROR if any error.
+        // Else TRUE. Body TRUE -> PERMIT, FALSE -> NOT_APPLICABLE, ERROR ->
         // INDETERMINATE.
         record Cell(String pure, String pureJson, Value stream, String streamName, Decision expected) {}
         val streamError = Value.error("stream boom");

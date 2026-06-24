@@ -299,7 +299,7 @@ public class ExtendedFilterCompiler {
             try {
                 index = number.intValueExact();
             } catch (ArithmeticException ignored) {
-                // A fractional or out-of-int-range subscript addresses no element; leave it
+                // A fractional or out-of-int-range subscript addresses no element. Leave it
                 // untouched.
                 return current;
             }

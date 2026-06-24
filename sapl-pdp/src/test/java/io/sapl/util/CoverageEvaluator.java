@@ -34,7 +34,7 @@ import java.util.UUID;
  * exposes per-round results as an ordered,
  * full-fidelity {@link Stream} of {@link VoteResultWithCoverage}. Every round
  * whose vote resolves is delivered to the
- * consumer; intermediate rounds are not dropped. If the initial evaluation
+ * consumer. Intermediate rounds are not dropped. If the initial evaluation
  * returns no dependencies (pure policy body),
  * the stream delivers one result and completes. Otherwise it opens a
  * subscription on the broker and re-evaluates the
@@ -61,7 +61,7 @@ public class CoverageEvaluator {
         val sub = BrokerEvalLoops.openWithHead(broker, "vt-cov-" + UUID.randomUUID(),
                 initial.voteResult().dependencies().keySet(), snap -> voter.evaluate(baseCtx.withSnapshot(snap)),
                 // Skip on incomplete: a null vote means the body did not
-                // resolve (some dep still missing); do not surface a partial
+                // resolve (some dep still missing). Do not surface a partial
                 // coverage result to the consumer.
                 (r, snap) -> {
                     if (r.voteResult().vote() != null) {

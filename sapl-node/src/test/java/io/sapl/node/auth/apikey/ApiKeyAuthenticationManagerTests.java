@@ -38,7 +38,7 @@ import lombok.val;
  * and produces a {@link SaplAuthenticationToken}. The manager runs
  * downstream and is the component Spring Security consults to mark the
  * authentication as trusted. The contract is therefore: only tokens of
- * the SAPL type the converter produces should be authenticated; any
+ * the SAPL type the converter produces should be authenticated. Any
  * other Authentication shape reaching this manager indicates a misrouted
  * filter chain and must not be granted authenticated status.
  */

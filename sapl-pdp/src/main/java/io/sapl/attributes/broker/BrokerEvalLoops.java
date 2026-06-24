@@ -44,7 +44,7 @@ import java.util.function.Supplier;
  * evaluate, emit, capture head values, evict
  * cache entries the eval dropped, filter head keys out of the next broker dep
  * set. The same pattern across many call
- * sites; these helpers exist so it's written once.
+ * sites. These helpers exist so it's written once.
  * <p>
  * Two flavors:
  * <ul>
@@ -87,7 +87,7 @@ public class BrokerEvalLoops {
      * @param evaluator
      * runs against the merged snapshot, returns the round result
      * @param onResult
-     * side-effecting consumer of the result and the merged snapshot; the typical
+     * side-effecting consumer of the result and the merged snapshot. The typical
      * body is "if the result is
      * terminal, emit it on a sink"
      * @param nextDeps
@@ -105,7 +105,7 @@ public class BrokerEvalLoops {
      * fires, the loop stops
      * re-evaluating and the subscription idles until the consumer closes it
      *
-     * @return the subscription handle; the caller closes it
+     * @return the subscription handle. The caller closes it
      */
     public static <R> AttributeBroker.Subscription openWithHead(AttributeBroker broker, String subscriptionId,
             Set<SubscriptionKey> initialDeps, Function<Map<SubscriptionKey, AttributeSnapshot>, R> evaluator,
@@ -116,7 +116,7 @@ public class BrokerEvalLoops {
         val terminated        = new AtomicBoolean(false);
         return broker.open(subscriptionId, initialBrokerDeps, brokerSnap -> {
             if (terminated.get()) {
-                // A prior round already terminated the loop; idle on the last dep set
+                // A prior round already terminated the loop. Idle on the last dep set
                 // (broker requires non-empty) until the consumer closes the stream.
                 return initialBrokerDeps;
             }
@@ -130,7 +130,7 @@ public class BrokerEvalLoops {
                 val brokerDeps = headCache.brokerDepsFor(newDeps);
                 if (brokerDeps.isEmpty()) {
                     // The policy collapsed to a constant: no attribute deps remain. The
-                    // final decision was already emitted via onResult; complete the stream
+                    // final decision was already emitted via onResult. Complete the stream
                     // (clean teardown) rather than hand the broker an illegal empty set.
                     terminated.set(true);
                     onTerminate.accept(null);

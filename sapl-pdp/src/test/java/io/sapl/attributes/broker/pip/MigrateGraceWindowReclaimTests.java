@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * refcount-zero grace window, the path on which {@code migrate} promotes a
  * replacement with no inherited subscribers and {@code reclaimIfOrphaned} must
  * reclaim it. This is a regression guard for the swap-during-grace path and the
- * opens/closes balance invariant; it does not by itself isolate the underlying
+ * opens/closes balance invariant. It does not by itself isolate the underlying
  * race (the leak it guards against was confirmed by code inspection, and the
  * reclaim is applied defensively).
  */

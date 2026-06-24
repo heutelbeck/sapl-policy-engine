@@ -274,6 +274,14 @@ class StreamingPipelineTests {
         }
 
         @Test
+        void whenPdpCompletesAfterPermitThenStreamTerminatesWithError() {
+            Harness      h   = new Harness();
+            Flux<Object> out = h.create();
+
+            StepVerifier.create(out).then(h::emitPermit).then(h::completePdp).expectError().verify(TIMEOUT);
+        }
+
+        @Test
         void boundarySignalsAreVisibleWhenSignalTransitionsIsTrue() {
             Harness h = new Harness();
             h.signalTransitions = true;
@@ -339,7 +347,7 @@ class StreamingPipelineTests {
 
             // After downstream completes (via take(1)), the pipeline should
             // tear down the subscriptions. Subsequent emissions should not
-            // resurrect anything; the sink can no longer push to a live
+            // resurrect anything. The sink can no longer push to a live
             // subscriber.
             assertThat(h.pdp.currentSubscriberCount()).isZero();
             assertThat(h.rap.currentSubscriberCount()).isZero();

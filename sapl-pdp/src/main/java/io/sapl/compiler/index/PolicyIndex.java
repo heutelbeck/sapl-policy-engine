@@ -53,7 +53,7 @@ public interface PolicyIndex {
      *
      * @param ctx the evaluation context containing the authorization subscription
      * @param shouldContinue predicate called after each step with incremental
-     * matches; returns false to stop
+     * matches. Returns false to stop
      */
     void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue);
 

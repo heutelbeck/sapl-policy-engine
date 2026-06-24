@@ -71,7 +71,7 @@ class ProtobufRemoteReactivePolicyDecisionPointReconnectTests {
             ((Payload) invocation.getArgument(0)).release();
             // First subscription emits one decision then COMPLETES gracefully,
             // every later subscription emits a different decision. A client that
-            // honoured the graceful complete would terminate after PERMIT; the
+            // honoured the graceful complete would terminate after PERMIT. The
             // reconnect path instead re-subscribes and yields DENY.
             if (attempt.getAndIncrement() == 0) {
                 return Flux.just(decisionPayload(AuthorizationDecision.PERMIT));

@@ -64,14 +64,14 @@ import java.util.function.Supplier;
  * {@link AttributeRepository} fallback for invocations that have no matching
  * PIP.
  * <p>
- * Two surfaces on one object: consumers use the {@link AttributeBroker}
- * interface (open / close, snapshot callbacks);
- * plugin engines and tests use {@link #load}, {@link #swap},
+ * Two surfaces on one object. Consumers use the {@link AttributeBroker}
+ * interface (open / close, snapshot callbacks).
+ * Plugin engines and tests use {@link #load}, {@link #swap},
  * {@link PipHandle#unload} via the returned
  * {@link PipHandle} to change the catalog at runtime.
  * <p>
  * Catalog mutations are atomic. A failed {@link #load} or {@link #swap} leaves
- * the catalog unchanged; the collision
+ * the catalog unchanged. The collision
  * rule (no two specs of the same fully-qualified name and parameter shape) is
  * enforced at load time so resolution at
  * evaluation time is unambiguous.
@@ -127,7 +127,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     private final @Nullable AttributeRepository fallback;
     private final InstantSource                 timestampSource;
 
-    // Set in close(); guards open() and teardown scheduling.
+    // Set in close(). Guards open() and teardown scheduling.
     private volatile boolean closed = false;
 
     /** No grace period, no fallback. */
@@ -339,7 +339,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             handleSpecs.put(newHandle, List.copyOf(newSpecs));
 
             affected = collectAffected(plan);
-            // New specs are installed; promote any fallback/terminal invocation that now
+            // New specs are installed. Promote any fallback/terminal invocation that now
             // resolves to one of them, mirroring load(). Migration runs outside the lock.
             promotions = collectPromotions();
         } finally {
@@ -434,7 +434,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * @return the {@link LibraryDocumentation} for every PIP currently in the
      * catalog, suitable for IDE
      * hover/completion and offline documentation generation. Returned in load
-     * order; reflects the catalog at
+     * order. Reflects the catalog at
      * the moment of the call.
      */
     public List<LibraryDocumentation> documentation() {
@@ -456,7 +456,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
     /**
      * Resolves an invocation to its serving spec. By the catalog's collision rule,
      * at most one spec matches. Visible
-     * mainly for tests; consumers normally exercise resolution implicitly via
+     * mainly for tests. Consumers normally exercise resolution implicitly via
      * {@link #open}.
      *
      * @param invocation
@@ -532,7 +532,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
             // open the gate and fire synchronously with the cached snapshot.
             fireImmediately = subscription.tryFireGate();
         } catch (RuntimeException e) {
-            // Roll back dependencies attached so far; the subscription was never
+            // Roll back dependencies attached so far. The subscription was never
             // registered.
             if (subscription != null) {
                 subscription.close();
@@ -765,7 +765,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
      * the PIP side land on a registered subscriber rather than being dropped.
      * <p>
      * If the synchronous first open throws (transient connect-time failure), the
-     * wrapper stores no cached first; the
+     * wrapper stores no cached first. The
      * AttributeStream is still constructed, and the pump's first cycle re-invokes
      * the supplier where the exception
      * propagates into the retry burst. Without this, broker.open / load / swap
@@ -854,7 +854,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
         try {
             if (closed) {
                 // close() already drained and closed everything. Do not re-insert
-                // or start the replacement; that would leak its pump and source.
+                // or start the replacement. That would leak its pump and source.
                 replacement.close();
                 return;
             }
@@ -1261,7 +1261,7 @@ public final class PolicyInformationPointAttributeBroker implements AttributeBro
                 nextDependencies = updateCallback.apply(snapshotsByKey);
             } catch (RuntimeException e) {
                 // Engine invariant: the callback must never throw. Defensive backstop -
-                // log loudly and survive; never propagate onto this shared dispatch thread.
+                // log loudly and survive. Never propagate onto this shared dispatch thread.
                 logRateLimited(() -> log.error(ERROR_ONUPDATE_THREW, id, e.getMessage(), e));
                 return;
             }

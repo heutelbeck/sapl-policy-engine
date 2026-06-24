@@ -33,7 +33,7 @@ import io.sapl.api.stream.Stream;
  * <p>
  * {@link #decide(AuthorizationSubscription, String)} returns a
  * {@link Stream} that delivers the current authorization decision
- * and any later changes; the caller pulls one decision at a time.
+ * and any later changes. The caller pulls one decision at a time.
  * {@link #decideOnce(AuthorizationSubscription, String)} returns a
  * single decision and does not keep watching.
  * <p>

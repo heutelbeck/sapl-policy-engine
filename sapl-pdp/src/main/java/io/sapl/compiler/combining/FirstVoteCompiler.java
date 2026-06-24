@@ -69,7 +69,7 @@ import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
  * produces a snapshot-driven voter that walks the policies sequentially
  * per round, stopping at the first non-NOT_APPLICABLE result. Tail
  * policies are not subscribed when an earlier policy resolves
- * applicability; their deps only enter the dependency set if the
+ * applicability. Their deps only enter the dependency set if the
  * snapshot round actually reaches them.</li>
  * </ul>
  */
@@ -212,7 +212,7 @@ public class FirstVoteCompiler {
      * Stream vote maker for first evaluation with at least one streaming
      * policy. Walks the policies sequentially per snapshot round, stopping
      * at the first non-NOT_APPLICABLE child vote. Tail policies are not
-     * subscribed when an earlier policy resolves applicability; their deps
+     * subscribed when an earlier policy resolves applicability. Their deps
      * only enter the dependency set if the snapshot round actually reaches
      * them. The broker re-fires this voter when its current dep set changes.
      *

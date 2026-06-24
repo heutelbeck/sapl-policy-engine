@@ -70,7 +70,7 @@ import reactor.test.StepVerifier;
  * Engine-side end-to-end test of the Mongo shim chain. Mirrors
  * {@link RelationalShimChainTests} for MongoDB. Same
  * scenario, different collection: chronicles of Krynn (Astinus's annals) tagged
- * by moon and forbidden tier; the
+ * by moon and forbidden tier. The
  * obligation filters access by moon alignment.
  * <p>
  * Uses a real MongoDB via Testcontainers (matching the
@@ -511,7 +511,7 @@ class MongoDbShimChainIT {
             return repository.findRareChronicles(pattern);
         }
 
-        // Direct fluent-chain usage. None of these call matching(Query); they are the
+        // Direct fluent-chain usage. None of these call matching(Query). They are the
         // surface that previously bypassed the shim entirely (run1-068, run1-070).
 
         @PreEnforce(action = "'fluentAll'")

@@ -210,7 +210,7 @@ public class TransitionSignals {
      * are rare, and the buffer grows without bound only under a slow consumer
      * against
      * a high-volume source, a trade accepted for this opt-in helper. Do not relay
-     * downstream demand to the inner subscription to bound it; that reintroduces
+     * downstream demand to the inner subscription to bound it. That reintroduces
      * the
      * reordering above. A downstream cancel disposes the subscription.
      */

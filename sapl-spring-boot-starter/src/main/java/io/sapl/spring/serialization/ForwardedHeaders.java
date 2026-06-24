@@ -79,7 +79,7 @@ public record ForwardedHeaders(
      * Parses the headers in {@code source} into a {@link ForwardedHeaders} view.
      * The {@code source} function returns
      * the values for a given lowercase header name (each header may be
-     * multi-valued). Pure parsing; never throws on
+     * multi-valued). Pure parsing. Never throws on
      * malformed input - malformed segments are dropped silently.
      */
     public static ForwardedHeaders parse(Function<String, List<String>> source) {

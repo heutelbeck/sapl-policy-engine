@@ -24,7 +24,7 @@ import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 /**
  * Servlet-side strategy for resolving the tenant's PDP identifier from a
  * Spring Security {@link Authentication}. Applications register a bean of
- * this type to drive tenant routing; in its absence the default resolver
+ * this type to drive tenant routing. In its absence the default resolver
  * returns {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
  */
 @FunctionalInterface

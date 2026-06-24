@@ -53,7 +53,7 @@ import java.util.function.Consumer;
  * invocation and replace it with an
  * {@link ActivePolicyInformationPointInvocation} fed by the PIP. Migration is
  * handled
- * by the broker; this class itself is static during its lifetime.
+ * by the broker. This class itself is static during its lifetime.
  */
 @Slf4j
 final class ActiveRepositoryInvocation implements ActiveInvocation {

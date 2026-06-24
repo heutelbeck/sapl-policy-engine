@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * End-to-end test that the MQTT PIP connects to a broker over TLS, verifying
  * the broker certificate against the configured trust store. The broker runs a
  * TLS listener (8883) for the PIP and a plaintext listener (1883) for the test
- * publisher; a message published on the plaintext listener must reach the
+ * publisher. A message published on the plaintext listener must reach the
  * TLS-subscribed PIP, proving the encrypted subscription works.
  */
 @DisplayName("MQTT Policy Information Point over TLS")

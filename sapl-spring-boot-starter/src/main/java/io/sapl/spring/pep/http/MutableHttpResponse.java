@@ -58,7 +58,7 @@ public interface MutableHttpResponse {
      * Sets the HTTP status code from a numeric value (such as 302 or 403).
      *
      * @param statusValue
-     * the numeric status code; must be in the valid HTTP range (100-999)
+     * the numeric status code. Must be in the valid HTTP range (100-999)
      *
      * @return {@code true} when the status was applied, {@code false} when the
      * response is already committed
@@ -127,8 +127,8 @@ public interface MutableHttpResponse {
     /**
      * Returns {@code true} once any mutation method on this response has been
      * called (status, header, body). Used by
-     * the access-denied handler to decide whether a handler claimed the denial;
-     * callers on the success path do not
+     * the access-denied handler to decide whether a handler claimed the denial.
+     * Callers on the success path do not
      * normally consult this flag.
      */
     boolean isModified();

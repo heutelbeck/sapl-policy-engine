@@ -44,7 +44,7 @@ import lombok.val;
 
 /**
  * Domain requirements for the PIP pump across a hot-swap rebind. A hot-swap
- * replaces the source stream; the contract is that exactly one pump drives a
+ * replaces the source stream. The contract is that exactly one pump drives a
  * stream, the superseded pump terminates instead of migrating onto the new
  * stream, and no pump thread accumulates over repeated rebinds.
  */
@@ -189,7 +189,7 @@ class ActivePolicyInformationPointInvocationPumpTests {
         parked.countDown();
 
         // The value pulled before the rebind is published exactly once as the trailing
-        // emit; the superseded pump then exits on the next loop guard and never awaits
+        // emit. The superseded pump then exits on the next loop guard and never awaits
         // the old stream again.
         await().atMost(LIMIT).until(() -> published.contains(Value.TRUE));
         await().during(HOLD).atMost(LIMIT)

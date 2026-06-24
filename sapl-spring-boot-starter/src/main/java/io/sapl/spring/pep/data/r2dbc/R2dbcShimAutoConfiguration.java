@@ -46,8 +46,8 @@ import io.sapl.spring.pep.data.SaplContextPropagationActivator;
  * synchronous Java method called inside a Reactor flow. To satisfy that, the
  * auto-configuration declares
  * {@link SaplContextPropagationActivator} which enables Reactor's automatic
- * context propagation. The hook is JVM-wide;
- * opting out via the property disables both the shim and the hook activation
+ * context propagation. The hook is JVM-wide.
+ * Opting out via the property disables both the shim and the hook activation
  * triggered by it.
  */
 @AutoConfiguration

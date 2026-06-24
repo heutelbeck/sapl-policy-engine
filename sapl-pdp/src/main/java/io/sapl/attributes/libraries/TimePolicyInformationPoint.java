@@ -100,7 +100,7 @@ public class TimePolicyInformationPoint {
      * {@code updateIntervalInMillis}.
      *
      * @param updateIntervalInMillis
-     * polling interval in milliseconds; must be positive and non-zero
+     * polling interval in milliseconds. Must be positive and non-zero
      *
      * @return a stream of {@link TextValue} timestamps, or an error value if the
      * interval is invalid
@@ -148,7 +148,7 @@ public class TimePolicyInformationPoint {
     /**
      * Stream that emits {@code false} until the {@code checkpoint} instant is
      * reached, then emits {@code true}.
-     * Boundary-driven; no polling.
+     * Boundary-driven. No polling.
      *
      * @param checkpoint
      * an ISO-8601 UTC instant to compare against

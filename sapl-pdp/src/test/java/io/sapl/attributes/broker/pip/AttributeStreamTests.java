@@ -283,7 +283,7 @@ class AttributeStreamTests {
                     Thread.sleep(Duration.ofMillis(50));
                     stream.close();
                 } catch (InterruptedException ignored) {
-                    // Test cleanup helper: the close-after-delay closure is fire-and-forget; if
+                    // Test cleanup helper: the close-after-delay closure is fire-and-forget. If
                     // interrupted we simply skip the close.
                 }
             });
@@ -355,7 +355,7 @@ class AttributeStreamTests {
             val source = new ControlledSource(() -> inner);
             val stream = new AttributeStream(invocation("drainClose"), source);
 
-            // Wait until v1 has surfaced; at that point the pump is parked in drain.
+            // Wait until v1 has surfaced. At that point the pump is parked in drain.
             Awaitility.await().atMost(AWAIT_BUDGET).until(() -> Value.of("v1").equals(valueOrNull(stream.tryNext())));
 
             stream.close();
@@ -477,7 +477,7 @@ class AttributeStreamTests {
      * Inner stream double modelling an untrusted PIP that throws
      * {@link InterruptedException} from {@code awaitNext} although the
      * AttributeStream did not request the interrupt. The first call
-     * throws; later calls would block, but the pump never reaches them
+     * throws. Later calls would block, but the pump never reaches them
      * once it correctly treats the interrupt as a transient failure
      * and moves to the next cycle.
      */

@@ -198,7 +198,7 @@ class ExpressionSchemaResolver {
     private BasicExpressionContext findBasicExpression(ExpressionContext expression) {
         // Navigate through expression hierarchy: expression -> lazyOr -> lazyAnd -> ...
         // -> basicExpression. At every binary level a single operand means no operator
-        // was applied; more than one operand means the value is a binary expression and
+        // was applied. More than one operand means the value is a binary expression and
         // must not inherit its left operand's schema.
         if (expression == null || expression.lazyOr() == null) {
             return null;
@@ -391,7 +391,7 @@ class ExpressionSchemaResolver {
     }
 
     private String qualifiedNameOf(String codeTemplate) {
-        // Function templates read library.name(args); attribute templates read
+        // Function templates read library.name(args). Attribute templates read
         // <library.name(args)> or <library.name>. Strip decorations to the bare name.
         var name = codeTemplate;
         if (name.startsWith("<")) {

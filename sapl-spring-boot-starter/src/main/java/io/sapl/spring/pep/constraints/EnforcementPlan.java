@@ -90,13 +90,13 @@ public record EnforcementPlan(
     /**
      * Discharges the entries scheduled for {@code signal} in plan order, applying
      * mappers, consumers, and runners
-     * best-effort: a handler that throws is logged and skipped; only
+     * best-effort: a handler that throws is logged and skipped. Only
      * obligation-tagged failures flip the returned
      * failure state. JVM-fatal and Reactor-fatal throwables are re-raised via
      * {@link reactor.core.Exceptions#throwIfFatal}.
      *
      * @param signal
-     * the fired signal; data-carrying signals contribute their value as the initial
+     * the fired signal. Data-carrying signals contribute their value as the initial
      * current value,
      * self-contained signals start with {@link Maybe.Absent}
      * @param priorFailureState
@@ -149,8 +149,8 @@ public record EnforcementPlan(
      * Blocking error-path entry point: fires {@link ErrorSignal} for {@code t} and
      * returns the resolved
      * {@link Throwable} for the caller to {@code throw}. Resolution rules: a fatal
-     * Throwable is re-raised immediately;
-     * a failure of the error-signal obligation itself escalates to a fresh
+     * Throwable is re-raised immediately.
+     * A failure of the error-signal obligation itself escalates to a fresh
      * {@link AccessDeniedException}; a Mapper that
      * returned a Throwable replaces {@code t}; otherwise {@code t} passes through
      * unchanged.

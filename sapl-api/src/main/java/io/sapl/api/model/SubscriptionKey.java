@@ -30,7 +30,7 @@ import lombok.NonNull;
  * of {@code head}); the consumer-facing layer dedups per
  * {@code (invocation, head)} and tracks two cached views per invocation.
  *
- * @param invocation the canonical attribute-finder invocation; the PIP
+ * @param invocation the canonical attribute-finder invocation. The PIP
  * subscription identity
  * @param head {@code true} for first-emission-only reads (legacy
  * {@code take(1)} semantic); {@code false} for latest-value reads

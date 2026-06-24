@@ -145,7 +145,7 @@ public class MealyMachine {
 
         /**
          * The PDP returned an explicit {@code Decision.SUSPEND}. Subscription is
-         * preserved; items arriving from the RAP
+         * preserved. Items arriving from the RAP
          * are dropped silently. The next PERMIT decision transitions back to
          * {@link Permitting}; any denial transitions
          * to {@link Terminated}. Singleton; the suspending event's reason flows out via
@@ -162,7 +162,7 @@ public class MealyMachine {
          * cancellation, PDP error, any denial event
          * (explicit DENY, INDETERMINATE, NOT_APPLICABLE, or PERMIT with failed
          * decision-scoped enforcement), or a
-         * per-item obligation failure. No further events are processed. Singleton; the
+         * per-item obligation failure. No further events are processed. Singleton. The
          * terminating event's outcome
          * flows out via the corresponding {@link Emission} (EmitComplete / EmitError)
          * rather than being stored on the
@@ -226,7 +226,7 @@ public class MealyMachine {
 
         /**
          * The protected method emitted an item. Per-item enforcement has already been
-         * attempted by the adapter; the
+         * attempted by the adapter. The
          * {@code enforcementResult} carries both the post-mapper value and the failure
          * flag.
          */
@@ -420,7 +420,7 @@ public class MealyMachine {
         var next = new Permitting(permit.plan());
         // Plan replacement (Permitting -> Permitting) is silent. Initial
         // grant (Pending -> Permitting) and resume (Suspended -> Permitting)
-        // emit the Granted boundary signal; the pipeline gates visibility.
+        // emit the Granted boundary signal. The pipeline gates visibility.
         if (state instanceof Permitting) {
             return Step.to(next);
         }
@@ -429,7 +429,7 @@ public class MealyMachine {
 
     private static Step onSuspend(State state, PdpSuspend suspend) {
         // Re-suspend within Suspended: the boundary already happened.
-        // Silent transition; the new reason flows out via the next
+        // Silent transition. The new reason flows out via the next
         // EmitTransition only on a true boundary crossing.
         if (state instanceof Suspended) {
             return Step.to(Suspended.INSTANCE);
@@ -462,9 +462,9 @@ public class MealyMachine {
         case Pending p -> Step.to(p);
         // Suspended: items are dropped silently.
         case Suspended s -> Step.to(s);
-        // Permitting: deliver Present values; drop Absent silently.
+        // Permitting: deliver Present values. Drop Absent silently.
         case Permitting p -> permittingItem(p, item);
-        // Exhaustive; unreachable here because Terminated was handled in step().
+        // Exhaustive. Unreachable here because Terminated was handled in step().
         case Terminated t -> Step.to(t);
         };
     }

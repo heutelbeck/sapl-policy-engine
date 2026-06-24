@@ -72,7 +72,7 @@ class ConfigurationManagerTests {
                 // A config ID literally named "a%20b" is transported as %2520b and must
                 // decode exactly once back to "a%20b", not twice down to "a b".
                 arguments("file:///policy.sapl?configurationId=a%2520b", "a%20b"),
-                // A literal plus in the query is not form-encoding; it must stay a plus.
+                // A literal plus in the query is not form-encoding. It must stay a plus.
                 arguments("file:///policy.sapl?configurationId=team+a", "team+a"),
                 // An encoded ampersand inside the value must not split the parameter.
                 arguments("file:///policy.sapl?configurationId=team%26a", "team&a"),

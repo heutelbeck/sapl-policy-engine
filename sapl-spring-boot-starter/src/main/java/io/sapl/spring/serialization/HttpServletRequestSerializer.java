@@ -187,7 +187,7 @@ public class HttpServletRequestSerializer extends StdSerializer<HttpServletReque
         while (headerNames.hasMoreElements()) {
             val name    = headerNames.nextElement();
             val headers = request.getHeaders(name);
-            // Dedup case-variant header names (getHeaders is case-insensitive); two
+            // Dedup case-variant header names (getHeaders is case-insensitive). Two
             // names differing only in case would otherwise emit a duplicate JSON key.
             if (headers != null && headers.hasMoreElements() && writtenHeaderNames.add(name.toLowerCase(Locale.ROOT))) {
                 gen.writeName(name.toLowerCase(Locale.ROOT));

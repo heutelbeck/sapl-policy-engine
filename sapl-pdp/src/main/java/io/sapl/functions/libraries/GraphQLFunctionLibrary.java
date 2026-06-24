@@ -871,7 +871,7 @@ public class GraphQLFunctionLibrary {
     }
 
     // Fragment colours for cycle detection. GRAY marks a fragment on the current
-    // depth-first path; revisiting a GRAY fragment is a back edge and therefore a
+    // depth-first path. Revisiting a GRAY fragment is a back edge and therefore a
     // cycle. BLACK marks a fully explored fragment with no cycle below it, so it is
     // never re-explored. Absence from the map is the implicit WHITE (unvisited).
     private enum FragmentColour {

@@ -183,7 +183,7 @@ public class ProtobufRSocketServerLifecycle implements SmartLifecycle {
      * raises a Netty {@code NativeIoException} carrying errno 98. Both report
      * the in-use condition with a message containing
      * {@code "Address already in use"} (or {@code "error(-98)"}). Only this
-     * condition gets the clean operator message; every other bind failure,
+     * condition gets the clean operator message. Every other bind failure,
      * including a {@code BindException} for an unrelated reason such as
      * "Cannot assign requested address", propagates unchanged.
      */

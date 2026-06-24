@@ -163,8 +163,8 @@ public class ArrayCompiler {
 
     /**
      * Array with all pure elements (values and pure operators, no streams).
-     * Constructed only when the categorizer reports zero stream elements;
-     * the {@link StreamOperator} branch in element dispatch is therefore
+     * Constructed only when the categorizer reports zero stream elements.
+     * The {@link StreamOperator} branch in element dispatch is therefore
      * unreachable and folds to an {@link ErrorValue} defensively.
      */
     record PureArray(List<CompiledExpression> elements, SourceLocation location) implements PureOperator {
@@ -230,7 +230,7 @@ public class ArrayCompiler {
      * {@link ErrorValue}. Holds the first error and returns it after the
      * full walk completes. Drops {@link UndefinedValue} elements per array
      * literal semantics. {@code null} from a child sets the incomplete
-     * flag; on a clean walk with no error, returns the assembled array.
+     * flag. On a clean walk with no error, returns the assembled array.
      * Precedence at the end: error &gt; null &gt; built array.
      */
     record StreamArray(List<CompiledExpression> compiledElements) implements StreamOperator {

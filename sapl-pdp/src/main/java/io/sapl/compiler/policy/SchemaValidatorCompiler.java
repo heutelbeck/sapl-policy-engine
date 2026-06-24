@@ -205,7 +205,7 @@ public class SchemaValidatorCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            // Kleene OR: a TRUE from any schema wins even if another errors; surface an
+            // Kleene OR: a TRUE from any schema wins even if another errors. Surface an
             // error only if none pass.
             ErrorValue firstError = null;
             for (val validator : validators) {

@@ -250,7 +250,7 @@ public class NaryBooleanCompiler {
     /**
      * N-ary boolean with Stream operands, eager ({@code &}, {@code |})
      * variant. {@code evaluate(ctx)} applies stratified short-circuit only on
-     * the pure stratum (pures first, free); on the stream stratum every child
+     * the pure stratum (pures first, free). On the stream stratum every child
      * is walked via {@link StreamOperator#evalChild} so all dependencies are
      * accumulated, then the resolved values are scanned in operand order and
      * the first non-identity wins.

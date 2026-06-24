@@ -39,7 +39,7 @@ import java.util.UUID;
  * of {@link Value} backed by an
  * {@link AttributeBroker}. Pure expressions deliver one value then complete.
  * Streaming expressions deliver the latest
- * value per fulfilled trigger; the consumer blocks on
+ * value per fulfilled trigger. The consumer blocks on
  * {@link Stream#awaitNext()} until the next value or completion.
  * <p>
  * Single-slot mailbox semantic: if the producer fires multiple times before the

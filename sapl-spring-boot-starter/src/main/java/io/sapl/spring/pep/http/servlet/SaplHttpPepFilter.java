@@ -53,7 +53,7 @@ import lombok.val;
  * {@link HttpRequestMutationSignal}, fires the signal so handlers can inject
  * headers or attributes, and forwards the
  * wrapped request down the chain only when at least one handler actually
- * mutated it; otherwise the original request
+ * mutated it. Otherwise the original request
  * goes through and the wrapper is discarded.</li>
  * <li>Wraps the response in a {@link ServletMutableHttpResponse} only when the
  * plan schedules at least one handler at
@@ -73,7 +73,7 @@ import lombok.val;
  * Obligation handler failures throw {@link AccessDeniedException}, caught by
  * Spring's exception-translation filter and
  * routed to the configured access-denied handler. {@link HttpResponseSignal}
- * fires only on the normal-return path; if
+ * fires only on the normal-return path. If
  * the chain throws, the buffer is discarded and the exception propagates so the
  * standard error pipeline can produce its
  * own response.

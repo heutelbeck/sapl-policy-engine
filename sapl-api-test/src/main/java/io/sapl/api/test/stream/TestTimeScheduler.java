@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Deterministic {@link TimeScheduler} for tests. A task scheduled for a future
- * instant is queued; tests call
+ * instant is queued. Tests call
  * {@link #advanceTo(Instant)} to fire all tasks whose scheduled instant is at
  * or before the supplied time. A task
  * scheduled for an instant that has already passed fires immediately, mirroring

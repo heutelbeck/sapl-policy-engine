@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Serializes a runnable's invocations and collapses concurrent
  * triggers.
  * <p>
- * How: run the runnable; if anyone asked again while it was
- * running, run it once more; otherwise exit. No queue, just one
+ * Run the runnable. If anyone asked again while it was
+ * running, run it once more, otherwise exit. No queue, just one
  * boolean for "re-run needed". N triggers arriving during one
  * in-flight run collapse into one follow-up run.
  * <p>

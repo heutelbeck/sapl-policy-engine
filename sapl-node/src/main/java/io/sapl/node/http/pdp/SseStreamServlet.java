@@ -179,7 +179,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      * when the consumer lags. {@code awaitNext} therefore reads only the
      * most recent decision, and a slow client throttles the pump by
      * blocking on socket flush via TCP flow control. Old decisions are
-     * dropped at the source slot rather than queued; the response buffer
+     * dropped at the source slot rather than queued. The response buffer
      * is bounded by the container's configured response buffer plus the
      * kernel socket send buffer.
      */
@@ -189,7 +189,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             keepAliveTask = scheduleKeepAlive(connection, stream);
             try {
                 while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, connection, pdpId)) {
-                    // loop body intentionally empty; processNextEvent drives one iteration
+                    // loop body intentionally empty. ProcessNextEvent drives one iteration
                 }
             } catch (Exception e) {
                 log.debug("SSE stream terminated for pdpId={}: {}", pdpId, e.getMessage());
@@ -248,7 +248,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             return null;
         }
         val periodMillis = keepAliveInterval.toMillis();
-        // The scheduler thread only dispatches; the blocking write+flush runs on the
+        // The scheduler thread only dispatches. The blocking write+flush runs on the
         // per-connection virtual-thread pump. A slow client that stalls the flush via
         // TCP flow control therefore parks a cheap virtual thread, never a thread of
         // the bounded keep-alive scheduler pool.
@@ -279,7 +279,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
 
     private void sendKeepAlive(SseConnection connection, Stream<D> stream) {
         // A failed keep-alive means the connection is closed or the idle client is
-        // gone; close the stream to unblock the pump parked in awaitNext, whose
+        // gone. Close the stream to unblock the pump parked in awaitNext, whose
         // finally block then tears down this task.
         if (!connection.write(KEEP_ALIVE_FRAME)) {
             closeQuietly(stream);

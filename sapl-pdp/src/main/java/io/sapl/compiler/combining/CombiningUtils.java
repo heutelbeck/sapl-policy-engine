@@ -193,7 +193,7 @@ public class CombiningUtils {
      * compile-time metadata potential without evaluating them, so an enclosing
      * priority combiner does not under-judge the error's criticality (a
      * fail-open). Only INDETERMINATE results are affected, and only at the set
-     * level; the terminal PDP vote's outcome has no consumer, so the PDP keeps
+     * level. The terminal PDP vote's outcome has no consumer, so the PDP keeps
      * its hard short-circuit.
      *
      * @param vote the short-circuited combined vote
@@ -216,7 +216,7 @@ public class CombiningUtils {
      * Completes the could-have-been outcome of a short-circuited INDETERMINATE
      * set vote built from already-evaluated constant child votes (the all-static
      * fold). The applicable children's potential is the union of the non
-     * NOT_APPLICABLE votes' outcomes; folding all of them is idempotent for the
+     * NOT_APPLICABLE votes' outcomes. Folding all of them is idempotent for the
      * children already incorporated and adds those the short-circuit skipped.
      * Mirrors {@link #completeSetOutcome(Vote, List)} for the static path.
      *

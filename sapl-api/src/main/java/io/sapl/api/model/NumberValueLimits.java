@@ -29,7 +29,7 @@ import lombok.experimental.UtilityClass;
  * value such as {@code 1E1000000000} is a few characters and cheap to hold, but
  * forces gigabytes of work when later materialised, for example by
  * {@link BigDecimal#toPlainString()}. Scale is therefore bounded at every
- * admission point; the check is O(1).
+ * admission point. The check is O(1).
  * <p>
  * Raw precision (digit count) is not amplifying: a high-precision number is
  * bounded by the length of its own input, and rendering it is linear in that

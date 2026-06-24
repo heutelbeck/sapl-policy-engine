@@ -283,7 +283,7 @@ class TransitionSignalsTests {
             var source = pepLikeFlux("A", "SUSPEND", "B", "SUSPEND", "C");
 
             // Drawing one item at a time must never let a boundary substitute overtake the
-            // data item it marks; ordering is a correctness invariant, not a convenience.
+            // data item it marks. Ordering is a correctness invariant, not a convenience.
             StepVerifier.create(TransitionSignals.onSuspend(source, e -> {}, () -> "SUB"), 1L).expectNext("A")
                     .thenRequest(1).expectNext("SUB").thenRequest(1).expectNext("B").thenRequest(1).expectNext("SUB")
                     .thenRequest(1).expectNext("C").verifyComplete();

@@ -76,7 +76,7 @@ class RemotePdpRetry {
     }
 
     // A permanent client error (auth failure, malformed subscription) must not be
-    // retried; only
+    // retried. Only
     // 408 (request timeout) and 429 (too many requests) among 4xx are transient.
     // Non-HTTP errors retry.
     private static boolean isRetryable(Throwable error) {

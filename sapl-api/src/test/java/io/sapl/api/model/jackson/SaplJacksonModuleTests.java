@@ -23,6 +23,7 @@ import io.sapl.api.pdp.configuration.PdpData;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.*;
@@ -89,6 +90,12 @@ class SaplJacksonModuleTests {
                 arguments("{}", Value.EMPTY_OBJECT),
                 arguments("[1,2,3]", Value.ofArray(Value.of(1), Value.of(2), Value.of(3))),
                 arguments("{\"tome\":\"forbidden\"}", Value.ofObject(Map.of("tome", Value.of("forbidden")))));
+    }
+
+    @Test
+    void when_deserializingExtremeScaleNumber_then_producesError() throws JacksonException {
+        val value = mapper.readValue("1E1000000000", Value.class);
+        assertThat(value).isInstanceOf(ErrorValue.class);
     }
 
     @ParameterizedTest

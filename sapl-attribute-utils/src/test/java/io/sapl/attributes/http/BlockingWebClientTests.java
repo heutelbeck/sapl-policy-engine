@@ -490,7 +490,7 @@ class BlockingWebClientTests {
     @DisplayName("an unterminated SSE line aborts the read once the byte cap is crossed without unbounded buffering")
     void whenServerSentEventLineHasNoTerminatorThenAbortsReadOnceCapCrossedAndFailsClosed() {
         // A hostile SSE host streams a single newline-free line forever. A bounded
-        // reader must abort once the cap is crossed; it must NOT read the line into
+        // reader must abort once the cap is crossed. It must NOT read the line into
         // memory unbounded (which would OOM the PDP). The stream counts the bytes it
         // serves and asserts the client stops far below an unbounded read.
         val maxBytes       = 64L;

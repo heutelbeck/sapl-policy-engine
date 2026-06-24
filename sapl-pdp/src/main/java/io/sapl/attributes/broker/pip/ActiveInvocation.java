@@ -27,7 +27,7 @@ import java.util.Set;
 
 /**
  * The broker's runtime handle for one normalized invocation. Holds the
- * current value, the subscriber index, and the refcount; routes
+ * current value, the subscriber index, and the refcount. It routes
  * values from a source (a PIP or the fallback repository) to attached
  * consumers.
  * <p>

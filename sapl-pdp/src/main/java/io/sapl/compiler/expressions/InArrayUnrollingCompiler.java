@@ -64,7 +64,7 @@ class InArrayUnrollingCompiler {
         val haystack = arrayExpr.elements();
         val location = inOperator.location();
 
-        // Unroll only constant haystacks; a runtime element's error would be masked by
+        // Unroll only constant haystacks. A runtime element's error would be masked by
         // the || short-circuit.
         for (val element : haystack) {
             if (!(ExpressionCompiler.compile(element, ctx) instanceof Value)) {

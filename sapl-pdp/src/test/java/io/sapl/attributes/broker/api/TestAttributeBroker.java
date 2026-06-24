@@ -37,16 +37,16 @@ import java.util.function.Function;
 /**
  * In-memory {@link AttributeBroker} for tests, modelled on the production
  * PIP-based attribute lifecycle. Attribute
- * names are either registered (a PIP exists; the broker waits patiently for
+ * names are either registered (a PIP exists. The broker waits patiently for
  * values via {@link #publish}) or
- * unregistered (no PIP; an unbound key materialises immediately as
+ * unregistered (no PIP. An unbound key materialises immediately as
  * {@link Value#UNDEFINED}). This mirrors the eventual
  * production behaviour where the attribute repository falls back to UNDEFINED
  * when no PIP is registered.
  * <p>
  * Gate semantic: a subscription's gate stays closed until every declared
  * dependency has a value in the mailbox.
- * PIP-registered keys stay unbound until a publish lands; unregistered keys are
+ * PIP-registered keys stay unbound until a publish lands. Unregistered keys are
  * auto-filled with UNDEFINED at the
  * moment they enter a subscription's dep set. The first state where every dep
  * has a value opens the gate and fires the

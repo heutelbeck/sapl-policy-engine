@@ -246,7 +246,7 @@ class SaplProtobufCodecTests {
         @Test
         @DisplayName("an error payload carrying the reserved arguments field is decoded without corruption")
         void whenErrorPayloadCarriesReservedArgumentsFieldThenItIsIgnored() throws IOException {
-            // Field 2 is reserved; the decoder must skip it and recover the message.
+            // Field 2 is reserved. The decoder must skip it and recover the message.
             final byte[] bytes = errorValuePayloadWithLegacyArguments("boom", "ignored-argument");
 
             final var deserialized = SaplProtobufCodec.readValue(bytes);

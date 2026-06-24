@@ -44,8 +44,8 @@ import lombok.val;
 
 /**
  * Provides rename functionality for SAPL variable definitions.
- * Scoping: set-level variables are visible to all policies;
- * policy-level variables are visible to statements following their
+ * Scoping: set-level variables are visible to all policies.
+ * Policy-level variables are visible to statements following their
  * definition within the same policy.
  */
 class SAPLRenameProvider {
@@ -133,7 +133,7 @@ class SAPLRenameProvider {
             }
         }
         // A policy that re-declares the same name shadows the set-level variable only
-        // from its redefinition onward; references preceding it still bind to the set
+        // from its redefinition onward. References preceding it still bind to the set
         // var.
         for (val policy : policySet.policy()) {
             if (policyRedeclares(policy, targetName)) {

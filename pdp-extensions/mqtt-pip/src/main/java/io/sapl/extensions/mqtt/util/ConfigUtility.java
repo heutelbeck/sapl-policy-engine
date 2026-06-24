@@ -202,7 +202,7 @@ public class ConfigUtility {
      * @throws NoSuchElementException if no matching broker configuration is found
      */
     public static ObjectNode getMqttBrokerConfig(JsonNode pipMqttClientConfig, Value pipMqttClientConfigVal) {
-        // Inline broker objects are rejected at the attribute boundary; only
+        // Inline broker objects are rejected at the attribute boundary. Only
         // name/default reach here.
         val mqttPipBrokerConfig = getBrokerConfigFromPdpConfig(pipMqttClientConfig, null, pipMqttClientConfigVal);
 

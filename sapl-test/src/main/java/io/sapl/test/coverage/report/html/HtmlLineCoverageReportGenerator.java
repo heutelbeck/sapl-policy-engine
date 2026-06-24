@@ -212,7 +212,7 @@ public class HtmlLineCoverageReportGenerator {
      * attacker-influenceable SAPL source content, so it is slugged to a safe path
      * segment and a short deterministic suffix keyed on the document name and its
      * source is appended. Slugging guarantees the result stays inside the policies
-     * directory; the suffix keeps genuinely distinct documents that slug to the
+     * directory. The suffix keeps genuinely distinct documents that slug to the
      * same segment from overwriting one another, while keeping the file name
      * idempotent for repeated emissions of the same document.
      */

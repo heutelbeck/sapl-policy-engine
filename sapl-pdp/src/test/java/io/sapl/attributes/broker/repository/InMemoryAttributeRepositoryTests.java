@@ -378,7 +378,7 @@ class InMemoryAttributeRepositoryTests {
                         .as("slow observer must be entered before we test TTL on unrelated key").isTrue();
 
                 // Publish to the unrelated key with a short TTL. Expiry fires
-                // on the scheduler thread; the slow observer is still parked
+                // on the scheduler thread. The slow observer is still parked
                 // in its accept(...) call right now.
                 repository.publish(repoKey("env.ttl"), Value.of("with-ttl"), Duration.ofMillis(50));
 

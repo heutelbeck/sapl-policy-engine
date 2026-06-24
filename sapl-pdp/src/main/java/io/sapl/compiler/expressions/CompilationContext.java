@@ -305,11 +305,11 @@ public class CompilationContext {
      * When {@code false}: operators emit lazy variants. Per evaluation pass
      * they short-circuit on the first {@code null} (incomplete) or
      * {@link io.sapl.api.model.ErrorValue} child without subscribing later
-     * children. Smaller subscription set per round; convergence may take
+     * children. Smaller subscription set per round. Convergence may take
      * multiple rounds for independent missing dependencies but never
      * subscribes to children whose values turn out to be unneeded.
      * <p>
-     * Observable result is identical across both modes; the difference is
+     * Observable result is identical across both modes. The difference is
      * the per-pass subscription set size and the number of trigger-loop
      * rounds to reach a stable answer.
      *
@@ -363,7 +363,7 @@ public class CompilationContext {
     }
 
     /**
-     * Maximum SMTDD index-node budget; exceeding this triggers fallback to the
+     * Maximum SMTDD index-node budget. Exceeding this triggers fallback to the
      * canonical index.
      *
      * @return the SMTDD node budget

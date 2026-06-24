@@ -65,7 +65,7 @@ import lombok.val;
  * commit. This is fine for typical HTTP
  * responses but is unsuitable for unbounded streaming bodies. Callers that do
  * not need response-level mutation should
- * not wrap at all; the SAPL HTTP PEP filter installs this wrapper only when the
+ * not wrap at all. The SAPL HTTP PEP filter installs this wrapper only when the
  * active enforcement plan schedules at
  * least one handler at the response signal.
  */

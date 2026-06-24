@@ -31,7 +31,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * {@link Authentication} from the thread-bound
  * {@link SecurityContextHolder} and synthesises a canonical
  * {@link AnonymousAuthenticationToken} when the context holds
- * none. Never throws; the PDP always receives a meaningful subject so policies
+ * none. Never throws. The PDP always receives a meaningful subject so policies
  * can explicitly decide on the anonymous
  * case rather than the PEP failing the request opaquely.
  */

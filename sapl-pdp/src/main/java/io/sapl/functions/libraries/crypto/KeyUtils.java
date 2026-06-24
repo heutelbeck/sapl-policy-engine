@@ -45,7 +45,8 @@ import static io.sapl.functions.libraries.crypto.CryptoConstants.*;
 @UtilityClass
 public class KeyUtils {
 
-    private static final String ERROR_UNSUPPORTED_KEY_TYPE = "Unsupported key type or invalid key format. Tried algorithms: %s.";
+    private static final String ERROR_REQUIRED_CURVE_UNAVAILABLE = "Required EC curve %s could not be initialised from the crypto provider.";
+    private static final String ERROR_UNSUPPORTED_KEY_TYPE       = "Unsupported key type or invalid key format. Tried algorithms: %s.";
 
     private static final String CURVE_ED448         = "Ed448";
     private static final int    ED448_KEY_SIZE_BITS = 448;
@@ -66,10 +67,7 @@ public class KeyUtils {
     private static List<NistCurve> referenceNistCurves() {
         val curves = new ArrayList<NistCurve>();
         for (val standardName : NIST_CURVE_NAMES) {
-            val spec = referenceCurve(standardName);
-            if (spec != null) {
-                curves.add(new NistCurve(standardName, spec));
-            }
+            curves.add(new NistCurve(standardName, referenceCurve(standardName)));
         }
         return curves;
     }
@@ -79,8 +77,10 @@ public class KeyUtils {
             val parameters = AlgorithmParameters.getInstance(ALGORITHM_EC);
             parameters.init(new ECGenParameterSpec(standardName));
             return parameters.getParameterSpec(ECParameterSpec.class);
-        } catch (NoSuchAlgorithmException | InvalidParameterSpecException ignored) {
-            return null;
+        } catch (NoSuchAlgorithmException | InvalidParameterSpecException e) {
+            // A required curve is missing, so fail fast at class load on a broken crypto
+            // environment.
+            throw new IllegalStateException(ERROR_REQUIRED_CURVE_UNAVAILABLE.formatted(standardName), e);
         }
     }
 

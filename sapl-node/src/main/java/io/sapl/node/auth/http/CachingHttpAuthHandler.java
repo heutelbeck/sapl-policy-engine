@@ -206,7 +206,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
      * cases lets the {@link Expiry} policy give them different TTLs.
      * <p>
      * A successful JWT verification carries the token's {@code exp} claim so
-     * the cache can evict the entry no later than the token expires; other
+     * the cache can evict the entry no later than the token expires. Other
      * credentials carry {@code null} and fall back to {@code positiveTtl}.
      */
     sealed interface Outcome {

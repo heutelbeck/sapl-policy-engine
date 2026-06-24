@@ -491,7 +491,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      * <p>
      * The output stream type is the caller's choice (latest-slot for dedup-friendly
      * decision flows, queued for coverage
-     * where every emission must reach the consumer); the caller passes the put and
+     * where every emission must reach the consumer). The caller passes the put and
      * onClose method references and binds
      * them to whichever stream it returns to its consumer.
      */
@@ -709,7 +709,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
         val firstDeps  = headCache.brokerDepsFor(initialDeps);
         val handle     = attributeBroker.open(subscriptionId, firstDeps, brokerSnap -> {
                            if (terminated.get()) {
-                               // A prior round failed and surfaced INDETERMINATE; idle on the
+                               // A prior round failed and surfaced INDETERMINATE. Idle on the
                                // last dep set until the consumer closes the stream.
                                return firstDeps;
                            }
@@ -742,7 +742,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     /**
      * Evaluates one snapshot round across every sub in a multi- subscription
      * bundle. Returns {@code null} when any sub
-     * fails to produce a vote (the round is suppressed); otherwise returns the
+     * fails to produce a vote (the round is suppressed). Otherwise returns the
      * combined
      * {@link MultiAuthorizationDecision}, accumulates every dependency the round
      * read into {@code depsAccumulator}, and
@@ -963,7 +963,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     /**
      * Fires {@code onUnsubscribe} on every registered listener. Exceptions are
-     * swallowed; see
+     * swallowed. See
      * {@link #notifyOnSubscribe(List, String, AuthorizationSubscription, String)}.
      */
     public static void notifyOnUnsubscribe(List<SubscriptionLifecycleListener> listeners, String subscriptionId) {
@@ -978,7 +978,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
 
     /**
      * Fires {@code onDecision} on every registered interceptor. Exceptions are
-     * swallowed; see
+     * swallowed. See
      * {@link #notifyOnSubscribe(List, String, AuthorizationSubscription, String)}.
      */
     public static void dispatchDecisionObservers(List<DecisionInterceptor> interceptors, TracedDecision decision,

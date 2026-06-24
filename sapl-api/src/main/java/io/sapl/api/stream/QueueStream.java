@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Producer-facing {@link Stream} backed by an unbounded FIFO queue.
  * Every value pushed via {@link #put(Object)} is delivered to the
- * consumer; no value is dropped. Use when ordered, full-fidelity
+ * consumer. No value is dropped. Use when ordered, full-fidelity
  * delivery is required and the consumer can keep up.
  * <p>
  * Single producer, single consumer. Producers signal end-of-stream
@@ -69,7 +69,7 @@ public final class QueueStream<T> implements Stream<T> {
     }
 
     /**
-     * Marks the stream completed. Queued values remain readable; once
+     * Marks the stream completed. Queued values remain readable. Once
      * drained, {@link #awaitNext()} returns {@code null} and
      * {@link #tryNext()} returns {@link Poll.Done}. Idempotent.
      */

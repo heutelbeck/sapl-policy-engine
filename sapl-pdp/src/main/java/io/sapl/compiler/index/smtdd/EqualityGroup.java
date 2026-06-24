@@ -107,7 +107,7 @@ public class EqualityGroup {
             }
         }
 
-        // Default branch: only equality-unconstrained formulas can match; their
+        // Default branch: only equality-unconstrained formulas can match. Their
         // exclusions are trivially satisfied by a value that is no named constant.
         val defaultFormulas = (BitSet) equalityUnconstrained.clone();
 

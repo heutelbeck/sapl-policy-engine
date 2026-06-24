@@ -704,7 +704,7 @@ class RemoteBundlePDPConfigurationSourceTests {
             // followRedirects is enabled, but a custom auth header is configured. Following
             // a
             // redirect would replay that credential to a cross-origin target, so the client
-            // must not follow. The first fetch is redirected (treated as an error); the
+            // must not follow. The first fetch is redirected (treated as an error). The
             // retry
             // serves a valid bundle from the original, configured URL.
             val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
@@ -722,8 +722,8 @@ class RemoteBundlePDPConfigurationSourceTests {
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
 
-            // Every request must target the configured base URL and carry the credential;
-            // none may hit the redirect target (which would be a cross-origin credential
+            // Every request must target the configured base URL and carry the credential.
+            // None may hit the redirect target (which would be a cross-origin credential
             // replay).
             RecordedRequest request;
             while ((request = server.takeRequest(50, TimeUnit.MILLISECONDS)) != null) {

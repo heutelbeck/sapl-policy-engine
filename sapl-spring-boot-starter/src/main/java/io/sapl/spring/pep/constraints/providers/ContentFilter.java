@@ -105,7 +105,7 @@ public class ContentFilter {
      * of redaction/blacken/replace actions). Payloads of type {@link Optional},
      * {@link List}, {@link Set},
      * {@link Object Object[]}, and reactive {@link Publisher} are filtered
-     * elementwise; any other payload is filtered
+     * elementwise. Any other payload is filtered
      * as a single element.
      * </p>
      *
@@ -281,7 +281,7 @@ public class ContentFilter {
         };
     }
 
-    // Compare on the exact BigDecimal; double would conflate distinct integers
+    // Compare on the exact BigDecimal. Double would conflate distinct integers
     // beyond 2^53.
     private static Optional<BigDecimal> asBigDecimal(Number number) {
         return switch (number) {
@@ -439,7 +439,7 @@ public class ContentFilter {
         }
         val replacedChars      = originalString.length() - discloseLeft - discloseRight;
         val blackenFinalLength = (blackenLength == BLACKEN_LENGTH_INVALID_VALUE) ? replacedChars : blackenLength;
-        // Bound total output (replacement length x repetitions); replacement length is
+        // Bound total output (replacement length x repetitions). Replacement length is
         // otherwise uncapped.
         if ((long) replacement.length() * blackenFinalLength > MAX_BLACKEN.longValue()) {
             throw new AccessDeniedException(ERROR_LENGTH_TOO_LARGE);

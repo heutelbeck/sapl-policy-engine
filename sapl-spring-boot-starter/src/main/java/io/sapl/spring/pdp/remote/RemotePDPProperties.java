@@ -78,7 +78,7 @@ public class RemotePDPProperties implements Validator {
      * OAuth2 client registration declared
      * via {@code spring.security.oauth2.client.registration.<id>.*}. Spring's
      * {@code OAuth2AuthorizedClientManager}
-     * caches and refreshes the access token; on RSocket, expiry triggers a
+     * caches and refreshes the access token. On RSocket, expiry triggers a
      * reconnect with a fresh token.
      */
     @Data

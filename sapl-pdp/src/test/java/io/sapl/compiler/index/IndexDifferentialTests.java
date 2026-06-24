@@ -68,7 +68,7 @@ import lombok.val;
 @DisplayName("Index backends agree with naive over a decomposed, equality-grouped corpus")
 class IndexDifferentialTests {
 
-    // Quick smoke size by default; full corpus under the it profile
+    // Quick smoke size by default. Full corpus under the it profile
     // (-Dsapl.fullTests=true).
     private static final boolean FULL_TESTS         = Boolean.getBoolean("sapl.fullTests");
     private static final int     POLICY_COUNT       = FULL_TESTS ? 80 : 12;

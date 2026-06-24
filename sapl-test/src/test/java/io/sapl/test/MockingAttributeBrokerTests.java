@@ -85,7 +85,7 @@ class MockingAttributeBrokerTests {
     }
 
     /**
-     * Records callback invocations and the snapshots passed; returns the same
+     * Records callback invocations and the snapshots passed. Returns the same
      * dependency set across all calls so the gate stays open for subsequent
      * publishes.
      */

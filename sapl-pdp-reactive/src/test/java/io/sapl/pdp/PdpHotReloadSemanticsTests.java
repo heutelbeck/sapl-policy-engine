@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * Locks the live-subscription contract for both
  * {@link DelegatingReactivePolicyDecisionPoint} and
  * {@link BlockingPolicyDecisionPoint}: a {@code decide(...)} stream
- * never closes from the server side. The consumer terminates it; in
+ * never closes from the server side. The consumer terminates it. In
  * the meantime, every {@link io.sapl.pdp.configuration.PdpVoterSource}
  * configuration change for the bound pdpId triggers a fresh
  * evaluation that publishes onto the same stream. Voter type may flip
@@ -59,7 +59,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * <p>
  * These properties were absent from the suite before the regression
  * surfaced via the directory and remote-bundle hot-reload integration
- * tests; they are now locked here so any future regression in the
+ * tests. They are now locked here so any future regression in the
  * {@code switchOnConfig}-style wiring fails an in-engine unit test.
  */
 @DisplayName("decide() stays alive across configuration changes")

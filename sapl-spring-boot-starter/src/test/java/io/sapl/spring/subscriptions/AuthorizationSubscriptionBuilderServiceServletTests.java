@@ -170,6 +170,19 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
     }
 
     @Test
+    void when_argRaisesJacksonException_then_argDroppedAndSubscriptionBuilt() {
+        val invocation   = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+                "publicVoidThrowingArg", new Class<?>[] { ThrowsOnSerialize.class },
+                new Object[] { new ThrowsOnSerialize() });
+        val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
+                attribute(null, null, null, null));
+
+        val action = toJson(subscription.action());
+        assertThat(action.get("java").has("arguments")).isFalse();
+        assertThat(action.get("java").get("name").asString()).isEqualTo("publicVoidThrowingArg");
+    }
+
+    @Test
     void when_expressionsAreProvided_then_SubscriptionContainsResult() {
         val attribute    = attribute("'a subject'", "'an action'", "'a resource'", "'an environment'");
         val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
@@ -543,6 +556,19 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
         public void publicVoidCredentialArg(CustomPrincipal param) {
             /* NOOP */
+        }
+
+        public void publicVoidThrowingArg(ThrowsOnSerialize param) {
+            /* NOOP */
+        }
+
+    }
+
+    public static class ThrowsOnSerialize {
+
+        @SuppressWarnings("unused") // invoked by Jackson during serialization
+        public String getValue() {
+            throw new IllegalStateException("serialization boom");
         }
 
     }

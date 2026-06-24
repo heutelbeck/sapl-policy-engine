@@ -149,7 +149,7 @@ class MqttPolicyInformationPointIT {
             closedPort = probe.getLocalPort();
         } // closed here: the port is now free, so a connect attempt is refused
 
-        val before   = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+        val before   = saplMqttClient.cache().size();
         val sawError = new AtomicBoolean(false);
         val stream   = pip.messages(Value.of("test/unreachable"), ctxForPort(closedPort));
         val drainer  = Thread.startVirtualThread(() -> {
@@ -169,7 +169,7 @@ class MqttPolicyInformationPointIT {
             // and releases the cache entry without waiting for the stream close.
             Awaitility.await().atMost(Duration.ofSeconds(25)).untilAsserted(() -> {
                 assertThat(sawError).isTrue();
-                assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(before);
+                assertThat(saplMqttClient.cache()).hasSize(before);
             });
         } finally {
             stream.close();
@@ -411,13 +411,13 @@ class MqttPolicyInformationPointIT {
             try (val s1 = pip.messages(Value.of("test/share/a"), ctx)) {
                 StreamAssertions.assertThat(s1).withinTimeout(Duration.ofSeconds(5))
                         .awaitsNext(v -> assertThat(v).isEqualTo(Value.UNDEFINED));
-                val sizeWithOne = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+                val sizeWithOne = saplMqttClient.cache().size();
                 try (val s2 = pip.messages(Value.of("test/share/b"), ctx)) {
                     StreamAssertions.assertThat(s2).withinTimeout(Duration.ofSeconds(5))
                             .awaitsNext(v -> assertThat(v).isEqualTo(Value.UNDEFINED));
                     // s1 and s2 are both still open here. Adding a second subscriber
                     // to the same broker must not create a second cache entry.
-                    val sizeWithTwo = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+                    val sizeWithTwo = saplMqttClient.cache().size();
                     assertThat(sizeWithTwo).isEqualTo(sizeWithOne);
                 }
             }
@@ -443,13 +443,13 @@ class MqttPolicyInformationPointIT {
         @DisplayName("when last subscriber closes the broker entry is evicted from the cache")
         void whenLastSubscriberClosesThenCacheEntryEvicted() {
             val ctx    = freshCtx();
-            val before = SaplMqttClient.MQTT_CLIENT_CACHE.size();
+            val before = saplMqttClient.cache().size();
             try (val s = pip.messages(Value.of("test/eviction/topic"), ctx)) {
                 StreamAssertions.assertThat(s).withinTimeout(Duration.ofSeconds(3)).drain();
-                assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSizeGreaterThanOrEqualTo(before);
+                assertThat(saplMqttClient.cache()).hasSizeGreaterThanOrEqualTo(before);
             }
             Awaitility.await().atMost(Duration.ofSeconds(5))
-                    .untilAsserted(() -> assertThat(SaplMqttClient.MQTT_CLIENT_CACHE).hasSize(before));
+                    .untilAsserted(() -> assertThat(saplMqttClient.cache()).hasSize(before));
         }
     }
 }

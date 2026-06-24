@@ -39,7 +39,7 @@ class ShellQuotingTests {
      * Decodes a POSIX single-quoted shell word the way the operator's shell
      * would, so the test asserts the quoted form actually round-trips back to
      * the original credential. The only metacharacter inside single quotes is
-     * the single quote itself, which terminates the quoted span; everything
+     * the single quote itself, which terminates the quoted span. Everything
      * else is literal.
      */
     private static String unquotePosix(String quoted) {
