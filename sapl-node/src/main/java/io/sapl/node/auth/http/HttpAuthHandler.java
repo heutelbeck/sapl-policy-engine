@@ -17,6 +17,10 @@
  */
 package io.sapl.node.auth.http;
 
+import java.time.Instant;
+
+import org.jspecify.annotations.Nullable;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -43,6 +47,8 @@ public interface HttpAuthHandler {
      * Result of a successful authentication.
      *
      * @param pdpId the tenant identifier to use for the PDP call
+     * @param expiresAt the credential expiry instant (JWT exp), or null when the
+     * credential does not expire (basic auth, api key)
      */
-    record HttpAuthResult(String pdpId) {}
+    record HttpAuthResult(String pdpId, @Nullable Instant expiresAt) {}
 }

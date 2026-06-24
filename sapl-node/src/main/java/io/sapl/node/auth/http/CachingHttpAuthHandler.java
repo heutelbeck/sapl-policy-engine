@@ -85,7 +85,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         this.properties        = properties;
         this.userLookupService = userLookupService;
         this.jwtDecoder        = jwtDecoder;
-        this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId());
+        this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId(), null);
         this.cache             = Caffeine.newBuilder().maximumSize(maxSize)
                 .expireAfter(new TtlExpiry(positiveTtl, negativeTtl)).build();
     }
@@ -139,7 +139,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
-        return new HttpAuthResult(userOpt.get().getPdpId());
+        return new HttpAuthResult(userOpt.get().getPdpId(), null);
     }
 
     private HttpAuthResult verifyBasic(String credentials) {
@@ -160,7 +160,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
-        return new HttpAuthResult(userOpt.get().getPdpId());
+        return new HttpAuthResult(userOpt.get().getPdpId(), null);
     }
 
     private Outcome.Success verifyJwt(String token) {
@@ -187,9 +187,9 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
             if (properties.isRejectOnMissingPdpId()) {
                 throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
             }
-            return new Outcome.Success(new HttpAuthResult(properties.getDefaultPdpId()), expiresAt);
+            return new Outcome.Success(new HttpAuthResult(properties.getDefaultPdpId(), expiresAt), expiresAt);
         }
-        return new Outcome.Success(new HttpAuthResult(pdpIdValue), expiresAt);
+        return new Outcome.Success(new HttpAuthResult(pdpIdValue, expiresAt), expiresAt);
     }
 
     private static String sha256(String header) {

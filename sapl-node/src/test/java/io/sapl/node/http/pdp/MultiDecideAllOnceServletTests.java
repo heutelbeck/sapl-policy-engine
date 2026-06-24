@@ -60,7 +60,7 @@ class MultiDecideAllOnceServletTests {
     @Test
     @DisplayName("a chunked over-limit body is rejected with 413 and the PDP is never consulted")
     void whenBodyExceedsLimitThenContentTooLargeAndPdpNotCalled() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         when(oversizedRequest.getInputStream()).thenReturn(new TooLargeInputStream());
         val response = new MockHttpServletResponse();
 
@@ -73,7 +73,7 @@ class MultiDecideAllOnceServletTests {
     @Test
     @DisplayName("a JSON literal null body is rejected with 400 and the PDP is never consulted")
     void whenSubscriptionBodyIsJsonNullThenBadRequestAndPdpNotCalled() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         val request = new MockHttpServletRequest();
         request.setContent("null".getBytes(UTF_8));
         val response = new MockHttpServletResponse();
@@ -87,7 +87,7 @@ class MultiDecideAllOnceServletTests {
     @Test
     @DisplayName("a PDP runtime failure does not leak a 500 but fails closed to a 200 INDETERMINATE body")
     void whenPdpEvaluationThrowsThenOkWithIndeterminateBody() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         when(pdp.decideAll(any(), any())).thenThrow(new IllegalStateException("evaluation exploded"));
         val request = new MockHttpServletRequest();
         request.setContent("{}".getBytes(UTF_8));

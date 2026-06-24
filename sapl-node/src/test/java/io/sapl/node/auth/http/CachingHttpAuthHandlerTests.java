@@ -306,6 +306,24 @@ class CachingHttpAuthHandlerTests {
         }
 
         @Test
+        @DisplayName("a valid JWT propagates its exp to the auth result so the transport can close the stream at expiry")
+        void whenValidJwtThenExpiryPropagated() {
+            val token = "eyJhbGciOiJSUzI1NiJ9.payload.sig";
+            when(request.getHeader(AUTHORIZATION)).thenReturn("Bearer " + token);
+            when(properties.isAllowOauth2Auth()).thenReturn(true);
+            val oauth = new OAuthConfig();
+            oauth.setPdpIdClaim("sapl_pdp_id");
+            when(properties.getOauth()).thenReturn(oauth);
+            val jwt = Jwt.withTokenValue(token).header("alg", "RS256").claim("sapl_pdp_id", TENANT_PDP)
+                    .issuedAt(ISSUED_AT).expiresAt(EXPIRES_AT).build();
+            when(jwtDecoder.decode(token)).thenReturn(jwt);
+
+            val sut = handler();
+
+            assertThat(sut.authenticate(request).expiresAt()).isEqualTo(EXPIRES_AT);
+        }
+
+        @Test
         @DisplayName("JWT without an exp claim is rejected by default (would grant non-expiring access)")
         void whenJwtWithoutExpiryAndNotAllowedThenRejected() {
             val token = "eyJhbGciOiJSUzI1NiJ9.payload.sig";
@@ -473,7 +491,7 @@ class CachingHttpAuthHandlerTests {
         @DisplayName("non-JWT success uses the configured positive TTL")
         void whenSuccessHasNoExpiryThenPositiveTtlApplies() {
             val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
-            val outcome = new Outcome.Success(new HttpAuthResult("default"), null);
+            val outcome = new Outcome.Success(new HttpAuthResult("default", null), null);
 
             assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
         }
@@ -483,7 +501,7 @@ class CachingHttpAuthHandlerTests {
         void whenJwtExpiresBeforePositiveTtlThenTtlIsShortened() {
             val expiry           = new TtlExpiry(POSITIVE, NEGATIVE);
             val thirtyOutFromNow = Instant.now().plusSeconds(30);
-            val outcome          = new Outcome.Success(new HttpAuthResult("default"), thirtyOutFromNow);
+            val outcome          = new Outcome.Success(new HttpAuthResult("default", null), thirtyOutFromNow);
 
             val ttl = expiry.expireAfterCreate("k", outcome, 0L);
 
@@ -496,7 +514,7 @@ class CachingHttpAuthHandlerTests {
         void whenJwtExpiresAfterPositiveTtlThenPositiveTtlApplies() {
             val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
             val farOut  = Instant.now().plus(Duration.ofHours(1));
-            val outcome = new Outcome.Success(new HttpAuthResult("default"), farOut);
+            val outcome = new Outcome.Success(new HttpAuthResult("default", null), farOut);
 
             assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
         }
@@ -506,7 +524,7 @@ class CachingHttpAuthHandlerTests {
         void whenJwtExpiryAlreadyPastThenTtlIsZero() {
             val expiry  = new TtlExpiry(POSITIVE, NEGATIVE);
             val past    = Instant.now().minusSeconds(10);
-            val outcome = new Outcome.Success(new HttpAuthResult("default"), past);
+            val outcome = new Outcome.Success(new HttpAuthResult("default", null), past);
 
             assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isZero();
         }
@@ -516,7 +534,7 @@ class CachingHttpAuthHandlerTests {
         void whenJwtExpiryBeyondNanoRangeThenPositiveTtlApplies() {
             val expiry    = new TtlExpiry(POSITIVE, NEGATIVE);
             val farBeyond = Instant.now().plus(Duration.ofDays(365L * 1000));
-            val outcome   = new Outcome.Success(new HttpAuthResult("default"), farBeyond);
+            val outcome   = new Outcome.Success(new HttpAuthResult("default", null), farBeyond);
 
             assertThat(expiry.expireAfterCreate("k", outcome, 0L)).isEqualTo(POSITIVE.toNanos());
         }

@@ -19,7 +19,10 @@ package io.sapl.node.http.pdp;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.jspecify.annotations.Nullable;
 
 import jakarta.servlet.AsyncContext;
 import lombok.extern.slf4j.Slf4j;
@@ -41,10 +44,11 @@ final class SseConnection {
 
     private final AtomicBoolean keepAliveInFlight = new AtomicBoolean();
 
-    private PrintWriter writer;
-    private boolean     writerUnavailable;
-    private boolean     closed;
-    private boolean     completed;
+    private PrintWriter                  writer;
+    private boolean                      writerUnavailable;
+    private boolean                      closed;
+    private boolean                      completed;
+    private @Nullable ScheduledFuture<?> expiryTask;
 
     SseConnection(AsyncContext asyncContext) {
         this.asyncContext = asyncContext;
@@ -136,11 +140,31 @@ final class SseConnection {
                 return;
             }
             completed = true;
+            if (expiryTask != null) {
+                expiryTask.cancel(false);
+            }
             try {
                 asyncContext.complete();
             } catch (IllegalStateException e) {
                 log.debug("SSE async context already completed: {}", e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Binds the token-expiry timer so it is cancelled when the connection
+     * completes, releasing the task and the connection reference it captures. If
+     * the connection has already completed, the task is cancelled immediately.
+     *
+     * @param task the scheduled expiry task
+     */
+    void setExpiryTask(ScheduledFuture<?> task) {
+        synchronized (lock) {
+            if (completed) {
+                task.cancel(false);
+                return;
+            }
+            expiryTask = task;
         }
     }
 

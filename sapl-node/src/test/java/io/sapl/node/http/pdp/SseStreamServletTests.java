@@ -21,7 +21,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -32,6 +34,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.CompletableFuture;
@@ -50,6 +53,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.DelegatingServletInputStream;
@@ -116,7 +120,7 @@ class SseStreamServletTests {
     @Test
     @DisplayName("when the pump executor rejects the task the async context is completed and unregistered, not leaked")
     void whenPumpRejectedThenAsyncContextCompletedAndUnregistered() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
         when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
         when(request.startAsync()).thenReturn(asyncContext);
@@ -129,9 +133,44 @@ class SseStreamServletTests {
     }
 
     @Test
+    @DisplayName("an SSE stream authenticated with a JWT is scheduled to close at the token's expiry")
+    void whenJwtExpiryThenConnectionScheduledToCloseAtExpiry() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", Instant.now().plusSeconds(300)));
+        val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
+        when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+        when(request.startAsync()).thenReturn(asyncContext);
+        when(keepAliveScheduler.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                .thenReturn(mock(ScheduledFuture.class));
+        val expiryTask = ArgumentCaptor.forClass(Runnable.class);
+        val delay      = ArgumentCaptor.forClass(Long.class);
+
+        servlet().handlePost(request, new MockHttpServletResponse());
+
+        verify(keepAliveScheduler).schedule(expiryTask.capture(), delay.capture(), eq(TimeUnit.MILLISECONDS));
+        assertThat(delay.getValue()).isBetween(290_000L, 300_000L);
+
+        expiryTask.getValue().run();
+        verify(connectionRegistry).unregister(any(SseConnection.class));
+        verify(asyncContext).complete();
+    }
+
+    @Test
+    @DisplayName("a non-expiring credential (basic auth or api key) schedules no expiry close")
+    void whenNoTokenExpiryThenNoExpiryScheduled() throws Exception {
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
+        val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
+        when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+        when(request.startAsync()).thenReturn(asyncContext);
+
+        servlet().handlePost(request, new MockHttpServletResponse());
+
+        verify(keepAliveScheduler, never()).schedule(any(Runnable.class), anyLong(), any(TimeUnit.class));
+    }
+
+    @Test
     @DisplayName("a chunked over-limit body is rejected with 413 before the stream is opened")
     void whenBodyExceedsLimitThenContentTooLargeAndNoStreamOpened() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         when(request.getInputStream()).thenReturn(new TooLargeInputStream());
         val response = new MockHttpServletResponse();
 
@@ -188,7 +227,7 @@ class SseStreamServletTests {
             val response        = mock(HttpServletResponse.class);
             when(response.getWriter()).thenReturn(recordingWriter);
             when(asyncContext.getResponse()).thenReturn(response);
-            when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+            when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
             val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
             when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
             when(request.startAsync()).thenReturn(asyncContext);
@@ -297,7 +336,7 @@ class SseStreamServletTests {
         val response        = mock(HttpServletResponse.class);
         when(response.getWriter()).thenReturn(recordingWriter);
         when(asyncContext.getResponse()).thenReturn(response);
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
         when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
         when(request.startAsync()).thenReturn(asyncContext);
@@ -359,7 +398,7 @@ class SseStreamServletTests {
             val response   = mock(HttpServletResponse.class);
             when(response.getWriter()).thenReturn(brokenPipe);
             when(asyncContext.getResponse()).thenReturn(response);
-            when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+            when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
             val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
             when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
             when(request.startAsync()).thenReturn(asyncContext);

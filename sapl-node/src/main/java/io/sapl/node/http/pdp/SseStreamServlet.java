@@ -19,6 +19,7 @@ package io.sapl.node.http.pdp;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -124,9 +125,12 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     @Override
     protected void handlePost(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response)
             throws ServletException, IOException {
-        String pdpId;
+        String  pdpId;
+        Instant tokenExpiresAt;
         try {
-            pdpId = authHandler.authenticate(request).pdpId();
+            val authResult = authHandler.authenticate(request);
+            pdpId          = authResult.pdpId();
+            tokenExpiresAt = authResult.expiresAt();
         } catch (HttpAuthenticationException e) {
             log.debug("HTTP authentication failed: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
@@ -161,6 +165,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
         // pump or keep-alive write on the same non-thread-safe PrintWriter.
         val connection = new SseConnection(asyncContext);
         connectionRegistry.register(connection);
+        scheduleConnectionExpiry(connection, tokenExpiresAt);
 
         try {
             pumpExecutor.submit(() -> pump(connection, subscription, pdpId));
@@ -169,6 +174,37 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
             connectionRegistry.unregister(connection);
             connection.complete();
         }
+    }
+
+    /**
+     * Closes the stream when the authenticating credential expires. A JWT
+     * authenticates the connection only once, but the stream is long-lived, so
+     * without this the connection would keep delivering decisions past the
+     * token's expiry. Mirrors the RSocket transport, which disposes the
+     * connection at the same instant. Does nothing for credentials that do not
+     * expire (basic auth, api key) or when the expiry is already past at setup.
+     *
+     * @param connection the SSE connection to close at expiry
+     * @param expiresAt the credential expiry instant, or null when none
+     */
+    private void scheduleConnectionExpiry(SseConnection connection, @Nullable Instant expiresAt) {
+        if (expiresAt == null) {
+            return;
+        }
+        val delayMillis = Math.max(0L, Duration.between(Instant.now(), expiresAt).toMillis());
+        try {
+            val expiryTask = keepAliveScheduler.schedule(() -> closeExpired(connection), delayMillis,
+                    TimeUnit.MILLISECONDS);
+            connection.setExpiryTask(expiryTask);
+        } catch (RejectedExecutionException e) {
+            log.warn("SSE token-expiry scheduling rejected, closing connection now: {}", e.getMessage());
+            closeExpired(connection);
+        }
+    }
+
+    private void closeExpired(SseConnection connection) {
+        connectionRegistry.unregister(connection);
+        connection.complete();
     }
 
     /**

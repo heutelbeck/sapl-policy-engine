@@ -59,7 +59,7 @@ class DecideOnceServletTests {
     @Test
     @DisplayName("malformed subscription JSON is rejected with 400 and the PDP is never consulted")
     void whenSubscriptionJsonIsMalformedThenBadRequestAndPdpNotCalled() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         val request = new MockHttpServletRequest();
         request.setContent("{ \"subject\": ".getBytes(UTF_8));
         val response = new MockHttpServletResponse();
@@ -86,7 +86,7 @@ class DecideOnceServletTests {
     @Test
     @DisplayName("a chunked over-limit body is rejected with 413 and the PDP is never consulted")
     void whenBodyExceedsLimitThenContentTooLargeAndPdpNotCalled() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         when(oversizedRequest.getInputStream()).thenReturn(new TooLargeInputStream());
         val response = new MockHttpServletResponse();
 
@@ -99,7 +99,7 @@ class DecideOnceServletTests {
     @Test
     @DisplayName("a PDP failure fails closed: SC_OK with an INDETERMINATE decision and no stack leak")
     void whenPdpThrowsThenFailsClosedToIndeterminate() throws Exception {
-        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default"));
+        when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
         when(pdp.decideOnce(any(), any())).thenThrow(new RuntimeException("boom"));
         val request = new MockHttpServletRequest();
         request.setContent("{\"subject\":\"alice\",\"action\":\"read\",\"resource\":\"doc\"}".getBytes(UTF_8));
