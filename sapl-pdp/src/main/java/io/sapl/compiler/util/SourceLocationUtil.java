@@ -24,9 +24,15 @@ import io.sapl.grammar.antlr.SAPLParser.PolicySetElementContext;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
@@ -37,6 +43,11 @@ import static io.sapl.compiler.util.StringsUtil.unquoteString;
  */
 @UtilityClass
 public class SourceLocationUtil {
+
+    // ANTLR getText copies the whole document per call, once per AST node; share
+    // one copy per parse.
+    private static final Map<CharStream, String> DOCUMENT_SOURCE_BY_STREAM = Collections
+            .synchronizedMap(new WeakHashMap<>());
 
     /**
      * Extracts the source location from an ANTLR parse tree context.
@@ -107,7 +118,8 @@ public class SourceLocationUtil {
         if (inputStream == null) {
             return null;
         }
-        return inputStream.getText(new org.antlr.v4.runtime.misc.Interval(0, inputStream.size() - 1));
+        return DOCUMENT_SOURCE_BY_STREAM.computeIfAbsent(inputStream,
+                stream -> stream.getText(new Interval(0, stream.size() - 1)));
     }
 
     /**

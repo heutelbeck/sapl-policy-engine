@@ -161,6 +161,13 @@ class FilterExpressionTests {
                     Value.ofArray(Value.of(1), Value.of(4), Value.of(6), Value.of(4), Value.of(5))));
         }
         // @formatter:on
+
+        @Test
+        @DisplayName("a dynamic index that is not an exact int is out of bounds and leaves the array unchanged")
+        void whenDynamicFilterIndexNotIntegerThenArrayUnchanged() {
+            assertEvaluatesTo("[10, 20, 30] |- { @[(4294967296)] : filter.remove }",
+                    Value.ofArray(Value.of(10), Value.of(20), Value.of(30)));
+        }
     }
 
     @Nested

@@ -46,12 +46,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 
-import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 
 import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
 import static java.lang.reflect.Modifier.isFinal;
@@ -72,13 +68,6 @@ public class AuthorizationSubscriptionBuilderService {
 
     private static final String ERROR_EXPRESSION_EVALUATION_FAILED = "Failed to evaluate expression '";
     private static final String ERROR_SECRETS_MUST_BE_OBJECT       = "Secrets expression must evaluate to an object, but got: ";
-
-    /**
-     * Well-known credential field names redacted from the default subject
-     * projection at any node depth, matched case-insensitively on exact field name.
-     */
-    private static final Set<String> CREDENTIAL_FIELD_NAMES = Set.of("accesstoken", "apikey", "clientsecret",
-            "credentials", "idtoken", "password", "privatekey", "refreshtoken", "salt", "secret", "tokenvalue");
 
     private static final Authentication ANONYMOUS = new AnonymousAuthenticationToken("key", "anonymous",
             AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
@@ -361,9 +350,7 @@ public class AuthorizationSubscriptionBuilderService {
             return evaluateToJson(subjectExpr, ctx);
         }
 
-        JsonNode subject = mapper().valueToTree(authentication);
-        redactCredentials(subject);
-        return subject;
+        return CredentialRedaction.redact(mapper().valueToTree(authentication));
     }
 
     private Value retrieveAction(MethodInvocation mi, Expression actionExpr, EvaluationContext ctx,
@@ -375,7 +362,7 @@ public class AuthorizationSubscriptionBuilderService {
         val actionBuilder = ObjectValue.builder();
 
         if (requestObject != null) {
-            actionBuilder.put("http", fromJsonNode(redacted(mapper().valueToTree(requestObject))));
+            actionBuilder.put("http", fromJsonNode(CredentialRedaction.redact(mapper().valueToTree(requestObject))));
         }
 
         val javaBuilder = ObjectValue.builder().putAll(toValue(mi));
@@ -385,7 +372,7 @@ public class AuthorizationSubscriptionBuilderService {
             val argsBuilder = ArrayValue.builder();
             for (val arg : arguments) {
                 try {
-                    argsBuilder.add(fromJsonNode(redacted(mapper().valueToTree(arg))));
+                    argsBuilder.add(fromJsonNode(CredentialRedaction.redact(mapper().valueToTree(arg))));
                 } catch (IllegalArgumentException e) {
                     // drop if not mappable to JSON
                 }
@@ -426,22 +413,6 @@ public class AuthorizationSubscriptionBuilderService {
             return null;
         }
         return evaluateToJson(environmentExpr, ctx);
-    }
-
-    private static JsonNode redacted(JsonNode node) {
-        redactCredentials(node);
-        return node;
-    }
-
-    private static void redactCredentials(JsonNode node) {
-        if (node instanceof ObjectNode objectNode) {
-            val credentialFields = objectNode.propertyNames().stream()
-                    .filter(fieldName -> CREDENTIAL_FIELD_NAMES.contains(fieldName.toLowerCase(Locale.ROOT))).toList();
-            objectNode.remove(credentialFields);
-            objectNode.values().forEach(AuthorizationSubscriptionBuilderService::redactCredentials);
-        } else if (node instanceof ArrayNode arrayNode) {
-            arrayNode.values().forEach(AuthorizationSubscriptionBuilderService::redactCredentials);
-        }
     }
 
     private ObjectValue retrieveSecrets(Authentication authentication, Expression secretsExpr, EvaluationContext ctx) {

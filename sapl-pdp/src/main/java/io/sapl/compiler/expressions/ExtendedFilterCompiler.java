@@ -295,7 +295,15 @@ public class ExtendedFilterCompiler {
             return indexValue instanceof ErrorValue ? indexValue : current;
         }
         if (indexValue instanceof NumberValue(BigDecimal number)) {
-            return navigateIndex(current, number.intValue(), terminal, tail, pathAnalysis, evalCtx);
+            final int index;
+            try {
+                index = number.intValueExact();
+            } catch (ArithmeticException ignored) {
+                // A fractional or out-of-int-range subscript addresses no element; leave it
+                // untouched.
+                return current;
+            }
+            return navigateIndex(current, index, terminal, tail, pathAnalysis, evalCtx);
         }
         if (indexValue instanceof TextValue(String text)) {
             return navigateKey(current, text, terminal, tail, pathAnalysis, evalCtx);

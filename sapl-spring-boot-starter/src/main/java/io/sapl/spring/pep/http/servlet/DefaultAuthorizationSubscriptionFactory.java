@@ -22,6 +22,7 @@ import static io.sapl.api.model.ValueJsonMarshaller.fromJsonNode;
 import org.springframework.security.core.Authentication;
 
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.spring.subscriptions.CredentialRedaction;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -34,6 +35,12 @@ import tools.jackson.databind.ObjectMapper;
  * {@code resource}, leaving {@code environment}
  * undefined. Registered automatically when no other
  * {@code AuthorizationSubscriptionFactory} bean is present.
+ * <p>
+ * Well-known credential fields are redacted from the serialized subject and
+ * request (see {@link CredentialRedaction}). A caller that needs a credential
+ * in
+ * the subscription must register a custom
+ * {@code AuthorizationSubscriptionFactory}.
  */
 @RequiredArgsConstructor
 public class DefaultAuthorizationSubscriptionFactory implements AuthorizationSubscriptionFactory {
@@ -42,7 +49,8 @@ public class DefaultAuthorizationSubscriptionFactory implements AuthorizationSub
 
     @Override
     public AuthorizationSubscription build(Authentication authentication, HttpServletRequest request) {
-        val requestValue = fromJsonNode(mapper.valueToTree(request));
-        return AuthorizationSubscription.of(authentication, requestValue, requestValue, mapper);
+        val subjectValue = fromJsonNode(CredentialRedaction.redact(mapper.valueToTree(authentication)));
+        val requestValue = fromJsonNode(CredentialRedaction.redact(mapper.valueToTree(request)));
+        return AuthorizationSubscription.of(subjectValue, requestValue, requestValue, mapper);
     }
 }

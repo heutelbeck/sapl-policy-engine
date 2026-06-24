@@ -108,6 +108,7 @@ public record RemoteBundleSourceConfig(
         if (pdpIds == null || pdpIds.isEmpty()) {
             throw new PDPConfigurationException(ERROR_PDP_IDS_EMPTY);
         }
+        pdpIds.forEach(PdpIdValidator::validatePdpId);
         Objects.requireNonNull(mode, "mode");
         Objects.requireNonNull(pollInterval, "pollInterval");
         Objects.requireNonNull(longPollTimeout, "longPollTimeout");

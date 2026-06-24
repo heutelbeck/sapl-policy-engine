@@ -55,6 +55,7 @@ public class StepCompiler {
     private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
     private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
     private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
+    private static final String ERROR_INDEX_NOT_REPRESENTABLE         = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
     private static final String ERROR_INDEX_OUT_OF_BOUNDS             = "Array index out of bounds: %d (size: %d).";
     private static final String ERROR_INDEX_UNION_ON_INVALID          = "Cannot apply index union to %s.";
@@ -579,7 +580,12 @@ public class StepCompiler {
 
         return switch (expr) {
         case NumberValue(BigDecimal num) -> {
-            int index = num.intValue();
+            final int index;
+            try {
+                index = num.intValueExact();
+            } catch (ArithmeticException ignored) {
+                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, num);
+            }
             yield applyIndexStep(base, index, loc);
         }
         case TextValue(String text)      -> applyKeyStep(base, text);

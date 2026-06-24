@@ -87,7 +87,7 @@ public class StandardFunctionLibrary {
             }""")
     public static Value length(Value value) {
         return switch (value) {
-        case TextValue text     -> Value.of(text.toString().length() - 2L);
+        case TextValue text     -> Value.of((long) text.value().length());
         case ObjectValue object -> Value.of(object.size());
         case ArrayValue array   -> Value.of(array.size());
         default                 -> Value.error(ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT);
@@ -118,9 +118,8 @@ public class StandardFunctionLibrary {
               "type": "string"
             }""")
     public static Value asString(Value value) {
-        if (value instanceof TextValue text) {
-            val str = text.toString();
-            return Value.of(str.substring(1, str.length() - 1));
+        if (value instanceof TextValue(var text)) {
+            return Value.of(text);
         }
         return Value.of(value.toString());
     }

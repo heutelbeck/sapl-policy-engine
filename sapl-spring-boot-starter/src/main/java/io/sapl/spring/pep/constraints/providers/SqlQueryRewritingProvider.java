@@ -127,6 +127,8 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
     private static final String FIELD_VALUE      = "value";
     private static final int    DEFAULT_PRIORITY = 30;
 
+    private static final String ERROR_ARRAY_ELEMENT_NOT_TEXT     = "Field '%s' must contain only text elements: %s";
+    private static final String ERROR_CRITERION_NOT_OBJECT       = "Typed criterion must be an object: %s";
     private static final String ERROR_EMPTY_PROJECTION           = "Obligation columns leave no admissible columns for SQL: %s";
     private static final String ERROR_INVALID_COLUMN_IDENTIFIER  = "Invalid column identifier: %s";
     private static final String ERROR_PARSE_OBLIGATION_CONDITION = "Cannot parse obligation condition '%s': %s";
@@ -283,9 +285,10 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
         }
         val result = new ArrayList<String>(array.size());
         for (val element : array) {
-            if (element instanceof TextValue(String text)) {
-                result.add(text);
+            if (!(element instanceof TextValue(String text))) {
+                throw new AccessDeniedException(ERROR_ARRAY_ELEMENT_NOT_TEXT.formatted(fieldName, element));
             }
+            result.add(text);
         }
         return List.copyOf(result);
     }
@@ -306,7 +309,7 @@ public class SqlQueryRewritingProvider implements ConstraintHandlerProvider {
 
     private static Optional<String> renderCriterionNode(Value entry) {
         if (!(entry instanceof ObjectValue object)) {
-            return Optional.empty();
+            throw new AccessDeniedException(ERROR_CRITERION_NOT_OBJECT.formatted(entry));
         }
         if (object.get(FIELD_OR) instanceof ArrayValue orChildren) {
             return renderGroup(orChildren, " OR ");

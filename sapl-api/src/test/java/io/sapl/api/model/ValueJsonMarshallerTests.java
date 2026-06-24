@@ -96,6 +96,20 @@ class ValueJsonMarshallerTests {
                 arguments(new BigDecimal(HORROR_LEVEL_MAX)));
     }
 
+    @ParameterizedTest(name = "rejected number: {0}")
+    @MethodSource
+    @DisplayName("a number whose scale magnitude exceeds the bound is rejected as an error, not admitted")
+    void whenNumberExceedsBoundThenError(String description, BigDecimal value) {
+        var node   = FACTORY.numberNode(value);
+        var result = ValueJsonMarshaller.fromJsonNode(node);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> whenNumberExceedsBoundThenError() {
+        return Stream.of(arguments("extreme negative scale", new BigDecimal("1E1000000000")),
+                arguments("extreme positive scale", new BigDecimal("1E-1000000000")));
+    }
+
     @ParameterizedTest(name = "round-trip text: {0}")
     @MethodSource("textValues")
     @DisplayName("Round-trip text preserves value")

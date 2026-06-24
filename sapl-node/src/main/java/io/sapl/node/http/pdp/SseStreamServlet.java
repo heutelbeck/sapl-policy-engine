@@ -257,9 +257,22 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     }
 
     private void dispatchKeepAlive(SseConnection connection, Stream<D> stream) {
+        // Skip the tick while a prior keep-alive is still parked in a slow flush, so a
+        // stalled client cannot pile up
+        // virtual threads on the write monitor.
+        if (!connection.tryBeginKeepAlive()) {
+            return;
+        }
         try {
-            pumpExecutor.execute(() -> sendKeepAlive(connection, stream));
+            pumpExecutor.execute(() -> {
+                try {
+                    sendKeepAlive(connection, stream);
+                } finally {
+                    connection.endKeepAlive();
+                }
+            });
         } catch (RejectedExecutionException e) {
+            connection.endKeepAlive();
             log.debug("Keep-alive dispatch rejected; pump executor is shutting down: {}", e.getMessage());
         }
     }

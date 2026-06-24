@@ -82,6 +82,18 @@ class RemoteBundleSourceConfigTests {
                 .withMessageContaining("longPollTimeout");
     }
 
+    @ParameterizedTest(name = "invalid pdpId: {0}")
+    @ValueSource(strings = { "../admin", "tenant?x=1", "a/b", "with space" })
+    @DisplayName("a pdpId that fails validation is rejected at construction, consistent with directory sources")
+    void whenInvalidPdpIdThenConstructionFails(String pdpId) {
+        val invalid = List.of(pdpId);
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", invalid,
+                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
+                        null, true, POLICY, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200)))
+                .withMessageContaining("PDP identifier");
+    }
+
     private static RemoteBundleSourceConfig config(String baseUrl, String authName, String authValue) {
         return new RemoteBundleSourceConfig(baseUrl, List.of("default"), RemoteBundleSourceConfig.FetchMode.POLLING,
                 Duration.ofMillis(100), Duration.ofSeconds(5), authName, authValue, true, POLICY, Map.of(),

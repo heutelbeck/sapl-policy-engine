@@ -355,7 +355,7 @@ public class ValueJsonMarshaller {
         }
         return switch (node.getNodeType()) {
         case BOOLEAN -> Value.of(node.asBoolean());
-        case NUMBER  -> Value.of(node.decimalValue());
+        case NUMBER  -> NumberValueLimits.boundedNumber(node.decimalValue());
         case STRING  -> Value.of(node.asString());
         case ARRAY   -> fromJsonArray(node, depth + 1);
         case OBJECT  -> fromJsonObject(node, depth + 1);

@@ -32,6 +32,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
@@ -130,7 +131,7 @@ public class SaplFlatBuffersCodec {
         }
         case NumberValue(BigDecimal n) -> {
             kindType = VALUE_NUMBER;
-            int strOffset = builder.createString(n.toPlainString());
+            int strOffset = builder.createString(n.toString());
             kindOffset = FbNumberValue.createFbNumberValue(builder, strOffset);
         }
         case TextValue(String s)       -> {
@@ -199,7 +200,7 @@ public class SaplFlatBuffersCodec {
         }
         case VALUE_NUMBER    -> {
             FbNumberValue numVal = (FbNumberValue) table.kind(new FbNumberValue());
-            yield new NumberValue(new BigDecimal(numVal.value()));
+            yield NumberValueLimits.parseBoundedNumber(numVal.value());
         }
         case VALUE_TEXT      -> {
             FbTextValue textVal = (FbTextValue) table.kind(new FbTextValue());

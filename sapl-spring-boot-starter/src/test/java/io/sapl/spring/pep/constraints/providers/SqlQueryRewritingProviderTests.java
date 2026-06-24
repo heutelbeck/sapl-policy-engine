@@ -227,6 +227,17 @@ class SqlQueryRewritingProviderTests {
             assertThatThrownBy(() -> mapper.apply("SELECT * FROM users")).isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("Cannot parse obligation condition");
         }
+
+        @Test
+        @DisplayName("A non-text element in a string-array field is rejected at resolution, not silently dropped")
+        void whenNonTextElementInConditionsThenThrows() {
+            val constraintJson = """
+                    {"type": "sql:queryRewriting", "conditions": ["tenant_id = 7", {"not": "text"}]}
+                    """;
+
+            assertThatThrownBy(() -> mapperFor(constraintJson)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("must contain only text");
+        }
     }
 
     @Nested
@@ -316,6 +327,18 @@ class SqlQueryRewritingProviderTests {
             val rewritten = mapper.apply("SELECT * FROM users");
 
             assertThat(rewritten).contains("tenant_id = 7").contains("WHERE");
+        }
+
+        @Test
+        @DisplayName("A non-object criterion is rejected fail-closed at handler resolution, not silently dropped (which would broaden the query)")
+        void whenNonObjectCriterionThenAccessDenied() {
+            val constraintJson = """
+                    {"type": "sql:queryRewriting",
+                     "criteria": [{"column": "tenant_id", "op": "=", "value": 7}, "deleted_at IS NULL"]}
+                    """;
+
+            assertThatThrownBy(() -> mapperFor(constraintJson)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Typed criterion must be an object");
         }
 
         @Test

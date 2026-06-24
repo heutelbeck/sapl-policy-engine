@@ -19,6 +19,7 @@ package io.sapl.node.http.pdp;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import jakarta.servlet.AsyncContext;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,8 @@ final class SseConnection {
     private final AsyncContext asyncContext;
     private final Object       lock = new Object();
 
+    private final AtomicBoolean keepAliveInFlight = new AtomicBoolean();
+
     private PrintWriter writer;
     private boolean     writerUnavailable;
     private boolean     closed;
@@ -45,6 +48,24 @@ final class SseConnection {
 
     SseConnection(AsyncContext asyncContext) {
         this.asyncContext = asyncContext;
+    }
+
+    /**
+     * Reserves the single keep-alive slot for this connection. Returns false when
+     * a prior keep-alive is still in flight, so a stalled client cannot make ticks
+     * pile up parked virtual threads on the write monitor.
+     *
+     * @return true if the slot was reserved, false if one is already in flight
+     */
+    boolean tryBeginKeepAlive() {
+        return keepAliveInFlight.compareAndSet(false, true);
+    }
+
+    /**
+     * Releases the keep-alive slot reserved by {@link #tryBeginKeepAlive()}.
+     */
+    void endKeepAlive() {
+        keepAliveInFlight.set(false);
     }
 
     /**

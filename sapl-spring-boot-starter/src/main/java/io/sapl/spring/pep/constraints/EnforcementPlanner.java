@@ -223,7 +223,7 @@ public class EnforcementPlanner {
      */
     private List<Assignment> assignHandlers(Value constraint, ConstraintType constraintType,
             Set<SignalType> supportedSignals) {
-        val claims = providers.stream().map(provider -> provider.getConstraintHandlers(constraint, supportedSignals))
+        val claims = providers.stream().map(provider -> claimHandlers(provider, constraint, supportedSignals))
                 .filter(claim -> !claim.isEmpty()).toList();
 
         if (claims.isEmpty()) {
@@ -244,6 +244,20 @@ public class EnforcementPlanner {
                     entry(scopedHandler.handler(), scopedHandler.priority(), constraintType, constraint)));
         }
         return assignments;
+    }
+
+    // A throwing provider is treated as no-claim, so a malformed constraint fails
+    // closed via the synthetic substitute
+    // instead of escaping plan() as a raw exception.
+    private static List<ScopedConstraintHandler> claimHandlers(ConstraintHandlerProvider provider, Value constraint,
+            Set<SignalType> supportedSignals) {
+        try {
+            return provider.getConstraintHandlers(constraint, supportedSignals);
+        } catch (RuntimeException e) {
+            log.warn("Constraint handler provider {} failed to resolve a handler; treating as unresolved: {}",
+                    provider.getClass().getSimpleName(), e.getMessage());
+            return List.of();
+        }
     }
 
     /**

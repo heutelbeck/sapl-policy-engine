@@ -83,6 +83,20 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
     }
 
     @Test
+    @DisplayName("Default reactive factory redacts the credential from the serialized subject")
+    void defaultFactoryRedactsCredentialFromSubject() {
+        val factory  = new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER);
+        val auth     = (Authentication) new UsernamePasswordAuthenticationToken("alice", "super-secret-credential",
+                AuthorityUtils.createAuthorityList("ROLE_USER"));
+        val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/orders/42").build());
+
+        val subscription = factory.build(auth, exchange).block();
+
+        assertThat(subscription).isNotNull();
+        assertThat(subscription.subject().toString()).doesNotContain("super-secret-credential");
+    }
+
+    @Test
     @DisplayName("Custom factory replaces the subscription shape passed to the PDP")
     void customFactoryShapeReachesPdp() {
         ReactiveAuthorizationSubscriptionFactory minimal = (auth, exchange) -> Mono
