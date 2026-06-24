@@ -148,7 +148,11 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         if (authenticator == null) {
             return Mono.just(new ProtobufRSocket(blockingPdp, pdp, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
         }
-        return authenticator.authenticate(setup).<RSocket>map(result -> {
+        // Offload setup authentication (Argon2 verification, JWT/JWKS decode) onto a
+        // virtual thread so the blocking work never runs on the Netty event loop and
+        // cannot starve connection acceptance or in-flight decision streams. Mirrors
+        // the decision path's subscribeOn below.
+        return authenticator.authenticate(setup).subscribeOn(VIRTUAL_THREAD_SCHEDULER).<RSocket>map(result -> {
             scheduleConnectionExpiry(sendingSocket, result.expiresAt());
             return new ProtobufRSocket(blockingPdp, pdp, result.pdpId());
         }).onErrorMap(e -> {

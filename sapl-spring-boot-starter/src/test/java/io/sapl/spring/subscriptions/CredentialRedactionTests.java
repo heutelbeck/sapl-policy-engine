@@ -54,4 +54,17 @@ class CredentialRedactionTests {
 
         assertThat(redacted).contains("alice").doesNotContain("secret-pw-value").doesNotContain("secret-token-value");
     }
+
+    @Test
+    @DisplayName("session tokens in the parsed cookies[] array (value field) are redacted while cookie names are kept")
+    void redactsParsedCookieValues() {
+        val node     = MAPPER.readTree("""
+                {"cookies": [{"name": "SESSION", "value": "secret-session-id"},
+                             {"name": "theme", "value": "benign-but-still-stripped"}]}
+                """);
+        val redacted = CredentialRedaction.redact(node).toString();
+
+        assertThat(redacted).doesNotContain("secret-session-id").doesNotContain("benign-but-still-stripped")
+                .contains("SESSION").contains("theme");
+    }
 }

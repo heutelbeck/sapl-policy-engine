@@ -45,6 +45,13 @@ public final class CredentialRedaction {
             "clientsecret", "cookie", "credentials", "idtoken", "password", "privatekey", "proxy-authorization",
             "refreshtoken", "salt", "secret", "set-cookie", "tokenvalue");
 
+    // The request serializers emit a parsed cookies array of {name, value}
+    // objects alongside the raw Cookie header. The header is stripped by name
+    // above, but each cookie's token survives under the generic field "value",
+    // which is too common to blanket-strip. Strip it only within the cookies array.
+    private static final String COOKIES_FIELD      = "cookies";
+    private static final String COOKIE_VALUE_FIELD = "value";
+
     private CredentialRedaction() {
     }
 
@@ -59,10 +66,21 @@ public final class CredentialRedaction {
             val credentialFields = objectNode.propertyNames().stream()
                     .filter(name -> CREDENTIAL_FIELD_NAMES.contains(name.toLowerCase(Locale.ROOT))).toList();
             objectNode.remove(credentialFields);
+            redactCookieValues(objectNode);
             objectNode.values().forEach(CredentialRedaction::redact);
         } else if (node instanceof ArrayNode arrayNode) {
             arrayNode.values().forEach(CredentialRedaction::redact);
         }
         return node;
+    }
+
+    private static void redactCookieValues(ObjectNode objectNode) {
+        if (objectNode.get(COOKIES_FIELD) instanceof ArrayNode cookies) {
+            for (val cookie : cookies) {
+                if (cookie instanceof ObjectNode cookieObject) {
+                    cookieObject.remove(COOKIE_VALUE_FIELD);
+                }
+            }
+        }
     }
 }

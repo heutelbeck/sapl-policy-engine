@@ -425,6 +425,21 @@ class SaplProtobufCodecTests {
                 assertThat(d.getSubscription("sub2").action()).isEqualTo(Value.of("write"));
             });
         }
+
+        @Test
+        @DisplayName("a payload carrying two entries with the same id fails closed as IOException, not an unchecked exception")
+        void whenDuplicateSubscriptionIdThenIOException() throws IOException {
+            var single = new MultiAuthorizationSubscription();
+            single.addSubscription("dup", new AuthorizationSubscription(Value.of("user"), Value.of("read"),
+                    Value.of("doc"), Value.UNDEFINED, Value.EMPTY_OBJECT));
+            var oneEntry  = SaplProtobufCodec.writeMultiAuthorizationSubscription(single);
+            var twoSameId = new byte[oneEntry.length * 2];
+            System.arraycopy(oneEntry, 0, twoSameId, 0, oneEntry.length);
+            System.arraycopy(oneEntry, 0, twoSameId, oneEntry.length, oneEntry.length);
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readMultiAuthorizationSubscription(twoSameId))
+                    .isInstanceOf(IOException.class);
+        }
     }
 
     @Nested

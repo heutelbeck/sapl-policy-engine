@@ -87,10 +87,11 @@ public class SaplProtobufCodec {
     // into
     // a multi-gigabyte BigDecimal once materialized (toPlainString,
     // stripTrailingZeros).
-    private static final int    MAX_NUMBER_PRECISION       = 1_000_000;
-    private static final int    MAX_NUMBER_SCALE           = 1_000_000;
-    private static final String ERROR_MALFORMED_NUMBER     = "Malformed number value in protobuf payload.";
-    private static final String ERROR_NUMBER_OUT_OF_BOUNDS = "Number value in protobuf payload exceeds the accepted magnitude.";
+    private static final int    MAX_NUMBER_PRECISION            = 1_000_000;
+    private static final int    MAX_NUMBER_SCALE                = 1_000_000;
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-subscription payload.";
+    private static final String ERROR_MALFORMED_NUMBER          = "Malformed number value in protobuf payload.";
+    private static final String ERROR_NUMBER_OUT_OF_BOUNDS      = "Number value in protobuf payload exceeds the accepted magnitude.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -576,7 +577,13 @@ public class SaplProtobufCodec {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_SUB_SUBSCRIPTIONS) {
                 val idSub = readIdentifiableSubscription(input);
-                result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                try {
+                    result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                } catch (IllegalArgumentException e) {
+                    // Duplicate id on the wire. Surface as IOException so the
+                    // transport's fail-closed decode handler applies.
+                    throw new IOException(ERROR_DUPLICATE_SUBSCRIPTION_ID, e);
+                }
             } else {
                 input.skipField(tag);
             }
