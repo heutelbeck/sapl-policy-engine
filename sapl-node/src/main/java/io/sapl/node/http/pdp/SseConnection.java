@@ -49,6 +49,7 @@ final class SseConnection {
     private boolean                      closed;
     private boolean                      completed;
     private @Nullable ScheduledFuture<?> expiryTask;
+    private @Nullable AutoCloseable      boundStream;
 
     SseConnection(AsyncContext asyncContext) {
         this.asyncContext = asyncContext;
@@ -165,6 +166,51 @@ final class SseConnection {
                 return;
             }
             expiryTask = task;
+        }
+    }
+
+    /**
+     * Binds the decision stream so the expiry timer can close it, releasing the
+     * upstream PDP subscription promptly when the credential expires. If the
+     * connection has already completed, the stream is closed immediately.
+     *
+     * @param stream the decision stream feeding this connection
+     */
+    void bindStream(AutoCloseable stream) {
+        final boolean closeNow;
+        synchronized (lock) {
+            closeNow = completed;
+            if (!completed) {
+                boundStream = stream;
+            }
+        }
+        if (closeNow) {
+            closeQuietly(stream);
+        }
+    }
+
+    /**
+     * Closes the bound decision stream, waking the parked pump so it tears down.
+     * Idempotent and safe to call from the expiry timer thread. The stream is
+     * closed outside the monitor so its close action never runs under this lock.
+     */
+    void closeStream() {
+        final AutoCloseable stream;
+        synchronized (lock) {
+            stream      = boundStream;
+            boundStream = null;
+        }
+        closeQuietly(stream);
+    }
+
+    private static void closeQuietly(@Nullable AutoCloseable stream) {
+        if (stream == null) {
+            return;
+        }
+        try {
+            stream.close();
+        } catch (Exception e) {
+            log.debug("SSE stream close failed: {}", e.getMessage());
         }
     }
 

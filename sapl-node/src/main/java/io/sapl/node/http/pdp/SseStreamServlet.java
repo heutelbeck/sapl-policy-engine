@@ -188,7 +188,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
      * @param expiresAt the credential expiry instant, or null when none
      */
     private void scheduleConnectionExpiry(SseConnection connection, @Nullable Instant expiresAt) {
-        if (expiresAt == null) {
+        if (expiresAt == null || keepAliveScheduler == null) {
             return;
         }
         val delayMillis = Math.max(0L, Duration.between(Instant.now(), expiresAt).toMillis());
@@ -204,6 +204,10 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
 
     private void closeExpired(SseConnection connection) {
         connectionRegistry.unregister(connection);
+        // Close the upstream stream so the parked pump wakes and releases the PDP
+        // subscription, then complete the response. Mirrors the RSocket transport's
+        // hard dispose at token expiry rather than waiting for the next keep-alive.
+        connection.closeStream();
         connection.complete();
     }
 
@@ -222,6 +226,7 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
     private void pump(SseConnection connection, S subscription, String pdpId) {
         ScheduledFuture<?> keepAliveTask = null;
         try (Stream<D> stream = openStream(subscription, pdpId)) {
+            connection.bindStream(stream);
             keepAliveTask = scheduleKeepAlive(connection, stream);
             try {
                 while (!Thread.currentThread().isInterrupted() && processNextEvent(stream, connection, pdpId)) {
@@ -247,6 +252,9 @@ public abstract class SseStreamServlet<S, D> extends AbstractBypassServlet {
 
     private void teardown(SseConnection connection) {
         connection.close();
+        // Release the bound-stream reference. The stream is already closed by the
+        // pump's try-with-resources, so this only clears the field for GC.
+        connection.closeStream();
         connectionRegistry.unregister(connection);
         connection.complete();
     }

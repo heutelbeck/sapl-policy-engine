@@ -168,6 +168,60 @@ class SseStreamServletTests {
     }
 
     @Test
+    @DisplayName("at the JWT expiry the upstream stream is closed and the response completed, so delivery stops")
+    void whenJwtExpiresThenStreamClosedAndConnectionCompleted() throws Exception {
+        val scheduler    = Executors.newSingleThreadScheduledExecutor(r -> {
+                             val t = new Thread(r, "sapl-test-expiry");
+                             t.setDaemon(true);
+                             return t;
+                         });
+        val pump         = Executors.newVirtualThreadPerTaskExecutor();
+        val stream       = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
+        val streamClosed = new CountDownLatch(1);
+        stream.onClose(streamClosed::countDown);
+        try {
+            val response = mock(HttpServletResponse.class);
+            when(response.getWriter()).thenReturn(new PrintWriter(Writer.nullWriter()));
+            when(asyncContext.getResponse()).thenReturn(response);
+            // exp 300ms out; keep-alive is 30s so only the expiry timer can close the
+            // stream within the await window.
+            when(authHandler.authenticate(any()))
+                    .thenReturn(new HttpAuthResult("default", Instant.now().plusMillis(300)));
+            val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
+            when(request.getInputStream()).thenReturn(new DelegatingServletInputStream(new ByteArrayInputStream(body)));
+            when(request.startAsync()).thenReturn(asyncContext);
+
+            val servlet = new SseStreamServlet<AuthorizationSubscription, AuthorizationDecision>(authHandler, mapper,
+                    Duration.ofSeconds(30), scheduler, pump, connectionRegistry) {
+                @Override
+                protected Class<AuthorizationSubscription> subscriptionType() {
+                    return AuthorizationSubscription.class;
+                }
+
+                @Override
+                protected Stream<AuthorizationDecision> openStream(AuthorizationSubscription subscription,
+                        String pdpId) {
+                    return stream;
+                }
+
+                @Override
+                protected AuthorizationDecision indeterminate() {
+                    return AuthorizationDecision.INDETERMINATE;
+                }
+            };
+
+            servlet.handlePost(request, response);
+
+            assertThat(streamClosed.await(10, TimeUnit.SECONDS)).isTrue();
+            verify(asyncContext, timeout(10_000)).complete();
+        } finally {
+            stream.close();
+            scheduler.shutdownNow();
+            pump.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("a chunked over-limit body is rejected with 413 before the stream is opened")
     void whenBodyExceedsLimitThenContentTooLargeAndNoStreamOpened() throws Exception {
         when(authHandler.authenticate(any())).thenReturn(new HttpAuthResult("default", null));
