@@ -86,11 +86,16 @@ class RemoteBundleSourceConfigTests {
     @ValueSource(strings = { "../admin", "tenant?x=1", "a/b", "with space" })
     @DisplayName("a pdpId that fails validation is rejected at construction, consistent with directory sources")
     void whenInvalidPdpIdThenConstructionFails(String pdpId) {
-        val invalid = List.of(pdpId);
+        val invalid         = List.of(pdpId);
+        val pollInterval    = Duration.ofMillis(100);
+        val longPollTimeout = Duration.ofSeconds(5);
+        val pollIntervals   = Map.<String, Duration>of();
+        val connectTimeout  = Duration.ofMillis(50);
+        val readTimeout     = Duration.ofMillis(200);
         assertThatExceptionOfType(PDPConfigurationException.class)
                 .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", invalid,
-                        RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5), null,
-                        null, true, POLICY, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200)))
+                        RemoteBundleSourceConfig.FetchMode.POLLING, pollInterval, longPollTimeout, null, null, true,
+                        POLICY, pollIntervals, connectTimeout, readTimeout))
                 .withMessageContaining("PDP identifier");
     }
 

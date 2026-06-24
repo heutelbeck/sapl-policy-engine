@@ -87,7 +87,7 @@ public class StandardFunctionLibrary {
             }""")
     public static Value length(Value value) {
         return switch (value) {
-        case TextValue text     -> Value.of((long) text.value().length());
+        case TextValue text     -> Value.of(text.value().length());
         case ObjectValue object -> Value.of(object.size());
         case ArrayValue array   -> Value.of(array.size());
         default                 -> Value.error(ERROR_ARGUMENT_MUST_BE_TEXT_ARRAY_OR_OBJECT);
