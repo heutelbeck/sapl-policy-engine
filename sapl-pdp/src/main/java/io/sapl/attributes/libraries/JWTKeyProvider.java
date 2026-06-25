@@ -29,6 +29,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Clock;
 import java.time.Duration;
@@ -59,6 +60,7 @@ public class JWTKeyProvider {
     private static final String WARN_JWT_KEY_SERVER_INSECURE_ALLOWED = "Fetching JWT trust anchor for kid '{}' from '{}' over an insecure scheme because 'allowInsecureHttp' is enabled in the key-server configuration. A network attacker on this hop can forge tokens this PIP will trust. Do not use in production.";
     private static final String WARN_JWT_KEY_SERVER_INSECURE_SCHEME  = "JWT public-key server URI '{}' for kid '{}' does not use https; refusing to fetch the trust anchor over an unauthenticated channel. Token signatures cannot be verified. Enable 'allowInsecureHttp' in the key-server configuration only for local development.";
     private static final String WARN_JWT_KEY_SERVER_IO               = "JWT public-key fetch failed for kid '{}' at '{}': {}. Token signatures cannot be verified.";
+    private static final String WARN_JWT_KEY_SERVER_OVERSIZE         = "JWT public-key response for kid '{}' from '{}' exceeded the {}-byte limit and was rejected. Token signatures cannot be verified.";
     private static final String WARN_JWT_KID_REJECTED                = "JWT public-key fetch rejected: the key id contains characters outside the permitted set [A-Za-z0-9._-]. Token signatures cannot be verified.";
 
     // The kid comes from an unverified JWT header and is interpolated into the
@@ -72,6 +74,9 @@ public class JWTKeyProvider {
     static final long             DEFAULT_CACHING_TTL    = 300_000L;
     private static final Duration HTTP_REQUEST_TIMEOUT   = Duration.ofSeconds(10L);
     private static final String   HTTPS_SCHEME           = "https";
+    // The response body is attacker-controllable on the key-server hop, so cap it
+    // to keep an oversized reply from exhausting the heap.
+    private static final int MAX_KEY_RESPONSE_BYTES = 256 * 1024;
 
     /**
      * Exception indicating a caching error.
@@ -248,12 +253,20 @@ public class JWTKeyProvider {
         }
 
         try {
-            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() >= 400) {
                 log.warn(WARN_JWT_KEY_SERVER_HTTP, response.statusCode(), kid, resolvedUri);
                 return Optional.empty();
             }
-            val key = JWTEncodingDecodingUtils.encodedX509ToPublicKey(response.body());
+            final byte[] body;
+            try (val in = response.body()) {
+                body = in.readNBytes(MAX_KEY_RESPONSE_BYTES + 1);
+            }
+            if (body.length > MAX_KEY_RESPONSE_BYTES) {
+                log.warn(WARN_JWT_KEY_SERVER_OVERSIZE, kid, resolvedUri, MAX_KEY_RESPONSE_BYTES);
+                return Optional.empty();
+            }
+            val key = JWTEncodingDecodingUtils.encodedX509ToPublicKey(new String(body, StandardCharsets.UTF_8));
             if (key.isEmpty()) {
                 log.warn("JWT public-key response for kid '{}' from '{}' could not be decoded as an X509 public key.",
                         kid, resolvedUri);
