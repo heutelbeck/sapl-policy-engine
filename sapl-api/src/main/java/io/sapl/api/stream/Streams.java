@@ -391,6 +391,67 @@ public class Streams {
     }
 
     /**
+     * Defers construction of the underlying stream until the returned stream
+     * is first read, then runs {@code sourceFactory} once on a virtual thread
+     * and forwards its values. Use when building the source performs blocking
+     * or IO work (for example a key-server fetch) that must not run on the
+     * caller's thread: the {@code StreamAttributeFinder.invoke} contract
+     * requires invoke() to return promptly without blocking the broker.
+     * <p>
+     * Lazy: {@code sourceFactory} does not run until the first
+     * {@link Stream#awaitNext()} or {@link Stream#tryNext()}. One-shot: unlike
+     * {@link #repeat}, the factory runs a single time and the returned stream
+     * completes when the factory's stream completes.
+     */
+    public static Stream<Value> defer(Supplier<Stream<Value>> sourceFactory) {
+        val out     = new LatestSlotStream<Value>();
+        val stopped = new AtomicBoolean(false);
+        val started = new AtomicBoolean(false);
+        val pumpRef = new AtomicReference<Thread>();
+
+        final Runnable start = () -> {
+            if (started.compareAndSet(false, true)) {
+                pumpRef.set(Thread.startVirtualThread(() -> {
+                    try {
+                        pumpInto(sourceFactory.get(), out, stopped);
+                    } catch (RuntimeException factoryFailure) {
+                        out.put(Value.error(messageOf(factoryFailure)));
+                    } finally {
+                        out.complete();
+                    }
+                }));
+            }
+        };
+
+        out.onClose(() -> {
+            stopped.set(true);
+            val pump = pumpRef.get();
+            if (pump != null) {
+                pump.interrupt();
+            }
+        });
+
+        return new Stream<>() {
+            @Override
+            public Value awaitNext() throws InterruptedException {
+                start.run();
+                return out.awaitNext();
+            }
+
+            @Override
+            public Poll<Value> tryNext() {
+                start.run();
+                return out.tryNext();
+            }
+
+            @Override
+            public void close() {
+                out.close();
+            }
+        };
+    }
+
+    /**
      * Distinct-until-changed wrapper. Emits values from {@code source}
      * but suppresses any value equal (per {@link Objects#equals}) to
      * its immediate predecessor. The first value is always emitted.

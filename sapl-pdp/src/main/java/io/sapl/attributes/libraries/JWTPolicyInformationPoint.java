@@ -374,7 +374,12 @@ public class JWTPolicyInformationPoint {
         }
 
         val parsedToken = extractParsedToken(signedJwt);
-        return Streams.map(validityStateStream(signedJwt, ctx), state -> buildTokenValue(parsedToken, asState(state)));
+        // Defer signature validation (which may perform a blocking key-server
+        // fetch) off the invoke() body. invoke() runs under the broker's lock, so
+        // blocking here would stall every attribute subscription PDP-wide. The
+        // deferred factory runs on a virtual thread once the stream is consumed.
+        return Streams.defer(() -> Streams.map(validityStateStream(signedJwt, ctx),
+                state -> buildTokenValue(parsedToken, asState(state))));
     }
 
     private static ValidityState asState(Value v) {

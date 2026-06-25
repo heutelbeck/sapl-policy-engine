@@ -88,6 +88,56 @@ class StreamsTests {
     }
 
     @Nested
+    @DisplayName("defer")
+    class Defer {
+
+        @Test
+        @DisplayName("does not invoke the factory until the stream is first read")
+        void whenNotReadThenFactoryNotInvoked() throws InterruptedException {
+            val invoked = new AtomicBoolean(false);
+            val stream  = Streams.defer(() -> {
+                            invoked.set(true);
+                            return Streams.just(Value.of("v"));
+                        });
+
+            assertThat(invoked).isFalse();
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("v"));
+            assertThat(invoked).isTrue();
+        }
+
+        @Test
+        @DisplayName("runs the factory off the calling thread, forwards its value, then completes")
+        void whenReadThenFactoryRunsOffThreadAndValueForwarded() throws InterruptedException {
+            val callingThread = Thread.currentThread();
+            val factoryThread = new AtomicReference<Thread>();
+            val stream        = Streams.defer(() -> {
+                                  factoryThread.set(Thread.currentThread());
+                                  return Streams.just(Value.of("a"));
+                              });
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("a"));
+            assertThat(stream.awaitNext()).isNull();
+            assertThat(factoryThread.get()).isNotNull().isNotSameAs(callingThread);
+        }
+
+        @Test
+        @DisplayName("invokes the factory exactly once, even after the stream completes (one-shot, unlike repeat)")
+        void whenStreamCompletesThenFactoryNotReinvoked() throws InterruptedException {
+            val count  = new AtomicInteger(0);
+            val stream = Streams.defer(() -> {
+                           count.incrementAndGet();
+                           return Streams.just(Value.of("once"));
+                       });
+
+            assertThat(stream.awaitNext()).isEqualTo(Value.of("once"));
+            assertThat(stream.awaitNext()).isNull();
+            assertThat(stream.awaitNext()).isNull();
+            assertThat(count.get()).isEqualTo(1);
+        }
+    }
+
+    @Nested
     @DisplayName("scheduledAt")
     class ScheduledAt {
 
