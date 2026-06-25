@@ -105,6 +105,19 @@ class CredentialRedactionTests {
     }
 
     @Test
+    @DisplayName("a credential in the request url field is redacted, not just query and queryParameters")
+    void redactsAccessTokenInUrlField() {
+        val node     = MAPPER.readTree("""
+                {"http": {"url": "https://host/api/resource?access_token=ey-secret-token&page=2",
+                          "query": "access_token=ey-secret-token&page=2",
+                          "queryParameters": {"access_token": ["ey-secret-token"], "page": ["2"]}}}
+                """);
+        val redacted = CredentialRedaction.redact(node).toString();
+
+        assertThat(redacted).doesNotContain("ey-secret-token").contains("page").contains("api/resource");
+    }
+
+    @Test
     @DisplayName("a malformed percent-escape in a query parameter name does not throw out of redaction")
     void malformedPercentEscapeInQueryNameDoesNotThrow() {
         val node = MAPPER.readTree("""

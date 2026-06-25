@@ -39,9 +39,8 @@ import tools.jackson.databind.node.StringNode;
  * so nested raw tokens (for example an OIDC
  * {@code principal.idToken.tokenValue} or OAuth2 {@code accessToken}) are
  * neutralised while benign domain fields are preserved. A credential carried in
- * the raw HTTP query string is removed too: when a credential-named parameter
- * is
- * present the query is rebuilt from the already-redacted parsed parameters.
+ * the raw HTTP query string is removed too, from the {@code query},
+ * {@code queryParameters}, and {@code url} fields.
  * <p>
  * Always applied to the default projections. A caller that genuinely needs a
  * credential in the subscription must shape it explicitly: a method-security
@@ -50,25 +49,22 @@ import tools.jackson.databind.node.StringNode;
  */
 public final class CredentialRedaction {
 
-    // Stored already normalized (lowercase, no hyphens/underscores). Candidate
-    // field names are normalized the same way before lookup, so access_token,
-    // access-token and accessToken all match.
+    // Stored normalized to lowercase with no hyphens or underscores. Candidate
+    // names are normalized the same way.
     private static final Set<String> CREDENTIAL_FIELD_NAMES = Set.of("accesstoken", "apikey", "authorization",
             "clientsecret", "cookie", "credentials", "idtoken", "password", "privatekey", "proxyauthorization",
             "refreshtoken", "salt", "secret", "setcookie", "tokenvalue");
 
-    // The request serializers emit a parsed cookies array of {name, value}
-    // objects alongside the raw Cookie header. The header is stripped by name
-    // above, but each cookie's token survives under the generic field "value",
-    // which is too common to blanket-strip. Strip it only within the cookies array.
+    // Cookie tokens survive under the generic "value" field, so strip it only
+    // inside the cookies array.
     private static final String COOKIES_FIELD      = "cookies";
     private static final String COOKIE_VALUE_FIELD = "value";
 
-    // The request serializers emit the raw query string alongside the parsed
-    // queryParameters. Field-name redaction reaches the parsed parameters but not
-    // a credential embedded in the raw query string, so it is handled separately.
+    // The raw query also rides in the string-valued "query" and "url" fields, out
+    // of reach of field-name redaction.
     private static final String QUERY_FIELD            = "query";
     private static final String QUERY_PARAMETERS_FIELD = "queryParameters";
+    private static final String URL_FIELD              = "url";
 
     private CredentialRedaction() {
     }
@@ -86,7 +82,7 @@ public final class CredentialRedaction {
             objectNode.remove(credentialFields);
             redactCookieValues(objectNode);
             objectNode.values().forEach(CredentialRedaction::redact);
-            // After the children (including queryParameters) are redacted.
+            // after the recursion above has redacted queryParameters
             redactQueryString(objectNode);
         } else if (node instanceof ArrayNode arrayNode) {
             arrayNode.values().forEach(CredentialRedaction::redact);
@@ -105,20 +101,38 @@ public final class CredentialRedaction {
     }
 
     private static void redactQueryString(ObjectNode objectNode) {
-        if (!(objectNode.get(QUERY_FIELD) instanceof StringNode queryNode)
-                || !queryCarriesCredential(queryNode.asString())) {
+        val queryNode = objectNode.get(QUERY_FIELD);
+        val urlNode   = objectNode.get(URL_FIELD);
+        val rawQuery  = queryNode instanceof StringNode query ? query.asString()
+                : urlNode instanceof StringNode url ? queryPartOf(url.asString()) : "";
+        if (!queryCarriesCredential(rawQuery)) {
             return;
         }
-        // A credential-named parameter is present in the raw query string, which the
-        // name-based field redaction cannot reach inside a plain string value. Rebuild
-        // the query from the already-redacted parsed parameters so the stripped
-        // parameter cannot survive here either. Fail closed by dropping the raw query
-        // if the parsed parameters are unavailable.
-        if (objectNode.get(QUERY_PARAMETERS_FIELD) instanceof ObjectNode parameters) {
-            objectNode.put(QUERY_FIELD, rebuildQuery(parameters));
-        } else {
-            objectNode.remove(QUERY_FIELD);
+        // Rebuild "query" and the url's query from the already-redacted parameters. An
+        // empty rebuild drops it, failing closed.
+        val rebuilt = objectNode.get(QUERY_PARAMETERS_FIELD) instanceof ObjectNode parameters ? rebuildQuery(parameters)
+                : "";
+        if (queryNode instanceof StringNode) {
+            if (rebuilt.isEmpty()) {
+                objectNode.remove(QUERY_FIELD);
+            } else {
+                objectNode.put(QUERY_FIELD, rebuilt);
+            }
         }
+        if (urlNode instanceof StringNode url) {
+            objectNode.put(URL_FIELD, rewriteUrlQuery(url.asString(), rebuilt));
+        }
+    }
+
+    private static String queryPartOf(String url) {
+        val mark = url.indexOf('?');
+        return mark < 0 ? "" : url.substring(mark + 1);
+    }
+
+    private static String rewriteUrlQuery(String url, String rebuiltQuery) {
+        val mark     = url.indexOf('?');
+        val basePart = mark < 0 ? url : url.substring(0, mark);
+        return rebuiltQuery.isEmpty() ? basePart : basePart + '?' + rebuiltQuery;
     }
 
     private static boolean queryCarriesCredential(String rawQuery) {
@@ -161,9 +175,8 @@ public final class CredentialRedaction {
         try {
             return URLDecoder.decode(value, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
-            // Malformed percent-escape on hostile input. Mirror the request serializer's
-            // guarded decode: treat the raw value as the name rather than throwing out of
-            // redaction at the authorization boundary.
+            // Malformed percent-escape. Mirror the serializer's guarded decode and keep the
+            // raw name.
             return value;
         }
     }
