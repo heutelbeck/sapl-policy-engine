@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jspecify.annotations.Nullable;
 
@@ -44,12 +45,15 @@ final class SseConnection {
 
     private final AtomicBoolean keepAliveInFlight = new AtomicBoolean();
 
-    private PrintWriter                  writer;
-    private boolean                      writerUnavailable;
-    private boolean                      closed;
-    private boolean                      completed;
-    private @Nullable ScheduledFuture<?> expiryTask;
-    private @Nullable AutoCloseable      boundStream;
+    // Lifecycle state stays off the write monitor so teardown never blocks behind a
+    // stalled flush.
+    private final AtomicBoolean                       completed   = new AtomicBoolean();
+    private final AtomicReference<ScheduledFuture<?>> expiryTask  = new AtomicReference<>();
+    private final AtomicReference<AutoCloseable>      boundStream = new AtomicReference<>();
+
+    private PrintWriter writer;
+    private boolean     writerUnavailable;
+    private boolean     closed;
 
     SseConnection(AsyncContext asyncContext) {
         this.asyncContext = asyncContext;
@@ -136,19 +140,17 @@ final class SseConnection {
      * the shutdown drain reaches it first.
      */
     void complete() {
-        synchronized (lock) {
-            if (completed) {
-                return;
-            }
-            completed = true;
-            if (expiryTask != null) {
-                expiryTask.cancel(false);
-            }
-            try {
-                asyncContext.complete();
-            } catch (IllegalStateException e) {
-                log.debug("SSE async context already completed: {}", e.getMessage());
-            }
+        if (!completed.compareAndSet(false, true)) {
+            return;
+        }
+        val task = expiryTask.getAndSet(null);
+        if (task != null) {
+            task.cancel(false);
+        }
+        try {
+            asyncContext.complete();
+        } catch (IllegalStateException e) {
+            log.debug("SSE async context already completed: {}", e.getMessage());
         }
     }
 
@@ -160,12 +162,10 @@ final class SseConnection {
      * @param task the scheduled expiry task
      */
     void setExpiryTask(ScheduledFuture<?> task) {
-        synchronized (lock) {
-            if (completed) {
-                task.cancel(false);
-                return;
-            }
-            expiryTask = task;
+        expiryTask.set(task);
+        // Cancel the task if the connection completed between scheduling and binding.
+        if (completed.get() && expiryTask.compareAndSet(task, null)) {
+            task.cancel(false);
         }
     }
 
@@ -177,14 +177,9 @@ final class SseConnection {
      * @param stream the decision stream feeding this connection
      */
     void bindStream(AutoCloseable stream) {
-        final boolean closeNow;
-        synchronized (lock) {
-            closeNow = completed;
-            if (!completed) {
-                boundStream = stream;
-            }
-        }
-        if (closeNow) {
+        boundStream.set(stream);
+        // Close immediately if the connection already completed before binding.
+        if (completed.get() && boundStream.compareAndSet(stream, null)) {
             closeQuietly(stream);
         }
     }
@@ -195,12 +190,7 @@ final class SseConnection {
      * closed outside the monitor so its close action never runs under this lock.
      */
     void closeStream() {
-        final AutoCloseable stream;
-        synchronized (lock) {
-            stream      = boundStream;
-            boundStream = null;
-        }
-        closeQuietly(stream);
+        closeQuietly(boundStream.getAndSet(null));
     }
 
     private static void closeQuietly(@Nullable AutoCloseable stream) {
