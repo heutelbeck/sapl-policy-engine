@@ -67,4 +67,39 @@ class CredentialRedactionTests {
         assertThat(redacted).doesNotContain("secret-session-id").doesNotContain("benign-but-still-stripped")
                 .contains("SESSION").contains("theme");
     }
+
+    @Test
+    @DisplayName("credential field names match separator-insensitively (access-token, id_token, client_secret)")
+    void redactsSeparatorVariantsOfCredentialNames() {
+        val node     = MAPPER.readTree("""
+                {"a": {"access-token": "secret-a"}, "b": {"id_token": "secret-b"},
+                 "c": {"client_secret": "secret-c"}}
+                """);
+        val redacted = CredentialRedaction.redact(node).toString();
+
+        assertThat(redacted).doesNotContain("secret-a").doesNotContain("secret-b").doesNotContain("secret-c");
+    }
+
+    @Test
+    @DisplayName("an OAuth access_token in the parsed query parameters and the raw query string is redacted")
+    void redactsAccessTokenInQueryStringAndParameters() {
+        val node     = MAPPER.readTree("""
+                {"http": {"query": "access_token=ey-secret-token&page=2",
+                          "queryParameters": {"access_token": ["ey-secret-token"], "page": ["2"]}}}
+                """);
+        val redacted = CredentialRedaction.redact(node).toString();
+
+        assertThat(redacted).doesNotContain("ey-secret-token").doesNotContain("access_token").contains("page");
+    }
+
+    @Test
+    @DisplayName("a query string carrying no credential is left untouched (verbatim)")
+    void keepsBenignQueryStringVerbatim() {
+        val node     = MAPPER.readTree("""
+                {"http": {"query": "q=foo+bar&page=2", "queryParameters": {"q": ["foo bar"], "page": ["2"]}}}
+                """);
+        val redacted = CredentialRedaction.redact(node);
+
+        assertThat(redacted.get("http").get("query").asString()).isEqualTo("q=foo+bar&page=2");
+    }
 }

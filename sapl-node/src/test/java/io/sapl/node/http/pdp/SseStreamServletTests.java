@@ -179,7 +179,7 @@ class SseStreamServletTests {
         val stream       = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
         val streamClosed = new CountDownLatch(1);
         stream.onClose(streamClosed::countDown);
-        try {
+        try (stream) {
             val response = mock(HttpServletResponse.class);
             when(response.getWriter()).thenReturn(new PrintWriter(Writer.nullWriter()));
             when(asyncContext.getResponse()).thenReturn(response);
@@ -215,7 +215,6 @@ class SseStreamServletTests {
             assertThat(streamClosed.await(10, TimeUnit.SECONDS)).isTrue();
             verify(asyncContext, timeout(10_000)).complete();
         } finally {
-            stream.close();
             scheduler.shutdownNow();
             pump.shutdownNow();
         }

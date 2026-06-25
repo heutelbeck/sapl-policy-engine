@@ -171,11 +171,11 @@ class AuthorizationSubscriptionBuilderServiceServletTests {
 
     @Test
     void when_argRaisesJacksonException_then_argDroppedAndSubscriptionBuilt() {
-        val invocation   = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
+        val throwingArgInvocation = MethodInvocationUtils.createFromClass(new TestClass(), TestClass.class,
                 "publicVoidThrowingArg", new Class<?>[] { ThrowsOnSerialize.class },
                 new Object[] { new ThrowsOnSerialize() });
-        val subscription = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication, invocation,
-                attribute(null, null, null, null));
+        val subscription          = defaultWebBuilderUnderTest.constructAuthorizationSubscription(authentication,
+                throwingArgInvocation, attribute(null, null, null, null));
 
         val action = toJson(subscription.action());
         assertThat(action.get("java").has("arguments")).isFalse();
