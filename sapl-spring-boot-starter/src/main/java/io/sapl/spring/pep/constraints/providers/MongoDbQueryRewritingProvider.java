@@ -348,7 +348,8 @@ public class MongoDbQueryRewritingProvider implements ConstraintHandlerProvider 
             }
             yield list;
         }
-        default                                  -> null;
+        default                                  ->
+            throw new AccessDeniedException(ERROR_UNBUILDABLE_CRITERION + value);
         };
     }
 

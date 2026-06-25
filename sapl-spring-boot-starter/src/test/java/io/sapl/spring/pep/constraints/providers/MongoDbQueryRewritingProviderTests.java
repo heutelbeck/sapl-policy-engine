@@ -287,7 +287,11 @@ class MongoDbQueryRewritingProviderTests {
                     arguments("unsupported op", "[{\"column\": \"tenantId\", \"op\": \"~~\", \"value\": 7}]"),
                     arguments("in without a collection", "[{\"column\": \"tenantId\", \"op\": \"in\", \"value\": 7}]"),
                     arguments("non-object entry", "[7]"), arguments("empty or group", "[{\"or\": []}]"),
-                    arguments("empty and group", "[{\"and\": []}]"), arguments("unbuildable child inside or group",
+                    arguments("empty and group", "[{\"and\": []}]"),
+                    arguments("object value", "[{\"column\": \"role\", \"op\": \"!=\", \"value\": {\"marker\": 1}}]"),
+                    arguments("in with object element",
+                            "[{\"column\": \"role\", \"op\": \"in\", \"value\": [{\"marker\": 1}]}]"),
+                    arguments("unbuildable child inside or group",
                             "[{\"or\": [{\"column\": \"a\", \"op\": \"=\", \"value\": 1}, {\"op\": \"=\", \"value\": 2}]}]"));
         }
 
