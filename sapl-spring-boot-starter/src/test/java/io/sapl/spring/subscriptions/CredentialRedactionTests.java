@@ -18,6 +18,7 @@
 package io.sapl.spring.subscriptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -101,5 +102,16 @@ class CredentialRedactionTests {
         val redacted = CredentialRedaction.redact(node);
 
         assertThat(redacted.get("http").get("query").asString()).isEqualTo("q=foo+bar&page=2");
+    }
+
+    @Test
+    @DisplayName("a malformed percent-escape in a query parameter name does not throw out of redaction")
+    void malformedPercentEscapeInQueryNameDoesNotThrow() {
+        val node = MAPPER.readTree("""
+                {"http": {"query": "%zz=1&page=2", "queryParameters": {"%zz": ["1"], "page": ["2"]}}}
+                """);
+
+        assertThatCode(() -> CredentialRedaction.redact(node)).doesNotThrowAnyException();
+        assertThat(node.get("http").get("query").asString()).isEqualTo("%zz=1&page=2");
     }
 }

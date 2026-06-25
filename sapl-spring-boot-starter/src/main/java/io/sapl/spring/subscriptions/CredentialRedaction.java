@@ -128,7 +128,7 @@ public final class CredentialRedaction {
         for (val pair : rawQuery.split("&")) {
             val separator = pair.indexOf('=');
             val rawName   = separator < 0 ? pair : pair.substring(0, separator);
-            if (CREDENTIAL_FIELD_NAMES.contains(normalize(URLDecoder.decode(rawName, StandardCharsets.UTF_8)))) {
+            if (CREDENTIAL_FIELD_NAMES.contains(normalize(safeUrlDecode(rawName)))) {
                 return true;
             }
         }
@@ -155,6 +155,17 @@ public final class CredentialRedaction {
         }
         query.append(URLEncoder.encode(name, StandardCharsets.UTF_8)).append('=')
                 .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+    }
+
+    private static String safeUrlDecode(String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            // Malformed percent-escape on hostile input. Mirror the request serializer's
+            // guarded decode: treat the raw value as the name rather than throwing out of
+            // redaction at the authorization boundary.
+            return value;
+        }
     }
 
     private static String normalize(String name) {
