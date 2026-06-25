@@ -158,6 +158,18 @@ class PreEnforcePolicyEnforcementPointTests {
 
             StepVerifier.create(watch.listOpenCasesMono()).expectNext(OPEN_CASES).verifyComplete();
         }
+
+        @Test
+        @DisplayName("a permitted Mono method that returns null surfaces a clear error instead of an opaque NPE")
+        void whenPermittedMonoMethodReturnsNullThenClearError() {
+            permit();
+
+            val publisher = watch.openCaseFileButLosesIt();
+            StepVerifier
+                    .create(publisher).expectErrorSatisfies(error -> assertThat(error)
+                            .isInstanceOf(IllegalStateException.class).hasMessageContaining("returned null"))
+                    .verify(STEP_TIMEOUT);
+        }
     }
 
     @Nested
@@ -528,6 +540,18 @@ class PreEnforcePolicyEnforcementPointTests {
 
             StepVerifier.create(watch.patrolBeats()).expectNext(CASE_VANISHED_ASSASSIN).verifyComplete();
         }
+
+        @Test
+        @DisplayName("a permitted Flux method that returns null surfaces a clear error instead of completing empty")
+        void whenPermittedFluxMethodReturnsNullThenErrorsInsteadOfSilentlyEmpty() {
+            permit();
+
+            val patrol = watch.patrolBeatsButForgetsToReport();
+            StepVerifier
+                    .create(patrol).expectErrorSatisfies(error -> assertThat(error)
+                            .isInstanceOf(IllegalStateException.class).hasMessageContaining("returned null"))
+                    .verify(STEP_TIMEOUT);
+        }
     }
 
     @Nested
@@ -731,6 +755,18 @@ class PreEnforcePolicyEnforcementPointTests {
         public Flux<Suspect> dangerousSuspects() {
             return Flux.just(new Suspect("Carcer Dun", 9), new Suspect("Mr Pin", 7), new Suspect("Mr Tulip", 8),
                     new Suspect("Foul Ole Ron", 1), new Suspect("CMOT Dibbler", 2));
+        }
+
+        @PreEnforce
+        @SuppressWarnings("DataFlowIssue")
+        public Flux<String> patrolBeatsButForgetsToReport() {
+            return null;
+        }
+
+        @PreEnforce
+        @SuppressWarnings("DataFlowIssue")
+        public Mono<String> openCaseFileButLosesIt() {
+            return null;
         }
     }
 

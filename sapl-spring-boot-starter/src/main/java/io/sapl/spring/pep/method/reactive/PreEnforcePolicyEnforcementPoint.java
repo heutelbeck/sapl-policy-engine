@@ -75,6 +75,8 @@ import java.util.Set;
 public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor {
 
     private static final String ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT = "Access Denied by @PreEnforce PEP. The PDP decision was %s, not PERMIT.";
+    private static final String ERROR_NULL_RAP_RETURN_FLUX              = "@PreEnforce method returned null instead of a Flux.";
+    private static final String ERROR_NULL_RAP_RETURN_MONO              = "@PreEnforce method returned null instead of a Mono.";
     private static final String ERROR_UNSUPPORTED_RETURN_TYPE           = "@PreEnforce reactive PEP supports Mono and Flux only. Found return type %s.";
 
     private static final Object EMPTY_RAP_MARKER = new Object();
@@ -176,11 +178,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             return Mono.error(new AccessDeniedException(
                     ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision())));
         }
+        Mono<?> rap;
         try {
-            return (Mono<?>) methodInvocation.proceed();
+            rap = (Mono<?>) methodInvocation.proceed();
         } catch (Throwable t) {
             return Mono.error(t);
         }
+        if (rap == null) {
+            return Mono.error(new IllegalStateException(ERROR_NULL_RAP_RETURN_MONO));
+        }
+        return rap;
     }
 
     private static Flux<?> rapFluxStream(MethodInvocation methodInvocation, AuthorizationDecision authzDecision) {
@@ -188,11 +195,16 @@ public final class PreEnforcePolicyEnforcementPoint implements MethodInterceptor
             return Flux.error(new AccessDeniedException(
                     ERROR_ACCESS_DENIED_DECISION_NOT_PERMIT.formatted(authzDecision.decision())));
         }
+        Flux<?> rap;
         try {
-            return (Flux<?>) methodInvocation.proceed();
+            rap = (Flux<?>) methodInvocation.proceed();
         } catch (Throwable t) {
             return Flux.error(t);
         }
+        if (rap == null) {
+            return Flux.error(new IllegalStateException(ERROR_NULL_RAP_RETURN_FLUX));
+        }
+        return rap;
     }
 
     /**
