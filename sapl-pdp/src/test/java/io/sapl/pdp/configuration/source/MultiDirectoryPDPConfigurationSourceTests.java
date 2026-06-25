@@ -68,6 +68,22 @@ class MultiDirectoryPDPConfigurationSourceTests {
     }
 
     @Test
+    @DisplayName("a stale child's deferred removal does not evict a live replacement re-registered under the same pdpId")
+    void whenStaleChildRemovalFiresThenLiveReplacementUnderSamePdpIdSurvives() throws IOException {
+        val staleDir = Files.createDirectories(tempDir.resolve("stale-instance"));
+        val liveDir  = Files.createDirectories(tempDir.resolve("live-instance"));
+        val stale    = new DirectoryPDPConfigurationSource(staleDir, "production", () -> {});
+        val live     = new DirectoryPDPConfigurationSource(liveDir, "production", () -> {});
+        source = new MultiDirectoryPDPConfigurationSource(tempDir);
+        source.childSources().put("production", live);
+
+        source.removeChildSourceIfCurrent("production", stale);
+
+        assertThat(source.childSources()).containsEntry("production", live);
+        stale.close();
+    }
+
+    @Test
     void whenLoadingFromSubdirectoriesThenVoterSourceReceivesConfigForEach() throws IOException {
         createSubdirectoryWithPolicy("arkham", DENY_OVERRIDES, "forbidden.sapl",
                 "policy \"forbidden\" deny subject.sanity < 50;");

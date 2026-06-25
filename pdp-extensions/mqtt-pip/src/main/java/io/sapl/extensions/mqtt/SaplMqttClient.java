@@ -57,8 +57,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -139,10 +142,12 @@ public class SaplMqttClient implements Closeable {
     private static final String WARN_INSECURE_CREDENTIALS              = "MQTT broker credentials are being transmitted over an "
             + "unencrypted connection (tls=false). Enable 'tls' whenever credentials are configured.";
 
-    // Keyed on the broker configuration node itself (content-based equals), not
-    // on its 32-bit hashCode, so two distinct broker configs whose hashes
-    // collide cannot share a client (which would route to the wrong broker with
-    // the wrong credentials).
+    private static final String CACHE_KEY_CREDENTIAL_FINGERPRINT = "__credentialFingerprint";
+
+    // Keyed on the broker config plus a credential fingerprint (content-based
+    // equals), so
+    // neither a hash collision nor a shared broker config with different secrets
+    // shares a client.
     private final ConcurrentHashMap<JsonNode, MqttClientValues> mqttClientCache = new ConcurrentHashMap<>();
 
     // Package-private view of the per-instance client cache for tests.
@@ -213,12 +218,13 @@ public class SaplMqttClient implements Closeable {
         // outside the cache's atomic region, so the ConcurrentHashMap bin lock is
         // never held across filesystem I/O or client construction.
         val candidate = buildClientValues(brokerConfig, pipConfig, pdpSecrets);
+        val cacheKey  = cacheKeyFor(brokerConfig, pdpSecrets);
         return Streams.fromCallback((emit, complete) -> {
             // Register this subscriber atomically: insert the prebuilt candidate
             // only if absent, otherwise reuse the existing client and discard the
             // surplus. The atomic region does only the cheap count increment, so a
             // concurrent close() cannot evict between lookup and increment.
-            val cached = registerSubscriber(brokerConfig, candidate);
+            val cached = registerSubscriber(cacheKey, candidate);
             // The caller whose prebuilt candidate was the one inserted owns the
             // shared connection and connects it. All others reuse it.
             val owner = cached == candidate;
@@ -233,9 +239,9 @@ public class SaplMqttClient implements Closeable {
             val timerCancel  = scheduleDefaultResponse(timeoutMs, defaultValue, firstMessage, closed, emit);
 
             Thread.startVirtualThread(() -> connectAndSubscribe(ctx, owner, firstMessage, emit, complete,
-                    () -> teardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone)));
+                    () -> teardown(cacheKey, ctx, timerCancel, onDisconnect, teardownDone)));
 
-            return () -> teardown(brokerConfig, ctx, timerCancel, onDisconnect, teardownDone);
+            return () -> teardown(cacheKey, ctx, timerCancel, onDisconnect, teardownDone);
         });
     }
 
@@ -343,6 +349,31 @@ public class SaplMqttClient implements Closeable {
         timerCancel.cancel();
         if (onDisconnect != null) {
             ctx.cached.getOnDisconnectCallbacks().remove(onDisconnect);
+        }
+    }
+
+    // Key on the broker config plus a hash of the resolved credentials, so two
+    // tenants on
+    // one broker config with different secrets never share an authenticated
+    // connection.
+    static JsonNode cacheKeyFor(ObjectNode brokerConfig, ObjectValue pdpSecrets) {
+        val key = brokerConfig.deepCopy();
+        key.put(CACHE_KEY_CREDENTIAL_FINGERPRINT, credentialFingerprint(brokerConfig, pdpSecrets));
+        return key;
+    }
+
+    private static String credentialFingerprint(JsonNode brokerConfig, ObjectValue pdpSecrets) {
+        val mqttSecrets = resolveMqttSecrets(brokerConfig, pdpSecrets);
+        val username    = mqttSecrets.get(ENVIRONMENT_USERNAME) instanceof TextValue(var u) ? u : DEFAULT_USERNAME;
+        val password    = mqttSecrets.get(SECRETS_PASSWORD) instanceof TextValue(var p) ? p : "";
+        try {
+            val digest = MessageDigest.getInstance("SHA-256");
+            digest.update(username.getBytes(StandardCharsets.UTF_8));
+            digest.update((byte) 0);
+            digest.update(password.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is required to fingerprint MQTT credentials", e);
         }
     }
 

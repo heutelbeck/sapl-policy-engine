@@ -211,7 +211,10 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, () -> removeChildSource(pdpId));
+            val holder = new DirectoryPDPConfigurationSource[1];
+            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId,
+                    () -> removeChildSourceIfCurrent(pdpId, holder[0]));
+            holder[0] = source;
             // Register before subscribing so a removal callback during activation can clean
             // up.
             childSources.put(pdpId, source);
@@ -277,6 +280,21 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
             emit(new ConfigurationEvent.Remove(pdpId));
             log.debug("Removed and closed child source for PDP '{}'.", pdpId);
         }
+    }
+
+    // A child's own deferred removal (its directory vanished) must drop only that
+    // instance, never a live replacement re-registered under the same pdpId.
+    void removeChildSourceIfCurrent(String pdpId, DirectoryPDPConfigurationSource source) {
+        if (childSources.remove(pdpId, source)) {
+            source.close();
+            emit(new ConfigurationEvent.Remove(pdpId));
+            log.debug("Removed and closed child source for PDP '{}'.", pdpId);
+        }
+    }
+
+    // Package-private view of the child sources for tests.
+    Map<String, DirectoryPDPConfigurationSource> childSources() {
+        return childSources;
     }
 
     private void closeAllChildSources() {

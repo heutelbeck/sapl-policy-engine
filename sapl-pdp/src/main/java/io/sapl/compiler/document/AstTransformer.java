@@ -17,6 +17,7 @@
  */
 package io.sapl.compiler.document;
 
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.SourceLocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
@@ -702,6 +703,9 @@ public class AstTransformer extends SAPLParserBaseVisitor<AstNode> {
         }
         try {
             val value = new BigDecimal(text);
+            if (Math.abs((long) value.scale()) > NumberValueLimits.MAX_SCALE) {
+                throw new SaplCompilerException(ERROR_NUMBER_NOT_REPRESENTABLE.formatted(text), fromContext(ctx));
+            }
             return new Literal(Value.of(value), fromContext(ctx));
         } catch (NumberFormatException e) {
             throw new SaplCompilerException(ERROR_NUMBER_NOT_REPRESENTABLE.formatted(text), e, fromContext(ctx));

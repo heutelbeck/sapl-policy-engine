@@ -37,4 +37,13 @@ class SignedNumberParsingTests {
 
         assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class);
     }
+
+    @ValueSource(strings = { "1E1000000000", "1E-1000000000" })
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("a numeric literal whose decimal scale exceeds the bound is a compile error, not a live value that OOMs when serialised")
+    void whenNumberLiteralScaleExceedsBoundThenCompilerExceptionIsRaised(String expression) {
+        final ThrowingCallable compile = () -> compileExpression(expression);
+
+        assertThatThrownBy(compile).isInstanceOf(SaplCompilerException.class);
+    }
 }

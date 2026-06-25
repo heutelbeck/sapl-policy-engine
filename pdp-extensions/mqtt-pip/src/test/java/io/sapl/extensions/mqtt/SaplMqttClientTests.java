@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -73,6 +74,25 @@ class SaplMqttClientTests {
         val result = SaplMqttClient.decodePublish(publish, 1024);
 
         assertThat(result).isEqualTo(Value.of("hello"));
+    }
+
+    @Test
+    @DisplayName("the client cache key separates tenants that share a broker config but use different credentials")
+    void whenSameBrokerDifferentSecretsThenDifferentCacheKey() {
+        val broker = (ObjectNode) toJsonNode(json("""
+                { "name": "shared", "brokerAddress": "mqtt.example.com", "brokerPort": 8883 }
+                """));
+
+        assertThat(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice")))
+                .isEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("alice", "pw-alice")))
+                .isNotEqualTo(SaplMqttClient.cacheKeyFor(broker, mqttSecrets("bob", "pw-bob")));
+    }
+
+    private static ObjectValue mqttSecrets(String username, String password) {
+        return ObjectValue.builder()
+                .put("mqtt", ObjectValue.builder().put("shared", ObjectValue.builder()
+                        .put("username", Value.of(username)).put("password", Value.of(password)).build()).build())
+                .build();
     }
 
     private static AttributeAccessContext ctx() {
