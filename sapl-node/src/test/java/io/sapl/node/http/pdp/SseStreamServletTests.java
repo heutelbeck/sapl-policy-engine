@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -106,7 +107,7 @@ class SseStreamServletTests {
 
             @Override
             protected Stream<AuthorizationDecision> openStream(AuthorizationSubscription subscription, String pdpId) {
-                // Never reached: the pump is rejected before it runs.
+                // never reached, the pump is rejected before it runs
                 return null;
             }
 
@@ -176,15 +177,17 @@ class SseStreamServletTests {
                              return t;
                          });
         val pump         = Executors.newVirtualThreadPerTaskExecutor();
-        val stream       = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
+        val stream       = new LatestSlotStream<AuthorizationDecision>(); // never fed, pump parks in awaitNext()
         val streamClosed = new CountDownLatch(1);
         stream.onClose(streamClosed::countDown);
         try (stream) {
             val response = mock(HttpServletResponse.class);
-            when(response.getWriter()).thenReturn(new PrintWriter(Writer.nullWriter()));
+            // the writer is fetched lazily on the first frame write, which may not happen
+            // here
+            lenient().when(response.getWriter()).thenReturn(new PrintWriter(Writer.nullWriter()));
             when(asyncContext.getResponse()).thenReturn(response);
-            // exp 300ms out; keep-alive is 30s so only the expiry timer can close the
-            // stream within the await window.
+            // exp 300ms out, keep-alive 30s, so only the expiry timer closes the stream in
+            // the await window
             when(authHandler.authenticate(any()))
                     .thenReturn(new HttpAuthResult("default", Instant.now().plusMillis(300)));
             val body = "{\"subject\":\"u\",\"action\":\"r\",\"resource\":\"d\"}".getBytes(UTF_8);
@@ -256,7 +259,7 @@ class SseStreamServletTests {
                                     return t;
                                 });
         val pump                = Executors.newVirtualThreadPerTaskExecutor();
-        val stream              = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
+        val stream              = new LatestSlotStream<AuthorizationDecision>(); // never fed, pump parks in awaitNext()
         val writeThreadName     = new AtomicReference<String>();
         val keepAliveWritten    = new CountDownLatch(1);
         try {
@@ -430,7 +433,7 @@ class SseStreamServletTests {
     void whenKeepAliveWriteFailsThenStreamClosedAndAsyncContextReclaimed() throws Exception {
         val scheduler = Executors.newSingleThreadScheduledExecutor();
         val pump      = Executors.newVirtualThreadPerTaskExecutor();
-        val stream    = new LatestSlotStream<AuthorizationDecision>(); // never fed: pump parks in awaitNext()
+        val stream    = new LatestSlotStream<AuthorizationDecision>(); // never fed, pump parks in awaitNext()
         try {
             val brokenPipe = new PrintWriter(new Writer() {
                                @Override
