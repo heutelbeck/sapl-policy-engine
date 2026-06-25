@@ -144,7 +144,7 @@ public class SignatureFunctionLibrary {
     private static final int NO_CURVE_CHECK = 0;
 
     private static final String ERROR_ALGORITHM_NOT_SUPPORTED  = "Signature algorithm not supported: ";
-    private static final String ERROR_CURVE_MISMATCH           = "Public key is not on the expected elliptic curve. Expected a %d-bit curve but the key uses a %d-bit curve.";
+    private static final String ERROR_CURVE_MISMATCH           = "Public key is not on the expected elliptic curve. Expected %s but the key uses %s.";
     private static final String ERROR_FAILED_TO_VERIFY         = "Failed to verify signature: ";
     private static final String ERROR_INVALID_PUBLIC_KEY       = "Invalid public key: ";
     private static final String ERROR_NOT_EC_KEY               = "Public key is not an elliptic curve key.";
@@ -395,11 +395,22 @@ public class SignatureFunctionLibrary {
         if (!(publicKey instanceof ECPublicKey ecPublicKey)) {
             return Value.error(ERROR_NOT_EC_KEY);
         }
-        val actualCurveBits = ecPublicKey.getParams().getOrder().bitLength();
-        if (actualCurveBits != expectedCurveBits) {
-            return Value.error(ERROR_CURVE_MISMATCH.formatted(expectedCurveBits, actualCurveBits));
+        // Identify the curve by its full parameters, not the order bit length
+        // alone, so a different curve of the same order is rejected.
+        val expectedCurve = expectedCurveName(expectedCurveBits);
+        val actualCurve   = KeyUtils.extractEcCurveName(ecPublicKey);
+        if (!expectedCurve.equals(actualCurve)) {
+            return Value.error(ERROR_CURVE_MISMATCH.formatted(expectedCurve, actualCurve));
         }
         return null;
+    }
+
+    private static String expectedCurveName(int curveBits) {
+        return switch (curveBits) {
+        case EC_P256_BITS -> CURVE_SECP256R1;
+        case EC_P384_BITS -> CURVE_SECP384R1;
+        default           -> CURVE_SECP521R1;
+        };
     }
 
     /**

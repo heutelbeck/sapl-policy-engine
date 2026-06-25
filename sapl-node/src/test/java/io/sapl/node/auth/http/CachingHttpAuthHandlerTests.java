@@ -43,6 +43,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoderInitializationException;
 import org.springframework.security.oauth2.jwt.JwtException;
 
 import io.sapl.node.SaplNodeProperties;
@@ -321,6 +322,20 @@ class CachingHttpAuthHandlerTests {
             val sut = handler();
 
             assertThat(sut.authenticate(request).expiresAt()).isEqualTo(EXPIRES_AT);
+        }
+
+        @Test
+        @DisplayName("an OIDC issuer outage (JwtDecoderInitializationException) fails closed as an auth failure, not an uncaught 500")
+        void whenJwtDecoderInitializationFailsThenFailsClosed() {
+            val token = "eyJhbGciOiJSUzI1NiJ9.payload.sig";
+            when(request.getHeader(AUTHORIZATION)).thenReturn("Bearer " + token);
+            when(properties.isAllowOauth2Auth()).thenReturn(true);
+            when(jwtDecoder.decode(token)).thenThrow(
+                    new JwtDecoderInitializationException("issuer unreachable", new RuntimeException("dns")));
+
+            val sut = handler();
+
+            assertThatThrownBy(() -> sut.authenticate(request)).isInstanceOf(HttpAuthenticationException.class);
         }
 
         @Test

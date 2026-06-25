@@ -30,6 +30,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoderInitializationException;
 import org.springframework.security.oauth2.jwt.JwtException;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -170,7 +171,10 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         Jwt jwt;
         try {
             jwt = jwtDecoder.decode(token);
-        } catch (JwtException e) {
+        } catch (JwtException | JwtDecoderInitializationException e) {
+            // JwtDecoderInitializationException (a RuntimeException, not a
+            // JwtException) is thrown when the issuer is unreachable at decode time.
+            // Fail closed rather than letting it escape as a 500.
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS, e);
         }
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();

@@ -22,6 +22,7 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,6 +35,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.function.Function;
@@ -135,6 +137,25 @@ class SignatureFunctionLibraryTests {
                         "SHA512withECDSA", SHOGGOTH_WARNING),
                 arguments("Ed25519", wrapVerify(SignatureFunctionLibrary::isValidEd25519), ed25519KeyPair, "Ed25519",
                         AZATHOTH_PROPHECY));
+    }
+
+    @Test
+    @DisplayName("isValidEcdsaP256 rejects a same-order different curve (secp256k1), not just the order bit length")
+    void isValidEcdsaP256RejectsSameOrderDifferentCurve() throws Exception {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+        var generator = KeyPairGenerator.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
+        generator.initialize(new ECGenParameterSpec("secp256k1"));
+        var publicKeyPem = toPem(generator.generateKeyPair().getPublic());
+
+        // The curve check runs before signature verification, so a dummy signature
+        // suffices.
+        var result = wrapVerify(SignatureFunctionLibrary::isValidEcdsaP256)
+                .apply(new SignatureParams(RITUAL_INCANTATION, "abcdef", publicKeyPem));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("elliptic curve");
     }
 
     @ParameterizedTest(name = "[{index}] {0} with tampered message returns false")
