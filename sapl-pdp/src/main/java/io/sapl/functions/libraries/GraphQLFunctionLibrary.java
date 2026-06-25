@@ -36,6 +36,8 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import lombok.val;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -230,7 +232,6 @@ public class GraphQLFunctionLibrary {
             PDP configuration.
             """;
 
-    // GraphQL operation types
     private static final String OPERATION_QUERY        = "query";
     private static final String OPERATION_MUTATION     = "mutation";
     private static final String OPERATION_SUBSCRIPTION = "subscription";
@@ -240,7 +241,9 @@ public class GraphQLFunctionLibrary {
     private static final String      VARIABLE_MARKER       = "$variable";
     private static final Set<String> PAGINATION_ARGS_LOWER = Set.of("first", "last", "limit", "offset", "skip", "take");
 
-    // Complexity calculation
+    private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+    private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
+
     private static final int BATCHING_SCORE_MULTIPLIER = 5;
     private static final int DEFAULT_FIELD_WEIGHT      = 1;
     private static final int DEFAULT_MAX_DEPTH         = 100;
@@ -253,7 +256,6 @@ public class GraphQLFunctionLibrary {
      */
     public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
-    // Schema cache configuration
     private static final int     MAX_SCHEMA_CACHE_SIZE = 20;
     private static final int     MAX_SCHEMA_SIZE_BYTES = 512 * 1024;
     private static final float   CACHE_LOAD_FACTOR     = 0.75f;
@@ -309,7 +311,6 @@ public class GraphQLFunctionLibrary {
                 }
             });
 
-    // Return type schema for IDE support
     private static final String RETURNS_PARSED_QUERY = """
             {
               "type": "object",
@@ -589,7 +590,6 @@ public class GraphQLFunctionLibrary {
         val astNode    = ObjectValue.builder();
         val typesArray = ArrayValue.builder();
 
-        // Add regular types
         typeDefinitionRegistry.types().values().forEach(typeDef -> {
             val typeNode = ObjectValue.builder();
             typeNode.put(FIELD_KIND, Value.of(typeDef.getClass().getSimpleName()));
@@ -597,7 +597,6 @@ public class GraphQLFunctionLibrary {
             typesArray.add(typeNode.build());
         });
 
-        // Add scalar types
         typeDefinitionRegistry.scalars().values().forEach(scalarDef -> {
             val typeNode = ObjectValue.builder();
             typeNode.put(FIELD_KIND, Value.of(scalarDef.getClass().getSimpleName()));
@@ -753,7 +752,7 @@ public class GraphQLFunctionLibrary {
             fieldArgs.put(argName, convertGraphQLValueToValue(argValue));
 
             if (PAGINATION_ARGS_LOWER.contains(argName.toLowerCase()) && argValue instanceof IntValue intValue) {
-                metrics.updateMaxPaginationLimit(intValue.getValue().intValue());
+                metrics.updateMaxPaginationLimit(saturatedLong(intValue.getValue()));
             }
         }
 
@@ -987,6 +986,18 @@ public class GraphQLFunctionLibrary {
         return spreads;
     }
 
+    // Pagination literals are unbounded BigIntegers. Clamp to long so an oversized
+    // value cannot wrap and bypass a gate.
+    private static long saturatedLong(BigInteger value) {
+        if (value.compareTo(LONG_MAX) > 0) {
+            return Long.MAX_VALUE;
+        }
+        if (value.compareTo(LONG_MIN) < 0) {
+            return Long.MIN_VALUE;
+        }
+        return value.longValue();
+    }
+
     /**
      * Converts a GraphQL AST Value to a SAPL Value.
      *
@@ -997,7 +1008,7 @@ public class GraphQLFunctionLibrary {
      */
     private static Value convertGraphQLValueToValue(graphql.language.Value<?> value) {
         return switch (value) {
-        case IntValue intValue                        -> Value.of(intValue.getValue().intValue());
+        case IntValue intValue                        -> Value.of(new BigDecimal(intValue.getValue()));
         case FloatValue floatValue                    -> Value.of(floatValue.getValue().doubleValue());
         case StringValue stringValue                  -> Value.of(stringValue.getValue());
         case BooleanValue booleanValue                -> Value.of(booleanValue.isValue());
@@ -1192,7 +1203,7 @@ public class GraphQLFunctionLibrary {
         ObjectValue.Builder fragments            = ObjectValue.builder();
         int                 aliasCount           = 0;
         int                 rootFieldCount       = 0;
-        int                 maxPaginationLimit   = 0;
+        long                maxPaginationLimit   = 0;
         ObjectValue.Builder arguments            = ObjectValue.builder();
         int                 fragmentCount        = 0;
         boolean             hasCircularFragments = false;
@@ -1227,7 +1238,7 @@ public class GraphQLFunctionLibrary {
          * @param limit
          * the pagination limit value
          */
-        void updateMaxPaginationLimit(int limit) {
+        void updateMaxPaginationLimit(long limit) {
             maxPaginationLimit = Math.max(maxPaginationLimit, limit);
         }
 

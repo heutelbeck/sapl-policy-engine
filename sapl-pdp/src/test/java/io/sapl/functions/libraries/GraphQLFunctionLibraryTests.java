@@ -264,6 +264,19 @@ class GraphQLFunctionLibraryTests {
                         "security.aliasCount", 3, "multiple aliases"));
     }
 
+    @ParameterizedTest(name = "pagination first:{0} reported as {1}")
+    @MethodSource("providePaginationOverflowCases")
+    void whenPaginationLimitExceedsIntRangeThenReportedFaithfullyNotTruncated(String literal, long expected) {
+        val result = GraphQLFunctionLibrary.analyzeQuery(Value.of("{ users(first: " + literal + ") { id } }"));
+        val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+        assertThat(parsed.get("security").get("maxPaginationLimit").asLong()).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> providePaginationOverflowCases() {
+        return Stream.of(arguments("4294967297", 4294967297L), arguments("2147483648", 2147483648L));
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideDepthTestCases")
     void whenParseQueryThenCalculatesDepth(String query, int expectedDepth, String scenario) {
