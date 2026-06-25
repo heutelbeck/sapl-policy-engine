@@ -111,7 +111,10 @@ class SaplProtobufCodecTests {
                     arguments("NaN literal", "NaN"), arguments("Infinity literal", "Infinity"),
                     arguments("enormous negative scale", "1E2147483647"),
                     arguments("enormous positive scale", "1E-2147483647"),
-                    arguments("scale at Integer.MIN_VALUE boundary", "1E2147483648"));
+                    arguments("scale at Integer.MIN_VALUE boundary", "1E2147483648"),
+                    arguments("scale beyond the strict 1000 bound", "1E5000"),
+                    arguments("scale at the old loose 1000000 bound", "1E1000000"),
+                    arguments("over-length all-digit literal", "1".repeat(1001)));
         }
 
         @Test

@@ -31,6 +31,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
@@ -83,15 +84,8 @@ public class SaplProtobufCodec {
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
 
-    // Bounds decoded numbers so a tiny scientific-notation literal cannot expand
-    // into
-    // a multi-gigabyte BigDecimal once materialized (toPlainString,
-    // stripTrailingZeros).
-    private static final int    MAX_NUMBER_PRECISION            = 1_000_000;
-    private static final int    MAX_NUMBER_SCALE                = 1_000_000;
     private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-subscription payload.";
-    private static final String ERROR_MALFORMED_NUMBER          = "Malformed number value in protobuf payload.";
-    private static final String ERROR_NUMBER_OUT_OF_BOUNDS      = "Number value in protobuf payload exceeds the accepted magnitude.";
+    private static final String ERROR_INVALID_NUMBER            = "Malformed or out-of-bounds number value in protobuf payload.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -194,16 +188,11 @@ public class SaplProtobufCodec {
     }
 
     private static NumberValue readNumberValue(String literal) throws IOException {
-        final BigDecimal number;
-        try {
-            number = new BigDecimal(literal);
-        } catch (NumberFormatException e) {
-            throw new IOException(ERROR_MALFORMED_NUMBER, e);
+        // Bounds length and scale before the BigDecimal is constructed.
+        if (NumberValueLimits.parseBoundedNumber(literal) instanceof NumberValue numberValue) {
+            return numberValue;
         }
-        if (Math.abs((long) number.scale()) > MAX_NUMBER_SCALE || number.precision() > MAX_NUMBER_PRECISION) {
-            throw new IOException(ERROR_NUMBER_OUT_OF_BOUNDS);
-        }
-        return new NumberValue(number);
+        throw new IOException(ERROR_INVALID_NUMBER);
     }
 
     private static ArrayValue readArrayValue(CodedInputStream input, int depth) throws IOException {
