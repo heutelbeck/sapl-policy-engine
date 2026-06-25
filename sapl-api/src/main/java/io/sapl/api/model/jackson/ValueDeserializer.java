@@ -68,7 +68,7 @@ public class ValueDeserializer extends StdDeserializer<Value> {
         case VALUE_NULL                           -> Value.NULL;
         case VALUE_TRUE                           -> Value.TRUE;
         case VALUE_FALSE                          -> Value.FALSE;
-        case VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT -> NumberValueLimits.boundedNumber(parser.getDecimalValue());
+        case VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT -> NumberValueLimits.parseBoundedNumber(parser.getString());
         case VALUE_STRING                         -> Value.of(parser.getString());
         case START_ARRAY                          -> deserializeArray(parser, context);
         case START_OBJECT                         -> deserializeObject(parser, context);

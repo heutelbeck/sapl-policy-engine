@@ -98,6 +98,13 @@ class SaplJacksonModuleTests {
         assertThat(value).isInstanceOf(ErrorValue.class);
     }
 
+    @Test
+    void when_deserializingNumberWithExponentOverflowingInt_then_producesErrorNotRawException()
+            throws JacksonException {
+        val value = mapper.readValue("1E9999999999", Value.class);
+        assertThat(value).isInstanceOf(ErrorValue.class);
+    }
+
     @ParameterizedTest
     @MethodSource("nonSerializableValueCases")
     void when_serializingNonSerializableValue_then_throwsException(Value value, String expectedMessage) {
