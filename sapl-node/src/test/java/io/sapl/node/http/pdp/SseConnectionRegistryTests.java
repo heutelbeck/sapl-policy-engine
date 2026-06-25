@@ -42,8 +42,8 @@ import lombok.val;
 class SseConnectionRegistryTests {
 
     @Test
-    @DisplayName("the shutdown write is serialized through the connection's monitor and never interleaves with a concurrent write")
-    void whenConnectionRegisteredThenShutdownWriteIsSerializedWithConcurrentWrites() throws Exception {
+    @DisplayName("the shutdown drain does not block behind a stalled client's in-flight write; it skips the frame and still completes")
+    void whenConcurrentWriteHoldsMonitorThenShutdownDrainDoesNotBlockAndCompletes() throws Exception {
         val registry = new SseConnectionRegistry();
 
         val competitorInsideWrite         = new AtomicBoolean(false);
@@ -97,17 +97,15 @@ class SseConnectionRegistryTests {
                 () -> registry.onContextClosed(new ContextClosedEvent(mock(ApplicationContext.class))));
         shutdown.start();
 
-        // While the competitor holds the monitor the shutdown write must block, not
-        // race in.
-        shutdown.join(300);
-        assertThat(shutdown.isAlive()).isTrue();
-
-        releaseCompetitor.countDown();
+        // The drain must not block behind the stalled write: it skips the frame
+        // (non-blocking) and completes the connection promptly.
         shutdown.join(TimeUnit.SECONDS.toMillis(5));
-        competitor.join(TimeUnit.SECONDS.toMillis(5));
-
+        assertThat(shutdown.isAlive()).isFalse();
         assertThat(shutdownWroteDuringCompetitor).isFalse();
         verify(context).complete();
+
+        releaseCompetitor.countDown();
+        competitor.join(TimeUnit.SECONDS.toMillis(5));
     }
 
     @Test

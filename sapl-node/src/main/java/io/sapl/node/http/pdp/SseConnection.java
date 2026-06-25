@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.jspecify.annotations.Nullable;
 
@@ -40,8 +41,8 @@ import lombok.val;
 @Slf4j
 final class SseConnection {
 
-    private final AsyncContext asyncContext;
-    private final Object       lock = new Object();
+    private final AsyncContext  asyncContext;
+    private final ReentrantLock lock = new ReentrantLock();
 
     private final AtomicBoolean keepAliveInFlight = new AtomicBoolean();
 
@@ -85,7 +86,8 @@ final class SseConnection {
      * @return true if the connection is still healthy, false otherwise
      */
     boolean write(String frame) {
-        synchronized (lock) {
+        lock.lock();
+        try {
             if (closed) {
                 return false;
             }
@@ -96,17 +98,23 @@ final class SseConnection {
             target.write(frame);
             target.flush();
             return !target.checkError();
+        } finally {
+            lock.unlock();
         }
     }
 
     /**
-     * Writes a best-effort frame, ignoring a disconnected client. No-op once the
-     * connection is closed.
+     * Writes a best-effort frame, ignoring a disconnected client. Non-blocking.
+     * Skips the frame if a write is already in flight, so a stalled client cannot
+     * pin the caller (the synchronous shutdown drain). No-op once closed.
      *
      * @param frame the SSE frame to write
      */
     void writeQuietly(String frame) {
-        synchronized (lock) {
+        if (!lock.tryLock()) {
+            return;
+        }
+        try {
             if (closed) {
                 return;
             }
@@ -116,6 +124,8 @@ final class SseConnection {
             }
             target.write(frame);
             target.flush();
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -124,7 +134,8 @@ final class SseConnection {
      * skipped.
      */
     void close() {
-        synchronized (lock) {
+        lock.lock();
+        try {
             closed = true;
             // Obtain the writer if no frame was ever written, so the response writer
             // is still closed on teardown.
@@ -132,6 +143,8 @@ final class SseConnection {
             if (target != null) {
                 target.close();
             }
+        } finally {
+            lock.unlock();
         }
     }
 
