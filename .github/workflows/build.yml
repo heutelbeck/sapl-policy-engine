@@ -455,7 +455,7 @@ jobs:
   # ---------------------------------------------------------------------------
 
   publish-maven:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -525,7 +525,7 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   publish-docker:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -619,7 +619,7 @@ jobs:
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
   publish-native-node:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -876,7 +876,7 @@ jobs:
           git push
 
   publish-native-lsp:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, publish-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test, publish-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
