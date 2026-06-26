@@ -7,7 +7,7 @@
 #   yay -S sapl-language-server
 
 pkgname=sapl-language-server
-pkgver=4.0.0_SNAPSHOT
+pkgver=4.1.0
 pkgrel=1
 pkgdesc='SAPL Language Server for IDE integration'
 arch=('x86_64' 'aarch64')
