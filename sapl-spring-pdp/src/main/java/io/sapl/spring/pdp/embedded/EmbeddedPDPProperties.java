@@ -90,9 +90,9 @@ public class EmbeddedPDPProperties {
     /**
      * This property sets the path to the folder where the plugins are located.
      * <p>
-     * If the pdpConfigType is set to RESOURCES, / is the root of the context path.
-     * For DIRECTORY, MULTI_DIRECTORY, or BUNDLES, it must be a valid path on the
-     * system's file system.
+     * Plugins are loaded from a directory on the host file system (classpath
+     * resource locations are not supported). The directory is watched for
+     * {@code *.jar} changes to hot-reload plugins at runtime.
      */
     @NotEmpty
     private String pluginsPath = "/plugins";

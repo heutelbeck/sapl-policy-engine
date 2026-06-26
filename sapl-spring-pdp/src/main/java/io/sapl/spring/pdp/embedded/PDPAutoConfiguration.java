@@ -230,15 +230,21 @@ public class PDPAutoConfiguration {
     @ConditionalOnMissingBean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     PluginsSource pluginsSource(SaplPluginManager pluginManager, PolicyInformationPointAttributeBroker attributeBroker,
-            EmbeddedPDPProperties properties, ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
+            EmbeddedPDPProperties properties, ObjectProvider<FunctionLibraryProvider> functionLibraryProviders,
+            ApplicationContext applicationContext, ObjectProvider<DecisionInterceptor> decisionInterceptorProvider,
             ObjectProvider<SubscriptionLifecycleListener> lifecycleListenerProvider) {
+        val libraries = new ArrayList<Object>();
+        libraries.addAll(collectFunctionLibrariesFromProviders(functionLibraryProviders));
+        libraries.addAll(collectFunctionLibraries(applicationContext));
+
         val decisionInterceptors = decisionInterceptorProvider.orderedStream().toList();
         val lifecycleListeners   = lifecycleListenerProvider.orderedStream().toList();
         if (!decisionInterceptors.isEmpty() || !lifecycleListeners.isEmpty()) {
             log.debug("Registering {} decision interceptors and {} lifecycle listeners.", decisionInterceptors.size(),
                     lifecycleListeners.size());
         }
-        return new HotReloadingPluginsSource(pluginManager, attributeBroker, properties.getFunctionCacheSize(), true,
+        return new HotReloadingPluginsSource(pluginManager, libraries, attributeBroker,
+                properties.getFunctionCacheSize(), true,
                 decisionInterceptors, lifecycleListeners);
     }
 

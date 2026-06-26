@@ -174,6 +174,7 @@ public class SaplPluginManager implements AutoCloseable {
     public List<PluginWrapper> plugins() {
         lock.lock();
         try {
+            ensureOpen();
             return List.copyOf(pluginManager.getPlugins());
         } finally {
             lock.unlock();

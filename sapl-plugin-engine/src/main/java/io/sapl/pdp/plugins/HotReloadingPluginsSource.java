@@ -79,6 +79,7 @@ public final class HotReloadingPluginsSource implements PluginsSource {
     private final PolicyInformationPointAttributeBroker attributeBroker;
     private final int                                   functionCacheSize;
     private final boolean                               includeDefaultFunctionLibraries;
+    private final List<Object>                          baseFunctionLibraries;
     private final List<DecisionInterceptor>             decisionInterceptors;
     private final List<SubscriptionLifecycleListener>   lifecycleListeners;
 
@@ -109,12 +110,14 @@ public final class HotReloadingPluginsSource implements PluginsSource {
      * lifecycle listeners carried in every bundle
      */
     public HotReloadingPluginsSource(@NonNull SaplPluginManager manager,
+            List<Object> baseFunctionLibraries,
             @NonNull PolicyInformationPointAttributeBroker attributeBroker,
             int functionCacheSize,
             boolean includeDefaultFunctionLibraries,
             @NonNull List<DecisionInterceptor> decisionInterceptors,
             @NonNull List<SubscriptionLifecycleListener> lifecycleListeners) {
         this.manager                         = manager;
+        this.baseFunctionLibraries           = baseFunctionLibraries;
         this.attributeBroker                 = attributeBroker;
         this.functionCacheSize               = functionCacheSize;
         this.includeDefaultFunctionLibraries = includeDefaultFunctionLibraries;
@@ -124,7 +127,12 @@ public final class HotReloadingPluginsSource implements PluginsSource {
         manager.start();
         republish();
 
-        this.monitor = startDirectoryMonitor(manager.getPluginsPath());
+        try {
+            this.monitor = startDirectoryMonitor(manager.getPluginsPath());
+        } catch (RuntimeException e) {
+            manager.close();
+            throw e;
+        }
     }
 
     /**
@@ -140,7 +148,8 @@ public final class HotReloadingPluginsSource implements PluginsSource {
             }
             reconcilePips();
 
-            val libraries      = manager.functionLibraries();
+            val libraries = new ArrayList<>(baseFunctionLibraries);
+            libraries.addAll(manager.functionLibraries());
             val functionBroker = PolicyDecisionPointBuilder.buildFunctionBroker(functionCacheSize,
                     includeDefaultFunctionLibraries, libraries);
 
