@@ -1802,7 +1802,7 @@ public class PlaygroundView extends Composite<VerticalLayout> {
         val logoSubtitle = new Span("Playground " + SaplBuildInfo.version().replace("-SNAPSHOT", ""));
         logoSubtitle.getStyle().set(CSS_FONT_SIZE, "0.55rem").set(CSS_FONT_WEIGHT, "500")
                 .set(CSS_COLOR, "var(--vaadin-text-color-secondary)").set("letter-spacing", "0.04em")
-                .set(CSS_MARGIN_TOP, "-2px");
+                .set(CSS_MARGIN_TOP, "-2px").set("white-space", "nowrap");
 
         val logoText = new Div(logoTitle, logoSubtitle);
         logoText.getStyle().set("display", "flex").set("flex-direction", "column").set(CSS_GAP, "0");
