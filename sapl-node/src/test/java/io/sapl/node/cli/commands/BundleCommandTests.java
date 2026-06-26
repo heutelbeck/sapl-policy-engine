@@ -243,6 +243,18 @@ class BundleCommandTests {
             assertThat(err.toString()).contains("Bundle file not found");
         }
 
+        @Test
+        @DisplayName("fails when the file exists but is not a valid bundle")
+        void whenFileIsNotABundleThenFails() throws Exception {
+            val notABundle = tempDir.resolve("notabundle.json");
+            Files.writeString(notABundle, "{\"not\":\"a bundle\"}");
+
+            val exitCode = cmd.execute("bundle", "inspect", "-b", notABundle.toString());
+
+            assertThat(exitCode).isEqualTo(1);
+            assertThat(err.toString()).contains("Not a valid SAPL bundle");
+        }
+
     }
 
     @Nested

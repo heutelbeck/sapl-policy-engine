@@ -65,7 +65,24 @@ load_experiment() {
         exit 1
     fi
     source "$file"
+    [ "${MINIMAL:-false}" = true ] && minimize_sweeps
     echo "Experiment: $experiment"
+}
+
+# Truncate every parameter sweep to its first value so an experiment runs a
+# single combination. The test quality profile sets MINIMAL for CI validation.
+minimize_sweeps() {
+    local name
+    for name in SCENARIOS METHODS THREAD_SWEEP INDEXING_SWEEP SCALING_FACTORS \
+        APPS GC_SWEEP UNROLL_SWEEP CORE_SWEEP CONN_SWEEP TRANSPORT_SWEEP \
+        SERVER_PCORES_SWEEP SCENARIOS_QUICK SCENARIOS_FULL LOAD_PCTS_QUICK LOAD_PCTS_FULL; do
+        if declare -p "$name" &>/dev/null; then
+            local -n ref="$name"
+            [ "${#ref[@]}" -gt 1 ] && ref=("${ref[0]}")
+            unset -n ref
+        fi
+    done
+    SEEDS=1
 }
 
 # ---------------------------------------------------------------------------

@@ -61,7 +61,7 @@ Create `demo/tick.sapl`. This policy uses the built-in time PIP to grant access 
 ```
 policy "tick"
 permit
-  time.secondOf(<time.now>) % 5 == 0
+  time.secondOf(<time.now>) % 5 == 0;
 ```
 
 The `<time.now>` attribute is a stream. It emits the current UTC timestamp once per second. Every time a new value arrives, the PDP re-evaluates the policy and pushes an updated decision to all connected clients.
@@ -93,7 +93,7 @@ curl -s http://localhost:8080/api/pdp/decide-once -H 'Content-Type: application/
 
 </details>
 
-The response is a single JSON object. Depending on the current second, the decision is either `PERMIT` or `NOT_APPLICABLE`.
+The response is a single JSON object. Depending on the current second, the decision is either `PERMIT` or `DENY`. With the default `DENY` combining algorithm, the seconds where the policy does not apply resolve to `DENY` rather than `NOT_APPLICABLE`.
 
 Now try streaming. This is where SAPL shows its strength. The PDP holds the connection open and pushes a new decision every time the policy evaluation result changes:
 
@@ -114,7 +114,7 @@ curl -N http://localhost:8080/api/pdp/decide -H 'Content-Type: application/json'
 
 </details>
 
-Watch the output. Every few seconds, the decision flips between `PERMIT` and `NOT_APPLICABLE` as the current time crosses a multiple of five. The application does not need to poll. The PDP pushes changes as they happen.
+Watch the output. Every few seconds, the decision flips between `PERMIT` and `DENY` as the current time crosses a multiple of five. The application does not need to poll. The PDP pushes changes as they happen.
 
 Press `Ctrl+C` to stop the stream. The PDP cleans up the subscription automatically.
 

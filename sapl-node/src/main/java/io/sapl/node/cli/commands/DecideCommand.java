@@ -24,6 +24,7 @@ import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import javax.net.ssl.SSLException;
@@ -46,7 +47,8 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
         Subscribes to the policy decision point and prints each decision as
         a JSON line to stdout (Newline Delimited JSON). When policies change,
         attributes update, or the subscription context evolves, a new
-        decision line is emitted automatically.
+        decision line is emitted automatically. Each decision is one compact
+        line; --pretty indents them for reading but breaks the NDJSON format.
 
         Runs until interrupted (Ctrl+C) or the decision stream completes.
 
@@ -82,6 +84,9 @@ public class DecideCommand implements Callable<Integer> {
     @Mixin
     PdpOptions pdpOptions;
 
+    @Option(names = "--pretty", description = "Indent each decision for readability. This breaks the NDJSON one-decision-per-line format.")
+    boolean pretty;
+
     @Override
     public Integer call() {
         val      err   = spec.commandLine().getErr();
@@ -101,7 +106,8 @@ public class DecideCommand implements Callable<Integer> {
                     if (decision == null) {
                         return 0;
                     }
-                    out.println(mapper.writeValueAsString(decision));
+                    out.println(pretty ? mapper.writerWithDefaultPrettyPrinter().writeValueAsString(decision)
+                            : mapper.writeValueAsString(decision));
                     out.flush();
                 }
             }

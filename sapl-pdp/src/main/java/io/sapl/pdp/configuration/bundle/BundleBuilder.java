@@ -342,8 +342,14 @@ public final class BundleBuilder {
      * if bundle creation or writing fails
      */
     public void writeTo(Path path) {
-        try (val outputStream = Files.newOutputStream(path)) {
-            writeTo(outputStream);
+        try {
+            val parent = path.toAbsolutePath().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            try (val outputStream = Files.newOutputStream(path)) {
+                writeTo(outputStream);
+            }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_WRITE_BUNDLE.formatted(path), e);
         }

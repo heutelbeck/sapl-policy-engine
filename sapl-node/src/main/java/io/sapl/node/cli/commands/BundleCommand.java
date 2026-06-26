@@ -82,6 +82,7 @@ public class BundleCommand {
     private static final String ERROR_GENERATING_KEYPAIR  = "Error generating keypair: %s.";
     private static final String ERROR_INSPECTING_BUNDLE   = "Error inspecting bundle: %s.";
     private static final String ERROR_KEY_NOT_FOUND       = "Error: Key file not found: %s.";
+    private static final String ERROR_NOT_A_BUNDLE        = "Error: Not a valid SAPL bundle: %s.";
     private static final String ERROR_NOT_A_DIRECTORY     = "Error: Input path is not a directory: %s.";
     private static final String ERROR_NO_POLICIES_FOUND   = "Error: No .sapl files found in: %s.";
     private static final String ERROR_SIGNING_BUNDLE      = "Error signing bundle: %s.";
@@ -418,6 +419,10 @@ public class BundleCommand {
 
             try {
                 val contents = extractBundleContents(bundleFile);
+                if (contents.isEmpty()) {
+                    err.println(ERROR_NOT_A_BUNDLE.formatted(bundleFile));
+                    return 1;
+                }
 
                 out.printf("Bundle: %s%n", bundleFile.getFileName());
                 out.println();

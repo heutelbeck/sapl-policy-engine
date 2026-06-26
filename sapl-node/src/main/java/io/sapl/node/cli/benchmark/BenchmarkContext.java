@@ -25,12 +25,14 @@ import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.node.cli.support.PolicySourceResolver.SourceKind;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
 import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
@@ -92,14 +94,20 @@ public record BenchmarkContext(
         if (RBAC_CONFIG_TYPE.equals(configType)) {
             return buildRbacPdp();
         }
-        val builder       = PolicyDecisionPointBuilder.withDefaults();
-        val directoryPath = Path.of(policiesPath);
-        if ("BUNDLES".equals(configType)) {
+        val builder    = PolicyDecisionPointBuilder.withDefaults();
+        val sourcePath = Path.of(policiesPath);
+        switch (SourceKind.valueOf(configType)) {
+        case DIRECTORY        -> builder.withDirectorySource(sourcePath);
+        case SINGLE_BUNDLE    -> {
             log.warn(WARN_SIGNATURE_VERIFICATION_DISABLED);
-            val securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
-            builder.withBundleDirectorySource(directoryPath, securityPolicy);
-        } else {
-            builder.withDirectorySource(directoryPath);
+            builder.withBundle(sourcePath, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID,
+                    BundleSecurityPolicy.builder().disableSignatureVerification().build());
+        }
+        case BUNDLE_DIRECTORY -> {
+            log.warn(WARN_SIGNATURE_VERIFICATION_DISABLED);
+            builder.withBundleDirectorySource(sourcePath,
+                    BundleSecurityPolicy.builder().disableSignatureVerification().build());
+        }
         }
         return builder.build();
     }

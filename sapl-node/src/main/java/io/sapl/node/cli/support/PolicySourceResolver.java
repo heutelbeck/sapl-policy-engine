@@ -17,35 +17,53 @@
  */
 package io.sapl.node.cli.support;
 
+import io.sapl.functions.libraries.crypto.CryptoException;
+import io.sapl.functions.libraries.crypto.PemUtils;
 import io.sapl.node.cli.commands.BundleCommand;
 import io.sapl.node.cli.options.BundleVerificationOptions;
 import io.sapl.node.cli.options.PolicySourceOptions;
-import io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Objects;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 
 import static io.sapl.pdp.configuration.source.PdpIdValidator.resolveHomeFolderIfPresent;
-import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.BUNDLES;
-import static io.sapl.spring.pdp.embedded.EmbeddedPDPProperties.PDPDataSource.DIRECTORY;
 
 @UtilityClass
 public class PolicySourceResolver {
+
+    private static final String ALGORITHM_ED25519 = "Ed25519";
 
     private static final String ERROR_BOTH_POLICY_TYPES_FOUND      = "Error: Found both .sapl and .saplbundle files in %s. Use --dir or --bundle explicitly.";
     private static final String ERROR_BUNDLE_VERIFICATION_REQUIRED = "Error: Bundle signature verification required. Provide --public-key <file>, place public-key.pem in ~/.sapl/, or use --no-verify.";
     private static final String ERROR_DIRECTORY_NOT_FOUND          = "Error: Policy directory not found: %s.";
     private static final String ERROR_NO_POLICIES_FOUND            = "Error: No policies found. Use --dir, --bundle, or create ~/.sapl/ with policy files.";
+    private static final String ERROR_PUBLIC_KEY_INVALID           = "Error: Public key file is not a valid Ed25519 key: %s.";
     private static final String ERROR_PUBLIC_KEY_NOT_FOUND         = "Error: Public key file not found: %s.";
     private static final String ERROR_SAPL_HOME_LISTING_FAILED     = "Error: Failed to list ~/.sapl/ directory contents: %s.";
     private static final String ERROR_SAPL_HOME_NOT_FOUND          = "Error: ~/.sapl/ directory not found. Use --dir or --bundle to specify policy location.";
 
-    public record ResolvedPolicy(PDPDataSource configType, String path, String publicKeyPath, boolean allowUnsigned) {}
+    /**
+     * How the policies are sourced for a local PDP. The path is a policy
+     * directory for {@link #DIRECTORY}, a single {@code .saplbundle} file for
+     * {@link #SINGLE_BUNDLE}, and a directory of bundle files (one tenant per
+     * file) for {@link #BUNDLE_DIRECTORY}.
+     */
+    public enum SourceKind {
+        DIRECTORY,
+        SINGLE_BUNDLE,
+        BUNDLE_DIRECTORY
+    }
+
+    public record ResolvedPolicy(SourceKind kind, Path path, @Nullable PublicKey publicKey, boolean allowUnsigned) {}
 
     public static ResolvedPolicy resolve(PolicySourceOptions policySource, BundleVerificationOptions bundleVerification,
             Path saplHomeOverride, PrintWriter err) {
@@ -63,8 +81,7 @@ public class PolicySourceResolver {
             err.println(ERROR_DIRECTORY_NOT_FOUND.formatted(policySource.dir));
             return null;
         }
-        val path = policySource.dir.toAbsolutePath().toString();
-        return new ResolvedPolicy(DIRECTORY, path, null, false);
+        return new ResolvedPolicy(SourceKind.DIRECTORY, policySource.dir.toAbsolutePath(), null, false);
     }
 
     private static ResolvedPolicy resolveBundleSource(PolicySourceOptions policySource,
@@ -73,10 +90,8 @@ public class PolicySourceResolver {
             err.println(BundleCommand.ERROR_BUNDLE_NOT_FOUND.formatted(policySource.bundle));
             return null;
         }
-        val path = Objects
-                .requireNonNull(policySource.bundle.toAbsolutePath().getParent(), "Bundle file has no parent directory")
-                .toString();
-        return resolveBundleVerification(path, bundleVerification, saplHomeOverride, err);
+        return resolveBundleVerification(SourceKind.SINGLE_BUNDLE, policySource.bundle.toAbsolutePath(),
+                bundleVerification, saplHomeOverride, err);
     }
 
     private static ResolvedPolicy autoDetectPolicySource(BundleVerificationOptions bundleVerification,
@@ -117,43 +132,56 @@ public class PolicySourceResolver {
                 return null;
             }
 
-            val path = saplHome.toAbsolutePath().toString();
-
             if (hasSaplFiles) {
-                return new ResolvedPolicy(DIRECTORY, path, null, false);
+                return new ResolvedPolicy(SourceKind.DIRECTORY, saplHome.toAbsolutePath(), null, false);
             }
 
-            return resolveBundleVerification(path, bundleVerification, saplHomeOverride, err);
+            return resolveBundleVerification(SourceKind.BUNDLE_DIRECTORY, saplHome.toAbsolutePath(), bundleVerification,
+                    saplHomeOverride, err);
         } catch (IOException e) {
             err.println(ERROR_SAPL_HOME_LISTING_FAILED.formatted(e.getMessage()));
             return null;
         }
     }
 
-    private static ResolvedPolicy resolveBundleVerification(String path, BundleVerificationOptions bundleVerification,
-            Path saplHomeOverride, PrintWriter err) {
+    private static ResolvedPolicy resolveBundleVerification(SourceKind kind, Path path,
+            BundleVerificationOptions bundleVerification, Path saplHomeOverride, PrintWriter err) {
         if (bundleVerification != null && bundleVerification.publicKey != null) {
-            if (!Files.isRegularFile(bundleVerification.publicKey)) {
-                err.println(ERROR_PUBLIC_KEY_NOT_FOUND.formatted(bundleVerification.publicKey));
-                return null;
-            }
-            return new ResolvedPolicy(BUNDLES, path, bundleVerification.publicKey.toAbsolutePath().toString(), false);
+            return resolveWithKey(kind, path, bundleVerification.publicKey, err);
         }
 
         if (bundleVerification != null && bundleVerification.noVerify) {
-            return new ResolvedPolicy(BUNDLES, path, null, true);
+            return new ResolvedPolicy(kind, path, null, true);
         }
 
         val saplHome = resolveSaplHome(saplHomeOverride);
         if (Files.isDirectory(saplHome)) {
             val defaultKey = saplHome.resolve("public-key.pem");
             if (Files.isRegularFile(defaultKey)) {
-                return new ResolvedPolicy(BUNDLES, path, defaultKey.toAbsolutePath().toString(), false);
+                return resolveWithKey(kind, path, defaultKey, err);
             }
         }
 
         err.println(ERROR_BUNDLE_VERIFICATION_REQUIRED);
         return null;
+    }
+
+    private static ResolvedPolicy resolveWithKey(SourceKind kind, Path path, Path keyFile, PrintWriter err) {
+        if (!Files.isRegularFile(keyFile)) {
+            err.println(ERROR_PUBLIC_KEY_NOT_FOUND.formatted(keyFile));
+            return null;
+        }
+        try {
+            return new ResolvedPolicy(kind, path, loadEd25519PublicKey(keyFile), false);
+        } catch (IOException | GeneralSecurityException | CryptoException e) {
+            err.println(ERROR_PUBLIC_KEY_INVALID.formatted(keyFile));
+            return null;
+        }
+    }
+
+    private static PublicKey loadEd25519PublicKey(Path keyFile) throws IOException, GeneralSecurityException {
+        val keyBytes = PemUtils.decodePemFromFile(keyFile);
+        return KeyFactory.getInstance(ALGORITHM_ED25519).generatePublic(new X509EncodedKeySpec(keyBytes));
     }
 
     private static Path resolveSaplHome(Path saplHomeOverride) {

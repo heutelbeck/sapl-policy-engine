@@ -20,46 +20,44 @@ package io.sapl.node.cli.support;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
-import io.sapl.pdp.BlockingPolicyDecisionPoint;
+import io.sapl.reactive.pdp.DelegatingReactivePolicyDecisionPoint;
+import io.sapl.pdp.PolicyDecisionPointBuilder;
+import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.interceptors.ReportingDecisionInterceptor;
 import io.sapl.pdp.remote.DelegatingBlockingPolicyDecisionPoint;
 import io.sapl.pdp.remote.ProtobufRemoteReactivePolicyDecisionPoint;
-import io.sapl.node.SaplNodeApplication;
 import io.sapl.node.cli.options.PdpOptions;
 import io.sapl.node.cli.options.RemoteConnectionOptions;
+import io.sapl.node.cli.support.PolicySourceResolver.ResolvedPolicy;
 import io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
-import org.springframework.boot.Banner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
-import org.springframework.context.ConfigurableApplicationContext;
 import tools.jackson.databind.json.JsonMapper;
 
 import javax.net.ssl.SSLException;
 import java.io.PrintWriter;
-import java.util.Map;
 
 /**
  * Sets up the PDP and a {@link JsonMapper} for CLI commands. Carries
  * both shapes (blocking and reactive) so each consumer picks whichever
  * fits the use case: blocking for one-shot CLI commands, reactive for
- * stream-shaped consumers. Handles both local (Spring-based) and
- * remote (HTTP / RSocket client) modes. For remote modes, the reactive
- * PDP is built natively and the blocking surface is provided through a
- * {@link DelegatingBlockingPolicyDecisionPoint} wrap of the same
- * underlying instance. Call {@link #shutdown()} when done.
+ * stream-shaped consumers. Both local and remote modes build the PDP
+ * directly through the engine, with no Spring context. For remote modes
+ * the blocking surface wraps the reactive client via a
+ * {@link DelegatingBlockingPolicyDecisionPoint}. Call {@link #shutdown()}
+ * when done to release the held resources.
  *
  * @param blocking the blocking-shaped PDP
  * @param reactive the reactive-shaped PDP
  * @param mapper a Jackson mapper configured for SAPL types
- * @param context the Spring context (null for remote mode)
+ * @param closeable the resources to release on shutdown (null for remote mode)
  */
 public record PdpSetup(
         StreamingPolicyDecisionPoint blocking,
         ReactivePolicyDecisionPoint reactive,
         JsonMapper mapper,
-        ConfigurableApplicationContext context) {
+        @Nullable AutoCloseable closeable) {
 
     static final String DEFAULT_HTTP_URL = "http://localhost:8080";
 
@@ -92,8 +90,12 @@ public record PdpSetup(
     }
 
     public void shutdown() {
-        if (context != null) {
-            SpringApplication.exit(context);
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                // The held resources log their own teardown failures. Nothing actionable here.
+            }
         }
     }
 
@@ -145,15 +147,28 @@ public record PdpSetup(
         if (resolved == null) {
             return null;
         }
-        val springArgs = SpringArgsBuilder.build(resolved, options.trace, options.jsonReport, options.textReport);
-        val app        = new SpringApplication(SaplNodeApplication.class);
-        app.setWebApplicationType(WebApplicationType.NONE);
-        app.setBannerMode(Banner.Mode.OFF);
-        app.setAdditionalProfiles("cli");
-        app.setDefaultProperties(Map.of("org.springframework.boot.logging.LoggingSystem", "none"));
-        val context = app.run(springArgs);
-        return new PdpSetup(context.getBean(BlockingPolicyDecisionPoint.class),
-                context.getBean(ReactivePolicyDecisionPoint.class), context.getBean(JsonMapper.class), context);
+        val mapper  = JsonMapper.builder().addModule(new SaplJacksonModule()).build();
+        val builder = PolicyDecisionPointBuilder.withDefaults(mapper);
+        switch (resolved.kind()) {
+        case DIRECTORY        -> builder.withDirectorySource(resolved.path());
+        case SINGLE_BUNDLE    -> builder.withBundle(resolved.path(), StreamingPolicyDecisionPoint.DEFAULT_PDP_ID,
+                bundleSecurityPolicy(resolved));
+        case BUNDLE_DIRECTORY -> builder.withBundleDirectorySource(resolved.path(), bundleSecurityPolicy(resolved));
+        }
+        if (options.trace || options.jsonReport || options.textReport) {
+            builder.withDecisionInterceptor(new ReportingDecisionInterceptor(true, options.trace, options.jsonReport,
+                    options.textReport, false, false));
+        }
+        val components = builder.build();
+        val reactive   = new DelegatingReactivePolicyDecisionPoint(components.pdp());
+        return new PdpSetup(components.pdp(), reactive, mapper, components);
+    }
+
+    private static BundleSecurityPolicy bundleSecurityPolicy(ResolvedPolicy resolved) {
+        if (resolved.publicKey() != null) {
+            return BundleSecurityPolicy.builder(resolved.publicKey()).build();
+        }
+        return BundleSecurityPolicy.builder().disableSignatureVerification().build();
     }
 
     private static void configureRsocketAuth(ProtobufRemoteReactivePolicyDecisionPoint.Builder builder,

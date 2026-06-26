@@ -95,7 +95,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
     private static final String ERROR_EVALUATOR_THREW            = "Voter evaluation failed.";
     private static final String ERROR_INTERRUPTED                = "Voter evaluation interrupted.";
     private static final String ERROR_MULTI_EVALUATION_THREW     = "Multi-decision streaming evaluation for subscription {} threw (engine invariant: it must never throw); surfacing INDETERMINATE to the subscriber: {}";
-    private static final String ERROR_NO_PDP_CONFIGURATION       = "No PDP configuration found.";
+    private static final String ERROR_NO_PDP_CONFIGURATION       = "No PDP configuration found for pdpId '%s'.";
     private static final String ERROR_UNEXPECTED_EVALUATION      = "Unexpected error during decision evaluation, returning INDETERMINATE.";
     private static final String ERROR_VOTER_PRODUCED_NO_DECISION = "Voter produced no decision.";
 
@@ -923,7 +923,7 @@ public final class BlockingPolicyDecisionPoint implements StreamingPolicyDecisio
      */
     public static Vote noConfigurationVote(String pdpId) {
         val metadata = new PdpVoterMetadata("no-configuration", pdpId, "none", null, Outcome.PERMIT_OR_DENY, false);
-        return Vote.error(new ErrorValue(ERROR_NO_PDP_CONFIGURATION), metadata);
+        return Vote.error(new ErrorValue(ERROR_NO_PDP_CONFIGURATION.formatted(pdpId)), metadata);
     }
 
     /**
