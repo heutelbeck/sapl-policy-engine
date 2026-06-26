@@ -24,6 +24,7 @@ import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import javax.net.ssl.SSLException;
@@ -45,7 +46,8 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
         Evaluates the authorization subscription against policies once and
         prints the full decision to stdout as a JSON object containing the
         decision (PERMIT, DENY, SUSPEND, NOT_APPLICABLE, INDETERMINATE), any
-        obligations, advice, and resource transformations.
+        obligations, advice, and resource transformations. The JSON is compact
+        by default; pass --pretty for an indented, human-readable form.
 
         By default, policies are loaded from ~/.sapl/. Use
         --dir for a different directory, --bundle for a bundle file, or
@@ -82,6 +84,9 @@ public class DecideOnceCommand implements Callable<Integer> {
     @Mixin
     PdpOptions pdpOptions;
 
+    @Option(names = "--pretty", description = "Indent the decision JSON for readability instead of compact single-line output.")
+    boolean pretty;
+
     @Override
     public Integer call() {
         val      err   = spec.commandLine().getErr();
@@ -93,7 +98,9 @@ public class DecideOnceCommand implements Callable<Integer> {
                 return 1;
             val subscription = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
             val decision     = setup.blocking().decideOnce(subscription);
-            out.println(setup.mapper().writeValueAsString(decision));
+            val json         = pretty ? setup.mapper().writerWithDefaultPrettyPrinter().writeValueAsString(decision)
+                    : setup.mapper().writeValueAsString(decision);
+            out.println(json);
             return 0;
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());

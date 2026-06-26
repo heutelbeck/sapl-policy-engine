@@ -40,6 +40,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
+import io.sapl.node.boot.SaplBanner;
 import io.sapl.node.cli.SaplNodeCli;
 import lombok.val;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,9 @@ public class SaplNodeApplication {
                     ? Arrays.copyOfRange(args, 1, args.length)
                     : args;
             val springArgs = expandNoAuthShortcut(stripped);
-            SpringApplication.run(SaplNodeApplication.class, springArgs);
+            val app        = new SpringApplication(SaplNodeApplication.class);
+            app.setBanner(new SaplBanner());
+            app.run(springArgs);
             return 0;
         }
         configureCliLogging();
@@ -188,7 +191,8 @@ public class SaplNodeApplication {
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-            hints.resources().registerPattern("banner.txt");
+            hints.resources().registerPattern("banner-color.txt");
+            hints.resources().registerPattern("banner-plain.txt");
             hints.resources().registerPattern("saplversion.properties");
             hints.resources().registerPattern("git.properties");
             hints.resources().registerPattern("ch/qos/logback/core/logback-core-version.properties");
