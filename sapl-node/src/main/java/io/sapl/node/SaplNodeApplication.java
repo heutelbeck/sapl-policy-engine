@@ -90,7 +90,27 @@ public class SaplNodeApplication {
             cli.applyVerbosityToLogging();
             return new CommandLine.RunLast().execute(parseResult);
         });
+        commandLine.setExecutionExceptionHandler(cleanErrorHandler(cli));
         return commandLine.execute(args);
+    }
+
+    /**
+     * Reports an uncaught command exception as a single {@code Error: ...} line.
+     * The full stack trace is printed only when {@code -v}/{@code --verbose} is
+     * active, so ordinary failures stay readable instead of dumping a trace.
+     *
+     * @param cli the root command, consulted for the verbose flag
+     * @return the picocli execution exception handler
+     */
+    static CommandLine.IExecutionExceptionHandler cleanErrorHandler(SaplNodeCli cli) {
+        return (ex, cmdLine, parseResult) -> {
+            val message = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+            cmdLine.getErr().println("Error: " + message);
+            if (cli.isVerbose()) {
+                ex.printStackTrace(cmdLine.getErr());
+            }
+            return cmdLine.getCommandSpec().exitCodeOnExecutionException();
+        };
     }
 
     /**
