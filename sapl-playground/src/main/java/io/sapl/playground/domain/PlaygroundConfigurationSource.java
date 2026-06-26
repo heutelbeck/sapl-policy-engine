@@ -23,8 +23,8 @@ import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.A
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
 import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -51,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class PlaygroundConfigurationSource {
 
-    private static final String PDP_ID = ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
+    private static final String PDP_ID = StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 
     @Getter
     private final PdpVoterSource pdpVoterSource;

@@ -17,6 +17,8 @@
  */
 package io.sapl.node.it.config;
 
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
+
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +75,6 @@ class RSocketTransportIT extends BaseIntegrationTest {
     private static final String API_KEY              = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
     private static final String API_KEY_ID           = API_KEY.split("_")[1];
     private static final String API_KEY_ENCODED      = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
-    private static final String DEFAULT_PDP_ID       = "default";
 
     private static final Duration STEP_TIMEOUT = Duration.ofSeconds(30);
 

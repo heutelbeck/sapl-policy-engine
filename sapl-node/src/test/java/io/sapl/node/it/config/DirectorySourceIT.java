@@ -17,6 +17,8 @@
  */
 package io.sapl.node.it.config;
 
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.TimeUnit;
@@ -54,7 +56,6 @@ class DirectorySourceIT extends BaseIntegrationTest {
     private static final String                    BASIC_SECRET_ENCODED = "$argon2id$v=19$m=16384,t=2,p=1$lZK1zPNtAe3+JnT37cGDMg$PSLftgfXXjXDOTY87cCg63F+O+sd/5aeW4m1MFZgSoM";
     private static final String                    API_KEY              = "sapl_7A7ByyQd6U_5nTv3KXXLPiZ8JzHQywF9gww2v0iuA3j";
     private static final String                    API_KEY_ENCODED      = "$argon2id$v=19$m=16384,t=2,p=1$FttHTp38SkUUzUA4cA5Epg$QjzIAdvmNGP0auVlkCDpjrgr2LHeM5ul0BYLr7QKwBM";
-    private static final String                    DEFAULT_PDP_ID       = "default";
     private static final AuthorizationSubscription PERMIT_SUBSCRIPTION  = AuthorizationSubscription.of("Willi", "eat",
             "apple");
 
