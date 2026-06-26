@@ -316,7 +316,7 @@ class PolicySourceResolverTests {
 
     private static Path createPublicKey(Path dir, String name) throws Exception {
         val keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
-        val encoded = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(keyPair.getPublic().getEncoded());
+        val encoded = Base64.getMimeEncoder(64, new byte[] { '\n' }).encodeToString(keyPair.getPublic().getEncoded());
         val pem     = "-----BEGIN PUBLIC KEY-----\n" + encoded + "\n-----END PUBLIC KEY-----\n";
         val file    = dir.resolve(name);
         Files.writeString(file, pem);
