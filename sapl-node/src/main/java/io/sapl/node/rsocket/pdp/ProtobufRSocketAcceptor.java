@@ -44,6 +44,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -146,9 +147,13 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
+            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID));
         }
-        return authenticator.authenticate(setup).<RSocket>map(result -> {
+        // Offload setup authentication (Argon2 verification, JWT/JWKS decode) onto a
+        // virtual thread so the blocking work never runs on the Netty event loop and
+        // cannot starve connection acceptance or in-flight decision streams. Mirrors
+        // the decision path's subscribeOn below.
+        return authenticator.authenticate(setup).subscribeOn(VIRTUAL_THREAD_SCHEDULER).<RSocket>map(result -> {
             scheduleConnectionExpiry(sendingSocket, result.expiresAt());
             return new ProtobufRSocket(blockingPdp, pdp, result.pdpId());
         }).onErrorMap(e -> {
@@ -163,7 +168,12 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
         }
         val delayMillis = Math.max(0L, Duration.between(Instant.now(), expiresAt).toMillis());
         try {
-            Schedulers.parallel().schedule(connection::dispose, delayMillis, TimeUnit.MILLISECONDS);
+            val expiryTask = Schedulers.parallel().schedule(connection::dispose, delayMillis, TimeUnit.MILLISECONDS);
+            // Cancel the expiry timer if the connection closes before the token
+            // expires, so an early disconnect releases the timer task and the
+            // RSocket reference it captures immediately rather than leaking until
+            // expiry under connection churn.
+            connection.onClose().doFinally(ignored -> expiryTask.dispose()).subscribe();
         } catch (RejectedExecutionException e) {
             log.warn(WARN_EXPIRY_SCHEDULE_REJECTED);
             connection.dispose();

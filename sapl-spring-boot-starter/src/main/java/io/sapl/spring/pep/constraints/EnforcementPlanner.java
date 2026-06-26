@@ -96,7 +96,7 @@ public class EnforcementPlanner {
      * @param decision
      * the authorization decision whose obligations and advice are to be planned
      * @param supportedSignals
-     * the set of signals the deployed PEP actually fires; handlers attached to any
+     * the set of signals the deployed PEP actually fires. Handlers attached to any
      * other signal are treated
      * as not well-formed
      *
@@ -210,7 +210,7 @@ public class EnforcementPlanner {
      * Exactly one provider must claim the
      * constraint (return a non-empty list). That provider may return one or more
      * handlers, each scoped to its own
-     * signal and priority. Each well-formed handler is scheduled independently; any
+     * signal and priority. Each well-formed handler is scheduled independently. Any
      * inadmissible handler in the bundle
      * fails the entire claim.
      * <p>
@@ -223,7 +223,7 @@ public class EnforcementPlanner {
      */
     private List<Assignment> assignHandlers(Value constraint, ConstraintType constraintType,
             Set<SignalType> supportedSignals) {
-        val claims = providers.stream().map(provider -> provider.getConstraintHandlers(constraint, supportedSignals))
+        val claims = providers.stream().map(provider -> claimHandlers(provider, constraint, supportedSignals))
                 .filter(claim -> !claim.isEmpty()).toList();
 
         if (claims.isEmpty()) {
@@ -246,11 +246,25 @@ public class EnforcementPlanner {
         return assignments;
     }
 
+    // A throwing provider is treated as no-claim, so a malformed constraint fails
+    // closed via the synthetic substitute
+    // instead of escaping plan() as a raw exception.
+    private static List<ScopedConstraintHandler> claimHandlers(ConstraintHandlerProvider provider, Value constraint,
+            Set<SignalType> supportedSignals) {
+        try {
+            return provider.getConstraintHandlers(constraint, supportedSignals);
+        } catch (RuntimeException e) {
+            log.warn("Constraint handler provider {} failed to resolve a handler; treating as unresolved: {}",
+                    provider.getClass().getSimpleName(), e.getMessage());
+            return List.of();
+        }
+    }
+
     /**
      * Returns true when {@code (a, s, p)} is well-formed for
      * {@code constraintType}, per the type-signal admissibility
      * invariant: the signal is in {@code supportedSignals}; advice constraints
-     * carry no mapper; mappers and consumers
+     * carry no mapper. Mappers and consumers
      * attach only to data-carrying (value) signals while runners are admissible at
      * any signal.
      */
@@ -325,7 +339,7 @@ public class EnforcementPlanner {
 
     /**
      * Returns the synthetic failure runner of the framework: on invocation it logs
-     * the offending constraint; if
+     * the offending constraint. If
      * {@code constraintType} is obligation it additionally throws an
      * {@link AccessDeniedException} to signal failure to
      * the execution algorithm; if {@code constraintType} is advice it completes

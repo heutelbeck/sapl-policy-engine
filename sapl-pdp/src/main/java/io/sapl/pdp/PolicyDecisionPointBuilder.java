@@ -32,6 +32,7 @@ import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
 import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.attributes.broker.AttributeRepository;
+import org.jspecify.annotations.Nullable;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.attributes.broker.pip.PipLoadException;
 import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
@@ -500,7 +501,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * The configuration ID is determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code dir:<path>@<timestamp>@sha256:<hash>}
+     * {@code dir:<path>@<timestamp>}
      * </p>
      *
      * @param directoryPath
@@ -600,7 +601,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @param resourcePath
@@ -617,7 +618,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @return this builder
@@ -768,7 +769,8 @@ public class PolicyDecisionPointBuilder {
         // into a separate one.
         val resolvedTimestampSource = timestampSource != null ? timestampSource : clock;
         val ownsResolvedSource      = ownsTimestampSource;
-        val attributeBroker         = resolveAttributeBroker(resolvedTimestampSource);
+        val resolvedBroker          = resolveAttributeBroker(resolvedTimestampSource);
+        val attributeBroker         = resolvedBroker.broker();
         val pluginsSource           = resolvePluginsSource();
         val ownsPluginsSource       = externalPluginsSource == null;
         val voterSource             = new PdpVoterSource(pluginsSource, clock);
@@ -802,11 +804,14 @@ public class PolicyDecisionPointBuilder {
             }
             return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
                     configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
-                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource);
+                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource, resolvedBroker.ownedRepository());
         } catch (RuntimeException e) {
             // A failed build never transfers ownership to PDPComponents, so close what this
             // builder created.
             closeQuietly(voterSource);
+            if (configurationSource != null) {
+                closeQuietly(configurationSource);
+            }
             if (ownsPluginsSource) {
                 closeQuietly(pluginsSource);
             }
@@ -815,6 +820,9 @@ public class PolicyDecisionPointBuilder {
             }
             if (externalAttributeBroker == null) {
                 closeQuietly(attributeBroker);
+            }
+            if (resolvedBroker.ownedRepository() != null) {
+                closeQuietly(resolvedBroker.ownedRepository());
             }
             throw e;
         }
@@ -869,13 +877,23 @@ public class PolicyDecisionPointBuilder {
         return functionBroker;
     }
 
-    private AttributeBroker resolveAttributeBroker(InstantSource timestampSource) {
+    /**
+     * The resolved attribute broker plus, when the builder created the default
+     * fallback repository, that repository so {@link PDPComponents} can close it.
+     * {@code ownedRepository} is null when the broker or repository was supplied
+     * by the caller (those stay caller-owned).
+     */
+    private record ResolvedBroker(AttributeBroker broker, @Nullable AttributeRepository ownedRepository) {}
+
+    private ResolvedBroker resolveAttributeBroker(InstantSource timestampSource) {
         if (externalAttributeBroker != null) {
-            return externalAttributeBroker;
+            return new ResolvedBroker(externalAttributeBroker, null);
         }
-        val repository = externalRepository != null ? externalRepository : new InMemoryAttributeRepository();
-        return buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper,
+        val ownedRepository = externalRepository != null ? null : new InMemoryAttributeRepository();
+        val repository      = externalRepository != null ? externalRepository : ownedRepository;
+        val broker          = buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper,
                 includeDefaultPolicyInformationPoints, policyInformationPoints, repository);
+        return new ResolvedBroker(broker, ownedRepository);
     }
 
     /**

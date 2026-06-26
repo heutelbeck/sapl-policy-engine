@@ -352,7 +352,7 @@ public final class BundleBuilder {
     /**
      * Builds the bundle and writes it to the specified output stream.
      * <p>
-     * The output stream is not closed by this method; the caller is responsible for
+     * The output stream is not closed by this method. The caller is responsible for
      * closing it.
      * </p>
      *

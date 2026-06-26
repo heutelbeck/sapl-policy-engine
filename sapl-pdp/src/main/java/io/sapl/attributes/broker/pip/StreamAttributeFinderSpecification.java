@@ -76,6 +76,8 @@ public record StreamAttributeFinderSpecification(
                 || (isEnvironmentAttribute != other.isEnvironmentAttribute)) {
             return false;
         }
+        // Collision = a genuine tie: same fixed arity, or both varargs.
+        // Differing arities and exact-vs-varargs resolve by EXACT > VARARGS.
         return (hasVariableNumberOfArguments() && other.hasVariableNumberOfArguments())
                 || parameterTypes.size() == other.parameterTypes.size();
     }

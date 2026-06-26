@@ -21,6 +21,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.pdp.Decision;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
@@ -35,10 +36,12 @@ import java.util.List;
  * Parses coverage data written by CoverageWriter and reconstructs
  * TestCoverageRecord objects or aggregates them into AggregatedCoverageData.
  */
+@Slf4j
 public class CoverageReader {
 
-    private static final String     COVERAGE_FILENAME = "coverage.ndjson";
-    private static final JsonMapper MAPPER            = JsonMapper.builder().build();
+    private static final String     COVERAGE_FILENAME        = "coverage.ndjson";
+    private static final JsonMapper MAPPER                   = JsonMapper.builder().build();
+    private static final String     WARN_SKIPPING_BAD_RECORD = "Skipping corrupt coverage record: {}";
 
     private final Path outputDirectory;
 
@@ -70,7 +73,11 @@ public class CoverageReader {
             if (line.isBlank()) {
                 continue;
             }
-            records.add(parseRecord(line));
+            try {
+                records.add(parseRecord(line));
+            } catch (RuntimeException | IOException e) {
+                log.warn(WARN_SKIPPING_BAD_RECORD, e.getMessage());
+            }
         }
 
         return records;

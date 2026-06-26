@@ -80,6 +80,18 @@ class AuthorizationSubscriptionFactoryOverrideTests {
     }
 
     @Test
+    @DisplayName("Default factory redacts the credential from the serialized subject")
+    void defaultFactoryRedactsCredentialFromSubject() {
+        val factory = new DefaultAuthorizationSubscriptionFactory(MAPPER);
+        val auth    = (Authentication) new UsernamePasswordAuthenticationToken("alice", "super-secret-credential",
+                AuthorityUtils.createAuthorityList("ROLE_USER"));
+
+        val subscription = factory.build(auth, new MockHttpServletRequest("GET", "/orders/42"));
+
+        assertThat(subscription.subject().toString()).doesNotContain("super-secret-credential");
+    }
+
+    @Test
     @DisplayName("Custom factory replaces the subscription shape passed to the PDP")
     void customFactoryShapeReachesPdp() {
         AuthorizationSubscriptionFactory minimal = (auth, request) -> AuthorizationSubscription.of(auth.getName(),

@@ -69,6 +69,7 @@ public class MqttFunctionLibrary {
             """;
 
     private static final String ERROR_ALL_TOPICS_MUST_BE_TEXT      = "All topics must be text values.";
+    private static final String ERROR_MALFORMED_TOPIC              = "A topic is not a well-formed MQTT topic. It must be a non-empty string of at most 65535 UTF-8 bytes without null characters or unmatched UTF-16 surrogates.";
     private static final String ERROR_TOPIC_CONTAINS_WILDCARD      = "The wildcard topic must not be matched against topics containing wildcards.";
     private static final String ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY = "The topics must be a text value or an array of text values.";
     private static final String ERROR_WILDCARD_TOPIC_MUST_BE_TEXT  = "The wildcard topic must be a text value.";
@@ -105,13 +106,17 @@ public class MqttFunctionLibrary {
         if (!(wildcardTopic instanceof TextValue wildcardText)) {
             return Value.error(ERROR_WILDCARD_TOPIC_MUST_BE_TEXT);
         }
-        var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
+        try {
+            var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        return switch (topics) {
-        case ArrayValue arrayTopics -> isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
-        case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
-        };
+            return switch (topics) {
+            case ArrayValue arrayTopics -> isMatchingAllTopicsInArray(mqttTopicFilter, arrayTopics);
+            case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
+            default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
+            };
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return Value.error(ERROR_MALFORMED_TOPIC);
+        }
     }
 
     /**
@@ -146,13 +151,17 @@ public class MqttFunctionLibrary {
         if (!(wildcardTopic instanceof TextValue wildcardText)) {
             return Value.error(ERROR_WILDCARD_TOPIC_MUST_BE_TEXT);
         }
-        var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
+        try {
+            var mqttTopicFilter = MqttTopicFilter.of(wildcardText.value());
 
-        return switch (topics) {
-        case ArrayValue arrayTopics -> isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
-        case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
-        default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
-        };
+            return switch (topics) {
+            case ArrayValue arrayTopics -> isMatchingAtLeastOneTopicInArray(mqttTopicFilter, arrayTopics);
+            case TextValue textTopic    -> isMatchingSingleTopic(mqttTopicFilter, textTopic);
+            default                     -> Value.error(ERROR_TOPICS_MUST_BE_TEXT_OR_ARRAY);
+            };
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return Value.error(ERROR_MALFORMED_TOPIC);
+        }
     }
 
     private static Value isMatchingSingleTopic(MqttTopicFilter mqttTopicFilter, TextValue topic) {

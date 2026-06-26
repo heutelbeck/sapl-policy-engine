@@ -17,27 +17,47 @@
  */
 package io.sapl.vaadin.lsp;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistration;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 /**
  * Spring configuration for the SAPL LSP WebSocket endpoint.
  * Registers the WebSocket handler at /sapl-lsp for LSP communication.
+ *
+ * <p>
+ * Cross-origin access is closed by default (same-origin only). Operators that
+ * front the editor from a different origin opt in explicitly through
+ * {@code sapl.editor.lsp.allowed-origins}. No wildcard origin is ever shipped.
+ * Authentication is left to the consuming application, which can authorize the
+ * {@code /sapl-lsp} handshake through its own Spring Security filter chain.
  */
 @Configuration
 @EnableWebSocket
+@EnableConfigurationProperties(LspWebSocketProperties.class)
 public class LspWebSocketConfiguration implements WebSocketConfigurer {
+
+    private final LspWebSocketProperties properties;
+
+    public LspWebSocketConfiguration(LspWebSocketProperties properties) {
+        this.properties = properties;
+    }
 
     @Bean
     public LspWebSocketEndpoint lspWebSocketEndpoint() {
-        return new LspWebSocketEndpoint();
+        return new LspWebSocketEndpoint(properties);
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(lspWebSocketEndpoint(), "/sapl-lsp").setAllowedOrigins("*");
+        final WebSocketHandlerRegistration registration   = registry.addHandler(lspWebSocketEndpoint(), "/sapl-lsp");
+        final var                          allowedOrigins = properties.getAllowedOrigins();
+        if (!allowedOrigins.isEmpty()) {
+            registration.setAllowedOriginPatterns(allowedOrigins.toArray(String[]::new));
+        }
     }
 }

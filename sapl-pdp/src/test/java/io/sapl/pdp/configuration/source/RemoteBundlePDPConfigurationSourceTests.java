@@ -25,9 +25,12 @@ import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import com.github.valfirst.slf4jtest.LoggingEvent;
+import com.github.valfirst.slf4jtest.TestLoggerFactory;
 import lombok.val;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.SocketPolicy;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -698,6 +701,40 @@ class RemoteBundlePDPConfigurationSourceTests {
         }
 
         @Test
+        @DisplayName("F4: a redirect is not followed when an auth header is configured, so the credential is never replayed to the redirect target")
+        void whenRedirectWithAuthHeaderThenNotFollowedAndCredentialNotReplayed() throws Exception {
+            // followRedirects is enabled, but a custom auth header is configured. Following
+            // a
+            // redirect would replay that credential to a cross-origin target, so the client
+            // must not follow. The first fetch is redirected (treated as an error). The
+            // retry
+            // serves a valid bundle from the original, configured URL.
+            val config = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
+                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
+                    "X-Auth-Token", "secret", true, developmentPolicy, Map.of(), Duration.ofMillis(50),
+                    Duration.ofMillis(200));
+
+            server.enqueue(
+                    new MockResponse().setResponseCode(301).setHeader("Location", server.url("/other").toString()));
+            enqueueBundle(createUnsignedBundle(), "\"v1\"");
+            enqueueNotModified();
+
+            source = new RemoteBundlePDPConfigurationSource(config);
+            val configs = captureConfigurations(source);
+
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSize(1));
+
+            // Every request must target the configured base URL and carry the credential.
+            // None may hit the redirect target (which would be a cross-origin credential
+            // replay).
+            RecordedRequest request;
+            while ((request = server.takeRequest(50, TimeUnit.MILLISECONDS)) != null) {
+                assertThat(request.getPath()).doesNotStartWith("/other");
+                assertThat(request.getHeader("X-Auth-Token")).isEqualTo("secret");
+            }
+        }
+
+        @Test
         @DisplayName("F5: empty response body treated as error")
         void whenEmptyResponseBodyThenRetries() {
             server.enqueue(new MockResponse().addHeader("ETag", "\"empty\""));
@@ -976,6 +1013,32 @@ class RemoteBundlePDPConfigurationSourceTests {
         return new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
                 RemoteBundleSourceConfig.FetchMode.LONG_POLL, Duration.ofMillis(100), Duration.ofSeconds(5), null, null,
                 true, securityPolicy, Map.of(), Duration.ofMillis(50), Duration.ofMillis(200));
+    }
+
+    @Nested
+    @DisplayName("G: Credential Redaction")
+    class CredentialRedaction {
+
+        @Test
+        @DisplayName("an auth header value with illegal characters is never written to the logs")
+        void whenAuthHeaderValueHasIllegalCharactersThenCredentialNotLogged() {
+            TestLoggerFactory.clearAll();
+            val poisonedCredential = "Bearer SUPER-SECRET-TOKEN\r\nX-Injected: evil";
+            val config             = new RemoteBundleSourceConfig(server.url("/bundles").toString(), List.of(PDP_ID),
+                    RemoteBundleSourceConfig.FetchMode.POLLING, Duration.ofMillis(100), Duration.ofSeconds(5),
+                    "Authorization", poisonedCredential, true, developmentPolicy, Map.of(), Duration.ofMillis(50),
+                    Duration.ofMillis(200));
+
+            source = new RemoteBundlePDPConfigurationSource(config);
+            captureConfigurations(source);
+
+            await().atMost(Duration.ofSeconds(5))
+                    .untilAsserted(() -> assertThat(TestLoggerFactory.getAllLoggingEvents())
+                            .extracting(LoggingEvent::getFormattedMessage)
+                            .anyMatch(message -> message.startsWith("Fetch failed for pdpId"))
+                            .noneMatch(message -> message.contains("SUPER-SECRET-TOKEN")));
+            assertThat(source.isClosed()).isFalse();
+        }
     }
 
 }

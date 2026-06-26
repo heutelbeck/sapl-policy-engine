@@ -174,8 +174,16 @@ attributeParameters
     ;
 
 numericAmount
-    : ONCE                # onceAmount
-    | amount=NUMBER TIMES # multipleAmount
+    : ONCE             # onceAmount
+    | amount=INT TIMES # multipleAmount
+    ;
+
+// Verification counts may also assert a mock was never invoked. Zero and one
+// remain expressible as 0/1 times, so the keywords never and once do not
+// replace the numeric form.
+verificationAmount
+    : NEVER CALLED         # neverAmount
+    | CALLED numericAmount # countedAmount
     ;
 
 // Verify block - post-test assertions on call counts
@@ -189,8 +197,8 @@ verifyBlock
 
 verifyStep
     : FUNCTION functionFullName=functionName functionParameters?
-      IS CALLED timesCalled=numericAmount                            # functionVerification
-    | ATTRIBUTE attributeReference IS CALLED timesCalled=numericAmount  # attributeVerification
+      IS timesCalled=verificationAmount                            # functionVerification
+    | ATTRIBUTE attributeReference IS timesCalled=verificationAmount  # attributeVerification
     ;
 
 // When step
@@ -264,7 +272,7 @@ extendedObjectMatcher
 nodeMatcher
     : NULL_KEYWORD                                                                  # nullMatcher
     | TEXT stringOrStringMatcher?                                                   # textMatcher
-    | NUMBER_KEYWORD number=NUMBER?                                                 # numberMatcher
+    | NUMBER_KEYWORD number=numberLiteral?                                          # numberMatcher
     | BOOLEAN_KEYWORD booleanLiteral?                                               # booleanMatcher
     | ARRAY (WHERE arrayMatcherBody)?                                               # arrayMatcher
     | OBJECT (WHERE objectMatcherBody)?                                             # objectMatcher
@@ -288,7 +296,7 @@ stringMatcher
     | ENDING WITH postfix=STRING caseInsensitive=CASE_INSENSITIVE?                  # stringEndsWith
     | CONTAINING text=STRING caseInsensitive=CASE_INSENSITIVE?                      # stringContains
     | CONTAINING STREAM substrings+=STRING (COMMA substrings+=STRING)* IN ORDER     # stringContainsInOrder
-    | WITH LENGTH length=NUMBER                                                     # stringWithLength
+    | WITH LENGTH length=INT                                                        # stringWithLength
     ;
 
 arrayMatcherBody
@@ -353,7 +361,8 @@ stringLiteral
     ;
 
 numberLiteral
-    : NUMBER
+    : INT
+    | NUMBER
     ;
 
 // Identifiers - allows combining algorithm keywords to be used as identifiers

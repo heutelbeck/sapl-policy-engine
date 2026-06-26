@@ -60,6 +60,21 @@ class SAPLSemanticTokensProviderTests {
         });
     }
 
+    static Stream<Arguments> multiLineTokenCases() {
+        return Stream.of(
+                arguments("multi-line block comment", "/* line one\nline two\nline three */\npolicy \"p\" permit"),
+                arguments("string literal with embedded newlines", "policy \"line one\nline two\nline three\""));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("multiLineTokenCases")
+    @DisplayName("multi-line tokens are split so no token crosses a line boundary")
+    void whenTokenSpansMultipleLines_thenSplitIntoPerLineTokens(String description, String content) {
+        var tokens = decodedTokens(content);
+
+        assertThat(tokens).isNotEmpty().allSatisfy(t -> assertThat(t.text()).doesNotContain("\n"));
+    }
+
     private List<DecodedToken> decodedTokens(String content) {
         var document    = new SAPLParsedDocument("test://test.sapl", content);
         var data        = provider.provideSemanticTokens(document).getData();

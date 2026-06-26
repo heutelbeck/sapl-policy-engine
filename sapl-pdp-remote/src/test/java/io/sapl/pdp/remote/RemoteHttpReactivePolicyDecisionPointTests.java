@@ -86,7 +86,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
         server = new MockWebServer();
         server.start();
         pdp = RemotePolicyDecisionPoint.builder().http().baseUrl(this.server.url("/").toString())
-                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").build();
+                .withHttpClient(HttpClient.create()).basicAuth("secret", "key").allowInsecureTransport().build();
         pdp.setFirstBackoffMillis(100);
         pdp.setMaxBackOffMillis(200);
         pdp.setTimeoutMillis(30000);
@@ -117,6 +117,29 @@ class RemoteHttpReactivePolicyDecisionPointTests {
                         AuthorizationDecision.PERMIT, AuthorizationDecision.INDETERMINATE,
                         AuthorizationDecision.NOT_APPLICABLE, AuthorizationDecision.INDETERMINATE)
                 .thenCancel().verify();
+    }
+
+    @Test
+    @Timeout(30)
+    @DisplayName("a healthy stream that reconnects more often than maxRetries survives: the retry budget resets on each genuine decision (run2-103)")
+    void whenStreamRecoversBetweenFailuresThenRetryBudgetResetsAndStreamSurvives() throws JacksonException {
+        pdp.setMaxRetries(3);
+        // Each connection delivers one genuine DENY then an invalid event forcing a
+        // reconnect. Five DENYs require surviving four reconnects. A cumulative budget
+        // of
+        // 3 would have terminated the stream before the fifth DENY.
+        for (var i = 0; i < 6; i++) {
+            prepareDecisions(new AuthorizationDecision[] { AuthorizationDecision.DENY, null });
+        }
+
+        val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
+
+        StepVerifier.create(pdp.decide(subscription))
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY, AuthorizationDecision.INDETERMINATE)
+                .expectNext(AuthorizationDecision.DENY).thenCancel().verify();
     }
 
     @Test
@@ -188,7 +211,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     @Test
     void construct() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").build();
+                .basicAuth("secret", "key").allowInsecureTransport().build();
         assertThat(pdpUnderTest).isNotNull();
     }
 
@@ -196,7 +219,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     void constructWithSslContext() throws SSLException {
         val sslContext   = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").secure(sslContext).build();
+                .basicAuth("secret", "key").secure(sslContext).allowInsecureTransport().build();
         assertThat(pdpUnderTest).isNotNull();
     }
 
@@ -241,7 +264,7 @@ class RemoteHttpReactivePolicyDecisionPointTests {
     @Test
     void settersAndGetters() {
         val pdpUnderTest = RemotePolicyDecisionPoint.builder().http().baseUrl("http://localhost")
-                .basicAuth("secret", "key").build();
+                .basicAuth("secret", "key").allowInsecureTransport().build();
         pdpUnderTest.setFirstBackoffMillis(998);
         pdpUnderTest.setMaxBackOffMillis(1001);
         pdpUnderTest.setTimeoutMillis(997);
@@ -282,6 +305,20 @@ class RemoteHttpReactivePolicyDecisionPointTests {
                     .verifyComplete();
 
             assertThat(server.getRequestCount()).isEqualTo(1);
+        }
+
+        @Test
+        @Timeout(5)
+        @DisplayName("decideAllOnce maps an empty server response to an indeterminate decision (fail closed)")
+        void whenDecideAllOnceReceivesEmptyResponseThenIndeterminate() {
+            server.enqueue(new MockResponse().setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .setResponseCode(HttpStatus.OK.value()));
+
+            val subscription = new MultiAuthorizationSubscription().addAuthorizationSubscription(ID,
+                    JSON.stringNode(SUBJECT), JSON.stringNode(ACTION), JSON.stringNode(RESOURCE));
+
+            StepVerifier.create(pdp.decideAllOnce(subscription)).expectNext(MultiAuthorizationDecision.indeterminate())
+                    .verifyComplete();
         }
     }
 

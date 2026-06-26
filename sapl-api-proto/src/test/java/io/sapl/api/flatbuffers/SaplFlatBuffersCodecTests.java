@@ -18,9 +18,11 @@
 package io.sapl.api.flatbuffers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.math.BigDecimal;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -55,6 +58,20 @@ class SaplFlatBuffersCodecTests {
             var bytes        = SaplFlatBuffersCodec.writeValue(original);
             var deserialized = SaplFlatBuffersCodec.readValue(bytes);
             assertThat(deserialized).isEqualTo(original);
+        }
+
+        @ParameterizedTest(name = "rejected on decode: {0}")
+        @MethodSource
+        @DisplayName("a number exceeding the precision or scale bound fails closed to an error on decode")
+        void whenDecodedNumberExceedsBoundThenError(String description, NumberValue value) {
+            var bytes  = SaplFlatBuffersCodec.writeValue(value);
+            var result = SaplFlatBuffersCodec.readValue(bytes);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }
+
+        static Stream<Arguments> whenDecodedNumberExceedsBoundThenError() {
+            return Stream.of(arguments("extreme negative scale", new NumberValue(new BigDecimal("1E1000000000"))),
+                    arguments("excessive precision", new NumberValue(new BigDecimal("1".repeat(1500)))));
         }
 
         static Stream<Arguments> valueTestCases() {
@@ -305,6 +322,34 @@ class SaplFlatBuffersCodecTests {
                 assertThat(d.decision().decision()).isEqualTo(Decision.PERMIT);
                 assertThat(d.decision().obligations()).hasSize(1);
             });
+        }
+    }
+
+    @Nested
+    @DisplayName("malformed buffer handling")
+    class MalformedBufferTests {
+
+        static Stream<Arguments> decoders() {
+            return Stream.of(arguments("readValue", (Consumer<byte[]>) SaplFlatBuffersCodec::readValue),
+                    arguments("readAuthorizationSubscription",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readAuthorizationSubscription),
+                    arguments("readAuthorizationDecision",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readAuthorizationDecision),
+                    arguments("readMultiAuthorizationSubscription",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readMultiAuthorizationSubscription),
+                    arguments("readMultiAuthorizationDecision",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readMultiAuthorizationDecision),
+                    arguments("readIdentifiableAuthorizationDecision",
+                            (Consumer<byte[]>) SaplFlatBuffersCodec::readIdentifiableAuthorizationDecision));
+        }
+
+        @ParameterizedTest(name = "{0} rejects a truncated buffer")
+        @MethodSource("decoders")
+        @DisplayName("a malformed buffer fails closed with a controlled exception, not a leaked decode error")
+        void whenBufferTruncatedThenFailsClosed(String name, Consumer<byte[]> decoder) {
+            var malformed = new byte[] { 1, 2, 3 };
+
+            assertThatThrownBy(() -> decoder.accept(malformed)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 }

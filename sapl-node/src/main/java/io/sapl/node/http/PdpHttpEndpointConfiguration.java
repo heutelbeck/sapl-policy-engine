@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jspecify.annotations.Nullable;
@@ -53,7 +54,7 @@ import tools.jackson.databind.json.JsonMapper;
  * {@code /api/pdp/*} routes via {@link ServletRegistrationBean} so that
  * Jetty dispatches them directly, skipping Spring MVC's
  * {@code DispatcherServlet}. Spring Security is configured to ignore the
- * same routes; per-request authentication is handled by
+ * same routes. Per-request authentication is handled by
  * {@link HttpAuthHandler} which caches verified credentials.
  */
 @Configuration
@@ -65,7 +66,7 @@ class PdpHttpEndpointConfiguration {
             @Value("${io.sapl.node.http.max-request-body-bytes:65536}") long maxRequestBodyBytes) {
         // Global cap against oversized POST bodies on the SAPL HTTP surface.
         // 64 KiB default is generous for typical authorization subscriptions
-        // (subject + action + resource + small context); operators with very
+        // (subject + action + resource + small context). Operators with very
         // large multi-decide payloads or rich environment maps can raise it.
         // This cap is HTTP only. The RSocket transport is bounded by its protocol
         // frame ceiling via sapl.pdp.rsocket.max-inbound-payload-size, which cannot
@@ -91,11 +92,15 @@ class PdpHttpEndpointConfiguration {
         val poolSize    = configuredPoolSize > 0 ? configuredPoolSize
                 : Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         val threadIndex = new AtomicInteger();
-        return Executors.newScheduledThreadPool(poolSize, r -> {
-            val t = new Thread(r, "sapl-sse-keepalive-" + threadIndex.incrementAndGet());
-            t.setDaemon(true);
-            return t;
-        });
+        val scheduler   = new ScheduledThreadPoolExecutor(poolSize, r -> {
+                            val t = new Thread(r, "sapl-sse-keepalive-" + threadIndex.incrementAndGet());
+                            t.setDaemon(true);
+                            return t;
+                        });
+        // Purge cancelled keep-alive tasks promptly so they do not pile up under
+        // connection churn.
+        scheduler.setRemoveOnCancelPolicy(true);
+        return scheduler;
     }
 
     // shutdownNow (not shutdown) so pumps blocked in awaitNext() are

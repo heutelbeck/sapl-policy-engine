@@ -20,6 +20,7 @@ package io.sapl.functions.libraries;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.libraries.crypto.CertificateUtils;
+import io.sapl.functions.libraries.crypto.SubjectAlternativeName;
 import lombok.val;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -33,12 +34,15 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -55,6 +59,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -99,8 +104,6 @@ class X509FunctionLibraryTests {
         certWithSansPem = toPem(generateCertificate(AZATHOTH_DN, now.minus(1, ChronoUnit.DAYS),
                 now.plus(365, ChronoUnit.DAYS), true, new String[] { DEFAULT_DNS_1, DEFAULT_DNS_2 }));
     }
-
-    /* Certificate Parsing Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("validCertificates")
@@ -168,8 +171,6 @@ class X509FunctionLibraryTests {
         assertThat(result).isNotInstanceOf(ErrorValue.class);
     }
 
-    /* Field Extraction Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("fieldExtractors")
     void whenExtractFieldWithValidCertThenReturnsExpectedValue(Function<TextValue, Value> extractor,
@@ -213,8 +214,6 @@ class X509FunctionLibraryTests {
         return Stream.of(arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotBefore, "NotBefore"),
                 arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotAfter, "NotAfter"));
     }
-
-    /* Fingerprint Tests */
 
     @ParameterizedTest(name = "{0}")
     @CsvSource({ "SHA-256, 64", "SHA-1, 40", "SHA-512, 128" })
@@ -270,8 +269,6 @@ class X509FunctionLibraryTests {
                 Value.of("SHA-256"))).isEqualTo(Value.TRUE);
     }
 
-    /* Subject Alternative Names Tests */
-
     @Test
     void whenExtractSubjectAltNamesWithNoSansThenReturnsEmptyArray() {
         val result = X509FunctionLibrary.extractSubjectAltNames(Value.of(cthulhuCertPem));
@@ -291,8 +288,6 @@ class X509FunctionLibraryTests {
         assertThat(firstSan.containsKey("value")).isTrue();
     }
 
-    /* DNS Name Tests */
-
     @Test
     void whenHasDnsNameWithMatchingDnsThenReturnsTrue() {
         val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(certWithSansPem),
@@ -310,6 +305,34 @@ class X509FunctionLibraryTests {
     }
 
     @Test
+    void whenDnsNameOnlyInSubjectCommonNameThenReturnsFalse()
+            throws OperatorCreationException, CertificateException, IOException {
+        val now  = REFERENCE;
+        val cert = generateCertificate("CN=secure.rlyeh.deep,O=CN Only Services,C=US", now.minus(1, ChronoUnit.DAYS),
+                now.plus(365, ChronoUnit.DAYS), false, null);
+        val pem  = toPem(cert);
+
+        val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem),
+                (TextValue) Value.of("secure.rlyeh.deep"));
+
+        assertThat(result).isEqualTo(Value.FALSE);
+    }
+
+    @Test
+    void whenDnsNameInSubjectAlternativeNameThenReturnsTrue()
+            throws OperatorCreationException, CertificateException, IOException {
+        val now  = REFERENCE;
+        val cert = generateCertificate("CN=other.rlyeh.deep,O=SAN Services,C=US", now.minus(1, ChronoUnit.DAYS),
+                now.plus(365, ChronoUnit.DAYS), true, new String[] { "secure.rlyeh.deep" });
+        val pem  = toPem(cert);
+
+        val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem),
+                (TextValue) Value.of("secure.rlyeh.deep"));
+
+        assertThat(result).isEqualTo(Value.TRUE);
+    }
+
+    @Test
     void whenHasDnsNameWithWildcardCertThenMatchesSubdomain()
             throws OperatorCreationException, CertificateException, IOException {
         val now  = REFERENCE;
@@ -323,6 +346,27 @@ class X509FunctionLibraryTests {
         assertThat(result).isEqualTo(Value.TRUE);
     }
 
+    @ParameterizedTest(name = "{0} vs {1} -> {2}")
+    @CsvSource({
+            // RFC 9525: wildcard spanning a public suffix or TLD must be rejected.
+            "*.com,           evil.com,        false",
+            // RFC 9525: single leftmost-label substitution, exactly one extra label.
+            "*.example.com,   a.example.com,   true",
+            // RFC 9525: wildcard substitutes exactly one label, never multiple.
+            "*.example.com,   a.b.example.com, false" })
+    void whenHasDnsNameWithWildcardThenFollowsRfc9525LabelRules(String wildcardName, String targetName,
+            boolean expectedMatch) throws OperatorCreationException, CertificateException, IOException {
+        val now      = REFERENCE;
+        val cert     = generateCertificate("CN=" + wildcardName + ",O=Wildcard Services,C=US",
+                now.minus(1, ChronoUnit.DAYS), now.plus(365, ChronoUnit.DAYS), true, new String[] { wildcardName });
+        val pem      = toPem(cert);
+        val expected = expectedMatch ? Value.TRUE : Value.FALSE;
+
+        val result = X509FunctionLibrary.hasDnsName((TextValue) Value.of(pem), (TextValue) Value.of(targetName));
+
+        assertThat(result).isEqualTo(expected);
+    }
+
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = { "RITUAL-CHAMBER.RLYEH.DEEP", "Ritual-Chamber.Rlyeh.Deep" })
     void whenHasDnsNameThenIsCaseInsensitive(String dnsVariation) {
@@ -331,8 +375,6 @@ class X509FunctionLibraryTests {
 
         assertThat(result).isEqualTo(Value.TRUE);
     }
-
-    /* IP Address Tests */
 
     @Test
     void whenHasIpAddressWithMatchingIpThenReturnsTrue() {
@@ -358,7 +400,22 @@ class X509FunctionLibraryTests {
         assertThat(result).isEqualTo(Value.FALSE);
     }
 
-    /* Validity Check Tests */
+    @Test
+    @DisplayName("non-IP-literal target never matches an IP SAN by raw string comparison")
+    void whenHasIpAddressWithNonIpLiteralTargetEqualToRawSanThenReturnsFalse() {
+        val ipSan = new SubjectAlternativeName(7, "not-a-normalized-ip");
+
+        try (MockedStatic<CertificateUtils> certificateUtilsMock = Mockito.mockStatic(CertificateUtils.class,
+                Mockito.CALLS_REAL_METHODS)) {
+            certificateUtilsMock.when(() -> CertificateUtils.extractSubjectAlternativeNames(Mockito.any()))
+                    .thenReturn(List.of(ipSan));
+
+            val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(cthulhuCertPem),
+                    (TextValue) Value.of("not-a-normalized-ip"));
+
+            assertThat(result).isEqualTo(Value.FALSE);
+        }
+    }
 
     @ParameterizedTest(name = "{0}")
     @CsvSource({ "1, DAYS, true, Within validity period", "-365, DAYS, false, Before validity start",
@@ -396,8 +453,6 @@ class X509FunctionLibraryTests {
                 arguments((Function<TextValue, Value>) X509FunctionLibrary::extractNotAfter));
     }
 
-    /* Unicode Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("unicodeDns")
     void whenParseAndExtractWithVariousUnicodeScriptsThenSucceeds(String dn, String description)
@@ -427,8 +482,6 @@ class X509FunctionLibraryTests {
                 arguments("CN=Γιογκ-Σόθοθ,O=Πέρα από την Πύλη,C=GR", "Greek"));
     }
 
-    /* Temporal Edge Cases */
-
     @Test
     void whenIsValidAtWithCertValidForOneHourThenHandlesCorrectly()
             throws OperatorCreationException, CertificateException, IOException {
@@ -449,7 +502,97 @@ class X509FunctionLibraryTests {
         assertThat(validAfter).isEqualTo(Value.FALSE);
     }
 
-    /* Helper Methods */
+    @Nested
+    @DisplayName("IPv6 and multi-valued RDN correctness")
+    class AddressAndDistinguishedNameNormalization {
+
+        @ParameterizedTest(name = "{2}")
+        @MethodSource("io.sapl.functions.libraries.X509FunctionLibraryTests#equivalentIpv6Forms")
+        void whenHasIpAddressWithEquivalentIpv6FormThenReturnsTrue(String certificateIp, String policyIp,
+                String description) throws Exception {
+            val cert = generateCertificateWithIpSan(certificateIp);
+            val pem  = toPem(cert);
+
+            val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(pem), (TextValue) Value.of(policyIp));
+
+            assertThat(result).as(description).isEqualTo(Value.TRUE);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "300.300.300.300", "192.168.1.256", "999.0.0.1" })
+        @DisplayName("out-of-range dotted quad never triggers DNS name resolution and does not match")
+        void whenHasIpAddressWithOutOfRangeQuadThenNoNameResolutionAndNoMatch(String maliciousIp) throws Exception {
+            val cert = generateCertificateWithIpSan(DEFAULT_IP);
+            val pem  = toPem(cert);
+
+            try (MockedStatic<InetAddress> inetAddressMock = Mockito.mockStatic(InetAddress.class,
+                    Mockito.CALLS_REAL_METHODS)) {
+                val result = X509FunctionLibrary.hasIpAddress((TextValue) Value.of(pem),
+                        (TextValue) Value.of(maliciousIp));
+
+                inetAddressMock.verify(() -> InetAddress.getByName(maliciousIp), Mockito.never());
+                assertThat(result).isEqualTo(Value.FALSE);
+            }
+        }
+
+        @ParameterizedTest(name = "{1}")
+        @MethodSource("io.sapl.functions.libraries.X509FunctionLibraryTests#multiValuedRdnSubjects")
+        void whenExtractCommonNameWithMultiValuedRdnThenReturnsBareCommonName(String subjectDn, String expectedCn)
+                throws Exception {
+            val cert = generateCertificate(subjectDn, REFERENCE.minus(1, ChronoUnit.DAYS),
+                    REFERENCE.plus(365, ChronoUnit.DAYS), false, null);
+            val pem  = toPem(cert);
+
+            val result = X509FunctionLibrary.extractCommonName((TextValue) Value.of(pem));
+
+            assertThat(result).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                    .isEqualTo(expectedCn);
+        }
+
+        @Test
+        void whenExtractCommonNameWithEscapedSeparatorThenReturnsUnescapedValue() throws Exception {
+            val cert = generateCertificate("CN=evil\\,corp,O=Acme,C=US", REFERENCE.minus(1, ChronoUnit.DAYS),
+                    REFERENCE.plus(365, ChronoUnit.DAYS), false, null);
+            val pem  = toPem(cert);
+
+            val result = X509FunctionLibrary.extractCommonName((TextValue) Value.of(pem));
+
+            assertThat(result).isInstanceOf(TextValue.class).extracting(v -> ((TextValue) v).value())
+                    .isEqualTo("evil,corp");
+        }
+    }
+
+    static Stream<Arguments> equivalentIpv6Forms() {
+        return Stream.of(arguments("::1", "0:0:0:0:0:0:0:1", "Compressed vs expanded loopback"),
+                arguments("2001:db8::1", "2001:0db8:0000:0000:0000:0000:0000:0001", "Compressed vs fully expanded"),
+                arguments("2001:DB8::ABCD", "2001:db8::abcd", "Uppercase vs lowercase hex"));
+    }
+
+    static Stream<Arguments> multiValuedRdnSubjects() {
+        return Stream.of(arguments("CN=trusted.example.com+OU=spoof,O=Acme,C=US", "trusted.example.com"),
+                arguments("OU=spoof+CN=trusted.example.com,O=Acme,C=US", "trusted.example.com"));
+    }
+
+    private static X509Certificate generateCertificateWithIpSan(String ipAddress)
+            throws OperatorCreationException, CertificateException, IOException {
+        val subject     = new X500Name(AZATHOTH_DN);
+        val certBuilder = new JcaX509v3CertificateBuilder(subject, BigInteger.valueOf(System.currentTimeMillis()),
+                Date.from(REFERENCE.minus(1, ChronoUnit.DAYS)), Date.from(REFERENCE.plus(365, ChronoUnit.DAYS)),
+                subject, keyPair.getPublic());
+
+        certBuilder.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+
+        val ipBytes       = InetAddress.getByName(ipAddress).getAddress();
+        val octetString   = new DEROctetString(ipBytes);
+        val ipGeneralName = new GeneralName(GeneralName.iPAddress, octetString);
+        val sans          = new GeneralNames(new GeneralName[] { ipGeneralName });
+        certBuilder.addExtension(Extension.subjectAlternativeName, false, sans);
+
+        val signer = new JcaContentSignerBuilder("SHA256withRSA").build(keyPair.getPrivate());
+        val holder = certBuilder.build(signer);
+
+        return new JcaX509CertificateConverter().getCertificate(holder);
+    }
 
     private static X509Certificate generateCertificate(String subjectDn, Instant notBefore, Instant notAfter,
             boolean withSans, String[] dnsNames) throws OperatorCreationException, CertificateException, IOException {

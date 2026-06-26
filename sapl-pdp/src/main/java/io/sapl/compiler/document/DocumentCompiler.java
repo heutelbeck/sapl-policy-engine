@@ -51,8 +51,7 @@ public class DocumentCompiler {
      */
     public static final int MAX_DOCUMENT_SIZE_BYTES = 2 * 1024 * 1024;
 
-    private final SAPLValidator  validator      = new SAPLValidator();
-    private final AstTransformer astTransformer = new AstTransformer();
+    private final SAPLValidator validator = new SAPLValidator();
 
     public static CompiledDocument compileDocument(String saplDocument, CompilationContext ctx) {
         val parsedDocument = parseDocument(saplDocument);
@@ -78,7 +77,11 @@ public class DocumentCompiler {
         Exception    astException = null;
         if (result.syntaxErrors().isEmpty() && validationErrors.isEmpty()) {
             try {
-                ast = astTransformer.visitSapl(result.parseTree());
+                // A fresh transformer per call. The transformer carries per-document
+                // mutable state (import map, schemas), so sharing one instance would
+                // let concurrent compilations of different documents race and resolve
+                // names against another document's imports.
+                ast = new AstTransformer().visitSapl(result.parseTree());
             } catch (SaplCompilerException e) {
                 val location = e.getLocation();
                 if (location != null) {

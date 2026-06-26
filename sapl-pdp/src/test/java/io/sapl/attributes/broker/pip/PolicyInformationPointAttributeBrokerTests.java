@@ -30,6 +30,7 @@ import io.sapl.api.stream.LatestSlotStream;
 import io.sapl.api.stream.Stream;
 import io.sapl.api.stream.Streams;
 import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.AttributeRepository.Registration;
 import io.sapl.attributes.broker.pip.PipLoadException;
 import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
 import io.sapl.attributes.broker.repository.RepositoryKey;
@@ -50,12 +51,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("PolicyInformationPointAttributeBroker")
@@ -83,8 +88,8 @@ class PolicyInformationPointAttributeBrokerTests {
     }
 
     private static AttributeFinderInvocation envInvocation(String fqn, boolean fresh, List<Value> arguments) {
-        return new AttributeFinderInvocation("default", fqn, arguments, Duration.ofSeconds(1), Duration.ofMillis(100),
-                Duration.ofMillis(100), 0L, fresh,
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, arguments, Duration.ofSeconds(1),
+                Duration.ofMillis(100), Duration.ofMillis(100), 0L, fresh,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 
@@ -281,6 +286,14 @@ class PolicyInformationPointAttributeBrokerTests {
                     .resolve(envInvocation("exactvarargs.foo", false, List.of(Value.of("a"), Value.of("b"))));
             assertThat(resolved).isPresent();
             assertThat(resolved.get().hasVariableNumberOfArguments()).isTrue();
+        }
+
+        @Test
+        @DisplayName("an exact spec and a varargs spec for the same attribute coexist: overlapping arity is not a collision")
+        void whenExactAndVarargsForSameAttributeThenNoCollisionAtLoad() {
+            broker.load(new ExactPip());
+
+            assertThatCode(() -> broker.load(new VarargsPip())).doesNotThrowAnyException();
         }
 
         @Test
@@ -512,6 +525,53 @@ class PolicyInformationPointAttributeBrokerTests {
                 assertThat(valueFor(key, recorder, 0)).isInstanceOfSatisfying(ErrorValue.class,
                         e -> assertThat(e.message()).contains("returned Java null"));
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("Callback contract-violation backstop")
+    class CallbackContractViolation {
+
+        @Test
+        @DisplayName("a callback that returns empty deps on a fire is ignored without crashing the broker dispatch")
+        void whenCallbackReturnsEmptyDepsOnFireThenBrokerSurvivesAndOtherConsumersStillFire() {
+            broker.load(new ControllablePip());
+            val key   = envKey("ctrl.latest", false, false);
+            val fired = new CountDownLatch(1);
+            broker.open("bad", Set.of(key), snapshot -> {
+                fired.countDown();
+                return Set.<SubscriptionKey>of();
+            });
+            val good = new Recorder(Set.of(key));
+            broker.open("good", Set.of(key), good.asCallback());
+
+            ControllablePip.emitToAll(Value.of("v1"));
+
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(fired.getCount()).isZero();
+                assertThat(good.snapshots).hasSizeGreaterThanOrEqualTo(1);
+            });
+        }
+
+        @Test
+        @DisplayName("a callback that throws on a fire is ignored without crashing the broker dispatch")
+        void whenCallbackThrowsOnFireThenBrokerSurvivesAndOtherConsumersStillFire() {
+            broker.load(new ControllablePip());
+            val key   = envKey("ctrl.latest", false, false);
+            val fired = new CountDownLatch(1);
+            broker.open("bad", Set.of(key), snapshot -> {
+                fired.countDown();
+                throw new IllegalStateException("callback boom");
+            });
+            val good = new Recorder(Set.of(key));
+            broker.open("good", Set.of(key), good.asCallback());
+
+            ControllablePip.emitToAll(Value.of("v1"));
+
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(fired.getCount()).isZero();
+                assertThat(good.snapshots).hasSizeGreaterThanOrEqualTo(1);
+            });
         }
     }
 
@@ -832,6 +892,80 @@ class PolicyInformationPointAttributeBrokerTests {
         }
     }
 
+    @Nested
+    @DisplayName("Catalog mutation racing broker close")
+    class CatalogMutationRacingClose {
+
+        /**
+         * Fallback that keeps a registered observer alive without ever emitting, so an
+         * unmatched invocation becomes a
+         * live repository-backed active invocation eligible for promotion when a
+         * matching PIP is loaded.
+         */
+        private AttributeRepository idleFallback() {
+            return new AttributeRepository() {
+                @Override
+                public void close() {
+                    // no resources to release
+                }
+
+                @Override
+                public void publish(RepositoryKey key, Value value) {
+                    // not exercised by this test
+                }
+
+                @Override
+                public void publish(RepositoryKey key, Value value, Duration ttl) {
+                    // not exercised by this test
+                }
+
+                @Override
+                public void remove(RepositoryKey key) {
+                    // not exercised by this test
+                }
+
+                @Override
+                public Registration observe(AttributeFinderInvocation invocation, Consumer<Value> onValue) {
+                    return () -> {
+                        // no-op registration
+                    };
+                }
+            };
+        }
+
+        @Test
+        @DisplayName("a load that promotes a live invocation while the broker is concurrently closed "
+                + "must not leak the promoted replacement's pump and PIP stream")
+        void whenLoadPromotionRacesCloseThenReplacementNotLeaked() throws InterruptedException {
+            PromoteRacePip.reset();
+            val racingBroker = new PolicyInformationPointAttributeBroker(Duration.ZERO, idleFallback());
+
+            // The unmatched "promote.target" invocation becomes a live
+            // repository-backed active invocation, eligible for promotion when
+            // PromoteRacePip is loaded.
+            val key      = envKey("promote.target");
+            val recorder = new Recorder(Set.of(key));
+            racingBroker.open("s1", Set.of(key), recorder.asCallback());
+
+            // load() promotes the live invocation. Its synchronous first open
+            // blocks so close() wins the race before migrate() runs.
+            val loader = new Thread(() -> racingBroker.load(new PromoteRacePip()));
+            loader.start();
+
+            assertThat(PromoteRacePip.REACHED_OPEN.await(2, TimeUnit.SECONDS)).isTrue();
+            racingBroker.close();
+            PromoteRacePip.PROCEED_GATE.countDown();
+            loader.join(2000);
+
+            assertThat(loader.isAlive()).isFalse();
+            Awaitility.await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(PromoteRacePip.replacement()).isNotNull();
+                assertThat(PromoteRacePip.STREAM_CLOSED)
+                        .as("promoted replacement's PIP stream must be closed, not leaked").isTrue();
+            });
+        }
+    }
+
     @PolicyInformationPoint(name = "constant")
     static class ConstantPip {
         @EnvironmentAttribute
@@ -944,9 +1078,9 @@ class PolicyInformationPointAttributeBrokerTests {
     }
 
     /**
-     * Each invocation creates a fresh {@link LatestSlotStream}; the
-     * test pushes via {@link #emitToAll} to deliver values to all
-     * currently open backing subscriptions.
+     * Each invocation creates a fresh {@link LatestSlotStream}; the test pushes via
+     * {@link #emitToAll} to deliver
+     * values to all currently open backing subscriptions.
      */
     @PolicyInformationPoint(name = "ctrl")
     static class ControllablePip {
@@ -974,6 +1108,45 @@ class PolicyInformationPointAttributeBrokerTests {
             val s = new LatestSlotStream<Value>();
             STREAMS.add(s);
             return s;
+        }
+    }
+
+    /**
+     * PIP whose attribute blocks during its synchronous first open until
+     * {@link #PROCEED_GATE} is released, then
+     * returns a tracked stream. Lets a test deterministically interleave a catalog
+     * mutation with
+     * {@code broker.close()}: the load thread parks here while close runs.
+     */
+    @PolicyInformationPoint(name = "promote")
+    static class PromoteRacePip {
+        static final CountDownLatch                           REACHED_OPEN  = new CountDownLatch(1);
+        static final CountDownLatch                           PROCEED_GATE  = new CountDownLatch(1);
+        static final AtomicBoolean                            STREAM_CLOSED = new AtomicBoolean(false);
+        static final AtomicReference<LatestSlotStream<Value>> REPLACEMENT   = new AtomicReference<>();
+
+        static void reset() {
+            STREAM_CLOSED.set(false);
+            REPLACEMENT.set(null);
+        }
+
+        static LatestSlotStream<Value> replacement() {
+            return REPLACEMENT.get();
+        }
+
+        @EnvironmentAttribute
+        public Stream<Value> target(AttributeAccessContext ctx) {
+            REACHED_OPEN.countDown();
+            try {
+                PROCEED_GATE.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+            val stream = new LatestSlotStream<Value>();
+            stream.onClose(() -> STREAM_CLOSED.set(true));
+            REPLACEMENT.set(stream);
+            return stream;
         }
     }
 }

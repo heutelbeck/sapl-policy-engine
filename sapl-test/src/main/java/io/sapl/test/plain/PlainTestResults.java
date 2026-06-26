@@ -30,7 +30,9 @@ import java.util.Map;
  * @param failed number of failed scenarios
  * @param errors number of scenarios with errors
  * @param scenarioResults per-scenario results
- * @param coverageByDocumentId coverage data aggregated by SAPL document ID
+ * @param coverageByScenarioName coverage data keyed by scenario full name
+ * (requirement &gt; scenario), one entry per scenario, not aggregated per
+ * document
  */
 public record PlainTestResults(
         int total,
@@ -38,7 +40,7 @@ public record PlainTestResults(
         int failed,
         int errors,
         List<ScenarioResult> scenarioResults,
-        Map<String, TestCoverageRecord> coverageByDocumentId) {
+        Map<String, TestCoverageRecord> coverageByScenarioName) {
 
     /**
      * Checks if all tests passed (no failures, no errors).

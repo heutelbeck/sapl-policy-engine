@@ -42,6 +42,7 @@ public class PolicySourceResolver {
     private static final String ERROR_DIRECTORY_NOT_FOUND          = "Error: Policy directory not found: %s.";
     private static final String ERROR_NO_POLICIES_FOUND            = "Error: No policies found. Use --dir, --bundle, or create ~/.sapl/ with policy files.";
     private static final String ERROR_PUBLIC_KEY_NOT_FOUND         = "Error: Public key file not found: %s.";
+    private static final String ERROR_SAPL_HOME_LISTING_FAILED     = "Error: Failed to list ~/.sapl/ directory contents: %s.";
     private static final String ERROR_SAPL_HOME_NOT_FOUND          = "Error: ~/.sapl/ directory not found. Use --dir or --bundle to specify policy location.";
 
     public record ResolvedPolicy(PDPDataSource configType, String path, String publicKeyPath, boolean allowUnsigned) {}
@@ -124,7 +125,7 @@ public class PolicySourceResolver {
 
             return resolveBundleVerification(path, bundleVerification, saplHomeOverride, err);
         } catch (IOException e) {
-            err.println(ERROR_SAPL_HOME_NOT_FOUND);
+            err.println(ERROR_SAPL_HOME_LISTING_FAILED.formatted(e.getMessage()));
             return null;
         }
     }

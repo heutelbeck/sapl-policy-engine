@@ -41,7 +41,7 @@ class DecisionMatcherHelper {
             @Nullable ExtendedObjectMatcherContext matcher) {
         var obligations = decision.obligations();
         if (obligations.isEmpty()) {
-            return matcher == null;
+            return false;
         }
         if (matcher == null) {
             return true;
@@ -58,7 +58,7 @@ class DecisionMatcherHelper {
             @Nullable ExtendedObjectMatcherContext matcher) {
         var advice = decision.advice();
         if (advice.isEmpty()) {
-            return matcher == null;
+            return false;
         }
         if (matcher == null) {
             return true;

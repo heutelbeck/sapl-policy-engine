@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -198,7 +199,9 @@ class ContentFilterTests {
                     {"conditions": [{"path": "$.age", "type": "<", "value": 30}]}
                     """, Map.of("age", 30), false), arguments(">  matches above", """
                     {"conditions": [{"path": "$.age", "type": ">", "value": 30}]}
-                    """, Map.of("age", 31), true));
+                    """, Map.of("age", 31), true), arguments("number-equal distinguishes integers beyond 2^53", """
+                    {"conditions": [{"path": "$.age", "type": "==", "value": 9007199254740993}]}
+                    """, Map.of("age", 9007199254740992L), false));
         }
 
         @Test
@@ -311,7 +314,38 @@ class ContentFilterTests {
                     {"actions": [{"path": "$.name", "type": "blacken", "replacement": "*"}]}
                     """, "*****"), arguments("returns original when full disclosure exceeds string length", """
                     {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": 100}]}
-                    """, "Alice"));
+                    """, "Alice"),
+                    arguments("disclose values overflowing int are handled gracefully",
+                            """
+                                    {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": 2000000000, "discloseRight": 2000000000}]}
+                                    """,
+                            "Alice"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Blacken resource and bounds hardening")
+    class BlackenHardening {
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("hostileBlackenScenarios")
+        @DisplayName("hostile blacken parameters are rejected with AccessDeniedException")
+        void hostileBlackenParametersRejected(String name, String constraintJson) {
+            val transform = ContentFilter.getTransformationHandler(v(constraintJson), MAPPER);
+            val input     = new HashMap<>(Map.of("name", "Alice"));
+            assertThatThrownBy(() -> transform.apply(input)).isInstanceOf(AccessDeniedException.class);
+        }
+
+        static Stream<Arguments> hostileBlackenScenarios() {
+            return Stream.of(arguments("excessive length triggering huge allocation is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "length": 2000000000}]}
+                    """), arguments("negative discloseLeft is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "discloseLeft": -2}]}
+                    """), arguments("negative discloseRight is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "discloseRight": -2}]}
+                    """), arguments("replacement-length amplification beyond the budget is rejected", """
+                    {"actions": [{"path": "$.name", "type": "blacken", "length": 600000, "replacement": "ab"}]}
+                    """));
         }
     }
 
@@ -358,13 +392,17 @@ class ContentFilterTests {
         }
 
         @Test
-        @DisplayName("dangerous regex is rejected")
-        void dangerousRegexRejected() {
+        @Timeout(15)
+        @DisplayName("a catastrophically backtracking regex (missed by the old blocklist) applied to hostile input fails closed")
+        void catastrophicRegexAppliedToHostileInputFailsClosed() {
             val constraint = v("""
-                    {"conditions": [{"path": "$.x", "type": "=~", "value": "(a+)+"}]}
+                    {"conditions": [{"path": "$.x", "type": "=~", "value": "(.*,){30}P"}]}
                     """);
-            assertThatThrownBy(() -> ContentFilter.predicateFromConditions(constraint, MAPPER))
-                    .isInstanceOf(AccessDeniedException.class).hasMessageContaining("Unsafe regex pattern");
+            val predicate  = ContentFilter.predicateFromConditions(constraint, MAPPER);
+            val hostile    = Map.of("x", "1,".repeat(30));
+
+            assertThatThrownBy(() -> predicate.test(hostile)).isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("Unsafe regex pattern");
         }
 
         @Test

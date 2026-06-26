@@ -47,7 +47,7 @@ public class TargetExpressionCompiler {
         if (compiledTarget instanceof ErrorValue error) {
             throw new SaplCompilerException(ERROR_TARGET_STATIC_ERROR.formatted(error), targetExpression.location());
         }
-        if (compiledTarget instanceof PureOperator po && !po.isDependingOnSubscription()) {
+        if (compiledTarget instanceof PureOperator po && po.isRelativeExpression()) {
             throw new SaplCompilerException(ERROR_TARGET_RELATIVE_ACCESSOR, targetExpression.location());
         }
         if (compiledTarget instanceof StreamOperator) {

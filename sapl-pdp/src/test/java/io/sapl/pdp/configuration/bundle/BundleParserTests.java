@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Random;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -235,6 +236,46 @@ class BundleParserTests {
 
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy, 1024L * 1024))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds");
+    }
+
+    @Test
+    @DisplayName("the cumulative uncompressed-size limit counts decompressed bytes, not UTF-16 chars, for multibyte content")
+    void whenEarlierEntryIsMultibyteThenCumulativeSizeLimitCountsBytesNotChars() throws IOException {
+        // first.sapl holds 120000 chars that each encode to two UTF-8 bytes, so it
+        // decompresses to 240000 bytes while its String char count is only 120000.
+        // The content is pseudo-random across the two-byte UTF-8 range so it does not
+        // compress, keeping the compression-ratio guard out of the way and isolating
+        // the cumulative uncompressed-size guard. Together with the 40000-byte ascii
+        // second.sapl the byte-accurate total is 280000 (> the 260000 cap, so parsing
+        // must be rejected), while a char-based total would be only 160000 and would
+        // wrongly accept the bundle.
+        val firstEntry  = pseudoRandomTwoByteUtf8(120_000);
+        val secondEntry = "X".repeat(40_000);
+        val baos        = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
+            zos.putNextEntry(new ZipEntry("first.sapl"));
+            zos.write(firstEntry.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            zos.putNextEntry(new ZipEntry("second.sapl"));
+            zos.write(secondEntry.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        val bundleBytes = baos.toByteArray();
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy, 260_000L))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds");
+    }
+
+    private static String pseudoRandomTwoByteUtf8(int charCount) {
+        val random  = new Random(7L);
+        val builder = new StringBuilder(charCount);
+        for (int i = 0; i < charCount; i++) {
+            builder.append((char) (0x00A1 + random.nextInt(0x07FF - 0x00A1)));
+        }
+        return builder.toString();
     }
 
     @Test

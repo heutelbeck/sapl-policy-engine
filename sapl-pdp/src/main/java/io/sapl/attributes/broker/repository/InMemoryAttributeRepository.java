@@ -51,8 +51,8 @@ import java.util.function.Consumer;
  * State is volatile: lost on close. TTL expiry removes the entry and
  * notifies observers (who observe {@link Value#UNDEFINED}).
  * <p>
- * Thread-safety: all state mutations occur under a single internal
- * lock; observer callbacks fire outside the lock.
+ * Thread-safety. All state mutations occur under a single internal
+ * lock. Observer callbacks fire outside the lock.
  *
  * @since 4.1.0
  */

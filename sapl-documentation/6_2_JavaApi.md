@@ -219,11 +219,14 @@ ReactivePolicyDecisionPoint pdp = RemotePolicyDecisionPoint.builder().http()
 // RSocket (high-throughput protobuf transport)
 ReactivePolicyDecisionPoint pdp = RemotePolicyDecisionPoint.builder().rsocket()
         .host("localhost").port(7000)
+        .secure()
         .apiKey("sapl_7f3a...")
         .build();
 ```
 
-Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication, and `secure()` / `secure(SslContext)` / `withUnsecureSSL()` for TLS. The HTTP builder defaults `baseUrl` to `https://localhost:8443`. The RSocket builder defaults `port` to `7000` and also accepts `socketPath(...)` and `keepAlive(...)`.
+Both builders expose `basicAuth(key, secret)`, `apiKey(key)`, and `oauth2(...)` for authentication. TLS differs by transport. The HTTP builder gets TLS from an `https://` base URL (it defaults to `https://localhost:8443`); use `secure(SslContext)` or `withUnsecureSSL()` only to customize certificate trust. The RSocket builder has no URL scheme, so it enables TLS via `secure()` (or `secure(SslContext)` / `withUnsecureSSL()`); it defaults `port` to `7000` and also accepts `socketPath(...)` and `keepAlive(...)`.
+
+Sending credentials over a plaintext connection (an `http://` base URL, or an RSocket connection without TLS) is refused at `build()` time. Call `allowInsecureTransport()` to accept that risk for local development, or use an `https://` URL (or RSocket `secure()`) in production.
 
 Consume decisions reactively. A streaming subscription keeps receiving updated decisions until you unsubscribe. Use `blockFirst()` or `take(1)` to consume just the first:
 

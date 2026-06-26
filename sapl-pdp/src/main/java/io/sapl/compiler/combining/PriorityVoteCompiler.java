@@ -35,6 +35,7 @@ import io.sapl.compiler.document.*;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.index.IndexFactory;
 import io.sapl.compiler.index.PolicyIndex;
+import io.sapl.compiler.policyset.CompiledPolicySet;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.policy.CoverageVoter;
 import lombok.experimental.UtilityClass;
@@ -143,12 +144,9 @@ public class PriorityVoteCompiler {
 
     private static Vote combinePureVoters(Vote accumulatorVote, PolicyIndex index, Decision priorityDecision,
             VoterMetadata voterMetadata, EvaluationContext ctx) {
-        val result = index.match(ctx);
+        val result = index.matchKleene(ctx);
         var vote   = accumulatorVote;
-        for (val errorVote : result.errorVotes()) {
-            vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
-        }
-        for (val document : result.matchingDocuments()) {
+        for (val document : result.trueMatches()) {
             val  voter = document.voter();
             Vote newVote;
             if (voter instanceof Vote constantVote) {
@@ -157,6 +155,12 @@ public class PriorityVoteCompiler {
                 newVote = ((PureVoter) voter).vote(ctx);
             }
             vote = PriorityBasedVoteCombiner.combineVotes(vote, newVote, priorityDecision, voterMetadata);
+        }
+        // A pure-path candidate has no streaming section, so an applicability error is
+        // terminal. The policy or set is INDETERMINATE.
+        for (val errorMatch : result.errorMatches()) {
+            val errorVote = Vote.error(errorMatch.error(), errorMatch.document().metadata());
+            vote = PriorityBasedVoteCombiner.combineVotes(vote, errorVote, priorityDecision, voterMetadata);
         }
         return vote;
     }
@@ -180,19 +184,43 @@ public class PriorityVoteCompiler {
         @Override
         public VoteResult evaluate(EvaluationContext ctx) {
             val deps         = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(8);
-            val result       = index.match(ctx);
+            val result       = index.matchKleene(ctx);
             var combinedVote = accumulatorVote;
-            for (val errorVote : result.errorVotes()) {
-                combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote, errorVote, priorityDecision,
-                        voterMetadata);
-            }
-            for (val document : result.matchingDocuments()) {
-                val sub = document.voter().evaluate(ctx);
+            for (val document : result.trueMatches()) {
+                val sub  = document.voter().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
-                combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote, sub.vote(), priorityDecision,
+                combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote, vote, priorityDecision,
+                        voterMetadata);
+            }
+            for (val errorMatch : result.errorMatches()) {
+                val document = errorMatch.document();
+                // A set has no streaming section to dominate a target error, so an erroring
+                // set is terminal INDETERMINATE.
+                if (document instanceof CompiledPolicySet) {
+                    combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote,
+                            Vote.error(errorMatch.error(), document.metadata()), priorityDecision, voterMetadata);
+                    continue;
+                }
+                // The body voter abstains exactly when the streaming section is FALSE, which
+                // dominates the pure error and yields NOT_APPLICABLE. Otherwise the error
+                // stands and the policy is INDETERMINATE. The pure section is not re-evaluated.
+                val sub  = document.voter().evaluate(ctx);
+                val vote = sub.vote();
+                StreamOperator.mergeDependencies(deps, sub.dependencies());
+                if (vote == null) {
+                    return new VoteResult(null, deps);
+                }
+                Vote contribution;
+                if (vote.authorizationDecision().decision() == Decision.NOT_APPLICABLE) {
+                    contribution = vote;
+                } else {
+                    contribution = Vote.error(errorMatch.error(), document.metadata());
+                }
+                combinedVote = PriorityBasedVoteCombiner.combineVotes(combinedVote, contribution, priorityDecision,
                         voterMetadata);
             }
             return new VoteResult(combinedVote.finalizeVote(defaultDecision, errorHandling), deps);

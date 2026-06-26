@@ -274,6 +274,23 @@ class TransitionSignalsTests {
     }
 
     @Nested
+    @DisplayName("substitution path ordering under load")
+    class SubstitutionPathOrderingUnderLoad {
+
+        @Test
+        @DisplayName("items and boundary substitutes stay in strict source order under a demand-limited subscriber")
+        void preservesOrderingUnderBoundedDownstreamDemand() {
+            var source = pepLikeFlux("A", "SUSPEND", "B", "SUSPEND", "C");
+
+            // Drawing one item at a time must never let a boundary substitute overtake the
+            // data item it marks. Ordering is a correctness invariant, not a convenience.
+            StepVerifier.create(TransitionSignals.onSuspend(source, e -> {}, () -> "SUB"), 1L).expectNext("A")
+                    .thenRequest(1).expectNext("SUB").thenRequest(1).expectNext("B").thenRequest(1).expectNext("SUB")
+                    .thenRequest(1).expectNext("C").verifyComplete();
+        }
+    }
+
+    @Nested
     @DisplayName("onTransitions (observe and emit per-direction substitutes)")
     class OnTransitionsWithSubstitute {
 

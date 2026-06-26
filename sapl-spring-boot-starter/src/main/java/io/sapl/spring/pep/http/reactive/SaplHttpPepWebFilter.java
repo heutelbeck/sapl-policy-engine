@@ -41,7 +41,7 @@ import reactor.core.publisher.Mono;
  * corresponding signal. The common case (a permit
  * decision with no HTTP signal handlers) runs against the raw exchange with no
  * extra copy. Response wrapping captures
- * the controller body in memory and re-emits it on commit; routes that
+ * the controller body in memory and re-emits it on commit. Routes that
  * intentionally stream large payloads should not
  * register response-signal handlers.
  * <p>

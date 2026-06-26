@@ -19,6 +19,8 @@ package io.sapl.extensions.mqtt;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -152,5 +154,54 @@ class MqttFunctionLibraryTests {
         var result = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, matchingTopics);
 
         assertThat(result).isEqualTo(Value.TRUE);
+    }
+
+    @Nested
+    @DisplayName("Malformed topic strings yield a domain error rather than throwing")
+    class MalformedTopicHandling {
+
+        private static final String EMPTY = "";
+        // NUL is the U+0000 character, written as an escape to keep the source
+        // ASCII-clean.
+        private static final String EMBED_NUL = "first/second\u0000/third";
+
+        @ParameterizedTest(name = "wildcard \"{0}\" yields an error value")
+        @ValueSource(strings = { EMPTY, EMBED_NUL })
+        void when_wildcardTopicIsMalformed_then_returnError(String malformedWildcard) {
+            var wildcardTopic = Value.of(malformedWildcard);
+            var topic         = Value.of("first/second/third");
+
+            var resultAll        = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, topic);
+            var resultAtLeastOne = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, topic);
+
+            assertThat(resultAll).isInstanceOf(ErrorValue.class);
+            assertThat(resultAtLeastOne).isInstanceOf(ErrorValue.class);
+        }
+
+        @ParameterizedTest(name = "single topic \"{0}\" yields an error value")
+        @ValueSource(strings = { EMPTY, EMBED_NUL })
+        void when_singleTopicIsMalformed_then_returnError(String malformedTopic) {
+            var wildcardTopic = Value.of("first/#");
+            var topic         = Value.of(malformedTopic);
+
+            var resultAll        = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, topic);
+            var resultAtLeastOne = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, topic);
+
+            assertThat(resultAll).isInstanceOf(ErrorValue.class);
+            assertThat(resultAtLeastOne).isInstanceOf(ErrorValue.class);
+        }
+
+        @ParameterizedTest(name = "array topic \"{0}\" yields an error value")
+        @ValueSource(strings = { EMPTY, EMBED_NUL })
+        void when_topicInArrayIsMalformed_then_returnError(String malformedTopic) {
+            var wildcardTopic = Value.of("first/#");
+            var topics        = Value.ofArray(Value.of(malformedTopic), Value.of("first/second"));
+
+            var resultAll        = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, topics);
+            var resultAtLeastOne = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, topics);
+
+            assertThat(resultAll).isInstanceOf(ErrorValue.class);
+            assertThat(resultAtLeastOne).isInstanceOf(ErrorValue.class);
+        }
     }
 }

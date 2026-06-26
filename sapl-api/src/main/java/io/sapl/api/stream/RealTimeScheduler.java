@@ -60,7 +60,7 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
 
     @Override
     public Cancellable scheduleAt(Instant when, Runnable task) {
-        val delay  = Math.max(0L, Duration.between(clock.instant(), when).toNanos());
+        val delay  = nanosUntil(when);
         val future = executor.schedule(() -> {
                        try {
                            task.run();
@@ -72,6 +72,23 @@ public final class RealTimeScheduler implements TimeScheduler, AutoCloseable {
                        }
                    }, delay, TimeUnit.NANOSECONDS);
         return () -> future.cancel(false);
+    }
+
+    /**
+     * Delay in nanoseconds from now until {@code when}, saturated to
+     * {@link Long#MAX_VALUE} when the distance overflows a long instead of
+     * throwing, so far-future tasks schedule effectively never.
+     */
+    private long nanosUntil(Instant when) {
+        val until = Duration.between(clock.instant(), when);
+        if (until.isNegative()) {
+            return 0L;
+        }
+        try {
+            return until.toNanos();
+        } catch (ArithmeticException overflow) {
+            return Long.MAX_VALUE;
+        }
     }
 
     @Override

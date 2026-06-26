@@ -55,8 +55,9 @@ class ProtobufRSocketServerLifecycleTests {
 
     private static final String BIND_ADDRESS             = "127.0.0.1";
     private static final int    PORT                     = 7000;
-    private static final int    VALID_PAYLOAD            = 65_536;
+    private static final int    VALID_PAYLOAD            = 16_777_215;
     private static final int    INVALID_PAYLOAD          = 0;
+    private static final int    SUB_CEILING_PAYLOAD      = 1024;
     private static final int    PROTOCOL_PAYLOAD_CEILING = 16_777_215;
 
     @Mock
@@ -129,6 +130,33 @@ class ProtobufRSocketServerLifecycleTests {
         }
 
         @Test
+        @DisplayName("a positive but sub-ceiling maxInboundPayloadSize is rejected at startup, as the message promises")
+        void whenEnabledAndPayloadSizeBelowProtocolCeilingThenStartThrows() {
+            val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, SUB_CEILING_PAYLOAD,
+                    blockingPdp, pdp, authenticator, null);
+
+            assertThatThrownBy(sut::start).isInstanceOf(SaplStartupConfigurationException.class)
+                    .hasMessageContaining("max-inbound-payload-size")
+                    .satisfies(e -> assertThat(((SaplStartupConfigurationException) e).getAction())
+                            .contains(String.valueOf(PROTOCOL_PAYLOAD_CEILING)));
+        }
+
+        @Test
+        @DisplayName("the protocol payload ceiling is the smallest legal value and passes the startup guard")
+        void whenEnabledAndPayloadSizeAtProtocolCeilingThenGuardPasses() throws IOException {
+            final int freePort;
+            try (val probe = new ServerSocket(0, 0, InetAddress.getLoopbackAddress())) {
+                freePort = probe.getLocalPort();
+            }
+            val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, freePort, null, PROTOCOL_PAYLOAD_CEILING,
+                    blockingPdp, pdp, authenticator, null);
+
+            assertThatCode(sut::start).doesNotThrowAnyException();
+            assertThat(sut.isRunning()).isTrue();
+            sut.stop();
+        }
+
+        @Test
         @DisplayName("isAutoStartup returns true when enabled, even with misconfigured maxInboundPayloadSize")
         void whenEnabledThenIsAutoStartupTrueRegardlessOfPayloadConfig() {
             val sut = new ProtobufRSocketServerLifecycle(true, BIND_ADDRESS, PORT, null, INVALID_PAYLOAD, blockingPdp,
@@ -182,6 +210,15 @@ class ProtobufRSocketServerLifecycleTests {
             val nativeStyle = new RuntimeException("bind(..) failed with error(-98): Address already in use");
 
             assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(nativeStyle)).isTrue();
+        }
+
+        @Test
+        @DisplayName("a BindException for a non-in-use reason is not misreported as a port conflict to the operator")
+        void whenBindExceptionIsNotAddressInUseThenNotRecognisedAsAddressInUse() {
+            val cannotAssign = new IllegalStateException("failed to bind",
+                    new BindException("Cannot assign requested address"));
+
+            assertThat(ProtobufRSocketServerLifecycle.isAddressInUse(cannotAssign)).isFalse();
         }
     }
 

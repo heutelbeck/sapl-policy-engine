@@ -34,6 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static io.sapl.compiler.index.IndexTestFixtures.andOfOrs;
+import static io.sapl.compiler.index.IndexTestFixtures.documentWithApplicability;
 import static io.sapl.compiler.index.IndexTestFixtures.stubDocument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,6 +66,18 @@ class IndexFactoryTests {
         val ctx  = SaplTesting.compilationContext();
         ctx.setCompilerOptions(ObjectValue.builder().put("indexing", Value.of("BOGUS")).build());
         assertThatThrownBy(() -> IndexFactory.createIndex(docs, ctx)).isInstanceOf(SaplCompilerException.class);
+    }
+
+    @Test
+    @DisplayName("explicit CANONICAL degrades to the naive index when an applicability exceeds the DNF clause limit")
+    void whenCanonicalApplicabilityExceedsClauseLimitThenFallsBackToNaive() {
+        val docs = List.of(documentWithApplicability("p1", andOfOrs(20)));
+        val ctx  = SaplTesting.compilationContext();
+        ctx.setCompilerOptions(ObjectValue.builder().put("indexing", Value.of("CANONICAL")).build());
+
+        val index = IndexFactory.createIndex(docs, ctx);
+
+        assertThat(index).isInstanceOf(NaivePolicyIndex.class);
     }
 
 }

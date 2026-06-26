@@ -42,7 +42,7 @@ import lombok.val;
  * {@code sapl.pdp.rsocket.port} to override the port.
  * <p>
  * Connection lifetime is soft. JWT credentials are validated at the next
- * decision call; expired tokens are then rejected and clients reconnect with
+ * decision call. Expired tokens are then rejected and clients reconnect with
  * fresh credentials. There is no separate per-connection hard-disconnect
  * timer.
  * <p>

@@ -102,6 +102,24 @@ class PdpHealthIndicatorTests {
     }
 
     @Nested
+    @DisplayName("when any PDP is AWAITING_PLUGINS")
+    class WhenAnyAwaitingPlugins {
+
+        @Test
+        @DisplayName("then health is DOWN because the PDP cannot serve decisions yet")
+        void thenHealthIsDown() {
+            when(pdpVoterSource.getAllPdpStatuses()).thenReturn(
+                    Map.of("default", new PdpStatus(PdpState.AWAITING_PLUGINS, null, null, 0, null, null, null)));
+
+            val indicator = new PdpHealthIndicator(pdpVoterSource);
+            val health    = indicator.health();
+
+            assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        }
+
+    }
+
+    @Nested
     @DisplayName("when no PDPs are registered")
     class WhenNoPdps {
 

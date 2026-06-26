@@ -57,15 +57,15 @@ import tools.jackson.databind.ObjectMapper;
  * <p>
  * Users opt SAPL into {@code HttpSecurity} or {@code ServerHttpSecurity} via
  * the dedicated configurer that the
- * corresponding inner class documents. The configurers are not auto-applied;
- * the user calls them explicitly.
+ * corresponding inner class documents. The configurers are not auto-applied.
+ * The user calls them explicitly.
  */
 @Slf4j
 @AutoConfiguration
 public final class AuthorizationManagerConfiguration {
 
     private AuthorizationManagerConfiguration() {
-        // Holder for inner @Configuration classes; never instantiated.
+        // Holder for inner @Configuration classes. Never instantiated.
     }
 
     @Configuration(proxyBeanMethods = false)

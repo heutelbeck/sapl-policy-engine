@@ -97,7 +97,8 @@ public class SaplAuthorizationManager implements AuthorizationManager<RequestAut
         val rawAuth        = authenticationSupplier.get();
         val authentication = rawAuth != null ? rawAuth : ANONYMOUS;
         val subscription   = subscriptionFactory.build(authentication, servletRequest);
-        log.trace("HTTP PEP subscription: {}", subscription);
+        log.trace("HTTP PEP subscription for subject '{}': {} {}", authentication.getName(), servletRequest.getMethod(),
+                servletRequest.getRequestURI());
         val authzDecision = pdp.decideOnce(subscription, tenantResolver.resolve());
         log.debug("HTTP PEP decision: {}", authzDecision);
 

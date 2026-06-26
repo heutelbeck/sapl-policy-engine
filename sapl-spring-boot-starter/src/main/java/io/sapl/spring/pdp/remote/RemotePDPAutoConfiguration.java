@@ -45,6 +45,8 @@ import lombok.extern.slf4j.Slf4j;
 @EnableConfigurationProperties(RemotePDPProperties.class)
 public class RemotePDPAutoConfiguration {
 
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over an unencrypted channel. Use https (or rsocket tls), or set io.sapl.pdp.remote.allow-insecure-http=true to permit this for local development only.";
+
     private static final String ERROR_OAUTH2_REGISTRATION_REPOSITORY_MISSING = """
             io.sapl.pdp.remote.oauth2.client-registration-id=%s is configured but no \
             ReactiveClientRegistrationRepository bean is available. \
@@ -52,6 +54,8 @@ public class RemotePDPAutoConfiguration {
             the client registration via spring.security.oauth2.client.registration.%s.*""";
 
     private static final String ERROR_UNSUPPORTED_REMOTE_PDP_CONNECTION_TYPE = "Unsupported remote PDP connection type: %s";
+
+    private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT = "Sending remote PDP credentials over an unencrypted channel because 'allowInsecureHttp' is enabled. A network attacker on this hop can capture the credential and observe or forge authorization decisions. Do not use in production.";
 
     private static final String TYPE_HTTP    = "http";
     private static final String TYPE_RSOCKET = "rsocket";
@@ -81,10 +85,20 @@ public class RemotePDPAutoConfiguration {
         log.info("Binding to http remote PDP server: {}", configuration.getHost());
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(configuration.getHost());
         applyHttpAuthentication(builder);
+        enforceCredentialTransportSecurity(isHttpsHost());
+        applyHttpTls(builder);
+        // Transport decision already vetted above, so the builder's own guard needs the
+        // opt-in.
+        if (hasCredentials() && !isHttpsHost()) {
+            builder.allowInsecureTransport();
+        }
+        return builder.build();
+    }
+
+    private void applyHttpTls(RemoteHttpPolicyDecisionPointBuilder builder) throws SSLException {
         if (configuration.isIgnoreCertificates()) {
             builder.withUnsecureSSL();
         }
-        return builder.build();
     }
 
     private void applyHttpAuthentication(RemoteHttpPolicyDecisionPointBuilder builder) {
@@ -115,7 +129,19 @@ public class RemotePDPAutoConfiguration {
         }
         builder.keepAlive(configuration.getKeepAlive(), configuration.getMaxLifeTime());
         applyRSocketAuthentication(builder);
+        // A unix domain socket is local IPC with no network hop, so it counts as a
+        // secure channel.
+        val channelEncrypted = configuration.isTls() || configuration.isIgnoreCertificates()
+                || !configuration.getSocketPath().isEmpty();
+        enforceCredentialTransportSecurity(channelEncrypted);
         applyRSocketTls(builder);
+        // applyRSocketTls marks the builder secure only for tls/ignoreCertificates.
+        // For a plaintext or unix-socket channel carrying credentials, forward the
+        // transport decision already vetted by enforceCredentialTransportSecurity, so
+        // the builder's own fail-closed guard is satisfied rather than throwing.
+        if (hasCredentials() && !configuration.isTls() && !configuration.isIgnoreCertificates()) {
+            builder.allowInsecureTransport();
+        }
         return builder.build();
     }
 
@@ -151,6 +177,25 @@ public class RemotePDPAutoConfiguration {
                     ERROR_OAUTH2_REGISTRATION_REPOSITORY_MISSING.formatted(registrationId, registrationId));
         }
         return repo;
+    }
+
+    private void enforceCredentialTransportSecurity(boolean channelEncrypted) {
+        if (!hasCredentials() || channelEncrypted) {
+            return;
+        }
+        if (!configuration.isAllowInsecureHttp()) {
+            throw new IllegalStateException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+        }
+        log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
+    }
+
+    private boolean hasCredentials() {
+        return !configuration.getOauth2().getClientRegistrationId().isEmpty() || configuration.isTokenRelay()
+                || !configuration.getKey().isEmpty() || !configuration.getBearerToken().isEmpty();
+    }
+
+    private boolean isHttpsHost() {
+        return configuration.getHost().regionMatches(true, 0, "https://", 0, "https://".length());
     }
 
     private static String extractCurrentToken() {

@@ -20,6 +20,7 @@ package io.sapl.compiler.expressions;
 import io.sapl.api.model.*;
 import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -54,6 +55,7 @@ public class StepCompiler {
     private static final String ERROR_EXPR_STEP_INVALID_TYPE          = "Expression step requires number or string, got %s.";
     private static final String ERROR_EXPR_STEP_STREAMING_UNSUPPORTED = "Expression step with streaming expression not yet supported";
     private static final String ERROR_HANDLED_ABOVE                   = "Handled above";
+    private static final String ERROR_INDEX_NOT_REPRESENTABLE         = "Array subscript '%s' is not a valid integer index.";
     private static final String ERROR_INDEX_ON_NON_ARRAY              = "Cannot apply index step to %s.";
     private static final String ERROR_INDEX_OUT_OF_BOUNDS             = "Array index out of bounds: %d (size: %d).";
     private static final String ERROR_INDEX_UNION_ON_INVALID          = "Cannot apply index union to %s.";
@@ -578,7 +580,12 @@ public class StepCompiler {
 
         return switch (expr) {
         case NumberValue(BigDecimal num) -> {
-            int index = num.intValue();
+            final int index;
+            try {
+                index = num.intValueExact();
+            } catch (ArithmeticException ignored) {
+                yield Value.errorAt(loc, ERROR_INDEX_NOT_REPRESENTABLE, num);
+            }
             yield applyIndexStep(base, index, loc);
         }
         case TextValue(String text)      -> applyKeyStep(base, text);
@@ -745,21 +752,25 @@ public class StepCompiler {
 
     private static Value filterElements(int size, IntFunction<Value> elementAt, IntFunction<Value> keyAt,
             Value constantCond, PureOperator condOp, EvaluationContext ctx, SourceLocation loc) {
-        val builder = ArrayValue.builder();
-        for (int i = 0; i < size; i++) {
-            val element = elementAt.apply(i);
-            val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
-            val result  = evaluateCondition(constantCond, condOp, elemCtx);
-            if (result instanceof BooleanValue(boolean val)) {
-                if (val)
-                    builder.add(element);
-            } else if (result instanceof ErrorValue) {
-                return result;
-            } else {
-                return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+        // Shared regex budget across all elements so a per-element =~ cannot amplify
+        // cost with array size.
+        return BoundedRegex.runWithSharedMatchBudget(() -> {
+            val builder = ArrayValue.builder();
+            for (int i = 0; i < size; i++) {
+                val element = elementAt.apply(i);
+                val elemCtx = ctx != null ? ctx.withRelativeValue(element, keyAt.apply(i)) : null;
+                val result  = evaluateCondition(constantCond, condOp, elemCtx);
+                if (result instanceof BooleanValue(boolean val)) {
+                    if (val)
+                        builder.add(element);
+                } else if (result instanceof ErrorValue) {
+                    return result;
+                } else {
+                    return Value.errorAt(loc, ERROR_CONDITION_NON_BOOLEAN, result.getClass().getSimpleName());
+                }
             }
-        }
-        return builder.build();
+            return builder.build();
+        });
     }
 
     private static Value evaluateCondition(Value constantCond, PureOperator condOp, EvaluationContext elemCtx) {

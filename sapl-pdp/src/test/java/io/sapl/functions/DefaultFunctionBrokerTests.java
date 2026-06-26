@@ -347,6 +347,24 @@ class DefaultFunctionBrokerTests {
         assertThat(errors).isEmpty();
     }
 
+    @Test
+    @DisplayName("ambiguous best match between a fixed-arity and a varargs spec returns an error instead of silently picking one")
+    void whenTwoSpecsTieAtHighestMatchThenReturnsError() {
+        val fixed   = new FunctionSpecification("ambiguous", "fn", List.of(TextValue.class), null,
+                invocation -> Value.of("fixed"));
+        val varargs = new FunctionSpecification("ambiguous", "fn", List.of(TextValue.class), TextValue.class,
+                invocation -> Value.of("varargs"));
+
+        broker.loadFunction(fixed);
+        broker.loadFunction(varargs);
+
+        val invocation = new FunctionInvocation("ambiguous.fn", List.of(Value.of("argument")));
+        val result     = broker.evaluateFunction(invocation);
+
+        assertThat(result).isInstanceOf(ErrorValue.class).extracting(v -> ((ErrorValue) v).message()).asString()
+                .contains("ambiguous.fn");
+    }
+
     private static FunctionSpecification overload(String fullName, int arity) {
         val dot       = fullName.indexOf('.');
         val namespace = fullName.substring(0, dot);

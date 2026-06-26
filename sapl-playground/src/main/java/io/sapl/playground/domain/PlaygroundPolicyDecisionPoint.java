@@ -23,7 +23,7 @@ import io.sapl.attributes.broker.AttributeBroker;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.pdp.plugins.PluginsBundle;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.document.TracedVote;
@@ -89,7 +89,7 @@ public class PlaygroundPolicyDecisionPoint {
      * @return flux of timestamped votes with evaluation details
      */
     public Flux<TracedVote> decide(AuthorizationSubscription authorizationSubscription) {
-        return policyDecisionPoint.gatherVotes(authorizationSubscription, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+        return policyDecisionPoint.gatherVotes(authorizationSubscription, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**

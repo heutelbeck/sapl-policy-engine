@@ -48,7 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
@@ -110,6 +110,10 @@ public class GeographicFunctionLibrary {
             points, which are not vetted to the same degree as the policies and variables shipped
             with the PDP configuration.
 
+            KML and GML inputs are parsed with external entity and remote schema resolution disabled,
+            so a document cannot make the PDP fetch an external entity or schema (no server-side
+            request forgery); only the schemas bundled locally with the engine are used.
+
             For more details, refer to individual function documentation.
             """;
 
@@ -132,7 +136,7 @@ public class GeographicFunctionLibrary {
     private static final GeoJsonReader   GEOJSON_READER   = new GeoJsonReader();
     private static final GeoJsonWriter   GEOJSON_WRITER   = new GeoJsonWriter();
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
-    // GeoTools Parser is stateful and not thread-safe; a fresh one is built per
+    // GeoTools Parser is stateful and not thread-safe. A fresh one is built per
     // call
     // (see hardenedParser). gml2/gml3 GMLConfiguration share a class name, hence
     // the FQNs.
@@ -151,26 +155,45 @@ public class GeographicFunctionLibrary {
     static final long MAX_PAIRWISE_COMPARISONS = 1_000_000L;
 
     /**
-     * Resolves only XML Schema documents (those whose resolved URI ends in
-     * {@code .xsd}), which geotools needs to parse KML/GML, and blocks every
-     * other external entity. This closes the XXE and external-entity SSRF
-     * vector on caller-supplied documents: a payload such as
-     * {@code file:///etc/passwd} is rejected, while legitimate schema
-     * resolution still works, including the {@code file:}-scheme schemas the
-     * stricter geotools {@code PreventLocalEntityResolver} would wrongly reject.
+     * Resolves external entities and schema references against a fixed allowlist
+     * of the XML Schema documents geotools bundles on the classpath for KML/GML
+     * parsing, and resolves nothing else. This closes the XXE and external-entity
+     * SSRF vector on caller-supplied documents: any entity or schema the document
+     * declares is mapped to a bundled local resource if and only if it matches the
+     * allowlist, otherwise resolution is rejected by throwing so nothing is ever
+     * fetched. The resolver never returns
+     * {@code null} for a non-null system identifier, because per the SAX
+     * EntityResolver contract {@code null} tells the parser to fetch the URI
+     * itself. An attacker-controlled URI such as
+     * {@code http://169.254.169.254/x.xsd} or {@code file:///etc/passwd} is never
+     * fetched regardless of its suffix, and resolution fails closed.
+     * <p>
+     * Geotools loads its own bundled schemas through its internal schema index
+     * rather than through this resolver, so in normal operation the allowlist
+     * branch is not exercised by legitimate documents. It exists to keep local
+     * schema resolution available without ever permitting a remote or arbitrary
+     * local fetch.
      * <p>
      * Implements {@link EntityResolver2} because geotools' parser consults the
      * four-argument resolution path; a plain {@code EntityResolver} is bypassed
-     * for general external entities. A blocked entity raises a SAXException,
-     * which the parse call sites convert to an ErrorValue.
+     * for general external entities.
      */
     private static final class SchemaOnlyEntityResolver implements EntityResolver2 {
 
         private static final SchemaOnlyEntityResolver INSTANCE = new SchemaOnlyEntityResolver();
 
+        private static final InputSource EMPTY_SOURCE = new InputSource(new StringReader(""));
+
+        private static final String EXTERNAL_REFERENCE_BLOCKED_ERROR = "External XML reference blocked (geo functions perform no I/O): ";
+
+        // Bundled, classpath-local schema resources geotools ships for KML/GML.
+        // Resolution is restricted to exactly these. Nothing else is fetched.
+        private static final List<String> ALLOWED_LOCAL_SCHEMA_RESOURCES = List.of("org/geotools/kml/v22/ogckml22.xsd",
+                "org/geotools/kml/kml21.xsd", "org/geotools/gml3/gml.xsd", "org/geotools/gml2/feature.xsd");
+
         @Override
         public InputSource getExternalSubset(String name, String baseUri) {
-            return null;
+            return EMPTY_SOURCE;
         }
 
         @Override
@@ -182,13 +205,21 @@ public class GeographicFunctionLibrary {
         public InputSource resolveEntity(String name, String publicId, String baseUri, String systemId)
                 throws SAXException {
             if (systemId == null) {
-                return null;
+                return EMPTY_SOURCE;
             }
             val resolved = resolveSystemId(baseUri, systemId);
-            if (resolved.split("[?#]", 2)[0].toLowerCase(Locale.ROOT).endsWith(".xsd")) {
-                return null;
-            }
-            throw new SAXException("Blocked resolution of external entity: " + resolved);
+            // Fail closed: a non-bundled reference is rejected (throws), so geotools never
+            // fetches it.
+            return bundledLocalSchema(resolved)
+                    .orElseThrow(() -> new SAXException(EXTERNAL_REFERENCE_BLOCKED_ERROR + systemId));
+        }
+
+        private static Optional<InputSource> bundledLocalSchema(String resolved) {
+            val path = resolved.split("[?#]", 2)[0];
+            return ALLOWED_LOCAL_SCHEMA_RESOURCES.stream().filter(path::endsWith)
+                    .map(resource -> GeographicFunctionLibrary.class.getClassLoader().getResource(resource))
+                    .filter(url -> url != null && path.equals(url.toString())).findFirst()
+                    .map(url -> new InputSource(url.toString()));
         }
 
         private static String resolveSystemId(String baseUri, String systemId) {
@@ -1196,9 +1227,6 @@ public class GeographicFunctionLibrary {
 
     private static Boolean subset(Geometry geometryCollectionThis, Geometry geometryCollectionThat) {
         enforcePairwiseBound(geometryCollectionThis, geometryCollectionThat);
-        if (geometryCollectionThis.getNumGeometries() > geometryCollectionThat.getNumGeometries()) {
-            return false;
-        }
         var resultSet = new BitSet(geometryCollectionThis.getNumGeometries());
         for (int i = 0; i < geometryCollectionThis.getNumGeometries(); i++) {
             for (int j = 0; j < geometryCollectionThat.getNumGeometries(); j++) {

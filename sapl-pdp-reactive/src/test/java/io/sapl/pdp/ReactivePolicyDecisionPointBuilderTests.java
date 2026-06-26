@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 import static io.sapl.api.test.pdp.PdpTestHelper.createBundle;
 import static io.sapl.api.test.pdp.PdpTestHelper.subscription;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,8 +53,6 @@ import static org.mockito.Mockito.mock;
 
 @DisplayName("PolicyDecisionPointBuilder")
 class ReactivePolicyDecisionPointBuilderTests {
-
-    private static final String DEFAULT_PDP_ID = "default";
 
     private static final CombiningAlgorithm PERMIT_OVERRIDES = new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT,
             DefaultDecision.PERMIT, ErrorHandling.PROPAGATE);

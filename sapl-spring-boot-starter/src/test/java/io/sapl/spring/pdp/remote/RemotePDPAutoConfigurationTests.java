@@ -85,9 +85,11 @@ class RemotePDPAutoConfigurationTests {
 
     @Test
     void whenValidRSocketApiKeyPropertiesArePresent_thenTheRemotePdpIsPresent() {
-        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
-                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
-                "io.sapl.pdp.remote.bearerToken=anApiKey").run(context -> {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                        "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                        "io.sapl.pdp.remote.bearerToken=anApiKey", "io.sapl.pdp.remote.allow-insecure-http=true")
+                .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
@@ -97,7 +99,7 @@ class RemotePDPAutoConfigurationTests {
     void whenValidRSocketBasicPropertiesArePresent_thenTheRemotePdpIsPresent() {
         contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
                 "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000", "io.sapl.pdp.remote.key=aKey",
-                "io.sapl.pdp.remote.secret=aSecret").run(context -> {
+                "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.allow-insecure-http=true").run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
@@ -142,11 +144,38 @@ class RemotePDPAutoConfigurationTests {
         contextRunner.withUserConfiguration(StubClientRegistrationRepositoryConfiguration.class)
                 .withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
                         "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
-                        "io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp")
+                        "io.sapl.pdp.remote.oauth2.client-registration-id=sapl-pdp",
+                        "io.sapl.pdp.remote.allow-insecure-http=true")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(ProtobufRemoteReactivePolicyDecisionPoint.class);
                 });
+    }
+
+    @Test
+    void whenHttpCredentialsOverPlaintextAndNotAllowed_thenContextFails() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=http://localhost:8080", "io.sapl.pdp.remote.key=aKey",
+                "io.sapl.pdp.remote.secret=aSecret").run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void whenHttpCredentialsOverPlaintextButExplicitlyAllowed_thenTheRemotePdpIsPresent() {
+        contextRunner
+                .withPropertyValues("io.sapl.pdp.remote.type=http", "io.sapl.pdp.remote.enabled=true",
+                        "io.sapl.pdp.remote.host=http://localhost:8080", "io.sapl.pdp.remote.key=aKey",
+                        "io.sapl.pdp.remote.secret=aSecret", "io.sapl.pdp.remote.allow-insecure-http=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(RemoteHttpReactivePolicyDecisionPoint.class);
+                });
+    }
+
+    @Test
+    void whenRSocketCredentialsWithoutTlsAndNotAllowed_thenContextFails() {
+        contextRunner.withPropertyValues("io.sapl.pdp.remote.type=rsocket", "io.sapl.pdp.remote.enabled=true",
+                "io.sapl.pdp.remote.host=localhost", "io.sapl.pdp.remote.port=7000",
+                "io.sapl.pdp.remote.bearerToken=anApiKey").run(context -> assertThat(context).hasFailed());
     }
 
     @Test

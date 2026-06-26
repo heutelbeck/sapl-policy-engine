@@ -44,7 +44,7 @@ public interface PDPConfigurationSource extends AutoCloseable {
 
     /**
      * Adds a listener that receives configuration events from this
-     * source. The first subscribe activates the source; subsequent
+     * source. The first subscribe activates the source. Subsequent
      * subscribes join the live stream.
      *
      * @param listener the listener to add

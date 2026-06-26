@@ -23,7 +23,7 @@ package io.sapl.ast;
  * Lazy ({@code &&}, {@code ||}) and eager ({@code &}, {@code |}) boolean
  * operators behave identically on the value and pure strata. On the streaming
  * stratum, lazy operators short-circuit on the snapshot value of the left
- * operand and skip the right subtree; eager operators walk every operand to
+ * operand and skip the right subtree. Eager operators walk every operand to
  * accumulate all dependencies.
  */
 public enum BinaryOperatorType {

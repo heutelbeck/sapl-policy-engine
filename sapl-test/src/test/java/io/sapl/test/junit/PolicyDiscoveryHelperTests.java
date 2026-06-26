@@ -19,11 +19,6 @@ package io.sapl.test.junit;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -50,22 +45,19 @@ class PolicyDiscoveryHelperTests {
     }
 
     @Test
-    @DisplayName("discovers policies from policies directory with filename-only naming")
-    void whenPoliciesDirectory_thenUsesFilenameOnlyNaming(@TempDir Path tempDir) throws IOException {
-        // Create src/main/resources/policies structure in temp dir
-        // Note: PolicyDiscoveryHelper uses hardcoded RESOURCES_ROOT =
-        // "src/main/resources"
-        // so this test verifies behavior when the directory doesn't match expected
-        // structure
-        var policiesDir = tempDir.resolve("policies");
-        Files.createDirectories(policiesDir);
-        Files.writeString(policiesDir.resolve("simple.sapl"), "policy \"simple\" permit");
+    @DisplayName("policies directory strips path prefix to bare filename for unit-test naming")
+    void whenSubdirectoryIsPolicies_thenNameIsBareFilename() {
+        var name = PolicyDiscoveryHelper.extractPolicyName("policies", "nested/dir/simple.sapl", true);
 
-        // Since PolicyDiscoveryHelper uses absolute path "src/main/resources",
-        // we can only verify empty result for non-existent subdirectory
-        var result = PolicyDiscoveryHelper.discoverPolicies("nonexistent");
+        assertThat(name).isEqualTo("simple");
+    }
 
-        assertThat(result).isEmpty();
+    @Test
+    @DisplayName("non-policies directory retains subdirectory-prefixed path for integration-test naming")
+    void whenSubdirectoryIsNotPolicies_thenNameRetainsPrefixedPath() {
+        var name = PolicyDiscoveryHelper.extractPolicyName("policiesIT", "groupA/policy_A.sapl", false);
+
+        assertThat(name).isEqualTo("policiesIT/groupA/policy_A");
     }
 
     @Test

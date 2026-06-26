@@ -61,6 +61,8 @@ public record PdpSetup(
         JsonMapper mapper,
         ConfigurableApplicationContext context) {
 
+    static final String DEFAULT_HTTP_URL = "http://localhost:8080";
+
     public static final String ERROR_BASIC_AUTH_FORMAT = "Error: --basic-auth must be in format 'user:password'.";
     public static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
     public static final String ERROR_REMOTE_CONNECTION = "Error: Failed to connect to remote PDP: %s.";
@@ -103,10 +105,12 @@ public record PdpSetup(
     }
 
     private static PdpSetup openHttp(RemoteConnectionOptions remote) throws SSLException {
-        val url     = resolveWithEnv(remote.url, "SAPL_URL", "http://localhost:8080");
+        val url     = resolveUrl(remote.url, System.getenv("SAPL_URL"), DEFAULT_HTTP_URL);
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
-            builder.withUnsecureSSL();
+            // --insecure trusts any TLS cert and accepts credentials over a plaintext http
+            // connection.
+            builder.withUnsecureSSL().allowInsecureTransport();
         }
         configureAuth(builder, remote.auth);
         val reactive = builder.build();
@@ -122,6 +126,11 @@ public record PdpSetup(
             builder.withUnsecureSSL();
         } else if (remote.rsocketTls) {
             builder.secure();
+        }
+        if (remote.insecure) {
+            // --insecure also accepts sending credentials over a plaintext rsocket
+            // connection.
+            builder.allowInsecureTransport();
         }
         configureRsocketAuth(builder, remote.auth);
         val reactive = builder.build();
@@ -215,11 +224,25 @@ public record PdpSetup(
                 credentials.substring(separatorIndex + 1));
     }
 
-    private static String resolveWithEnv(String flagValue, String envVar, String defaultValue) {
-        if (!defaultValue.equals(flagValue)) {
+    /**
+     * Resolves the remote PDP URL with the documented precedence: an
+     * explicitly supplied flag value wins over the environment variable,
+     * which in turn wins over the built-in default. The flag is treated as
+     * explicitly supplied whenever it is non-null. Because absence is
+     * detected by null (the {@code --url} option carries no picocli default)
+     * rather than by comparing against the default string, an operator who
+     * types the literal default value still overrides the environment.
+     *
+     * @param flagValue the parsed {@code --url} value, or null if the flag was
+     * absent
+     * @param envValue the {@code SAPL_URL} environment value, or null if unset
+     * @param defaultValue the built-in default URL
+     * @return the resolved URL
+     */
+    static String resolveUrl(@Nullable String flagValue, @Nullable String envValue, String defaultValue) {
+        if (flagValue != null) {
             return flagValue;
         }
-        val envValue = System.getenv(envVar);
         return envValue != null ? envValue : defaultValue;
     }
 

@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import io.sapl.node.cli.benchmark.LoadtestContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -108,6 +109,33 @@ class LoadtestCommandTests {
             val cmd = new LoadtestCommand();
             new CommandLine(cmd).parseArgs("--machine-readable", "-s", "\"alice\"", "-a", "\"read\"", "-r", "\"doc\"");
             assertThat(cmd.machineReadable).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("RSocket report target")
+    class RsocketReportTargetTests {
+
+        @Test
+        @DisplayName("uses host:port when no socket path is given")
+        void whenNoSocketPathThenTargetIsHostPort() {
+            val ctx = LoadtestCommand.rsocketContext("pdp.example.com", 9000, null, 4, 256, 5, 10, "20260618-120000",
+                    null);
+            assertThat(ctx).satisfies(c -> {
+                assertThat(c.protocol()).isEqualTo("RSocket");
+                assertThat(c.target()).isEqualTo("pdp.example.com:9000");
+            });
+        }
+
+        @Test
+        @DisplayName("uses the socket path when a Unix domain socket is given")
+        void whenSocketPathThenTargetIsSocketPath() {
+            val ctx = LoadtestCommand.rsocketContext("localhost", 7000, "/tmp/sapl.sock", 8, 512, 5, 10,
+                    "20260618-120000", null);
+            assertThat(ctx).satisfies(c -> {
+                assertThat(c.protocol()).isEqualTo("RSocket");
+                assertThat(c.target()).isEqualTo("unix:///tmp/sapl.sock");
+            });
         }
     }
 

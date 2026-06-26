@@ -17,6 +17,9 @@
  */
 package io.sapl.spring.pep.http.servlet;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -153,13 +156,32 @@ public final class ServletMutableHttpRequest extends HttpServletRequestWrapper i
     public long getDateHeader(String name) {
         if (overrides.containsKey(canonical(name)) || removed.contains(canonical(name))) {
             val value = getHeader(name);
-            return value == null ? -1L : Long.parseLong(value);
+            return value == null ? -1L : parseDateHeader(value);
         }
         return super.getDateHeader(name);
     }
 
     private static String canonical(String name) {
         return name.toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Mirrors the servlet container contract for
+     * {@link HttpServletRequest#getDateHeader(String)}: parse an HTTP-date string
+     * into epoch milliseconds. The RFC-1123 HTTP-date format is accepted, with a
+     * fallback to a purely numeric epoch value. An unparseable value yields an
+     * {@link IllegalArgumentException}, matching the container contract.
+     */
+    private static long parseDateHeader(String value) {
+        try {
+            return ZonedDateTime.parse(value, DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli();
+        } catch (DateTimeParseException ignoredDate) {
+            try {
+                return Long.parseLong(value);
+            } catch (NumberFormatException ignoredNumber) {
+                throw new IllegalArgumentException("Cannot parse date header value: " + value);
+            }
+        }
     }
 
     private List<String> headerValuesFromDelegate(String name) {

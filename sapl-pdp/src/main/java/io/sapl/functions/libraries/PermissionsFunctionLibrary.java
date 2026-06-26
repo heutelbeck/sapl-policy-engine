@@ -48,6 +48,10 @@ public class PermissionsFunctionLibrary {
             Functions for checking and manipulating permission bitmasks. Supports both
             custom permission schemes and POSIX/Unix file permissions.
 
+            Permission values and masks are integers in the 64-bit range. A value with a
+            fractional part or outside that range yields an error rather than being silently
+            truncated, so an invalid permission input is never treated as a different value.
+
             ## Function Categories
 
             | Category        | Functions                                          |
@@ -156,6 +160,7 @@ public class PermissionsFunctionLibrary {
     private static final String ERROR_MASKS_MUST_BE_NUMBERS      = "All permission masks must be numbers.";
     private static final String ERROR_OTHER_PERMISSIONS_INVALID  = "Other permissions must be between 0 and 7.";
     private static final String ERROR_OWNER_PERMISSIONS_INVALID  = "Owner permissions must be between 0 and 7.";
+    private static final String ERROR_VALUE_OUT_OF_LONG_RANGE    = "Permission value must be an integer within the 64-bit range.";
 
     @Function(docs = """
             ```hasAll(LONG value, ARRAY masks)```: Checks if all specified permission bits are set.
@@ -179,8 +184,11 @@ public class PermissionsFunctionLibrary {
             return combinedMask;
         }
 
-        val valueNumber = value.value().longValue();
-        val maskNumber  = ((NumberValue) combinedMask).value().longValue();
+        val valueNumber = toLongSafe(value);
+        if (valueNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val maskNumber = ((NumberValue) combinedMask).value().longValue();
         return Value.of((valueNumber & maskNumber) == maskNumber);
     }
 
@@ -205,8 +213,11 @@ public class PermissionsFunctionLibrary {
             return combinedMask;
         }
 
-        val valueNumber = value.value().longValue();
-        val maskNumber  = ((NumberValue) combinedMask).value().longValue();
+        val valueNumber = toLongSafe(value);
+        if (valueNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val maskNumber = ((NumberValue) combinedMask).value().longValue();
         return Value.of((valueNumber & maskNumber) != 0);
     }
 
@@ -231,8 +242,11 @@ public class PermissionsFunctionLibrary {
             return combinedMask;
         }
 
-        val valueNumber = value.value().longValue();
-        val maskNumber  = ((NumberValue) combinedMask).value().longValue();
+        val valueNumber = toLongSafe(value);
+        if (valueNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val maskNumber = ((NumberValue) combinedMask).value().longValue();
         return Value.of((valueNumber & maskNumber) == 0);
     }
 
@@ -251,7 +265,12 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value hasExact(NumberValue value, NumberValue mask) {
-        return Value.of(value.value().longValue() == mask.value().longValue());
+        val valueNumber = toLongSafe(value);
+        val maskNumber  = toLongSafe(mask);
+        if (valueNumber == null || maskNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        return Value.of(valueNumber.longValue() == maskNumber.longValue());
     }
 
     @Function(docs = """
@@ -276,8 +295,11 @@ public class PermissionsFunctionLibrary {
             return combinedMask;
         }
 
-        val valueNumber = value.value().longValue();
-        val maskNumber  = ((NumberValue) combinedMask).value().longValue();
+        val valueNumber = toLongSafe(value);
+        if (valueNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val maskNumber = ((NumberValue) combinedMask).value().longValue();
         return Value.of((valueNumber & ~maskNumber) == 0);
     }
 
@@ -334,8 +356,11 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value isSubsetOf(NumberValue permissions, NumberValue superset) {
-        val permissionsNumber = permissions.value().longValue();
-        val supersetNumber    = superset.value().longValue();
+        val permissionsNumber = toLongSafe(permissions);
+        val supersetNumber    = toLongSafe(superset);
+        if (permissionsNumber == null || supersetNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
         return Value.of((permissionsNumber & supersetNumber) == permissionsNumber);
     }
 
@@ -352,8 +377,11 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value overlaps(NumberValue permissions1, NumberValue permissions2) {
-        val permissions1Number = permissions1.value().longValue();
-        val permissions2Number = permissions2.value().longValue();
+        val permissions1Number = toLongSafe(permissions1);
+        val permissions2Number = toLongSafe(permissions2);
+        if (permissions1Number == null || permissions2Number == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
         return Value.of((permissions1Number & permissions2Number) != 0);
     }
 
@@ -370,8 +398,11 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value areDisjoint(NumberValue permissions1, NumberValue permissions2) {
-        val permissions1Number = permissions1.value().longValue();
-        val permissions2Number = permissions2.value().longValue();
+        val permissions1Number = toLongSafe(permissions1);
+        val permissions2Number = toLongSafe(permissions2);
+        if (permissions1Number == null || permissions2Number == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
         return Value.of((permissions1Number & permissions2Number) == 0);
     }
 
@@ -390,7 +421,10 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value unixOwner(NumberValue mode) {
-        val modeNumber = mode.value().longValue();
+        val modeNumber = toLongSafe(mode);
+        if (modeNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
         return Value.of((modeNumber >> 6) & 0x7L);
     }
 
@@ -409,7 +443,10 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value unixGroup(NumberValue mode) {
-        val modeNumber = mode.value().longValue();
+        val modeNumber = toLongSafe(mode);
+        if (modeNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
         return Value.of((modeNumber >> 3) & 0x7L);
     }
 
@@ -428,7 +465,10 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value unixOther(NumberValue mode) {
-        val modeNumber = mode.value().longValue();
+        val modeNumber = toLongSafe(mode);
+        if (modeNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
         return Value.of(modeNumber & 0x7L);
     }
 
@@ -449,9 +489,12 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value unixMode(NumberValue owner, NumberValue group, NumberValue other) {
-        val ownerNumber = owner.value().longValue();
-        val groupNumber = group.value().longValue();
-        val otherNumber = other.value().longValue();
+        val ownerNumber = toLongSafe(owner);
+        val groupNumber = toLongSafe(group);
+        val otherNumber = toLongSafe(other);
+        if (ownerNumber == null || groupNumber == null || otherNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
 
         if (ownerNumber < 0 || ownerNumber > 7) {
             return Value.error(ERROR_OWNER_PERMISSIONS_INVALID);
@@ -480,7 +523,11 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value unixCanRead(NumberValue permissions) {
-        return Value.of((permissions.value().longValue() & 0x4L) != 0);
+        val permissionsNumber = toLongSafe(permissions);
+        if (permissionsNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        return Value.of((permissionsNumber & 0x4L) != 0);
     }
 
     @Function(docs = """
@@ -497,7 +544,11 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value unixCanWrite(NumberValue permissions) {
-        return Value.of((permissions.value().longValue() & 0x2L) != 0);
+        val permissionsNumber = toLongSafe(permissions);
+        if (permissionsNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        return Value.of((permissionsNumber & 0x2L) != 0);
     }
 
     @Function(docs = """
@@ -514,7 +565,11 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_BOOLEAN)
     public static Value unixCanExecute(NumberValue permissions) {
-        return Value.of((permissions.value().longValue() & 0x1L) != 0);
+        val permissionsNumber = toLongSafe(permissions);
+        if (permissionsNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        return Value.of((permissionsNumber & 0x1L) != 0);
     }
 
     @Function(docs = """
@@ -756,8 +811,11 @@ public class PermissionsFunctionLibrary {
             return combinedGrant;
         }
 
-        val currentNumber = current.value().longValue();
-        val grantNumber   = ((NumberValue) combinedGrant).value().longValue();
+        val currentNumber = toLongSafe(current);
+        if (currentNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val grantNumber = ((NumberValue) combinedGrant).value().longValue();
         return Value.of(currentNumber | grantNumber);
     }
 
@@ -782,8 +840,11 @@ public class PermissionsFunctionLibrary {
             return combinedRevoke;
         }
 
-        val currentNumber = current.value().longValue();
-        val revokeNumber  = ((NumberValue) combinedRevoke).value().longValue();
+        val currentNumber = toLongSafe(current);
+        if (currentNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val revokeNumber = ((NumberValue) combinedRevoke).value().longValue();
         return Value.of(currentNumber & ~revokeNumber);
     }
 
@@ -808,8 +869,11 @@ public class PermissionsFunctionLibrary {
             return combinedToggle;
         }
 
-        val currentNumber = current.value().longValue();
-        val toggleNumber  = ((NumberValue) combinedToggle).value().longValue();
+        val currentNumber = toLongSafe(current);
+        if (currentNumber == null) {
+            return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+        }
+        val toggleNumber = ((NumberValue) combinedToggle).value().longValue();
         return Value.of(currentNumber ^ toggleNumber);
     }
 
@@ -867,11 +931,12 @@ public class PermissionsFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value bit(NumberValue position) {
-        val positionNumber = position.value().longValue();
-        if (positionNumber < 0 || positionNumber >= 64) {
+        val positionValue = position.value();
+        if (positionValue.stripTrailingZeros().scale() > 0 || positionValue.compareTo(BigDecimal.ZERO) < 0
+                || positionValue.compareTo(BigDecimal.valueOf(63)) > 0) {
             return Value.error(ERROR_BIT_POSITION_INVALID);
         }
-        return Value.of(1L << positionNumber);
+        return Value.of(1L << positionValue.longValue());
     }
 
     /**
@@ -891,7 +956,11 @@ public class PermissionsFunctionLibrary {
             if (!isIntegral(numberValue.value())) {
                 return Value.error(ERROR_MASKS_MUST_BE_INTEGERS);
             }
-            result |= numberValue.value().longValue();
+            val elementValue = integralToLongInRange(numberValue.value());
+            if (elementValue == null) {
+                return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+            }
+            result |= elementValue;
         }
 
         return Value.of(result);
@@ -918,10 +987,46 @@ public class PermissionsFunctionLibrary {
             if (!isIntegral(numberValue.value())) {
                 return Value.error(ERROR_MASKS_MUST_BE_INTEGERS);
             }
-            result &= numberValue.value().longValue();
+            val elementValue = integralToLongInRange(numberValue.value());
+            if (elementValue == null) {
+                return Value.error(ERROR_VALUE_OUT_OF_LONG_RANGE);
+            }
+            result &= elementValue;
         }
 
         return Value.of(result);
+    }
+
+    /**
+     * Converts a permission value to a long, rejecting fractional and out-of-range
+     * inputs.
+     *
+     * @param number
+     * the value to convert
+     *
+     * @return the long value, or null if the value has a fractional part or does
+     * not fit in a long
+     */
+    private static Long toLongSafe(NumberValue number) {
+        val value = number.value();
+        if (value.scale() > 0) {
+            return null;
+        }
+        if (value.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
+                || value.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
+            return null;
+        }
+        return value.longValue();
+    }
+
+    // Accepts integral values with non-zero scale (2.00), rejects
+    // out-of-long-range.
+    private static Long integralToLongInRange(BigDecimal integralValue) {
+        if (integralValue.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0
+                || integralValue.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0) {
+            return null;
+        }
+        return integralValue.longValue();
     }
 
     /**

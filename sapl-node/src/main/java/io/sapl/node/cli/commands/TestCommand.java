@@ -290,7 +290,7 @@ public class TestCommand implements Callable<Integer> {
 
     private void writeCoverage(PlainTestResults results, PrintWriter err) {
         val writer = new CoverageWriter(output);
-        for (val entry : results.coverageByDocumentId().entrySet()) {
+        for (val entry : results.coverageByScenarioName().entrySet()) {
             try {
                 writer.write(entry.getValue());
             } catch (IOException e) {
@@ -382,7 +382,7 @@ public class TestCommand implements Callable<Integer> {
 
     private AggregatedCoverageData aggregateCoverage(PlainTestResults results) {
         val aggregated = new AggregatedCoverageData();
-        for (val coverageRecord : results.coverageByDocumentId().values()) {
+        for (val coverageRecord : results.coverageByScenarioName().values()) {
             aggregated.merge(coverageRecord);
         }
         return aggregated;

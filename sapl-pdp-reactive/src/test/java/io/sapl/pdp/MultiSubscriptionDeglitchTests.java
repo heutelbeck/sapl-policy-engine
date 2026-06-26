@@ -64,7 +64,7 @@ import static org.assertj.core.api.Assertions.assertThatObject;
  * attribute and that attribute flips once, the implementation must
  * evaluate all N subs against ONE shared snapshot and emit exactly
  * ONE follow-up bundle, not N. The risk if violated would be a
- * combineLatest-style fanout where each sub emits independently; the
+ * combineLatest-style fanout where each sub emits independently. The
  * shared-snapshot construction in {@code multiVoteFlux} /
  * {@code multiVoteStream} avoids this.</li>
  * </ul>

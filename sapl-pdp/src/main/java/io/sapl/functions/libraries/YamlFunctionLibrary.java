@@ -129,7 +129,7 @@ public class YamlFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val yamlString = YAML_MAPPER.writeValueAsString(jsonNode);
             return Value.of(yamlString);
-        } catch (JacksonException exception) {
+        } catch (JacksonException | IllegalArgumentException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

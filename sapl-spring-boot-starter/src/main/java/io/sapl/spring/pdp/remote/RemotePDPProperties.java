@@ -41,6 +41,8 @@ public class RemotePDPProperties implements Validator {
     private static final String TYPE_RSOCKET               = "rsocket";
     private static final String OAUTH2_CLIENT_REGISTRATION = "oauth2.clientRegistrationId";
 
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over an unencrypted channel. Use https (or rsocket tls), or set io.sapl.pdp.remote.allow-insecure-http=true to permit this for local development only.";
+
     private boolean enabled = false;
 
     @NotEmpty
@@ -54,6 +56,10 @@ public class RemotePDPProperties implements Validator {
     private String socketPath = "";
 
     private boolean tls = false;
+
+    // Opt-in (development only) to send credentials over an unencrypted channel:
+    // plain http for HTTP, or RSocket without TLS.
+    private boolean allowInsecureHttp = false;
 
     private Duration keepAlive   = Duration.ofSeconds(20);
     private Duration maxLifeTime = Duration.ofSeconds(90);
@@ -72,7 +78,7 @@ public class RemotePDPProperties implements Validator {
      * OAuth2 client registration declared
      * via {@code spring.security.oauth2.client.registration.<id>.*}. Spring's
      * {@code OAuth2AuthorizedClientManager}
-     * caches and refreshes the access token; on RSocket, expiry triggers a
+     * caches and refreshes the access token. On RSocket, expiry triggers a
      * reconnect with a fresh token.
      */
     @Data
@@ -100,6 +106,28 @@ public class RemotePDPProperties implements Validator {
                     "Invalid type specified, valid values are \"http\" and \"rsocket\"");
         }
         validateAuthentication(properties, errors);
+        validateCredentialTransportSecurity(properties, errors);
+    }
+
+    private void validateCredentialTransportSecurity(RemotePDPProperties properties, Errors errors) {
+        if (!hasCredentials(properties) || isChannelEncrypted(properties) || properties.allowInsecureHttp) {
+            return;
+        }
+        errors.reject("insecure-credential-transport", ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+    }
+
+    private boolean hasCredentials(RemotePDPProperties properties) {
+        return !properties.oauth2.clientRegistrationId.isEmpty() || properties.tokenRelay || !properties.key.isEmpty()
+                || !properties.bearerToken.isEmpty();
+    }
+
+    private boolean isChannelEncrypted(RemotePDPProperties properties) {
+        if (TYPE_HTTP.equals(properties.type)) {
+            return properties.host.regionMatches(true, 0, "https://", 0, "https://".length());
+        }
+        // A unix domain socket is local IPC with no network hop, so it counts as a
+        // secure channel.
+        return properties.tls || properties.ignoreCertificates || !properties.socketPath.isEmpty();
     }
 
     private void validateHttpHost(String hostValue, Errors errors) {

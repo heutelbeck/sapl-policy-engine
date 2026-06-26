@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -130,12 +132,22 @@ class HttpServletRequestSerializerTests {
             assertThat(result.get("queryParameters")).isNull();
         }
 
-        @Test
-        void percentEncodedValuesAreUrlDecoded() {
+        @ParameterizedTest(name = "{0} -> {1}={2}")
+        @CsvSource({ "q=hello%20world, q, hello world", "a=%zz, a, %zz", "x=%, x, %" })
+        void queryParameterValuesAreUrlDecodedFallingBackToRawOnMalformedEscapes(String queryString, String key,
+                String expected) {
             val request = new MockHttpServletRequest();
-            request.setQueryString("q=hello%20world");
+            request.setQueryString(queryString);
             val parsed = serialize(request).get("queryParameters");
-            assertThat(parsed.get("q").get(0).asString()).isEqualTo("hello world");
+            assertThat(parsed.get(key).get(0).asString()).isEqualTo(expected);
+        }
+
+        @Test
+        void valuelessQueryParameterSerializesAsNullMatchingTheReactiveStack() {
+            val request = new MockHttpServletRequest();
+            request.setQueryString("flag");
+            val parsed = serialize(request).get("queryParameters");
+            assertThat(parsed.get("flag").get(0).isNull()).isTrue();
         }
     }
 

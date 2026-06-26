@@ -220,6 +220,15 @@ class ObjectValueTests {
 
             assertThat(result).isEqualTo(Value.of(1));
         }
+
+        @Test
+        @DisplayName("getOrDefault(absent key, null default) returns UNDEFINED not null")
+        void when_getOrDefaultAbsentKeyWithNullDefault_then_returnsUndefined() {
+            var obj    = ObjectValue.builder().put("key", Value.of(1)).build();
+            var result = obj.getOrDefault("absent", null);
+
+            assertThat(result).isEqualTo(Value.UNDEFINED);
+        }
     }
 
     @Nested

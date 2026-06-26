@@ -61,8 +61,8 @@ class AttributeStreamTests {
 
     private static AttributeFinderInvocation invocation(String name, Duration initialTimeOut, Duration pollInterval,
             Duration backoff, long retries) {
-        return new AttributeFinderInvocation("default", "test." + name, List.of(), initialTimeOut, pollInterval,
-                backoff, retries, false, EMPTY_CONTEXT);
+        return new AttributeFinderInvocation("test-pdp", "default", "test." + name, List.of(), initialTimeOut,
+                pollInterval, backoff, retries, false, EMPTY_CONTEXT);
     }
 
     private static Value valueOrNull(Poll<Value> poll) {
@@ -244,6 +244,29 @@ class AttributeStreamTests {
     }
 
     @Nested
+    @DisplayName("inner stream interrupt")
+    class InnerStreamInterrupt {
+
+        @Test
+        @org.junit.jupiter.api.Timeout(10)
+        @DisplayName("an untrusted inner stream that throws InterruptedException while the AttributeStream is open is "
+                + "treated as a transient failure: the pump recovers and delivers the next cycle's value")
+        void whenInnerThrowsInterruptedWhileOpenThenPumpRecoversAndDeliversNextValue() throws Exception {
+            val interrupting = new InterruptingStream();
+            val good         = new ScriptedStream();
+            good.emit(Value.of("recovered"));
+            good.complete();
+            val source = new ControlledSource(() -> interrupting, () -> good);
+
+            try (val stream = new AttributeStream(
+                    invocation("innerInterrupt", INITIAL_TIMEOUT, POLL_INTERVAL, BACKOFF, 1L), source)) {
+
+                assertThat(stream.awaitNext()).isEqualTo(Value.of("recovered"));
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("close")
     class Close {
 
@@ -260,7 +283,7 @@ class AttributeStreamTests {
                     Thread.sleep(Duration.ofMillis(50));
                     stream.close();
                 } catch (InterruptedException ignored) {
-                    // Test cleanup helper: the close-after-delay closure is fire-and-forget; if
+                    // Test cleanup helper: the close-after-delay closure is fire-and-forget. If
                     // interrupted we simply skip the close.
                 }
             });
@@ -332,7 +355,7 @@ class AttributeStreamTests {
             val source = new ControlledSource(() -> inner);
             val stream = new AttributeStream(invocation("drainClose"), source);
 
-            // Wait until v1 has surfaced; at that point the pump is parked in drain.
+            // Wait until v1 has surfaced. At that point the pump is parked in drain.
             Awaitility.await().atMost(AWAIT_BUDGET).until(() -> Value.of("v1").equals(valueOrNull(stream.tryNext())));
 
             stream.close();
@@ -447,6 +470,32 @@ class AttributeStreamTests {
         @Override
         public void close() {
             backing.close();
+        }
+    }
+
+    /**
+     * Inner stream double modelling an untrusted PIP that throws
+     * {@link InterruptedException} from {@code awaitNext} although the
+     * AttributeStream did not request the interrupt. The first call
+     * throws. Later calls would block, but the pump never reaches them
+     * once it correctly treats the interrupt as a transient failure
+     * and moves to the next cycle.
+     */
+    private static final class InterruptingStream implements Stream<Value> {
+
+        @Override
+        public Value awaitNext() throws InterruptedException {
+            throw new InterruptedException("untrusted inner interrupt");
+        }
+
+        @Override
+        public Poll<Value> tryNext() {
+            return Poll.empty();
+        }
+
+        @Override
+        public void close() {
+            // no resources to release
         }
     }
 

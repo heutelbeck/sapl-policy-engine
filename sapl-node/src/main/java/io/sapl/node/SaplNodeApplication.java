@@ -103,7 +103,7 @@ public class SaplNodeApplication {
      * Logback's bootstrap defaults (root INFO to stdout) and is therefore
      * not subject to the stderr routing above. In practice nothing in
      * {@link #isServerMode} or {@link #run} logs before this method, so the
-     * gap is empty; callers adding new code in that window should keep it
+     * gap is empty. Callers adding new code in that window should keep it
      * silent or expect those messages to escape the stderr discipline.
      */
     static void configureCliLogging() {
@@ -226,7 +226,7 @@ public class SaplNodeApplication {
 
             // Passay reflects on its CharacterData / CharacterRule types when
             // building generators. SAPL's `generate basic`/`generate apikey`
-            // CLI commands depend on this; without the hints the native
+            // CLI commands depend on this. Without the hints the native
             // binary fails at first credential generation.
             for (val passayClass : List.of("org.passay.PasswordGenerator", "org.passay.CharacterRule",
                     "org.passay.EnglishCharacterData")) {

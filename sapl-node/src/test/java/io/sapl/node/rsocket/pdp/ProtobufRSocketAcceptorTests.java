@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.sapl.pdp.BlockingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
@@ -35,7 +36,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.test.util.TestSocketUtils;
 
+import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
+import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -131,6 +134,23 @@ class ProtobufRSocketAcceptorTests {
 
             rsocket.dispose();
         }
+    }
+
+    @Test
+    @DisplayName("setup authentication runs on a virtual thread, not the calling/event-loop thread")
+    void whenAuthenticatingThenRunsOffTheTransportThread() {
+        val blockingPdp = mock(BlockingPolicyDecisionPoint.class);
+        val pdp         = mock(ReactivePolicyDecisionPoint.class);
+        val authThread  = new AtomicReference<Thread>();
+        val acceptor    = new ProtobufRSocketAcceptor(blockingPdp, pdp, setup -> Mono.fromCallable(() -> {
+                            authThread.set(Thread.currentThread());
+                            return new AuthenticationResult("tenant-1", null);
+                        }));
+
+        acceptor.accept(mock(ConnectionSetupPayload.class), mock(RSocket.class)).block();
+
+        assertThat(authThread.get()).isNotNull();
+        assertThat(authThread.get().isVirtual()).isTrue();
     }
 
     @Nested

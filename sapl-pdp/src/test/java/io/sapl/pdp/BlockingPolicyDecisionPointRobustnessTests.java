@@ -28,11 +28,15 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.DisplayName;
@@ -244,6 +248,40 @@ class BlockingPolicyDecisionPointRobustnessTests {
         @Override
         public void onUnsubscribe(String subscriptionId) {
             unsubscribed.countDown();
+        }
+    }
+
+    @Nested
+    @DisplayName("configuration-swap generation guard (run2-069/070)")
+    class GenerationGuardTests {
+
+        @SuppressWarnings("unchecked")
+        private static void latchIfCurrent(ReentrantLock lock, AtomicLong generation, long myGen, Consumer<Object> sink,
+                Object value) throws Exception {
+            final Method method = BlockingPolicyDecisionPoint.class.getDeclaredMethod("latchIfCurrent",
+                    ReentrantLock.class, AtomicLong.class, long.class, Consumer.class, Object.class);
+            method.setAccessible(true);
+            method.invoke(null, lock, generation, myGen, (Consumer<Object>) sink, value);
+        }
+
+        @Test
+        @DisplayName("a value from the current configuration generation is latched")
+        void whenGenerationIsCurrentThenValueLatched() throws Exception {
+            var received = new ArrayList<>();
+
+            latchIfCurrent(new ReentrantLock(), new AtomicLong(3), 3L, received::add, "decision");
+
+            assertThat(received).containsExactly("decision");
+        }
+
+        @Test
+        @DisplayName("a value from a superseded generation is dropped, so a stale decision never latches")
+        void whenGenerationSupersededThenValueDropped() throws Exception {
+            var received = new ArrayList<>();
+
+            latchIfCurrent(new ReentrantLock(), new AtomicLong(5), 4L, received::add, "stale-decision");
+
+            assertThat(received).isEmpty();
         }
     }
 }

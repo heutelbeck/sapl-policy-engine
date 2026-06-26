@@ -378,7 +378,7 @@ public class EmbeddedBenchmarkRunner {
     }
 
     /**
-     * Wait at the start barrier; the barrier action populates the shared
+     * Wait at the start barrier. The barrier action populates the shared
      * deadline so every worker thread reads the same value once released.
      */
     private static boolean awaitStart(CyclicBarrier barrier) {

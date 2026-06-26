@@ -60,7 +60,7 @@ import java.util.function.UnaryOperator;
  * Blocking operations inside these streams (HTTP polling, MQTT
  * receive, {@link Stream#awaitNext()}) <strong>must not</strong>
  * run on a Reactor scheduler thread or a Netty event loop. SAPL
- * consumers run on dedicated virtual threads; the helpers themselves
+ * consumers run on dedicated virtual threads. The helpers themselves
  * also spawn virtual threads. Consumers that bridge from Reactor /
  * WebFlux are expected to spawn or hop onto a virtual thread before
  * calling {@code awaitNext()}.
@@ -237,7 +237,7 @@ public class Streams {
      * the returned stream to invoke it.
      * <p>
      * A synchronous throw from {@code producer.produce(...)} is not caught
-     * here; it propagates so an enclosing retry layer can handle it. Attribute
+     * here. It propagates so an enclosing retry layer can handle it. Attribute
      * sources built on this helper run under the broker's retrying
      * {@code AttributeStream}, which re-opens the source with backoff. A caller
      * not under such a wrapper must guard the producer itself.
@@ -391,6 +391,67 @@ public class Streams {
     }
 
     /**
+     * Defers construction of the underlying stream until the returned stream
+     * is first read, then runs {@code sourceFactory} once on a virtual thread
+     * and forwards its values. Use when building the source performs blocking
+     * or IO work (for example a key-server fetch) that must not run on the
+     * caller's thread: the {@code StreamAttributeFinder.invoke} contract
+     * requires invoke() to return promptly without blocking the broker.
+     * <p>
+     * Lazy: {@code sourceFactory} does not run until the first
+     * {@link Stream#awaitNext()} or {@link Stream#tryNext()}. One-shot: unlike
+     * {@link #repeat}, the factory runs a single time and the returned stream
+     * completes when the factory's stream completes.
+     */
+    public static Stream<Value> defer(Supplier<Stream<Value>> sourceFactory) {
+        val out     = new LatestSlotStream<Value>();
+        val stopped = new AtomicBoolean(false);
+        val started = new AtomicBoolean(false);
+        val pumpRef = new AtomicReference<Thread>();
+
+        final Runnable start = () -> {
+            if (started.compareAndSet(false, true)) {
+                pumpRef.set(Thread.startVirtualThread(() -> {
+                    try {
+                        pumpInto(sourceFactory.get(), out, stopped);
+                    } catch (RuntimeException factoryFailure) {
+                        out.put(Value.error(messageOf(factoryFailure)));
+                    } finally {
+                        out.complete();
+                    }
+                }));
+            }
+        };
+
+        out.onClose(() -> {
+            stopped.set(true);
+            val pump = pumpRef.get();
+            if (pump != null) {
+                pump.interrupt();
+            }
+        });
+
+        return new Stream<>() {
+            @Override
+            public Value awaitNext() throws InterruptedException {
+                start.run();
+                return out.awaitNext();
+            }
+
+            @Override
+            public Poll<Value> tryNext() {
+                start.run();
+                return out.tryNext();
+            }
+
+            @Override
+            public void close() {
+                out.close();
+            }
+        };
+    }
+
+    /**
      * Distinct-until-changed wrapper. Emits values from {@code source}
      * but suppresses any value equal (per {@link Objects#equals}) to
      * its immediate predecessor. The first value is always emitted.
@@ -482,6 +543,11 @@ public class Streams {
             try {
                 val nextInstant = clock.instant().plus(interval);
                 cancelHolder.set(scheduler.scheduleAt(nextInstant, tick.get()));
+                // A close racing this reschedule cancels the prior handle. Cancel the
+                // freshly stored one too so the scheduled tick cannot leak.
+                if (stopped.get()) {
+                    cancelHolder.get().cancel();
+                }
             } catch (RuntimeException reschedulingFailure) {
                 // Preserve the supplier's diagnostic (the user-visible error) by not
                 // overwriting it in the latest-wins slot. If only rescheduling failed,

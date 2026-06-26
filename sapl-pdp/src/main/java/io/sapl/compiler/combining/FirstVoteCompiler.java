@@ -69,7 +69,7 @@ import static io.sapl.compiler.policyset.PolicySetUtil.getFallbackVote;
  * produces a snapshot-driven voter that walks the policies sequentially
  * per round, stopping at the first non-NOT_APPLICABLE result. Tail
  * policies are not subscribed when an earlier policy resolves
- * applicability; their deps only enter the dependency set if the
+ * applicability. Their deps only enter the dependency set if the
  * snapshot round actually reaches them.</li>
  * </ul>
  */
@@ -212,7 +212,7 @@ public class FirstVoteCompiler {
      * Stream vote maker for first evaluation with at least one streaming
      * policy. Walks the policies sequentially per snapshot round, stopping
      * at the first non-NOT_APPLICABLE child vote. Tail policies are not
-     * subscribed when an earlier policy resolves applicability; their deps
+     * subscribed when an earlier policy resolves applicability. Their deps
      * only enter the dependency set if the snapshot round actually reaches
      * them. The broker re-fires this voter when its current dep set changes.
      *
@@ -234,17 +234,17 @@ public class FirstVoteCompiler {
             val deps     = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(policies.size());
             val allVotes = new ArrayList<>(contributingVotes);
             for (var i = 0; i < policies.size(); i++) {
-                val sub = policies.get(i).applicabilityAndVote().evaluate(ctx);
+                val sub  = policies.get(i).applicabilityAndVote().evaluate(ctx);
+                val vote = sub.vote();
                 StreamOperator.mergeDependencies(deps, sub.dependencies());
-                if (sub.vote() == null) {
+                if (vote == null) {
                     return new VoteResult(null, deps);
                 }
-                allVotes.add(sub.vote());
-                if (sub.vote().authorizationDecision().decision() != NOT_APPLICABLE) {
-                    val outcome  = firstApplicableOutcome(sub.vote(), policies.subList(i + 1, policies.size()),
+                allVotes.add(vote);
+                if (vote.authorizationDecision().decision() != NOT_APPLICABLE) {
+                    val outcome  = firstApplicableOutcome(vote, policies.subList(i + 1, policies.size()),
                             defaultDecision);
-                    val combined = Vote.combinedVote(sub.vote().authorizationDecision(), voterMetadata, allVotes,
-                            outcome);
+                    val combined = Vote.combinedVote(vote.authorizationDecision(), voterMetadata, allVotes, outcome);
                     return new VoteResult(finalizeVote(combined, errorHandling, voterMetadata), deps);
                 }
             }

@@ -44,9 +44,9 @@ import lombok.val;
  * {@code DispatcherServlet} and therefore cannot be auto-introspected by
  * springdoc. The static resource at
  * {@code /static/openapi/pdp-http.yaml} is the source of truth; this
- * customizer parses it on each {@code /v3/api-docs} request and folds its
- * paths, schemas, response definitions and tags into the live OpenAPI
- * document.
+ * customizer parses it once at bean creation and folds its paths, schemas,
+ * response definitions and tags into the live OpenAPI document on each
+ * {@code /v3/api-docs} request.
  */
 @Slf4j
 @Configuration(proxyBeanMethods = false)

@@ -80,7 +80,7 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
 
     private RemoteHttpReactivePolicyDecisionPoint createPdpWithBasicAuth(String key, String secret) {
         val p = RemotePolicyDecisionPoint.builder().http().baseUrl(server.url("/").toString())
-                .withHttpClient(HttpClient.create()).basicAuth(key, secret).build();
+                .withHttpClient(HttpClient.create()).basicAuth(key, secret).allowInsecureTransport().build();
         p.setFirstBackoffMillis(50);
         p.setMaxBackOffMillis(100);
         p.setTimeoutMillis(2000);
@@ -89,7 +89,7 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
 
     private RemoteHttpReactivePolicyDecisionPoint createPdpWithApiKey(String apiKey) {
         val p = RemotePolicyDecisionPoint.builder().http().baseUrl(server.url("/").toString())
-                .withHttpClient(HttpClient.create()).apiKey(apiKey).build();
+                .withHttpClient(HttpClient.create()).apiKey(apiKey).allowInsecureTransport().build();
         p.setFirstBackoffMillis(50);
         p.setMaxBackOffMillis(100);
         p.setTimeoutMillis(2000);
@@ -189,25 +189,26 @@ class RemoteHttpReactivePolicyDecisionPointLogTests {
 
         @Test
         @Timeout(10)
-        @DisplayName("401/403 auth errors are logged at ERROR on every occurrence (REQ-STREAM-5)")
-        void whenAuthErrorThenLoggedAtErrorOnEveryOccurrence() {
+        @DisplayName("a 401 auth error keeps the decision stream alive and is retried, logged loudly each attempt")
+        void whenAuthErrorThenRetriedAndStreamStaysAlive() {
             val pdp = createPdpWithBasicAuth("user", "pass");
-            pdp.setMaxRetries(2);
+            pdp.setMaxRetries(3);
 
-            for (var i = 0; i < 3; i++) {
+            for (var i = 0; i < 4; i++) {
                 server.enqueue(new MockResponse().setResponseCode(HttpStatus.UNAUTHORIZED.value()));
             }
 
             val subscription = AuthorizationSubscription.of(SUBJECT, ACTION, RESOURCE);
-
+            // The stream ends only because the explicit maxRetries bound is reached, not
+            // because a
+            // permanent auth error is treated as terminal. In production maxRetries is
+            // unbounded.
             StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.INDETERMINATE).verifyError();
 
-            Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-                val authErrorLogs = logAppender.list.stream().filter(e -> e.getLevel() == Level.ERROR)
-                        .filter(e -> e.getFormattedMessage().contains("PDP authentication failed")).toList();
-                assertThat(authErrorLogs).as("Auth errors should be logged at ERROR every time")
-                        .hasSizeGreaterThanOrEqualTo(2);
-            });
+            val authErrorLogs = logAppender.list.stream().filter(e -> e.getLevel() == Level.ERROR)
+                    .filter(e -> e.getFormattedMessage().contains("PDP authentication failed")).toList();
+            assertThat(authErrorLogs).as("a permanent auth error keeps retrying and is logged loudly each attempt")
+                    .hasSizeGreaterThan(1);
         }
     }
 

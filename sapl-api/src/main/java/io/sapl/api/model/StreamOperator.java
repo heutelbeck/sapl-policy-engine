@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.jspecify.annotations.Nullable;
-
 public non-sealed interface StreamOperator extends CompiledExpression {
 
     /**
@@ -69,13 +67,13 @@ public non-sealed interface StreamOperator extends CompiledExpression {
      * @param ctx evaluation context bound to the same snapshot as the
      * parent's evaluation pass
      * @param deps accumulator for dependencies contributed by stream
-     * children; pure and value children leave it untouched
+     * children. Pure and value children leave it untouched
      * @return the child's value, or {@code null} if a stream child
      * could not complete
      *
      * @since 4.1.0
      */
-    static @Nullable Value evalChild(CompiledExpression child, EvaluationContext ctx,
+    static Value evalChild(CompiledExpression child, EvaluationContext ctx,
             Map<SubscriptionKey, List<Occurrence>> deps) {
         return switch (child) {
         case Value v          -> v;

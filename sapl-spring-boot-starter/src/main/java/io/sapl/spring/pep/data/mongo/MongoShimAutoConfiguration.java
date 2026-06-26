@@ -23,24 +23,28 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 
 import io.sapl.spring.pep.constraints.providers.MongoDbQueryRewritingProvider;
 
 /**
  * Activates the Mongo arm of the shim-signal architecture: registers the
- * {@code mongo:queryRewriting} constraint
- * handler provider, declares the {@code MongoDbQueryShimSignal} as a supported
- * PEP signal, and wraps every
- * {@code ReactiveMongoTemplate} bean in a CGLIB proxy via
- * {@link MongoShimBeanPostProcessor} so {@code find} operations
- * and the fluent {@code query(Class).matching(Query).all()} chain fire the
- * shim. Active when Spring Data MongoDB
- * Reactive is on the classpath and not explicitly disabled by
+ * {@code mongo:queryRewriting} constraint handler provider and wraps every
+ * Mongo
+ * template bean in a CGLIB proxy so its data-reaching operations fire the shim.
+ * Both stacks are covered: {@link MongoShimBeanPostProcessor} proxies a
+ * {@code ReactiveMongoTemplate} and {@link MongoBlockingShimBeanPostProcessor}
+ * proxies a {@code MongoTemplate}. Each proxy introduces the
+ * {@code ShimSignalContributor} interface, so {@code MongoDbQueryShimSignal} is
+ * advertised to the planner only for the template(s) that are actually present
+ * and shimmed. Active when Spring Data MongoDB is on the classpath and not
+ * explicitly disabled by
  * {@code io.sapl.method-security.mongo-shim.enabled=false}.
  */
 @AutoConfiguration
-@ConditionalOnClass(ReactiveMongoRepository.class)
+@ConditionalOnClass(MongoOperations.class)
 @ConditionalOnProperty(name = "io.sapl.method-security.mongo-shim.enabled", matchIfMissing = true)
 public class MongoShimAutoConfiguration {
 
@@ -52,7 +56,15 @@ public class MongoShimAutoConfiguration {
 
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnClass(ReactiveMongoTemplate.class)
     MongoShimBeanPostProcessor mongoShimBeanPostProcessor() {
         return new MongoShimBeanPostProcessor();
+    }
+
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    @ConditionalOnClass(MongoTemplate.class)
+    MongoBlockingShimBeanPostProcessor mongoBlockingShimBeanPostProcessor() {
+        return new MongoBlockingShimBeanPostProcessor();
     }
 }

@@ -118,7 +118,7 @@ public class PayloadFormatUtility {
     public static Value convertBytesToArrayValue(byte[] bytes) {
         var values = new Value[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
-            values[i] = Value.of(bytes[i]);
+            values[i] = Value.of(bytes[i] & 0xFF);
         }
         return Value.ofArray(values);
     }

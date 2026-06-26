@@ -103,6 +103,24 @@ class GraphFunctionLibraryTests {
                 Value.of("unaussprechlichen-kulten"));
     }
 
+    @Test
+    void reachableWhenNullNeighborThenDoesNotCollideWithNodeNamedNull() {
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "necronomicon":         ["pnakotic-manuscripts", null],
+                  "pnakotic-manuscripts": [],
+                  "null":                 ["rlyeh-text"],
+                  "rlyeh-text":           []
+                }
+                """);
+        val initial = Value.of("necronomicon");
+
+        val result = GraphFunctionLibrary.reachable(graph, initial);
+
+        assertThat(result).isInstanceOfSatisfying(ArrayValue.class, resultArray -> assertThat(resultArray)
+                .containsExactlyInAnyOrder(Value.of("necronomicon"), Value.of("pnakotic-manuscripts")));
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("emptyInputCases")
     void reachableWhenEmptyInputsThenReturnsExpectedSize(String description, ObjectValue graph, Value initial,
@@ -141,6 +159,41 @@ class GraphFunctionLibraryTests {
         assertThat(result).isInstanceOf(ArrayValue.class);
         val resultArray = (ArrayValue) result;
         assertThat(resultArray).containsExactlyInAnyOrder(Value.of("1"), Value.of("2"), Value.of("3"), Value.of("4"));
+    }
+
+    @Test
+    void reachableWhenNumericStartNodeThenSeedsItAndReachesTargets() {
+        val graph   = (ObjectValue) Value.ofJson("""
+                {
+                  "1": ["2", "3"],
+                  "2": ["4"],
+                  "3": [],
+                  "4": []
+                }
+                """);
+        val initial = Value.of(1);
+
+        val result = GraphFunctionLibrary.reachable(graph, initial);
+
+        assertThat(result).isInstanceOf(ArrayValue.class);
+        val resultArray = (ArrayValue) result;
+        assertThat(resultArray).containsExactlyInAnyOrder(Value.of("1"), Value.of("2"), Value.of("3"), Value.of("4"));
+    }
+
+    @Test
+    void isReachableWhenNumericStartNodeThenFindsReachableTarget() {
+        val graph = (ObjectValue) Value.ofJson("""
+                {
+                  "1": ["2", "3"],
+                  "2": ["4"],
+                  "3": [],
+                  "4": []
+                }
+                """);
+
+        val result = GraphFunctionLibrary.isReachable(graph, Value.of(1), Value.of("4"));
+
+        assertThat(result).isEqualTo(Value.TRUE);
     }
 
     @Test
@@ -542,6 +595,20 @@ class GraphFunctionLibraryTests {
             builder.put("n" + i, i < nodes - 1 ? Value.ofArray(Value.of("n" + (i + 1))) : Value.EMPTY_ARRAY);
         }
         val result = GraphFunctionLibrary.transitiveClosure(builder.build());
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");
+    }
+
+    @Test
+    @DisplayName("reachablePaths caps total emitted path steps to bound memory on untrusted graphs")
+    void reachablePathsWhenEmittedStepsExceedMaximumThenError() {
+        val nodes   = 1500;
+        val builder = ObjectValue.builder();
+        for (var i = 0; i < nodes; i++) {
+            builder.put("n" + i, i < nodes - 1 ? Value.ofArray(Value.of("n" + (i + 1))) : Value.EMPTY_ARRAY);
+        }
+        val result = GraphFunctionLibrary.reachablePaths(builder.build(), Value.of("n0"));
 
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("exceeds the maximum");

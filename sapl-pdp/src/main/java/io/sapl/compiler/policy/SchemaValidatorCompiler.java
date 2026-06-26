@@ -26,6 +26,7 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegex;
 import io.sapl.compiler.util.BoundedRegularExpressionFactory;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -166,7 +167,7 @@ public class SchemaValidatorCompiler {
             }
             try {
                 val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
-                val messages    = schema.validate(subjectNode);
+                val messages    = BoundedRegex.runWithSharedMatchBudget(() -> schema.validate(subjectNode));
                 return messages.isEmpty() ? Value.TRUE : Value.FALSE;
             } catch (Throwable e) {
                 // Third-party validation on hostile input must never crash evaluation. Surface
@@ -204,16 +205,19 @@ public class SchemaValidatorCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
+            // Kleene OR: a TRUE from any schema wins even if another errors. Surface an
+            // error only if none pass.
+            ErrorValue firstError = null;
             for (val validator : validators) {
                 val result = validator.evaluate(ctx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
                 if (Value.TRUE.equals(result)) {
                     return Value.TRUE;
                 }
+                if (result instanceof ErrorValue error && firstError == null) {
+                    firstError = error;
+                }
             }
-            return Value.FALSE;
+            return firstError != null ? firstError : Value.FALSE;
         }
 
         @Override

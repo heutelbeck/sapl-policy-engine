@@ -134,7 +134,7 @@ class RegexCompilerTests {
         var compiled = compileExpression("subject =~ \"^a.*\"");
         assertThat(compiled).isInstanceOf(RegexCompiler.RegexPrecompiledPure.class);
         var precompiled = (RegexCompiler.RegexPrecompiledPure) compiled;
-        // Pattern is compiled at compile time; same reference reused per evaluate call.
+        // Pattern is compiled at compile time. Same reference reused per evaluate call.
         assertThat(precompiled.pattern()).isNotNull().isSameAs(precompiled.pattern())
                 .satisfies(p -> assertThat(p.matcher("apple").matches()).isTrue())
                 .satisfies(p -> assertThat(p.matcher("banana").matches()).isFalse());

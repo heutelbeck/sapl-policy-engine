@@ -81,6 +81,7 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
     private static final String BUNDLE_EXTENSION          = ".saplbundle";
     private static final String ERROR_EMPTY_RESPONSE_BODY = "Server returned 200 with empty body.";
     private static final String ERROR_HTTP_STATUS         = "Server returned HTTP %d for pdpId '%s'.";
+    private static final String ERROR_ILLEGAL_AUTH_HEADER = "Configured auth header for pdpId '%s' contains characters that are illegal in an HTTP header.";
 
     private static final String WARN_FETCH_FAILED                      = "Fetch failed for pdpId '{}' (retry #{}): {}";
     private static final String WARN_REDIRECTS_DISABLED_FOR_CREDENTIAL = "Disabling redirect following for bundle source '{}' because a custom auth header is configured. A redirect would replay the credential to a cross-origin target. Point at the final URL to keep redirects.";
@@ -229,7 +230,13 @@ public final class RemoteBundlePDPConfigurationSource implements PDPConfiguratio
         val authName  = config.authHeaderName();
         val authValue = config.authHeaderValue();
         if (authName != null && authValue != null) {
-            builder.header(authName, authValue);
+            try {
+                builder.header(authName, authValue);
+            } catch (IllegalArgumentException e) {
+                // The rejected value is the credential. Never propagate it into a message that
+                // reaches the logs.
+                throw new IllegalArgumentException(ERROR_ILLEGAL_AUTH_HEADER.formatted(pdpId));
+            }
         }
         return builder.build();
     }

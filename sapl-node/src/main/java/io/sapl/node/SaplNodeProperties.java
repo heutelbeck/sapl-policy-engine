@@ -26,7 +26,7 @@ import java.util.Map;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.sapl.node.auth.SecretGenerator;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.node.boot.SaplStartupConfigurationException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -39,8 +39,6 @@ import lombok.val;
 @Data
 @ConfigurationProperties(prefix = "io.sapl.node")
 public class SaplNodeProperties implements InitializingBean {
-
-    public static final String DEFAULT_PDP_ID = "default";
 
     private static final String ERROR_DUPLICATE_API_KEY_ID  = "SAPL Node refused to start. Duplicate api-key-id '%s' in user configuration.";
     private static final String ACTION_DUPLICATE_API_KEY_ID = """
@@ -79,15 +77,6 @@ public class SaplNodeProperties implements InitializingBean {
             See the multi-tenant configuration reference at
             https://sapl.io/docs/latest/7_2_Configuration for details.""";
 
-    private static final String ERROR_SHORT_API_KEY  = "SAPL Node refused to start. An apiKey in the user configuration is shorter than %d characters.";
-    private static final String ACTION_SHORT_API_KEY = """
-            API keys must be long enough to resist brute force. Generate a
-            fresh credential with:
-
-              sapl generate apikey --id <user-id>
-
-            and paste the encoded value into the user entry.""";
-
     // Authentication methods
     private boolean allowNoAuth     = false;
     private boolean allowBasicAuth  = false;
@@ -99,7 +88,7 @@ public class SaplNodeProperties implements InitializingBean {
     // has called every setter, so the binder's setter ordering does not
     // affect the outcome.
     private boolean rejectOnMissingPdpId = false;
-    private String  defaultPdpId         = DEFAULT_PDP_ID;
+    private String  defaultPdpId         = StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 
     // User entries with unified credentials.
     private List<UserEntry> users = new ArrayList<>();
@@ -144,7 +133,6 @@ public class SaplNodeProperties implements InitializingBean {
         val nextIndex = new HashMap<String, UserEntry>();
         for (UserEntry user : users) {
             if (user.getApiKey() != null) {
-                assertIsValidApiKey(user.getApiKey());
                 requireApiKeyId(user);
                 warnIfApiKeyLooksPlaintext(user);
             }
@@ -185,7 +173,7 @@ public class SaplNodeProperties implements InitializingBean {
      * {@link #setUsers} time; users without an {@code api-key-id} configured
      * are omitted.
      *
-     * @return immutable map by api-key-id; empty when no users configured
+     * @return immutable map by api-key-id. Empty when no users configured
      */
     public Map<String, UserEntry> getApiKeyIdIndex() {
         return apiKeyIdIndex;
@@ -208,13 +196,6 @@ public class SaplNodeProperties implements InitializingBean {
                         ACTION_MISSING_PDP_ID);
             }
             user.setPdpId(defaultPdpId);
-        }
-    }
-
-    private void assertIsValidApiKey(String key) {
-        if (key.length() < SecretGenerator.MIN_API_KEY_LENGTH) {
-            throw new SaplStartupConfigurationException(
-                    ERROR_SHORT_API_KEY.formatted(SecretGenerator.MIN_API_KEY_LENGTH), ACTION_SHORT_API_KEY);
         }
     }
 
@@ -254,6 +235,9 @@ public class SaplNodeProperties implements InitializingBean {
     public static class OAuthConfig {
         private String       pdpIdClaim = "sapl_pdp_id";
         private List<String> audiences  = new ArrayList<>();
+        // Secure by default: a JWT without an exp claim is rejected. It would grant
+        // non-expiring access.
+        private boolean allowJwtWithoutExpiry = false;
     }
 
 }

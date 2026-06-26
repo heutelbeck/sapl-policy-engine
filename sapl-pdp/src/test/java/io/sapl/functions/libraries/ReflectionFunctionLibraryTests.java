@@ -232,9 +232,9 @@ class ReflectionFunctionLibraryTests {
                 arguments("Empty object returns true", Value.EMPTY_OBJECT, true),
                 arguments("Array with elements returns false", Value.ofArray(Value.of(1), Value.of(2)), false),
                 arguments("Object with fields returns false", Value.ofObject(Map.of("a", Value.of(1))), false),
-                arguments("NULL returns true", Value.NULL, true),
-                arguments("Empty string returns true", Value.of(""), true),
-                arguments("Zero returns true", Value.of(0), true));
+                arguments("NULL is a non-container, returns false", Value.NULL, false),
+                arguments("empty string is a non-container, returns false", Value.of(""), false),
+                arguments("zero is a non-container, returns false", Value.of(0), false));
     }
 
     @ParameterizedTest(name = "{0}")

@@ -62,6 +62,7 @@ import io.sapl.api.pdp.MultiAuthorizationSubscription;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -95,32 +96,35 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
     private static final String MULTI_DECIDE_ALL      = "/api/pdp/multi-decide-all";
     private static final String MULTI_DECIDE_ALL_ONCE = "/api/pdp/multi-decide-all-once";
 
-    private static final String ERROR_AUTH_FAILED          = "PDP authentication failed (HTTP {}). Check credentials configuration.";
-    private static final String ERROR_HTTP_STATUS          = "PDP returned HTTP {} ({})";
-    private static final String ERROR_STREAM_FAILED        = "PDP streaming communication error: {}";
-    static final int            RETRY_ESCALATION_THRESHOLD = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
+    private static final String ERROR_AUTH_FAILED                   = "PDP authentication failed (HTTP {}). Check credentials configuration.";
+    private static final String ERROR_HTTP_STATUS                   = "PDP returned HTTP {} ({})";
+    private static final String ERROR_INSECURE_CREDENTIAL_TRANSPORT = "Refusing to send remote PDP credentials over a plaintext http connection. Use an https baseUrl, or explicitly accept the risk with allowInsecureTransport().";
+    private static final String ERROR_STREAM_FAILED                 = "PDP streaming communication error: {}";
+    private static final String WARN_INSECURE_CREDENTIAL_TRANSPORT  = "Sending remote PDP credentials over a plaintext http connection because allowInsecureTransport() is set. A network attacker can capture the credential. Do not use in production.";
+    static final int            RETRY_ESCALATION_THRESHOLD          = RemotePdpRetry.RETRY_ESCALATION_THRESHOLD;
 
     private final WebClient client;
 
     @Setter
     @Getter
-    private int firstBackoffMillis = 1000;
+    private volatile int firstBackoffMillis = 1000;
+
+    // Sustained failure backs off to a 60s heartbeat, not a tight reconnect storm.
+    @Setter
+    @Getter
+    private volatile int maxBackOffMillis = 60000;
 
     @Setter
     @Getter
-    private int maxBackOffMillis = 30000;
+    private volatile long maxRetries = Long.MAX_VALUE;
 
     @Setter
     @Getter
-    private long maxRetries = Long.MAX_VALUE;
+    private volatile int timeoutMillis = 5000;
 
     @Setter
     @Getter
-    private int timeoutMillis = 5000;
-
-    @Setter
-    @Getter
-    private int inactivityTimeoutMillis = 60_000;
+    private volatile int inactivityTimeoutMillis = 60_000;
 
     public RemoteHttpReactivePolicyDecisionPoint(String baseUrl,
             String clientKey,
@@ -165,12 +169,13 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        val type = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
+        val consecutiveFailures = new AtomicLong();
+        val type                = new ParameterizedTypeReference<ServerSentEvent<AuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(DECIDE, type, authzSubscription).doOnError(this::logStreamError)
-                        .concatWith(Flux.error(new StreamEndedException())))
+                .defer(() -> streamSse(DECIDE, type, authzSubscription).doOnNext(d -> consecutiveFailures.set(0))
+                        .doOnError(this::logStreamError).concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(AuthorizationDecision.INDETERMINATE), Flux.error(error)))
-                .retryWhen(createRetrySpec()).distinctUntilChanged();
+                .retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     @Override
@@ -193,13 +198,15 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        val type = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
+        val consecutiveFailures = new AtomicLong();
+        val type                = new ParameterizedTypeReference<ServerSentEvent<IdentifiableAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription).doOnError(this::logStreamError)
+                .defer(() -> streamSse(MULTI_DECIDE, type, multiAuthzSubscription)
+                        .doOnNext(d -> consecutiveFailures.set(0)).doOnError(this::logStreamError)
                         .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(error -> Flux.concat(Flux.just(IdentifiableAuthorizationDecision.INDETERMINATE),
                         Flux.error(error)))
-                .retryWhen(createRetrySpec()).distinctUntilChanged();
+                .retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     @Override
@@ -209,13 +216,15 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         // derives the tenant from the access token (JWT claim, API-key user
         // record), so multi-tenant routing is determined entirely by the
         // configured credentials of this client.
-        val type = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
+        val consecutiveFailures = new AtomicLong();
+        val type                = new ParameterizedTypeReference<ServerSentEvent<MultiAuthorizationDecision>>() {};
         return Flux
-                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription).doOnError(this::logStreamError)
+                .defer(() -> streamSse(MULTI_DECIDE_ALL, type, multiAuthzSubscription)
+                        .doOnNext(d -> consecutiveFailures.set(0)).doOnError(this::logStreamError)
                         .concatWith(Flux.error(new StreamEndedException())))
                 .onErrorResume(
                         error -> Flux.concat(Flux.just(MultiAuthorizationDecision.indeterminate()), Flux.error(error)))
-                .retryWhen(createRetrySpec()).distinctUntilChanged();
+                .retryWhen(createRetrySpec(consecutiveFailures)).distinctUntilChanged();
     }
 
     /**
@@ -233,7 +242,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         return client.post().uri(MULTI_DECIDE_ALL_ONCE).accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(multiAuthzSubscription).retrieve().bodyToMono(type)
                 .timeout(Duration.ofMillis(timeoutMillis)).doOnError(this::logStreamError)
-                .onErrorReturn(MultiAuthorizationDecision.indeterminate());
+                .onErrorReturn(MultiAuthorizationDecision.indeterminate())
+                .defaultIfEmpty(MultiAuthorizationDecision.indeterminate());
     }
 
     private <T> Flux<T> streamSse(String path, ParameterizedTypeReference<ServerSentEvent<T>> type,
@@ -248,8 +258,8 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
                 .mapNotNull(ServerSentEvent::data);
     }
 
-    private Retry createRetrySpec() {
-        return RemotePdpRetry.createRetrySpec(maxRetries, firstBackoffMillis, maxBackOffMillis);
+    private Retry createRetrySpec(AtomicLong consecutiveFailures) {
+        return RemotePdpRetry.createRetrySpec(consecutiveFailures, maxRetries, firstBackoffMillis, maxBackOffMillis);
     }
 
     private void logStreamError(Throwable error) {
@@ -280,16 +290,23 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         private HttpClient                                     httpClient = HttpClient
                 .create(DEFAULT_CONNECTION_PROVIDER).protocol(HttpProtocol.HTTP11, HttpProtocol.H2);
         private Function<WebClient.Builder, WebClient.Builder> authenticationCustomizer;
+        private boolean                                        allowInsecureTransport;
+
+        /**
+         * Accept sending credentials over a plaintext (non-https) connection.
+         * Insecure, opt-in only.
+         *
+         * @return this builder
+         */
+        public RemoteHttpPolicyDecisionPointBuilder allowInsecureTransport() {
+            this.allowInsecureTransport = true;
+            return this;
+        }
 
         public RemoteHttpPolicyDecisionPointBuilder withUnsecureSSL() throws SSLException {
             RemotePdpRetry.logInsecureSslWarning();
             val sslContext = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
             return this.secure(sslContext);
-        }
-
-        public RemoteHttpPolicyDecisionPointBuilder secure() {
-            this.httpClient = httpClient.secure();
-            return this;
         }
 
         public RemoteHttpPolicyDecisionPointBuilder secure(SslContext sslContext) {
@@ -367,6 +384,7 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
         }
 
         public RemoteHttpReactivePolicyDecisionPoint build() {
+            enforceCredentialTransportSecurity();
             var builder = WebClient.builder().exchangeStrategies(saplExchangeStrategies())
                     .clientConnector(new ReactorClientHttpConnector(this.httpClient)).baseUrl(this.baseUrl);
 
@@ -374,6 +392,20 @@ public class RemoteHttpReactivePolicyDecisionPoint implements ReactivePolicyDeci
                 builder = authenticationCustomizer.apply(builder);
             }
             return new RemoteHttpReactivePolicyDecisionPoint(builder.build());
+        }
+
+        private void enforceCredentialTransportSecurity() {
+            if (authenticationCustomizer == null || isEncryptedBaseUrl()) {
+                return;
+            }
+            if (!allowInsecureTransport) {
+                throw new IllegalStateException(ERROR_INSECURE_CREDENTIAL_TRANSPORT);
+            }
+            log.warn(WARN_INSECURE_CREDENTIAL_TRANSPORT);
+        }
+
+        private boolean isEncryptedBaseUrl() {
+            return baseUrl.regionMatches(true, 0, "https://", 0, "https://".length());
         }
     }
 

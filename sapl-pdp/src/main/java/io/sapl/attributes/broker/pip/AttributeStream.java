@@ -189,8 +189,16 @@ final class AttributeStream implements Stream<Value> {
                 log.debug(DEBUG_ATTEMPT_FAILED, invocation.attributeName(), e.getMessage());
                 lastCause = e;
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
+                if (closed) {
+                    // close() requested the interrupt: honour it and exit promptly.
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                // An untrusted inner stream interrupted us without a close request.
+                // Clear the flag and treat it as an ordinary transient failure so the
+                // retry path backs off instead of busy-spinning sleeplessly.
+                Thread.interrupted();
+                lastCause = new RuntimeException(e);
             }
             if (retriesLeft <= 0) {
                 publish(Value

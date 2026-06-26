@@ -19,6 +19,7 @@ package io.sapl.attributes.libraries;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
+import io.sapl.api.stream.RealTimeScheduler;
 import io.sapl.api.test.stream.MutableClock;
 import io.sapl.api.test.stream.StreamAssertions;
 import io.sapl.api.test.stream.TestTimeScheduler;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -58,6 +60,12 @@ class X509PolicyInformationPointTests {
     private static final String  CTHULHU_DN     = "CN=Cthulhu Accounting Services,O=Rlyeh Deep Ones LLC,C=US";
     private static final String  YOG_SOTHOTH_DN = "CN=Yog-Sothoth Time Services,O=Beyond the Gate,C=XX";
     private static final Instant NOW            = Instant.parse("2025-06-15T12:00:00Z");
+
+    /**
+     * RFC 5280 "no well-defined expiration date" value (99991231235959Z),
+     * routinely used as the notAfter of long-lived CA root certificates.
+     */
+    private static final Instant RFC5280_NO_EXPIRATION = Instant.parse("9999-12-31T23:59:59Z");
 
     private static KeyPair keyPair;
 
@@ -157,6 +165,22 @@ class X509PolicyInformationPointTests {
         }
 
         @Test
+        @DisplayName("when cert validity window is inverted then never emits true")
+        void whenCertValidityWindowIsInvertedThenNeverEmitsTrue()
+                throws OperatorCreationException, CertificateException, IOException {
+            val notBefore = NOW.plus(10, ChronoUnit.SECONDS);
+            val notAfter  = NOW.plus(5, ChronoUnit.SECONDS);
+            val certPem   = toPem(generateCertificate(CTHULHU_DN, notBefore, notAfter));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new TestTimeScheduler(NOW);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
+
+            try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE).awaitsCompletion();
+            }
+        }
+
+        @Test
         @DisplayName("when PEM is malformed then emits error")
         void whenCertPemIsMalformedThenEmitsError() {
             val clock     = new MutableClock(NOW);
@@ -170,6 +194,40 @@ class X509PolicyInformationPointTests {
                     }
                 }).awaitsCompletion();
             }
+        }
+
+        @Test
+        @DisplayName("when valid cert has far-future notAfter then emits true without crashing the PIP")
+        void whenValidCertHasFarFutureNotAfterThenEmitsTrueWithoutCrashing()
+                throws OperatorCreationException, CertificateException, IOException {
+            val certPem   = toPem(
+                    generateCertificate(CTHULHU_DN, NOW.minus(1, ChronoUnit.DAYS), RFC5280_NO_EXPIRATION));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new RealTimeScheduler(clock);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
+
+            assertThatCode(() -> {
+                try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                    StreamAssertions.assertThat(stream).awaitsNext(Value.TRUE);
+                }
+            }).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("when not-yet-valid cert has far-future notAfter then emits false without crashing the PIP")
+        void whenNotYetValidCertHasFarFutureNotAfterThenEmitsFalseWithoutCrashing()
+                throws OperatorCreationException, CertificateException, IOException {
+            val notBefore = NOW.plus(10, ChronoUnit.SECONDS);
+            val certPem   = toPem(generateCertificate(CTHULHU_DN, notBefore, RFC5280_NO_EXPIRATION));
+            val clock     = new MutableClock(NOW);
+            val scheduler = new RealTimeScheduler(clock);
+            val sut       = new X509PolicyInformationPoint(clock, scheduler);
+
+            assertThatCode(() -> {
+                try (val stream = sut.isCurrentlyValid(Value.of(certPem))) {
+                    StreamAssertions.assertThat(stream).awaitsNext(Value.FALSE);
+                }
+            }).doesNotThrowAnyException();
         }
     }
 

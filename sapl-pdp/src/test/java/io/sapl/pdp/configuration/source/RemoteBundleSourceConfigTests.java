@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration.source;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 import java.util.List;
@@ -28,8 +29,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.val;
 
 @DisplayName("RemoteBundleSourceConfig credential exposure")
 class RemoteBundleSourceConfigTests {
@@ -59,6 +63,40 @@ class RemoteBundleSourceConfigTests {
         var cfg = config("https://bundles.example.com/bundles", "Authorization", "Bearer super-secret-token");
 
         assertThat(cfg.toString()).doesNotContain("super-secret-token").contains("REDACTED");
+    }
+
+    @ParameterizedTest(name = "longPollTimeout={0}s")
+    @ValueSource(longs = { 0L, -10L })
+    @DisplayName("a non-positive longPollTimeout is rejected at construction, like every other duration field")
+    void whenLongPollTimeoutNonPositiveThenConstructionFails(long seconds) {
+        val pdpIds          = List.of("default");
+        val pollInterval    = Duration.ofMillis(100);
+        val longPollTimeout = Duration.ofSeconds(seconds);
+        val pollIntervals   = Map.<String, Duration>of();
+        val connectTimeout  = Duration.ofMillis(50);
+        val readTimeout     = Duration.ofMillis(200);
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", pdpIds,
+                        RemoteBundleSourceConfig.FetchMode.LONG_POLL, pollInterval, longPollTimeout, null, null, true,
+                        POLICY, pollIntervals, connectTimeout, readTimeout))
+                .withMessageContaining("longPollTimeout");
+    }
+
+    @ParameterizedTest(name = "invalid pdpId: {0}")
+    @ValueSource(strings = { "../admin", "tenant?x=1", "a/b", "with space" })
+    @DisplayName("a pdpId that fails validation is rejected at construction, consistent with directory sources")
+    void whenInvalidPdpIdThenConstructionFails(String pdpId) {
+        val invalid         = List.of(pdpId);
+        val pollInterval    = Duration.ofMillis(100);
+        val longPollTimeout = Duration.ofSeconds(5);
+        val pollIntervals   = Map.<String, Duration>of();
+        val connectTimeout  = Duration.ofMillis(50);
+        val readTimeout     = Duration.ofMillis(200);
+        assertThatExceptionOfType(PDPConfigurationException.class)
+                .isThrownBy(() -> new RemoteBundleSourceConfig("https://bundles.example.com/bundles", invalid,
+                        RemoteBundleSourceConfig.FetchMode.POLLING, pollInterval, longPollTimeout, null, null, true,
+                        POLICY, pollIntervals, connectTimeout, readTimeout))
+                .withMessageContaining("PDP identifier");
     }
 
     private static RemoteBundleSourceConfig config(String baseUrl, String authName, String authValue) {

@@ -179,7 +179,7 @@ class BlockingReactivePolicyDecisionPointTests {
     }
 
     @Test
-    @DisplayName("decideOnce on multi-subscription bundle returns indeterminate when empty")
+    @DisplayName("decideAll on empty multi-subscription bundle returns INDETERMINATE")
     void whenMultiSubscriptionEmptyThenDecideAllReturnsIndeterminate() throws Exception {
         loadConfiguration(DENY_UNLESS_PERMIT, """
                 policy "permit all"
@@ -191,6 +191,7 @@ class BlockingReactivePolicyDecisionPointTests {
 
             assertThat(first).isNotNull();
             assertThat(first.size()).isEqualTo(1);
+            assertThat(first.getDecision("").decision()).isEqualTo(Decision.INDETERMINATE);
         }
     }
 

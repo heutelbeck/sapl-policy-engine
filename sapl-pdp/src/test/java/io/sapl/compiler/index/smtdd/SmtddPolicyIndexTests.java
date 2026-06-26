@@ -19,7 +19,7 @@ package io.sapl.compiler.index.smtdd;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,7 +48,7 @@ class SmtddPolicyIndexTests {
     }
 
     @Nested
-    @DisplayName("match")
+    @DisplayName("matchKleene")
     class MatchTests {
 
         @MethodSource
@@ -59,12 +59,12 @@ class SmtddPolicyIndexTests {
             val document  = stubDocumentWithApplicability("policy1", predicate.operator());
 
             PREDICATE_RESULTS.put(1L, predicateResult);
-            val result = SmtddPolicyIndex.create(List.of(document), 0).match(evaluationContext());
+            val result = SmtddPolicyIndex.create(List.of(document), 0).matchKleene(evaluationContext());
 
             if (shouldMatch) {
-                assertThat(result.matchingDocuments()).hasSize(1);
+                assertThat(result.trueMatches()).hasSize(1);
             } else {
-                assertThat(result.matchingDocuments()).isEmpty();
+                assertThat(result.trueMatches()).isEmpty();
             }
         }
 
@@ -73,53 +73,53 @@ class SmtddPolicyIndexTests {
         }
 
         @Test
-        @DisplayName("predicate error produces error vote")
+        @DisplayName("predicate error produces error match")
         void whenPredicateErrorThenErrorVote() {
             val predicate = configurablePredicate(1L);
             val document  = stubDocumentWithApplicability("policy1", predicate.operator());
 
             PREDICATE_RESULTS.put(1L, new ErrorValue("broken"));
-            val result = SmtddPolicyIndex.create(List.of(document), 0).match(evaluationContext());
+            val result = SmtddPolicyIndex.create(List.of(document), 0).matchKleene(evaluationContext());
 
             assertThat(result).satisfies(r -> {
-                assertThat(r.matchingDocuments()).isEmpty();
-                assertThat(r.errorVotes()).hasSize(1);
+                assertThat(r.trueMatches()).isEmpty();
+                assertThat(r.errorMatches()).hasSize(1);
             });
         }
 
         @Test
         @DisplayName("constant TRUE applicability always matches")
         void whenConstantTrueThenMatches() {
-            val result = SmtddPolicyIndex.create(List.of(stubDocument("p1")), 0).match(evaluationContext());
-            assertThat(result.matchingDocuments()).hasSize(1);
+            val result = SmtddPolicyIndex.create(List.of(stubDocument("p1")), 0).matchKleene(evaluationContext());
+            assertThat(result.trueMatches()).hasSize(1);
         }
 
         @Test
         @DisplayName("constant FALSE applicability never matches")
         void whenConstantFalseThenNotMatched() {
             val document = stubDocumentWithConstantApplicability("p1", Value.FALSE);
-            val result   = SmtddPolicyIndex.create(List.of(document), 0).match(evaluationContext());
-            assertThat(result.matchingDocuments()).isEmpty();
+            val result   = SmtddPolicyIndex.create(List.of(document), 0).matchKleene(evaluationContext());
+            assertThat(result.trueMatches()).isEmpty();
         }
 
         @Test
-        @DisplayName("constant error applicability produces error vote")
+        @DisplayName("constant error applicability produces error match")
         void whenConstantErrorThenErrorVote() {
             val document = stubDocumentWithConstantApplicability("p1", new ErrorValue("broken"));
-            val result   = SmtddPolicyIndex.create(List.of(document), 0).match(evaluationContext());
+            val result   = SmtddPolicyIndex.create(List.of(document), 0).matchKleene(evaluationContext());
             assertThat(result).satisfies(r -> {
-                assertThat(r.matchingDocuments()).isEmpty();
-                assertThat(r.errorVotes()).hasSize(1);
+                assertThat(r.trueMatches()).isEmpty();
+                assertThat(r.errorMatches()).hasSize(1);
             });
         }
 
         @Test
         @DisplayName("empty index returns empty result")
         void whenEmptyThenEmptyResult() {
-            val result = SmtddPolicyIndex.create(List.of(), 0).match(evaluationContext());
+            val result = SmtddPolicyIndex.create(List.of(), 0).matchKleene(evaluationContext());
             assertThat(result).satisfies(r -> {
-                assertThat(r.matchingDocuments()).isEmpty();
-                assertThat(r.errorVotes()).isEmpty();
+                assertThat(r.trueMatches()).isEmpty();
+                assertThat(r.errorMatches()).isEmpty();
             });
         }
 
@@ -127,13 +127,13 @@ class SmtddPolicyIndexTests {
         @DisplayName("multiple matching documents returned")
         void whenMultipleMatchThenAllReturned() {
             val documents = List.of(stubDocument("p1"), stubDocument("p2"), stubDocument("p3"));
-            val result    = SmtddPolicyIndex.create(documents, 0).match(evaluationContext());
-            assertThat(result.matchingDocuments()).hasSize(3);
+            val result    = SmtddPolicyIndex.create(documents, 0).matchKleene(evaluationContext());
+            assertThat(result.trueMatches()).hasSize(3);
         }
     }
 
     @Nested
-    @DisplayName("matchWhile")
+    @DisplayName("matchKleeneWhile")
     class MatchWhileTests {
 
         @Test
@@ -143,8 +143,8 @@ class SmtddPolicyIndexTests {
             val index     = SmtddPolicyIndex.create(documents, 0);
             val received  = new ArrayList<String>();
 
-            index.matchWhile(evaluationContext(), step -> {
-                step.matchingDocuments().forEach(d -> received.add(d.metadata().name()));
+            index.matchKleeneWhile(evaluationContext(), step -> {
+                step.trueMatches().forEach(d -> received.add(d.metadata().name()));
                 return true;
             });
 
@@ -158,7 +158,7 @@ class SmtddPolicyIndexTests {
             val index     = SmtddPolicyIndex.create(documents, 0);
             val callCount = new AtomicInteger(0);
 
-            index.matchWhile(evaluationContext(), step -> {
+            index.matchKleeneWhile(evaluationContext(), step -> {
                 callCount.incrementAndGet();
                 return callCount.get() < 2;
             });
@@ -167,21 +167,24 @@ class SmtddPolicyIndexTests {
         }
 
         @Test
-        @DisplayName("error votes yielded incrementally")
+        @DisplayName("error matches yielded incrementally")
         void whenErrorThenYieldedIncrementally() {
             val predicate = configurablePredicate(1L);
             val document  = stubDocumentWithApplicability("policy1", predicate.operator());
             val index     = SmtddPolicyIndex.create(List.of(document), 0);
 
             PREDICATE_RESULTS.put(1L, new ErrorValue("broken"));
-            val errors = new ArrayList<PolicyIndexResult>();
+            val errors = new ArrayList<PolicyMatches>();
 
-            index.matchWhile(evaluationContext(), step -> {
+            index.matchKleeneWhile(evaluationContext(), step -> {
                 errors.add(step);
                 return true;
             });
 
-            assertThat(errors).isNotEmpty();
+            assertThat(errors).singleElement().satisfies(step -> {
+                assertThat(step.errorMatches()).hasSize(1);
+                assertThat(step.trueMatches()).isEmpty();
+            });
         }
     }
 

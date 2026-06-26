@@ -30,7 +30,7 @@ import lombok.val;
 /**
  * Minimal demonstration of a Spring Boot service that talks to a SAPL Node
  * over RSocket+TLS with an OAuth2 client_credentials-managed JWT. All auth
- * material is sourced from properties; this controller never sees the token.
+ * material is sourced from properties. This controller never sees the token.
  */
 @RestController
 @RequiredArgsConstructor

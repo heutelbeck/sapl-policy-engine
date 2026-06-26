@@ -94,7 +94,7 @@ import java.util.Set;
  * {@link PDPConfigurationSource}, {@link PdpVoterSource},
  * {@link IdFactory}, and the {@link ReactivePolicyDecisionPoint} itself. Beans
  * that hold real resources implement {@link AutoCloseable} (the voter
- * source and the configuration source); Spring invokes their
+ * source and the configuration source). Spring invokes their
  * {@code close()} method on context shutdown.
  * <p>
  * Every bean is declared {@link ConditionalOnMissingBean} so an
@@ -361,7 +361,7 @@ public class PDPAutoConfiguration {
                 keyBytes = Base64.getDecoder().decode(keyContent.replaceAll("\\s", ""));
             }
             return buildEd25519PublicKey(keyBytes);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException e) {
             throw new IllegalStateException(ERROR_FAILED_TO_PARSE_PUBLIC_KEY, e);
         }
     }

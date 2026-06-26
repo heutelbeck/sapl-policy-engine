@@ -419,6 +419,32 @@ class BundlePDPConfigurationSourceTests {
     }
 
     @Test
+    void whenStemlessBundleIsDeletedThenNoEmptyRemovalIsEmitted() throws IOException {
+        val bundlePath = tempDir.resolve(".saplbundle");
+        createBundle(bundlePath,
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" }, "configurationId": "stemless-v1" }
+                        """,
+                "policy.sapl", "policy \"stemless\" permit true;");
+
+        source = new BundlePDPConfigurationSource(tempDir, developmentPolicy);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+
+        // The stemless name derives an empty pdpId, which the load path rejects,
+        // so no configuration was ever loaded for it.
+        assertThat(capture.configs()).isEmpty();
+
+        Files.delete(bundlePath);
+
+        // Deleting it must not emit a spurious Remove("") for a configuration that
+        // was never loaded.
+        await().during(Duration.ofMillis(800)).atMost(Duration.ofSeconds(2))
+                .untilAsserted(() -> assertThat(capture.removedPdpIds()).doesNotContain(""));
+    }
+
+    @Test
     void whenNonBundleFilesPresentThenTheyAreIgnored() throws IOException {
         createBundle(tempDir.resolve("valid.saplbundle"),
                 """

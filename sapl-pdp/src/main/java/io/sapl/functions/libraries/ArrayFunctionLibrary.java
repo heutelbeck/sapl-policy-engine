@@ -28,7 +28,7 @@ import lombok.val;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.function.DoubleBinaryOperator;
+import java.util.function.BinaryOperator;
 
 /**
  * Array manipulation functions.
@@ -748,18 +748,18 @@ public class ArrayFunctionLibrary {
      * Finds extremum value among numeric elements.
      */
     private static Value findNumericExtremum(ArrayValue arrayValue, boolean findMaximum) {
-        var extremumValue = ((NumberValue) arrayValue.getFirst()).value().doubleValue();
+        var extremum = (NumberValue) arrayValue.getFirst();
         for (int i = 1; i < arrayValue.size(); i++) {
             val element = arrayValue.get(i);
             if (!(element instanceof NumberValue number)) {
                 return Value.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
-            val value = number.value().doubleValue();
-            if (findMaximum ? value > extremumValue : value < extremumValue) {
-                extremumValue = value;
+            val comparison = number.value().compareTo(extremum.value());
+            if (findMaximum ? comparison > 0 : comparison < 0) {
+                extremum = number;
             }
         }
-        return Value.of(extremumValue);
+        return extremum;
     }
 
     /**
@@ -807,7 +807,7 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value sum(ArrayValue array) {
-        return reduceNumericArray(array, 0.0, Double::sum);
+        return reduceNumericArray(array, BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -837,13 +837,14 @@ public class ArrayFunctionLibrary {
             ```
             """, schema = RETURNS_NUMBER)
     public static Value multiply(ArrayValue array) {
-        return reduceNumericArray(array, 1.0, (a, b) -> a * b);
+        return reduceNumericArray(array, BigDecimal.ONE, BigDecimal::multiply);
     }
 
     /**
      * Reduces numeric array using accumulator function with identity value.
      */
-    private static Value reduceNumericArray(ArrayValue array, double identityValue, DoubleBinaryOperator accumulator) {
+    private static Value reduceNumericArray(ArrayValue array, BigDecimal identityValue,
+            BinaryOperator<BigDecimal> accumulator) {
         if (array.isEmpty()) {
             return Value.of(identityValue);
         }
@@ -852,7 +853,7 @@ public class ArrayFunctionLibrary {
             if (!(element instanceof NumberValue number)) {
                 return Value.error(ERROR_MIXED_TYPE_NON_NUMERIC + element);
             }
-            result = accumulator.applyAsDouble(result, number.value().doubleValue());
+            result = accumulator.apply(result, number.value());
         }
 
         return Value.of(result);

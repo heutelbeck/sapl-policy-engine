@@ -26,6 +26,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.sapl.api.coverage.LineCoverageStatus;
 import io.sapl.api.coverage.PolicyCoverageData;
@@ -41,10 +44,13 @@ import lombok.val;
  */
 public class HtmlLineCoverageReportGenerator {
 
-    private static final String ERROR_ASSET_FILE_NOT_FOUND    = "Cannot find asset file: %s";
-    private static final String ERROR_TEMPLATE_FILE_NOT_FOUND = "Cannot find template file: %s";
+    private static final String ERROR_ASSET_FILE_NOT_FOUND                 = "Cannot find asset file: %s";
+    private static final String ERROR_REPORT_FILE_ESCAPES_OUTPUT_DIRECTORY = "Report file escapes the output directory: %s";
+    private static final String ERROR_TEMPLATE_FILE_NOT_FOUND              = "Cannot find template file: %s";
 
     private static final String TEMPLATE_PREFIX = "/io/sapl/test/coverage/report/html/templates/";
+
+    private static final Pattern TEMPLATE_PLACEHOLDER = Pattern.compile("\\{\\{(\\w+)\\}\\}");
 
     /**
      * Generates complete HTML coverage report.
@@ -75,15 +81,15 @@ public class HtmlLineCoverageReportGenerator {
         val links = new StringBuilder();
         for (val policy : policies) {
             val name = policy.getDocumentName();
-            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(name))
-                    .append(".html\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
+            links.append("\t\t\t\t\t<a href=\"policies/").append(escapeHtml(reportFileName(policy)))
+                    .append("\" class=\"list-group-item list-group-item-action\">").append(escapeHtml(name))
                     .append("</a>\n");
         }
 
-        val html = template.replace("{{policySetHitRatio}}", String.format("%.2f", policySetHitRatio))
-                .replace("{{policyHitRatio}}", String.format("%.2f", policyHitRatio))
-                .replace("{{policyConditionHitRatio}}", String.format("%.2f", policyConditionHitRatio))
-                .replace("{{documentLinks}}", links.toString());
+        val html = fillTemplate(template,
+                Map.of("policySetHitRatio", String.format("%.2f", policySetHitRatio), "policyHitRatio",
+                        String.format("%.2f", policyHitRatio), "policyConditionHitRatio",
+                        String.format("%.2f", policyConditionHitRatio), "documentLinks", links.toString()));
 
         val outputFile = baseDir.resolve("html").resolve("report.html");
         writeFile(outputFile, html);
@@ -97,11 +103,14 @@ public class HtmlLineCoverageReportGenerator {
             val lineModels     = createLineModels(policy);
             val lineModelsJson = toJson(lineModels);
 
-            val html = template.replace("{{policyTitle}}", escapeHtml(policy.getDocumentName()))
-                    .replace("{{policyText}}", escapeHtml(policy.getDocumentSource()))
-                    .replace("{{lineModelsJson}}", lineModelsJson);
+            val html = fillTemplate(template, Map.of("policyTitle", escapeHtml(policy.getDocumentName()), "policyText",
+                    escapeHtml(policy.getDocumentSource()), "lineModelsJson", lineModelsJson));
 
-            val outputFile = baseDir.resolve("html").resolve("policies").resolve(policy.getDocumentName() + ".html");
+            val policiesDir = baseDir.resolve("html").resolve("policies");
+            val outputFile  = policiesDir.resolve(reportFileName(policy));
+            if (!outputFile.normalize().startsWith(policiesDir.normalize())) {
+                throw new IOException(ERROR_REPORT_FILE_ESCAPES_OUTPUT_DIRECTORY.formatted(outputFile));
+            }
             writeFile(outputFile, html);
         }
     }
@@ -196,6 +205,48 @@ public class HtmlLineCoverageReportGenerator {
         if (parent != null) {
             Files.createDirectories(parent);
         }
+    }
+
+    /**
+     * Derives the per-policy report file name. The document name is
+     * attacker-influenceable SAPL source content, so it is slugged to a safe path
+     * segment and a short deterministic suffix keyed on the document name and its
+     * source is appended. Slugging guarantees the result stays inside the policies
+     * directory. The suffix keeps genuinely distinct documents that slug to the
+     * same segment from overwriting one another, while keeping the file name
+     * idempotent for repeated emissions of the same document.
+     */
+    private static String reportFileName(PolicyCoverageData policy) {
+        val slug = toFileNameSlug(policy.getDocumentName());
+        return slug + "-" + disambiguator(policy) + ".html";
+    }
+
+    private static String disambiguator(PolicyCoverageData policy) {
+        val key  = policy.getDocumentName() + "#" + policy.getSourceHash();
+        val hash = Integer.toHexString(key.hashCode());
+        return "00000000".substring(hash.length()) + hash;
+    }
+
+    private static String toFileNameSlug(String documentName) {
+        return documentName.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
+    /**
+     * Substitutes {@code {{name}}} placeholders in a single pass over the
+     * template. Replacement values are inserted literally and never re-scanned,
+     * so a substituted value that itself contains a placeholder literal cannot
+     * trigger a further substitution. Unknown placeholders are left untouched.
+     */
+    private static String fillTemplate(String template, Map<String, String> values) {
+        val matcher = TEMPLATE_PLACEHOLDER.matcher(template);
+        val result  = new StringBuilder();
+        while (matcher.find()) {
+            val replacement = values.get(matcher.group(1));
+            matcher.appendReplacement(result,
+                    Matcher.quoteReplacement(replacement != null ? replacement : matcher.group()));
+        }
+        matcher.appendTail(result);
+        return result.toString();
     }
 
     private static String escapeHtml(String text) {

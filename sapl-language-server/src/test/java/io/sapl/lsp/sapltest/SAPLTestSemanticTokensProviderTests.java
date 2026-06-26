@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -65,6 +66,73 @@ class SAPLTestSemanticTokensProviderTests {
             assertThat(t.tokenType()).isEqualTo(SAPLTestSemanticTokenTypes.MACRO);
         });
     }
+
+    @Nested
+    @DisplayName("multi-line tokens")
+    class MultiLineTokens {
+
+        static Stream<Arguments> multiLineCases() {
+            return Stream.of(
+                    arguments("multi-line block comment",
+                            "requirement \"r\" {\n/* line one\n   line two */\nscenario \"s\" {} }",
+                            SAPLTestSemanticTokenTypes.COMMENT),
+                    arguments("multi-line string literal",
+                            "requirement \"r\" {\nscenario \"line one\n   line two\" {} }",
+                            SAPLTestSemanticTokenTypes.STRING));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("multiLineCases")
+        @DisplayName("each emitted token is contained on a single source line")
+        void whenTokenSpansMultipleLines_thenEachEmittedTokenStaysWithinItsLine(String description, String content,
+                int tokenType) {
+            var sourceLines = content.split("\n", -1);
+            var positions   = rawTokenPositions(content);
+
+            assertThat(positions).isNotEmpty()
+                    .allSatisfy(p -> assertThat(p.column() + p.length())
+                            .as("token on line %d must end at or before line length %d", p.line(),
+                                    sourceLines[p.line()].length())
+                            .isLessThanOrEqualTo(sourceLines[p.line()].length()));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("multiLineCases")
+        @DisplayName("on Windows CRLF line endings the highlighted length excludes the carriage return")
+        void whenTokenSpansMultipleCrlfLines_thenHighlightedLengthExcludesCarriageReturn(String description,
+                String content, int tokenType) {
+            var sourceLines = content.split("\n", -1);
+            var crlfContent = content.replace("\n", "\r\n");
+            var positions   = rawTokenPositions(crlfContent);
+
+            assertThat(positions).isNotEmpty().allSatisfy(p -> assertThat(p.column() + p.length())
+                    .as("token on line %d must end at or before the visible line length %d, "
+                            + "not extending over the carriage return", p.line(), sourceLines[p.line()].length())
+                    .isLessThanOrEqualTo(sourceLines[p.line()].length()));
+        }
+    }
+
+    private List<RawToken> rawTokenPositions(String content) {
+        var document  = new SAPLTestParsedDocument("test://test.sapltest", content);
+        var data      = provider.provideSemanticTokens(document).getData();
+        var positions = new ArrayList<RawToken>();
+
+        var line = 0;
+        var col  = 0;
+        for (var i = 0; i < data.size(); i += 5) {
+            var deltaLine = data.get(i);
+            var deltaChar = data.get(i + 1);
+            var length    = data.get(i + 2);
+
+            line += deltaLine;
+            col   = deltaLine == 0 ? col + deltaChar : deltaChar;
+
+            positions.add(new RawToken(line, col, length));
+        }
+        return positions;
+    }
+
+    private record RawToken(int line, int column, int length) {}
 
     private List<DecodedToken> decodedTokens(String content) {
         var document    = new SAPLTestParsedDocument("test://test.sapltest", content);

@@ -293,7 +293,7 @@ public class BundleParser {
                 // compression-ratio limits.
                 val entryContent = readZipEntryContent(zipStream, sourceDescription, totalUncompressed, compressedSize,
                         maxUncompressedBytes);
-                totalUncompressed += entryContent.length();
+                totalUncompressed += entryContent.uncompressedBytes();
 
                 if (compressedSize > 0) {
                     validateCompressionRatio(compressedSize, totalUncompressed, sourceDescription);
@@ -304,7 +304,7 @@ public class BundleParser {
                             ERROR_UNEXPECTED_FILE_IN_BUNDLE.formatted(sourceDescription, entryName));
                 }
 
-                content.put(entryName, entryContent);
+                content.put(entryName, entryContent.text());
             }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_PARSE_BUNDLE.formatted(sourceDescription), e);
@@ -381,7 +381,7 @@ public class BundleParser {
         return normalized;
     }
 
-    private String readZipEntryContent(ZipInputStream zipStream, String sourceDescription, long currentTotal,
+    private EntryContent readZipEntryContent(ZipInputStream zipStream, String sourceDescription, long currentTotal,
             long compressedSize, long maxUncompressedBytes) throws IOException {
         val buffer    = new ByteArrayOutputStream();
         val data      = new byte[READ_BUFFER_SIZE];
@@ -401,8 +401,16 @@ public class BundleParser {
             buffer.write(data, 0, bytesRead);
         }
 
-        return buffer.toString(StandardCharsets.UTF_8);
+        return new EntryContent(buffer.toString(StandardCharsets.UTF_8), entrySize);
     }
+
+    /**
+     * Decoded entry text together with its decompressed byte count. The byte count
+     * feeds the cumulative ZIP-bomb size and compression-ratio limits, which must
+     * track decompressed bytes rather than the UTF-16 char count of the decoded
+     * text (the two differ for multibyte UTF-8 content).
+     */
+    private record EntryContent(String text, long uncompressedBytes) {}
 
     private void validateUncompressedSize(long totalUncompressed, String sourceDescription, long maxUncompressedBytes) {
         if (totalUncompressed > maxUncompressedBytes) {

@@ -49,7 +49,7 @@ class SemanticAnalysisDiagnosticTests {
 
     private static final int[] HOSPITAL_SCALES = { 1, 5, 50, 300 };
 
-    // Smoke runs keep only small scales (<= this); the full scaled range runs
+    // Smoke runs keep only small scales (<= this). The full scaled range runs
     // under the it profile (-Dsapl.fullTests=true).
     private static final int SMOKE_MAX_SCALE = 10;
 

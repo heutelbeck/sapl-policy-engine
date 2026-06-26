@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Coordination uses {@link ReentrantLock} + {@link Condition} rather
  * than {@code synchronized} + {@code Object.wait()} so a virtual-thread
  * consumer blocked in {@link #awaitNext()} unmounts its carrier
- * thread. Equivalent on JDK 24+ (JEP 491); strictly required on
+ * thread. Equivalent on JDK 24+ (JEP 491). Strictly required on
  * JDK 21 to avoid pinning the carrier pool.
  *
  * @param <T> the value type carried by this stream

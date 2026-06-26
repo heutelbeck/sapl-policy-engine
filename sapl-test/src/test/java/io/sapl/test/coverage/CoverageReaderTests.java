@@ -20,9 +20,12 @@ package io.sapl.test.coverage;
 import io.sapl.api.coverage.PolicyCoverageData;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -210,6 +213,41 @@ class CoverageReaderTests {
 
         assertThat(read.getPolicyCoverageList()).hasSize(2);
         assertThat(read.getMatchedPolicyCount()).isOne();
+    }
+
+    @Test
+    @DisplayName("a corrupt line is skipped and the valid records survive")
+    void whenLineIsCorrupt_thenValidRecordsStillRead() throws IOException {
+        val writer = new CoverageWriter(tempDir);
+        val reader = new CoverageReader(tempDir);
+
+        writer.write(new TestCoverageRecord("before-corruption-test"));
+
+        val file        = reader.getCoverageFilePath();
+        val corruptLine = "{\"testIdentifier\": \"interleaved\", broke" + System.lineSeparator();
+        Files.writeString(file, corruptLine, StandardOpenOption.APPEND);
+
+        writer.write(new TestCoverageRecord("after-corruption-test"));
+
+        val records = reader.readAllRecords();
+
+        assertThat(records).hasSize(2).extracting(TestCoverageRecord::getTestIdentifier)
+                .containsExactly("before-corruption-test", "after-corruption-test");
+    }
+
+    @Test
+    @DisplayName("a corrupt line does not abort aggregation of valid records")
+    void whenLineIsCorrupt_thenAggregationDoesNotThrow() throws IOException {
+        val writer = new CoverageWriter(tempDir);
+        val reader = new CoverageReader(tempDir);
+
+        writer.write(createTestRecord("valid-aggregation-test"));
+
+        val file = reader.getCoverageFilePath();
+        Files.writeString(file, "not json at all" + System.lineSeparator(), StandardOpenOption.APPEND);
+
+        assertThatCode(reader::readAggregated).doesNotThrowAnyException();
+        assertThat(reader.readAggregated().getTestCount()).isOne();
     }
 
     private TestCoverageRecord createTestRecord(String identifier) {

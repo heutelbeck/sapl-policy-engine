@@ -299,6 +299,36 @@ class HttpPolicyInformationPointTests {
             val headers = (ObjectValue) merged.get("headers");
             assertThat(((TextValue) headers.get("X-Custom")).value()).isEqualTo("value");
         }
+
+        @Test
+        @DisplayName("operator pdp secret overrides a case-varied policy header so only one credential survives")
+        void whenPolicyVariesHeaderCaseThenPdpSecretStillOverridesAndOnlyOneSurvives() {
+            val pdpSecrets = httpSecrets("Authorization", "Bearer operator-token");
+            val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
+            val request    = requestWithHeaders("https://example.com", "authorization", "Bearer attacker-token");
+
+            val merged = HttpPolicyInformationPoint.mergeHeaders(ctx, request);
+
+            val headers = (ObjectValue) merged.get("headers");
+            assertThat(headers.entrySet()).singleElement()
+                    .satisfies(e -> assertThat(e.getKey()).isEqualToIgnoringCase("authorization"))
+                    .satisfies(e -> assertThat(((TextValue) e.getValue()).value()).isEqualTo("Bearer operator-token"));
+        }
+
+        @Test
+        @DisplayName("policy header overrides a case-varied subscription secret so only one credential survives")
+        void whenSubscriptionVariesHeaderCaseThenPolicyStillOverridesAndOnlyOneSurvives() {
+            val subSecrets = httpSecrets("authorization", "Bearer sub-token");
+            val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, subSecrets);
+            val request    = requestWithHeaders("https://example.com", "Authorization", "Bearer policy-token");
+
+            val merged = HttpPolicyInformationPoint.mergeHeaders(ctx, request);
+
+            val headers = (ObjectValue) merged.get("headers");
+            assertThat(headers.entrySet()).singleElement()
+                    .satisfies(e -> assertThat(e.getKey()).isEqualToIgnoringCase("authorization"))
+                    .satisfies(e -> assertThat(((TextValue) e.getValue()).value()).isEqualTo("Bearer policy-token"));
+        }
     }
 
     @Nested
@@ -368,6 +398,19 @@ class HttpPolicyInformationPointTests {
 
             val headers = (ObjectValue) merged.get("headers");
             assertThat(((TextValue) headers.get("Authorization")).value()).isEqualTo("Bearer pdp-named");
+        }
+
+        @Test
+        @DisplayName("present but non-text secretsKey fails closed instead of using flat default headers")
+        void whenSecretsKeyPresentButNotTextThenNoHeadersFromThatSource() {
+            val pdpSecrets = httpSecrets("Authorization", "Bearer default-fallback");
+            val ctx        = new AttributeAccessContext(Value.EMPTY_OBJECT, pdpSecrets, Value.EMPTY_OBJECT);
+            val request    = ObjectValue.builder().put("baseUrl", Value.of("https://example.com"))
+                    .put("secretsKey", Value.of(123)).build();
+
+            val merged = HttpPolicyInformationPoint.mergeHeaders(ctx, request);
+
+            assertThat(merged.containsKey("headers")).isFalse();
         }
 
         @Test
@@ -510,7 +553,7 @@ class HttpPolicyInformationPointTests {
                     new BlockingWebClient(JsonMapper.builder().build(), HttpClient.newHttpClient())));
             val request    = ObjectValue.builder().put("baseUrl", Value.of("http://localhost:" + server.getPort()))
                     .build();
-            val invocation = new AttributeFinderInvocation("default", "http.get", List.of(request),
+            val invocation = new AttributeFinderInvocation("test-pdp", "default", "http.get", List.of(request),
                     Duration.ofSeconds(1), Duration.ofMillis(50), Duration.ofMillis(50), 0L, false, EMPTY_CTX);
             val key        = new SubscriptionKey(invocation, false);
 

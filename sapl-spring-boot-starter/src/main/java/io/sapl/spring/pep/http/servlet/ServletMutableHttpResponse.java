@@ -23,6 +23,9 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 
@@ -62,7 +65,7 @@ import lombok.val;
  * commit. This is fine for typical HTTP
  * responses but is unsuitable for unbounded streaming bodies. Callers that do
  * not need response-level mutation should
- * not wrap at all; the SAPL HTTP PEP filter installs this wrapper only when the
+ * not wrap at all. The SAPL HTTP PEP filter installs this wrapper only when the
  * active enforcement plan schedules at
  * least one handler at the response signal.
  */
@@ -184,12 +187,12 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
 
     @Override
     public void setDateHeader(String name, long date) {
-        setHeader(name, Long.toString(date));
+        setHeader(name, formatHttpDate(date));
     }
 
     @Override
     public void addDateHeader(String name, long date) {
-        addHeader(name, Long.toString(date));
+        addHeader(name, formatHttpDate(date));
     }
 
     @Override
@@ -285,12 +288,17 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
         flushPending();
         val underlying = (HttpServletResponse) getResponse();
         underlying.setStatus(statusCode);
+        val body = bodyBuffer.toByteArray();
+        // A buffered Content-Length may be stale after a handler replaced the body.
+        // Reconcile it so the emitted body and the header always agree.
+        if (headers.containsHeader(HttpHeaders.CONTENT_LENGTH)) {
+            headers.set(HttpHeaders.CONTENT_LENGTH, Integer.toString(body.length));
+        }
         for (val entry : headers.headerSet()) {
             for (val value : entry.getValue()) {
                 underlying.addHeader(entry.getKey(), value);
             }
         }
-        val body = bodyBuffer.toByteArray();
         if (body.length > 0) {
             underlying.getOutputStream().write(body);
         }
@@ -311,6 +319,10 @@ public final class ServletMutableHttpResponse extends HttpServletResponseWrapper
 
     private void markModified() {
         modified = true;
+    }
+
+    private static String formatHttpDate(long epochMillis) {
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneOffset.UTC));
     }
 
     private static final class BufferingServletOutputStream extends ServletOutputStream {

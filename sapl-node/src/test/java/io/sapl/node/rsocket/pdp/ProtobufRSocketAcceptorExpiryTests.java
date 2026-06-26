@@ -29,10 +29,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.time.Instant;
 
 import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -47,11 +49,14 @@ class ProtobufRSocketAcceptorExpiryTests {
     @Mock
     private ReactivePolicyDecisionPoint pdp;
 
+    private final Sinks.Empty<Void> connectionClosed = Sinks.empty();
+
     private RSocket accept(Instant expiresAt) {
         RSocketConnectionAuthenticator authenticator = setup -> Mono
                 .just(new AuthenticationResult("tenant", expiresAt));
         val                            acceptor      = new ProtobufRSocketAcceptor(blockingPdp, pdp, authenticator);
         val                            sendingSocket = mock(RSocket.class);
+        lenient().when(sendingSocket.onClose()).thenReturn(connectionClosed.asMono());
         acceptor.accept(mock(ConnectionSetupPayload.class), sendingSocket).block();
         return sendingSocket;
     }
@@ -75,5 +80,13 @@ class ProtobufRSocketAcceptorExpiryTests {
     void whenNoExpiryThenConnectionNotDisposed() {
         val sendingSocket = accept(null);
         verify(sendingSocket, after(500).never()).dispose();
+    }
+
+    @Test
+    @DisplayName("closing the connection before expiry cancels the expiry timer so it never fires")
+    void whenConnectionClosesBeforeExpiryThenExpiryTimerDoesNotDispose() {
+        val sendingSocket = accept(Instant.now().plusMillis(300));
+        connectionClosed.tryEmitEmpty();
+        verify(sendingSocket, after(1500).never()).dispose();
     }
 }

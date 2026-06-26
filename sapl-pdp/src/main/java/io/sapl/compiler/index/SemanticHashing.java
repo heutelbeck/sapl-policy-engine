@@ -136,7 +136,7 @@ public class SemanticHashing {
         BigDecimal normalized;
         try {
             // Numerical equality treats 1.0 and 1.00 as equal, so hash the
-            // canonical form. Extreme scales can overflow stripping; the raw
+            // canonical form. Extreme scales can overflow stripping. The raw
             // value then keeps the hash defined and equal for equal inputs.
             normalized = number.stripTrailingZeros();
         } catch (ArithmeticException ignored) {

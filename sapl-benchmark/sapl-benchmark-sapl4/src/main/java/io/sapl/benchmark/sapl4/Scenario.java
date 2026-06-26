@@ -40,7 +40,7 @@ import java.util.function.Supplier;
  * @param variables PDP variables
  * @param algorithm combining algorithm
  * @param subscriptions authorization subscriptions to cycle through during
- * benchmarking; the first is used for sanity checking
+ * benchmarking. The first is used for sanity checking
  * @param expectedDecision expected result of the first subscription for sanity
  * checking
  */

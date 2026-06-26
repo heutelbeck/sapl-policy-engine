@@ -19,7 +19,7 @@ package io.sapl.node.auth;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -28,7 +28,7 @@ import lombok.val;
  * Default {@link BlockingTenantResolver}: reads the current authentication
  * from {@code SecurityContextHolder}, delegates extraction of the PDP id to
  * a configured {@link PdpIdAuthenticationExtractorBlocking}, and falls back
- * to {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID} when no
+ * to {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID} when no
  * authentication or no extracted id is available.
  */
 @RequiredArgsConstructor
@@ -40,6 +40,6 @@ public final class DefaultBlockingTenantResolver implements BlockingTenantResolv
     public String resolve() {
         val authentication = SecurityContextHolder.getContext().getAuthentication();
         val extracted      = extractor.extractPdpId(authentication);
-        return extracted == null || extracted.isBlank() ? ReactivePolicyDecisionPoint.DEFAULT_PDP_ID : extracted;
+        return extracted == null || extracted.isBlank() ? StreamingPolicyDecisionPoint.DEFAULT_PDP_ID : extracted;
     }
 }

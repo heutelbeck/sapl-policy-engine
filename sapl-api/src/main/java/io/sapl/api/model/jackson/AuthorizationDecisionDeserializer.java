@@ -27,6 +27,7 @@ import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import lombok.val;
 
@@ -44,6 +45,7 @@ public class AuthorizationDecisionDeserializer extends StdDeserializer<Authoriza
 
     private static final String ERROR_EXPECTED_START_ARRAY  = "Expected START_ARRAY for obligations/advice.";
     private static final String ERROR_EXPECTED_START_OBJECT = "Expected START_OBJECT for AuthorizationDecision.";
+    private static final String ERROR_INVALID_DECISION      = "Invalid value '%s' for field 'decision'. Valid values: %s.";
     private static final String ERROR_MISSING_DECISION      = "AuthorizationDecision requires decision field.";
 
     private final ValueDeserializer valueDeserializer = new ValueDeserializer();
@@ -64,7 +66,7 @@ public class AuthorizationDecisionDeserializer extends StdDeserializer<Authoriza
             parser.nextToken();
 
             switch (fieldName) {
-            case "decision"    -> decision = Decision.valueOf(parser.getString());
+            case "decision"    -> decision = parseDecision(parser.getString(), context);
             case "obligations" -> obligations = deserializeArrayValue(parser, context);
             case "advice"      -> advice = deserializeArrayValue(parser, context);
             case "resource"    -> resource = valueDeserializer.deserialize(parser, context);
@@ -77,6 +79,15 @@ public class AuthorizationDecisionDeserializer extends StdDeserializer<Authoriza
         }
 
         return new AuthorizationDecision(decision, obligations, advice, resource);
+    }
+
+    private static Decision parseDecision(String value, DeserializationContext context) {
+        try {
+            return Decision.valueOf(value);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return context.reportInputMismatch(AuthorizationDecision.class,
+                    ERROR_INVALID_DECISION.formatted(value, Arrays.toString(Decision.values())));
+        }
     }
 
     private ArrayValue deserializeArrayValue(JsonParser parser, DeserializationContext context) {

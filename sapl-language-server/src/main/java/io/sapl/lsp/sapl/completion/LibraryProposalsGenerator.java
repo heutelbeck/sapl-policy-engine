@@ -185,7 +185,7 @@ public class LibraryProposalsGenerator {
         var functionName = importStmt.functionName != null ? importStmt.functionName.getText() : null;
         var alias        = importStmt.functionAlias != null ? importStmt.functionAlias.getText() : null;
 
-        if (alias == null && fullyQualifiedName.startsWith(libPrefix) && functionName != null) {
+        if (alias == null && functionName != null && fullyQualifiedName.equals(libSteps + "." + functionName)) {
             // `import lib.func` without alias - func becomes available without prefix
             return Optional.of(functionName);
         }

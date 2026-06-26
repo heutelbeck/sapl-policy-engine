@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -57,19 +58,21 @@ public final class ReactiveMutableHttpRequest implements MutableHttpRequest {
 
     @Override
     public void setHeader(String name, String value) {
-        removedHeaders.remove(name);
-        headerOverrides.put(name, new ArrayList<>(List.of(value)));
+        val key = canonical(name);
+        removedHeaders.remove(key);
+        headerOverrides.put(key, new ArrayList<>(List.of(value)));
         modified = true;
     }
 
     @Override
     public void addHeader(String name, String value) {
-        if (removedHeaders.remove(name)) {
-            headerOverrides.put(name, new ArrayList<>(List.of(value)));
+        val key = canonical(name);
+        if (removedHeaders.remove(key)) {
+            headerOverrides.put(key, new ArrayList<>(List.of(value)));
             modified = true;
             return;
         }
-        val current = headerOverrides.computeIfAbsent(name, k -> {
+        val current = headerOverrides.computeIfAbsent(key, k -> {
             val existing = original.getHeaders().get(name);
             return existing == null ? new ArrayList<>() : new ArrayList<>(existing);
         });
@@ -79,8 +82,9 @@ public final class ReactiveMutableHttpRequest implements MutableHttpRequest {
 
     @Override
     public void removeHeader(String name) {
-        headerOverrides.remove(name);
-        removedHeaders.add(name);
+        val key = canonical(name);
+        headerOverrides.remove(key);
+        removedHeaders.add(key);
         modified = true;
     }
 
@@ -118,6 +122,10 @@ public final class ReactiveMutableHttpRequest implements MutableHttpRequest {
             mutated.getAttributes().put(entry.getKey(), entry.getValue());
         }
         return mutated;
+    }
+
+    private static String canonical(String name) {
+        return name.toLowerCase(Locale.ROOT);
     }
 
     private ServerHttpRequest applyToRequest() {

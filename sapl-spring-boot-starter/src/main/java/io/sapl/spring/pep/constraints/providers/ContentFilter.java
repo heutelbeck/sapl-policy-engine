@@ -18,6 +18,8 @@
 package io.sapl.spring.pep.constraints.providers;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +42,8 @@ import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import org.springframework.security.access.AccessDeniedException;
 import io.sapl.spring.pep.constraints.ConstraintHandler.Mapper;
 import lombok.experimental.UtilityClass;
@@ -59,41 +63,39 @@ public class ContentFilter {
     private static final String ERROR_PREDICATE_CONDITION_INVALID             = "Not a valid predicate condition: ";
     private static final String ERROR_REGEX_UNSAFE                            = "Unsafe regex pattern rejected (potential ReDoS): ";
 
-    private static final String DISCLOSE_LEFT                  = "discloseLeft";
-    private static final String DISCLOSE_RIGHT                 = "discloseRight";
-    private static final String REPLACEMENT                    = "replacement";
-    private static final String REPLACE                        = "replace";
-    private static final String LENGTH                         = "length";
-    private static final String BLACKEN                        = "blacken";
-    private static final String DELETE                         = "delete";
-    private static final String PATH                           = "path";
-    private static final String ACTIONS                        = "actions";
-    private static final String CONDITIONS                     = "conditions";
-    private static final String VALUE                          = "value";
-    private static final String EQUALS                         = "==";
-    private static final String NEQ                            = "!=";
-    private static final String GEQ                            = ">=";
-    private static final String LEQ                            = "<=";
-    private static final String GT                             = ">";
-    private static final String LT                             = "<";
-    private static final String REGEX                          = "=~";
-    private static final String TYPE                           = "type";
-    private static final String BLACK_SQUARE                   = "█";
-    private static final String ERROR_ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
-    private static final String ERROR_ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
-    private static final String ERROR_LENGTH_NOT_NUMBER        = "'length' of 'blacken' action is not numeric.";
-    private static final String ERROR_NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
-    private static final String ERROR_PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
-    private static final String ERROR_REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
-    private static final String ERROR_UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
-    private static final String ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
-    private static final String ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
-    private static final int    BLACKEN_LENGTH_INVALID_VALUE   = -1;
-
-    private static final Pattern REDOS_ALTERNATION_WITH_QUANT = Pattern.compile("\\([^)|]*+\\|[^)]*+\\)[*+]");
-    private static final Pattern REDOS_NESTED_BOUNDED_QUANT   = Pattern.compile("\\{\\d+,\\d*}[^{]*\\{\\d+,\\d*}");
-    private static final Pattern REDOS_NESTED_QUANTIFIERS     = Pattern.compile("\\([^)]*[*+]\\)[*+]");
-    private static final Pattern REDOS_NESTED_WILDCARDS       = Pattern.compile("\\([^)*]*+\\*[^)]*+\\)[^)*]*+\\*");
+    private static final String     DISCLOSE_LEFT                  = "discloseLeft";
+    private static final String     DISCLOSE_RIGHT                 = "discloseRight";
+    private static final String     REPLACEMENT                    = "replacement";
+    private static final String     REPLACE                        = "replace";
+    private static final String     LENGTH                         = "length";
+    private static final String     BLACKEN                        = "blacken";
+    private static final String     DELETE                         = "delete";
+    private static final String     PATH                           = "path";
+    private static final String     ACTIONS                        = "actions";
+    private static final String     CONDITIONS                     = "conditions";
+    private static final String     VALUE                          = "value";
+    private static final String     EQUALS                         = "==";
+    private static final String     NEQ                            = "!=";
+    private static final String     GEQ                            = ">=";
+    private static final String     LEQ                            = "<=";
+    private static final String     GT                             = ">";
+    private static final String     LT                             = "<";
+    private static final String     REGEX                          = "=~";
+    private static final String     TYPE                           = "type";
+    private static final String     BLACK_SQUARE                   = "█";
+    private static final String     ERROR_ACTION_NOT_AN_OBJECT     = "An action in 'actions' is not an object.";
+    private static final String     ERROR_ACTIONS_NOT_AN_ARRAY     = "'actions' is not an array.";
+    private static final String     ERROR_LENGTH_NEGATIVE_S        = "An action's '%s' must not be negative.";
+    private static final String     ERROR_LENGTH_NOT_NUMBER        = "'length' of 'blacken' action is not numeric.";
+    private static final String     ERROR_LENGTH_TOO_LARGE         = "'length' of 'blacken' action exceeds the maximum permitted blacken length.";
+    private static final String     ERROR_NO_REPLACEMENT_SPECIFIED = "The constraint indicates a text node to be replaced. However, the action does not specify a 'replacement'.";
+    private static final String     ERROR_PATH_NOT_TEXTUAL         = "The constraint indicates a text node to be blackened. However, the node identified by the path is not a text note.";
+    private static final String     ERROR_REPLACEMENT_NOT_TEXTUAL  = "'replacement' of 'blacken' action is not textual.";
+    private static final String     ERROR_UNKNOWN_ACTION_S         = "Unknown action type: '%s'.";
+    private static final String     ERROR_VALUE_NOT_INTEGER_S      = "An action's '%s' is not an integer.";
+    private static final String     ERROR_VALUE_NOT_TEXTUAL_S      = "An action's '%s' is not textual.";
+    private static final int        BLACKEN_LENGTH_INVALID_VALUE   = -1;
+    private static final BigDecimal MAX_BLACKEN                    = BigDecimal.valueOf(1_000_000);
 
     /**
      * Builds a typed mapper that filters JSON content of the payload according to
@@ -103,7 +105,7 @@ public class ContentFilter {
      * of redaction/blacken/replace actions). Payloads of type {@link Optional},
      * {@link List}, {@link Set},
      * {@link Object Object[]}, and reactive {@link Publisher} are filtered
-     * elementwise; any other payload is filtered
+     * elementwise. Any other payload is filtered
      * as a single element.
      * </p>
      *
@@ -251,32 +253,48 @@ public class ContentFilter {
         return switch (type) {
         case EQUALS -> equalsCondition(condition, path, conditionValue, objectMapper);
         case NEQ    -> Predicate.not(equalsCondition(condition, path, conditionValue, objectMapper));
-        case GEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a >= b);
-        case LEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a <= b);
-        case LT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a < b);
-        case GT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a > b);
+        case GEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) >= 0);
+        case LEQ    -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) <= 0);
+        case LT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) < 0);
+        case GT     -> numericCondition(condition, path, conditionValue, objectMapper, (a, b) -> a.compareTo(b) > 0);
         case REGEX  -> regexCondition(condition, path, conditionValue, objectMapper);
         default     -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         };
     }
 
     @FunctionalInterface
-    private interface DoubleComparison {
-        boolean test(double payloadValue, double conditionValue);
+    private interface NumericComparison {
+        boolean test(BigDecimal payloadValue, BigDecimal conditionValue);
     }
 
     private static Predicate<Object> numericCondition(Value condition, String path, Value conditionValue,
-            ObjectMapper objectMapper, DoubleComparison comparison) {
+            ObjectMapper objectMapper, NumericComparison comparison) {
         if (!(conditionValue instanceof NumberValue(var conditionNumber))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        val threshold = conditionNumber.doubleValue();
         return original -> {
             val value = getValueAtPath(original, path, objectMapper);
             if (!(value instanceof Number numberValue)) {
                 return false;
             }
-            return comparison.test(numberValue.doubleValue(), threshold);
+            return asBigDecimal(numberValue).map(payload -> comparison.test(payload, conditionNumber)).orElse(false);
+        };
+    }
+
+    // Compare on the exact BigDecimal. Double would conflate distinct integers
+    // beyond 2^53.
+    private static Optional<BigDecimal> asBigDecimal(Number number) {
+        return switch (number) {
+        case BigDecimal bd -> Optional.of(bd);
+        case BigInteger bi -> Optional.of(new BigDecimal(bi));
+        case Integer i     -> Optional.of(BigDecimal.valueOf(i));
+        case Long l        -> Optional.of(BigDecimal.valueOf(l));
+        case Short s       -> Optional.of(BigDecimal.valueOf(s));
+        case Byte b        -> Optional.of(BigDecimal.valueOf(b));
+        default            -> {
+            val d = number.doubleValue();
+            yield (Double.isNaN(d) || Double.isInfinite(d)) ? Optional.empty() : Optional.of(BigDecimal.valueOf(d));
+        }
         };
     }
 
@@ -285,27 +303,27 @@ public class ContentFilter {
         if (!(conditionValue instanceof TextValue(var patternText))) {
             throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
         }
-        if (isDangerousRegex(patternText)) {
-            throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
-        }
         val regex = Pattern.compile(patternText);
         return original -> {
             val value = getValueAtPath(original, path, objectMapper);
             if (!(value instanceof String stringValue)) {
                 return false;
             }
-            return regex.asMatchPredicate().test(stringValue);
+            // Bound the match. A runaway pattern or hostile input aborts within
+            // the budget and denies, instead of hanging the request thread.
+            try {
+                return BoundedRegex.matches(regex, stringValue);
+            } catch (RegexBudgetExceededException e) {
+                throw new AccessDeniedException(ERROR_REGEX_UNSAFE + patternText);
+            }
         };
     }
 
     private static Predicate<Object> equalsCondition(Value condition, String path, Value conditionValue,
             ObjectMapper objectMapper) {
         return switch (conditionValue) {
-        case NumberValue(var bd) -> {
-            val threshold = bd.doubleValue();
-            yield original -> getValueAtPath(original, path, objectMapper) instanceof Number n
-                    && n.doubleValue() == threshold;
-        }
+        case NumberValue(var bd) -> original -> getValueAtPath(original, path, objectMapper) instanceof Number n
+                && asBigDecimal(n).map(payload -> payload.compareTo(bd) == 0).orElse(false);
         case TextValue(var s)    ->
             original -> getValueAtPath(original, path, objectMapper) instanceof String str && s.equals(str);
         default                  -> throw new AccessDeniedException(ERROR_PREDICATE_CONDITION_INVALID + condition);
@@ -400,15 +418,19 @@ public class ContentFilter {
 
     private static int determineBlackenLength(ObjectValue action) {
         return switch (action.get(LENGTH)) {
-        case null                                      -> BLACKEN_LENGTH_INVALID_VALUE;
-        case NumberValue(var bd) when bd.signum() >= 0 -> bd.intValue();
-        default                                        -> throw new AccessDeniedException(ERROR_LENGTH_NOT_NUMBER);
+        case null                                                                        ->
+            BLACKEN_LENGTH_INVALID_VALUE;
+        case NumberValue(var bd) when bd.signum() >= 0 && bd.compareTo(MAX_BLACKEN) <= 0 -> bd.intValue();
+        case NumberValue(var bd) when bd.signum() >= 0                                   ->
+            throw new AccessDeniedException(ERROR_LENGTH_TOO_LARGE);
+        default                                                                          ->
+            throw new AccessDeniedException(ERROR_LENGTH_NOT_NUMBER);
         };
     }
 
     private static String blackenUtil(String originalString, String replacement, int discloseRight, int discloseLeft,
             int blackenLength) {
-        if (discloseLeft + discloseRight >= originalString.length()) {
+        if ((long) discloseLeft + discloseRight >= originalString.length()) {
             return originalString;
         }
         val result = new StringBuilder();
@@ -417,6 +439,11 @@ public class ContentFilter {
         }
         val replacedChars      = originalString.length() - discloseLeft - discloseRight;
         val blackenFinalLength = (blackenLength == BLACKEN_LENGTH_INVALID_VALUE) ? replacedChars : blackenLength;
+        // Bound total output (replacement length x repetitions). Replacement length is
+        // otherwise uncapped.
+        if ((long) replacement.length() * blackenFinalLength > MAX_BLACKEN.longValue()) {
+            throw new AccessDeniedException(ERROR_LENGTH_TOO_LARGE);
+        }
         result.repeat(replacement, blackenFinalLength);
         if (discloseRight > 0) {
             result.append(originalString.substring(discloseLeft + replacedChars));
@@ -447,16 +474,16 @@ public class ContentFilter {
         if (!(value instanceof NumberValue(var bd))) {
             throw new AccessDeniedException(ERROR_VALUE_NOT_INTEGER_S.formatted(key));
         }
+        final int intValue;
         try {
-            return bd.intValueExact();
+            intValue = bd.intValueExact();
         } catch (ArithmeticException e) {
             throw new AccessDeniedException(ERROR_VALUE_NOT_INTEGER_S.formatted(key), e);
         }
+        if (intValue < 0) {
+            throw new AccessDeniedException(ERROR_LENGTH_NEGATIVE_S.formatted(key));
+        }
+        return intValue;
     }
 
-    private static boolean isDangerousRegex(String pattern) {
-        return REDOS_NESTED_QUANTIFIERS.matcher(pattern).find() || REDOS_ALTERNATION_WITH_QUANT.matcher(pattern).find()
-                || REDOS_NESTED_WILDCARDS.matcher(pattern).find() || REDOS_NESTED_BOUNDED_QUANT.matcher(pattern).find()
-                || pattern.contains(".*.*") || pattern.contains(".+.+");
-    }
 }

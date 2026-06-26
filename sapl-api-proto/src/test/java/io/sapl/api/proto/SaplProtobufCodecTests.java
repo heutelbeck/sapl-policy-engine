@@ -37,6 +37,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -92,6 +93,49 @@ class SaplProtobufCodecTests {
             var bytes = SaplProtobufCodec.writeValue(value);
 
             assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("malformedNumberCases")
+        @DisplayName("decoding a malformed or unbounded number fails closed with an IOException")
+        void whenNumberPayloadMalformedOrUnboundedThenReadFailsClosed(String description, String numberLiteral)
+                throws IOException {
+            final byte[] bytes = numberValuePayload(numberLiteral);
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readValue(bytes)).isInstanceOf(IOException.class);
+        }
+
+        static Stream<Arguments> malformedNumberCases() {
+            return Stream.of(arguments("empty string", ""), arguments("whitespace", "   "),
+                    arguments("non-numeric text", "abc"), arguments("multiple decimal points", "1.2.3"),
+                    arguments("NaN literal", "NaN"), arguments("Infinity literal", "Infinity"),
+                    arguments("enormous negative scale", "1E2147483647"),
+                    arguments("enormous positive scale", "1E-2147483647"),
+                    arguments("scale at Integer.MIN_VALUE boundary", "1E2147483648"),
+                    arguments("scale beyond the strict 1000 bound", "1E5000"),
+                    arguments("scale at the old loose 1000000 bound", "1E1000000"),
+                    arguments("over-length all-digit literal", "1".repeat(1001)));
+        }
+
+        @Test
+        @DisplayName("a number within the accepted magnitude round-trips")
+        void whenNumberWithinAcceptedMagnitudeThenRoundTrips() throws IOException {
+            final var value = new NumberValue(new BigDecimal("123456789.123456789"));
+
+            final var bytes = SaplProtobufCodec.writeValue(value);
+
+            assertThat(SaplProtobufCodec.readValue(bytes)).isEqualTo(value);
+        }
+
+        private static byte[] numberValuePayload(String numberLiteral) throws IOException {
+            // Value fields: one VALUE_NUMBER (field 3) carrying the raw on-the-wire string.
+            // Hand-built because the encoder would never emit a malformed or unbounded
+            // number.
+            var valueBuffer = new ByteArrayOutputStream();
+            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            valueOut.writeString(3, numberLiteral);
+            valueOut.flush();
+            return valueBuffer.toByteArray();
         }
 
         private static byte[] wrapInArrayValue(byte[] innerValueBytes) throws IOException {
@@ -187,6 +231,55 @@ class SaplProtobufCodecTests {
     }
 
     @Nested
+    @DisplayName("ErrorValue wire contract")
+    class ErrorValueWireContractTests {
+
+        @Test
+        @DisplayName("an error value round-trips carrying only its message")
+        void whenErrorValueEncodedThenOnlyMessageIsCarried() throws IOException {
+            final var error = Value.error("policy evaluation failed");
+
+            final var bytes        = SaplProtobufCodec.writeValue(error);
+            final var deserialized = SaplProtobufCodec.readValue(bytes);
+
+            assertThat(deserialized).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).isEqualTo("policy evaluation failed"));
+        }
+
+        @Test
+        @DisplayName("an error payload carrying the reserved arguments field is decoded without corruption")
+        void whenErrorPayloadCarriesReservedArgumentsFieldThenItIsIgnored() throws IOException {
+            // Field 2 is reserved. The decoder must skip it and recover the message.
+            final byte[] bytes = errorValuePayloadWithLegacyArguments("boom", "ignored-argument");
+
+            final var deserialized = SaplProtobufCodec.readValue(bytes);
+
+            assertThat(deserialized).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).isEqualTo("boom"));
+        }
+
+        private static byte[] errorValuePayloadWithLegacyArguments(String message, String legacyArgument)
+                throws IOException {
+            // Hand-built ErrorValue: message (field 1) plus reserved arguments (field 2).
+            var errorBuffer = new ByteArrayOutputStream();
+            var errorOut    = CodedOutputStream.newInstance(errorBuffer);
+            errorOut.writeString(1, message);
+            errorOut.writeString(2, legacyArgument);
+            errorOut.flush();
+            var errorBytes = errorBuffer.toByteArray();
+
+            // VALUE_ERROR (field 8) holding the error content.
+            var valueBuffer = new ByteArrayOutputStream();
+            var valueOut    = CodedOutputStream.newInstance(valueBuffer);
+            valueOut.writeTag(8, WIRETYPE_LENGTH_DELIMITED);
+            valueOut.writeUInt32NoTag(errorBytes.length);
+            valueOut.writeRawBytes(errorBytes);
+            valueOut.flush();
+            return valueBuffer.toByteArray();
+        }
+    }
+
+    @Nested
     @DisplayName("AuthorizationSubscription serialization")
     class AuthorizationSubscriptionSerializationTests {
 
@@ -223,6 +316,36 @@ class SaplProtobufCodecTests {
                 assertThat(d.environment()).isEqualTo(Value.UNDEFINED);
                 assertThat(d.secrets()).isEqualTo(Value.EMPTY_OBJECT);
             });
+        }
+
+        @Test
+        @DisplayName("secrets is always decoded as an object even when the wire carries a non-object value")
+        void whenSecretsPayloadIsNotAnObjectThenSecretsDecodeAsEmptyObject() throws IOException {
+            // A non-object value in field 5 must decode to an empty object, not leak
+            // through.
+            final byte[] bytes = subscriptionWithNonObjectSecrets("not-an-object");
+
+            final var deserialized = SaplProtobufCodec.readAuthorizationSubscription(bytes);
+
+            assertThat(deserialized.secrets()).isEqualTo(Value.EMPTY_OBJECT);
+        }
+
+        private static byte[] subscriptionWithNonObjectSecrets(String secretText) throws IOException {
+            // secrets as VALUE_TEXT (field 4) rather than an object.
+            var secretValueBuffer = new ByteArrayOutputStream();
+            var secretValueOut    = CodedOutputStream.newInstance(secretValueBuffer);
+            secretValueOut.writeString(4, secretText);
+            secretValueOut.flush();
+            var secretValueBytes = secretValueBuffer.toByteArray();
+
+            // SUBSCRIPTION_SECRETS (field 5).
+            var subscriptionBuffer = new ByteArrayOutputStream();
+            var subscriptionOut    = CodedOutputStream.newInstance(subscriptionBuffer);
+            subscriptionOut.writeTag(5, WIRETYPE_LENGTH_DELIMITED);
+            subscriptionOut.writeUInt32NoTag(secretValueBytes.length);
+            subscriptionOut.writeRawBytes(secretValueBytes);
+            subscriptionOut.flush();
+            return subscriptionBuffer.toByteArray();
         }
     }
 
@@ -304,6 +427,21 @@ class SaplProtobufCodecTests {
                 assertThat(d.getSubscription("sub1").subject()).isEqualTo(Value.of("user1"));
                 assertThat(d.getSubscription("sub2").action()).isEqualTo(Value.of("write"));
             });
+        }
+
+        @Test
+        @DisplayName("a payload carrying two entries with the same id fails closed as IOException, not an unchecked exception")
+        void whenDuplicateSubscriptionIdThenIOException() throws IOException {
+            var single = new MultiAuthorizationSubscription();
+            single.addSubscription("dup", new AuthorizationSubscription(Value.of("user"), Value.of("read"),
+                    Value.of("doc"), Value.UNDEFINED, Value.EMPTY_OBJECT));
+            var oneEntry  = SaplProtobufCodec.writeMultiAuthorizationSubscription(single);
+            var twoSameId = new byte[oneEntry.length * 2];
+            System.arraycopy(oneEntry, 0, twoSameId, 0, oneEntry.length);
+            System.arraycopy(oneEntry, 0, twoSameId, oneEntry.length, oneEntry.length);
+
+            assertThatThrownBy(() -> SaplProtobufCodec.readMultiAuthorizationSubscription(twoSameId))
+                    .isInstanceOf(IOException.class);
         }
     }
 

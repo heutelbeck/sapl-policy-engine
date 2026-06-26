@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -160,6 +161,42 @@ class UserLookupServiceTests {
 
             assertThat(wrongPassword).isEqualTo(unknownUser).isEqualTo(1);
         }
+
+        @Test
+        @DisplayName("a known username whose configured secret is null still costs one full Argon2 verification, like an unknown username, and is rejected")
+        void whenKnownUserHasNullSecretThenFullVerificationAndEmpty() {
+            val real    = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val counter = new CountingPasswordEncoder(real);
+            val sut     = new UserLookupService(properties, counter);
+            when(properties.getUsers()).thenReturn(List.of(alice(null)));
+
+            assertThat(sut.verifyBasicCredentials("alice", "whatever")).isEmpty();
+            val nullSecretUser = counter.matchInvocations.getAndSet(0);
+
+            assertThat(sut.verifyBasicCredentials("ghost", "whatever")).isEmpty();
+            val unknownUser = counter.matchInvocations.get();
+
+            assertThat(counter.encodedArguments).containsOnly(false);
+            assertThat(nullSecretUser).isEqualTo(unknownUser).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("a known username whose configured secret is blank still costs one full Argon2 verification, like an unknown username, and is rejected")
+        void whenKnownUserHasBlankSecretThenFullVerificationAndEmpty() {
+            val real    = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+            val counter = new CountingPasswordEncoder(real);
+            val sut     = new UserLookupService(properties, counter);
+            when(properties.getUsers()).thenReturn(List.of(alice("   ")));
+
+            assertThat(sut.verifyBasicCredentials("alice", "whatever")).isEmpty();
+            val blankSecretUser = counter.matchInvocations.getAndSet(0);
+
+            assertThat(sut.verifyBasicCredentials("ghost", "whatever")).isEmpty();
+            val unknownUser = counter.matchInvocations.get();
+
+            assertThat(counter.encodedArguments).containsOnly(false);
+            assertThat(blankSecretUser).isEqualTo(unknownUser).isEqualTo(1);
+        }
     }
 
     @Nested
@@ -202,18 +239,28 @@ class UserLookupServiceTests {
         }
 
         @Test
-        @DisplayName("an entry without api-key-id is not authenticated, even if its key matches")
-        void whenEntryHasNoApiKeyIdThenReturnsEmpty() {
-            val userEntry = new UserEntry();
-            userEntry.setId("api-user");
-            userEntry.setApiKey(ENCODED_API_KEY);
-
+        @DisplayName("returns empty when the api-key-id index is empty (entries without an api-key-id are not indexed)")
+        void whenApiKeyIdIndexEmptyThenReturnsEmpty() {
+            // findByApiKey consults only the api-key-id index. An entry that carries no
+            // api-key-id never enters it, so it cannot be matched.
             when(properties.getApiKeyIdIndex()).thenReturn(Map.of());
-            // Lookup uses only the api-key-id index, never the user list. An entry
-            // absent from the index is ignored even when its key matches.
-            lenient().when(properties.getUsers()).thenReturn(List.of(userEntry));
 
             val result = service.findByApiKey(RAW_API_KEY);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("returns empty when the api-key-id is indexed but the secret does not match")
+        void whenApiKeyIdIndexedButSecretMismatchThenReturnsEmpty() {
+            val userEntry = new UserEntry();
+            userEntry.setId("api-user");
+            userEntry.setApiKey(ENCODED_API_KEY); // hash of RAW_API_KEY
+            userEntry.setApiKeyId("7A7ByyQd6U");
+            when(properties.getApiKeyIdIndex()).thenReturn(Map.of("7A7ByyQd6U", userEntry));
+
+            // Same api-key-id as RAW_API_KEY, different secret: the hash must not match.
+            val result = service.findByApiKey("sapl_7A7ByyQd6U_WRONGSECRET00000000000000000000000");
 
             assertThat(result).isEmpty();
         }
@@ -302,6 +349,7 @@ class UserLookupServiceTests {
 
         private final PasswordEncoder delegate;
         private final AtomicInteger   matchInvocations = new AtomicInteger();
+        private final List<Boolean>   encodedArguments = new ArrayList<>();
 
         private CountingPasswordEncoder(PasswordEncoder delegate) {
             this.delegate = delegate;
@@ -315,6 +363,7 @@ class UserLookupServiceTests {
         @Override
         public boolean matches(CharSequence rawPassword, String encodedPassword) {
             matchInvocations.incrementAndGet();
+            encodedArguments.add(encodedPassword == null || encodedPassword.isBlank());
             return delegate.matches(rawPassword, encodedPassword);
         }
     }

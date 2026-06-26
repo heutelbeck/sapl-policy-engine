@@ -31,6 +31,7 @@ import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NullValue;
 import io.sapl.api.model.NumberValue;
+import io.sapl.api.model.NumberValueLimits;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.UndefinedValue;
@@ -76,13 +77,15 @@ public class SaplProtobufCodec {
     private static final int MAP_ENTRY_VALUE = 2;
 
     // ErrorValue field numbers
-    private static final int ERROR_MESSAGE   = 1;
-    private static final int ERROR_ARGUMENTS = 2;
+    private static final int ERROR_MESSAGE = 1;
 
     // Bounds decode nesting so a deep payload fails closed instead of overflowing
     // the stack. Matches the JSON parser's limit.
     private static final int    MAX_VALUE_DEPTH          = 1000;
     private static final String ERROR_MAX_DEPTH_EXCEEDED = "Protobuf value nesting exceeds the maximum depth of %d.";
+
+    private static final String ERROR_DUPLICATE_SUBSCRIPTION_ID = "Duplicate subscription id in multi-subscription payload.";
+    private static final String ERROR_INVALID_NUMBER            = "Malformed or out-of-bounds number value in protobuf payload.";
 
     // AuthorizationSubscription field numbers
     private static final int SUBSCRIPTION_SUBJECT     = 1;
@@ -166,7 +169,7 @@ public class SaplProtobufCodec {
                 yield Value.NULL;
             }
             case VALUE_BOOL      -> Value.of(input.readBool());
-            case VALUE_NUMBER    -> new NumberValue(new BigDecimal(input.readString()));
+            case VALUE_NUMBER    -> readNumberValue(input.readString());
             case VALUE_TEXT      -> Value.of(input.readString());
             case VALUE_ARRAY     -> readArrayValue(input, depth);
             case VALUE_OBJECT    -> readObjectValue(input, depth);
@@ -182,6 +185,14 @@ public class SaplProtobufCodec {
             };
         }
         return result;
+    }
+
+    private static NumberValue readNumberValue(String literal) throws IOException {
+        // Bounds length and scale before the BigDecimal is constructed.
+        if (NumberValueLimits.parseBoundedNumber(literal) instanceof NumberValue numberValue) {
+            return numberValue;
+        }
+        throw new IOException(ERROR_INVALID_NUMBER);
     }
 
     private static ArrayValue readArrayValue(CodedInputStream input, int depth) throws IOException {
@@ -238,10 +249,10 @@ public class SaplProtobufCodec {
         while (!input.isAtEnd()) {
             val tag         = input.readTag();
             val fieldNumber = getTagFieldNumber(tag);
-            switch (fieldNumber) {
-            case ERROR_MESSAGE   -> message = input.readString();
-            case ERROR_ARGUMENTS -> input.readString(); // ErrorValue only uses message
-            default              -> input.skipField(tag);
+            if (fieldNumber == ERROR_MESSAGE) {
+                message = input.readString();
+            } else {
+                input.skipField(tag);
             }
         }
         input.popLimit(limit);
@@ -555,7 +566,13 @@ public class SaplProtobufCodec {
             val tag = input.readTag();
             if (getTagFieldNumber(tag) == MULTI_SUB_SUBSCRIPTIONS) {
                 val idSub = readIdentifiableSubscription(input);
-                result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                try {
+                    result.addSubscription(idSub.subscriptionId(), idSub.subscription());
+                } catch (IllegalArgumentException e) {
+                    // Duplicate id on the wire. Surface as IOException so the
+                    // transport's fail-closed decode handler applies.
+                    throw new IOException(ERROR_DUPLICATE_SUBSCRIPTION_ID, e);
+                }
             } else {
                 input.skipField(tag);
             }

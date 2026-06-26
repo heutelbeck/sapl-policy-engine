@@ -18,6 +18,8 @@
 package io.sapl.attributes.libraries;
 
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.factories.DefaultJWSVerifierFactory;
 import com.nimbusds.jose.proc.JWSVerifierFactory;
@@ -42,6 +44,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.security.Key;
+import java.security.PublicKey;
 import java.text.ParseException;
 import java.time.Clock;
 import java.time.Instant;
@@ -51,8 +54,9 @@ import java.util.Optional;
  * Policy Information Point for validating and monitoring JSON Web Tokens.
  * <p>
  * Tokens are read from subscription secrets for security. Public key
- * configuration is read from policy variables. The PIP supports all standard
- * JWS algorithms (RSA, EC, HMAC) via Nimbus DefaultJWSVerifierFactory.
+ * configuration is read from policy variables. The PIP supports RSA, EC, and
+ * HMAC via Nimbus DefaultJWSVerifierFactory, plus EdDSA (Ed25519, Ed448) via a
+ * JDK-native {@link EdDsaJwsVerifier}.
  */
 @Slf4j
 @PolicyInformationPoint(name = JWTPolicyInformationPoint.NAME, description = JWTPolicyInformationPoint.DESCRIPTION, pipDocumentation = JWTPolicyInformationPoint.DOCUMENTATION)
@@ -69,6 +73,15 @@ public class JWTPolicyInformationPoint {
 
     static final long DEFAULT_CLOCK_SKEW_SECONDS   = 0L;
     static final long MAX_REASONABLE_EPOCH_SECONDS = 253_402_300_799L;
+
+    /**
+     * Upper bound on how far ahead an expiration or maturity transition may be
+     * scheduled. The scheduler converts the delay to nanoseconds, and
+     * {@link java.time.Duration#toNanos()} overflows for delays beyond roughly
+     * 292 years. A delay beyond this bound is treated as never firing, so the
+     * token simply stays in its current validity state.
+     */
+    static final long MAX_SCHEDULABLE_DELAY_MILLIS = 100L * 365 * 24 * 60 * 60 * 1000;
 
     public static final String DOCUMENTATION = """
             This Policy Information Point validates JSON Web Tokens and monitors their validity state over time.
@@ -103,6 +116,7 @@ public class JWTPolicyInformationPoint {
             * RSA: RS256, RS384, RS512, PS256, PS384, PS512
             * ECDSA: ES256, ES384, ES512
             * HMAC: HS256, HS384, HS512
+            * EdDSA: Ed25519 and Ed448
 
             Public keys for signature verification are sourced from:
             * A whitelist of trusted keys configured in policy variables
@@ -140,10 +154,12 @@ public class JWTPolicyInformationPoint {
             ```
 
             The `publicKeyServer` field configures a remote endpoint that serves public keys on demand,
-            keyed by the token's key ID. Always use an `https` URI. Keys fetched over plain `http` can be
-            substituted by a network attacker, who could then forge tokens this PIP would accept as trusted.
-            TLS authenticates the key server and protects the keys in transit. Keys in the `whitelist` are
-            configured locally and are not affected.
+            keyed by the token's key ID. The URI must use `https`: a key fetched over plain `http` can be
+            substituted by a network attacker who could then forge tokens this PIP would accept as trusted.
+            A non-`https` URI is rejected and the token is treated as untrusted. For local development only,
+            set `"allowInsecureHttp": true` in `publicKeyServer` to permit an `http` URI; this is logged with
+            a prominent warning and must never be used in production. TLS authenticates the key server and
+            protects the keys in transit. Keys in the `whitelist` are configured locally and are not affected.
 
             The `secretsKey` field specifies which key in subscription secrets holds the JWT token.
             Defaults to `"jwt"` if omitted.
@@ -288,8 +304,8 @@ public class JWTPolicyInformationPoint {
      * as the key, otherwise behaves like {@link #token(AttributeAccessContext)}.
      *
      * @param ctx the attribute access context (variables, subscription secrets)
-     * @param secretsKeyName the name of the secrets entry holding the token;
-     * falls back to the default {@code "jwt"} key when {@code null}
+     * @param secretsKeyName the name of the secrets entry holding the token.
+     * Falls back to the default {@code "jwt"} key when {@code null}
      * @return a stream of token-state {@link ObjectValue}s
      */
     @EnvironmentAttribute(docs = """
@@ -358,7 +374,12 @@ public class JWTPolicyInformationPoint {
         }
 
         val parsedToken = extractParsedToken(signedJwt);
-        return Streams.map(validityStateStream(signedJwt, ctx), state -> buildTokenValue(parsedToken, asState(state)));
+        // Defer signature validation (which may perform a blocking key-server
+        // fetch) off the invoke() body. invoke() runs under the broker's lock, so
+        // blocking here would stall every attribute subscription PDP-wide. The
+        // deferred factory runs on a virtual thread once the stream is consumed.
+        return Streams.defer(() -> Streams.map(validityStateStream(signedJwt, ctx),
+                state -> buildTokenValue(parsedToken, asState(state))));
     }
 
     private static ValidityState asState(Value v) {
@@ -398,7 +419,10 @@ public class JWTPolicyInformationPoint {
     }
 
     private void ifPresentReplaceEpochFieldWithIsoTime(JsonNode payload, String key) {
-        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber())) {
+        // canConvertToLong guards asLong(), which throws on a numeric value outside
+        // 64-bit long range (e.g. a hostile out-of-range or non-finite exp/nbf/iat).
+        if (!(payload.isObject() && payload.has(key) && payload.get(key).isNumber()
+                && payload.get(key).canConvertToLong())) {
             return;
         }
 
@@ -462,13 +486,18 @@ public class JWTPolicyInformationPoint {
             }
         }
 
+        String keyServerUri   = null;
+        long   cacheTtlMillis = 0L;
         if (publicKey.isEmpty()) {
             val jPublicKeyServer = jwtConfigObj.get(PUBLIC_KEY_VARIABLES_KEY);
             if (null == jPublicKeyServer) {
                 return false;
             }
             try {
-                publicKey = keyProvider.provide(keyId, ValueJsonMarshaller.toJsonNode(jPublicKeyServer));
+                val jServerNode = ValueJsonMarshaller.toJsonNode(jPublicKeyServer);
+                keyServerUri   = JWTKeyProvider.resolveKeyServerUri(jServerNode, keyId);
+                cacheTtlMillis = JWTKeyProvider.cachingTtlMillis(jServerNode);
+                publicKey      = keyProvider.provide(keyId, jServerNode);
             } catch (JWTKeyProvider.CachingException e) {
                 log.error(ERROR_KEY_PROVIDER_CONFIG_FAIL, e.getLocalizedMessage());
                 return false;
@@ -479,20 +508,34 @@ public class JWTPolicyInformationPoint {
             return false;
         }
 
-        return verifySignatureOf(keyId, signedJwt, publicKey.get(), isFromWhitelist);
+        return verifySignatureOf(keyId, signedJwt, publicKey.get(), isFromWhitelist, keyServerUri, cacheTtlMillis);
     }
 
-    private boolean verifySignatureOf(String keyId, SignedJWT signedJwt, Key key, boolean isFromWhitelist) {
+    private boolean verifySignatureOf(String keyId, SignedJWT signedJwt, Key key, boolean isFromWhitelist,
+            String keyServerUri, long cacheTtlMillis) {
         try {
-            JWSVerifier verifier = VERIFIER_FACTORY.createJWSVerifier(signedJwt.getHeader(), key);
+            JWSVerifier verifier = verifierFor(signedJwt.getHeader(), key);
             val         isValid  = signedJwt.verify(verifier);
-            if (isValid && !isFromWhitelist) {
-                keyProvider.cache(keyId, key);
+            if (isValid && !isFromWhitelist && null != keyServerUri) {
+                keyProvider.cache(keyServerUri, keyId, key, cacheTtlMillis);
             }
             return isValid;
         } catch (JOSEException e) {
             return false;
         }
+    }
+
+    /**
+     * Builds the JWS verifier for the token's algorithm. RSA, EC, and HMAC are
+     * delegated to Nimbus' {@link DefaultJWSVerifierFactory}; EdDSA is handled by
+     * {@link EdDsaJwsVerifier} (JDK-native, Ed25519 and Ed448), which Nimbus'
+     * default factory does not cover without Google Tink.
+     */
+    private static JWSVerifier verifierFor(JWSHeader header, Key key) throws JOSEException {
+        if (JWSAlgorithm.EdDSA.equals(header.getAlgorithm()) && key instanceof PublicKey publicKey) {
+            return new EdDsaJwsVerifier(publicKey);
+        }
+        return VERIFIER_FACTORY.createJWSVerifier(header, key);
     }
 
     private Stream<Value> validateTime(JWTClaimsSet claims, long clockSkewSeconds, long maxTokenLifetimeSeconds) {
@@ -542,6 +585,10 @@ public class JWTPolicyInformationPoint {
                         Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler));
             }
             val expInstant = Instant.ofEpochMilli(expWithSkew);
+            if (isBeyondSchedulingHorizon(expInstant, now)) {
+                return Streams.concat(Streams.just(stateValue(ValidityState.IMMATURE)),
+                        Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler));
+            }
             return Streams.concat(Streams.just(stateValue(ValidityState.IMMATURE)),
                     Streams.scheduledAt(stateValue(ValidityState.VALID), nbfInstant, scheduler),
                     Streams.scheduledAt(stateValue(ValidityState.EXPIRED), expInstant, scheduler));
@@ -555,11 +602,15 @@ public class JWTPolicyInformationPoint {
     }
 
     private Stream<Value> validThenExpiredAt(Instant expiry, Instant now) {
-        if (expiry.toEpochMilli() - now.toEpochMilli() > MAX_REASONABLE_EPOCH_SECONDS * 1000L) {
+        if (isBeyondSchedulingHorizon(expiry, now)) {
             return Streams.just(stateValue(ValidityState.VALID));
         }
         return Streams.concat(Streams.just(stateValue(ValidityState.VALID)),
                 Streams.scheduledAt(stateValue(ValidityState.EXPIRED), expiry, scheduler));
+    }
+
+    private static boolean isBeyondSchedulingHorizon(Instant when, Instant now) {
+        return when.toEpochMilli() - now.toEpochMilli() > MAX_SCHEDULABLE_DELAY_MILLIS;
     }
 
     private static long saturatingAdd(long a, long b) {

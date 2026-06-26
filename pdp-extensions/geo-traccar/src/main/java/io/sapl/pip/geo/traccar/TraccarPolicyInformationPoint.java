@@ -24,6 +24,7 @@ import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.attributes.EnvironmentAttribute;
 import io.sapl.api.attributes.PolicyInformationPoint;
 import io.sapl.api.model.ArrayValue;
+import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
@@ -40,6 +41,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -61,11 +64,20 @@ public class TraccarPolicyInformationPoint {
 
     static final String ERROR_BAD_RESPONSE_EXPECTED_ARRAY = "Bad response. Expected a non-empty array, but got: %s.";
     static final String ERROR_CREDENTIAL_NOT_TEXT         = "Traccar credentials must be text values.";
+    static final String ERROR_INSECURE_SCHEME             = "Traccar server '%s' baseUrl does not use https. Set 'allowInsecureHttp': true on that server entry to permit insecure transport.";
     static final String ERROR_REQUIRED_FIELD_MISSING      = "Required field '%s' missing from traccar configuration.";
-    static final String ERROR_UNEXPECTED_RESPONSE         = "Unexpected Traccar response. Expected a JSON object.";
+    static final String ERROR_SERVER_NOT_FOUND            = "No Traccar server named '%s' is configured in TRACCAR_CONFIG.";
     static final String ERROR_TRACCAR_CONFIG_NOT_OBJECT   = "TRACCAR_CONFIG must be an object, but was: %s";
     static final String ERROR_TRACCAR_CONFIG_UNDEFINED    = "Cannot connect to Traccar server. The environment variable TRACCAR_CONFIG is undefined.";
-    static final String ERROR_TRACCAR_CREDENTIALS_MISSING = "No Traccar credentials found in pdpSecrets. Configure secrets.traccar with 'token' or 'userName'/'password'.";
+    static final String ERROR_TRACCAR_CREDENTIALS_MISSING = "No Traccar credentials found in pdpSecrets. Configure secrets.traccar.<serverName> (or flat secrets.traccar) with 'token' or 'userName'/'password'.";
+    static final String ERROR_UNEXPECTED_RESPONSE         = "Unexpected Traccar response. Expected a JSON object.";
+
+    private static final String CONFIG_ALLOW_INSECURE_HTTP = "allowInsecureHttp";
+    private static final String CONFIG_DEFAULT_SERVER_NAME = "defaultServerName";
+    private static final String CONFIG_NAME                = "name";
+    private static final String CONFIG_SERVERS             = "servers";
+    private static final String DEFAULT_SERVER_NAME        = "default";
+    private static final String HTTPS_SCHEME               = "https";
 
     private static final String SECRETS_TRACCAR  = "traccar";
     private static final String SECRETS_TOKEN    = "token";
@@ -75,9 +87,9 @@ public class TraccarPolicyInformationPoint {
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String MEDIATYPE_JSON       = "application/json";
     public static final String  DOCUMENTATION        = """
-             This policy information point allows interaction with a single
-             [Traccar](https://www.traccar.org/) GPS tracking server, fetching device positions,
-             geofences, and server metadata.
+             This policy information point fetches device positions, geofences, and server
+             metadata from operator-defined [Traccar](https://www.traccar.org/) GPS tracking
+             servers.
 
              By integrating with the geographical function library (`geo`), this allows for
              policies that enforce geographical access control and geofencing. The library
@@ -105,99 +117,103 @@ public class TraccarPolicyInformationPoint {
              | `geofenceId.<traccar.geofenceGeometry>` | Single geofence geometry (GeoJSON) |
 
              Every attribute has two variations:
-             * Without parameter: uses the `TRACCAR_CONFIG` environment variable.
-             * With `traccarConfig` parameter: uses the inline configuration object.
+             * Without parameter: uses the operator's default server from `TRACCAR_CONFIG`.
+             * With `serverName` parameter: selects the named operator server from `TRACCAR_CONFIG`.
 
-             Both variations use the same `secrets.traccar` credentials (see below).
+             A policy selects a server only by name. It can never supply a `baseUrl` or any
+             connection object. The destination host, transport policy, and credentials are
+             bound by the operator per server.
 
              ## Server Configuration
 
-             The Traccar server configuration is a JSON object with non-sensitive connection
-             settings. It does not contain any credentials.
+             The Traccar server configuration is a JSON object provided via the `TRACCAR_CONFIG`
+             environment variable in `pdp.json`. It holds an operator-defined dictionary of
+             named servers and never contains credentials.
 
-             Configuration fields:
-             * `baseUrl` (required): The base URL of the Traccar server.
-
-             Refresh cadence is not a configuration field. Like every streaming
-             attribute, the engine re-evaluates this attribute on its own schedule
-             via the `pollIntervalMs` attribute option (see Functions and
-             Attributes); the connection settings here describe only how to reach
-             the server.
-
-             The configuration is provided via the `TRACCAR_CONFIG` environment variable in
-             `pdp.json`:
+             New form (named servers):
              ```json
              {
                "variables": {
                  "TRACCAR_CONFIG": {
-                   "baseUrl": "https://demo.traccar.org"
+                   "defaultServerName": "prod",
+                   "servers": [
+                     { "name": "prod", "baseUrl": "https://traccar.example.com" },
+                     { "name": "lab",  "baseUrl": "http://localhost:8082", "allowInsecureHttp": true }
+                   ]
                  }
                }
              }
              ```
 
-             This PIP connects to a single Traccar server. There is no multi-server support.
-             All attribute finders -- whether invoked with or without the inline `traccarConfig`
-             parameter -- authenticate against the same `secrets.traccar` credentials.
+             Per-server fields:
+             * `name` (required): server identifier used for selection and secrets matching.
+             * `baseUrl` (required): the base URL of that Traccar server.
+             * `allowInsecureHttp` (optional, default `false`): when the `baseUrl` scheme is not
+               `https`, the attribute returns an error unless this is `true` for that server.
+
+             Back-compatible single-server form (treated as the implicit default server):
+             ```json
+             {
+               "variables": {
+                 "TRACCAR_CONFIG": { "baseUrl": "https://traccar.example.com" }
+               }
+             }
+             ```
+
+             Refresh cadence is not a configuration field. Like every streaming attribute, the
+             engine re-evaluates this attribute on its own schedule via the `pollIntervalMs`
+             attribute option (see Functions and Attributes).
 
              ## Secrets Configuration
 
              Credentials are sourced exclusively from the `secrets` section in `pdp.json`. They
-             are never read from the `TRACCAR_CONFIG` variable, inline configuration parameters,
-             or any other policy-visible source. Even if a `traccarConfig` object contains
-             `userName` or `password` fields, they are ignored for authentication.
+             are never read from `TRACCAR_CONFIG` or any policy-visible source.
 
-             There is a single set of Traccar credentials per PDP. All attribute finders use
-             the same `secrets.traccar` entry regardless of whether they use `TRACCAR_CONFIG`
-             or an inline configuration parameter.
+             The server `name` is the join key. For a server named `prod`, the PDP looks up
+             `secrets.traccar.prod`. A flat `secrets.traccar` (no per-server nesting) is used as
+             the default server's credentials for back-compatibility.
 
-             Two authentication methods are supported:
+             Two authentication methods are supported per server:
 
              **API token authentication (recommended for Traccar 6.x):**
-
              The token is passed as a `?token=` query parameter on every API request.
              ```json
-             { "secrets": { "traccar": { "token": "YOUR_API_TOKEN" } } }
+             { "secrets": { "traccar": { "prod": { "token": "YOUR_API_TOKEN" } } } }
              ```
 
              **Basic authentication with email and password:**
-
              An `Authorization: Basic ...` header is added to every API request.
              ```json
-             { "secrets": { "traccar": { "userName": "email@address.org", "password": "password" } } }
+             { "secrets": { "traccar": { "prod": { "userName": "email@address.org", "password": "password" } } } }
              ```
 
-             Credential resolution:
-             1. If `secrets.traccar.token` is present, use token authentication.
-             2. Otherwise, if `secrets.traccar.userName` is present, use basic authentication.
-             3. If neither is present, the attribute returns an error.
+             Per-server credential resolution:
+             1. If `secrets.traccar.<name>.token` is present, use token authentication.
+             2. Otherwise, if `secrets.traccar.<name>.userName` is present, use basic authentication.
+             3. If no per-server entry matches, fall back to flat `secrets.traccar`.
+             4. If neither is present, the attribute returns an error.
 
              If both `token` and `userName`/`password` are present, token authentication takes
              precedence.
 
              ## Attribute Invocation and Resolution
 
-             **Without parameter** (uses `TRACCAR_CONFIG` environment variable):
+             **Without parameter** (uses the default server from `TRACCAR_CONFIG`):
              ```sapl
              policy "check_server"
              permit
                <traccar.server>.version == "6.7";
              ```
-             Resolution: reads `TRACCAR_CONFIG` from `ctx.variables()`, reads credentials from
-             `ctx.pdpSecrets().traccar`, makes the API call.
 
-             **With inline config** (overrides connection settings only):
+             **With server name** (selects a named operator server):
              ```sapl
              policy "check_position"
              permit
-               subject.device.<traccar.position({
-                                "baseUrl": "https://other.traccar.org"
-                              })[{pollIntervalMs: 250}]>;
+               subject.device.<traccar.position("lab")[{pollIntervalMs: 250}]>;
              ```
-             Resolution: uses the inline object for `baseUrl`, but credentials still come
-             from `ctx.pdpSecrets().traccar` -- the same single set of secrets; the inline
-             object cannot override authentication. The `[{pollIntervalMs: 250}]` attribute
-             option sets how often the engine re-evaluates the attribute and is optional.
+             Resolution: looks up the `lab` server in `TRACCAR_CONFIG.servers`, reads credentials
+             from `secrets.traccar.lab`, makes the API call. The `[{pollIntervalMs: 250}]`
+             attribute option sets how often the engine re-evaluates the attribute and is optional.
 
              ## Complete pdp.json Example
 
@@ -205,21 +221,22 @@ public class TraccarPolicyInformationPoint {
              {
                "variables": {
                  "TRACCAR_CONFIG": {
-                   "baseUrl": "https://traccar.example.com"
+                   "defaultServerName": "prod",
+                   "servers": [
+                     { "name": "prod", "baseUrl": "https://traccar.example.com" }
+                   ]
                  }
                },
                "secrets": {
-                 "traccar": { "token": "YOUR_API_TOKEN" }
+                 "traccar": { "prod": { "token": "YOUR_API_TOKEN" } }
                }
              }
              ```
 
              With this configuration:
-             * `<traccar.devices>` fetches devices from `traccar.example.com` using the API token.
+             * `<traccar.devices>` fetches devices from `traccar.example.com` using the `prod` token.
              * `"42".<traccar.position>` fetches the position of device 42 from the same server.
-             * `"42".<traccar.position({ "baseUrl": "https://other.traccar.org" })>` fetches
-               from a different server, but still authenticates with the same API token from
-               `secrets.traccar`.
+             * `"42".<traccar.position("prod")>` selects the `prod` server explicitly.
 
              ## Geofencing Example
 
@@ -277,20 +294,18 @@ public class TraccarPolicyInformationPoint {
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.SERVER_SCHEMA, docs = """
-            ```<traccar.server(traccarConfig)>``` is an environment attribute that retrieves server metadata from the
+            ```<traccar.server(serverName)>``` is an environment attribute that retrieves server metadata from the
             [Traccar server endpoint](https://www.traccar.org/api-reference/#tag/Server/paths/~1server/get).
-            It uses the settings provided in the `traccarConfig` parameter to connect to the server.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
              **Parameters:**
 
-            - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+            - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            <traccar.server({
-                              "baseUrl": "https://demo.traccar.org"
-                            })>
+            <traccar.server("prod")>
             ```
 
             This attribute may return a value like:
@@ -318,8 +333,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> server(ObjectValue traccarConfig) {
-        return server(traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> server(AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, this::server);
     }
 
     Stream<Value> server(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -367,20 +382,18 @@ public class TraccarPolicyInformationPoint {
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.DEVICES_SCHEMA, docs = """
-            ```<traccar.devices(traccarConfig)>``` is an environment attribute that retrieves a list of devices from the
+            ```<traccar.devices(serverName)>``` is an environment attribute that retrieves a list of devices from the
             [Traccar server endpoint](https://www.traccar.org/api-reference/#tag/Devices/paths/~1devices/get).
-            It uses the settings provided in the `traccarConfig` parameter to connect to the server.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
             **Parameters:**
 
-             - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+             - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            <traccar.devices({
-                              "baseUrl": "https://demo.traccar.org"
-                            })>
+            <traccar.devices("prod")>
             ```
 
             This attribute may return a value like:
@@ -404,8 +417,8 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Stream<Value> devices(ObjectValue traccarConfig) {
-        return devices(traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> devices(AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, this::devices);
     }
 
     Stream<Value> devices(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -456,22 +469,20 @@ public class TraccarPolicyInformationPoint {
     }
 
     @Attribute(schema = TraccarSchemata.DEVICE_SCHEMA, docs = """
-            ```deviceEntityId.<traccar.device(traccarConfig)>``` is an attribute that fetches detailed metadata for a specific device from
+            ```deviceEntityId.<traccar.device(serverName)>``` is an attribute that fetches detailed metadata for a specific device from
             the Traccar server.
             The device is identified using the `deviceEntityId` parameter, which is the identifier of the device in Traccar,
             not the device's `uniqueId` in the database.
-            It uses the provided `traccarConfig` parameter to connect to the server.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
              **Parameters:**
              - `deviceEntityId` *(Text)*: The identifier of the device in the Traccar system.
-             - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+             - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            "12345".<traccar.device({
-                              "baseUrl": "https://demo.traccar.org"
-                            })>
+            "12345".<traccar.device("prod")>
             ```
 
             This may return a value like:
@@ -493,13 +504,13 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return device(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> device(TextValue deviceEntityId, AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, (config, secrets) -> device(deviceEntityId, config, secrets));
     }
 
     Stream<Value> device(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/devices/%s".formatted(deviceEntityId.value()),
-                traccarConfig, pdpSecrets);
+        val settingsOrError = requestSettingsFromTraccarConfig(
+                "/api/devices/%s".formatted(encodePathSegment(deviceEntityId.value())), traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Streams.just(settingsOrError);
         }
@@ -534,19 +545,17 @@ public class TraccarPolicyInformationPoint {
     }
 
     @EnvironmentAttribute(schema = TraccarSchemata.GEOFENCES_SCHEMA, docs = """
-            ```<traccar.geofences(traccarConfig)>``` is an environment attribute that retrieves a list of all geofences from
-            the Traccar server. It uses the provided `traccarConfig` parameter to connect to the server.
+            ```<traccar.geofences(serverName)>``` is an environment attribute that retrieves a list of all geofences from
+            the Traccar server. It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
             **Parameters:**
 
-            - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+            - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            <traccar.geofences({
-                "baseUrl": "https://demo.traccar.org"
-            })>
+            <traccar.geofences("prod")>
             ```
 
             This may return a value like:
@@ -562,8 +571,8 @@ public class TraccarPolicyInformationPoint {
             ]
             ```
             """)
-    public Stream<Value> geofences(ObjectValue traccarConfig) {
-        return geofences(traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> geofences(AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, this::geofences);
     }
 
     Stream<Value> geofences(ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -603,19 +612,18 @@ public class TraccarPolicyInformationPoint {
     }
 
     @Attribute(schema = TraccarSchemata.GEOFENCE_SCHEMA, docs = """
-            ```geofenceEntityId.<traccar.traccarGeofence(traccarConfig)>``` is an attribute that retrieves metadata for a specific
-            geofence from the Traccar server using the provided geofence identifier and configuration.
+            ```geofenceEntityId.<traccar.traccarGeofence(serverName)>``` is an attribute that retrieves metadata for a specific
+            geofence from the Traccar server using the provided geofence identifier.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
             **Parameters:**
             - `geofenceEntityId` *(Text)*: The identifier of the geofence in the Traccar system.
-            - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+            - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            "12345".<traccar.traccarGeofence({
-                "baseUrl": "https://demo.traccar.org"
-            })>
+            "12345".<traccar.traccarGeofence("prod")>
             ```
 
             This may return a value like:
@@ -628,13 +636,13 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig) {
-        return traccarGeofence(geofenceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> traccarGeofence(TextValue geofenceEntityId, AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, (config, secrets) -> traccarGeofence(geofenceEntityId, config, secrets));
     }
 
     Stream<Value> traccarGeofence(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
-        val settingsOrError = requestSettingsFromTraccarConfig("/api/geofences/%s".formatted(geofenceEntityId.value()),
-                traccarConfig, pdpSecrets);
+        val settingsOrError = requestSettingsFromTraccarConfig(
+                "/api/geofences/%s".formatted(encodePathSegment(geofenceEntityId.value())), traccarConfig, pdpSecrets);
         if (settingsOrError instanceof ErrorValue) {
             return Streams.just(settingsOrError);
         }
@@ -677,21 +685,19 @@ public class TraccarPolicyInformationPoint {
     }
 
     @Attribute(schema = GeoJSONSchemata.POLYGON, docs = """
-            ```geofenceEntityId.<traccar.geofenceGeometry(traccarConfig)>``` is an attribute that converts geofence metadata into
-            GeoJSON format for geometric representation. It uses the provided `traccarConfig` parameter to connect to the
-            Traccar server.
+            ```geofenceEntityId.<traccar.geofenceGeometry(serverName)>``` is an attribute that converts geofence metadata into
+            GeoJSON format for geometric representation.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
             **Parameters:**
 
             - `geofenceEntityId` *(Text)*: The identifier of the geofence in the Traccar system.
-            - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+            - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            "12345".<traccar.geofenceGeometry({
-                "baseUrl": "https://demo.traccar.org"
-            })>
+            "12345".<traccar.geofenceGeometry("prod")>
             ```
 
             This may return a value like:
@@ -710,8 +716,9 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig) {
-        return geofenceGeometry(geofenceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> geofenceGeometry(TextValue geofenceEntityId, AttributeAccessContext ctx,
+            TextValue serverName) {
+        return withCtx(ctx, serverName, (config, secrets) -> geofenceGeometry(geofenceEntityId, config, secrets));
     }
 
     Stream<Value> geofenceGeometry(TextValue geofenceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -758,20 +765,19 @@ public class TraccarPolicyInformationPoint {
     }
 
     @Attribute(schema = TraccarSchemata.POSITION_SCHEMA, docs = """
-            ```deviceEntityId.<traccar.traccarPosition(traccarConfig)>``` is an attribute that retrieves the most recent position of
-            a specific device from the Traccar server using the provided `traccarConfig` parameter.
+            ```deviceEntityId.<traccar.traccarPosition(serverName)>``` is an attribute that retrieves the most recent position of
+            a specific device from the Traccar server.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
             **Parameters:**
 
             - `deviceEntityId` *(Text)*: The identifier of the device in the Traccar system.
-            - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+            - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            "12345".<traccar.traccarPosition({
-                "baseUrl": "https://demo.traccar.org"
-            })>
+            "12345".<traccar.traccarPosition("prod")>
             ```
 
             This may return a value like:
@@ -794,8 +800,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return traccarPosition(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> traccarPosition(TextValue deviceEntityId, AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, (config, secrets) -> traccarPosition(deviceEntityId, config, secrets));
     }
 
     Stream<Value> traccarPosition(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -810,6 +816,9 @@ public class TraccarPolicyInformationPoint {
     }
 
     private static Value takeFirstElementFromArray(Value maybeArray) {
+        if (maybeArray instanceof ErrorValue) {
+            return maybeArray;
+        }
         if (!(maybeArray instanceof ArrayValue array) || array.isEmpty()) {
             return Value.error(ERROR_BAD_RESPONSE_EXPECTED_ARRAY.formatted(maybeArray));
         }
@@ -844,19 +853,18 @@ public class TraccarPolicyInformationPoint {
     }
 
     @Attribute(schema = GeoJSONSchemata.POINT, docs = """
-            ```deviceEntityId.<traccar.position(traccarConfig)>``` is an attribute that converts the most recent position of a
-            specific device from the Traccar server into GeoJSON format using the provided `traccarConfig` parameter.
+            ```deviceEntityId.<traccar.position(serverName)>``` is an attribute that converts the most recent position of a
+            specific device from the Traccar server into GeoJSON format.
+            It selects the named operator server from the `TRACCAR_CONFIG` environment variable.
 
             **Parameters:**
             - `deviceEntityId` *(Text)*: The identifier of the device in the Traccar system.
-            - `traccarConfig` *(Object)*: A JSON object containing the configuration to connect to the Traccar server.
+            - `serverName` *(Text)*: The name of the operator-configured Traccar server.
 
             **Example:**
 
             ```
-            "12345".<traccar.position({
-                "baseUrl": "https://demo.traccar.org"
-            })>
+            "12345".<traccar.position("prod")>
             ```
 
             This may return a value like:
@@ -867,8 +875,8 @@ public class TraccarPolicyInformationPoint {
             }
             ```
             """)
-    public Stream<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig) {
-        return position(deviceEntityId, traccarConfig, Value.EMPTY_OBJECT);
+    public Stream<Value> position(TextValue deviceEntityId, AttributeAccessContext ctx, TextValue serverName) {
+        return withCtx(ctx, serverName, (config, secrets) -> position(deviceEntityId, config, secrets));
     }
 
     Stream<Value> position(TextValue deviceEntityId, ObjectValue traccarConfig, ObjectValue pdpSecrets) {
@@ -887,7 +895,12 @@ public class TraccarPolicyInformationPoint {
             return baseUrl;
         }
 
-        val traccarSecrets = resolveTraccarSecrets(pdpSecrets);
+        val schemeGate = enforceTransportSecurity(baseUrl, traccarConfig);
+        if (schemeGate instanceof ErrorValue) {
+            return schemeGate;
+        }
+
+        val traccarSecrets = resolveTraccarSecrets(traccarConfig, pdpSecrets);
 
         val requestSettings = JSON.objectNode();
         requestSettings.set(BlockingWebClient.BASE_URL, toJsonNode(baseUrl));
@@ -921,15 +934,41 @@ public class TraccarPolicyInformationPoint {
         return ValueJsonMarshaller.fromJsonNode(requestSettings);
     }
 
-    private static ObjectValue resolveTraccarSecrets(ObjectValue pdpSecrets) {
+    private static ObjectValue resolveTraccarSecrets(ObjectValue serverConfig, ObjectValue pdpSecrets) {
         if (pdpSecrets == null || pdpSecrets.isEmpty()) {
             return Value.EMPTY_OBJECT;
         }
-        val traccarSecretsValue = pdpSecrets.get(SECRETS_TRACCAR);
-        if (traccarSecretsValue instanceof ObjectValue traccarSecrets) {
+        if (!(pdpSecrets.get(SECRETS_TRACCAR) instanceof ObjectValue traccarSecrets)) {
+            return Value.EMPTY_OBJECT;
+        }
+        if (serverConfig.get(CONFIG_NAME) instanceof TextValue(var serverName)
+                && traccarSecrets.get(serverName) instanceof ObjectValue perServerSecrets) {
+            return perServerSecrets;
+        }
+        if (traccarSecrets.containsKey(SECRETS_TOKEN) || traccarSecrets.containsKey(SECRETS_USERNAME)) {
             return traccarSecrets;
         }
         return Value.EMPTY_OBJECT;
+    }
+
+    private static Value enforceTransportSecurity(Value baseUrl, ObjectValue serverConfig) {
+        // Fail closed: only a secure-scheme text baseUrl passes without the opt-in.
+        if (baseUrl instanceof TextValue(var baseUrlText) && isSecureScheme(baseUrlText)) {
+            return Value.UNDEFINED;
+        }
+        if (serverConfig.get(CONFIG_ALLOW_INSECURE_HTTP) instanceof BooleanValue(var allow) && allow) {
+            return Value.UNDEFINED;
+        }
+        val serverName = serverConfig.get(CONFIG_NAME) instanceof TextValue(var name) ? name : DEFAULT_SERVER_NAME;
+        return Value.error(ERROR_INSECURE_SCHEME.formatted(serverName));
+    }
+
+    private static boolean isSecureScheme(String uri) {
+        try {
+            return HTTPS_SCHEME.equalsIgnoreCase(URI.create(uri).getScheme());
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     /**
@@ -963,6 +1002,20 @@ public class TraccarPolicyInformationPoint {
         return value instanceof ErrorValue ? value : Value.error(ERROR_UNEXPECTED_RESPONSE);
     }
 
+    /**
+     * Percent-encodes a single path segment so that a policy-controlled entity id
+     * cannot manipulate the request URL structure (query-parameter injection,
+     * fragment truncation, or path traversal) against the Traccar server. Spaces
+     * are encoded as {@code %20} rather than {@code +} because the value is a path
+     * segment, not a query value.
+     *
+     * @param segment the raw entity id
+     * @return the percent-encoded path segment
+     */
+    private static String encodePathSegment(String segment) {
+        return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+
     private static Value getRequiredProperty(String fieldName, ObjectValue traccarConfig) {
         if (!traccarConfig.containsKey(fieldName)) {
             return Value.error(ERROR_REQUIRED_FIELD_MISSING.formatted(fieldName));
@@ -979,28 +1032,57 @@ public class TraccarPolicyInformationPoint {
         return ValueJsonMarshaller.toJsonNode(value);
     }
 
-    private static Stream<Value> getErrorStreamIfTraccarConfigInvalid(ObjectValue variables) {
+    private Stream<Value> withCtx(AttributeAccessContext ctx,
+            BiFunction<ObjectValue, ObjectValue, Stream<Value>> withResolvedServer) {
+        return withCtx(ctx, null, withResolvedServer);
+    }
+
+    private Stream<Value> withCtx(AttributeAccessContext ctx, TextValue serverName,
+            BiFunction<ObjectValue, ObjectValue, Stream<Value>> withResolvedServer) {
+        val serverOrError = resolveServer(ctx.variables(), serverName);
+        if (serverOrError instanceof ErrorValue) {
+            return Streams.just(serverOrError);
+        }
+        return withResolvedServer.apply((ObjectValue) serverOrError, ctx.pdpSecrets());
+    }
+
+    private static Value resolveServer(ObjectValue variables, TextValue requestedName) {
         val config = variables.get(TRACCAR_CONFIG);
         if (config == null || config instanceof UndefinedValue) {
-            return Streams.error(ERROR_TRACCAR_CONFIG_UNDEFINED);
+            return Value.error(ERROR_TRACCAR_CONFIG_UNDEFINED);
         }
-        if (!(config instanceof ObjectValue)) {
-            return Streams.error(ERROR_TRACCAR_CONFIG_NOT_OBJECT.formatted(config.getClass().getSimpleName()));
+        if (!(config instanceof ObjectValue traccarConfig)) {
+            return Value.error(ERROR_TRACCAR_CONFIG_NOT_OBJECT.formatted(config.getClass().getSimpleName()));
         }
-        return null;
+        val targetName = requestedName == null ? null : requestedName.value();
+        if (traccarConfig.get(CONFIG_SERVERS) instanceof ArrayValue servers) {
+            return findNamedServer(traccarConfig, servers, targetName);
+        }
+        return resolveSingleObjectServer(traccarConfig, targetName);
     }
 
-    private static ObjectValue getTraccarConfig(ObjectValue variables) {
-        return (ObjectValue) variables.get(TRACCAR_CONFIG);
+    private static Value findNamedServer(ObjectValue traccarConfig, ArrayValue servers, String requestedName) {
+        val targetName = requestedName != null ? requestedName : defaultServerName(traccarConfig);
+        for (val entry : servers) {
+            if (entry instanceof ObjectValue server && server.get(CONFIG_NAME) instanceof TextValue(var name)
+                    && name.equals(targetName)) {
+                return server;
+            }
+        }
+        return Value.error(ERROR_SERVER_NOT_FOUND.formatted(targetName));
     }
 
-    private static Stream<Value> withCtx(AttributeAccessContext ctx,
-            BiFunction<ObjectValue, ObjectValue, Stream<Value>> withResolvedConfig) {
-        val error = getErrorStreamIfTraccarConfigInvalid(ctx.variables());
-        if (error != null) {
-            return error;
+    // Back-compat: a flat single-object config is the implicit default server.
+    private static Value resolveSingleObjectServer(ObjectValue traccarConfig, String requestedName) {
+        if (requestedName != null && !requestedName.equals(defaultServerName(traccarConfig))) {
+            return Value.error(ERROR_SERVER_NOT_FOUND.formatted(requestedName));
         }
-        return withResolvedConfig.apply(getTraccarConfig(ctx.variables()), ctx.pdpSecrets());
+        return traccarConfig;
+    }
+
+    private static String defaultServerName(ObjectValue traccarConfig) {
+        return traccarConfig.get(CONFIG_DEFAULT_SERVER_NAME) instanceof TextValue(var name) ? name
+                : DEFAULT_SERVER_NAME;
     }
 
 }

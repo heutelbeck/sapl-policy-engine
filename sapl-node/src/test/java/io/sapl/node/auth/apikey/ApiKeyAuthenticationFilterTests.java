@@ -18,7 +18,6 @@
 package io.sapl.node.auth.apikey;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -113,21 +112,18 @@ class ApiKeyAuthenticationFilterTests {
     }
 
     @Nested
-    @DisplayName("converter throws")
-    class ConverterThrows {
+    @DisplayName("invalid API key")
+    class InvalidApiKey {
 
         @Test
-        @DisplayName("an ApiKeyAuthenticationException from the converter propagates and the chain is NOT invoked")
-        void whenConverterThrowsThenChainNotInvoked() throws Exception {
+        @DisplayName("an AuthenticationException from the converter yields 401 (not a propagated 500) and the chain is NOT invoked")
+        void whenConverterThrowsThenUnauthorizedAndChainNotInvoked() throws Exception {
             when(converter.convert(request)).thenThrow(new ApiKeyAuthenticationException("rejected"));
             val filter = new ApiKeyAuthenticationFilter(converter, authenticationManager);
 
-            assertThatThrownBy(() -> filter.doFilter(request, response, chain))
-                    .isInstanceOf(ApiKeyAuthenticationException.class);
-            verifyNoChainInvocation();
-        }
+            filter.doFilter(request, response, chain);
 
-        private void verifyNoChainInvocation() throws Exception {
+            verify(response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed.");
             verify(chain, never()).doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }

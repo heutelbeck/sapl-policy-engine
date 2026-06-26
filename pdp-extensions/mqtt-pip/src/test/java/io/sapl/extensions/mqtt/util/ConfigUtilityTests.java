@@ -18,6 +18,7 @@
 package io.sapl.extensions.mqtt.util;
 
 import io.sapl.api.model.Value;
+import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.extensions.mqtt.SaplMqttClient;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.math.BigDecimal;
 import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
@@ -189,6 +191,22 @@ class ConfigUtilityTests {
             val notANumber = Value.of("two");
 
             assertThatThrownBy(() -> ConfigUtility.getQos(notANumber)).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("a fractional qos is rejected instead of being truncated to a valid level")
+        void whenQosIsFractionalThenThrows() {
+            val fractionalQos = Value.of(BigDecimal.valueOf(1.5));
+
+            assertThatThrownBy(() -> ConfigUtility.getQos(fractionalQos)).isInstanceOf(ArithmeticException.class);
+        }
+
+        @Test
+        @DisplayName("a qos beyond the int range is rejected instead of overflowing into a valid level")
+        void whenQosExceedsIntRangeThenThrows() {
+            val outOfRangeQos = Value.of(BigDecimal.valueOf(Integer.MAX_VALUE).add(BigDecimal.ONE));
+
+            assertThatThrownBy(() -> ConfigUtility.getQos(outOfRangeQos)).isInstanceOf(ArithmeticException.class);
         }
     }
 }

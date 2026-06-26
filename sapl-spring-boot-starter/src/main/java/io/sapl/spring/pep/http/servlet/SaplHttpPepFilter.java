@@ -27,6 +27,7 @@ import io.sapl.spring.pep.constraints.EnforcementPlan;
 import io.sapl.spring.pep.constraints.Signal.HttpRequestMutationSignal;
 import io.sapl.spring.pep.constraints.Signal.HttpResponseSignal;
 import io.sapl.spring.pep.http.HttpEnforcementContext;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -52,7 +53,7 @@ import lombok.val;
  * {@link HttpRequestMutationSignal}, fires the signal so handlers can inject
  * headers or attributes, and forwards the
  * wrapped request down the chain only when at least one handler actually
- * mutated it; otherwise the original request
+ * mutated it. Otherwise the original request
  * goes through and the wrapper is discarded.</li>
  * <li>Wraps the response in a {@link ServletMutableHttpResponse} only when the
  * plan schedules at least one handler at
@@ -72,7 +73,7 @@ import lombok.val;
  * Obligation handler failures throw {@link AccessDeniedException}, caught by
  * Spring's exception-translation filter and
  * routed to the configured access-denied handler. {@link HttpResponseSignal}
- * fires only on the normal-return path; if
+ * fires only on the normal-return path. If
  * the chain throws, the buffer is discarded and the exception propagates so the
  * standard error pipeline can produce its
  * own response.
@@ -81,6 +82,15 @@ public class SaplHttpPepFilter extends OncePerRequestFilter {
 
     private static final String ERROR_REQUEST_MUTATION_OBLIGATION_FAILED = "Access Denied. An HTTP request-mutation obligation handler failed.";
     private static final String ERROR_RESPONSE_OBLIGATION_FAILED         = "Access Denied. An HTTP response obligation handler failed.";
+    private static final String MUTABLE_RESPONSE_ATTRIBUTE               = SaplHttpPepFilter.class.getName()
+            + ".MUTABLE_RESPONSE";
+
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        // The controller body of an async endpoint is produced on the ASYNC dispatch.
+        // The filter must run there to capture it and fire the response signal.
+        return false;
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -98,8 +108,12 @@ public class SaplHttpPepFilter extends OncePerRequestFilter {
             return;
         }
 
+        // On an ASYNC dispatch the controller already ran on the initial dispatch, so
+        // request mutation is not redone.
+        val initialDispatch = request.getDispatcherType() != DispatcherType.ASYNC;
+
         ServletRequest forwardedRequest = request;
-        if (requestHandlersScheduled) {
+        if (initialDispatch && requestHandlersScheduled) {
             val mutableRequest = new ServletMutableHttpRequest(request);
             if (plan.execute(HttpRequestMutationSignal.of(mutableRequest), false).failureState()) {
                 throw new AccessDeniedException(ERROR_REQUEST_MUTATION_OBLIGATION_FAILED);
@@ -114,12 +128,30 @@ public class SaplHttpPepFilter extends OncePerRequestFilter {
             return;
         }
 
-        val mutableResponse = new ServletMutableHttpResponse(response);
+        val mutableResponse = mutableResponseFor(request, response);
         chain.doFilter(forwardedRequest, mutableResponse);
+        if (request.isAsyncStarted()) {
+            // The body arrives on the ASYNC dispatch. Defer the response signal and commit
+            // to that dispatch.
+            return;
+        }
 
         if (plan.execute(HttpResponseSignal.of(mutableResponse), false).failureState()) {
             throw new AccessDeniedException(ERROR_RESPONSE_OBLIGATION_FAILED);
         }
         mutableResponse.commit();
+    }
+
+    private static ServletMutableHttpResponse mutableResponseFor(HttpServletRequest request,
+            HttpServletResponse response) {
+        if (response instanceof ServletMutableHttpResponse alreadyWrapped) {
+            return alreadyWrapped;
+        }
+        if (request.getAttribute(MUTABLE_RESPONSE_ATTRIBUTE) instanceof ServletMutableHttpResponse stored) {
+            return stored;
+        }
+        val created = new ServletMutableHttpResponse(response);
+        request.setAttribute(MUTABLE_RESPONSE_ATTRIBUTE, created);
+        return created;
     }
 }

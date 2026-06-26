@@ -321,6 +321,21 @@ class EnforcementPlannerTests {
         }
 
         @Test
+        @DisplayName("a provider that throws while resolving becomes a fail-closed substitute, not a raw exception out of plan()")
+        void givenProviderThrowsWhileResolvingThenUnresolvedSubstitute() {
+            val decision = permit("""
+                    [{"id": "boom"}]
+                    """, "[]");
+            when(provider.getConstraintHandlers(id("boom"), SUPPORTED_SIGNALS))
+                    .thenThrow(new AccessDeniedException("malformed constraint"));
+
+            val plan = plannerWith(provider).plan(decision, SUPPORTED_SIGNALS);
+
+            assertSubstituteFailsWithReason(plan, DECISION_SIGNAL_TYPE, SubstitutionReason.UNRESOLVED);
+            assertThatPlan(plan).satisfiesAllInvariants(decision, SUPPORTED_SIGNALS);
+        }
+
+        @Test
         @DisplayName("two providers match: AMBIGUOUS substitute at decision signal")
         void givenTwoProvidersMatchThenAmbiguousSubstitute(@Mock ConstraintHandlerProvider second) {
             val decision = permit("""

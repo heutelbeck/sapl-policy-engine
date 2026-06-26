@@ -47,9 +47,9 @@ import java.util.function.Function;
 
 /**
  * {@link AttributeBroker} mocking facility for tests. Mocks are
- * registered against attribute name + matchers + entity matcher;
- * values are emitted via {@link #emit(String, Value)} keyed by
- * mockId; invocations are recorded for after-the-fact verification.
+ * registered against attribute name + matchers + entity matcher.
+ * Values are emitted via {@link #emit(String, Value)} keyed by
+ * mockId. Invocations are recorded for after-the-fact verification.
  * <p>
  * PIP-aware gate semantic: mock registration acts as a PIP registration
  * (gate stays closed until a value lands via {@link #emit}, unless an
@@ -183,7 +183,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
             }
             sub = new SubscriptionImpl(subscriptionId, new HashSet<>(initialDependencies), onUpdate);
             // bindKeys may synchronously fire delegate callbacks that walk subs to find
-            // fireable subscriptions; defer adding this sub to the map so a sync-fire
+            // fireable subscriptions. Defer adding this sub to the map so a sync-fire
             // during bindKeys cannot double-fire (once via delegate, once via the
             // explicit fire below).
             bindKeys(initialDependencies);
@@ -541,7 +541,7 @@ public final class MockingAttributeBroker implements AttributeBroker {
                 subs.remove(id);
                 releaseKeys(deps);
                 // Note: keyToMockId entries kept in case other subs share the key.
-                // Mocks live for the broker lifetime; only delegate forwards are refcounted.
+                // Mocks live for the broker lifetime. Only delegate forwards are refcounted.
             }
         }
 

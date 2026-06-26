@@ -29,6 +29,7 @@ import org.jspecify.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.sapl.api.model.StreamOperator.evalChild;
 import static io.sapl.api.model.StreamOperator.mergeDependencies;
@@ -38,7 +39,8 @@ import static io.sapl.api.model.StreamOperator.mergeDependencies;
  * <p>
  * A {@link CompiledPolicy} provides four entry points:
  * <ul>
- * <li>{@code isApplicable} - Evaluates only the policy body for applicability
+ * <li>{@code applicabilityCondition} - Evaluates only the policy body for
+ * applicability
  * checking.</li>
  * <li>{@code voter} - Evaluates constraints assuming applicability
  * (e.g., the PDP after determining applicability).</li>
@@ -54,12 +56,12 @@ public class PolicyCompiler {
 
     private static final String ERROR_ADVICE_STATIC_ERROR                         = "Advice expression statically evaluates to an error: %s.";
     private static final String ERROR_CONSTRAINT_RELATIVE_ACCESSOR                = "%s contains @ or # outside of proper context.";
-    public static final String  ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S = "Streaming part of conditions must be TRUE or a StreamOperator, but was: %s. This indicates an implementation bug.";
+    private static final String ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S = "Streaming part of conditions must be TRUE or a StreamOperator, but was: %s. This indicates an implementation bug.";
     private static final String ERROR_OBLIGATIONS_STATIC_ERROR                    = "Obligation expression statically evaluates to an error: %s.";
     private static final String ERROR_STREAM_VOTER_IN_PURE_CONTEXT                = "StreamVoter in pure applicability context";
     private static final String ERROR_TRANSFORMATION_RELATIVE_ACCESSOR            = "Transformation contains @ or # outside of proper context.";
     private static final String ERROR_TRANSFORMATION_STATIC_ERROR                 = "Transformation expression statically evaluates to an error: %s.";
-    private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE               = "Unexpected isApplicable type. Indicates implementation bug.";
+    private static final String ERROR_UNEXPECTED_IS_APPLICABLE_TYPE               = "Unexpected applicabilityCondition type. Indicates implementation bug.";
 
     /**
      * Compiles a policy AST into an executable compiled policy.
@@ -77,7 +79,8 @@ public class PolicyCompiler {
         val           constraintsVoter      = compileConstraintsVoter(policy, metadata, ctx);
         val           voter                 = wrapWithStreamingBody(constraintsVoter, streamingSection, metadata,
                 policy.location());
-        val           applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, voter, metadata);
+        val           applicabilityAndVoter = compileApplicabilityAndVoter(isApplicable, streamingSection, voter,
+                constraintsVoter, metadata);
         CoverageVoter coverageVoter         = ctx.lowLatencyMode()
                 ? new CoverageVoter.Eager(conditions, constraintsVoter, metadata)
                 : new CoverageVoter.Lazy(conditions, constraintsVoter, metadata);
@@ -85,27 +88,36 @@ public class PolicyCompiler {
     }
 
     /**
-     * Wraps the vote maker with applicability checking based on the body
-     * expression type.
-     * Used by policy sets walking contained policies.
+     * Builds the voter combining the pure applicability section with the body
+     * (the {@code voter}) used by policy sets walking contained policies and by
+     * the first-applicable algorithm. Constant cases fold. When applicability is
+     * pure and a streaming section remains, a {@link PolicyBodyVoter} applies the
+     * cross-stratum Kleene AND so a streaming FALSE can dominate a pure error.
      *
-     * @param isApplicable the compiled body expression determining applicability
-     * @param voter the vote maker for constraints evaluation
+     * @param applicability the pure applicability section (constant or pure)
+     * @param streamingSection the streaming section, or {@link Value#TRUE}
+     * @param voter the body voter assuming applicability (streaming and
+     * constraints)
+     * @param constraints the constraints voter
      * @param voterMetadata the policy voterMetadata
-     * @return a vote maker that combines applicability and constraint
-     * evaluation
+     * @return a vote maker that combines applicability and the body
      */
-    private Voter compileApplicabilityAndVoter(CompiledExpression isApplicable, Voter voter,
-            VoterMetadata voterMetadata) {
-        return switch (isApplicable) {
-        case ErrorValue error                                      -> Vote.error(error, voterMetadata);
-        case BooleanValue(var b) when b                            -> voter;
-        case BooleanValue ignored                                  -> Vote.abstain(voterMetadata);
-        case PureOperator po when voter instanceof StreamVoter sdm ->
-            new ApplicabilityCheckingStreamVoter(po, sdm, voterMetadata);
-        case PureOperator po                                       ->
-            new ApplicabilityCheckingPureVoter(po, voter, voterMetadata);
-        default                                                    ->
+    private Voter compileApplicabilityAndVoter(CompiledExpression applicability, CompiledExpression streamingSection,
+            Voter voter, Voter constraints, VoterMetadata voterMetadata) {
+        return switch (applicability) {
+        case BooleanValue(var applicable) when applicable                                                            ->
+            voter;
+        case BooleanValue ignored                                                                                    ->
+            Vote.abstain(voterMetadata);
+        case ErrorValue error when streamingSection instanceof StreamOperator                                        ->
+            new PolicyBodyVoter(error, streamingSection, constraints, voterMetadata);
+        case ErrorValue error                                                                                        ->
+            Vote.error(error, voterMetadata);
+        case PureOperator pure when streamingSection instanceof StreamOperator || constraints instanceof StreamVoter ->
+            new PolicyBodyVoter(pure, streamingSection, constraints, voterMetadata);
+        case PureOperator pure                                                                                       ->
+            new ApplicabilityCheckingPureVoter(pure, constraints, voterMetadata);
+        default                                                                                                      ->
             Vote.error(Value.error(ERROR_UNEXPECTED_IS_APPLICABLE_TYPE), voterMetadata);
         };
     }
@@ -163,7 +175,7 @@ public class PolicyCompiler {
             return constraintsVoter;
         }
         if (streamingPartOfBody instanceof StreamOperator so) {
-            return new ApplicabilityCheckingStreamVoter(so, constraintsVoter, voterMetadata);
+            return new PolicyBodyVoter(Value.TRUE, so, constraintsVoter, voterMetadata);
         }
         throw new SaplCompilerException(ERROR_MUST_BE_TRUE_OR_A_STREAM_OPERATOR_BUT_WAS_S
                 .formatted(streamingPartOfBody.getClass().getSimpleName()), location);
@@ -303,36 +315,65 @@ public class PolicyCompiler {
     }
 
     /**
-     * Voter for an applicability check (pure or streaming) wrapping any inner
-     * {@link Voter}. The {@link #isApplicable} child resolves via
-     * {@link io.sapl.api.model.StreamOperator#evalChild} so all three child
-     * kinds (Value, PureOperator, StreamOperator) are handled uniformly. On
-     * applicability TRUE the inner voter's {@code evaluate(ctx)} is invoked
-     * and its dependencies merged in.
+     * The voter for a policy body, which is the Kleene strong three-valued AND
+     * of the pure applicability section and the streaming section, dispatching
+     * to the constraints voter when the body is TRUE. The applicability is
+     * always pure (a constant {@link Value} or a {@link PureOperator}, never a
+     * stream); the streaming section is a constant {@link Value#TRUE} when the
+     * body has no streaming conditions, otherwise a {@link StreamOperator}.
+     * <p>
+     * The strata combine order-independently: a FALSE in either section
+     * dominates and yields NOT_APPLICABLE (so a streaming FALSE dominates a pure
+     * error). Otherwise an error in either section yields INDETERMINATE.
+     * Otherwise both are TRUE and the constraints voter produces the vote. The
+     * constraints voter is evaluated only when the body is TRUE, so an erroring
+     * or non-applicable body never triggers obligation, advice, or
+     * transformation attribute reads.
      *
-     * @param isApplicable the body expression determining applicability
-     * @param voter the underlying vote maker
+     * @param applicability the pure applicability section (constant or pure)
+     * @param streamingSection the streaming section, or {@link Value#TRUE}
+     * @param constraints the constraints voter, applied when the body is TRUE
      * @param voterMetadata the policy voterMetadata
      */
-    record ApplicabilityCheckingStreamVoter(CompiledExpression isApplicable, Voter voter, VoterMetadata voterMetadata)
-            implements StreamVoter {
+    record PolicyBodyVoter(
+            CompiledExpression applicability,
+            CompiledExpression streamingSection,
+            Voter constraints,
+            VoterMetadata voterMetadata) implements StreamVoter {
 
         @Override
         public VoteResult evaluate(EvaluationContext ctx) {
-            val deps               = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
-            val applicabilityValue = evalChild(isApplicable, ctx, deps);
-            if (applicabilityValue == null) {
+            // Eval the pure section of the body
+            var applicabilityValue = applicability instanceof PureOperator pure ? pure.evaluate(ctx)
+                    : (Value) applicability;
+            if (applicabilityValue instanceof BooleanValue(var applicable) && !applicable) {
+                // If now known to be false -> short circuit to abstain
+                return new VoteResult(Vote.abstain(voterMetadata), Map.of());
+            }
+            // Here applicability is either true, or error. All expressions guaranteed to
+            // only return that.
+            // Eval streaming section
+            val deps        = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
+            var streamValue = evalChild(streamingSection, ctx, deps);
+            if (streamValue == null) {
+                // Needs more attributes
                 return new VoteResult(null, deps);
             }
-            if (applicabilityValue instanceof ErrorValue error) {
-                return new VoteResult(Vote.error(error, voterMetadata), deps);
+            if (streamValue instanceof BooleanValue(var streamApplicable) && !streamApplicable) {
+                // If now known to be false -> short circuit to abstain
+                return new VoteResult(Vote.abstain(voterMetadata), deps);
             }
-            if (applicabilityValue instanceof BooleanValue(var b) && b) {
-                val inner = voter.evaluate(ctx);
-                mergeDependencies(deps, inner.dependencies());
-                return new VoteResult(inner.vote(), deps);
+            // Here we either have all true or some error in the history. Errors beat true.
+            if (applicabilityValue instanceof ErrorValue applicabilityError) {
+                return new VoteResult(Vote.error(applicabilityError, voterMetadata), deps);
             }
-            return new VoteResult(Vote.abstain(voterMetadata), deps);
+            if (streamValue instanceof ErrorValue streamError) {
+                return new VoteResult(Vote.error(streamError, voterMetadata), deps);
+            }
+            // Body was true. Now the policy is allowed to cast a vote!
+            val constraintsResult = constraints.evaluate(ctx);
+            mergeDependencies(deps, constraintsResult.dependencies());
+            return new VoteResult(constraintsResult.vote(), deps);
         }
     }
 

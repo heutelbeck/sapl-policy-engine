@@ -30,6 +30,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -188,6 +193,69 @@ class DocumentCompilerTests {
 
             assertThatCode(() -> DocumentCompiler.compileDocument(policySetDefinition, ctx)).doesNotThrowAnyException();
         }
+    }
+
+    @Nested
+    @DisplayName("concurrent compilation")
+    class ConcurrentCompilationTests {
+
+        // Single-part attribute name shared by both documents. Document A imports it
+        // (so it resolves). Document B does not import it (so it must stay
+        // unresolved). If two parseDocument calls share mutable transformer state,
+        // B can pick up A's import map and resolve a name the author never imported,
+        // or A can lose its import map and fail a valid policy.
+        private static final String IMPORTING_DOCUMENT = """
+                import library.clash
+                policy "importing" permit "x".<clash> == "x";
+                """;
+
+        private static final String NON_IMPORTING_DOCUMENT = """
+                policy "non-importing" permit "x".<clash> == "x";
+                """;
+
+        private static final int ROUNDS  = 2000;
+        private static final int THREADS = 8;
+
+        @Test
+        @DisplayName("each document resolves single-part names only against its own imports under concurrency")
+        void whenTwoDocumentsWithCollidingShortNameCompiledInParallelThenEachResolvesAgainstOwnImports()
+                throws Exception {
+            val executor = Executors.newFixedThreadPool(THREADS);
+            try {
+                val tasks   = buildTasks();
+                val futures = executor.invokeAll(tasks);
+                assertThat(futures).allSatisfy(DocumentCompilerTests::assertSucceeded);
+            } finally {
+                executor.shutdownNow();
+            }
+        }
+
+        private List<Callable<Void>> buildTasks() {
+            return IntStream.range(0, ROUNDS).mapToObj(this::alternatingTask).toList();
+        }
+
+        private Callable<Void> alternatingTask(int round) {
+            if (round % 2 == 0) {
+                return () -> {
+                    val document = DocumentCompiler.parseDocument(IMPORTING_DOCUMENT);
+                    assertThat(document.isInvalid())
+                            .as("imported short name 'clash' must resolve in the importing document").isFalse();
+                    return null;
+                };
+            }
+            return () -> {
+                val document = DocumentCompiler.parseDocument(NON_IMPORTING_DOCUMENT);
+                assertThat(document.isInvalid())
+                        .as("un-imported short name 'clash' must stay unresolved in the non-importing document")
+                        .isTrue();
+                assertThat(document.errorMessage()).contains("clash");
+                return null;
+            };
+        }
+    }
+
+    private static void assertSucceeded(Future<Void> future) {
+        assertThatCode(future::get).doesNotThrowAnyException();
     }
 
     @Nested

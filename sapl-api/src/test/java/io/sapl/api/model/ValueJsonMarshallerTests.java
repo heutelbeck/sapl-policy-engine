@@ -96,6 +96,34 @@ class ValueJsonMarshallerTests {
                 arguments(new BigDecimal(HORROR_LEVEL_MAX)));
     }
 
+    @ParameterizedTest(name = "rejected number: {0}")
+    @MethodSource
+    @DisplayName("a number whose scale magnitude exceeds the bound is rejected as an error, not admitted")
+    void whenNumberExceedsBoundThenError(String description, BigDecimal value) {
+        var node   = FACTORY.numberNode(value);
+        var result = ValueJsonMarshaller.fromJsonNode(node);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> whenNumberExceedsBoundThenError() {
+        return Stream.of(arguments("extreme negative scale", new BigDecimal("1E1000000000")),
+                arguments("extreme positive scale", new BigDecimal("1E-1000000000")));
+    }
+
+    @ParameterizedTest(name = "non-finite: {0}")
+    @MethodSource
+    @DisplayName("a non-finite number node (NaN/Infinity) becomes an error instead of throwing on the eval path")
+    void whenNonFiniteNumberThenError(String description, double value) {
+        var node   = FACTORY.numberNode(value);
+        var result = ValueJsonMarshaller.fromJsonNode(node);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    static Stream<Arguments> whenNonFiniteNumberThenError() {
+        return Stream.of(arguments("NaN", Double.NaN), arguments("positive infinity", Double.POSITIVE_INFINITY),
+                arguments("negative infinity", Double.NEGATIVE_INFINITY));
+    }
+
     @ParameterizedTest(name = "round-trip text: {0}")
     @MethodSource("textValues")
     @DisplayName("Round-trip text preserves value")
@@ -129,8 +157,24 @@ class ValueJsonMarshallerTests {
     }
 
     static Stream<Arguments> doubleValues() {
-        return Stream.of(arguments("zero", 0.0), arguments("negative zero", -0.0), arguments("min", Double.MIN_VALUE),
-                arguments("max", Double.MAX_VALUE), arguments("e", Math.E), arguments("pi", Math.PI));
+        return Stream.of(arguments("zero", 0.0), arguments("min", Double.MIN_VALUE), arguments("max", Double.MAX_VALUE),
+                arguments("e", Math.E), arguments("pi", Math.PI));
+    }
+
+    @Test
+    @DisplayName("negative zero collapses to the canonical zero value")
+    void whenNegativeZeroThenCollapsesToZero() {
+        assertThat(Value.of(-0.0)).isEqualTo(Value.of(0.0));
+    }
+
+    @Test
+    @DisplayName("pretty-printing an error with a null message does not throw")
+    void whenPrettyPrintingErrorWithNullMessageThenRendersWithoutThrowing() {
+        var errorWithNullMessage = new ErrorValue(new RuntimeException());
+        var array                = Value.ofArray(errorWithNullMessage);
+
+        assertThat(ValueJsonMarshaller.toPrettyString(errorWithNullMessage)).contains("ERROR");
+        assertThat(ValueJsonMarshaller.toPrettyString(array)).contains("ERROR");
     }
 
     // Round-trip Conversion Tests - Collections

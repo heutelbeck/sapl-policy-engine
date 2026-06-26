@@ -374,6 +374,8 @@ class PriorityBasedVoteCombinerTests {
             return Stream.of(
                     arguments(new TransformationCase("both have resource transformation returns INDETERMINATE",
                             Value.of("resource-1"), Value.of("resource-2"), Decision.INDETERMINATE, Value.UNDEFINED)),
+                    arguments(new TransformationCase("identical resource transformations merge", Value.of("resource-1"),
+                            Value.of("resource-1"), Decision.PERMIT, Value.of("resource-1"))),
                     arguments(new TransformationCase("only accumulator has resource, merges with that resource",
                             Value.of("resource-1"), Value.UNDEFINED, Decision.PERMIT, Value.of("resource-1"))),
                     arguments(new TransformationCase("only new vote has resource, merges with that resource",

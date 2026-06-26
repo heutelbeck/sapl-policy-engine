@@ -47,7 +47,7 @@ public record FunctionInvocation(String functionName, List<Value> arguments) {
             return Match.EXACT_MATCH;
         }
 
-        if (spec.hasVariableNumberOfArguments()) {
+        if (spec.hasVariableNumberOfArguments() && arguments.size() >= spec.numberOfArguments()) {
             return Match.VARARGS_MATCH;
         }
 

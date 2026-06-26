@@ -22,7 +22,7 @@ import java.time.Instant;
 /**
  * Schedules a task to run at a specific {@link Instant}. The
  * production implementation runs tasks against wall-clock time on a
- * shared executor; deterministic test implementations queue tasks and
+ * shared executor. Deterministic test implementations queue tasks and
  * fire them on explicit time advance.
  */
 public interface TimeScheduler {

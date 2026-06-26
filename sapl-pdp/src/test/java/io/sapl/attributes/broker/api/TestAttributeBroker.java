@@ -21,6 +21,7 @@ import io.sapl.api.model.AttributeSnapshot;
 import io.sapl.api.model.SubscriptionKey;
 import io.sapl.api.model.Value;
 import io.sapl.attributes.broker.AttributeBroker;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jspecify.annotations.Nullable;
 
@@ -34,37 +35,43 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * In-memory {@link AttributeBroker} for tests, modelled on the
- * production PIP-based attribute lifecycle. Attribute names are either
- * registered (a PIP exists; the broker waits patiently for values via
- * {@link #publish}) or unregistered (no PIP; an unbound key materialises
- * immediately as {@link Value#UNDEFINED}). This mirrors the eventual
- * production behaviour where the attribute repository falls back to
- * UNDEFINED when no PIP is registered.
+ * In-memory {@link AttributeBroker} for tests, modelled on the production
+ * PIP-based attribute lifecycle. Attribute
+ * names are either registered (a PIP exists. The broker waits patiently for
+ * values via {@link #publish}) or
+ * unregistered (no PIP. An unbound key materialises immediately as
+ * {@link Value#UNDEFINED}). This mirrors the eventual
+ * production behaviour where the attribute repository falls back to UNDEFINED
+ * when no PIP is registered.
  * <p>
- * Gate semantic: a subscription's gate stays closed until every
- * declared dependency has a value in the mailbox. PIP-registered keys
- * stay unbound until a publish lands; unregistered keys are
- * auto-filled with UNDEFINED at the moment they enter a subscription's
- * dep set. The first state where every dep has a value opens the gate
- * and fires the callback.
+ * Gate semantic: a subscription's gate stays closed until every declared
+ * dependency has a value in the mailbox.
+ * PIP-registered keys stay unbound until a publish lands. Unregistered keys are
+ * auto-filled with UNDEFINED at the
+ * moment they enter a subscription's dep set. The first state where every dep
+ * has a value opens the gate and fires the
+ * callback.
  * <p>
  * Re-fire on dep growth: when a callback returns expanded dependencies,
- * unregistered new keys are auto-filled with UNDEFINED. If the gate
- * remains open after that step (or transitions to open), the callback
- * fires once more so the consumer observes the new mailbox state. If
- * the new deps include PIP-registered keys that have no value yet, the
- * gate closes and no fire happens until a publish completes the set.
+ * unregistered new keys are auto-filled with
+ * UNDEFINED. If the gate remains open after that step (or transitions to open),
+ * the callback fires once more so the
+ * consumer observes the new mailbox state. If the new deps include
+ * PIP-registered keys that have no value yet, the gate
+ * closes and no fire happens until a publish completes the set.
  * <p>
- * State mutations and reads on the broker and its subscriptions are
- * guarded by an intrinsic lock on the broker. Callbacks fire outside
- * the lock so they may freely close their subscription or invoke other
- * broker-touching operations without re-entrance hazard.
+ * State mutations and reads on the broker and its subscriptions are guarded by
+ * an intrinsic lock on the broker.
+ * Callbacks fire outside the lock so they may freely close their subscription
+ * or invoke other broker-touching
+ * operations without re-entrance hazard.
  */
+@Slf4j
 public final class TestAttributeBroker implements AttributeBroker {
 
     private static final String ERROR_INITIAL_DEPS_EMPTY     = "initialDependencies must not be empty";
-    private static final String ERROR_RETURNED_DEPS_EMPTY    = "Subscription %s returned empty/null dependencies; close the subscription externally instead";
+    private static final String ERROR_ONUPDATE_THREW         = "Subscription {} onUpdate callback threw (engine invariant: it must never throw); ignoring this fire: {}";
+    private static final String ERROR_RETURNED_DEPS_EMPTY    = "Subscription {} onUpdate returned empty/null dependencies (engine invariant: it must return a non-empty set); ignoring this fire and keeping the current dependency set.";
     private static final String ERROR_SUBSCRIPTION_ID_BLANK  = "subscriptionId must not be blank";
     private static final String ERROR_SUBSCRIPTION_ID_IN_USE = "subscriptionId already open: %s";
 
@@ -75,22 +82,24 @@ public final class TestAttributeBroker implements AttributeBroker {
     private final Map<String, @Nullable Value>            registeredPips = new HashMap<>();
 
     /**
-     * Register a PIP for {@code attributeName} without a primed value.
-     * Subsequent {@code open()} calls whose dependency set contains a
-     * key with this name will leave the key unbound (gate stays closed
-     * for that key) until a publish lands.
+     * Register a PIP for {@code attributeName} without a primed value. Subsequent
+     * {@code open()} calls whose dependency
+     * set contains a key with this name will leave the key unbound (gate stays
+     * closed for that key) until a publish
+     * lands.
      */
     public synchronized void register(String attributeName) {
         registeredPips.put(attributeName, null);
     }
 
     /**
-     * Register a PIP for {@code attributeName} with an initial value.
-     * Equivalent to {@link #register(String)} followed by an immediate
-     * publish to every key with this name that enters a subscription's
-     * dep set. Tests that call this before {@link #open(String, Set, Function)}
-     * see the gate open in one step with the primed value already in
-     * the snapshot.
+     * Register a PIP for {@code attributeName} with an initial value. Equivalent to
+     * {@link #register(String)} followed
+     * by an immediate publish to every key with this name that enters a
+     * subscription's dep set. Tests that call this
+     * before {@link #open(String, Set, Function)} see the gate open in one step
+     * with the primed value already in the
+     * snapshot.
      */
     public synchronized void register(String attributeName, Value initialValue) {
         registeredPips.put(attributeName, initialValue);
@@ -126,11 +135,12 @@ public final class TestAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * For every key whose name is unregistered, auto-fill the mailbox
-     * with {@link Value#UNDEFINED}. For every key whose name is
-     * registered with a primed initial value, auto-fill the mailbox
-     * with that value. Keys whose name is registered without a primed
-     * value are left untouched (patient: wait for publish).
+     * For every key whose name is unregistered, auto-fill the mailbox with
+     * {@link Value#UNDEFINED}. For every key whose
+     * name is registered with a primed initial value, auto-fill the mailbox with
+     * that value. Keys whose name is
+     * registered without a primed value are left untouched (patient: wait for
+     * publish).
      *
      * @return {@code true} if any new entry was added to the mailbox
      */
@@ -167,10 +177,10 @@ public final class TestAttributeBroker implements AttributeBroker {
     }
 
     /**
-     * Test hook: simulate a value arrival for a SubscriptionKey. Updates
-     * the mailbox (single slot, latest wins), opens the gate for any
-     * subscription whose deps are now all fulfilled, and fires callbacks
-     * outside the broker lock.
+     * Test hook: simulate a value arrival for a SubscriptionKey. Updates the
+     * mailbox (single slot, latest wins), opens
+     * the gate for any subscription whose deps are now all fulfilled, and fires
+     * callbacks outside the broker lock.
      */
     public void publish(SubscriptionKey key, Value value) {
         List<SubscriptionImpl> toFire;
@@ -196,7 +206,8 @@ public final class TestAttributeBroker implements AttributeBroker {
 
     /**
      * Test hook: publish a value to every currently subscribed key whose
-     * {@code invocation.attributeName()} equals {@code attributeName}.
+     * {@code invocation.attributeName()} equals
+     * {@code attributeName}.
      */
     public void publishByName(String attributeName, Value value) {
         Set<SubscriptionKey> targets;
@@ -286,9 +297,16 @@ public final class TestAttributeBroker implements AttributeBroker {
                 snapshot = currentSnapshot();
                 cb       = onUpdate;
             }
-            val newDeps = cb.apply(snapshot);
+            Set<SubscriptionKey> newDeps;
+            try {
+                newDeps = cb.apply(snapshot);
+            } catch (RuntimeException e) {
+                log.error(ERROR_ONUPDATE_THREW, id, e.getMessage(), e);
+                return;
+            }
             if (newDeps == null || newDeps.isEmpty()) {
-                throw new IllegalStateException(ERROR_RETURNED_DEPS_EMPTY.formatted(id));
+                log.error(ERROR_RETURNED_DEPS_EMPTY, id);
+                return;
             }
             boolean refire;
             synchronized (TestAttributeBroker.this) {

@@ -19,7 +19,7 @@ package io.sapl.spring.config;
 
 import static io.sapl.spring.tenant.DefaultReactiveTenantResolver.REACTOR_CONTEXT_PDP_ID_KEY;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.spring.tenant.DefaultReactiveTenantResolver;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import org.jspecify.annotations.NonNull;
@@ -37,7 +37,7 @@ import reactor.util.context.Context;
  * propagates it through the Reactor
  * Context. Cooperates with {@link DefaultReactiveTenantResolver}, which reads
  * the same key on the consumer side. The
- * PDP itself never reads the Reactor Context; tenant resolution happens here,
+ * PDP itself never reads the Reactor Context. Tenant resolution happens here,
  * in application infrastructure.
  * <p>
  * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the id from
@@ -45,7 +45,7 @@ import reactor.util.context.Context;
  * extracted id is written under
  * {@link DefaultReactiveTenantResolver#REACTOR_CONTEXT_PDP_ID_KEY}; a missing
  * authentication or empty extraction falls back to
- * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID}.
+ * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
  * {@link ReactiveTenantResolver} implementations downstream consume the value.
  */
 @RequiredArgsConstructor
@@ -58,10 +58,10 @@ public class PdpIdWebFilter implements WebFilter {
         return ReactiveSecurityContextHolder.getContext().flatMap(securityContext -> {
             var authentication = securityContext.getAuthentication();
             if (authentication == null) {
-                return Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+                return Mono.just(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
             }
-            return extractor.extractPdpId(authentication).defaultIfEmpty(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
-        }).defaultIfEmpty(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)
+            return extractor.extractPdpId(authentication).defaultIfEmpty(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
+        }).defaultIfEmpty(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)
                 .flatMap(pdpId -> chain.filter(exchange).contextWrite(Context.of(REACTOR_CONTEXT_PDP_ID_KEY, pdpId)));
     }
 

@@ -44,13 +44,13 @@ import io.sapl.spring.pep.streaming.MealyMachine.TransitionReason.Granted;
  * in
  * {@code stream-pep-lean/StreamPepFsm/Properties.lean}. Test method names
  * mirror the Lean theorem names (snake_case →
- * camelCase). The Javadoc carries the Lean statement; the test body discharges
+ * camelCase). The Javadoc carries the Lean statement. The test body discharges
  * it by computation, by enumeration over a
  * finite quantification domain, or by replaying a fixed event sequence —
  * whichever shape Lean uses.
  * <p>
  * The Lean module groups its theorems by section (per-cell invariants first,
- * sequence invariants last); the test
+ * sequence invariants last). The test
  * methods follow the same order.
  */
 class MealyMachineInvariantTests {

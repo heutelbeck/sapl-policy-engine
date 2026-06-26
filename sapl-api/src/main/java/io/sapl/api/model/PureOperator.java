@@ -115,7 +115,7 @@ public non-sealed interface PureOperator extends CompiledExpression {
         case PureOperator minePure -> yours instanceof PureOperator yoursPure && minePure.semanticEquals(yoursPure);
         case List<?> mineList      -> yours instanceof List<?> yoursList && semanticListEquals(mineList, yoursList);
         case Value ignored         -> mine.equals(yours);
-        // A known leaf compares by value; any other type is kept distinct (safe).
+        // A known leaf compares by value. Any other type is kept distinct (safe).
         default -> isSemanticLeaf(mine) && mine.equals(yours);
         };
     }

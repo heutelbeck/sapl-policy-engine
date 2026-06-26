@@ -134,7 +134,7 @@ class DirectoryPDPConfigurationSourceTests {
 
         assertThat(configs.getFirst()).satisfies(config -> {
             assertThat(config.pdpId()).isEqualTo("cultist");
-            assertThat(config.configurationId()).startsWith("dir:").contains("@sha256:");
+            assertThat(config.configurationId()).startsWith("dir:").doesNotContain("sha256");
         });
     }
 
@@ -218,6 +218,35 @@ class DirectoryPDPConfigurationSourceTests {
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2)
                 .last().satisfies(config -> assertThat(config.combiningAlgorithm()).isEqualTo(PERMIT_OVERRIDES)));
+    }
+
+    @Test
+    @DisplayName("a subscriber that throws does not stop hot-reload for other subscribers")
+    void whenSubscriberThrowsThenOtherSubscribersKeepReceivingUpdates() throws IOException {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" } }
+                        """);
+        createFile(tempDir.resolve("policy.sapl"), "policy \"test\" permit true;");
+        source = new DirectoryPDPConfigurationSource(tempDir);
+
+        val capture = new CapturingSubscriber();
+        source.subscribe(capture);
+        val configs = capture.configs();
+        source.subscribe(event -> {
+            throw new RuntimeException("hostile subscriber");
+        });
+
+        assertThat(configs).hasSize(1);
+
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        { "algorithm": { "votingMode": "PRIORITY_PERMIT", "defaultDecision": "PERMIT", "errorHandling": "PROPAGATE" } }
+                        """);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(2));
+
+        createFile(tempDir.resolve("second.sapl"), "policy \"second\" deny true;");
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(configs).hasSizeGreaterThanOrEqualTo(3));
     }
 
     @Test
@@ -337,28 +366,42 @@ class DirectoryPDPConfigurationSourceTests {
 
     @Test
     void whenTotalSizeExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
-        writePdpJson(tempDir);
-        val largeContent = "x".repeat(2 * 1024 * 1024);
-        for (int i = 0; i < 6; i++) {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "compilerOptions": { "maxTotalSizeMegabytes": 2 }
+                        }
+                        """);
+        val oneMegabyte = "x".repeat(1024 * 1024);
+        for (int i = 0; i < 3; i++) {
             createFile(tempDir.resolve("large" + i + ".sapl"),
-                    "policy \"large%d\" permit \"%s\";".formatted(i, largeContent));
+                    "policy \"large%d\" permit \"%s\";".formatted(i, oneMegabyte));
         }
 
         source = new DirectoryPDPConfigurationSource(tempDir);
 
         assertThat(source.isClosed()).isFalse();
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test
     void whenFileCountExceedsLimitThenSourceCreatesWithoutConfiguration() throws IOException {
-        writePdpJson(tempDir);
-        for (int i = 0; i < 1002; i++) {
+        createFile(tempDir.resolve("pdp.json"),
+                """
+                        {
+                          "algorithm": { "votingMode": "PRIORITY_DENY", "defaultDecision": "DENY", "errorHandling": "PROPAGATE" },
+                          "compilerOptions": { "maxPolicyDocuments": 3 }
+                        }
+                        """);
+        for (int i = 0; i < 4; i++) {
             createFile(tempDir.resolve("policy" + i + ".sapl"), "policy \"p%d\" permit true;".formatted(i));
         }
 
         source = new DirectoryPDPConfigurationSource(tempDir);
 
         assertThat(source.isClosed()).isFalse();
+        assertThat(captureConfigurations(source)).isEmpty();
     }
 
     @Test

@@ -46,7 +46,7 @@ public class NameValidator {
      * pattern for fully qualified names.
      */
     public static void requireValidName(String stringUnderTest) {
-        if (!PATTERN.test(stringUnderTest)) {
+        if (stringUnderTest == null || !PATTERN.test(stringUnderTest)) {
             throw new IllegalArgumentException(ERROR_INVALID_NAME.formatted(stringUnderTest));
         }
     }

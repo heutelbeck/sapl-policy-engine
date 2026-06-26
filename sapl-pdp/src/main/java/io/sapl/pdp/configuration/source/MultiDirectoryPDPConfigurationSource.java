@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +81,8 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     private static final String ERROR_FAILED_TO_LOAD_CONFIGURATIONS = "Failed to load configurations from directory.";
     private static final String ERROR_FAILED_TO_START_MONITOR       = "Failed to start directory monitor.";
     private static final String ERROR_PATH_IS_NOT_DIRECTORY         = "Configuration path is not a directory.";
+
+    private static final String WARN_SUBSCRIBER_THREW = "Configuration subscriber threw on event {}: {}.";
 
     private final Path                                         directoryPath;
     private final boolean                                      includeRootFiles;
@@ -155,7 +158,12 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
             return;
         }
         for (val subscriber : subscribers) {
-            subscriber.accept(event);
+            try {
+                subscriber.accept(event);
+            } catch (Exception e) {
+                // Isolate a failing subscriber so delivery to others continues.
+                log.warn(WARN_SUBSCRIBER_THREW, event, e.getMessage());
+            }
         }
     }
 
@@ -204,9 +212,19 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId, () -> removeChildSource(pdpId));
-            source.subscribe(this::emit);
+            val holder = new DirectoryPDPConfigurationSource[1];
+            val source = new DirectoryPDPConfigurationSource(subdirectory, pdpId,
+                    () -> removeChildSourceIfCurrent(pdpId, holder[0]));
+            holder[0] = source;
+            // Register before subscribing so a removal callback during activation can clean
+            // up.
             childSources.put(pdpId, source);
+            try {
+                source.subscribe(this::emit);
+            } catch (Exception e) {
+                childSources.remove(pdpId, source);
+                throw e;
+            }
             log.debug("Created child source for PDP '{}'.", pdpId);
         } catch (Exception e) {
             log.error("Failed to create child source for PDP '{}': {}.", pdpId, e.getMessage(), e);
@@ -214,15 +232,16 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     }
 
     private void createRootSource() {
-        if (childSources.containsKey(PdpIdValidator.DEFAULT_PDP_ID)) {
+        if (childSources.containsKey(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)) {
             log.warn("Subdirectory named 'default' exists, root files will not be loaded as default PDP.");
             return;
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(directoryPath, PdpIdValidator.DEFAULT_PDP_ID);
+            val source = new DirectoryPDPConfigurationSource(directoryPath,
+                    StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
             source.subscribe(this::emit);
-            childSources.put(PdpIdValidator.DEFAULT_PDP_ID, source);
+            childSources.put(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, source);
             log.debug("Created root source for default PDP.");
         } catch (Exception e) {
             log.error("Failed to create root source for default PDP: {}.", e.getMessage(), e);
@@ -263,6 +282,21 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
             emit(new ConfigurationEvent.Remove(pdpId));
             log.debug("Removed and closed child source for PDP '{}'.", pdpId);
         }
+    }
+
+    // A child's own deferred removal (its directory vanished) must drop only that
+    // instance, never a live replacement re-registered under the same pdpId.
+    void removeChildSourceIfCurrent(String pdpId, DirectoryPDPConfigurationSource source) {
+        if (childSources.remove(pdpId, source)) {
+            source.close();
+            emit(new ConfigurationEvent.Remove(pdpId));
+            log.debug("Removed and closed child source for PDP '{}'.", pdpId);
+        }
+    }
+
+    // Package-private view of the child sources for tests.
+    Map<String, DirectoryPDPConfigurationSource> childSources() {
+        return childSources;
     }
 
     private void closeAllChildSources() {

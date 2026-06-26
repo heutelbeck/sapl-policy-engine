@@ -59,6 +59,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class DefaultFunctionBroker implements FunctionBroker {
 
+    private static final String ERROR_AMBIGUOUS_FUNCTION_MATCH       = "Ambiguous function match for %s. Multiple registered functions match this invocation equally well.";
     private static final String ERROR_FUNCTION_COLLISION             = "Function collision error for '%s'. A function with the same signature already exists.";
     private static final String ERROR_INVOCATION_NULL                = "Function invocation must not be null.";
     private static final String ERROR_LIBRARY_INSTANCE_NULL          = "Library instance must not be null.";
@@ -182,13 +183,21 @@ public class DefaultFunctionBroker implements FunctionBroker {
         if (specs != null) {
             FunctionSpecification bestMatch = null;
             var                   match     = Match.NO_MATCH;
+            var                   ambiguous = false;
 
             for (val spec : specs) {
                 val newMatch = invocation.matches(spec);
                 if (newMatch.isBetterThan(match)) {
                     match     = newMatch;
                     bestMatch = spec;
+                    ambiguous = false;
+                } else if (match != Match.NO_MATCH && newMatch == match) {
+                    ambiguous = true;
                 }
+            }
+
+            if (ambiguous) {
+                return Value.error(ERROR_AMBIGUOUS_FUNCTION_MATCH, invocation);
             }
 
             if (bestMatch != null) {

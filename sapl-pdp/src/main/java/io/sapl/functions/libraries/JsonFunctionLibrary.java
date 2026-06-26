@@ -25,6 +25,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.val;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.json.JsonFactory;
+import tools.jackson.databind.cfg.JsonNodeFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -111,7 +112,7 @@ public class JsonFunctionLibrary {
 
     private static final JsonMapper JSON_MAPPER = JsonMapper
             .builder(JsonFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
-            .build();
+            .enable(JsonNodeFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
 
     /**
      * Converts a well-formed JSON document into a SAPL value.
@@ -177,7 +178,7 @@ public class JsonFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val jsonString = JSON_MAPPER.writeValueAsString(jsonNode);
             return Value.of(jsonString);
-        } catch (JacksonException exception) {
+        } catch (JacksonException | IllegalArgumentException exception) {
             return Value.error(ERROR_FAILED_TO_SERIALIZE, exception.getMessage());
         }
     }

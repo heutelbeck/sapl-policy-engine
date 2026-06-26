@@ -40,7 +40,7 @@ import lombok.val;
  * <ul>
  * <li>routes {@code anyRequest()} through the SAPL authorization manager;</li>
  * <li>installs the SAPL access-denied handler on the exception-handling
- * branch;</li>
+ * branch.</li>
  * <li>adds the SAPL HTTP PEP filter immediately after Spring Security's
  * {@link AuthorizationFilter}.</li>
  * </ul>

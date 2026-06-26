@@ -117,11 +117,10 @@ class PolicyInformationPointAttributeBrokerStressTests {
 
         emitOneRoundFromEveryPipAttribute();
 
-        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> {
-            long fired = recorders.stream().mapToLong(Recorder::callbacks).sum();
-            assertThat(fired).as("every consumer should fire at least once after the emission round")
-                    .isGreaterThanOrEqualTo(CONSUMERS_BASELINE);
-        });
+        Awaitility.await().atMost(TEST_BUDGET)
+                .untilAsserted(() -> assertThat(recorders)
+                        .as("every consumer should fire at least once after the emission round")
+                        .allMatch(r -> r.callbacks() >= 1));
 
         closeAll(recorders);
         assertEveryPipReachedZeroBackings();
@@ -134,7 +133,7 @@ class PolicyInformationPointAttributeBrokerStressTests {
 
         // Run the chaos storm for a fixed wall-clock window. The number of emissions
         // that fit inside this window is platform-dependent and irrelevant to the
-        // contract; what the test verifies is (a) no deadlock under heavy concurrent
+        // contract. What the test verifies is (a) no deadlock under heavy concurrent
         // dispatch, (b) graceful drain when the emitters are signalled to stop, and
         // (c) the deterministic coverage round below reaches every consumer.
         val emitters = runEmittersFor(EMITTER_THREADS, CHURN_DURATION);
@@ -147,11 +146,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
         // fires at least once.
         emitOneRoundFromEveryPipAttribute();
 
-        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> {
-            long fired = recorders.stream().mapToLong(Recorder::callbacks).sum();
-            assertThat(fired).as("every consumer should have fired at least once")
-                    .isGreaterThanOrEqualTo(CONSUMERS_LARGE);
-        });
+        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> assertThat(recorders)
+                .as("every consumer should have fired at least once").allMatch(r -> r.callbacks() >= 1));
 
         closeAll(recorders);
     }
@@ -167,7 +163,10 @@ class PolicyInformationPointAttributeBrokerStressTests {
                 .untilAsserted(() -> assertThat(recorders.stream().mapToLong(Recorder::callbacks).sum())
                         .isGreaterThanOrEqualTo(CONSUMERS_BASELINE));
 
-        val firesBefore = recorders.stream().mapToLong(Recorder::callbacks).sum();
+        val firesBefore = new HashMap<Recorder, Long>();
+        for (val rec : recorders) {
+            firesBefore.put(rec, rec.callbacks());
+        }
 
         // Swap every PIP. Active invocations rebind to the new instance. Pair
         // old handle to fresh instance by namespace because broker.catalog()
@@ -187,11 +186,9 @@ class PolicyInformationPointAttributeBrokerStressTests {
         // Emit from the fresh fleet. Every consumer should fire again.
         emitOneRoundFromEveryPipAttribute();
 
-        Awaitility.await().atMost(TEST_BUDGET).untilAsserted(() -> {
-            long firesAfter = recorders.stream().mapToLong(Recorder::callbacks).sum();
-            assertThat(firesAfter - firesBefore).as("every consumer should fire again after the hot swap")
-                    .isGreaterThanOrEqualTo(CONSUMERS_BASELINE);
-        });
+        Awaitility.await().atMost(TEST_BUDGET)
+                .untilAsserted(() -> assertThat(recorders).as("every consumer should fire again after the hot swap")
+                        .allMatch(r -> r.callbacks() > firesBefore.get(r)));
 
         closeAll(recorders);
     }
@@ -261,7 +258,7 @@ class PolicyInformationPointAttributeBrokerStressTests {
 
         // Stress duration: drive the swapper for a fixed wall-clock window. The number
         // of swaps that fit inside this window is platform-dependent and irrelevant to
-        // the contract; what matters is that the swaps that did happen leave the
+        // the contract. What matters is that the swaps that did happen leave the
         // broker and every evicted PIP instance in a clean state (opens == closes).
         Thread.sleep(CHURN_DURATION.toMillis());
         stop.set(true);
@@ -387,8 +384,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
         // Stress duration: drive load/unload churn for a fixed wall-clock window.
         // The cycle count is platform-dependent. What the test pins is the final
         // correctness state: after unloading every PIP, all consumers must observe
-        // the repository sentinel for every dep; after reloading every PIP, all
-        // consumers must observe the PIP sentinel; no PIP instance leaks slots.
+        // the repository sentinel for every dep. After reloading every PIP, all
+        // consumers must observe the PIP sentinel. No PIP instance leaks slots.
         Thread.sleep(CHURN_DURATION.toMillis());
         stop.set(true);
         loader.join(TEST_BUDGET.toMillis());
@@ -473,7 +470,7 @@ class PolicyInformationPointAttributeBrokerStressTests {
             handles.add(broker.open("churn-" + i, initial, rec));
         }
 
-        // Drive churn by emitting; each consumer callback returns a freshly rotated dep
+        // Drive churn by emitting. Each consumer callback returns a freshly rotated dep
         // set,
         // forcing the broker to repeatedly diff and apply changes.
         for (int round = 0; round < 5; round++) {
@@ -653,8 +650,8 @@ class PolicyInformationPointAttributeBrokerStressTests {
     }
 
     private static AttributeFinderInvocation invocation(String fqn) {
-        return new AttributeFinderInvocation("default", fqn, List.of(), Duration.ofSeconds(10), Duration.ofSeconds(30),
-                Duration.ofMillis(50), 1L, false, EMPTY_CTX);
+        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(10),
+                Duration.ofSeconds(30), Duration.ofMillis(50), 1L, false, EMPTY_CTX);
     }
 
     // recorder types --------------------------------------------------------

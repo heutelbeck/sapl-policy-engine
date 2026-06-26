@@ -223,6 +223,24 @@ class YamlFunctionLibraryTests {
     }
 
     @Test
+    void whenErrorValueToYamlThenReturnsErrorWithoutThrowing() {
+        val errorValue = Value.error("a hostile attribute produced an error");
+
+        assertThatCode(() -> {
+            val result = YamlFunctionLibrary.valToYaml(errorValue);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }).doesNotThrowAnyException();
+    }
+
+    @Test
+    void whenUndefinedValueToYamlThenReturnsErrorWithoutThrowing() {
+        assertThatCode(() -> {
+            val result = YamlFunctionLibrary.valToYaml(Value.UNDEFINED);
+            assertThat(result).isInstanceOf(ErrorValue.class);
+        }).doesNotThrowAnyException();
+    }
+
+    @Test
     void whenYamlExceedsMaxInputThenError() {
         val result = YamlFunctionLibrary.yamlToVal(Value.of("a".repeat(1024 * 1024 + 1)));
 

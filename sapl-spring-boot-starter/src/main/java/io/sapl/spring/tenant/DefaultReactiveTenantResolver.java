@@ -17,7 +17,7 @@
  */
 package io.sapl.spring.tenant;
 
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import reactor.core.publisher.Mono;
 
@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
  * Default {@link ReactiveTenantResolver}: reads the tenant id from the Reactor
  * Context under
  * {@link #REACTOR_CONTEXT_PDP_ID_KEY}, falling back to
- * {@link ReactivePolicyDecisionPoint#DEFAULT_PDP_ID} if no value
+ * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID} if no value
  * is present. The Reactor Context is typically populated by
  * {@link io.sapl.spring.config.PdpIdWebFilter} once per
  * request.
@@ -42,6 +42,6 @@ public final class DefaultReactiveTenantResolver implements ReactiveTenantResolv
     @Override
     public Mono<String> resolve() {
         return Mono.deferContextual(ctx -> Mono
-                .just(ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID)));
+                .just(ctx.getOrDefault(REACTOR_CONTEXT_PDP_ID_KEY, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)));
     }
 }

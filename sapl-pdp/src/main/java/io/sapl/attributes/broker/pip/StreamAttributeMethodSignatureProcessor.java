@@ -249,13 +249,13 @@ public class StreamAttributeMethodSignatureProcessor {
             } catch (Throwable t) {
                 // Checked exceptions are unusual via MethodHandle.invokeWithArguments
                 // but the JLS allows them. Treat as an inline error rather than a
-                // retry candidate; the typical source is a misdeclared throws clause
+                // retry candidate. The typical source is a misdeclared throws clause
                 // on the PIP method, which is deterministic and would just exhaust
                 // retries.
                 return Streams.just(Value.error(
                         ERROR_ATTRIBUTE_EXECUTION_TEMPLATE.formatted(invocation.attributeName(), t.getMessage())));
             }
-            if (!returnsStream && result == null) {
+            if (result == null) {
                 return Streams.just(Value.error(ERROR_ATTRIBUTE_RETURNED_NULL.formatted(invocation.attributeName())));
             }
             return convertResultToStream(result, returnsStream);

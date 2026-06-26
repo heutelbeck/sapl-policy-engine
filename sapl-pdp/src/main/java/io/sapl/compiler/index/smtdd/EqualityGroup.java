@@ -99,12 +99,15 @@ public class EqualityGroup {
             if (excludedHere != null) {
                 members.andNot(excludedHere);
             }
-            if (!members.isEmpty()) {
+            // An exclusion-key value must own a branch even when empty, so the operand
+            // routes there instead of falling through to default where its != formula
+            // would wrongly count as matching.
+            if (!members.isEmpty() || excludeInBucket.containsKey(value)) {
                 branchFormulas.put(value, members);
             }
         }
 
-        // Default branch: only equality-unconstrained formulas can match; their
+        // Default branch: only equality-unconstrained formulas can match. Their
         // exclusions are trivially satisfied by a value that is no named constant.
         val defaultFormulas = (BitSet) equalityUnconstrained.clone();
 

@@ -23,12 +23,16 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.core.JacksonException;
+import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("Secrets handling in authorization subscriptions")
 class AuthorizationSubscriptionSecretsTests {
@@ -136,6 +140,22 @@ class AuthorizationSubscriptionSecretsTests {
     }
 
     @Nested
+    @DisplayName("Default mapper used by of(...) factories")
+    class DefaultMapperContract {
+
+        @Test
+        @DisplayName("no-mapper of(...) marshals identically to an explicit bare JsonMapper")
+        void whenNoMapperGiven_thenMarshalsLikeBareDefaultJsonMapper() {
+            val bareMapper     = JsonMapper.builder().build();
+            val payload        = Map.of("k", "v");
+            val withoutMapper  = AuthorizationSubscription.of("user", "read", payload);
+            val withBareMapper = AuthorizationSubscription.of("user", "read", payload, bareMapper);
+
+            assertThat(withoutMapper).isEqualTo(withBareMapper);
+        }
+    }
+
+    @Nested
     @DisplayName("Jackson serialization of secrets")
     class JacksonSecretsSerialization {
 
@@ -194,6 +214,25 @@ class AuthorizationSubscriptionSecretsTests {
             val subscription = MAPPER.readValue(json, AuthorizationSubscription.class);
 
             assertThat(subscription.secrets()).isEqualTo(Value.EMPTY_OBJECT);
+        }
+
+        @ParameterizedTest(name = "secrets={0}")
+        @DisplayName("rejects a non-object secrets field instead of silently dropping it")
+        @ValueSource(strings = { "\"x\"", "[1,2]", "42", "true", "null" })
+        void whenSecretsNotObject_thenReportsInputMismatch(String secretsValue) {
+            val json = """
+                    {"subject":"user","action":"read","resource":"data","secrets":%s}""".formatted(secretsValue);
+
+            assertThatThrownBy(() -> MAPPER.readValue(json, AuthorizationSubscription.class))
+                    .isInstanceOf(MismatchedInputException.class).hasMessageContaining("secrets");
+        }
+
+        @Test
+        @DisplayName("of(...) rejects a non-object secrets argument instead of silently dropping it")
+        void whenOfWithNonObjectSecrets_thenRejected() {
+            assertThatThrownBy(
+                    () -> AuthorizationSubscription.of("user", "read", "data", null, "not-an-object", MAPPER))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("secrets");
         }
     }
 }

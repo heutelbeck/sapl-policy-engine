@@ -218,6 +218,24 @@ class TomlFunctionLibraryTests {
     }
 
     @Test
+    void whenErrorValueToTomlThenReturnsErrorInsteadOfThrowing() {
+        val errorInput = Value.error("upstream computation failed");
+
+        val result = TomlFunctionLibrary.valToToml(errorInput);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).startsWith("Failed to convert value to TOML:");
+    }
+
+    @Test
+    void whenUndefinedValueToTomlThenReturnsErrorInsteadOfThrowing() {
+        val result = TomlFunctionLibrary.valToToml(Value.UNDEFINED);
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).startsWith("Failed to convert value to TOML:");
+    }
+
+    @Test
     void whenTomlExceedsMaxInputThenError() {
         val result = TomlFunctionLibrary.tomlToVal(Value.of("a".repeat(1024 * 1024 + 1)));
 

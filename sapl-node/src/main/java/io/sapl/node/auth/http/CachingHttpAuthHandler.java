@@ -30,6 +30,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtDecoderInitializationException;
 import org.springframework.security.oauth2.jwt.JwtException;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -64,6 +65,9 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
     private static final String ERROR_BAD_CREDENTIALS = "Authentication failed.";
     private static final String ERROR_NO_CREDENTIALS  = "Authentication is required.";
 
+    private static final String WARN_JWT_NO_EXPIRY_ACCEPTED = "Accepting a JWT without an 'exp' claim because io.sapl.node.oauth.allow-jwt-without-expiry=true. This grants non-expiring access to the PDP.";
+    private static final String WARN_JWT_NO_EXPIRY_REJECTED = "Rejected a JWT without an 'exp' claim. It would grant non-expiring access; set io.sapl.node.oauth.allow-jwt-without-expiry=true to accept (insecure).";
+
     private final SaplNodeProperties     properties;
     private final UserLookupService      userLookupService;
     private final @Nullable JwtDecoder   jwtDecoder;
@@ -82,7 +86,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         this.properties        = properties;
         this.userLookupService = userLookupService;
         this.jwtDecoder        = jwtDecoder;
-        this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId());
+        this.defaultPdpResult  = new HttpAuthResult(properties.getDefaultPdpId(), null);
         this.cache             = Caffeine.newBuilder().maximumSize(maxSize)
                 .expireAfter(new TtlExpiry(positiveTtl, negativeTtl)).build();
     }
@@ -136,7 +140,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
-        return new HttpAuthResult(userOpt.get().getPdpId());
+        return new HttpAuthResult(userOpt.get().getPdpId(), null);
     }
 
     private HttpAuthResult verifyBasic(String credentials) {
@@ -157,7 +161,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         if (userOpt.isEmpty()) {
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
         }
-        return new HttpAuthResult(userOpt.get().getPdpId());
+        return new HttpAuthResult(userOpt.get().getPdpId(), null);
     }
 
     private Outcome.Success verifyJwt(String token) {
@@ -167,19 +171,29 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
         Jwt jwt;
         try {
             jwt = jwtDecoder.decode(token);
-        } catch (JwtException e) {
+        } catch (JwtException | JwtDecoderInitializationException e) {
+            // JwtDecoderInitializationException (a RuntimeException, not a
+            // JwtException) is thrown when the issuer is unreachable at decode time.
+            // Fail closed rather than letting it escape as a 500.
             throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS, e);
         }
         val pdpIdClaim = properties.getOauth().getPdpIdClaim();
         val pdpIdValue = jwt.getClaimAsString(pdpIdClaim);
         val expiresAt  = jwt.getExpiresAt();
+        if (expiresAt == null) {
+            if (!properties.getOauth().isAllowJwtWithoutExpiry()) {
+                log.warn(WARN_JWT_NO_EXPIRY_REJECTED);
+                throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
+            }
+            log.warn(WARN_JWT_NO_EXPIRY_ACCEPTED);
+        }
         if (pdpIdValue == null || pdpIdValue.isBlank()) {
             if (properties.isRejectOnMissingPdpId()) {
                 throw new HttpAuthenticationException(ERROR_BAD_CREDENTIALS);
             }
-            return new Outcome.Success(new HttpAuthResult(properties.getDefaultPdpId()), expiresAt);
+            return new Outcome.Success(new HttpAuthResult(properties.getDefaultPdpId(), expiresAt), expiresAt);
         }
-        return new Outcome.Success(new HttpAuthResult(pdpIdValue), expiresAt);
+        return new Outcome.Success(new HttpAuthResult(pdpIdValue, expiresAt), expiresAt);
     }
 
     private static String sha256(String header) {
@@ -196,7 +210,7 @@ public final class CachingHttpAuthHandler implements HttpAuthHandler {
      * cases lets the {@link Expiry} policy give them different TTLs.
      * <p>
      * A successful JWT verification carries the token's {@code exp} claim so
-     * the cache can evict the entry no later than the token expires; other
+     * the cache can evict the entry no later than the token expires. Other
      * credentials carry {@code null} and fall back to {@code positiveTtl}.
      */
     sealed interface Outcome {

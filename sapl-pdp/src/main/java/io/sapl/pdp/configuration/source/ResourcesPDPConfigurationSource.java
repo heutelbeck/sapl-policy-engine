@@ -19,6 +19,7 @@ package io.sapl.pdp.configuration.source;
 
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.Resource;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.pdp.configuration.PDPConfiguration;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
@@ -202,7 +203,7 @@ public final class ResourcesPDPConfigurationSource implements PDPConfigurationSo
 
         val sourcePath    = "/" + normalizedPath;
         val defaultConfig = PDPConfigurationLoader.loadFromContent(data.rootPdpJson(), data.rootSaplFiles(),
-                PdpIdValidator.DEFAULT_PDP_ID, sourcePath);
+                StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, sourcePath);
         emit(defaultConfig);
         log.debug("Loaded default PDP configuration with {} SAPL documents.", data.rootSaplFiles().size());
         return 1;

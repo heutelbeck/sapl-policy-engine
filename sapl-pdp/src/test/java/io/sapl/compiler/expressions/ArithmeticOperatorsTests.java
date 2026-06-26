@@ -179,4 +179,44 @@ class ArithmeticOperatorsTests {
         assertThat(result).isInstanceOfSatisfying(NumberValue.class,
                 n -> assertThat(n.value().precision()).isEqualTo(34));
     }
+
+    // Operand with thousands of significant digits.
+    private static final Value EXCESSIVE_PRECISION = Value.of(new BigDecimal(new BigInteger("9".repeat(5000))));
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenExcessivePrecisionOperandThenReturnsErrorNotResult(String description,
+            BiFunction<Value, Value, Value> op) {
+        assertThat(op.apply(EXCESSIVE_PRECISION, Value.of(2))).isInstanceOfSatisfying(ErrorValue.class,
+                e -> assertThat(e.message()).contains("range"));
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenExcessivePrecisionOperandThenReturnsErrorNotResult() {
+        return Stream.of(
+            arguments("add rejects excessive precision", ADD),
+            arguments("subtract rejects excessive precision", SUB),
+            arguments("multiply rejects excessive precision", MUL),
+            arguments("divide rejects excessive precision", DIV),
+            arguments("modulo rejects excessive precision", MOD));
+    }
+    // @formatter:on
+
+    @MethodSource
+    @ParameterizedTest(name = "{0}")
+    void whenBoundedArithmeticThenResultPrecisionIsBounded(String description, BiFunction<Value, Value, Value> op,
+            Value a, Value b) {
+        assertThat(op.apply(a, b)).isInstanceOfSatisfying(NumberValue.class,
+                n -> assertThat(n.value().precision()).isLessThanOrEqualTo(34));
+    }
+
+    // @formatter:off
+    private static Stream<Arguments> whenBoundedArithmeticThenResultPrecisionIsBounded() {
+        val wide = Value.of(new BigDecimal(new BigInteger("9".repeat(40))));
+        return Stream.of(
+            arguments("add bounds result precision", ADD, wide, wide),
+            arguments("subtract bounds result precision", SUB, wide, Value.of(1)),
+            arguments("multiply bounds result precision", MUL, wide, wide));
+    }
+    // @formatter:on
 }

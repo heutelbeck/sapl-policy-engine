@@ -17,7 +17,7 @@
  */
 package io.sapl.node.auth;
 
-import static io.sapl.node.SaplNodeProperties.DEFAULT_PDP_ID;
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 
 import io.sapl.api.SaplVersion;
 

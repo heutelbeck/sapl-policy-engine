@@ -335,7 +335,7 @@ All evaluation commands accept `--remote` to connect to a running SAPL Node inst
 | `--host` | `localhost` |
 | `--port` | `7000` |
 
-Use `--insecure` to skip TLS certificate verification during development. Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_2_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
+Sending credentials over a plaintext connection (an `http://` URL, or RSocket without `--rsocket-tls`) is refused by default. Use `--insecure` to accept that risk during development; it also skips TLS certificate verification. Flags take precedence over environment variables. For evaluation command details (`decide`, `decide-once`, `check`), see [Getting Started](../1_2_GettingStarted/). For `test`, see [Testing SAPL Policies](../5_0_TestingSAPLPolicies/).
 
 #### Bundle and Credential Commands
 

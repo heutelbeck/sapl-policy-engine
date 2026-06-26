@@ -87,7 +87,7 @@ public class SubtemplateCompiler {
     private CompiledExpression compileValueParent(Value parent, CompiledExpression template, SourceLocation loc,
             CompilationContext ctx) {
         return switch (template) {
-        case Value tv               -> applyTemplateToValue(parent, tv);
+        case Value tv               -> applyConstantTemplate(parent, tv);
         case PureOperator tp        -> {
             if (!tp.isDependingOnSubscription()) {
                 // Constant fold: template only uses @ and #, can evaluate at compile time
@@ -115,22 +115,6 @@ public class SubtemplateCompiler {
         case PureOperator tp        -> new SubtemplateStreamPure(parent, tp, loc);
         case StreamOperator ignored -> throw new IllegalStateException(ERROR_HANDLED_ABOVE);
         };
-    }
-
-    private static Value applyTemplateToValue(Value parent, Value template) {
-        // Template is a constant value - ignore parent, return template (or map over
-        // array)
-        if (parent instanceof ArrayValue arr) {
-            if (arr.isEmpty()) {
-                return arr;
-            }
-            val builder = ArrayValue.builder();
-            for (int i = 0; i < arr.size(); i++) {
-                builder.add(template);
-            }
-            return builder.build();
-        }
-        return template;
     }
 
     private static CompiledExpression applyTemplateToValueAtCompileTime(Value parent, PureOperator template,

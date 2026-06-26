@@ -27,6 +27,7 @@ import java.util.regex.PatternSyntaxException;
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import io.sapl.test.grammar.antlr.SAPLTestParser.CountedAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.MultipleAmountContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.RequirementContext;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
@@ -41,11 +42,15 @@ import io.sapl.test.grammar.antlr.SAPLTestParserBaseListener;
  */
 public class SAPLTestValidator {
 
-    public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Amount needs to be a natural number larger than 1.";
+    public static final String MSG_INVALID_MULTIPLE_AMOUNT                 = "Repetition amount needs to be a natural number larger than 0.";
     public static final String MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX = "The given regex has an invalid format.";
     public static final String MSG_INVALID_STRING_WITH_LENGTH              = "String length needs to be a natural number larger than 0.";
     public static final String MSG_DUPLICATE_REQUIREMENT_NAME              = "Requirement name must be unique.";
     public static final String MSG_DUPLICATE_SCENARIO_NAME                 = "Scenario name must be unique within a requirement.";
+
+    // Pattern.compile of a very long literal is super-linear and runs on the
+    // per-keystroke LSP validation thread, so reject over-long regexes first.
+    private static final int MAX_REGEX_LENGTH = 1000;
 
     /**
      * Validates a SAPLTest document parse tree.
@@ -72,6 +77,9 @@ public class SAPLTestValidator {
     private void validateUniqueRequirementNames(SaplTestContext saplTest, Consumer<ValidationError> errorConsumer) {
         var names = new HashSet<String>();
         for (var requirement : saplTest.requirement()) {
+            if (requirement.name == null) {
+                continue;
+            }
             var name = unquote(requirement.name.getText());
             if (!names.add(name)) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_DUPLICATE_REQUIREMENT_NAME, requirement.name));
@@ -112,6 +120,9 @@ public class SAPLTestValidator {
     private void validateUniqueScenarioNames(RequirementContext requirement, Consumer<ValidationError> errorConsumer) {
         var names = new HashSet<String>();
         for (var scenario : requirement.scenario()) {
+            if (scenario.name == null) {
+                continue;
+            }
             var name = unquote(scenario.name.getText());
             if (!names.add(name)) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_DUPLICATE_SCENARIO_NAME, scenario.name));
@@ -124,9 +135,15 @@ public class SAPLTestValidator {
     }
 
     private void validateMultipleAmount(MultipleAmountContext context, Consumer<ValidationError> errorConsumer) {
+        // Verification counts allow zero (never invoked) and one. Only stream
+        // repetition requires at least one decision, so the bound only applies
+        // outside a verification amount.
+        if (context.getParent() instanceof CountedAmountContext || context.amount == null) {
+            return;
+        }
         try {
             var amount = new BigDecimal(context.amount.getText()).intValueExact();
-            if (amount < 2) {
+            if (amount < 1) {
                 errorConsumer.accept(ValidationError.fromToken(MSG_INVALID_MULTIPLE_AMOUNT, context.amount));
             }
         } catch (ArithmeticException | NumberFormatException e) {
@@ -136,6 +153,10 @@ public class SAPLTestValidator {
 
     private void validateRegex(StringMatchesRegexContext context, Consumer<ValidationError> errorConsumer) {
         var regex = unquote(context.regex.getText());
+        if (regex.length() > MAX_REGEX_LENGTH) {
+            errorConsumer.accept(ValidationError.fromToken(MSG_STRING_MATCHES_REGEX_WITH_INVALID_REGEX, context.regex));
+            return;
+        }
         try {
             Pattern.compile(regex);
         } catch (PatternSyntaxException e) {
@@ -144,6 +165,9 @@ public class SAPLTestValidator {
     }
 
     private void validateStringLength(StringWithLengthContext context, Consumer<ValidationError> errorConsumer) {
+        if (context.length == null) {
+            return;
+        }
         try {
             var length = new BigDecimal(context.length.getText()).intValueExact();
             if (length < 1) {
@@ -156,9 +180,56 @@ public class SAPLTestValidator {
 
     private String unquote(String text) {
         if (text != null && text.length() >= 2 && text.startsWith("\"") && text.endsWith("\"")) {
-            return text.substring(1, text.length() - 1);
+            return unescape(text.substring(1, text.length() - 1));
         }
         return text;
+    }
+
+    private String unescape(String text) {
+        if (!text.contains("\\")) {
+            return text;
+        }
+        var result = new StringBuilder(text.length());
+        int i      = 0;
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            if (c != '\\' || i + 1 >= text.length()) {
+                result.append(c);
+                i++;
+                continue;
+            }
+            int  nextIndex    = i + 1;
+            char next         = text.charAt(nextIndex);
+            int  consumedUpTo = nextIndex;
+            switch (next) {
+            case 'n'  -> result.append('\n');
+            case 'r'  -> result.append('\r');
+            case 't'  -> result.append('\t');
+            case 'b'  -> result.append('\b');
+            case 'f'  -> result.append('\f');
+            case '\\' -> result.append('\\');
+            case '"'  -> result.append('"');
+            case '\'' -> result.append('\'');
+            case '/'  -> result.append('/');
+            case 'u'  -> consumedUpTo = appendUnicode(text, nextIndex, result);
+            default   -> result.append('\\').append(next);
+            }
+            i = consumedUpTo + 1;
+        }
+        return result.toString();
+    }
+
+    private int appendUnicode(String text, int uIndex, StringBuilder result) {
+        if (uIndex + 4 < text.length()) {
+            try {
+                result.append((char) Integer.parseInt(text.substring(uIndex + 1, uIndex + 5), 16));
+                return uIndex + 4;
+            } catch (NumberFormatException e) {
+                // Fall through to treat the sequence as literal characters.
+            }
+        }
+        result.append('\\').append('u');
+        return uIndex;
     }
 
 }

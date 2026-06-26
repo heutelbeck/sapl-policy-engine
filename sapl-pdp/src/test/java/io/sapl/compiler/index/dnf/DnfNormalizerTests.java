@@ -22,8 +22,10 @@ import io.sapl.api.model.BooleanExpression.And;
 import io.sapl.api.model.BooleanExpression.Constant;
 import io.sapl.api.model.BooleanExpression.Not;
 import io.sapl.api.model.BooleanExpression.Or;
+import io.sapl.compiler.index.IndexSizeLimitExceededException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -34,6 +36,7 @@ import java.util.stream.Stream;
 import static io.sapl.compiler.index.IndexTestFixtures.*;
 import static io.sapl.compiler.index.dnf.DnfNormalizer.normalize;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("DnfNormalizer")
@@ -149,6 +152,28 @@ class DnfNormalizerTests {
                             new Or(new And(atom(1L), new Not(atom(1L))), atom(2L)), 1),
                     arguments("(p1 OR p2) AND (p3 OR p4) produces 4 independent clauses",
                             new And(new Or(atom(1L), atom(2L)), new Or(atom(3L), atom(4L))), 4));
+        }
+    }
+
+    @Nested
+    @DisplayName("bounds the intermediate clause count")
+    class ClauseBoundTests {
+
+        @Test
+        @DisplayName("a conjunction of N disjunctions aborts via IndexSizeLimitExceededException instead of materializing 2^N clauses")
+        void whenAndOfOrsExceedsClauseLimitThenThrows() {
+            final BooleanExpression andOfOrs = andOfOrs(20);
+
+            assertThatExceptionOfType(IndexSizeLimitExceededException.class)
+                    .isThrownBy(() -> normalize(andOfOrs, 10_000));
+        }
+
+        @Test
+        @DisplayName("a conjunction whose DNF stays within the limit normalizes normally")
+        void whenAndOfOrsWithinLimitThenNormalizes() {
+            final BooleanExpression andOfOrs = andOfOrs(3);
+
+            assertThat(normalize(andOfOrs, 10_000).clauses()).hasSize(8);
         }
     }
 

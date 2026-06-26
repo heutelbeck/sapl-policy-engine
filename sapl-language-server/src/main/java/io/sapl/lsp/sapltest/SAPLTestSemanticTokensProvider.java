@@ -45,8 +45,7 @@ public class SAPLTestSemanticTokensProvider {
         for (var token : tokens) {
             var tokenType = mapTokenType(token);
             if (tokenType >= 0) {
-                semanticInfos.add(new SemanticTokenInfo(token.getLine() - 1, // Convert to 0-based
-                        token.getCharPositionInLine(), token.getText().length(), tokenType, 0));
+                addTokenInfos(semanticInfos, token, tokenType);
             }
         }
 
@@ -57,6 +56,44 @@ public class SAPLTestSemanticTokensProvider {
         // Encode as LSP semantic tokens data array
         var data = encodeTokens(semanticInfos);
         return new SemanticTokens(data);
+    }
+
+    /**
+     * Adds one or more semantic token infos for an ANTLR token. The LSP
+     * semantic-tokens protocol requires every token to be contained on a single
+     * line, so a token whose text spans multiple lines (block comment or string
+     * literal containing line breaks) is split into one info per source line.
+     *
+     * @param semanticInfos the accumulator to add the infos to
+     * @param token the ANTLR token
+     * @param tokenType the semantic token type index
+     */
+    private void addTokenInfos(List<SemanticTokenInfo> semanticInfos, Token token, int tokenType) {
+        var startLine = token.getLine() - 1; // Convert to 0-based
+        var startCol  = token.getCharPositionInLine();
+        var text      = token.getText();
+
+        var lineStart = 0;
+        var line      = startLine;
+        for (var i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                var lineLength = (i > lineStart && text.charAt(i - 1) == '\r') ? i - lineStart - 1 : i - lineStart;
+                if (lineLength > 0 && line == startLine) {
+                    semanticInfos.add(new SemanticTokenInfo(line, startCol, lineLength, tokenType, 0));
+                } else if (lineLength > 0) {
+                    semanticInfos.add(new SemanticTokenInfo(line, 0, lineLength, tokenType, 0));
+                }
+                line++;
+                lineStart = i + 1;
+            }
+        }
+
+        var lastLineLength = text.length() - lineStart;
+        if (lastLineLength <= 0) {
+            return;
+        }
+        var column = line == startLine ? startCol : 0;
+        semanticInfos.add(new SemanticTokenInfo(line, column, lastLineLength, tokenType, 0));
     }
 
     /**
@@ -105,8 +142,8 @@ public class SAPLTestSemanticTokensProvider {
         // Mock and setup keywords
         case SAPLTestLexer.FUNCTION, SAPLTestLexer.ATTRIBUTE, SAPLTestLexer.MAPS, SAPLTestLexer.TO, SAPLTestLexer.EMITS,
                 SAPLTestLexer.STREAM, SAPLTestLexer.OF, SAPLTestLexer.IS, SAPLTestLexer.CALLED, SAPLTestLexer.ERROR,
-                SAPLTestLexer.ONCE,
-                SAPLTestLexer.TIMES                                                                                                                                                                                                                                   ->
+                SAPLTestLexer.ONCE, SAPLTestLexer.NEVER,
+                SAPLTestLexer.TIMES                                                                                                                                                                                                                                                        ->
             SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Document and configuration keywords
@@ -138,8 +175,8 @@ public class SAPLTestSemanticTokensProvider {
         case SAPLTestLexer.TRUE, SAPLTestLexer.FALSE, SAPLTestLexer.UNDEFINED -> SAPLTestSemanticTokenTypes.KEYWORD;
 
         // Literals
-        case SAPLTestLexer.NUMBER -> SAPLTestSemanticTokenTypes.NUMBER;
-        case SAPLTestLexer.STRING -> SAPLTestSemanticTokenTypes.STRING;
+        case SAPLTestLexer.NUMBER, SAPLTestLexer.INT -> SAPLTestSemanticTokenTypes.NUMBER;
+        case SAPLTestLexer.STRING                    -> SAPLTestSemanticTokenTypes.STRING;
 
         // Identifiers
         case SAPLTestLexer.ID -> SAPLTestSemanticTokenTypes.VARIABLE;

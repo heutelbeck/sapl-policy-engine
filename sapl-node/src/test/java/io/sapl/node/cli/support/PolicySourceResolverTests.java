@@ -26,10 +26,15 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import io.sapl.node.cli.options.BundleVerificationOptions;
@@ -163,6 +168,15 @@ class PolicySourceResolverTests {
     @DisplayName("auto-detection")
     class AutoDetectionTests {
 
+        private Path unreadableSaplHome;
+
+        @AfterEach
+        void restorePermissions() throws IOException {
+            if (unreadableSaplHome != null && Files.isDirectory(unreadableSaplHome)) {
+                Files.setPosixFilePermissions(unreadableSaplHome, PosixFilePermissions.fromString("rwx------"));
+            }
+        }
+
         @Test
         @DisplayName("non-existent sapl home returns null with error")
         void whenSaplHomeNotFoundThenReturnsNullWithError() {
@@ -225,6 +239,19 @@ class PolicySourceResolverTests {
             val result = PolicySourceResolver.resolve(null, null, saplHome, new PrintWriter(err));
             assertThat(result).isNull();
             assertThat(err.toString()).contains("No policies found");
+        }
+
+        @Test
+        @EnabledOnOs(OS.LINUX)
+        @DisplayName("existing sapl home whose contents cannot be listed reports a listing failure with cause, not a missing-directory error")
+        void whenSaplHomeListingFailsThenReportsListingFailureWithCause(@TempDir Path tempParent) throws IOException {
+            unreadableSaplHome = Files.createDirectory(tempParent.resolve("locked-sapl"),
+                    PosixFilePermissions.asFileAttribute(Set.of()));
+            val err    = new StringWriter();
+            val result = PolicySourceResolver.resolve(null, null, unreadableSaplHome, new PrintWriter(err));
+            assertThat(result).isNull();
+            assertThat(err.toString()).contains("Failed to list ~/.sapl/ directory contents")
+                    .doesNotContain("directory not found");
         }
 
         @Test

@@ -180,7 +180,7 @@ public final class Vote implements Voter, TracedDecision {
 
     /**
      * Converts this vote to a trace ObjectValue. Carries the vote's pure
-     * decision data; subscription/attribute trace lives in the trigger-
+     * decision data. Subscription/attribute trace lives in the trigger-
      * loop wrapper and is not part of {@code Vote.toTrace()}. The result
      * is cached after the first call.
      */

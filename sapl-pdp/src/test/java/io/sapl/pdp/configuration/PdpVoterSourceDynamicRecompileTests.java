@@ -17,6 +17,8 @@
  */
 package io.sapl.pdp.configuration;
 
+import io.sapl.api.functions.FunctionBroker;
+import io.sapl.api.functions.FunctionInvocation;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationSubscription;
 import io.sapl.api.pdp.DecisionInterceptor;
@@ -38,7 +40,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,6 +68,43 @@ class PdpVoterSourceDynamicRecompileTests {
     private static PDPConfiguration policyConfig(String configId) {
         return new PDPConfiguration(PDP_ID, configId, CombiningAlgorithm.DEFAULT, List.of("policy \"p\" permit"),
                 EMPTY);
+    }
+
+    private static PDPConfiguration brokenConfig() {
+        return new PDPConfiguration(PDP_ID, "config-broken", CombiningAlgorithm.DEFAULT,
+                List.of("this is not valid sapl"), EMPTY);
+    }
+
+    /**
+     * A policy whose compilation constant-folds a function call, so the compiler
+     * invokes the plugins' function broker at compile time.
+     */
+    private static PDPConfiguration configFoldingFunction(String configId) {
+        return new PDPConfiguration(PDP_ID, configId, CombiningAlgorithm.DEFAULT,
+                List.of("policy \"p\" permit\nstandard.length(\"abc\") == 3;"), EMPTY);
+    }
+
+    /**
+     * A contract-violating function broker that throws instead of returning
+     * ErrorValue.
+     */
+    private static FunctionBroker throwingFunctionBroker() {
+        return new FunctionBroker() {
+            @Override
+            public void load(Object libraryInstance) {
+                // no-op
+            }
+
+            @Override
+            public Value evaluateFunction(FunctionInvocation invocation) {
+                throw new IllegalStateException("plugin function broker boom");
+            }
+
+            @Override
+            public List<Class<?>> getRegisteredLibraries() {
+                return List.of();
+            }
+        };
     }
 
     @Test
@@ -101,6 +142,71 @@ class PdpVoterSourceDynamicRecompileTests {
             voterSource.subscribeToUpdates(PDP_ID, received::add);
 
             assertThat(received).singleElement().isEqualTo(new PdpUpdateEvent.Voter(PDP_ID, current));
+        }
+    }
+
+    @Test
+    @DisplayName("a configuration removal then re-load keeps the live listener, the PDP never closes a subscription")
+    void whenConfigurationRemovedThenReloadedThenTheSameListenerIsNotifiedAgain() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+
+            val received = new ArrayList<PdpUpdateEvent>();
+            voterSource.subscribeToUpdates(PDP_ID, received::add);
+            voterSource.removeConfigurationForPdp(PDP_ID);
+            voterSource.loadConfiguration(policyConfig("config-B"), false);
+
+            // The PDP never closes a client subscription server-side.
+            // Removal emits Removed and the consumer sees INDETERMINATE.
+            // A later load re-notifies the same still-registered listener,
+            // with no eviction and no client re-subscribe.
+            assertThat(received).hasAtLeastOneElementOfType(PdpUpdateEvent.Removed.class).last()
+                    .isInstanceOf(PdpUpdateEvent.Voter.class);
+        }
+    }
+
+    @Test
+    @DisplayName("the last subscriber leaving prunes the pdpId listener entry so transient pdpIds do not leak")
+    void whenLastListenerUnsubscribesThenTheListenerMapEntryIsPruned() throws Exception {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            final Consumer<PdpUpdateEvent> listener = event -> {};
+            voterSource.subscribeToUpdates(PDP_ID, listener);
+            assertThat(listenerEntryPresent(voterSource, PDP_ID)).isTrue();
+
+            voterSource.unsubscribeFromUpdates(PDP_ID, listener);
+
+            assertThat(listenerEntryPresent(voterSource, PDP_ID)).isFalse();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean listenerEntryPresent(PdpVoterSource source, String pdpId) throws Exception {
+        val field = PdpVoterSource.class.getDeclaredField("updateListeners");
+        field.setAccessible(true);
+        return ((Map<String, ?>) field.get(source)).containsKey(pdpId);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static int configCacheSize(PdpVoterSource source) throws Exception {
+        val field = PdpVoterSource.class.getDeclaredField("configCache");
+        field.setAccessible(true);
+        return ((Map<String, ?>) field.get(source)).size();
+    }
+
+    @Test
+    @DisplayName("reading the configuration for an unknown pdpId does not create a cache entry")
+    void whenReadingUnknownPdpIdThenNoCacheEntryCreated() throws Exception {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            assertThat(voterSource.getCurrentConfiguration("never-loaded-1")).isEmpty();
+            assertThat(voterSource.getCurrentConfiguration("never-loaded-2")).isEmpty();
+
+            // A read for an unknown pdpId must not grow the cache. Otherwise configCache
+            // leaks one entry per distinct pdpId ever read over the PDP's lifetime.
+            assertThat(configCacheSize(voterSource)).isZero();
         }
     }
 
@@ -209,6 +315,114 @@ class PdpVoterSourceDynamicRecompileTests {
             pluginsSource.publish(new PluginsBundle(brokerWithStandard(), List.of(), List.of(listener)));
 
             assertThat(voterSource.getPlugins().lifecycleListeners()).containsExactly(listener);
+        }
+    }
+
+    @Test
+    @DisplayName("a plugins swap while STALE fails closed to ERROR and drops the voter bound to the retired bundle")
+    void whenPluginsSwapWhileStaleThenFailsClosedToErrorAndOldVoterDropped() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            // LOADED against the first bundle.
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+            // A broken config update with keepOld leaves the pdpId STALE, still serving the
+            // last-good voter, which is bound to the first bundle's broker.
+            voterSource.loadConfiguration(brokenConfig(), true);
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
+
+            // A plugins swap recompiles the retained (still broken) config. Keeping the old
+            // voter would serve one bound to the retired bundle, so it must fail closed.
+            pluginsSource.publish(pluginsOf(brokerWithStandard()));
+
+            // ERROR with the error-voter status shape (no configurationId, zero documents),
+            // pinning that this is a fail-closed error voter, not a
+            // STALE-reported-as-ERROR.
+            assertThat(voterSource.getPdpStatus(PDP_ID)).hasValueSatisfying(s -> {
+                assertThat(s.state()).isEqualTo(PdpState.ERROR);
+                assertThat(s.configurationId()).isNull();
+                assertThat(s.documentCount()).isZero();
+            });
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(after -> assertThat(after).isNotSameAs(lastGood));
+        }
+    }
+
+    @Test
+    @DisplayName("a plugins swap whose broker throws during compile fails closed, not stranding the retired-bundle voter")
+    void whenPluginsSwapBrokerThrowsDuringCompileThenFailsClosed() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(configFoldingFunction(CONFIG_A), false);
+            val lastGood = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.LOADED));
+
+            // The swapped-in bundle's broker throws (non-SaplCompilerException) during the
+            // compile-time fold. A voter bound to the retired bundle must not keep serving.
+            pluginsSource.publish(new PluginsBundle(throwingFunctionBroker(), List.of(), List.of()));
+
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(after -> assertThat(after).isNotSameAs(lastGood));
+        }
+    }
+
+    @Test
+    @DisplayName("a deferred broken config compiles to ERROR on first plugins arrival, regardless of keepOld (no last-good to retain)")
+    void whenDeferredBrokenConfigThenFirstSnapshotErrors() {
+        val pluginsSource = new MutablePluginsSource();
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            // keepOld=true, but deferred because no plugins have arrived yet.
+            voterSource.loadConfiguration(brokenConfig(), true);
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.AWAITING_PLUGINS));
+
+            // First snapshot recompiles under FAIL_CLOSED. With no last-good voter it
+            // errors.
+            pluginsSource.publish(pluginsOf(brokerWithStandard()));
+
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.ERROR));
+        }
+    }
+
+    @Test
+    @DisplayName("a config-update compile failure with keepOld still goes STALE and keeps serving the last-good voter")
+    void whenConfigUpdateFailsWithKeepOldThenStaleKeepsServingLastGoodVoter() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            val good = voterSource.getCurrentConfiguration(PDP_ID).orElseThrow();
+
+            voterSource.loadConfiguration(brokenConfig(), true);
+
+            assertThat(voterSource.getPdpStatus(PDP_ID))
+                    .hasValueSatisfying(s -> assertThat(s.state()).isEqualTo(PdpState.STALE));
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(after -> assertThat(after).isSameAs(good));
+        }
+    }
+
+    @Test
+    @DisplayName("a plugins push migrates every retained pdpId to the new bundle, not just the first")
+    void whenPluginsPushedThenAllRetainedPdpIdsMigrateToNewBundle() {
+        val pluginsSource = new MutablePluginsSource(pluginsOf(brokerWithStandard()));
+        try (val voterSource = new PdpVoterSource(pluginsSource, CLOCK)) {
+            voterSource.loadConfiguration(policyConfig(CONFIG_A), false);
+            voterSource.loadConfiguration(new PDPConfiguration("pdp-2", "config-2", CombiningAlgorithm.DEFAULT,
+                    List.of("policy \"p\" permit"), EMPTY), false);
+
+            val newBroker = brokerWithStandard();
+            pluginsSource.publish(pluginsOf(newBroker));
+
+            assertThat(voterSource.getCurrentConfiguration(PDP_ID))
+                    .hasValueSatisfying(v -> assertThat(v.plugins().functionBroker()).isSameAs(newBroker));
+            assertThat(voterSource.getCurrentConfiguration("pdp-2"))
+                    .hasValueSatisfying(v -> assertThat(v.plugins().functionBroker()).isSameAs(newBroker));
         }
     }
 
