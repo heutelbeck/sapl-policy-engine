@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -79,7 +80,7 @@ class ReactiveSaplAuthorizationManagerTests {
 
     private ReactiveSaplAuthorizationManager managerWith(ConstraintHandlerProvider... providers) {
         val planner = new EnforcementPlanner(List.of(providers), MAPPER);
-        return new ReactiveSaplAuthorizationManager(pdp, () -> Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID),
+        return new ReactiveSaplAuthorizationManager(pdp, () -> Mono.just(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID),
                 planner, new DefaultReactiveAuthorizationSubscriptionFactory(MAPPER));
     }
 

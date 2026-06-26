@@ -42,6 +42,7 @@ import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.pep.constraints.EnforcementPlanner;
 import io.sapl.spring.serialization.SaplReactiveJacksonModule;
@@ -141,7 +142,7 @@ class ReactiveAuthorizationSubscriptionFactoryOverrideTests {
     private AuthorizationSubscription subscribeAndCapture(ReactiveAuthorizationSubscriptionFactory factory) {
         val planner  = new EnforcementPlanner(java.util.List.of(), MAPPER);
         val manager  = new ReactiveSaplAuthorizationManager(pdp,
-                () -> reactor.core.publisher.Mono.just(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID), planner, factory);
+                () -> reactor.core.publisher.Mono.just(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID), planner, factory);
         val request  = MockServerHttpRequest.get("/orders/42").build();
         val exchange = MockServerWebExchange.from(request);
         val auth     = (Authentication) new UsernamePasswordAuthenticationToken("alice", "pw",

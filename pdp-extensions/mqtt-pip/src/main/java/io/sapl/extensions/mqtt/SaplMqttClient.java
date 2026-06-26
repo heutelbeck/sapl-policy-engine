@@ -254,10 +254,16 @@ public class SaplMqttClient implements Closeable {
             int maxPayloadBytes,
             Set<MqttTopicFilter> subscribedFilters) {}
 
-    private static void connectAndSubscribe(SubscriptionContext ctx, boolean owner, AtomicBoolean firstMessage,
+    static void connectAndSubscribe(SubscriptionContext ctx, boolean owner, AtomicBoolean firstMessage,
             Consumer<Value> emit, Runnable complete, Runnable onFailure) {
         try {
             establishConnection(ctx, owner);
+            if (owner && ctx.closed.get()) {
+                // teardown already evicted the shared client, so the owner must disconnect what
+                // it just re-established
+                disconnectQuietly(ctx.cached, ctx.client);
+                return;
+            }
             for (val filter : ctx.filters) {
                 if (ctx.closed.get()) {
                     return;

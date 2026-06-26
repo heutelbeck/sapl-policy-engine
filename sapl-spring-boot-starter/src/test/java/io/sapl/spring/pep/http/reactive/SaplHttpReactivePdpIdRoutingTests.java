@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
 import io.sapl.spring.config.PdpIdAuthenticationExtractor;
 import io.sapl.spring.testsupport.SaplPepTestApp;
@@ -80,7 +81,7 @@ class SaplHttpReactivePdpIdRoutingTests {
 
         val pdpId = ArgumentCaptor.forClass(String.class);
         verify(pdp).decide(any(AuthorizationSubscription.class), pdpId.capture());
-        assertThat(pdpId.getValue()).isEqualTo("pdp-tarsis").isNotEqualTo(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+        assertThat(pdpId.getValue()).isEqualTo("pdp-tarsis").isNotEqualTo(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     @SaplPepTestApp

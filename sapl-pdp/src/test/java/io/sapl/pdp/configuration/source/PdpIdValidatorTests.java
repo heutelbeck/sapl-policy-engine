@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,7 +126,7 @@ class PdpIdValidatorTests {
 
     @Test
     void whenDefaultPdpIdConstantThenIsValid() {
-        assertThat(isValidPdpId(PdpIdValidator.DEFAULT_PDP_ID)).isTrue();
+        assertThat(isValidPdpId(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)).isTrue();
     }
 
     @Test

@@ -44,12 +44,16 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.api.model.ValueJsonMarshaller.toJsonNode;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @DisplayName("SaplMqttClient")
 class SaplMqttClientTests {
@@ -374,6 +378,29 @@ class SaplMqttClientTests {
             // consumed done flag, was a no-op. Only one decrement happened, so one
             // holder remains and the next decrement is the last.
             assertThat(client.decrementTopicSubscribers(topic.toString())).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("cancel during the connect window")
+    class CancelDuringConnect {
+
+        @Test
+        @DisplayName("an owner connection established after teardown already closed the context is disconnected, not leaked")
+        void whenOwnerConnectsAfterContextClosedThenClientDisconnected() {
+            val client = mock(Mqtt5AsyncClient.class);
+            doReturn(CompletableFuture.completedFuture(null)).when(client).connect();
+            doReturn(CompletableFuture.completedFuture(null)).when(client).disconnect();
+            val cached = new MqttClientValues("owner", client,
+                    JsonNodeFactory.instance.objectNode().put("brokerAddress", "localhost"));
+            // teardown already ran and evicted the cache entry during the connect window
+            val ctx = new SubscriptionContext(cached, client, List.of(), MqttQos.AT_MOST_ONCE, new AtomicBoolean(true),
+                    1024, ConcurrentHashMap.newKeySet());
+
+            SaplMqttClient.connectAndSubscribe(ctx, true, new AtomicBoolean(false), v -> {}, () -> {}, () -> {});
+
+            verify(client).connect();
+            verify(client).disconnect();
         }
     }
 }

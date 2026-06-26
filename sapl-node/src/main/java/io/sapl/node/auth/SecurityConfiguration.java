@@ -67,7 +67,7 @@ import io.sapl.node.auth.SaplJwtAuthenticationToken;
 import io.sapl.node.auth.SaplUser;
 import io.sapl.node.auth.SaplUserDetailsService;
 import io.sapl.node.auth.UserLookupService;
-import io.sapl.reactive.api.pdp.ReactivePolicyDecisionPoint;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.reactive.api.tenant.BlockingTenantResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -199,7 +199,7 @@ public class SecurityConfiguration {
         val userDetailsService = saplUserDetailsService();
         return authentication -> {
             if (authentication == null) {
-                return ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
+                return StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
             }
             if (authentication instanceof SaplAuthenticationToken saplAuth) {
                 return saplAuth.getPdpId();
@@ -210,9 +210,9 @@ public class SecurityConfiguration {
             val principal = authentication.getPrincipal();
             if (principal instanceof UserDetails userDetails) {
                 return userDetailsService.resolveSaplUser(userDetails.getUsername()).map(SaplUser::pdpId)
-                        .orElse(ReactivePolicyDecisionPoint.DEFAULT_PDP_ID);
+                        .orElse(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
             }
-            return ReactivePolicyDecisionPoint.DEFAULT_PDP_ID;
+            return StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
         };
     }
 

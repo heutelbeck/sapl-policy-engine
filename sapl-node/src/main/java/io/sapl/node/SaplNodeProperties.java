@@ -26,6 +26,7 @@ import java.util.Map;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.node.boot.SaplStartupConfigurationException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +39,6 @@ import lombok.val;
 @Data
 @ConfigurationProperties(prefix = "io.sapl.node")
 public class SaplNodeProperties implements InitializingBean {
-
-    public static final String DEFAULT_PDP_ID = "default";
 
     private static final String ERROR_DUPLICATE_API_KEY_ID  = "SAPL Node refused to start. Duplicate api-key-id '%s' in user configuration.";
     private static final String ACTION_DUPLICATE_API_KEY_ID = """
@@ -89,7 +88,7 @@ public class SaplNodeProperties implements InitializingBean {
     // has called every setter, so the binder's setter ordering does not
     // affect the outcome.
     private boolean rejectOnMissingPdpId = false;
-    private String  defaultPdpId         = DEFAULT_PDP_ID;
+    private String  defaultPdpId         = StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
 
     // User entries with unified credentials.
     private List<UserEntry> users = new ArrayList<>();

@@ -32,8 +32,6 @@ import java.util.regex.Pattern;
 @UtilityClass
 public class PdpIdValidator {
 
-    public static final String DEFAULT_PDP_ID = "default";
-
     static final String ERROR_PDP_ID_EXCEEDS_MAX_LENGTH = "PDP identifier exceeds maximum length of %d characters.";
     static final String ERROR_PDP_ID_INVALID_CHARACTERS = "PDP identifier contains invalid characters. Only alphanumeric characters, hyphens, underscores, and dots are allowed.";
     static final String ERROR_PDP_ID_NULL_OR_EMPTY      = "PDP identifier must not be null or empty.";

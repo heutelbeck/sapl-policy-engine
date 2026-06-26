@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import lombok.NonNull;
@@ -102,7 +103,7 @@ public final class DirectoryPDPConfigurationSource implements PDPConfigurationSo
      * @param directoryPath the filesystem directory containing policy files
      */
     public DirectoryPDPConfigurationSource(@NonNull Path directoryPath) {
-        this(directoryPath, PdpIdValidator.DEFAULT_PDP_ID);
+        this(directoryPath, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
     }
 
     /**

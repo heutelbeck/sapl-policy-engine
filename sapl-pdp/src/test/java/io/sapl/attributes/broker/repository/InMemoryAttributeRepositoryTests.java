@@ -58,14 +58,29 @@ class InMemoryAttributeRepositoryTests {
         repository.close();
     }
 
+    private static final String TEST_PDP_ID = "test-pdp";
+
     private static AttributeFinderInvocation invocation(String fqn) {
-        return new AttributeFinderInvocation("test-pdp", "default", fqn, List.of(), Duration.ofSeconds(1),
+        return invocation(fqn, TEST_PDP_ID);
+    }
+
+    private static AttributeFinderInvocation invocation(String fqn, String pdpId) {
+        return new AttributeFinderInvocation(pdpId, "default", fqn, List.of(), Duration.ofSeconds(1),
                 Duration.ofMillis(100), Duration.ofMillis(100), 0L, false,
                 new AttributeAccessContext(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
     }
 
     private static RepositoryKey repoKey(String fqn) {
-        return new RepositoryKey(null, fqn, List.of());
+        return new RepositoryKey(null, fqn, List.of(), TEST_PDP_ID);
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("the same attribute observed by two different pdpIds maps to distinct repository keys (tenant isolation)")
+    void whenSameAttributeDifferentPdpIdThenDistinctRepositoryKeys() {
+        val keyTenantA = RepositoryKey.fromInvocation(invocation("env.shared", "tenant-a"));
+        val keyTenantB = RepositoryKey.fromInvocation(invocation("env.shared", "tenant-b"));
+
+        assertThat(keyTenantA).isNotEqualTo(keyTenantB);
     }
 
     @Test

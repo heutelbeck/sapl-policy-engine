@@ -44,6 +44,7 @@ import io.rsocket.util.DefaultPayload;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.IdentifiableAuthorizationDecision;
 import io.sapl.api.pdp.MultiAuthorizationDecision;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.api.proto.SaplProtobufCodec;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -146,7 +147,7 @@ public class ProtobufRSocketAcceptor implements SocketAcceptor {
     @Override
     public @NonNull Mono<RSocket> accept(@NonNull ConnectionSetupPayload setup, @NonNull RSocket sendingSocket) {
         if (authenticator == null) {
-            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, ReactivePolicyDecisionPoint.DEFAULT_PDP_ID));
+            return Mono.just(new ProtobufRSocket(blockingPdp, pdp, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID));
         }
         // Offload setup authentication (Argon2 verification, JWT/JWKS decode) onto a
         // virtual thread so the blocking work never runs on the Netty event loop and

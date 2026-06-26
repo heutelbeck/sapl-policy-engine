@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -231,15 +232,16 @@ public final class MultiDirectoryPDPConfigurationSource implements PDPConfigurat
     }
 
     private void createRootSource() {
-        if (childSources.containsKey(PdpIdValidator.DEFAULT_PDP_ID)) {
+        if (childSources.containsKey(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)) {
             log.warn("Subdirectory named 'default' exists, root files will not be loaded as default PDP.");
             return;
         }
 
         try {
-            val source = new DirectoryPDPConfigurationSource(directoryPath, PdpIdValidator.DEFAULT_PDP_ID);
+            val source = new DirectoryPDPConfigurationSource(directoryPath,
+                    StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
             source.subscribe(this::emit);
-            childSources.put(PdpIdValidator.DEFAULT_PDP_ID, source);
+            childSources.put(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID, source);
             log.debug("Created root source for default PDP.");
         } catch (Exception e) {
             log.error("Failed to create root source for default PDP: {}.", e.getMessage(), e);

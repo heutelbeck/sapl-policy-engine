@@ -25,6 +25,8 @@ import picocli.CommandLine.Spec;
 
 import java.util.concurrent.Callable;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+
 import static io.sapl.node.auth.SecretGenerator.encodeWithArgon2;
 import static io.sapl.node.auth.SecretGenerator.newApiKey;
 import static io.sapl.node.auth.SecretGenerator.newKey;
@@ -93,7 +95,7 @@ public class GenerateCredentialsCommand {
         private String userId;
 
         @Option(names = { "-p",
-                "--pdp-id" }, description = "PDP ID for routing (default: 'default')", defaultValue = "default")
+                "--pdp-id" }, description = "PDP ID for routing (default: 'default')", defaultValue = StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)
         private String pdpId;
 
         @Override
@@ -193,7 +195,7 @@ public class GenerateCredentialsCommand {
         private String userId;
 
         @Option(names = { "-p",
-                "--pdp-id" }, description = "PDP ID for routing (default: 'default')", defaultValue = "default")
+                "--pdp-id" }, description = "PDP ID for routing (default: 'default')", defaultValue = StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)
         private String pdpId;
 
         @Override
