@@ -264,9 +264,7 @@
 				<plugins>
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
-						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
+						<artifactId>native-maven-plugin</artifactId>						<extensions>true</extensions>
 						<executions>
 							<execution>
 								<id>build-native</id>
@@ -299,9 +297,7 @@
 				<plugins>
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
-						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
+						<artifactId>native-maven-plugin</artifactId>						<extensions>true</extensions>
 						<executions>
 							<execution>
 								<id>build-native</id>
@@ -336,9 +332,7 @@
 				<plugins>
 					<plugin>
 						<groupId>org.graalvm.buildtools</groupId>
-						<artifactId>native-maven-plugin</artifactId>
-						<version>0.10.6</version>
-						<extensions>true</extensions>
+						<artifactId>native-maven-plugin</artifactId>						<extensions>true</extensions>
 						<executions>
 							<execution>
 								<id>build-native</id>

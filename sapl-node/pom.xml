@@ -41,9 +41,7 @@
 
 	<properties>
 		<maven.javadoc.skip>true</maven.javadoc.skip>
-		<main.basedir>${project.basedir}/../</main.basedir>
-		<native-maven-plugin.version>0.10.6</native-maven-plugin.version>
-	</properties>
+		<main.basedir>${project.basedir}/../</main.basedir>	</properties>
 	
 	<dependencies>
 		<dependency>
@@ -272,20 +270,8 @@
 					<configuration>
 						<imageName>sapl</imageName>
 						<quickBuild>false</quickBuild>
-						<!-- The graalvm-reachability-metadata repo only covers Caffeine
-						     up to 3.1.2; without this override the 3.2.x classpath
-						     skips Caffeine metadata entirely and dynamic cache classes
-						     such as 'com.github.benmanes.caffeine.cache.SSA' are
-						     missing reflection registrations at runtime. -->
 						<metadataRepository>
 							<enabled>true</enabled>
-							<dependencies>
-								<dependency>
-									<groupId>com.github.ben-manes.caffeine</groupId>
-									<artifactId>caffeine</artifactId>
-									<version>3.1.2</version>
-								</dependency>
-							</dependencies>
 						</metadataRepository>
 						<buildArgs>
 							<buildArg>--no-fallback</buildArg>
