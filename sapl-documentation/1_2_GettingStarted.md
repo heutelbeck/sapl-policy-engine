@@ -173,7 +173,7 @@ Watch the decision flip between `PERMIT` and `DENY` every five seconds. The PDP 
 
 #### Using Policies in Scripts
 
-The `check` command evaluates a subscription and exits with a code that encodes the decision: `0` for PERMIT, `2` for DENY. No output is written to stdout, making it ideal for shell scripts. Here is a script that checks authorization before starting the MRT:
+The `check` command evaluates a subscription and exits with a code that encodes the decision: `0` for a plain PERMIT, `2` for DENY. A PERMIT carrying obligations exits `4` instead, since the caller must enforce the obligations rather than treat access as unconditionally granted, and the remaining outcomes have their own codes (run `sapl check --help` for the full list). No output is written to stdout, making it ideal for shell scripts. Here is a script that checks authorization before starting the MRT:
 
 <details open markdown="1">
 <summary>Bash</summary>

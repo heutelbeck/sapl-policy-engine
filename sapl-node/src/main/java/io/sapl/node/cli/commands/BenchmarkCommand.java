@@ -167,8 +167,9 @@ public class BenchmarkCommand implements Callable<Integer> {
         if (resolved == null) {
             return null;
         }
-        String subsJson = loadSubscriptionsJson(resolved.path());
-        return new BenchmarkContext(subJson, subsJson, resolved.path(), resolved.configType().name());
+        val    policyPath = resolved.path().toString();
+        String subsJson   = loadSubscriptionsJson(policyPath);
+        return new BenchmarkContext(subJson, subsJson, policyPath, resolved.kind().name());
     }
 
     private List<BenchmarkResult> runAllBenchmarks(BenchmarkContext ctx, BenchmarkRunConfig runCfg, PrintWriter out,

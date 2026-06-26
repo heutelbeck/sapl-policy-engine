@@ -356,12 +356,44 @@ jobs:
       contents: read
     uses: ./.github/workflows/build_native_lsp.yml
 
+  smoke-test-native-node:
+    needs: [build-native-node]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Smoke Test Native SAPL Node
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: .github/scripts/native-node-smoke-test.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download Linux amd64 artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-linux-amd64
+          path: artifacts/linux-amd64
+
+      - name: Run smoke test against the native binary
+        run: |
+          chmod +x artifacts/linux-amd64/sapl
+          .github/scripts/native-node-smoke-test.sh ./artifacts/linux-amd64/sapl
+
   # ---------------------------------------------------------------------------
   # Phase 2: Publish (gated on all of Phase 1)
   # ---------------------------------------------------------------------------
 
   publish-maven:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -431,7 +463,7 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   publish-docker:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -525,7 +557,7 @@ jobs:
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
   publish-native-node:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -782,7 +814,7 @@ jobs:
           git push
 
   publish-native-lsp:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, publish-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, publish-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
