@@ -388,6 +388,68 @@ jobs:
           chmod +x artifacts/linux-amd64/sapl
           .github/scripts/native-node-smoke-test.sh ./artifacts/linux-amd64/sapl
 
+  benchmark-scripts-test:
+    needs: [smoke-test-native-node]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Benchmark Scripts Regression Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 40
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@54b4f5a65c1a84b2fdfdc2078fe43df32819e4b1 # v1.4.5
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Maven packages
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Install wrk2 (HTTP load generator)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev
+          # wrk2 has no apt package and no tagged releases. Fetch exactly this
+          # commit (not a moving branch) so a later wrk2 push cannot change it.
+          # Update WRK2_SHA deliberately when bumping.
+          WRK2_SHA=44a94c17d8e6a0bac8559b53da76848e430cb7a7
+          git init "$RUNNER_TEMP/wrk2"
+          git -C "$RUNNER_TEMP/wrk2" fetch --depth 1 https://github.com/giltene/wrk2.git "$WRK2_SHA"
+          git -C "$RUNNER_TEMP/wrk2" checkout FETCH_HEAD
+          make -C "$RUNNER_TEMP/wrk2"
+          sudo install "$RUNNER_TEMP/wrk2/wrk" /usr/local/bin/wrk2
+
+      - name: Download Linux amd64 artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-linux-amd64
+          path: artifacts/linux-amd64
+
+      - name: Build benchmark jars and run the script regression test
+        shell: bash
+        run: |
+          mkdir -p sapl-benchmark/bin
+          cp artifacts/linux-amd64/sapl sapl-benchmark/bin/sapl
+          chmod +x sapl-benchmark/bin/sapl
+          ./sapl-benchmark/scripts/build.sh
+          BENCH_QUALITIES=test ./sapl-benchmark/scripts/run-all.sh "$RUNNER_TEMP/bench-results"
+
   # ---------------------------------------------------------------------------
   # Phase 2: Publish (gated on all of Phase 1)
   # ---------------------------------------------------------------------------
