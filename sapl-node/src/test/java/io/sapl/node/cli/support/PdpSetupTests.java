@@ -18,10 +18,20 @@
 package io.sapl.node.cli.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.PrintWriter;
+import java.io.Writer;
+
+import javax.net.ssl.SSLException;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.sapl.node.cli.options.PdpOptions;
+import io.sapl.node.cli.options.RemoteConnectionOptions;
+import lombok.val;
 
 /**
  * Specifications for {@link PdpSetup} remote-URL resolution.
@@ -74,6 +84,61 @@ class PdpSetupTests {
         void whenFlagAndEnvAndDefaultAllPresentThenFlagWins() {
             assertThat(PdpSetup.resolveUrl("http://flag-host:9000", "http://env-host:8888", DEFAULT))
                     .isEqualTo("http://flag-host:9000");
+        }
+    }
+
+    @Nested
+    @DisplayName("remote transport security (plaintext credentials fail closed unless --insecure)")
+    class RemoteTransportSecurity {
+
+        private static PdpOptions remoteOptions(boolean rsocket, boolean insecure) {
+            val auth = new RemoteConnectionOptions.AuthOptions();
+            auth.token = "a-token";
+            val remote = new RemoteConnectionOptions();
+            remote.remote      = true;
+            remote.rsocket     = rsocket;
+            remote.insecure    = insecure;
+            remote.url         = "http://localhost:8080";
+            remote.rsocketHost = "localhost";
+            remote.rsocketPort = 7000;
+            remote.auth        = auth;
+            val options = new PdpOptions();
+            options.remoteConnection = remote;
+            return options;
+        }
+
+        private static PrintWriter discardingWriter() {
+            return new PrintWriter(Writer.nullWriter());
+        }
+
+        @Test
+        @DisplayName("http credentials over plaintext are refused without --insecure")
+        void whenHttpCredentialsWithoutInsecureThenFailsClosed() {
+            val options = remoteOptions(false, false);
+            val err     = discardingWriter();
+            assertThatThrownBy(() -> PdpSetup.open(options, err)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("plaintext");
+        }
+
+        @Test
+        @DisplayName("http credentials over plaintext are permitted with --insecure")
+        void whenHttpCredentialsWithInsecureThenBuilds() throws SSLException {
+            assertThat(PdpSetup.open(remoteOptions(false, true), discardingWriter())).isNotNull();
+        }
+
+        @Test
+        @DisplayName("rsocket credentials over plaintext are refused without --insecure")
+        void whenRsocketCredentialsWithoutInsecureThenFailsClosed() {
+            val options = remoteOptions(true, false);
+            val err     = discardingWriter();
+            assertThatThrownBy(() -> PdpSetup.open(options, err)).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("plaintext");
+        }
+
+        @Test
+        @DisplayName("rsocket credentials over plaintext are permitted with --insecure")
+        void whenRsocketCredentialsWithInsecureThenBuilds() throws SSLException {
+            assertThat(PdpSetup.open(remoteOptions(true, true), discardingWriter())).isNotNull();
         }
     }
 }

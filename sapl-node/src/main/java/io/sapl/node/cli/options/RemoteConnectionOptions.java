@@ -43,7 +43,7 @@ public class RemoteConnectionOptions {
     @ArgGroup(exclusive = true)
     public AuthOptions auth;
 
-    @Option(names = "--insecure", description = "Skip TLS certificate verification (development only)")
+    @Option(names = "--insecure", description = "Accept insecure transport (skip TLS certificate verification and allow credentials over plaintext). Development only")
     public boolean insecure;
 
     public static class AuthOptions {

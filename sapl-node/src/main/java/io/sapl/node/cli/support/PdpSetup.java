@@ -108,7 +108,9 @@ public record PdpSetup(
         val url     = resolveUrl(remote.url, System.getenv("SAPL_URL"), DEFAULT_HTTP_URL);
         val builder = RemotePolicyDecisionPoint.builder().http().baseUrl(url);
         if (remote.insecure) {
-            builder.withUnsecureSSL();
+            // --insecure trusts any TLS cert and accepts credentials over a plaintext http
+            // connection.
+            builder.withUnsecureSSL().allowInsecureTransport();
         }
         configureAuth(builder, remote.auth);
         val reactive = builder.build();
@@ -124,6 +126,11 @@ public record PdpSetup(
             builder.withUnsecureSSL();
         } else if (remote.rsocketTls) {
             builder.secure();
+        }
+        if (remote.insecure) {
+            // --insecure also accepts sending credentials over a plaintext rsocket
+            // connection.
+            builder.allowInsecureTransport();
         }
         configureRsocketAuth(builder, remote.auth);
         val reactive = builder.build();

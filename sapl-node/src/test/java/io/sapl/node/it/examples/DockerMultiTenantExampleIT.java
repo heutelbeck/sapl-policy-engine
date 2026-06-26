@@ -82,7 +82,7 @@ class DockerMultiTenantExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .basicAuth(TENANT_A_USERNAME, TENANT_A_SECRET).build();
+                        .basicAuth(TENANT_A_USERNAME, TENANT_A_SECRET).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("user", "read", "data");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.DENY).thenCancel()
@@ -103,7 +103,7 @@ class DockerMultiTenantExampleIT extends BaseIntegrationTest {
                 container.start();
 
                 val pdp          = RemotePolicyDecisionPoint.builder().http().baseUrl(getHttpBaseUrl(container))
-                        .basicAuth(TENANT_B_USERNAME, TENANT_B_SECRET).build();
+                        .basicAuth(TENANT_B_USERNAME, TENANT_B_SECRET).allowInsecureTransport().build();
                 val subscription = AuthorizationSubscription.of("user", "read", "data");
 
                 StepVerifier.create(pdp.decide(subscription)).expectNext(AuthorizationDecision.PERMIT).thenCancel()
