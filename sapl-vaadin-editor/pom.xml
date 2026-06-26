@@ -36,7 +36,6 @@
 
     <properties>
         <main.basedir>${project.basedir}/../</main.basedir>
-        <lsp4j.version>0.24.0</lsp4j.version>
     </properties>
 
     <dependencies>
@@ -75,12 +74,10 @@
         <dependency>
             <groupId>org.eclipse.lsp4j</groupId>
             <artifactId>org.eclipse.lsp4j</artifactId>
-            <version>${lsp4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.lsp4j</groupId>
             <artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
-            <version>${lsp4j.version}</version>
         </dependency>
 
         <!-- Spring WebSocket for LSP transport -->

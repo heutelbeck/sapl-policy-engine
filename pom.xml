@@ -95,6 +95,8 @@
 		<sapl.full.tests>false</sapl.full.tests>
 
 		<!-- Dependencies -->
+		<lsp4j.version>0.24.0</lsp4j.version>
+		<antlr.version>4.13.2</antlr.version>
 		<okhttp.version>5.4.0</okhttp.version>
 		<jacoco.version>0.8.15</jacoco.version>
 		<scalar.version>0.6.49</scalar.version>
@@ -173,6 +175,21 @@
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
 				<version>${guava.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.eclipse.lsp4j</groupId>
+				<artifactId>org.eclipse.lsp4j</artifactId>
+				<version>${lsp4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.eclipse.lsp4j</groupId>
+				<artifactId>org.eclipse.lsp4j.jsonrpc</artifactId>
+				<version>${lsp4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.antlr</groupId>
+				<artifactId>antlr4-runtime</artifactId>
+				<version>${antlr.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.assertj</groupId>
@@ -566,6 +583,11 @@
 					<groupId>org.graalvm.buildtools</groupId>
 					<artifactId>native-maven-plugin</artifactId>
 					<version>${native-maven-plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.antlr</groupId>
+					<artifactId>antlr4-maven-plugin</artifactId>
+					<version>${antlr.version}</version>
 				</plugin>
 			</plugins>
 		</pluginManagement>

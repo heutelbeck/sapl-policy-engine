@@ -52,9 +52,17 @@ import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @FunctionLibrary(name = "geo", description = GeographicFunctionLibrary.DESCRIPTION, libraryDocumentation = GeographicFunctionLibrary.DOCUMENTATION)
 public class GeographicFunctionLibrary {
+
+    static {
+        // GeoTools logs every intentionally blocked external reference at WARNING with
+        // a full stack trace, so silence it to prevent log flooding in production.
+        Logger.getLogger("org.geotools.xsd").setLevel(Level.SEVERE);
+    }
 
     static final String DESCRIPTION   = "A function library to manipulate, inspect, and convert geograpihc data.";
     static final String DOCUMENTATION = """

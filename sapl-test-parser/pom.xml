@@ -29,18 +29,16 @@
 	</parent>
 	<artifactId>sapl-test-parser</artifactId>
 	<name>SAPL Test Parser</name>
-	<description>ANTLR4 parser for SAPLTest (SAPL Test DSL) without Xtext dependencies.</description>
+	<description>Parser for SAPLTest (SAPL Test DSL)</description>
 
 	<properties>
 		<main.basedir>${project.basedir}/../</main.basedir>
-		<antlr.version>4.13.2</antlr.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4-runtime</artifactId>
-			<version>${antlr.version}</version>
 		</dependency>
 
 		<!-- Testing -->
@@ -61,7 +59,6 @@
 			<plugin>
 				<groupId>org.antlr</groupId>
 				<artifactId>antlr4-maven-plugin</artifactId>
-				<version>${antlr.version}</version>
 				<executions>
 					<execution>
 						<goals>
