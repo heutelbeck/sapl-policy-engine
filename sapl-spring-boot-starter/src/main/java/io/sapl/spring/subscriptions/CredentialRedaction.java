@@ -103,8 +103,7 @@ public final class CredentialRedaction {
     private static void redactQueryString(ObjectNode objectNode) {
         val queryNode = objectNode.get(QUERY_FIELD);
         val urlNode   = objectNode.get(URL_FIELD);
-        val rawQuery  = queryNode instanceof StringNode query ? query.asString()
-                : urlNode instanceof StringNode url ? queryPartOf(url.asString()) : "";
+        val rawQuery  = rawQueryOf(queryNode, urlNode);
         if (!queryCarriesCredential(rawQuery)) {
             return;
         }
@@ -122,6 +121,16 @@ public final class CredentialRedaction {
         if (urlNode instanceof StringNode url) {
             objectNode.put(URL_FIELD, rewriteUrlQuery(url.asString(), rebuilt));
         }
+    }
+
+    private static String rawQueryOf(JsonNode queryNode, JsonNode urlNode) {
+        if (queryNode instanceof StringNode query) {
+            return query.asString();
+        }
+        if (urlNode instanceof StringNode url) {
+            return queryPartOf(url.asString());
+        }
+        return "";
     }
 
     private static String queryPartOf(String url) {
