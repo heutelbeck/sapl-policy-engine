@@ -11,7 +11,7 @@ nav_order: 605
 
 Attribute-Based Access Control (ABAC) for Django using SAPL (Streaming Attribute Policy Language). Provides decorator-driven policy enforcement with a constraint handler architecture for obligations, advice, and response transformation.
 
-The `sapl-django` library integrates SAPL policy enforcement into Django applications with asynchronous (ASGI) views and Server-Sent Events streaming for continuous authorization.
+The `sapl-django` library integrates SAPL policy enforcement into Django applications, supporting both synchronous and asynchronous views, with Server-Sent Events streaming for continuous authorization.
 
 ### What is SAPL?
 
@@ -33,7 +33,7 @@ A PDP decision looks like this:
 }
 ```
 
-`decision` is always present (`PERMIT`, `DENY`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the view's return value entirely.
+`decision` is always present (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, or `NOT_APPLICABLE`). The other fields are optional. `obligations` and `advice` are arrays of arbitrary JSON objects (by convention with a `type` field for handler dispatch), and `resource` (when present) replaces the view's return value entirely.
 
 For a deeper introduction to SAPL's subscription model and policy language, see the [SAPL documentation](https://sapl.io/docs/latest/).
 
@@ -45,7 +45,7 @@ Install the library and the base dependency:
 pip install sapl-django
 ```
 
-This also installs `sapl-base`, which provides the PDP client, constraint engine, and content filtering. The library requires Python 3.12 or later and Django 4.2+.
+This also installs `sapl-base`, which provides the PDP client, the `EnforcementPlanner`, and content filtering. The library requires Python 3.12 or later and Django 5.0+.
 
 A complete working demo with constraint handlers, content filtering, and streaming enforcement is available at [sapl-python-demos/django_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/django_demo).
 
@@ -70,18 +70,17 @@ For basic authentication instead of an API key:
 SAPL_CONFIG = {
     "base_url": "https://localhost:8443",
     "username": "myPdpClient",
-    "password": "myPassword",
+    "secret": "myPassword",
 }
 ```
 
-`token` (API key) and `username`/`password` (Basic Auth) are mutually exclusive. Configure one or the other.
+`token` (API key) and `username`/`secret` (Basic Auth) are mutually exclusive. Configure one or the other.
 
-For local development without TLS:
+For local development without TLS, point `base_url` at a loopback host. A plain `http://` URL is accepted only when the host is `localhost`, `127.0.0.1`, or `::1`. Any plain-HTTP URL targeting a remote host is refused at construction time, so plaintext authorization decisions never leave the machine.
 
 ```python
 SAPL_CONFIG = {
     "base_url": "http://localhost:8443",
-    "allow_insecure_connections": True,
 }
 ```
 
@@ -114,11 +113,13 @@ INSTALLED_APPS = [
 ]
 ```
 
-The PDP client and constraint enforcement service are created lazily on first use from `SAPL_CONFIG`. No explicit initialization call is required.
+The PDP client and the `EnforcementPlanner` are created lazily on first use from `SAPL_CONFIG`. The built-in `ContentFilteringProvider` and `ContentFilterPredicateProvider` are registered automatically. No explicit initialization call is required.
 
 ### Enforcement Decorators
 
-All decorators work on async Django view functions. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
+The `@pre_enforce` and `@post_enforce` decorators work on both synchronous (`def`) and asynchronous (`async def`) Django view functions. `@stream_enforce` requires an async view served under ASGI. The decorated view must accept `request: HttpRequest` as a parameter (typically the first argument).
+
+The decorators auto-detect the view kind, so you write the view in whichever style suits it. An async view runs on the async enforcement core. A sync view runs on the blocking core, which executes the view off the event loop, so synchronous Django ORM access works normally with no `SynchronousOnlyOperation`. When you configure a transaction provider (see [Database Transactions](#database-transactions)) it must match the view kind: a sync context-manager factory such as `transaction.atomic` for sync views, an async one for async views.
 
 #### @pre_enforce
 
@@ -138,7 +139,7 @@ Use `@pre_enforce` for views with side effects (database writes, emails) that sh
 
 #### @post_enforce
 
-Authorizes **after** the view executes. The view always runs; its return value is available to the subscription builder via the `return_value` argument.
+Authorizes **after** the view executes. The view always runs. Its return value is available to the subscription builder via the `return_value` argument.
 
 ```python
 from django.http import HttpRequest, JsonResponse
@@ -165,7 +166,7 @@ When not explicitly provided, the subscription fields are derived from the Djang
 
 | Field         | Default                                                                     |
 | ------------- | --------------------------------------------------------------------------- |
-| `subject`     | `request.user.username` or `"anonymous"` if no authenticated user           |
+| `subject`     | `request.user.username`, else JWT claims from the `Authorization` header, else `"anonymous"` |
 | `action`      | `{"method": request.method, "view": function_name}`                         |
 | `resource`    | `{"path": request.path, "kwargs": resolver_match.kwargs}`                   |
 | `environment` | `{"ip": request.META["REMOTE_ADDR"]}` (when available)                      |
@@ -202,36 +203,20 @@ The `secrets` field carries sensitive data (tokens, API keys) that the PDP needs
 )
 ```
 
-**Custom Deny Handling**
+#### @stream_enforce
 
-Add `on_deny` to any `@pre_enforce` or `@post_enforce` to return a custom response instead of raising `PermissionDenied`:
+Streaming enforcement applies an authorization decision continuously to a stream of items your view produces. The decorated view returns an **async iterator** of data items. SAPL opens a streaming PDP subscription and applies each decision to the stream as it runs: `PERMIT` passes items through, `SUSPEND` pauses, `DENY` ends it. The enforced result is **itself an async iterator** of authorised items, so it is independent of how you deliver them.
 
-```python
-@pre_enforce(
-    action="exportData",
-    on_deny=lambda decision: JsonResponse(
-        {"error": "access_denied", "decision": decision.decision.value},
-        status=403,
-    ),
-)
-```
-
-#### @enforce_till_denied
-
-Streaming enforcement that **terminates permanently** on the first non-PERMIT decision. The decorated view must return an async generator. Returns a Django `StreamingHttpResponse` with SSE format.
+`@stream_enforce` is the ready-made binding for **Server-Sent Events**. It wraps the enforced iterator in a Django `StreamingHttpResponse` that renders each item as an SSE `data:` frame on `text/event-stream`. SSE is the delivery shown here. For another delivery mode (a WebSocket, a gRPC stream, or consuming the stream in-process) drive the enforcement directly with `run_pipeline` from `sapl_base.pep.streaming`. It takes your async iterator and returns the enforced async iterator, with no transport assumptions.
 
 ```python
 import asyncio
 from datetime import datetime, timezone
-from django.http import HttpRequest, StreamingHttpResponse
-from sapl_django import enforce_till_denied
+from django.http import HttpRequest
+from sapl_django import stream_enforce
 
 
-@enforce_till_denied(
-    action="stream:heartbeat",
-    resource="heartbeat",
-    on_stream_deny=lambda decision: {"type": "ACCESS_DENIED"},
-)
+@stream_enforce(action="stream:heartbeat", resource="heartbeat")
 async def heartbeat(request: HttpRequest):
     seq = 0
     while True:
@@ -240,54 +225,38 @@ async def heartbeat(request: HttpRequest):
         await asyncio.sleep(2)
 ```
 
-The `on_stream_deny` callback receives the PDP decision and can return a final data item that is sent to the client before the stream terminates.
-
-#### @enforce_drop_while_denied
-
-Silently **drops data** during DENY periods. The stream stays alive and resumes forwarding when a new PERMIT decision arrives.
+A single decorator now covers every streaming case. The behaviour is driven by the policy verbs and by two boolean flags, both defaulting to `False`.
 
 ```python
-from sapl_django import enforce_drop_while_denied
-
-
-@enforce_drop_while_denied(action="stream:heartbeat", resource="heartbeat")
-async def heartbeat(request: HttpRequest):
-    seq = 0
-    while True:
-        yield {"seq": seq}
-        seq += 1
-        await asyncio.sleep(2)
-```
-
-The client sees gaps in sequence numbers but the connection remains open. No signals are sent during DENY periods.
-
-#### @enforce_recoverable_if_denied
-
-Sends **in-band suspend/resume signals** on policy transitions. Edge-triggered: `on_stream_deny` fires on PERMIT-to-DENY transitions, `on_stream_recover` fires on DENY-to-PERMIT transitions.
-
-```python
-from sapl_django import enforce_recoverable_if_denied
-
-
-@enforce_recoverable_if_denied(
+@stream_enforce(
     action="stream:heartbeat",
     resource="heartbeat",
-    on_stream_deny=lambda decision: {"type": "ACCESS_SUSPENDED"},
-    on_stream_recover=lambda decision: {"type": "ACCESS_RESTORED"},
+    signal_transitions=False,       # default
+    pause_rap_during_suspend=False,  # default
 )
-async def heartbeat(request: HttpRequest):
-    seq = 0
-    while True:
-        yield {"seq": seq}
-        seq += 1
-        await asyncio.sleep(2)
 ```
 
-| Scenario                                       | Strategy                          |
-| ---------------------------------------------- | --------------------------------- |
-| Access loss is permanent (revoked credentials)  | `@enforce_till_denied`            |
-| Client does not need to know about gaps         | `@enforce_drop_while_denied`      |
-| Client should show suspended/restored status    | `@enforce_recoverable_if_denied`  |
+**Verb routing.** Every decision the PDP emits during the lifetime of the subscription maps to one observable effect.
+
+| PDP decision     | Effect on the stream                                                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `PERMIT`         | Items flow through to the consumer.                                                                    |
+| `SUSPEND`        | Items are silently dropped. The subscription stays open. A later `PERMIT` resumes the flow.            |
+| `DENY`           | The stream terminates. The SSE binding emits a final `ACCESS_DENIED` frame before closing.             |
+| `INDETERMINATE`  | The subscription terminates, the same way `DENY` does.                                                 |
+| `NOT_APPLICABLE` | The subscription terminates, the same way `DENY` does.                                                 |
+
+Under the strict fail-closed discipline only an explicit `SUSPEND` keeps the subscription alive while pausing it. `DENY`, `INDETERMINATE`, and `NOT_APPLICABLE` all terminate. For keep-alive semantics where access pauses and later resumes, the policy must emit `SUSPEND` rather than `DENY`. Operators who want `NOT_APPLICABLE` to pause rather than terminate set the combining algorithm's `defaultDecision` to `SUSPEND` at the PDP level.
+
+**signal_transitions.** With the default `False`, suspend and resume boundaries are silent. The consumer sees items while permitted and a gap while suspended, with no boundary item. With `True`, the enforced stream carries an `ACCESS_SUSPENDED` boundary item each time it is suspended and an `ACCESS_GRANTED` boundary item each time it resumes (the SSE binding renders these as frames). Use this when the consumer should show a paused/resumed status.
+
+**pause_rap_during_suspend.** With the default `False`, the protected async iterator stays subscribed during suspension. Items keep arriving from upstream and are dropped on the way to the client, giving lower latency on resume. With `True`, the upstream iterator is cancelled on entry to the suspended state and re-subscribed on resume. Use this for upstream sources with expensive side effects that must not run while access is paused.
+
+| Scenario                                       | Configuration                                                |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| Access loss is permanent (revoked credentials)  | policy emits `deny`; defaults                                |
+| Client does not need to know about gaps         | policy emits `suspend`; defaults                             |
+| Client should show suspended/restored status    | policy emits `suspend`; `signal_transitions=True`            |
 
 ### How Enforcement Works
 
@@ -295,7 +264,7 @@ The decorators above are convenient, but to use them well it helps to understand
 
 #### The Deny Invariant
 
-Only `PERMIT` grants access. The PDP can return four possible decisions (`PERMIT`, `DENY`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your view running or your stream forwarding data. Everything else means denial.
+Only `PERMIT` grants access. The PDP can return five possible decisions (`PERMIT`, `DENY`, `SUSPEND`, `INDETERMINATE`, `NOT_APPLICABLE`), and only `PERMIT` ever results in your view running or your stream forwarding data. Everything else means denial. The streaming PEP honours `SUSPEND` by pausing the stream while keeping the subscription alive, so a later `PERMIT` resumes it. One-shot enforcement (`@pre_enforce`, `@post_enforce`) treats `SUSPEND` as a denial. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for details.
 
 A `PERMIT` with obligations is not a free pass. The PEP checks that every obligation in the decision has a registered handler. If even one obligation cannot be fulfilled, the PEP treats the decision as a denial. If a handler accepts responsibility but fails during execution, that also results in denial. Advice is softer: if an advice handler fails, the PEP logs the failure and moves on. Advice never causes denial.
 
@@ -319,17 +288,17 @@ For request-response views (`@pre_enforce` and `@post_enforce`), constraints can
 | On return value       | After the view returns               | Transform, filter, or replace the result         |
 | On error              | If the view throws                   | Transform or observe the error                   |
 
-For streaming views (`@enforce_till_denied`, `@enforce_drop_while_denied`, `@enforce_recoverable_if_denied`), constraints can run at five points:
+For streaming views (`@stream_enforce`), constraints can run at five points:
 
 | Location           | When it happens                              | What constraints do here                |
 |--------------------|----------------------------------------------|-----------------------------------------|
 | On decision        | Each new decision from the PDP stream        | Side effects like logging, audit        |
-| On each data item  | Each element yielded by the async generator  | Transform, filter, or replace items     |
-| On stream error    | Generator produces an error                  | Transform or observe the error          |
-| On stream complete | Generator finishes normally                  | Cleanup and finalization                |
+| On each data item  | Each element yielded by the async iterator   | Transform, filter, or replace items     |
+| On stream error    | The iterator produces an error               | Transform or observe the error          |
+| On stream complete | The iterator finishes normally               | Cleanup and finalization                |
 | On cancel          | Client disconnects or enforcement terminates | Release resources and close connections |
 
-This is why the handler interfaces have different shapes. A `RunnableConstraintHandlerProvider` fires at a lifecycle point like "on decision". A `ConsumerConstraintHandlerProvider` processes each data item. A `MethodInvocationConstraintHandlerProvider` only exists in `@pre_enforce` because it modifies arguments before the view runs, which makes no sense after the view has already executed.
+SAPL models each of these points as a named signal, and a handler attaches to whichever signal fits the work it does. A handler that fires once when the decision arrives attaches to the decision signal. A handler that processes each emitted item attaches to the output signal. The signal a handler attaches to determines when it runs. The same `ConstraintHandlerProvider` mechanism is used for one-shot and streaming enforcement alike.
 
 #### PreEnforce Lifecycle
 
@@ -355,101 +324,70 @@ If the decision is `PERMIT`, constraint handlers proceed through the same stages
 
 Because the view runs before the PDP is consulted, if the view itself raises an exception, that exception propagates directly. The PDP is never called, because there is no return value to include in the subscription.
 
-For a complete formal specification of all enforcement modes, including state machines, teardown invariants, and handler resolution timing, see the [PEP Implementation Specification](../8_1_PEPImplementationSpecification/).
+SAPL PEP libraries share a single unified enforcement model. It is a strict fail-closed state machine over the five decision verbs, where only `PERMIT` grants access and only an explicit `SUSPEND` pauses a stream without terminating it. See [Authorization Decisions](../2_3_AuthorizationDecisions/) for the decision-verb semantics.
 
 ### Constraint Handlers
 
-When the PDP returns a decision with `obligations` or `advice`, the constraint enforcement service resolves and executes all matching handlers.
+When the PDP returns a decision with `obligations` or `advice`, the `EnforcementPlanner` resolves and schedules all matching handlers.
 
-#### When to Use Which Handler
+#### The ConstraintHandlerProvider Protocol
 
-| You want to...                            | Use this handler type                       |
-| ----------------------------------------- | ------------------------------------------- |
-| Log or notify on a decision               | `RunnableConstraintHandlerProvider`         |
-| Record/inspect the response (side-effect) | `ConsumerConstraintHandlerProvider`         |
-| Transform the response                    | `MappingConstraintHandlerProvider`          |
-| Filter array elements from the response   | `FilterPredicateConstraintHandlerProvider`  |
-| Modify request or view arguments          | `MethodInvocationConstraintHandlerProvider` |
-| Log/notify on errors (side-effect)        | `ErrorHandlerProvider`                      |
-| Transform errors                          | `ErrorMappingConstraintHandlerProvider`     |
+There is one extension point. A constraint handler is an object that implements the `ConstraintHandlerProvider` protocol, which has a single method.
 
-#### Handler Types Reference
+```python
+from collections.abc import Sequence
+from typing import Any, Protocol
 
-| Type                | Protocol                                      | Handler Signature                                       | When It Runs                         |
-| ------------------- | --------------------------------------------- | ------------------------------------------------------- | ------------------------------------ |
-| `runnable`          | `RunnableConstraintHandlerProvider`            | `() -> None`                                            | On decision (side effects)           |
-| `method_invocation` | `MethodInvocationConstraintHandlerProvider`    | `(context: MethodInvocationContext) -> None`             | Before view (`@pre_enforce` only)    |
-| `consumer`          | `ConsumerConstraintHandlerProvider`            | `(value: Any) -> None`                                  | After view, inspects response        |
-| `mapping`           | `MappingConstraintHandlerProvider`             | `(value: Any) -> Any`                                   | After view, transforms response      |
-| `filter_predicate`  | `FilterPredicateConstraintHandlerProvider`     | `(element: Any) -> bool`                                | After view, filters list elements    |
-| `error_handler`     | `ErrorHandlerProvider`                         | `(error: Exception) -> None`                            | On error, inspects                   |
-| `error_mapping`     | `ErrorMappingConstraintHandlerProvider`        | `(error: Exception) -> Exception`                       | On error, transforms                 |
+from sapl_base.pep import ScopedHandler
 
-`MappingConstraintHandlerProvider` and `ErrorMappingConstraintHandlerProvider` also require `get_priority() -> int`. When multiple mapping handlers match the same constraint, they execute in descending priority order (higher number runs first).
+
+class ConstraintHandlerProvider(Protocol):
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        ...
+```
+
+The planner calls `get_handlers` for each constraint in a decision. The provider inspects the constraint and decides whether it can handle it. If it can, it returns one or more `ScopedHandler` entries. If it cannot, it returns an empty sequence and the planner asks the other providers. If no provider claims a constraint that arrived as an obligation, or if more than one provider claims the same constraint, the planner schedules a synthetic failure runner so the decision fails closed.
+
+A `ScopedHandler` bundles three things.
+
+| Field      | Description                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
+| `signal`   | The `SignalKind` the handler attaches to. The decision signal runs once when the decision arrives. The output signal runs on the return value or on each streamed item. |
+| `priority` | Lower runs earlier among handlers on the same signal.                                                |
+| `shape`    | `"runner"` is `() -> None`, `"consumer"` is `(value) -> None`, `"mapper"` is `(value) -> value`.     |
+| `handler`  | The callable itself.                                                                                  |
+
+The three shapes mirror the work a handler does. A `runner` is a side effect that needs no value, such as logging on a decision. A `consumer` is a side effect that has access to the value but does not change it, such as auditing the response. A `mapper` transforms the value flowing through a data-carrying signal, such as redacting fields. A mapper is admissible only for an obligation, never for advice. Advice is allowed to fail silently, and a value transformation that silently did not happen would leave the caller unable to tell whether the result was transformed.
 
 #### Registering Custom Handlers
 
 ```python
-from sapl_django import register_constraint_handler
-from sapl_base.constraint_types import Signal
+from collections.abc import Sequence
+from typing import Any
+
+from sapl_django import register_provider
+from sapl_base.pep import DECISION, ScopedHandler
 
 
-class LogAccessHandler:
-    def is_responsible(self, constraint) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "logAccess"
-
-    def get_signal(self) -> Signal:
-        return Signal.ON_DECISION
-
-    def get_handler(self, constraint):
+class LogAccessProvider:
+    def get_handlers(self, constraint: Any) -> Sequence[ScopedHandler]:
+        if not (isinstance(constraint, dict) and constraint.get("type") == "logAccess"):
+            return ()
         message = constraint.get("message", "Access logged")
 
-        def handler() -> None:
+        def run() -> None:
             print(f"[POLICY] {message}")
 
-        return handler
+        return (ScopedHandler(signal=DECISION, priority=0, shape="runner", handler=run),)
 
 
 # Register during Django app startup (e.g., in AppConfig.ready())
-register_constraint_handler(LogAccessHandler(), "runnable")
+register_provider(LogAccessProvider())
 ```
 
-Register handlers in your Django `AppConfig.ready()` method so they are available when the first request arrives.
+Register providers in your Django `AppConfig.ready()` method so they are available when the first request arrives. Registration rebuilds the planner.
 
-#### MethodInvocationContext
-
-The `MethodInvocationContext` provides:
-
-| Field           | Type              | Description                                                           |
-| --------------- | ----------------- | --------------------------------------------------------------------- |
-| `args`          | `list[Any]`       | Positional arguments. Handlers can mutate or replace entries.          |
-| `kwargs`        | `dict[str, Any]`  | Keyword arguments. Handlers can add, modify, or remove keys.          |
-| `function_name` | `str`             | The intercepted view function name                                    |
-| `class_name`    | `str`             | Qualified class name (empty for plain functions)                      |
-| `request`       | `Any`             | The Django `HttpRequest`, or `None` for service-layer calls           |
-
-Handlers can modify `context.kwargs` to change what arguments the view receives. This enables patterns like policy-driven transfer limits:
-
-```python
-from sapl_base.constraint_types import MethodInvocationContext
-
-
-class CapTransferHandler:
-    def is_responsible(self, constraint) -> bool:
-        return isinstance(constraint, dict) and constraint.get("type") == "capTransferAmount"
-
-    def get_handler(self, constraint):
-        max_amount = constraint.get("maxAmount", 0)
-        arg_name = constraint.get("argName", "amount")
-
-        def handler(context: MethodInvocationContext) -> None:
-            if arg_name in context.kwargs:
-                requested = float(context.kwargs[arg_name])
-                if requested > max_amount:
-                    context.kwargs[arg_name] = max_amount
-
-        return handler
-```
+A single obligation can drive several handlers at different signals. The provider returns one `ScopedHandler` per handler, and the planner schedules each one against its own signal. The bundle is all-or-nothing during admissibility checks. If any handler in the returned sequence is not well-formed for the constraint's tag, the entire claim is rejected and the decision fails closed.
 
 ### Built-in Constraint Handlers
 
@@ -506,13 +444,30 @@ Filters array elements or nullifies single values that do not meet conditions.
 
 The built-in content filter supports **simple dot-notation paths only** (`$.field.nested`). Recursive descent (`$..ssn`), bracket notation (`$['field']`), array indexing (`$.items[0]`), wildcards (`$.users[*].email`), and filter expressions (`$.books[?(@.price<10)]`) are not supported.
 
+### Query Rewriting
+
+Django applications can filter results at the database through SAPL's native ORM integration: a policy attaches a `sql:queryRewriting` obligation and the integration rewrites the query before it reaches the database, so unauthorised rows never leave it. Register it once at startup, for example in `AppConfig.ready()`.
+
+```python
+from sapl_django import (
+    DjangoQueryRewritingProvider,
+    register_orm_listener,
+    register_provider,
+)
+
+register_orm_listener()
+register_provider(DjangoQueryRewritingProvider())
+```
+
+See [Query Rewriting](../6_12_QueryRewriting/) for the obligation format and the shared semantics. Two Django-specific points. The integration applies an obligation only to queries whose model actually has the referenced columns, so unrelated models pass through unchanged. The `columns` projection uses `.only()`, which defers fields rather than blocking them, so pair it with content filtering when you need hard column-level security. Raw SQL and direct cursor access are not covered.
+
 ### Streaming Authorization
 
-For SSE endpoints returning async generators, the three streaming decorators provide continuous authorization where the PDP streams decisions over time. Access may flip between PERMIT and DENY based on time, location, or context changes.
+For SSE endpoints returning async iterators, `@stream_enforce` provides continuous authorization where the PDP streams decisions over time. Access may flip between permitted, suspended, and denied based on time, location, or context changes.
 
-Django streaming responses use `StreamingHttpResponse` with `content_type="text/event-stream"`. The decorators automatically wrap the async generator output in SSE format.
+Django streaming responses use `StreamingHttpResponse` with `content_type="text/event-stream"`. The decorator wraps each yielded item in SSE format automatically.
 
-A time-based policy that cycles between PERMIT and DENY:
+A time-based policy that cycles between `PERMIT` and `SUSPEND`, so the stream pauses and resumes without terminating:
 
 ```
 policy "streaming-heartbeat-time-based"
@@ -521,6 +476,9 @@ permit
   resource == "heartbeat";
   var second = time.secondOf(<time.now>);
   second >= 0 && second < 20 || second >= 40;
+suspend
+  action == "stream:heartbeat";
+  resource == "heartbeat";
 ```
 
 Deploy with ASGI (e.g., Daphne or Uvicorn) for async view and streaming support:
@@ -590,6 +548,33 @@ async def get_patient_detail(request: HttpRequest, patient_id: str) -> JsonRespo
 
 Service-layer decorators accept the same subscription field options (`subject`, `action`, `resource`, `environment`, `secrets`) as when used on views. When no `HttpRequest` is available, subject defaults to `"anonymous"` and environment is empty.
 
+### Database Transactions
+
+`@pre_enforce` and `@post_enforce` can own a transaction boundary, so a denial that lands after the view has written to the database rolls the write back. Three triggers cause a rollback: a `@post_enforce` DENY, a `@post_enforce` output-obligation failure, and a `@pre_enforce` output-obligation failure (the pre-decision permits, but its output obligations run after the view writes). A clean PERMIT commits.
+
+This is opt-in. With no provider configured the PEP owns no transaction and enforcement behaves exactly as before. A provider is a zero-arg factory returning a context manager that commits on clean exit and rolls back on a propagated exception. It must match the view kind it protects: a sync context manager for sync views, an async one for async views.
+
+Sync views run on the blocking core, which uses the provider as a sync context manager. `transaction.atomic` is exactly such a factory, so pass it directly:
+
+```python
+from django.db import transaction
+from sapl_django.config import set_transaction_provider
+
+set_transaction_provider(transaction.atomic)
+```
+
+A sync SQLAlchemy `session.begin` is passed the same way: `set_transaction_provider(lambda: get_current_session().begin())`. Async views run on the async core, which uses the provider as an async context manager, so pass an async SQLAlchemy `AsyncSession.begin()` directly: `set_transaction_provider(lambda: get_current_async_session().begin())`.
+
+Transactional enforcement with the Django ORM is a sync-view feature. Django's `transaction.atomic` is async-unsafe, so it cannot run on an async view. The async enforcement core opens the transaction boundary on the event loop thread, where entering `transaction.atomic` raises `SynchronousOnlyOperation`. To wrap a Django ORM write in an enforced transaction, write the view as a sync `def` and pass `transaction.atomic` directly, as above. Async views can still own a transaction over an async-native resource such as async SQLAlchemy, but not over the Django ORM.
+
+### Client Resilience
+
+The PDP client treats every transport problem as an operational condition, never as a policy outcome, and never lets one surface as an exception. A connection drop, timeout, or decode error fails closed to `INDETERMINATE`, which the PEP enforces as a denial, so a transient PDP outage can never accidentally grant access.
+
+One-shot requests (`decide_once`) fail closed to `INDETERMINATE` immediately, with no retry, and never throw. In steady state the connection is warm, so only a cold or dropped connection fails closed.
+
+Subscriptions (streaming `decide`) never terminate on a transport problem or on a server-side stream completion. Either condition emits one `INDETERMINATE` and then reconnects with bounded exponential backoff, indefinitely. Consecutive identical decisions are de-duplicated, so an outage yields a single `INDETERMINATE`, not a flood. A subscription ends only when the consumer cancels it or the client shuts down. This contract holds identically across the HTTP and RSocket transports and across every SAPL PEP client.
+
 ### Demo Application
 
 A complete working demo is available at [sapl-python-demos/django_demo](https://github.com/heutelbeck/sapl-python-demos/tree/main/django_demo). It includes:
@@ -597,8 +582,8 @@ A complete working demo is available at [sapl-python-demos/django_demo](https://
 - Manual PDP access (no decorators)
 - `@pre_enforce` and `@post_enforce` with content filtering
 - Service-layer enforcement using the same decorators on plain async functions
-- All 7 constraint handler types (runnable, consumer, mapping, filter predicate, method invocation, error handler, error mapping)
-- SSE streaming with all three enforcement strategies (till-denied, drop-while-denied, recoverable-if-denied)
+- Custom constraint handler providers returning runner, consumer, and mapper handlers
+- SSE streaming with `@stream_enforce`, covering terminate-on-deny, drop-while-suspended, and signalled suspend/resume
 - JWT-based ABAC with secrets
 
 ### Configuration Reference
@@ -607,23 +592,21 @@ All options are set via the `SAPL_CONFIG` dictionary in Django settings:
 
 | Key                            | Type    | Default                     | Description                                              |
 | ------------------------------ | ------- | --------------------------- | -------------------------------------------------------- |
-| `base_url`                     | `str`   | `"https://localhost:8443"`  | PDP server URL                                           |
-| `token`                        | `str`   | `None`                      | Bearer token / API key for authentication                |
-| `username`                     | `str`   | `None`                      | Basic auth username (mutually exclusive with `token`)    |
-| `password`                     | `str`   | `None`                      | Basic auth password                                      |
-| `timeout`                      | `float` | `5.0`                       | PDP request timeout in seconds                           |
-| `allow_insecure_connections`   | `bool`  | `False`                     | Allow HTTP connections (never use in production)         |
-| `streaming_max_retries`        | `int`   | `0`                         | Maximum reconnection attempts for streaming connections  |
-| `streaming_retry_base_delay`   | `float` | `1.0`                       | Base delay in seconds for exponential backoff on retry   |
-| `streaming_retry_max_delay`    | `float` | `30.0`                      | Maximum delay in seconds for exponential backoff         |
+| `base_url`                            | `str`   | `"https://localhost:8443"`  | PDP server URL. Plain `http://` is accepted only for loopback hosts |
+| `token`                               | `str`   | `None`                      | Bearer token / API key for authentication                |
+| `username`                            | `str`   | `None`                      | Basic auth username (mutually exclusive with `token`)    |
+| `secret`                              | `str`   | `None`                      | Basic auth secret                                        |
+| `timeout_seconds`                     | `float` | `5.0`                       | PDP request timeout in seconds                           |
+| `streaming_retry_base_delay_seconds`  | `float` | `1.0`                       | Base delay in seconds for exponential backoff on reconnect |
+| `streaming_retry_max_delay_seconds`   | `float` | `30.0`                      | Maximum delay in seconds for exponential backoff         |
 
 ### Troubleshooting
 
 | Symptom                              | Likely Cause                            | Fix                                                              |
 | ------------------------------------ | --------------------------------------- | ---------------------------------------------------------------- |
 | All decisions are INDETERMINATE       | PDP unreachable                         | Check `base_url` and that PDP is running                         |
-| 403 despite PERMIT decision           | Unhandled obligation                    | Check handler `is_responsible()` matches the obligation `type`   |
-| Handler not firing                    | Missing registration                    | Call `register_constraint_handler()` in `AppConfig.ready()`      |
+| 403 despite PERMIT decision           | Unhandled obligation                    | Check the provider's `get_handlers()` claims the obligation `type` |
+| Handler not firing                    | Missing registration                    | Call `register_provider()` in `AppConfig.ready()`               |
 | Subject is `"anonymous"`              | No authenticated user on request        | Set up Django authentication or set subject explicitly           |
 | Content filter throws                 | Unsupported path syntax                 | Only simple dot paths supported (`$.field.nested`)               |
 | `ImproperlyConfigured`                | Missing `SAPL_CONFIG`                   | Add `SAPL_CONFIG` dict to Django settings                        |

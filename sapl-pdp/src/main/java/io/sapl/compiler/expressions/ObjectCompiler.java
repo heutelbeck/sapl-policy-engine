@@ -17,30 +17,19 @@
  */
 package io.sapl.compiler.expressions;
 
-import java.util.Arrays;
-import java.util.Objects;
-
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.ObjectExpression;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
-import static io.sapl.compiler.expressions.ArrayCompiler.CategorizedExpressions;
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles object literal expressions using the PRECOMPILED pattern.
@@ -50,6 +39,8 @@ import static io.sapl.compiler.expressions.ArrayCompiler.CategorizedExpressions;
 @UtilityClass
 public class ObjectCompiler {
 
+    private static final String ERROR_PURE_OBJECT_RECEIVED_STREAM_OPERATOR = "PureObject cannot contain StreamOperator. Indicates an implementation bug.";
+
     public static CompiledExpression compile(ObjectExpression expr, CompilationContext ctx) {
         val entries = expr.entries();
 
@@ -57,9 +48,10 @@ public class ObjectCompiler {
             return Value.EMPTY_OBJECT;
         }
 
-        val keys     = new String[entries.size()];
-        val compiled = new ArrayList<CompiledExpression>(entries.size());
-
+        val     keys      = new String[entries.size()];
+        val     compiled  = new ArrayList<CompiledExpression>(entries.size());
+        boolean allValues = true;
+        boolean hasStream = false;
         for (int i = 0; i < entries.size(); i++) {
             val entry = entries.get(i);
             keys[i] = entry.key();
@@ -67,91 +59,59 @@ public class ObjectCompiler {
             if (result instanceof ErrorValue) {
                 return result;
             }
+            if (result instanceof StreamOperator) {
+                hasStream = true;
+                allValues = false;
+            } else if (!(result instanceof Value)) {
+                allValues = false;
+            }
             compiled.add(result);
         }
 
-        return buildFromCompiled(keys, compiled, expr.location());
+        if (allValues) {
+            return foldEntries(keys, compiled);
+        }
+        if (hasStream) {
+            return new StreamObject(keys, compiled);
+        }
+        return new PureObject(keys, compiled, expr.location());
     }
 
-    /**
-     * Builds an optimized object operator from pre-compiled values.
-     * Used by ObjectExpression compilation and "each" filter compilation.
-     *
-     * @param keys the keys for each entry
-     * @param compiled the compiled values (Value/PureOperator/StreamOperator)
-     * @param location source location for error reporting
-     * @return appropriate CompiledExpression based on value types
-     */
-    static CompiledExpression buildFromCompiled(List<String> keys, List<CompiledExpression> compiled,
-            SourceLocation location) {
-        return buildFromCompiled(keys.toArray(String[]::new), compiled, location);
-    }
-
-    private static CompiledExpression buildFromCompiled(String[] keys, List<CompiledExpression> compiled,
-            SourceLocation location) {
-        val cat = CategorizedExpressions.categorize(compiled);
-
-        if (cat.hasOnlyValues()) {
-            return buildObjectFromValues(keys, cat.valueIndices(), cat.values());
-        }
-        if (cat.streamCount() == 0) {
-            return new AllPureObject(keys, cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                    cat.totalCount(), location);
-        }
-        if (cat.hasSingleStream()) {
-            return new SingleStreamObject(keys, cat.valueIndices(), cat.values(), cat.pureIndices(),
-                    cat.pureOperators(), cat.streamIndices()[0], cat.streams()[0], cat.totalCount());
-        }
-        return new MultiStreamObject(keys, cat.valueIndices(), cat.values(), cat.pureIndices(), cat.pureOperators(),
-                cat.streamIndices(), cat.streams(), cat.totalCount());
-    }
-
-    private static ObjectValue buildObjectFromValues(String[] keys, int[] valueIndices, Value[] values) {
+    private static ObjectValue foldEntries(String[] keys, List<CompiledExpression> compiled) {
         val builder = ObjectValue.builder();
-        for (int i = 0; i < valueIndices.length; i++) {
-            val idx = valueIndices[i];
-            val v   = values[i];
+        for (int i = 0; i < compiled.size(); i++) {
+            val v = (Value) compiled.get(i);
             if (!(v instanceof UndefinedValue)) {
-                builder.put(keys[idx], v);
+                builder.put(keys[i], v);
             }
         }
         return builder.build();
     }
 
     /**
-     * Object with all pure values (values and pure operators, no streams).
+     * Object with all pure entries (values and pure operators, no streams).
+     * Constructed only when the compile-time scan reports zero stream entries.
+     * The {@link StreamOperator} branch in element dispatch is therefore
+     * unreachable and folds to an {@link ErrorValue} defensively.
      */
-    record AllPureObject(
-            String[] keys,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int totalEntries,
-            SourceLocation location) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(AllPureObject.class);
+    record PureObject(String[] keys, List<CompiledExpression> entries, SourceLocation location)
+            implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(PureObject.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            val entryValues = new Value[totalEntries];
-
-            for (int i = 0; i < valueIndices.length; i++) {
-                entryValues[valueIndices[i]] = values[i];
-            }
-
-            for (int i = 0; i < pureIndices.length; i++) {
-                val value = pureOperators[i].evaluate(ctx);
+            val builder = ObjectValue.builder();
+            for (int i = 0; i < entries.size(); i++) {
+                val value = switch (entries.get(i)) {
+                case Value v                -> v;
+                case PureOperator p         -> p.evaluate(ctx);
+                case StreamOperator ignored -> Value.error(ERROR_PURE_OBJECT_RECEIVED_STREAM_OPERATOR);
+                };
                 if (value instanceof ErrorValue) {
                     return value;
                 }
-                entryValues[pureIndices[i]] = value;
-            }
-
-            val builder = ObjectValue.builder();
-            for (int i = 0; i < totalEntries; i++) {
-                val v = entryValues[i];
-                if (!(v instanceof UndefinedValue)) {
-                    builder.put(keys[i], v);
+                if (!(value instanceof UndefinedValue)) {
+                    builder.put(keys[i], value);
                 }
             }
             return builder.build();
@@ -159,8 +119,8 @@ public class ObjectCompiler {
 
         @Override
         public boolean isDependingOnSubscription() {
-            for (var op : pureOperators) {
-                if (op.isDependingOnSubscription()) {
+            for (val entry : entries) {
+                if (entry instanceof PureOperator p && p.isDependingOnSubscription()) {
                     return true;
                 }
             }
@@ -169,8 +129,8 @@ public class ObjectCompiler {
 
         @Override
         public boolean isRelativeExpression() {
-            for (var op : pureOperators) {
-                if (op.isRelativeExpression()) {
+            for (val entry : entries) {
+                if (entry instanceof PureOperator p && p.isRelativeExpression()) {
                     return true;
                 }
             }
@@ -179,195 +139,104 @@ public class ObjectCompiler {
 
         @Override
         public long semanticHash() {
-            long hash = SemanticHashing.ordered(KIND, Arrays.hashCode(keys), Arrays.hashCode(valueIndices),
-                    Arrays.hashCode(values), Arrays.hashCode(pureIndices), totalEntries);
-            for (var po : pureOperators) {
-                hash = SemanticHashing.ordered(hash, po.semanticHash());
+            long hash = KIND;
+            for (int i = 0; i < entries.size(); i++) {
+                val entry     = entries.get(i);
+                val entryHash = switch (entry) {
+                              case Value v                -> SemanticHashing.valueHash(v);
+                              case PureOperator p         -> p.semanticHash();
+                              case StreamOperator ignored -> (long) entry.hashCode();
+                              };
+                hash = SemanticHashing.ordered(hash, SemanticHashing.textHash(keys[i]), entryHash);
             }
-            return hash;
+            return SemanticHashing.ordered(hash, Objects.hashCode(location));
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof PureObject that)) {
+                return false;
+            }
+            return Arrays.equals(keys, that.keys) && Objects.equals(entries, that.entries)
+                    && Objects.equals(location, that.location);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(Arrays.hashCode(keys), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
-                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), totalEntries,
-                    Objects.hashCode(location));
+            return Objects.hash(Arrays.hashCode(keys), entries, location);
         }
 
         @Override
-        public boolean equals(Object o) {
-            return this == o || (o instanceof AllPureObject r && Arrays.equals(keys, r.keys)
-                    && Arrays.equals(valueIndices, r.valueIndices) && Arrays.equals(values, r.values)
-                    && Arrays.equals(pureIndices, r.pureIndices) && Arrays.equals(pureOperators, r.pureOperators)
-                    && totalEntries == r.totalEntries && Objects.equals(location, r.location));
+        public String toString() {
+            return "PureObject[keys=" + Arrays.toString(keys) + ", entries=" + entries + ", location=" + location + "]";
         }
     }
 
     /**
-     * Object with exactly one stream value.
+     * Object with at least one stream entry. Walks every compiled entry via
+     * {@link StreamOperator#evalChild}, accumulating subscriptions even past
+     * any encountered {@link ErrorValue}. Holds the first error and returns
+     * it after the full walk completes. Drops entries whose value is
+     * {@link UndefinedValue} per object literal semantics. {@code null} from
+     * a child sets the incomplete flag. On a clean walk with no error,
+     * returns the assembled object. Precedence at the end:
+     * error &gt; null &gt; built object.
      */
-    record SingleStreamObject(
-            String[] keys,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int streamIndex,
-            StreamOperator streamOp,
-            int totalEntries) implements StreamOperator {
+    record StreamObject(String[] keys, List<CompiledExpression> entries) implements StreamOperator {
 
         @Override
-        public Flux<TracedValue> stream() {
-            return streamOp.stream().switchMap(tracedValue -> {
-                val streamVal = tracedValue.value();
-                if (streamVal instanceof ErrorValue) {
-                    return Flux.just(tracedValue);
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val     deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(entries.size());
+            boolean seenNull   = false;
+            Value   firstError = null;
+            val     builder    = ObjectValue.builder();
+            for (int i = 0; i < entries.size(); i++) {
+                val v = evalChild(entries.get(i), ctx, deps);
+                if (v == null) {
+                    seenNull = true;
+                    continue;
                 }
-
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx     = ctx.get(EvaluationContext.class);
-                    val entryValues = new Value[totalEntries];
-
-                    for (int i = 0; i < valueIndices.length; i++) {
-                        entryValues[valueIndices[i]] = values[i];
+                if (v instanceof ErrorValue) {
+                    if (firstError == null) {
+                        firstError = v;
                     }
+                    continue;
+                }
+                if (!(v instanceof UndefinedValue)) {
+                    builder.put(keys[i], v);
+                }
+            }
+            if (firstError != null) {
+                return new ExpressionResult(firstError, deps);
+            }
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            return new ExpressionResult(builder.build(), deps);
+        }
 
-                    for (int i = 0; i < pureIndices.length; i++) {
-                        val value = pureOperators[i].evaluate(evalCtx);
-                        if (value instanceof ErrorValue) {
-                            return Flux.just(new TracedValue(value, tracedValue.contributingAttributes()));
-                        }
-                        entryValues[pureIndices[i]] = value;
-                    }
-
-                    entryValues[streamIndex] = streamVal;
-
-                    val builder = ObjectValue.builder();
-                    for (int i = 0; i < totalEntries; i++) {
-                        val v = entryValues[i];
-                        if (v != null && !(v instanceof UndefinedValue)) {
-                            builder.put(keys[i], v);
-                        }
-                    }
-                    return Flux.just(new TracedValue(builder.build(), tracedValue.contributingAttributes()));
-                });
-            });
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) {
+                return true;
+            }
+            if (!(other instanceof StreamObject(var thatKeys, var thatEntries))) {
+                return false;
+            }
+            return Arrays.equals(keys, thatKeys) && Objects.equals(entries, thatEntries);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(Arrays.hashCode(keys), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
-                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), streamIndex,
-                    Objects.hashCode(streamOp), totalEntries);
+            return Objects.hash(Arrays.hashCode(keys), entries);
         }
 
         @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof SingleStreamObject(var oKeys, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreamOp, var oTotal)
-                            && Arrays.equals(keys, oKeys) && Arrays.equals(valueIndices, oValIdx)
-                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
-                            && Arrays.equals(pureOperators, oPureOps) && streamIndex == oStreamIdx
-                            && Objects.equals(streamOp, oStreamOp) && totalEntries == oTotal);
-        }
-    }
-
-    /**
-     * Object with multiple stream values.
-     */
-    record MultiStreamObject(
-            String[] keys,
-            int[] valueIndices,
-            Value[] values,
-            int[] pureIndices,
-            PureOperator[] pureOperators,
-            int[] streamIndices,
-            StreamOperator[] streams,
-            int totalEntries) implements StreamOperator {
-
-        @Override
-        public Flux<TracedValue> stream() {
-            List<Flux<TracedValue>> fluxList = new ArrayList<>(streams.length);
-            for (var s : streams) {
-                fluxList.add(s.stream());
-            }
-
-            return Flux.combineLatest(fluxList, arr -> {
-                val combinedTraces = new ArrayList<AttributeRecord>();
-                val streamValues   = new TracedValue[arr.length];
-                for (int i = 0; i < arr.length; i++) {
-                    streamValues[i] = (TracedValue) arr[i];
-                    combinedTraces.addAll(streamValues[i].contributingAttributes());
-                }
-                return new CombinedStreams(streamValues, combinedTraces);
-            }).switchMap(combined -> {
-                for (var tv : combined.values) {
-                    if (tv.value() instanceof ErrorValue) {
-                        return Flux.just(new TracedValue(tv.value(), combined.traces));
-                    }
-                }
-
-                return Flux.deferContextual(ctx -> {
-                    val evalCtx     = ctx.get(EvaluationContext.class);
-                    val entryValues = new Value[totalEntries];
-
-                    for (int i = 0; i < valueIndices.length; i++) {
-                        entryValues[valueIndices[i]] = values[i];
-                    }
-
-                    for (int i = 0; i < pureIndices.length; i++) {
-                        val value = pureOperators[i].evaluate(evalCtx);
-                        if (value instanceof ErrorValue) {
-                            return Flux.just(new TracedValue(value, combined.traces));
-                        }
-                        entryValues[pureIndices[i]] = value;
-                    }
-
-                    for (int i = 0; i < streamIndices.length; i++) {
-                        entryValues[streamIndices[i]] = combined.values[i].value();
-                    }
-
-                    val builder = ObjectValue.builder();
-                    for (int i = 0; i < totalEntries; i++) {
-                        val v = entryValues[i];
-                        if (v != null && !(v instanceof UndefinedValue)) {
-                            builder.put(keys[i], v);
-                        }
-                    }
-                    return Flux.just(new TracedValue(builder.build(), combined.traces));
-                });
-            });
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(Arrays.hashCode(keys), Arrays.hashCode(valueIndices), Arrays.hashCode(values),
-                    Arrays.hashCode(pureIndices), Arrays.hashCode(pureOperators), Arrays.hashCode(streamIndices),
-                    Arrays.hashCode(streams), totalEntries);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o
-                    || (o instanceof MultiStreamObject(var oKeys, var oValIdx, var oVals, var oPureIdx, var oPureOps, var oStreamIdx, var oStreams, var oTotal)
-                            && Arrays.equals(keys, oKeys) && Arrays.equals(valueIndices, oValIdx)
-                            && Arrays.equals(values, oVals) && Arrays.equals(pureIndices, oPureIdx)
-                            && Arrays.equals(pureOperators, oPureOps) && Arrays.equals(streamIndices, oStreamIdx)
-                            && Arrays.equals(streams, oStreams) && totalEntries == oTotal);
-        }
-
-        private record CombinedStreams(TracedValue[] values, List<AttributeRecord> traces) {
-
-            @Override
-            public int hashCode() {
-                return Objects.hash(Arrays.hashCode(values), Objects.hashCode(traces));
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                return this == o || (o instanceof CombinedStreams(var oValues, var oTraces)
-                        && Arrays.equals(values, oValues) && Objects.equals(traces, oTraces));
-            }
+        public String toString() {
+            return "StreamObject[keys=" + Arrays.toString(keys) + ", entries=" + entries + "]";
         }
     }
 

@@ -20,13 +20,18 @@ package io.sapl.compiler.policyset;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.PolicySetVoterMetadata;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
-import reactor.core.publisher.Flux;
+import io.sapl.compiler.policy.CoverageVoter;
 
+/**
+ * Compiled form of a SAPL policy set. Exposes the production
+ * {@link Voter} (with and without the policy set's applicability gate
+ * pre-applied) and the snapshot-driven {@link CoverageVoter} that
+ * emits per-evaluation coverage data.
+ */
 public record CompiledPolicySet(
         CompiledExpression isApplicable,
         Voter voter,
         Voter applicabilityAndVote,
-        Flux<VoteWithCoverage> coverage,
+        CoverageVoter coverageVoter,
         PolicySetVoterMetadata metadata) implements CompiledDocument {}

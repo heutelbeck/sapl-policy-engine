@@ -96,7 +96,7 @@ class GdriveScenarioTests {
         for (var policy : GdriveScenarioGenerator.POLICIES) {
             fixture.withPolicy(policy);
         }
-        return fixture.withFunctionLibrary(GraphFunctionLibrary.class).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
+        return fixture.withFunctionLibrary(new GraphFunctionLibrary()).withCombiningAlgorithm(OopslaConstants.ALGORITHM)
                 .givenVariable("entityGraph", ENTITY_GRAPH).givenVariable("users", USERS).givenVariable("docs", DOCS);
     }
 

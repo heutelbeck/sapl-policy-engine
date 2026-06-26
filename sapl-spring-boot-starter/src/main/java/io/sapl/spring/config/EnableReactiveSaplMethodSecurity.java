@@ -19,7 +19,6 @@ package io.sapl.spring.config;
 
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.Ordered;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -28,10 +27,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- *
  * Provide the @EnableReactiveSaplMethodSecurity annotation on any configuration
- * class to activate the reactive method security for methods returning a
- * Publisher.
+ * class to activate the reactive method
+ * security for methods returning a Publisher.
+ * <p>
+ * Advisor ordering is fixed (see SaplAuthorizationInterceptorsOrder) and
+ * intentionally not configurable: the enforcement advisors must run inside any
+ * surrounding transaction so a deny or constraint failure rolls the transaction
+ * back. An {@code order} attribute would let callers break that invariant, so
+ * none is exposed.
  */
 @Documented
 @Target(ElementType.TYPE)
@@ -41,16 +45,19 @@ public @interface EnableReactiveSaplMethodSecurity {
 
     /**
      * Indicate whether subclass-based (CGLIB) proxies are to be created as opposed
-     * to standard Java interface-based proxies. The default is {@code false}.
-     * <strong> Applicable only if {@link #mode()} is set to
+     * to standard Java interface-based
+     * proxies. The default is {@code false}. <strong> Applicable only if
+     * {@link #mode()} is set to
      * {@link AdviceMode#PROXY}</strong>.
      * <p>
      * Note that setting this attribute to {@code true} will affect <em>all</em>
-     * Spring-managed beans requiring proxying, not just those marked with
-     * {@code @Cacheable}. For example, other beans marked with Spring's
+     * Spring-managed beans requiring
+     * proxying, not just those marked with {@code @Cacheable}. For example, other
+     * beans marked with Spring's
      * {@code @Transactional} annotation will be upgraded to subclass proxying at
-     * the same time. This approach has no negative impact in practice unless one is
-     * explicitly expecting one type of proxy vs another, e.g. in tests.
+     * the same time. This approach has no
+     * negative impact in practice unless one is explicitly expecting one type of
+     * proxy vs another, e.g. in tests.
      *
      * @return if to proxy target class
      */
@@ -61,17 +68,9 @@ public @interface EnableReactiveSaplMethodSecurity {
      * {@link AdviceMode#PROXY}.
      *
      * @see AdviceMode
+     *
      * @return the {@link AdviceMode} to use
      */
     AdviceMode mode() default AdviceMode.PROXY;
-
-    /**
-     * Indicate the ordering of the execution of the security advisor when
-     * advice is applied at a specific join point. The default is
-     * {@link Ordered#LOWEST_PRECEDENCE}.
-     *
-     * @return the order the security advisor should be applied
-     */
-    int order() default Ordered.LOWEST_PRECEDENCE;
 
 }

@@ -17,11 +17,15 @@
  */
 package io.sapl.vaadin.lsp.graph;
 
+import io.sapl.api.model.ErrorValue;
+import io.sapl.api.model.UndefinedValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Maps SAPL Value types to JSON for graph visualization. Unlike
@@ -57,7 +61,31 @@ public class ValueToGraphJsonMapper {
      * @return JSON string representation
      */
     public static String toJsonString(Value value) {
-        return ValueJsonMarshaller.toJsonNodeLenient(value).toString();
+        return toGraphJsonNode(value).toString();
+    }
+
+    private static JsonNode toGraphJsonNode(Value value) {
+        return switch (value) {
+        case UndefinedValue ignored -> undefinedMarker();
+        case ErrorValue error       -> errorMarker(error);
+        default                     -> ValueJsonMarshaller.toJsonNodeLenient(value);
+        };
+    }
+
+    private static ObjectNode undefinedMarker() {
+        val node = OBJECT_MAPPER.createObjectNode();
+        node.put("$undefined", true);
+        return node;
+    }
+
+    private static ObjectNode errorMarker(ErrorValue error) {
+        val node = OBJECT_MAPPER.createObjectNode();
+        node.put("$error", true);
+        node.put("message", error.message());
+        if (error.location() != null) {
+            node.put("location", error.location().toString());
+        }
+        return node;
     }
 
     /**
@@ -71,11 +99,13 @@ public class ValueToGraphJsonMapper {
      * @return pretty-printed JSON string representation
      */
     public static String toPrettyJsonString(Value value) {
-        val json = ValueJsonMarshaller.toJsonNodeLenient(value);
         try {
+            val json = toGraphJsonNode(value);
             return OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(json);
         } catch (Exception exception) {
-            return json.toString();
+            // toGraphJsonNode can reject a null or over-deep Value. Never let that
+            // escape the editor's pretty-printer.
+            return String.valueOf(value);
         }
     }
 

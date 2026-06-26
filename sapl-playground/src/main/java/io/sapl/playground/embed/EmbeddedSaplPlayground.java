@@ -32,11 +32,11 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.server.VaadinServlet;
 import io.sapl.api.SaplVersion;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
-import io.sapl.compiler.document.TimestampedVote;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.compiler.document.TracedVote;
 import io.sapl.playground.config.PermalinkConfiguration;
 import io.sapl.playground.domain.PermalinkService;
 import io.sapl.playground.domain.PermalinkService.PlaygroundState;
@@ -51,6 +51,7 @@ import io.sapl.vaadin.lsp.JsonEditor;
 import io.sapl.vaadin.lsp.JsonEditorConfiguration;
 import io.sapl.vaadin.lsp.SaplEditorLsp;
 import io.sapl.vaadin.lsp.SaplEditorLspConfiguration;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.context.ApplicationContext;
@@ -121,7 +122,8 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
     private Button                  evaluateButton;
 
     private volatile boolean     isSubscriptionActive;
-    private boolean              isDarkMode = false;
+    private final AtomicLong     currentGeneration = new AtomicLong();
+    private boolean              isDarkMode        = false;
     private transient Disposable activeSubscription;
 
     /**
@@ -204,9 +206,21 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
      * @param policy the SAPL policy text
      */
     public void setPolicy(String policy) {
-        if (policyEditor != null && policy != null) {
+        if (policyEditor != null && isExplicitAttributeValue(policy)) {
             policyEditor.setDocument(policy);
         }
+    }
+
+    /**
+     * Whether an attribute value should replace the in-editor default. The web
+     * component initializes attributes to the empty string, so blank values must
+     * not overwrite editor defaults.
+     *
+     * @param value the raw attribute value from the web component
+     * @return {@code true} if the value should replace the in-editor default
+     */
+    static boolean isExplicitAttributeValue(String value) {
+        return value != null && !value.isBlank();
     }
 
     /**
@@ -224,7 +238,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
      * @param subscription the authorization subscription JSON
      */
     public void setSubscription(String subscription) {
-        if (subscriptionEditor != null && subscription != null) {
+        if (subscriptionEditor != null && isExplicitAttributeValue(subscription)) {
             try {
                 val json = mapper.readTree(subscription);
                 subscriptionEditor.setDocument(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
@@ -449,6 +463,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
         }
+        currentGeneration.incrementAndGet();
         activeSubscription   = null;
         isSubscriptionActive = false;
         evaluateButton.setText(LABEL_EVALUATE);
@@ -459,6 +474,7 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         if (activeSubscription != null && !activeSubscription.isDisposed()) {
             activeSubscription.dispose();
         }
+        val generation = currentGeneration.incrementAndGet();
 
         val subscription = parseSubscription();
         if (subscription == null) {
@@ -468,8 +484,8 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         }
 
         try {
-            activeSubscription = policyDecisionPoint.decide(subscription).subscribe(this::handleDecisionOnUiThread,
-                    this::handleSubscriptionError);
+            activeSubscription = policyDecisionPoint.decide(subscription)
+                    .subscribe(vote -> handleDecisionOnUiThread(vote, generation), this::handleSubscriptionError);
         } catch (IllegalStateException | IllegalArgumentException exception) {
             log.error("Failed to create subscription", exception);
             stopSubscription();
@@ -483,11 +499,36 @@ public final class EmbeddedSaplPlayground extends Composite<VerticalLayout> {
         }
     }
 
-    private void handleDecisionOnUiThread(TimestampedVote timestampedVote) {
-        getUI().ifPresent(ui -> ui.access(() -> displayDecision(timestampedVote)));
+    private void handleDecisionOnUiThread(TracedVote timestampedVote, long generation) {
+        if (!isLiveEmission(generation, currentGeneration.get(), isSubscriptionActive)) {
+            return;
+        }
+        getUI().ifPresent(ui -> ui.access(() -> {
+            if (isLiveEmission(generation, currentGeneration.get(), isSubscriptionActive)) {
+                displayDecision(timestampedVote);
+            }
+        }));
     }
 
-    private void displayDecision(TimestampedVote timestampedVote) {
+    /**
+     * Determines whether a decision emitted by a subscription identified by
+     * {@code emissionGeneration} still belongs to the currently active
+     * subscription. A
+     * late emission from a disposed subscription carries a stale generation and
+     * must be
+     * discarded so it cannot overwrite the decision editor with an outdated result.
+     *
+     * @param emissionGeneration the generation captured when the emitting
+     * subscription started
+     * @param activeGeneration the generation of the currently active subscription
+     * @param subscriptionActive whether a subscription is currently active
+     * @return {@code true} if the emission belongs to the active subscription
+     */
+    static boolean isLiveEmission(long emissionGeneration, long activeGeneration, boolean subscriptionActive) {
+        return subscriptionActive && emissionGeneration == activeGeneration;
+    }
+
+    private void displayDecision(TracedVote timestampedVote) {
         try {
             val json       = mapper.valueToTree(timestampedVote.vote().authorizationDecision());
             val prettyJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);

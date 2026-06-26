@@ -20,6 +20,7 @@ package io.sapl.functions.libraries;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -32,16 +33,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import org.junit.jupiter.api.DisplayName;
-
 @DisplayName("ReflectionFunctionLibrary")
 class ReflectionFunctionLibraryTests {
 
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(ReflectionFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new ReflectionFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -234,9 +232,9 @@ class ReflectionFunctionLibraryTests {
                 arguments("Empty object returns true", Value.EMPTY_OBJECT, true),
                 arguments("Array with elements returns false", Value.ofArray(Value.of(1), Value.of(2)), false),
                 arguments("Object with fields returns false", Value.ofObject(Map.of("a", Value.of(1))), false),
-                arguments("NULL returns true", Value.NULL, true),
-                arguments("Empty string returns true", Value.of(""), true),
-                arguments("Zero returns true", Value.of(0), true));
+                arguments("NULL is a non-container, returns false", Value.NULL, false),
+                arguments("empty string is a non-container, returns false", Value.of(""), false),
+                arguments("zero is a non-container, returns false", Value.of(0), false));
     }
 
     @ParameterizedTest(name = "{0}")

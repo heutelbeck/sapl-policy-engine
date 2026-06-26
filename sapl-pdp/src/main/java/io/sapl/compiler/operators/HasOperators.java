@@ -17,13 +17,9 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
+import lombok.val;
 
 /**
  * Key membership operations for the {@code has} operator.
@@ -65,15 +61,15 @@ public class HasOperators {
         if (!(keys instanceof ArrayValue arr)) {
             return Value.errorAt(location, ERROR_HAS_KEYS_MUST_BE_ARRAY, keys.getClass().getSimpleName());
         }
+        val elementError = validateStringElements(arr, location);
+        if (elementError != null) {
+            return elementError;
+        }
         if (!(base instanceof ObjectValue obj)) {
             return Value.FALSE;
         }
         for (int i = 0; i < arr.size(); i++) {
-            if (!(arr.get(i) instanceof TextValue(var k))) {
-                return Value.errorAt(location, ERROR_HAS_KEYS_MUST_BE_STRING_ARRAY,
-                        arr.get(i).getClass().getSimpleName(), i);
-            }
-            if (obj.containsKey(k)) {
+            if (arr.get(i) instanceof TextValue(var k) && obj.containsKey(k)) {
                 return Value.TRUE;
             }
         }
@@ -90,19 +86,37 @@ public class HasOperators {
         if (!(keys instanceof ArrayValue arr)) {
             return Value.errorAt(location, ERROR_HAS_KEYS_MUST_BE_ARRAY, keys.getClass().getSimpleName());
         }
+        val elementError = validateStringElements(arr, location);
+        if (elementError != null) {
+            return elementError;
+        }
         if (!(base instanceof ObjectValue obj)) {
             return Value.FALSE;
         }
         for (int i = 0; i < arr.size(); i++) {
-            if (!(arr.get(i) instanceof TextValue(var k))) {
-                return Value.errorAt(location, ERROR_HAS_KEYS_MUST_BE_STRING_ARRAY,
-                        arr.get(i).getClass().getSimpleName(), i);
-            }
-            if (!obj.containsKey(k)) {
+            if (arr.get(i) instanceof TextValue(var k) && !obj.containsKey(k)) {
                 return Value.FALSE;
             }
         }
         return Value.TRUE;
+    }
+
+    /**
+     * Validates that every element of the key array is a string. The check is
+     * unconditional, independent of the base type, so a malformed key array is
+     * always reported as an error rather than masked by a permissive base.
+     *
+     * @return an error {@link Value} for the first non-string element, or
+     * {@code null} if all elements are strings.
+     */
+    private static Value validateStringElements(ArrayValue arr, SourceLocation location) {
+        for (int i = 0; i < arr.size(); i++) {
+            if (!(arr.get(i) instanceof TextValue)) {
+                return Value.errorAt(location, ERROR_HAS_KEYS_MUST_BE_STRING_ARRAY,
+                        arr.get(i).getClass().getSimpleName(), i);
+            }
+        }
+        return null;
     }
 
 }

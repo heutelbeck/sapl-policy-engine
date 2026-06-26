@@ -39,5 +39,10 @@ target/
 # Maven
 **/.m2/
 sapl-benchmark/sapl-benchmark-sapl3/dependency-reduced-pom.xml
-sapl-benchmark/sapl-benchmark-sapl3/dependency-reduced-pom.xml
 sapl-benchmark/bin/
+.attach_pid*
+
+# Python bytecode
+**/__pycache__/
+**/*.pyc
+*.lock

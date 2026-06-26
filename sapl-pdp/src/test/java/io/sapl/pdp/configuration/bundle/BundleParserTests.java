@@ -17,10 +17,10 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Random;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -148,12 +149,13 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleContainsNestedDirectoriesThenNestedFilesAreSkipped() throws IOException {
+    @DisplayName("a bundle with a subdirectory entry is rejected")
+    void whenBundleContainsNestedDirectoriesThenRejected() throws IOException {
         val bundleBytes = createBundleWithNestedDirectory();
 
-        val config = BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy);
-
-        assertThat(config.saplDocuments()).hasSize(1);
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Unexpected file")
+                .hasMessageContaining("subdir/");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -208,12 +210,72 @@ class BundleParserTests {
     }
 
     @Test
-    void whenUncompressedSizeExceedsLimitThenThrowsException() throws IOException {
-        val hugeContent = "X".repeat(11 * 1024 * 1024);
-        val bundleBytes = createBundleWithEntryAndConfig("necronomicon.sapl", hugeContent);
+    @DisplayName("a compression bomb hidden in a subdirectory entry is still counted toward the ratio limit")
+    void whenSubdirectoryEntryExceedsCompressionRatioThenThrowsException() throws IOException {
+        val largeRepetitiveContent = "A".repeat(500_000);
+        val baos                   = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+            // A skipped subdirectory entry must still have its bytes counted against the
+            // bomb limits.
+            zos.putNextEntry(new ZipEntry("nested/eldritch-tome.sapl"));
+            zos.write(("policy \"forbidden-knowledge\" permit true; /* " + largeRepetitiveContent + " */")
+                    .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
 
+        val bundleBytes = baos.toByteArray();
         assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Compression ratio");
+    }
+
+    @Test
+    void whenUncompressedSizeExceedsConfiguredLimitThenThrowsException() throws IOException {
+        val largeContent = "X".repeat(2 * 1024 * 1024);
+        val bundleBytes  = createBundleWithEntryAndConfig("necronomicon.sapl", largeContent);
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy, 1024L * 1024))
                 .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds");
+    }
+
+    @Test
+    @DisplayName("the cumulative uncompressed-size limit counts decompressed bytes, not UTF-16 chars, for multibyte content")
+    void whenEarlierEntryIsMultibyteThenCumulativeSizeLimitCountsBytesNotChars() throws IOException {
+        // first.sapl holds 120000 chars that each encode to two UTF-8 bytes, so it
+        // decompresses to 240000 bytes while its String char count is only 120000.
+        // The content is pseudo-random across the two-byte UTF-8 range so it does not
+        // compress, keeping the compression-ratio guard out of the way and isolating
+        // the cumulative uncompressed-size guard. Together with the 40000-byte ascii
+        // second.sapl the byte-accurate total is 280000 (> the 260000 cap, so parsing
+        // must be rejected), while a char-based total would be only 160000 and would
+        // wrongly accept the bundle.
+        val firstEntry  = pseudoRandomTwoByteUtf8(120_000);
+        val secondEntry = "X".repeat(40_000);
+        val baos        = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
+            zos.putNextEntry(new ZipEntry("first.sapl"));
+            zos.write(firstEntry.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            zos.putNextEntry(new ZipEntry("second.sapl"));
+            zos.write(secondEntry.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        val bundleBytes = baos.toByteArray();
+
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy, 260_000L))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("exceeds");
+    }
+
+    private static String pseudoRandomTwoByteUtf8(int charCount) {
+        val random  = new Random(7L);
+        val builder = new StringBuilder(charCount);
+        for (int i = 0; i < charCount; i++) {
+            builder.append((char) (0x00A1 + random.nextInt(0x07FF - 0x00A1)));
+        }
+        return builder.toString();
     }
 
     @Test
@@ -236,7 +298,8 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleHasWindowsStylePathsThenNestedPathsAreSkipped() throws IOException {
+    @DisplayName("a bundle with a Windows-style nested path is rejected")
+    void whenBundleHasWindowsStylePathsThenRejected() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             addPdpJsonEntry(zos);
@@ -245,10 +308,11 @@ class BundleParserTests {
             zos.write("policy \"test\" permit true;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
+        val bundleBytes = baos.toByteArray();
 
-        val config = BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, developmentPolicy);
-
-        assertThat(config.saplDocuments()).isEmpty();
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Unexpected file")
+                .hasMessageContaining("windows/style/path.sapl");
     }
 
     @Test
@@ -268,7 +332,8 @@ class BundleParserTests {
     }
 
     @Test
-    void whenBundleContainsNonSaplFilesThenTheyAreIgnored() throws IOException {
+    @DisplayName("a non-.sapl file at the bundle root is rejected")
+    void whenBundleContainsNonSaplRootFileThenRejected() throws IOException {
         val baos = new ByteArrayOutputStream();
         try (val zos = new ZipOutputStream(baos)) {
             addPdpJsonEntry(zos);
@@ -280,15 +345,30 @@ class BundleParserTests {
             zos.putNextEntry(new ZipEntry("readme.txt"));
             zos.write("This is a readme".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
+        }
+        val bundleBytes = baos.toByteArray();
 
-            zos.putNextEntry(new ZipEntry("security.xml"));
-            zos.write("<security/>".getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Unexpected file")
+                .hasMessageContaining("readme.txt");
+    }
+
+    @Test
+    @DisplayName("a file inside a subdirectory is rejected")
+    void whenBundleContainsSubdirectoryFileThenRejected() throws IOException {
+        val baos = new ByteArrayOutputStream();
+        try (val zos = new ZipOutputStream(baos)) {
+            addPdpJsonEntry(zos);
+
+            zos.putNextEntry(new ZipEntry("nested/policy.sapl"));
+            zos.write("policy \"test\" permit true;".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
+        val bundleBytes = baos.toByteArray();
 
-        val config = BundleParser.parse(baos.toByteArray(), TEST_PDP_ID, developmentPolicy);
-
-        assertThat(config.saplDocuments()).hasSize(1);
+        assertThatThrownBy(() -> BundleParser.parse(bundleBytes, TEST_PDP_ID, developmentPolicy))
+                .isInstanceOf(PDPConfigurationException.class).hasMessageContaining("Unexpected file")
+                .hasMessageContaining("nested/policy.sapl");
     }
 
     private byte[] createBundleWithConfigId(String pdpJson, String saplFileName, String saplContent)

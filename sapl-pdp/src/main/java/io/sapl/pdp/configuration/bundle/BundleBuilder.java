@@ -17,8 +17,9 @@
  */
 package io.sapl.pdp.configuration.bundle;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.compiler.document.DocumentCompiler;
+import io.sapl.pdp.configuration.ConfigurationIds;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import io.sapl.pdp.configuration.PDPConfigurationLoader;
 import io.sapl.pdp.configuration.source.BundlePDPConfigurationSource;
@@ -31,11 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PrivateKey;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -173,7 +170,7 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withCombiningAlgorithm(CombiningAlgorithm algorithm) {
-        return withCombiningAlgorithm(algorithm, "bundle-" + System.currentTimeMillis());
+        return withCombiningAlgorithm(algorithm, ConfigurationIds.generate("bundle"));
     }
 
     /**
@@ -210,7 +207,7 @@ public final class BundleBuilder {
      * @return this builder for method chaining
      */
     public BundleBuilder withConfiguration(CombiningAlgorithm algorithm, Map<String, String> variables) {
-        return withConfiguration(algorithm, "bundle-" + System.currentTimeMillis(), variables);
+        return withConfiguration(algorithm, ConfigurationIds.generate("bundle"), variables);
     }
 
     /**
@@ -345,8 +342,14 @@ public final class BundleBuilder {
      * if bundle creation or writing fails
      */
     public void writeTo(Path path) {
-        try (val outputStream = Files.newOutputStream(path)) {
-            writeTo(outputStream);
+        try {
+            val parent = path.toAbsolutePath().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            try (val outputStream = Files.newOutputStream(path)) {
+                writeTo(outputStream);
+            }
         } catch (IOException e) {
             throw new PDPConfigurationException(ERROR_FAILED_TO_WRITE_BUNDLE.formatted(path), e);
         }
@@ -355,7 +358,7 @@ public final class BundleBuilder {
     /**
      * Builds the bundle and writes it to the specified output stream.
      * <p>
-     * The output stream is not closed by this method; the caller is responsible for
+     * The output stream is not closed by this method. The caller is responsible for
      * closing it.
      * </p>
      *

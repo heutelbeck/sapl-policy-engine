@@ -21,10 +21,10 @@ import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.deser.std.StdDeserializer;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 
 import java.util.Arrays;
 
@@ -55,6 +55,7 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
 
     private static final String ERROR_DEFAULT_DECISION_REQUIRED = "CombiningAlgorithm requires defaultDecision field.";
     private static final String ERROR_ERROR_HANDLING_REQUIRED   = "CombiningAlgorithm requires errorHandling field.";
+    private static final String ERROR_EXPECTED_FIELD_NAME       = "Expected field name in CombiningAlgorithm object.";
     private static final String ERROR_EXPECTED_START_OBJECT     = "Expected START_OBJECT for CombiningAlgorithm.";
     private static final String ERROR_FIRST_NOT_ALLOWED         = "FIRST is not allowed as combining algorithm voting mode at PDP level. It implies an ordering that is not present here.";
     private static final String ERROR_INVALID_ENUM_VALUE        = "Invalid value '%s' for field '%s'. Valid values: %s.";
@@ -72,6 +73,9 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             val fieldName = parser.currentName();
+            if (fieldName == null) {
+                return context.reportInputMismatch(CombiningAlgorithm.class, ERROR_EXPECTED_FIELD_NAME);
+            }
             parser.nextToken();
 
             switch (fieldName) {
@@ -80,7 +84,7 @@ public class CombiningAlgorithmDeserializer extends StdDeserializer<CombiningAlg
                 defaultDecision = parseEnum(context, parser.getString(), fieldName, DefaultDecision.class);
             case "errorHandling"   ->
                 errorHandling = parseEnum(context, parser.getString(), fieldName, ErrorHandling.class);
-            default                -> { /* ignore unknown fields */ }
+            default                -> parser.skipChildren();
             }
         }
 

@@ -19,22 +19,27 @@ package io.sapl.playground.config;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import io.sapl.api.attributes.AttributeBroker;
+import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.documentation.DocumentationBundle;
 import io.sapl.api.documentation.LibraryDocumentation;
 import io.sapl.api.functions.FunctionBroker;
-import io.sapl.api.attributes.AttributeAccessContext;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.jackson.SaplJacksonModule;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.attributes.http.BlockingWebClient;
+import io.sapl.api.stream.RealTimeScheduler;
+import io.sapl.api.stream.Stream;
+import io.sapl.api.stream.Streams;
+import io.sapl.api.stream.TimeScheduler;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
-import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
+import io.sapl.attributes.broker.AttributeRepository;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
 import io.sapl.documentation.LibraryDocumentationExtractor;
 import io.sapl.extensions.mqtt.MqttFunctionLibrary;
 import io.sapl.extensions.mqtt.MqttPolicyInformationPoint;
@@ -46,13 +51,14 @@ import io.sapl.functions.geo.traccar.TraccarFunctionLibrary;
 import io.sapl.pip.geo.traccar.TraccarPolicyInformationPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.context.annotation.Primary;
 
+import java.net.http.HttpClient;
 import java.security.Key;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Optional;
 
 @Configuration
 public class PlaygroundConfiguration {
@@ -69,35 +75,55 @@ public class PlaygroundConfiguration {
     @Bean
     FunctionBroker functionBroker() {
         var broker = new DefaultFunctionBroker();
-        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
-            broker.loadStaticFunctionLibrary(libraryClass);
+        for (var library : DefaultLibraries.defaults()) {
+            broker.load(library);
         }
-        broker.loadStaticFunctionLibrary(GeographicFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(MqttFunctionLibrary.class);
-        broker.loadStaticFunctionLibrary(TraccarFunctionLibrary.class);
+        broker.load(new GeographicFunctionLibrary());
+        broker.load(new MqttFunctionLibrary());
+        broker.load(new TraccarFunctionLibrary());
         return broker;
     }
 
     @Bean
-    AttributeBroker attributeBroker(JsonMapper mapper) {
-        var repository = new InMemoryAttributeRepository(Clock.systemUTC());
-        var broker     = new CachingAttributeBroker(repository);
-        var webClient  = new DummyReactiveWebClient(mapper);
+    PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker(JsonMapper mapper,
+            InMemoryAttributeRepository inMemoryAttributeRepository) {
+        var clock     = Clock.systemUTC();
+        var scheduler = new RealTimeScheduler(clock);
+        var webClient = new DummyBlockingWebClient(mapper, HttpClient.newHttpClient());
+        var mqtt      = new DummySaplMqttClient(clock, scheduler);
+        var keys      = new DummyJWTKeyProvider(clock);
 
-        broker.loadPolicyInformationPointLibrary(new TimePolicyInformationPoint(Clock.systemUTC()));
-        broker.loadPolicyInformationPointLibrary(new HttpPolicyInformationPoint(webClient));
-        broker.loadPolicyInformationPointLibrary(new TraccarPolicyInformationPoint(webClient));
-        broker.loadPolicyInformationPointLibrary(new JWTPolicyInformationPoint(new DummyJWTKeyProvider()));
-        broker.loadPolicyInformationPointLibrary(new MqttPolicyInformationPoint(new DummySaplMqttClient()));
-        broker.loadPolicyInformationPointLibrary(new X509PolicyInformationPoint(Clock.systemUTC()));
+        var broker = new PolicyInformationPointAttributeBroker(Duration.ZERO, inMemoryAttributeRepository);
+        broker.load(new TimePolicyInformationPoint(clock, scheduler));
+        broker.load(new HttpPolicyInformationPoint(webClient));
+        broker.load(new TraccarPolicyInformationPoint(webClient));
+        broker.load(new JWTPolicyInformationPoint(keys, clock, scheduler));
+        broker.load(new MqttPolicyInformationPoint(mqtt));
+        broker.load(new X509PolicyInformationPoint(clock, scheduler));
         return broker;
+    }
+
+    @Bean
+    InMemoryAttributeRepository inMemoryAttributeRepository() {
+        return new InMemoryAttributeRepository();
+    }
+
+    @Bean
+    AttributeRepository attributeRepository(InMemoryAttributeRepository inMemoryAttributeRepository) {
+        return inMemoryAttributeRepository;
+    }
+
+    @Bean
+    @Primary
+    AttributeBroker attributeBroker(PolicyInformationPointAttributeBroker policyInformationPointAttributeBroker) {
+        return policyInformationPointAttributeBroker;
     }
 
     @Bean
     DocumentationBundle documentationBundle() {
         var libraries = new ArrayList<LibraryDocumentation>();
-        for (var libraryClass : DefaultLibraries.STATIC_LIBRARIES) {
-            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(libraryClass));
+        for (var library : DefaultLibraries.defaults()) {
+            libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(library.getClass()));
         }
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(GeographicFunctionLibrary.class));
         libraries.add(LibraryDocumentationExtractor.extractFunctionLibrary(MqttFunctionLibrary.class));
@@ -112,38 +138,42 @@ public class PlaygroundConfiguration {
     }
 
     public static class DummyJWTKeyProvider extends JWTKeyProvider {
-        public DummyJWTKeyProvider() {
-            super();
+        public DummyJWTKeyProvider(Clock clock) {
+            super(clock);
         }
 
         @Override
-        public Mono<Key> provide(String kid, JsonNode publicKeyServer) throws CachingException {
-            return Mono.error(new UnsupportedOperationException(ERROR_EXTERNAL_DATA_SOURCE_BLOCKED));
+        public Optional<Key> provide(String kid, JsonNode jPublicKeyServer) {
+            return Optional.empty();
         }
     }
 
     public static class DummySaplMqttClient extends SaplMqttClient {
+        public DummySaplMqttClient(Clock clock, TimeScheduler scheduler) {
+            super(clock, scheduler);
+        }
+
         @Override
-        public Flux<Value> buildSaplMqttMessageFlux(Value topic, AttributeAccessContext ctx, Value qos,
+        public Stream<Value> buildSaplMqttMessageStream(Value topic, AttributeAccessContext ctx, Value qos,
                 Value mqttPipConfig) {
-            return Flux.just(PIP_CALL_BLOCKED);
+            return Streams.just(PIP_CALL_BLOCKED);
         }
     }
 
-    public static class DummyReactiveWebClient extends ReactiveWebClient {
+    public static class DummyBlockingWebClient extends BlockingWebClient {
 
-        public DummyReactiveWebClient(JsonMapper mapper) {
-            super(mapper);
+        public DummyBlockingWebClient(JsonMapper mapper, HttpClient httpClient) {
+            super(mapper, httpClient);
         }
 
         @Override
-        public Flux<Value> httpRequest(HttpMethod method, ObjectValue requestSettings) {
-            return Flux.just(PIP_CALL_BLOCKED);
+        public Stream<Value> httpRequest(String httpMethod, ObjectValue requestSettings) {
+            return Streams.just(PIP_CALL_BLOCKED);
         }
 
         @Override
-        public Flux<Value> consumeWebSocket(ObjectValue requestSettings) {
-            return Flux.just(PIP_CALL_BLOCKED);
+        public Stream<Value> consumeWebSocket(ObjectValue requestSettings) {
+            return Streams.just(PIP_CALL_BLOCKED);
         }
     }
 

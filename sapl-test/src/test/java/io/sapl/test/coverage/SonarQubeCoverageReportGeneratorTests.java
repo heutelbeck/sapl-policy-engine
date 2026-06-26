@@ -153,6 +153,36 @@ class SonarQubeCoverageReportGeneratorTests {
     }
 
     @Test
+    @DisplayName("emits at most one lineToCover per line when target and a branch share line 1")
+    void whenTargetEvaluatedAndBranchOnLine1_thenSingleLineToCoverForLine1() throws IOException {
+        writeCoverageNdjson(
+                """
+                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":1,"targetFalseHits":0,"branches":[{"statementId":0,"line":1,"trueHits":1,"falseHits":1}]}]}
+                        """);
+
+        val generator    = new SonarQubeCoverageReportGenerator(tempDir);
+        val xml          = generator.generate();
+        val line1Entries = countOccurrences(xml, "lineNumber=\"1\"");
+
+        assertThat(line1Entries).isOne();
+    }
+
+    @Test
+    @DisplayName("emits a single aggregated lineToCover when two conditions share a source line")
+    void whenTwoConditionsOnSameLine_thenSingleAggregatedLineToCover() throws IOException {
+        writeCoverageNdjson(
+                """
+                        {"testIdentifier":"test-1","policies":[{"documentName":"test","documentType":"policy","filePath":"test.sapl","targetTrueHits":1,"targetFalseHits":0,"branches":[{"statementId":0,"startLine":5,"endLine":5,"startChar":4,"endChar":10,"trueHits":1,"falseHits":1},{"statementId":1,"startLine":5,"endLine":5,"startChar":20,"endChar":30,"trueHits":1,"falseHits":0}]}]}
+                        """);
+
+        val generator = new SonarQubeCoverageReportGenerator(tempDir);
+        val xml       = generator.generate();
+
+        assertThat(countOccurrences(xml, "lineNumber=\"5\"")).isOne();
+        assertThat(xml).contains("lineNumber=\"5\" covered=\"true\" branchesToCover=\"4\" coveredBranches=\"3\"");
+    }
+
+    @Test
     @DisplayName("createDefault uses target/sapl-coverage directory")
     void whenCreateDefault_thenUsesTargetDirectory() {
         val generator = SonarQubeCoverageReportGenerator.createDefault();
@@ -205,5 +235,15 @@ class SonarQubeCoverageReportGeneratorTests {
 
     private void writeCoverageNdjson(String content) throws IOException {
         Files.writeString(tempDir.resolve("coverage.ndjson"), content);
+    }
+
+    private static int countOccurrences(String haystack, String needle) {
+        var count = 0;
+        var index = haystack.indexOf(needle);
+        while (index >= 0) {
+            count++;
+            index = haystack.indexOf(needle, index + needle.length());
+        }
+        return count;
     }
 }

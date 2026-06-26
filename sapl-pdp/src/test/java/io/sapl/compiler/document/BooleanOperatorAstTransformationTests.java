@@ -17,13 +17,7 @@
  */
 package io.sapl.compiler.document;
 
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.BinaryOperatorType;
-import io.sapl.ast.Conjunction;
-import io.sapl.ast.Disjunction;
-import io.sapl.ast.Identifier;
-import io.sapl.ast.UnaryOperator;
-import io.sapl.ast.UnaryOperatorType;
+import io.sapl.ast.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

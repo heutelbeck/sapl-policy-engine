@@ -17,8 +17,12 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.compiler.document.VoteWithCoverage;
 import io.sapl.compiler.document.Voter;
-import reactor.core.publisher.Flux;
+import io.sapl.compiler.policy.CoverageVoter;
 
-public record VoterAndCoverage(Voter voter, Flux<VoteWithCoverage> coverage) {}
+/**
+ * Compiler output bundle for a policy set: the production {@link Voter}
+ * paired with the snapshot-driven {@link CoverageVoter} that emits the
+ * matching {@link io.sapl.compiler.document.VoteResultWithCoverage}.
+ */
+public record VoterAndCoverage(Voter voter, CoverageVoter coverageVoter) {}

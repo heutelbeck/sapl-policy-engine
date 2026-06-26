@@ -20,9 +20,12 @@ package io.sapl.lsp.sapl.completion;
 import static io.sapl.compiler.util.StringsUtil.unquoteString;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import tools.jackson.databind.JsonNode;
@@ -80,6 +83,11 @@ class ExpressionSchemaResolver {
      */
     public List<JsonNode> inferPotentialSchemasOfExpression(ExpressionContext expression, SaplContext sapl,
             int cursorOffset, LSPConfiguration config) {
+        return inferPotentialSchemasOfExpression(expression, sapl, cursorOffset, config, newVisitedSet());
+    }
+
+    private List<JsonNode> inferPotentialSchemasOfExpression(ExpressionContext expression, SaplContext sapl,
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         if (expression == null) {
             return new ArrayList<>();
         }
@@ -103,7 +111,7 @@ class ExpressionSchemaResolver {
         case GroupBasicContext groupBasic                       -> {
             // Group may contain an expression with implicit schemas
             var innerExpression = groupBasic.basicGroup().expression();
-            baseSchemas = inferPotentialSchemasOfExpression(innerExpression, sapl, cursorOffset, config);
+            baseSchemas = inferPotentialSchemasOfExpression(innerExpression, sapl, cursorOffset, config, visited);
             steps       = extractStepsFromBasic(groupBasic);
         }
         case FunctionBasicContext functionBasic                 -> {
@@ -128,7 +136,7 @@ class ExpressionSchemaResolver {
             // Identifier may be a subscription element or value definition
             var identifierCtx = identifierBasic.basicIdentifier();
             var identifier    = getIdentifierText(identifierCtx.saplId());
-            baseSchemas = inferPotentialSchemasFromIdentifier(identifier, sapl, cursorOffset, config);
+            baseSchemas = inferPotentialSchemasFromIdentifier(identifier, sapl, cursorOffset, config, visited);
             steps       = identifierCtx.step();
         }
         default                                                 -> {
@@ -152,8 +160,19 @@ class ExpressionSchemaResolver {
      */
     public List<JsonNode> inferValueDefinitionSchemas(ValueDefinitionContext valueDefinition, SaplContext sapl,
             int cursorOffset, LSPConfiguration config) {
+        return inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config, newVisitedSet());
+    }
+
+    private List<JsonNode> inferValueDefinitionSchemas(ValueDefinitionContext valueDefinition, SaplContext sapl,
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
+        // Guard against mutually recursive value definitions (e.g. var a = b; var b =
+        // a;) that would otherwise recurse without termination.
+        if (!visited.add(valueDefinition)) {
+            return new ArrayList<>();
+        }
+
         // First infer schemas from the assigned expression
-        var schemas = inferPotentialSchemasOfExpression(valueDefinition.eval, sapl, cursorOffset, config);
+        var schemas = inferPotentialSchemasOfExpression(valueDefinition.eval, sapl, cursorOffset, config, visited);
 
         // Then add explicit schema declarations
         for (var schemaExpression : valueDefinition.schemaVarExpression) {
@@ -161,6 +180,10 @@ class ExpressionSchemaResolver {
         }
 
         return schemas;
+    }
+
+    private Set<ValueDefinitionContext> newVisitedSet() {
+        return Collections.newSetFromMap(new IdentityHashMap<>());
     }
 
     private List<StepContext> extractStepsFromBasic(BasicContext basic) {
@@ -174,53 +197,60 @@ class ExpressionSchemaResolver {
 
     private BasicExpressionContext findBasicExpression(ExpressionContext expression) {
         // Navigate through expression hierarchy: expression -> lazyOr -> lazyAnd -> ...
-        // -> basicExpression
+        // -> basicExpression. At every binary level a single operand means no operator
+        // was applied. More than one operand means the value is a binary expression and
+        // must not inherit its left operand's schema.
         if (expression == null || expression.lazyOr() == null) {
             return null;
         }
 
         var lazyOr = expression.lazyOr();
-        if (lazyOr.lazyAnd().isEmpty()) {
+        if (lazyOr.lazyAnd().size() != 1) {
             return null;
         }
 
         var lazyAnd = lazyOr.lazyAnd(0);
-        if (lazyAnd.eagerOr().isEmpty()) {
+        if (lazyAnd.eagerOr().size() != 1) {
             return null;
         }
 
         var eagerOr = lazyAnd.eagerOr(0);
-        if (eagerOr.exclusiveOr().isEmpty()) {
+        if (eagerOr.exclusiveOr().size() != 1) {
             return null;
         }
 
         var exclusiveOr = eagerOr.exclusiveOr(0);
-        if (exclusiveOr.eagerAnd().isEmpty()) {
+        if (exclusiveOr.eagerAnd().size() != 1) {
             return null;
         }
 
         var eagerAnd = exclusiveOr.eagerAnd(0);
-        if (eagerAnd.equality().isEmpty()) {
+        if (eagerAnd.equality().size() != 1) {
             return null;
         }
 
         var equality = eagerAnd.equality(0);
-        if (equality.hasExpression().isEmpty()) {
+        if (equality.hasExpression().size() != 1) {
             return null;
         }
 
-        var comparison = equality.hasExpression(0).comparison(0);
-        if (comparison.addition().isEmpty()) {
+        var hasExpression = equality.hasExpression(0);
+        if (hasExpression.comparison().size() != 1) {
+            return null;
+        }
+
+        var comparison = hasExpression.comparison(0);
+        if (comparison.addition().size() != 1) {
             return null;
         }
 
         var addition = comparison.addition(0);
-        if (addition.multiplication().isEmpty()) {
+        if (addition.multiplication().size() != 1) {
             return null;
         }
 
         var multiplication = addition.multiplication(0);
-        if (multiplication.unaryExpression().isEmpty()) {
+        if (multiplication.unaryExpression().size() != 1) {
             return null;
         }
 
@@ -351,27 +381,56 @@ class ExpressionSchemaResolver {
     private List<JsonNode> lookupSchemasByName(String resolvedName, Map<String, JsonNode> schemasByCodeTemplate) {
         var discoveredSchemas = new ArrayList<JsonNode>();
         for (var schemaEntry : schemasByCodeTemplate.entrySet()) {
-            if (schemaEntry.getKey().contains(resolvedName)) {
+            // Match on the function identity, not on substring containment, so a short
+            // name cannot pick up the schema of an unrelated longer-named function.
+            if (qualifiedNameOf(schemaEntry.getKey()).equals(resolvedName)) {
                 discoveredSchemas.add(schemaEntry.getValue());
             }
         }
         return discoveredSchemas;
     }
 
+    private String qualifiedNameOf(String codeTemplate) {
+        // Function templates read library.name(args). Attribute templates read
+        // <library.name(args)> or <library.name>. Strip decorations to the bare name.
+        var name = codeTemplate;
+        if (name.startsWith("<")) {
+            name = name.substring(1);
+        }
+        var firstDecoration = indexOfFirstDecoration(name);
+        if (firstDecoration >= 0) {
+            name = name.substring(0, firstDecoration);
+        }
+        return name;
+    }
+
+    private int indexOfFirstDecoration(String name) {
+        var parenIndex = name.indexOf('(');
+        var angleIndex = name.indexOf('>');
+        if (parenIndex < 0) {
+            return angleIndex;
+        }
+        if (angleIndex < 0) {
+            return parenIndex;
+        }
+        return Math.min(parenIndex, angleIndex);
+    }
+
     private List<JsonNode> inferPotentialSchemasFromIdentifier(String identifier, SaplContext sapl, int cursorOffset,
-            LSPConfiguration config) {
+            LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         if (VariablesProposalsGenerator.AUTHORIZATION_SUBSCRIPTION_VARIABLES.contains(identifier)) {
             return inferSubscriptionElementSchema(identifier, sapl, config);
         }
 
-        var schemas = new ArrayList<>(
-                lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, sapl, cursorOffset, config));
-        schemas.addAll(lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, sapl, cursorOffset, config));
+        var schemas = new ArrayList<>(lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(identifier, sapl,
+                cursorOffset, config, visited));
+        schemas.addAll(
+                lookupSchemasOfMatchingValueDefinitionsInPolicyBody(identifier, sapl, cursorOffset, config, visited));
         return schemas;
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicySetHeader(String identifier, SaplContext sapl,
-            int cursorOffset, LSPConfiguration config) {
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         var schemas = new ArrayList<JsonNode>();
 
         var policyElement = sapl.policyElement();
@@ -379,7 +438,7 @@ class ExpressionSchemaResolver {
             var policySet = policySetElement.policySet();
             for (var valueDefinition : policySet.valueDefinition()) {
                 if (nameMatchesAndIsInScope(identifier, valueDefinition, cursorOffset)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config));
+                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config, visited));
                 }
             }
         }
@@ -388,12 +447,13 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> lookupSchemasOfMatchingValueDefinitionsInPolicyBody(String identifier, SaplContext sapl,
-            int cursorOffset, LSPConfiguration config) {
+            int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         var schemas      = new ArrayList<JsonNode>();
         var policyBodies = collectPolicyBodies(sapl);
 
         for (var policyBody : policyBodies) {
-            schemas.addAll(findMatchingValueDefinitionsInBody(identifier, policyBody, sapl, cursorOffset, config));
+            schemas.addAll(
+                    findMatchingValueDefinitionsInBody(identifier, policyBody, sapl, cursorOffset, config, visited));
         }
         return schemas;
     }
@@ -420,13 +480,13 @@ class ExpressionSchemaResolver {
     }
 
     private List<JsonNode> findMatchingValueDefinitionsInBody(String identifier, PolicyBodyContext policyBody,
-            SaplContext sapl, int cursorOffset, LSPConfiguration config) {
+            SaplContext sapl, int cursorOffset, LSPConfiguration config, Set<ValueDefinitionContext> visited) {
         var schemas = new ArrayList<JsonNode>();
         for (var statement : policyBody.statement()) {
             if (statement instanceof ValueDefinitionStatementContext valueDefStatement) {
                 var valueDefinition = valueDefStatement.valueDefinition();
                 if (nameMatchesAndIsInScope(identifier, valueDefinition, cursorOffset)) {
-                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config));
+                    schemas.addAll(inferValueDefinitionSchemas(valueDefinition, sapl, cursorOffset, config, visited));
                 }
             }
         }
@@ -458,7 +518,7 @@ class ExpressionSchemaResolver {
         return schemaStatement.subscriptionElement.getText();
     }
 
-    private String resolveImport(String nameReference, SaplContext sapl) {
+    String resolveImport(String nameReference, SaplContext sapl) {
         if (nameReference.contains(".")) {
             return nameReference;
         }
@@ -472,7 +532,8 @@ class ExpressionSchemaResolver {
             var importedFunction = fullyQualifiedFunctionName(currentImport);
             var alias            = currentImport.functionAlias != null ? currentImport.functionAlias.getText() : null;
 
-            if (nameReference.equals(alias) || importedFunction.endsWith(nameReference)) {
+            if (nameReference.equals(alias) || importedFunction.equals(nameReference)
+                    || importedFunction.endsWith("." + nameReference)) {
                 return importedFunction;
             }
         }

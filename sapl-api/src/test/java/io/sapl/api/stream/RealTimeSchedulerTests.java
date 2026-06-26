@@ -1,0 +1,114 @@
+/*
+ * Copyright (C) 2017-2026 Dominic Heutelbeck (dominic@heutelbeck.com)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.sapl.api.stream;
+
+import lombok.val;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.awaitility.Awaitility.await;
+
+@DisplayName("RealTimeScheduler")
+class RealTimeSchedulerTests {
+
+    private static final Instant REFERENCE = Instant.parse("2025-01-01T00:00:00Z");
+
+    private final Clock       clock = Clock.fixed(REFERENCE, ZoneOffset.UTC);
+    private RealTimeScheduler scheduler;
+
+    @BeforeEach
+    void setUp() {
+        scheduler = new RealTimeScheduler(clock);
+    }
+
+    @AfterEach
+    void tearDown() {
+        scheduler.close();
+    }
+
+    @Test
+    @DisplayName("runs the task at the scheduled instant")
+    void whenScheduleAtFutureInstantThenTaskRunsBeforeDeadline() {
+        val fired = new AtomicBoolean(false);
+
+        scheduler.scheduleAt(REFERENCE.plusMillis(50), () -> fired.set(true));
+
+        await().atMost(Duration.ofSeconds(1)).untilTrue(fired);
+    }
+
+    @Test
+    @DisplayName("runs immediately when scheduled instant is in the past")
+    void whenScheduleAtPastInstantThenTaskRunsImmediately() {
+        val fired = new AtomicBoolean(false);
+
+        scheduler.scheduleAt(REFERENCE.minusSeconds(1), () -> fired.set(true));
+
+        await().atMost(Duration.ofSeconds(1)).untilTrue(fired);
+    }
+
+    @Test
+    @DisplayName("cancel before fire prevents the task from running")
+    void whenCancelBeforeFireThenTaskDoesNotRun() {
+        val ranCount = new AtomicInteger();
+
+        val cancellable = scheduler.scheduleAt(REFERENCE.plusMillis(200), ranCount::incrementAndGet);
+        cancellable.cancel();
+
+        await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofMillis(400))
+                .untilAsserted(() -> assertThat(ranCount).hasValue(0));
+    }
+
+    @Test
+    @DisplayName("scheduling a far-future instant clamps the delay instead of throwing")
+    void whenScheduleAtInstantBeyondNanoHorizonThenDoesNotThrowAndTaskStaysPending() {
+        val fired = new AtomicBoolean(false);
+
+        // 1000 years out exceeds the ~292-year long-nanosecond range, so the delay must
+        // saturate, not overflow.
+        val farFuture = REFERENCE.plus(Duration.ofDays(365L * 1000L));
+
+        assertThatCode(() -> scheduler.scheduleAt(farFuture, () -> fired.set(true))).doesNotThrowAnyException();
+
+        await().pollDelay(Duration.ofMillis(200)).atMost(Duration.ofMillis(400))
+                .untilAsserted(() -> assertThat(fired).isFalse());
+    }
+
+    @Test
+    @DisplayName("a task that throws is logged and does not crash the scheduler")
+    void whenTaskThrowsThenSubsequentTasksStillRun() {
+        val secondRan = new AtomicBoolean(false);
+
+        scheduler.scheduleAt(REFERENCE.plusMillis(20), () -> {
+            throw new RuntimeException("boom");
+        });
+        scheduler.scheduleAt(REFERENCE.plusMillis(60), () -> secondRan.set(true));
+
+        await().atMost(Duration.ofSeconds(1)).untilTrue(secondRan);
+    }
+}

@@ -189,10 +189,10 @@ obligation
 		"type"		: "sendEmail",
 		"recipient"	: "Dr. Gregory House <houseMD@ppth.med>",
 		"subject"	: "Patient manipulated by administrator.",
-		"message"	: ("Administrator " + subject.name + " has manipulated patient: " + action.http.requestedURI)
+		"message"	: ("Administrator " + subject.name + " has manipulated patient: " + action.http.path)
 	}
 advice
 	{
 		"type" 		: "logAccess",
-		"message"	: ("Administrator " + subject.name + " has manipulated patient: " + action.http.requestedURI)
+		"message"	: ("Administrator " + subject.name + " has manipulated patient: " + action.http.path)
 	}

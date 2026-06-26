@@ -20,7 +20,7 @@ package io.sapl.api.model.jackson;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 
 /**
  * Serializer for {@link CombiningAlgorithm} that outputs JSON object format.

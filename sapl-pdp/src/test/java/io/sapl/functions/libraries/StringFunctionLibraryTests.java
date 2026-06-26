@@ -17,19 +17,19 @@
  */
 package io.sapl.functions.libraries;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -40,8 +40,7 @@ class StringFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(StringFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new StringFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0} -> {1}")
@@ -470,5 +469,55 @@ class StringFunctionLibraryTests {
     void reverseReversesCharacterOrder(String input, String expected) {
         val result = (TextValue) StringFunctionLibrary.reverse((TextValue) Value.of(input));
         assertThat(result.value()).isEqualTo(expected);
+    }
+
+    @Test
+    void leftPadWhenTargetLengthExceedsMaximumThenError() {
+        val result = StringFunctionLibrary.leftPad((TextValue) Value.of("x"), Value.of(1_000_000),
+                (TextValue) Value.of("0"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds maximum");
+    }
+
+    @Test
+    void rightPadWhenTargetLengthExceedsMaximumThenError() {
+        val result = StringFunctionLibrary.rightPad((TextValue) Value.of("x"), Value.of(1_000_000),
+                (TextValue) Value.of("0"));
+
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds maximum");
+    }
+
+    @Nested
+    @DisplayName("locale-independent case normalization")
+    class LocaleIndependence {
+
+        private Locale originalDefault;
+
+        @BeforeEach
+        void pinTurkishLocale() {
+            originalDefault = Locale.getDefault();
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        }
+
+        @AfterEach
+        void restoreLocale() {
+            Locale.setDefault(originalDefault);
+        }
+
+        @Test
+        @DisplayName("toLowerCase folds ASCII identifiers regardless of the JVM default locale")
+        void toLowerCaseUnderTurkishLocaleStillFoldsAsciiIToAsciiI() {
+            val result = (TextValue) StringFunctionLibrary.toLowerCase((TextValue) Value.of("ADMIN"));
+            assertThat(result.value()).isEqualTo("admin").doesNotContain("ı");
+        }
+
+        @Test
+        @DisplayName("toUpperCase folds ASCII identifiers regardless of the JVM default locale")
+        void toUpperCaseUnderTurkishLocaleStillFoldsAsciiIToAsciiI() {
+            val result = (TextValue) StringFunctionLibrary.toUpperCase((TextValue) Value.of("admin"));
+            assertThat(result.value()).isEqualTo("ADMIN").doesNotContain("İ");
+        }
     }
 }

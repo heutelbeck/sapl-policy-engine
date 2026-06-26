@@ -85,7 +85,7 @@ class PortedDemoTests {
      */
     @Test
     void whenUsingRealTemporalFunctionLibrary_thenPermit() {
-        SaplTestFixture.createSingleTest().withFunctionLibrary(TemporalFunctionLibrary.class)
+        SaplTestFixture.createSingleTest().withFunctionLibrary(new TemporalFunctionLibrary())
                 .withPolicy(POLICY_WITH_FUNCTION).whenDecide(AuthorizationSubscription.of("willi", "read", "something"))
                 .expectPermit().verify();
     }
@@ -147,9 +147,12 @@ class PortedDemoTests {
     }
 
     /**
-     * Tests when "for" clause matches but no inner policy permits.
-     * A regular person (not cultist or high-clearance researcher) should be denied
-     * due to deny-unless-permit combining algorithm.
+     * Tests when the "for" clause matches but no inner policy is applicable.
+     * A regular visitor (not cultist or high-clearance researcher) produces no
+     * inner
+     * vote, so the policy set's "first ... or deny" default decision applies and
+     * the
+     * set decides DENY.
      */
     @Test
     void whenForClauseMatchesButNoInnerPolicyPermits_thenDeny() {

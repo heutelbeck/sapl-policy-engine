@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{status}} {{error}} - SAPL Node</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/css/sapl-error.css">
+</head>
+<body>
+<main class="card">
+    <a class="brand" href="https://sapl.io">
+        <img class="logo-light" src="/sapl-icon-light.svg" alt="SAPL">
+        <img class="logo-dark"  src="/sapl-icon.svg"       alt="SAPL">
+        <span class="brand-text">
+            <span class="brand-name">SAPL</span>
+            <span class="brand-subtitle">Streaming Attribute Policy Language</span>
+        </span>
+    </a>
+    <div class="status">{{status}}</div>
+    <h1 class="title">{{error}}</h1>
+    {{#message}}<p class="message">{{message}}</p>{{/message}}
+    {{^message}}<p class="message">The SAPL Node could not complete this request.</p>{{/message}}
+    <div class="actions">
+        <a class="btn btn-primary" href="/scalar">API Reference</a>
+        <a class="btn btn-secondary" href="https://sapl.io">sapl.io</a>
+    </div>
+</main>
+</body>
+</html>

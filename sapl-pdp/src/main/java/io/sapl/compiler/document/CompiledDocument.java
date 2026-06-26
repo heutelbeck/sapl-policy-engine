@@ -20,7 +20,7 @@ package io.sapl.compiler.document;
 import io.sapl.api.model.CompiledExpression;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
-import reactor.core.publisher.Flux;
+import io.sapl.compiler.policy.CoverageVoter;
 
 public interface CompiledDocument {
 
@@ -30,15 +30,11 @@ public interface CompiledDocument {
         return metadata().outcome();
     }
 
-    default boolean hasConstraints() {
-        return metadata().hasConstraints();
-    }
-
     CompiledExpression isApplicable();
 
     Voter voter();
 
     Voter applicabilityAndVote();
 
-    Flux<VoteWithCoverage> coverage();
+    CoverageVoter coverageVoter();
 }

@@ -29,6 +29,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.ParsedDocumentGuards;
 import io.sapl.test.grammar.antlr.SAPLTestLexer;
 import io.sapl.test.grammar.antlr.SAPLTestParser;
 import io.sapl.test.grammar.antlr.SAPLTestParser.SaplTestContext;
@@ -58,10 +59,15 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         this.uri     = uri;
         this.content = content;
 
-        var errors = new ArrayList<ParseError>();
+        // The editor parses untrusted text on every keystroke, so the compile-path
+        // guards
+        // apply here: oversized documents are skipped, and trojan-source characters and
+        // excessive nesting become error diagnostics.
+        var errors  = new ArrayList<>(ParsedDocumentGuards.preParseDiagnostics(content));
+        var toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
 
         // Create lexer
-        var charStream = CharStreams.fromString(content);
+        var charStream = CharStreams.fromString(toParse);
         var lexer      = new SAPLTestLexer(charStream);
         lexer.removeErrorListeners();
         lexer.addErrorListener(new ErrorCollector(errors));
@@ -73,7 +79,7 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         parser.addErrorListener(new ErrorCollector(errors));
 
         // Parse
-        this.saplTestParseTree = parser.saplTest();
+        this.saplTestParseTree = parseWithNestingGuard(parser, errors);
         this.parseErrors       = List.copyOf(errors);
 
         // Semantic validation
@@ -84,6 +90,17 @@ public final class SAPLTestParsedDocument implements ParsedDocument {
         this.validationErrors = testValidationErrors.stream()
                 .map(e -> new ValidationError(e.line(), e.charPositionInLine(), e.message(), e.offendingText()))
                 .toList();
+    }
+
+    private static SaplTestContext parseWithNestingGuard(SAPLTestParser parser, List<ParseError> errors) {
+        try {
+            return parser.saplTest();
+        } catch (StackOverflowError e) {
+            errors.add(ParsedDocumentGuards.nestingTooDeep());
+            var emptyParser = new SAPLTestParser(new CommonTokenStream(new SAPLTestLexer(CharStreams.fromString(""))));
+            emptyParser.removeErrorListeners();
+            return emptyParser.saplTest();
+        }
     }
 
     @Override

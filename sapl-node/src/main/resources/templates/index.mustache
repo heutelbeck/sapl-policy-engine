@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAPL Node</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/css/sapl-error.css">
+</head>
+<body>
+<main class="card">
+    <a class="brand" href="https://sapl.io">
+        <img class="logo-light" src="/sapl-icon-light.svg" alt="SAPL">
+        <img class="logo-dark"  src="/sapl-icon.svg"       alt="SAPL">
+        <span class="brand-text">
+            <span class="brand-name">SAPL</span>
+            <span class="brand-subtitle">Streaming Attribute Policy Language</span>
+        </span>
+    </a>
+    <h1 class="title">SAPL Node</h1>
+    <p class="message">Streaming policy decision point.</p>
+    <p class="meta">
+        {{#version}}<span class="meta-item">{{version}}</span>{{/version}}
+        {{#commit}}<span class="meta-item meta-commit">{{commit}}</span>{{/commit}}
+        <span class="health {{#healthUp}}health-up{{/healthUp}}{{#healthDown}}health-down{{/healthDown}}">
+            <span class="health-dot"></span>{{health}}
+        </span>
+    </p>
+    <div class="actions">
+        <a class="btn btn-primary"   href="/scalar">API Reference</a>
+        <a class="btn btn-secondary" href="/actuator/health">Health</a>
+        <a class="btn btn-secondary" href="https://sapl.io">sapl.io</a>
+    </div>
+</main>
+</body>
+</html>

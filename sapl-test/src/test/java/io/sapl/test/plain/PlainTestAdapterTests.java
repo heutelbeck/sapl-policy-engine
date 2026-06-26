@@ -61,6 +61,19 @@ class PlainTestAdapterTests {
     }
 
     @Test
+    @DisplayName("execute isolates a runtime failure in one document as an error result")
+    void whenTestDocumentTriggersRuntimeException_thenCreatesErrorResultInsteadOfThrowing() {
+        val brokenDocument = new SaplTestDocument("broken", "broken", null);
+        val config         = TestConfiguration.builder().withSaplTestDocument(brokenDocument).build();
+        val results        = ADAPTER.execute(config);
+
+        assertThat(results.total()).isOne();
+        assertThat(results.errors()).isOne();
+        assertThat(results.allPassed()).isFalse();
+        assertThat(results.scenarioResults().getFirst().status()).isEqualTo(TestStatus.ERROR);
+    }
+
+    @Test
     @DisplayName("adapter instance can be reused")
     void whenAdapterReused_thenWorksCorrectly() {
         val config1  = TestConfiguration.builder().build();

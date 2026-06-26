@@ -17,20 +17,19 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.dataformat.toml.TomlMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.toml.TomlFactory;
+import tools.jackson.dataformat.toml.TomlMapper;
 
 /**
  * Function library providing TOML marshalling and unmarshalling operations.
  */
-@UtilityClass
 @FunctionLibrary(name = TomlFunctionLibrary.NAME, description = TomlFunctionLibrary.DESCRIPTION, libraryDocumentation = TomlFunctionLibrary.DOCUMENTATION)
 public class TomlFunctionLibrary {
 
@@ -44,6 +43,15 @@ public class TomlFunctionLibrary {
             configuration management. Parse TOML configuration files into SAPL values for policy
             evaluation, or serialize authorization configurations into TOML format for application
             configuration files and infrastructure management.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The input is limited to 1 MB.
+            - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to TOML: %s.";
@@ -55,7 +63,9 @@ public class TomlFunctionLibrary {
             }
             """;
 
-    private static final TomlMapper TOML_MAPPER = TomlMapper.builder().build();
+    private static final TomlMapper TOML_MAPPER = TomlMapper
+            .builder(TomlFactory.builder().streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build())
+            .build();
 
     /**
      * Converts a well-formed TOML document into a SAPL value.
@@ -69,6 +79,9 @@ public class TomlFunctionLibrary {
             ```tomlToVal(TEXT toml)```: Converts a well-formed TOML document into a SAPL value
             representing the content of the TOML document.
 
+            Input longer than 1 MB (1048576 characters) is rejected with an error, and nesting
+            depth is bounded, so a hostile attribute value cannot exhaust the evaluation thread.
+
             **Example:**
             ```sapl
             policy "permit_based_on_config"
@@ -79,6 +92,9 @@ public class TomlFunctionLibrary {
             ```
             """)
     public static Value tomlToVal(TextValue toml) {
+        if (TextParseLimits.exceedsMaxInput(toml.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         try {
             val jsonNode = TOML_MAPPER.readTree(toml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);
@@ -113,7 +129,7 @@ public class TomlFunctionLibrary {
             val jsonNode   = ValueJsonMarshaller.toJsonNode(value);
             val tomlString = TOML_MAPPER.writeValueAsString(jsonNode);
             return Value.of(tomlString);
-        } catch (JacksonException exception) {
+        } catch (JacksonException | IllegalArgumentException exception) {
             return Value.error(ERROR_FAILED_TO_CONVERT, exception.getMessage());
         }
     }

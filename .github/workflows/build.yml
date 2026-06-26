@@ -100,62 +100,6 @@ jobs:
       - name: Clean up Local Repository before Caching
         run: rm -rf ~/.m2/repository/io/sapl
 
-  sonar-early:
-    name: SonarCloud Early Feedback
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    if: ${{ !github.event.pull_request.head.repo.fork && github.actor != 'dependabot[bot]' }}
-    timeout-minutes: 30
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
-        with:
-          egress-policy: audit
-
-      - name: Check out
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-          cache: 'maven'
-
-      - name: Compile and Run SpotBugs
-        run: |
-          mvn -B install -Dmaven.test.skip=true -pl sapl-code-style -q
-          mvn -B package spotbugs:spotbugs -Dmaven.test.skip=true -pl '!sapl-bom,!sapl-code-style' -Pspotbugs -T 1.5C
-
-      - name: Cache Sonar Packages
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-        # Runs SonarCloud analysis on compiled code with SpotBugs findings but
-        # without coverage data. This provides fast issue feedback (~12 min)
-        # while the full analysis with coverage follows after tests complete.
-      - name: Run SonarCloud Analysis
-        env:
-          SONAR_TOKEN: ${{ secrets.SONARCLOUD_TOKEN }}
-        run: >
-          mvn -B sonar:sonar
-          -pl '!sapl-bom,!sapl-code-style'
-          -Dsonar.organization=heutelbeck
-          -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.projectKey=heutelbeck_sapl-policy-engine
-          -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml
-          -Dsonar.qualitygate.wait=true
-          -Pproduction
-
-      - name: Clean up Local Repository before Caching
-        run: rm -rf ~/.m2/repository/io/sapl
-
   test:
     strategy:
       matrix:
@@ -229,8 +173,7 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-        # Authoritative SonarCloud analysis with full coverage and SpotBugs data.
-        # Overwrites the earlier fast-feedback analysis from the sonar-early job.
+        # SonarCloud analysis with full coverage and SpotBugs data.
         # The quality gate is enforced here (sonar.qualitygate.wait=true).
       - name: Run SonarCloud Analysis with Coverage
         if: ${{ (env.RUN_ANALYSIS == 'true') && (env.IS_FORK == 'false') }}
@@ -406,8 +349,6 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/build_native_node.yml
-    with:
-      include-macos: ${{ needs.version-check.outputs.is_tag == 'true' }}
 
   build-native-lsp:
     if: ${{ github.event_name != 'pull_request' }}
@@ -415,12 +356,108 @@ jobs:
       contents: read
     uses: ./.github/workflows/build_native_lsp.yml
 
+  smoke-test-native-node:
+    needs: [build-native-node]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Smoke Test Native SAPL Node
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: .github/scripts/native-node-smoke-test.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download Linux amd64 artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-linux-amd64
+          path: artifacts/linux-amd64
+
+      - name: Run smoke test against the native binary
+        run: |
+          chmod +x artifacts/linux-amd64/sapl
+          .github/scripts/native-node-smoke-test.sh ./artifacts/linux-amd64/sapl
+
+  benchmark-scripts-test:
+    needs: [smoke-test-native-node]
+    if: ${{ github.event_name != 'pull_request' }}
+    name: Benchmark Scripts Regression Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 40
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up JDK
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Cache Maven packages
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Install wrk2 (HTTP load generator)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev
+          # wrk2 has no apt package and no tagged releases. Fetch exactly this
+          # commit (not a moving branch) so a later wrk2 push cannot change it.
+          # Update WRK2_SHA deliberately when bumping.
+          WRK2_SHA=44a94c17d8e6a0bac8559b53da76848e430cb7a7
+          git init "$RUNNER_TEMP/wrk2"
+          git -C "$RUNNER_TEMP/wrk2" fetch --depth 1 https://github.com/giltene/wrk2.git "$WRK2_SHA"
+          git -C "$RUNNER_TEMP/wrk2" checkout FETCH_HEAD
+          make -C "$RUNNER_TEMP/wrk2"
+          sudo install "$RUNNER_TEMP/wrk2/wrk" /usr/local/bin/wrk2
+
+      - name: Download Linux amd64 artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: sapl-linux-amd64
+          path: artifacts/linux-amd64
+
+      - name: Build benchmark JVM jars and run the script regression test
+        shell: bash
+        run: |
+          mkdir -p sapl-benchmark/bin
+          # Reuse the native binary from build-native-node. This job uses temurin,
+          # so build.sh finds no native-image and builds only the JVM jars, leaving
+          # this binary untouched. The native image is never rebuilt here.
+          cp artifacts/linux-amd64/sapl sapl-benchmark/bin/sapl
+          chmod +x sapl-benchmark/bin/sapl
+          ./sapl-benchmark/scripts/build.sh
+          BENCH_QUALITIES=test ./sapl-benchmark/scripts/run-all.sh "$RUNNER_TEMP/bench-results"
+
   # ---------------------------------------------------------------------------
   # Phase 2: Publish (gated on all of Phase 1)
   # ---------------------------------------------------------------------------
 
   publish-maven:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -490,7 +527,7 @@ jobs:
         run: rm -rf ~/.m2/repository/io/sapl
 
   publish-docker:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -584,7 +621,7 @@ jobs:
           echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
 
   publish-native-node:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -633,13 +670,6 @@ jobs:
           name: sapl-windows-amd64
           path: artifacts/windows
 
-      - name: Download macOS artifact
-        continue-on-error: true
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-        with:
-          name: sapl-macos-arm64
-          path: artifacts/macos
-
       - name: Download SAPL Node JAR
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -650,7 +680,7 @@ jobs:
         env:
           VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/macos staging/windows
+          mkdir -p release staging/linux-amd64 staging/linux-arm64 staging/windows
 
           # Man pages and completion are platform-independent, bundled in the linux-amd64 artifact
           MAN_SRC=artifacts/linux-amd64/generated-man
@@ -685,19 +715,8 @@ jobs:
           # JVM fat JAR
           cp sapl-node/target/sapl-node-*.jar "release/sapl-node-${VERSION}.jar"
 
-          # macOS (tar.gz) - only available on tag builds
-          if [ -f artifacts/macos/sapl ]; then
-            cp artifacts/macos/sapl staging/macos/sapl
-            chmod +x staging/macos/sapl
-            cp LICENSE staging/macos/
-            cp sapl-node/README.md staging/macos/
-            cp -r "$MAN_SRC" staging/macos/man
-            mkdir -p staging/macos/completion
-            cp "$COMPLETION_SRC/sapl.bash" staging/macos/completion/
-            tar -czf "release/sapl-${VERSION}-macos-arm64.tar.gz" -C staging/macos .
-          else
-            echo "::notice::macOS artifact not available (built on tag releases only)"
-          fi
+          # macOS arm64 binary is built and uploaded separately by
+          # FTKeV/sapl-mac-build and attached to the release manually.
 
       # Install nfpm directly instead of using goreleaser/nfpm action.
       # The action (goreleaser/nfpm@v2) fails with broken symlinks in its
@@ -749,7 +768,6 @@ jobs:
 
             Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
             The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
-            macOS native builds are included in tagged releases only.
 
             ### Linux Packages
             | Format | x86_64 | ARM64 |
@@ -802,6 +820,16 @@ jobs:
             The JVM JAR is a Spring Boot fat JAR that runs on any platform with Java 21+.
             Each native archive contains the `sapl` binary, `LICENSE`, and `README.md`.
 
+            ### macOS users: first-run setup
+
+            macOS Gatekeeper blocks unsigned binaries downloaded from the internet. After extracting the tarball, run this once to allow the binary to execute:
+
+            ```bash
+            xattr -dr com.apple.quarantine ./sapl
+            ```
+
+            Alternatively, right-click `sapl` in Finder, choose **Open**, and confirm in the dialog. After approval, you can run it normally from the command line.
+
             ### Linux Packages
             | Format | x86_64 | ARM64 |
             |--------|--------|-------|
@@ -850,7 +878,7 @@ jobs:
           git push
 
   publish-native-lsp:
-    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, publish-native-node]
+    needs: [test, version-check, build-native-node, build-native-lsp, build-docker, smoke-test-native-node, benchmark-scripts-test, publish-native-node]
     if: >-
       ${{
         !failure() && !cancelled() &&
@@ -1072,6 +1100,44 @@ jobs:
           if git diff --cached --quiet; then echo "No hash changes"; exit 0; fi
           git commit -m "update sapl-language-server package hashes for ${VERSION}"
           git push
+
+  publish-version-sums:
+    name: Regenerate version-release SHA256SUMS.txt
+    needs: [version-check, publish-native-node, publish-native-lsp]
+    if: ${{ needs.version-check.outputs.is_tag == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+        with:
+          egress-policy: audit
+
+      - name: Download all current release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p sums-staging
+          gh release download "${TAG}" --repo "${{ github.repository }}" --dir sums-staging --pattern '*.tar.gz' --pattern '*.zip' --pattern '*.deb' --pattern '*.rpm' --pattern '*.jar'
+          ls -lh sums-staging/
+
+      - name: Generate complete SHA256SUMS.txt
+        run: |
+          cd sums-staging
+          sha256sum -- * > SHA256SUMS.txt
+          echo "=== Final SHA256SUMS.txt ($(wc -l < SHA256SUMS.txt) entries) ==="
+          cat SHA256SUMS.txt
+
+      - name: Upload SHA256SUMS.txt to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "${TAG}" sums-staging/SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
 
   publish-docs:
     needs: [test, version-check]

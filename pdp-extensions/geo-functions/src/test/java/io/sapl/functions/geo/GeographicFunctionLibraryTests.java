@@ -17,6 +17,7 @@
  */
 package io.sapl.functions.geo;
 
+import com.sun.net.httpserver.HttpServer;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.*;
 import io.sapl.functions.DefaultFunctionBroker;
@@ -25,15 +26,31 @@ import lombok.val;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.referencing.CRS;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.geojson.GeoJsonWriter;
-import org.locationtech.spatial4j.distance.DistanceUtils;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static io.sapl.api.model.ValueJsonMarshaller.json;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.*;
 import static io.sapl.functions.geo.GeographicFunctionLibrary.within;
 import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.within;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class GeographicFunctionLibraryTests {
 
@@ -159,8 +176,7 @@ class GeographicFunctionLibraryTests {
     @Test
     void libraryLoadsWithoutErrors() {
         var functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GeographicFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new GeographicFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test
@@ -222,7 +238,7 @@ class GeographicFunctionLibraryTests {
     @Test
     void bufferTest() {
         val expectedGeometry = geometryToGeoJSON(POINT_1_2_GEOMETRY.buffer(10.0D));
-        val actualGeometry   = buffer(POINT_1_2, Value.of(10.0D));
+        val actualGeometry   = buffer(POINT_1_2, (NumberValue) Value.of(10.0D));
         assertThat(actualGeometry).isEqualTo(expectedGeometry);
     }
 
@@ -403,6 +419,15 @@ class GeographicFunctionLibraryTests {
     }
 
     @Test
+    void subsetWhenThisHasMoreRawMembersButAllDistinctMembersPresentThenTrue() {
+        val geometryCollectionThis = geometryToGeoJSON(
+                GEO_FACTORY.createGeometryCollection(new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_1_GEOMETRY }));
+        val geometryCollectionThat = geometryToGeoJSON(
+                GEO_FACTORY.createGeometryCollection(new Geometry[] { POLYGON_1_GEOMETRY }));
+        assertThat(subset(geometryCollectionThis, geometryCollectionThat)).isEqualTo(Value.TRUE);
+    }
+
+    @Test
     void subsetTest_returnsFalseWhenThisIsLarger() {
         val geometryCollectionThis = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(
                 new Geometry[] { POLYGON_1_GEOMETRY, POLYGON_3_GEOMETRY, POINT_1_2_GEOMETRY }));
@@ -438,21 +463,21 @@ class GeographicFunctionLibraryTests {
     }
 
     @Test
-    void testMilesToMeterJsonNode() {
-        val miles    = 1.0;
-        val milesVal = Value.of(miles);
-        val expected = miles * DistanceUtils.MILES_TO_KM * 1000;
+    void whenConvertingOneMileToMeterThenResultIsStatuteMileInMeters() {
+        val milesVal = Value.of(1.0);
+        // The international statute mile is defined as exactly 1609.344 meters.
+        val expected = 1609.344;
         val actual   = milesToMeter((NumberValue) milesVal);
         assertThat(actual).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.001));
     }
 
     @Test
-    void testYardToMeter() {
-        val yards    = 1.0;
-        val yardVal  = Value.of(yards);
+    void whenConvertingOneYardToMeterThenResultIsInternationalYardInMeters() {
+        val yardVal = Value.of(1.0);
+        // The international yard is defined as exactly 0.9144 meters.
+        val expected = 0.9144;
         val actual   = yardToMeter((NumberValue) yardVal);
-        val expected = (yards / 1760) * DistanceUtils.MILES_TO_KM * 1000;
         assertThat(actual).isInstanceOf(NumberValue.class);
         assertThat(((NumberValue) actual).value().doubleValue()).isCloseTo(expected, within(0.001));
     }
@@ -484,6 +509,156 @@ class GeographicFunctionLibraryTests {
     @SneakyThrows
     private static ObjectValue geometryToGeoJSON(Geometry geo) {
         return (ObjectValue) json(GEOJSON_WRITER.write(geo));
+    }
+
+    @TempDir
+    Path tempDir;
+
+    private enum XxeCase {
+        KML,
+        GML2,
+        GML3
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesExternalEntityThenContentIsNotResolved(XxeCase xxeCase) throws IOException {
+        val payloadFile = tempDir.resolve("xxe-payload.txt");
+        // The entity is referenced inside the coordinates, so a parser that
+        // resolved it would surface this injected longitude in the output
+        // geometry. The hardened parser must not resolve the external entity,
+        // so this value must never appear in the result.
+        val injectedLon = "133.7";
+        val fileContent = xxeCase == XxeCase.KML ? injectedLon + ",42.0,0" : injectedLon + ",42.0";
+        Files.writeString(payloadFile, fileContent);
+        val externalUri = payloadFile.toUri().toString();
+
+        val document = switch (xxeCase) {
+        case KML        -> """
+                <?xml version="1.0"?>
+                <!DOCTYPE kml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                <kml xmlns="http://www.opengis.net/kml/2.2"><Placemark>
+                <Point><coordinates>&xxe;</coordinates></Point></Placemark></kml>
+                """.formatted(externalUri);
+        case GML2, GML3 ->
+            """
+                    <?xml version="1.0"?>
+                    <!DOCTYPE gml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                    <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326"><gml:coordinates>&xxe;</gml:coordinates></gml:Point>
+                    """
+                    .formatted(externalUri);
+        };
+
+        val result = switch (xxeCase) {
+        case KML  -> kmlToGeoJSON(Value.of(document));
+        case GML2 -> gml2ToGeoJSON(Value.of(document));
+        case GML3 -> gml3ToGeoJSON(Value.of(document));
+        };
+
+        assertThat(result.toString()).doesNotContain(injectedLon);
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesRemoteSchemaWithXsdSuffixThenNoOutboundRequestIsIssued(XxeCase xxeCase)
+            throws IOException {
+        val requestCount = new AtomicInteger();
+        val server       = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            requestCount.incrementAndGet();
+            val body = "133.7,42.0,0".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (val responseBody = exchange.getResponseBody()) {
+                responseBody.write(body);
+            }
+        });
+        server.start();
+        try {
+            // The .xsd suffix is the only thing the suffix-based check looked at, so an
+            // attacker-controlled internal URL ending in .xsd previously slipped past the
+            // resolver and triggered an outbound fetch (blind SSRF). The hardened resolver
+            // must never reach out to a remote host regardless of the suffix.
+            val externalUri = "http://%s:%d/leak.xsd".formatted(server.getAddress().getHostString(),
+                    server.getAddress().getPort());
+            val document    = switch (xxeCase) {
+                            case KML        -> """
+                                    <?xml version="1.0"?>
+                                    <!DOCTYPE kml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                                    <kml xmlns="http://www.opengis.net/kml/2.2"><Placemark>
+                                    <Point><coordinates>&xxe;</coordinates></Point></Placemark></kml>
+                                    """.formatted(externalUri);
+                            case GML2, GML3 ->
+                                """
+                                        <?xml version="1.0"?>
+                                        <!DOCTYPE gml [ <!ENTITY xxe SYSTEM "%s"> ]>
+                                        <gml:Point xmlns:gml="http://www.opengis.net/gml" srsName="EPSG:4326"><gml:coordinates>&xxe;</gml:coordinates></gml:Point>
+                                        """
+                                        .formatted(externalUri);
+                            };
+
+            val result = switch (xxeCase) {
+            case KML  -> kmlToGeoJSON(Value.of(document));
+            case GML2 -> gml2ToGeoJSON(Value.of(document));
+            case GML3 -> gml3ToGeoJSON(Value.of(document));
+            };
+
+            assertThat(requestCount).hasValue(0);
+            assertThat(result.toString()).doesNotContain("133.7");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(XxeCase.class)
+    void whenDocumentReferencesRemoteSchemaViaSchemaLocationThenNoOutboundRequestIsIssued(XxeCase xxeCase)
+            throws IOException {
+        val requestCount = new AtomicInteger();
+        val server       = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+        server.createContext("/", exchange -> {
+            requestCount.incrementAndGet();
+            val body = "<schema/>".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (val responseBody = exchange.getResponseBody()) {
+                responseBody.write(body);
+            }
+        });
+        server.start();
+        try {
+            // xsi:schemaLocation is a separate fetch path from DOCTYPE entities. Geotools'
+            // schema loader fetched it whenever the resolver did not throw. A function
+            // library must never reach out, so this resolves to an error with no I/O.
+            val externalUri = "http://%s:%d/leak.xsd".formatted(server.getAddress().getHostString(),
+                    server.getAddress().getPort());
+            val document    = switch (xxeCase) {
+                            case KML        ->
+                                """
+                                        <?xml version="1.0"?>
+                                        <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://attacker.example/ns %s">
+                                        <Placemark><Point><coordinates>133.7,42.0,0</coordinates></Point></Placemark></kml>
+                                        """
+                                        .formatted(externalUri);
+                            case GML2, GML3 ->
+                                """
+                                        <?xml version="1.0"?>
+                                        <gml:Point xmlns:gml="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://attacker.example/ns %s" srsName="EPSG:4326"><gml:coordinates>133.7,42.0</gml:coordinates></gml:Point>
+                                        """
+                                        .formatted(externalUri);
+                            };
+
+            val result = switch (xxeCase) {
+            case KML  -> kmlToGeoJSON(Value.of(document));
+            case GML2 -> gml2ToGeoJSON(Value.of(document));
+            case GML3 -> gml3ToGeoJSON(Value.of(document));
+            };
+
+            assertThat(requestCount).hasValue(0);
+            // No outbound fetch: resolution falls back to the bundled schema and the
+            // document still parses.
+            assertThat(result).isNotInstanceOf(ErrorValue.class);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
@@ -907,6 +1082,77 @@ class GeographicFunctionLibraryTests {
         val result      = gml2ToGeoJSON(Value.of(gml2Invalid));
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains(GeographicFunctionLibrary.FAILED_TO_PARSE_GML_ERROR);
+    }
+
+    @Test
+    void kmlToGeoJSONIsThreadSafeUnderConcurrentCalls() {
+        val kml      = Value.of("""
+                <?xml version="1.0" encoding="UTF-8"?>
+                <kml xmlns="http://www.opengis.net/kml/2.2">
+                  <Placemark><Point><coordinates>10,20,0</coordinates></Point></Placemark>
+                </kml>
+                """);
+        val expected = kmlToGeoJSON(kml);
+        assertThat(expected).isNotInstanceOf(ErrorValue.class);
+
+        val allMatch = IntStream.range(0, 500).parallel().allMatch(i -> kmlToGeoJSON(kml).equals(expected));
+
+        assertThat(allMatch).isTrue();
+    }
+
+    @Test
+    void geoJsonToGeometryWhenVertexCountExceedsMaximumThenThrows() {
+        val coordinates = new Coordinate[MAX_GEOMETRY_VERTICES + 1];
+        for (var i = 0; i < coordinates.length; i++) {
+            coordinates[i] = new Coordinate(i % 180, i % 90);
+        }
+        val tooManyVertices = geometryToGeoJSON(GEO_FACTORY.createLineString(coordinates));
+        assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyVertices))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("vertices");
+    }
+
+    @Test
+    void geoJsonToGeometryWhenMemberCountExceedsMaximumThenThrows() {
+        val geometries = new Geometry[MAX_GEOMETRY_COUNT + 1];
+        for (var i = 0; i < geometries.length; i++) {
+            geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
+        }
+        val tooManyMembers = geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
+        assertThatThrownBy(() -> GeographicFunctionLibrary.geoJsonToGeometry(tooManyMembers))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("members");
+    }
+
+    @Test
+    void wktToGeoJSONWhenInputExceedsMaximumThenError() {
+        val oversizedWkt = "POINT(1 1)" + " ".repeat(MAX_GEO_INPUT_BYTES);
+        val result       = wktToGeoJSON(Value.of(oversizedWkt));
+        assertThat(result).isInstanceOf(ErrorValue.class);
+        assertThat(((ErrorValue) result).message()).contains("exceeds the maximum size");
+    }
+
+    static Stream<Arguments> quadraticCollectionOperations() {
+        return Stream.of(
+                arguments("subset", (BiFunction<ObjectValue, ObjectValue, Value>) GeographicFunctionLibrary::subset),
+                arguments("atLeastOneMemberOf",
+                        (BiFunction<ObjectValue, ObjectValue, Value>) GeographicFunctionLibrary::atLeastOneMemberOf));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("quadraticCollectionOperations")
+    void whenPairwiseComparisonsExceedMaximumThenError(String name,
+            BiFunction<ObjectValue, ObjectValue, Value> operation) {
+        val first  = collectionOfPoints(1001);
+        val second = collectionOfPoints(1000);
+        val result = operation.apply(first, second);
+        assertThat(result).isInstanceOf(ErrorValue.class);
+    }
+
+    private static ObjectValue collectionOfPoints(int count) {
+        val geometries = new Geometry[count];
+        for (var i = 0; i < count; i++) {
+            geometries[i] = GEO_FACTORY.createPoint(new Coordinate(i % 180, i % 90));
+        }
+        return geometryToGeoJSON(GEO_FACTORY.createGeometryCollection(geometries));
     }
 
 }

@@ -19,11 +19,12 @@ package io.sapl.pdp.configuration;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,8 +43,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import org.junit.jupiter.api.DisplayName;
-
 @DisplayName("PDPConfigurationLoader")
 class PDPConfigurationLoaderTests {
 
@@ -58,6 +57,18 @@ class PDPConfigurationLoaderTests {
         assertThat(config.configurationId()).isEqualTo("default");
         assertThat(config.data().variables()).isEmpty();
         assertThat(config.data().secrets()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an explicit null algorithm degrades gracefully to the default, like an absent field (run2-078)")
+    void whenLoadingWithExplicitNullAlgorithmThenFallsBackToDefault() throws IOException {
+        Files.writeString(tempDir.resolve("pdp.json"), """
+                {"algorithm": null}
+                """);
+
+        val config = PDPConfigurationLoader.loadFromDirectory(tempDir, "test-pdp");
+
+        assertThat(config.combiningAlgorithm()).isEqualTo(CombiningAlgorithm.DEFAULT);
     }
 
     @Test
@@ -249,7 +260,30 @@ class PDPConfigurationLoaderTests {
         assertThat(config.combiningAlgorithm()).isEqualTo(
                 new CombiningAlgorithm(VotingMode.PRIORITY_PERMIT, DefaultDecision.PERMIT, ErrorHandling.ABSTAIN));
         assertThat(config.data().variables()).isEmpty();
-        assertThat(config.configurationId()).startsWith("res:").contains("@sha256:");
+        assertThat(config.configurationId()).isEqualTo("res:/policies/test");
+    }
+
+    @Test
+    void whenAutoGeneratingResourceIdThenItIsPlainPathWithoutContentHash() {
+        val config = PDPConfigurationLoader.loadFromContent("""
+                { "algorithm": { "votingMode": "UNIQUE", "defaultDecision": "DENY", "errorHandling": "ABSTAIN" } }
+                """, Map.of("test.sapl", "policy \"test\" permit"), "test-pdp", "/policies/arkham");
+
+        assertThat(config.configurationId()).isEqualTo("res:/policies/arkham").doesNotContain("sha256");
+    }
+
+    @Test
+    void whenTwoResourceConfigsDifferOnlyInVariablesThenAutoIdDoesNotPretendIntegrity() {
+        val saplDocuments = Map.of("test.sapl", "policy \"test\" permit");
+        val benign        = PDPConfigurationLoader.loadFromContent("""
+                { "variables": { "cultName": "benign" } }
+                """, saplDocuments, "test-pdp", "/policies/cult");
+        val malicious     = PDPConfigurationLoader.loadFromContent("""
+                { "variables": { "cultName": "malicious" } }
+                """, saplDocuments, "test-pdp", "/policies/cult");
+
+        assertThat(benign.configurationId()).isEqualTo("res:/policies/cult").doesNotContain("sha256")
+                .isEqualTo(malicious.configurationId());
     }
 
     @Test

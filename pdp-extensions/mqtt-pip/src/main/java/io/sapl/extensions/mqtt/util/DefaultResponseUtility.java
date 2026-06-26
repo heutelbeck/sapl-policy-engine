@@ -42,8 +42,9 @@ public class DefaultResponseUtility {
     /**
      * The reference for the default response timeout in configurations.
      */
-    public static final String  ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT = "timeoutDuration"; // initial value will be
-                                                                                          // published after timeout
+    public static final String  ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT = "defaultResponseTimeout"; // initial value
+                                                                                                 // will be published
+                                                                                                 // after timeout
     private static final String DEFAULT_RESPONSE_TYPE                = "undefined";
     private static final long   DEFAULT_RESPONSE_TIMEOUT             = 2000;              // in milliseconds
 
@@ -89,7 +90,7 @@ public class DefaultResponseUtility {
     private static String getDefaultResponseType(JsonNode pipMqttClientConfig, ObjectNode mqttBrokerConfig) {
         String defaultResponseType;
         if (mqttBrokerConfig.has(ENVIRONMENT_DEFAULT_RESPONSE)) {
-            defaultResponseType = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE).asString();
+            defaultResponseType = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE).asString(DEFAULT_RESPONSE_TYPE);
         } else {
             defaultResponseType = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_RESPONSE,
                     DEFAULT_RESPONSE_TYPE);
@@ -100,7 +101,8 @@ public class DefaultResponseUtility {
     private static long getDefaultResponseTimeout(JsonNode pipMqttClientConfig, ObjectNode mqttBrokerConfig) {
         long defaultResponseTimeout;
         if (mqttBrokerConfig.has(ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT)) {
-            defaultResponseTimeout = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT).asLong();
+            defaultResponseTimeout = mqttBrokerConfig.get(ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT)
+                    .asLong(DEFAULT_RESPONSE_TIMEOUT);
         } else {
             defaultResponseTimeout = getConfigValueOrDefault(pipMqttClientConfig, ENVIRONMENT_DEFAULT_RESPONSE_TIMEOUT,
                     DEFAULT_RESPONSE_TIMEOUT);

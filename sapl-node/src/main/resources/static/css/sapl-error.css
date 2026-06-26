@@ -1,0 +1,189 @@
+:root {
+    --color-primary: #027080;
+    --color-primary-hover: #025d6b;
+    --color-bg: #e2e8f0;
+    --color-bg-card: #edf2f7;
+    --color-text: #1a1a2e;
+    --color-text-secondary: #4a5568;
+    --color-border: #cbd5e1;
+    --font-sans:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: hsl(210, 10%, 12%);
+        --color-bg-card: hsl(210, 10%, 15%);
+        --color-text: hsl(210, 10%, 90%);
+        --color-text-secondary: hsl(210, 10%, 60%);
+        --color-border: rgba(255, 255, 255, 0.10);
+        --color-primary: hsl(179, 43%, 52%);
+        --color-primary-hover: hsl(179, 43%, 60%);
+    }
+    .brand .logo-light { display: none; }
+    .brand .logo-dark  { display: block !important; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    max-width: 640px;
+    width: 100%;
+    padding: 3rem 2.5rem;
+    text-align: center;
+    box-shadow:
+        0 1px 3px rgba(2, 131, 146, 0.06),
+        0 8px 24px rgba(2, 131, 146, 0.06);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.brand img { height: 128px; width: auto; }
+.brand .logo-dark { display: none; }
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    text-align: left;
+}
+
+.brand-name {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+}
+
+.brand-subtitle {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 0.25rem;
+}
+
+.status {
+    font-size: 5rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.message {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+.meta-item {
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    line-height: 1.2;
+}
+
+.meta-commit {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.health {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    line-height: 1.2;
+    border: 1px solid var(--color-border);
+}
+
+.health-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: #9aa1a8;
+}
+
+.health-up .health-dot   { background: #2bb673; box-shadow: 0 0 0 3px rgba(43, 182, 115, 0.18); }
+.health-down .health-dot { background: #d9534f; box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.18); }
+
+.actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.65rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--color-primary);
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--color-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--color-primary);
+    color: #ffffff;
+}

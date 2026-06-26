@@ -17,12 +17,12 @@
  */
 package io.sapl.test.plain;
 
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
 
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -40,7 +40,7 @@ import java.util.Map;
  * var security = TestConfiguration.builder().withSaplDocument(doc1).withSaplDocument(doc2)
  *         .withSaplTestDocument(testDoc)
  *         .withDefaultAlgorithm(new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE))
- *         .withFunctionLibrary(TemporalFunctionLibrary.class).build();
+ *         .withFunctionLibrary(new TemporalFunctionLibrary()).build();
  * }</pre>
  */
 public record TestConfiguration(
@@ -49,7 +49,7 @@ public record TestConfiguration(
         CombiningAlgorithm defaultAlgorithm,
         Map<String, Value> pdpVariables,
         Map<String, Value> pdpSecrets,
-        List<Class<?>> functionLibraries,
+        List<Object> functionLibraries,
         List<Object> policyInformationPoints,
         boolean failFast,
         Duration verificationTimeout,
@@ -78,7 +78,7 @@ public record TestConfiguration(
                 PROPAGATE);
         private final Map<String, Value>     pdpVariables            = new HashMap<>();
         private final Map<String, Value>     pdpSecrets              = new HashMap<>();
-        private final List<Class<?>>         functionLibraries       = new ArrayList<>();
+        private final List<Object>           functionLibraries       = new ArrayList<>();
         private final List<Object>           policyInformationPoints = new ArrayList<>();
         private boolean                      failFast                = false;
         private Duration                     verificationTimeout     = DEFAULT_VERIFICATION_TIMEOUT;
@@ -157,18 +157,18 @@ public record TestConfiguration(
         }
 
         /**
-         * Adds a function library class.
+         * Adds a function library instance.
          */
-        public Builder withFunctionLibrary(Class<?> libraryClass) {
-            this.functionLibraries.add(libraryClass);
+        public Builder withFunctionLibrary(Object libraryInstance) {
+            this.functionLibraries.add(libraryInstance);
             return this;
         }
 
         /**
-         * Adds multiple function library classes.
+         * Adds multiple function library instances.
          */
-        public Builder withFunctionLibraries(List<Class<?>> libraryClasses) {
-            this.functionLibraries.addAll(libraryClasses);
+        public Builder withFunctionLibraries(List<?> libraryInstances) {
+            this.functionLibraries.addAll(libraryInstances);
             return this;
         }
 
@@ -198,7 +198,7 @@ public record TestConfiguration(
 
         /**
          * Sets the timeout for test verification.
-         * Default is 5 seconds for faster feedback.
+         * Default is 1 second for faster feedback.
          *
          * @param timeout the verification timeout
          * @return this builder for chaining

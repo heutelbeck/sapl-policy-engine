@@ -19,6 +19,7 @@ package io.sapl.compiler.combining;
 
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.PureVoter;
 import io.sapl.compiler.document.StreamVoter;
 import io.sapl.compiler.document.Vote;
@@ -30,16 +31,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.assertStreamPathEquivalence;
-import static io.sapl.util.SaplTesting.attributeBroker;
-import static io.sapl.util.SaplTesting.compilePolicySet;
-import static io.sapl.util.SaplTesting.evaluatePolicySetWithPathEquivalenceCheck;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.parseSubscription;
-import static io.sapl.util.SaplTesting.subscriptionContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -69,13 +65,13 @@ class UnanimousVoteCompilerTests {
         @ParameterizedTest(name = "single {0} policy returns {1}")
         @MethodSource("singlePolicyCases")
         @DisplayName("single policy returns its decision")
-        void whenSinglePolicyThenReturnsItsDecision(String entitlement, Decision expectedDecision) {
+        void whenSinglePolicyThenReturnsItsDecision(String effect, Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     policy "p1" %s
-                    """.formatted(entitlement));
+                    """.formatted(effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
@@ -90,14 +86,14 @@ class UnanimousVoteCompilerTests {
         @ParameterizedTest(name = "all {0} policies return {1} with merged constraints")
         @MethodSource("mergedConstraintsCases")
         @DisplayName("agreeing policies merge constraints")
-        void whenAllAgreeWithConstraintsThenReturnsMergedDecision(String entitlement, Decision expectedDecision) {
+        void whenAllAgreeWithConstraintsThenReturnsMergedDecision(String effect, Decision expectedDecision) {
             val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     policy "p1" %s obligation "log1"
                     policy "p2" %s obligation "log2"
-                    """.formatted(entitlement, entitlement));
+                    """.formatted(effect, effect));
             val ctx      = subscriptionContext("""
                     { "subject": "alice", "action": "read", "resource": "data" }
                     """);
@@ -312,13 +308,12 @@ class UnanimousVoteCompilerTests {
         @Test
         @DisplayName("stream policies return StreamUnanimousVoter")
         void streamPoliciesReturnStreamVoter() {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     policy "p1" permit <test.attr>;
-                    """, attrBroker);
+                    """);
             assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
         }
 
@@ -361,16 +356,14 @@ class UnanimousVoteCompilerTests {
         @MethodSource("streamVoterPermitCases")
         @DisplayName("stream voter PERMIT cases")
         void streamVoterPermitCases(String description, String policies, String subscription) {
-            val attrBroker = attributeBroker(Map.of("test.attr", new Value[] { Value.TRUE }));
-            val compiled   = compilePolicySet("""
+            val compiled = compilePolicySet("""
                     set "test"
                     unanimous or abstain
 
                     %s
-                    """.formatted(policies), attrBroker);
-            val parsedSub  = parseSubscription(subscription);
-            val ctx        = evaluationContext(parsedSub, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.PERMIT);
+                    """.formatted(policies));
+            val ctx      = evaluationContext(parseSubscription(subscription));
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.PERMIT);
         }
 
         // @formatter:off
@@ -413,16 +406,18 @@ class UnanimousVoteCompilerTests {
         @DisplayName("stream voter INDETERMINATE cases")
         void streamVoterIndeterminateCases(String description, String policies, String subscription,
                 Map<String, Value[]> attributes) {
-            val attrBroker = attributeBroker(attributes);
-            val compiled   = compilePolicySet("""
+            val compiled     = compilePolicySet("""
                     set "test"
                     unanimous or abstain errors propagate
 
                     %s
-                    """.formatted(policies), attrBroker);
-            val parsedSub  = parseSubscription(subscription);
-            val ctx        = evaluationContext(parsedSub, attrBroker);
-            assertStreamPathEquivalence(compiled, ctx, Decision.INDETERMINATE);
+                    """.formatted(policies));
+            val ctx          = evaluationContext(parseSubscription(subscription));
+            val initialAttrs = new HashMap<String, Value>();
+            for (val entry : attributes.entrySet()) {
+                initialAttrs.put(entry.getKey(), entry.getValue()[0]);
+            }
+            assertStreamPathEquivalence(compiled, initialAttrs, ctx, Decision.INDETERMINATE);
         }
     }
 
@@ -503,9 +498,11 @@ class UnanimousVoteCompilerTests {
                 arguments("unanimous or deny", Decision.DENY, false),
                 arguments("unanimous or permit", Decision.PERMIT, false),
                 arguments("unanimous or abstain", Decision.NOT_APPLICABLE, false),
+                arguments("unanimous or suspend", Decision.SUSPEND, false),
                 arguments("unanimous strict or deny", Decision.DENY, true),
                 arguments("unanimous strict or permit", Decision.PERMIT, true),
-                arguments("unanimous strict or abstain", Decision.NOT_APPLICABLE, true)
+                arguments("unanimous strict or abstain", Decision.NOT_APPLICABLE, true),
+                arguments("unanimous strict or suspend", Decision.SUSPEND, true)
             );
         }
         // @formatter:on
@@ -678,6 +675,254 @@ class UnanimousVoteCompilerTests {
             assertThat(result.authorizationDecision()).satisfies(authz -> {
                 assertThat(authz.decision()).isEqualTo(Decision.PERMIT);
                 assertThat(authz.resource()).isNotEqualTo(Value.UNDEFINED);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("SUSPEND support")
+    class SuspendSupport {
+
+        private static final String DEFAULT_SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        static Stream<Arguments> suspendOutcomeCases() {
+            return Stream.of(arguments("single SUSPEND policy returns SUSPEND", """
+                    set "test"
+                    unanimous or abstain
+
+                    policy "only-one" suspend
+                    """), arguments("SUSPEND with NOT_APPLICABLE policies -> SUSPEND (NOT_APPLICABLE ignored)", """
+                    set "test"
+                    unanimous or abstain
+
+                    policy "skip-1" permit false;
+                    policy "suspending" suspend
+                    policy "skip-2" deny false;
+                    """), arguments("strict mode: identical SUSPEND policies -> SUSPEND", """
+                    set "test"
+                    unanimous strict or abstain
+
+                    policy "p1" suspend
+                    policy "p2" suspend
+                    """));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("suspendOutcomeCases")
+        void whenScenarioYieldsSuspendThenReturnsSuspend(String description, String policySet) {
+            val compiled = compilePolicySet(policySet);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("multiple SUSPEND policies all agree -> SUSPEND with merged constraints")
+        void whenAllSuspendThenReturnsSuspendMerged() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "p1" suspend obligation { "type": "logA" }
+                    policy "p2" suspend obligation { "type": "logB" }
+                    policy "p3" suspend obligation { "type": "logC" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations().size()).isEqualTo(3);
+        }
+
+        static Stream<Arguments> suspendDisagreementCases() {
+            return Stream.of(arguments("SUSPEND + PERMIT (both applicable) -> INDETERMINATE (disagreement)", """
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    policy "p1" suspend
+                    policy "p2" permit
+                    """), arguments("SUSPEND + DENY (both applicable) -> INDETERMINATE (disagreement)", """
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    policy "p1" suspend
+                    policy "p2" deny
+                    """), arguments("strict mode: SUSPEND with different obligations -> INDETERMINATE", """
+                    set "test"
+                    unanimous strict or abstain errors propagate
+
+                    policy "p1" suspend obligation { "type": "logA" }
+                    policy "p2" suspend obligation { "type": "logB" }
+                    """));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("suspendDisagreementCases")
+        void whenScenarioYieldsIndeterminateThenReturnsIndeterminate(String description, String policySet) {
+            val compiled = compilePolicySet(policySet);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("SUSPEND with obligation -> obligation preserved")
+        void whenSuspendWithObligationThenObligationPreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "suspending"
+                    suspend
+                    obligation
+                        { "type": "logSuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().obligations()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with advice -> advice preserved")
+        void whenSuspendWithAdviceThenAdvicePreserved() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "suspending"
+                    suspend
+                    advice
+                        { "type": "notifySuspend" }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().advice()).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("SUSPEND with transform -> resource transformed")
+        void whenSuspendWithTransformThenResourceTransformed() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "suspending"
+                    suspend
+                    transform
+                        { "redacted": true }
+                    """);
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+            assertThat(result.authorizationDecision().resource()).isNotEqualTo(Value.UNDEFINED);
+        }
+
+        @Test
+        @DisplayName("static SUSPEND-only set compiles to constant Vote")
+        void whenStaticSuspendThenCompilesToVote() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain
+
+                    policy "static-suspend" suspend
+                    """);
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(Vote.class);
+            assertThat(((Vote) compiled.applicabilityAndVote()).authorizationDecision().decision())
+                    .isEqualTo(Decision.SUSPEND);
+        }
+
+        @Test
+        @DisplayName("streaming SUSPEND policy emits SUSPEND when applicable")
+        void whenStreamingSuspendApplicableThenReturnsSuspend() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or abstain errors propagate
+
+                    policy "stream-suspend"
+                    suspend
+                      <test.attr>;
+                    """);
+            val ctx      = evaluationContext(parseSubscription(DEFAULT_SUBSCRIPTION));
+
+            assertThat(compiled.applicabilityAndVote()).isInstanceOf(StreamVoter.class);
+            assertStreamPathEquivalence(compiled, Map.of("test.attr", Value.TRUE), ctx, Decision.SUSPEND);
+        }
+
+        static Stream<Arguments> errorHandlingCases() {
+            return Stream.of(arguments("errors abstain", "unanimous or abstain"),
+                    arguments("errors propagate", "unanimous or abstain errors propagate"));
+        }
+
+        @ParameterizedTest(name = "{0} passes SUSPEND through unchanged")
+        @MethodSource("errorHandlingCases")
+        @DisplayName("error handling does not affect a SUSPEND vote")
+        void whenSuspendVoteUnderAnyErrorHandlingThenReturnsSuspend(String description, String algorithm) {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    %s
+
+                    policy "suspending" suspend
+                    """.formatted(algorithm));
+            val ctx      = subscriptionContext(DEFAULT_SUBSCRIPTION);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, ctx);
+
+            assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.SUSPEND);
+        }
+    }
+
+    @Nested
+    @DisplayName("INDETERMINATE set outcome includes the short-circuited tail potential")
+    class IndeterminateOutcomeCompletion {
+
+        private static final String SUBSCRIPTION = """
+                { "subject": "alice", "action": "read", "resource": "data" }
+                """;
+
+        @Test
+        @DisplayName("constant disagreeing policies (static fold) carry the full PERMIT_OR_DENY_OR_SUSPEND potential")
+        void whenConstantDisagreementThenOutcomeIncludesAllEffects() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or deny errors propagate
+
+                    policy "p1" permit
+                    policy "p2" deny
+                    policy "p3" suspend
+                    """);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, subscriptionContext(SUBSCRIPTION));
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY_OR_SUSPEND);
+            });
+        }
+
+        @Test
+        @DisplayName("runtime disagreeing policies carry the full PERMIT_OR_DENY_OR_SUSPEND potential")
+        void whenRuntimeDisagreementThenOutcomeIncludesAllEffects() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    unanimous or deny errors propagate
+
+                    policy "p1" permit subject == "alice";
+                    policy "p2" deny subject == "alice";
+                    policy "p3" suspend subject == "alice";
+                    """);
+            val result   = evaluatePolicySetWithPathEquivalenceCheck(compiled, subscriptionContext(SUBSCRIPTION));
+
+            assertThat(result).satisfies(r -> {
+                assertThat(r.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+                assertThat(r.outcome()).isEqualTo(Outcome.PERMIT_OR_DENY_OR_SUSPEND);
             });
         }
     }

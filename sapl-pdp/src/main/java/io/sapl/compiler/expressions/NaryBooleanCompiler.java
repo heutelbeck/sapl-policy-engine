@@ -17,26 +17,20 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.AttributeRecord;
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.Conjunction;
 import io.sapl.ast.Disjunction;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiles N-ary boolean operators: Conjunction ({@code &&}, {@code &}) and
@@ -54,9 +48,11 @@ import java.util.List;
  * <li>Split remaining operands into pure and stream buckets</li>
  * <li>If all Pures: return {@link NaryBooleanPure} (simple loop at
  * runtime)</li>
- * <li>If any Streams: wrap in deferContextual that evaluates pures first,
- * then subscribes to the pre-built stream composition (lazy switchMap chain
- * or eager combineLatest)</li>
+ * <li>If any Streams: return one of two stream variants. The lazy variant
+ * walks operands in order, short-circuiting on the first short-circuit value
+ * and skipping remaining stream subtrees. The eager variant walks every
+ * stream operand against the snapshot to accumulate all dependencies, then
+ * scans the resolved values for the first non-identity result.</li>
  * </ol>
  * <p>
  * Key insight: AND/OR are commutative, so operands can be reordered by cost
@@ -64,8 +60,6 @@ import java.util.List;
  */
 @UtilityClass
 public class NaryBooleanCompiler {
-
-    private static final String ERROR_TYPE_MISMATCH = "Expected BOOLEAN but got: %s.";
 
     /**
      * Compiles a Conjunction ({@code a && b && c && ...} or
@@ -87,8 +81,8 @@ public class NaryBooleanCompiler {
 
     /**
      * Compiles an n-ary boolean with lazy semantics. Used by
-     * {@link io.sapl.compiler.policy.policybody.PolicyBodyCompiler} for implicit
-     * AND of policy body conditions.
+     * {@link io.sapl.compiler.policy.PolicyCompiler} for implicit AND of
+     * policy body conditions.
      */
     public static CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
             Value shortCircuitValue, Value identityValue) {
@@ -98,20 +92,28 @@ public class NaryBooleanCompiler {
     private static CompiledExpression compile(List<CompiledExpression> operands, SourceLocation location,
             Value shortCircuitValue, Value identityValue, boolean isEager) {
 
-        // 1. Fold values at compile time, split remainder into pure and stream buckets
-        val pures   = new ArrayList<PureOperator>();
-        val streams = new ArrayList<StreamOperator>();
+        // Fold values at compile time, split remainder into pure and stream buckets.
+        // Kleene strong 3-valued logic: only the dominator (shortCircuitValue) folds
+        // the whole node. A constant error or non-boolean does not fold. It is kept
+        // as a pending error so a later pure or stream dominator can still win.
+        val   pures        = new ArrayList<PureOperator>();
+        val   streams      = new ArrayList<StreamOperator>();
+        Value pendingError = null;
         for (var op : operands) {
             switch (op) {
-            case ErrorValue e                                    -> {
-                return e;
-            }
             case BooleanValue b when shortCircuitValue.equals(b) -> {
                 return shortCircuitValue;
             }
+            case ErrorValue e                                    -> {
+                if (pendingError == null) {
+                    pendingError = e;
+                }
+            }
             case BooleanValue ignored                            -> { /* identity - fold away */ }
             case Value v                                         -> {
-                return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
+                if (pendingError == null) {
+                    pendingError = typeError(v, location);
+                }
             }
             case PureOperator pure                               -> pures.add(pure);
             case StreamOperator stream                           -> streams.add(stream);
@@ -119,123 +121,20 @@ public class NaryBooleanCompiler {
         }
 
         if (pures.isEmpty() && streams.isEmpty()) {
-            return identityValue;
+            return pendingError != null ? pendingError : identityValue;
         }
 
-        // 3. Pure-only: simple loop at runtime
         if (streams.isEmpty()) {
             val dependsOnSubscription = pures.stream().anyMatch(PureOperator::isDependingOnSubscription);
             val isRelative            = pures.stream().anyMatch(PureOperator::isRelativeExpression);
             return new NaryBooleanPure(pures, shortCircuitValue, identityValue, location, dependsOnSubscription,
-                    isRelative);
+                    isRelative, pendingError);
         }
 
-        // 4. Streams present: build deferContextual with pure gate + stream composition
-        val streamFlux = isEager ? buildEagerStreamChain(streams, shortCircuitValue, identityValue, location)
-                : buildLazyStreamChain(streams, shortCircuitValue, identityValue, location);
-
-        if (pures.isEmpty()) {
-            return new NaryBooleanStream(streamFlux);
+        if (isEager) {
+            return new NaryBooleanStreamEager(pures, streams, shortCircuitValue, identityValue, location, pendingError);
         }
-
-        return new NaryBooleanStream(Flux.deferContextual(ctxView -> {
-            val ctx = ctxView.get(EvaluationContext.class);
-            for (var pure : pures) {
-                val v = pure.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(v, List.of()));
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return Flux.just(new TracedValue(
-                            Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), List.of()));
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return Flux.just(new TracedValue(shortCircuitValue, List.of()));
-                }
-            }
-            return streamFlux;
-        }));
-    }
-
-    /**
-     * Builds a lazy (short-circuit) stream chain using switchMap. Iterates
-     * backwards, building nested switchMap structure. Each stream conditionally
-     * subscribes to the next based on its emitted value.
-     */
-    private static Flux<TracedValue> buildLazyStreamChain(List<StreamOperator> streams, Value shortCircuitValue,
-            Value identityValue, SourceLocation location) {
-
-        Flux<TracedValue> chain = Flux.just(new TracedValue(identityValue, List.of()));
-
-        for (int i = streams.size() - 1; i >= 0; i--) {
-            val stream = streams.get(i);
-            val next   = chain;
-
-            chain = stream.stream().switchMap(tv -> {
-                val v     = tv.value();
-                val attrs = tv.contributingAttributes();
-
-                if (v instanceof ErrorValue) {
-                    return Flux.just(tv);
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return Flux.just(new TracedValue(
-                            Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()), attrs));
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return Flux.just(tv);
-                }
-                return next.map(nextTv -> mergeAttributes(attrs, nextTv));
-            });
-        }
-
-        return chain;
-    }
-
-    /**
-     * Builds an eager stream chain using combineLatest. All streams are subscribed
-     * simultaneously. On each emission from any stream, the combiner evaluates all
-     * latest values together.
-     */
-    private static Flux<TracedValue> buildEagerStreamChain(List<StreamOperator> streams, Value shortCircuitValue,
-            Value identityValue, SourceLocation location) {
-
-        if (streams.size() == 1) {
-            return streams.getFirst().stream().map(tv -> {
-                val v = tv.value();
-                if (v instanceof ErrorValue) {
-                    return tv;
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()),
-                            tv.contributingAttributes());
-                }
-                return tv;
-            });
-        }
-
-        val fluxes = streams.stream().map(StreamOperator::stream).toList();
-        return Flux.combineLatest(fluxes, values -> {
-            val allAttrs = new ArrayList<AttributeRecord>();
-            for (Object obj : values) {
-                val tv    = (TracedValue) obj;
-                val v     = tv.value();
-                val attrs = tv.contributingAttributes();
-                allAttrs.addAll(attrs);
-
-                if (v instanceof ErrorValue) {
-                    return new TracedValue(v, allAttrs);
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return new TracedValue(Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName()),
-                            allAttrs);
-                }
-                if (shortCircuitValue.equals(v)) {
-                    return new TracedValue(shortCircuitValue, allAttrs);
-                }
-            }
-            return new TracedValue(identityValue, allAttrs);
-        });
+        return new NaryBooleanStreamLazy(pures, streams, shortCircuitValue, identityValue, location, pendingError);
     }
 
     public static TracedValue mergeAttributes(List<AttributeRecord> preceding, TracedValue subsequent) {
@@ -262,23 +161,23 @@ public class NaryBooleanCompiler {
             Value identityValue,
             SourceLocation location,
             boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
+            boolean isRelativeExpression,
+            @Nullable Value pendingError) implements PureOperator {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
+            Value firstError = pendingError;
             for (var op : operands) {
                 val v = op.evaluate(ctx);
-                if (v instanceof ErrorValue) {
-                    return v;
-                }
-                if (!(v instanceof BooleanValue)) {
-                    return Value.errorAt(location, ERROR_TYPE_MISMATCH, v.getClass().getSimpleName());
-                }
                 if (shortCircuitValue.equals(v)) {
                     return shortCircuitValue;
                 }
+                val error = errorOf(v, location);
+                if (error != null && firstError == null) {
+                    firstError = error;
+                }
             }
-            return identityValue;
+            return firstError != null ? firstError : identityValue;
         }
 
         // Eager and lazy AND/OR produce the same hash because on the pure
@@ -287,12 +186,20 @@ public class NaryBooleanCompiler {
         @Override
         public long semanticHash() {
             val childHashes = operands.stream().mapToLong(PureOperator::semanticHash).toArray();
-            return SemanticHashing.commutative(shortCircuitValue.hashCode(), childHashes);
+            val base        = SemanticHashing.commutative(SemanticHashing.valueHash(shortCircuitValue), childHashes);
+            if (pendingError == null) {
+                return base;
+            }
+            return SemanticHashing.commutative(base, SemanticHashing.valueHash(pendingError));
         }
 
         @Override
         public BooleanExpression booleanExpression() {
-            val children = operands.stream().map(PureOperator::booleanExpression).toList();
+            val children = new ArrayList<BooleanExpression>(
+                    operands.stream().map(PureOperator::booleanExpression).toList());
+            if (pendingError != null) {
+                children.add(new ConstantErrorPredicate(pendingError, location).booleanExpression());
+            }
             if (Value.FALSE.equals(shortCircuitValue)) {
                 return new BooleanExpression.And(children);
             }
@@ -301,15 +208,142 @@ public class NaryBooleanCompiler {
     }
 
     /**
-     * N-ary boolean with Stream operands. Flux chain is pre-built at compile
-     * time - no runtime recursion.
+     * N-ary boolean with Stream operands, lazy ({@code &&}, {@code ||})
+     * variant. {@code evaluate(ctx)} applies stratified short-circuit: pures
+     * first (free), then streams in order via {@link StreamOperator#evalChild}.
+     * Subsequent streams are skipped (and their dependencies are not added)
+     * once a short-circuit value is seen.
      */
-    record NaryBooleanStream(Flux<TracedValue> chain) implements StreamOperator {
+    record NaryBooleanStreamLazy(
+            List<PureOperator> pures,
+            List<StreamOperator> streams,
+            Value shortCircuitValue,
+            Value identityValue,
+            SourceLocation location,
+            @Nullable Value pendingError) implements StreamOperator {
 
         @Override
-        public Flux<TracedValue> stream() {
-            return chain;
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
+            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, deps, pendingError);
+            if (pureResult.shortCircuit() != null) {
+                return pureResult.shortCircuit();
+            }
+            Value firstError = pureResult.firstError();
+            for (val s : streams) {
+                val v = evalChild(s, ctx, deps);
+                if (v == null) {
+                    return new ExpressionResult(null, deps);
+                }
+                if (shortCircuitValue.equals(v)) {
+                    return new ExpressionResult(shortCircuitValue, deps);
+                }
+                val error = errorOf(v, location);
+                if (error != null && firstError == null) {
+                    firstError = error;
+                }
+            }
+            return new ExpressionResult(firstError != null ? firstError : identityValue, deps);
         }
+    }
+
+    /**
+     * N-ary boolean with Stream operands, eager ({@code &}, {@code |})
+     * variant. {@code evaluate(ctx)} applies stratified short-circuit only on
+     * the pure stratum (pures first, free). On the stream stratum every child
+     * is walked via {@link StreamOperator#evalChild} so all dependencies are
+     * accumulated, then the resolved values are scanned in operand order and
+     * the first non-identity wins.
+     */
+    record NaryBooleanStreamEager(
+            List<PureOperator> pures,
+            List<StreamOperator> streams,
+            Value shortCircuitValue,
+            Value identityValue,
+            SourceLocation location,
+            @Nullable Value pendingError) implements StreamOperator {
+
+        @Override
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps       = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(streams.size());
+            val pureResult = evaluatePures(pures, shortCircuitValue, location, ctx, deps, pendingError);
+            if (pureResult.shortCircuit() != null) {
+                return pureResult.shortCircuit();
+            }
+            Value   firstError = pureResult.firstError();
+            val     resolved   = new Value[streams.size()];
+            boolean seenNull   = false;
+            for (int i = 0; i < streams.size(); i++) {
+                resolved[i] = evalChild(streams.get(i), ctx, deps);
+                if (resolved[i] == null) {
+                    seenNull = true;
+                }
+            }
+            for (val v : resolved) {
+                if (v == null) {
+                    continue;
+                }
+                if (shortCircuitValue.equals(v)) {
+                    return new ExpressionResult(shortCircuitValue, deps);
+                }
+                val error = errorOf(v, location);
+                if (error != null && firstError == null) {
+                    firstError = error;
+                }
+            }
+            if (seenNull) {
+                return new ExpressionResult(null, deps);
+            }
+            return new ExpressionResult(firstError != null ? firstError : identityValue, deps);
+        }
+    }
+
+    /**
+     * Walks the pure stratum in order under Kleene semantics. Returns a
+     * short-circuit terminal only when the dominating {@code shortCircuitValue}
+     * is seen. Otherwise it returns no terminal and the first error encountered
+     * (or the pending error carried from folding), so the caller proceeds to
+     * the stream stratum. A pure error must not skip the streams, because a
+     * stream may still yield the dominator.
+     */
+    private static PureStratumResult evaluatePures(List<PureOperator> pures, Value shortCircuitValue,
+            SourceLocation location, EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps,
+            @Nullable Value pendingError) {
+        Value firstError = pendingError;
+        for (val p : pures) {
+            val v = p.evaluate(ctx);
+            if (shortCircuitValue.equals(v)) {
+                return new PureStratumResult(new ExpressionResult(shortCircuitValue, deps), null);
+            }
+            val error = errorOf(v, location);
+            if (error != null && firstError == null) {
+                firstError = error;
+            }
+        }
+        return new PureStratumResult(null, firstError);
+    }
+
+    private record PureStratumResult(@Nullable ExpressionResult shortCircuit, @Nullable Value firstError) {}
+
+    /**
+     * Classifies a single resolved value: returns the error it represents (an
+     * {@link ErrorValue} as-is, a non-boolean as a type-mismatch error), or
+     * {@code null} when it is a boolean that is not the dominator. The
+     * dominator is handled by the caller before this is reached.
+     */
+    private static @Nullable Value errorOf(Value v, SourceLocation location) {
+        if (v instanceof ErrorValue) {
+            return v;
+        }
+        if (!(v instanceof BooleanValue)) {
+            return typeError(v, location);
+        }
+        return null;
+    }
+
+    private static Value typeError(Value v, SourceLocation location) {
+        return Value.errorAt(location, StratifiedBooleanOperationCompiler.ERROR_TYPE_MISMATCH,
+                v.getClass().getSimpleName());
     }
 
 }

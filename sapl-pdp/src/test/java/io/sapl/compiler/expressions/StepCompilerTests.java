@@ -32,15 +32,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.array;
-import static io.sapl.util.SaplTesting.assertCompilesTo;
-import static io.sapl.util.SaplTesting.assertPureDependsOnSubscription;
-import static io.sapl.util.SaplTesting.assertPureEvaluatesToErrorWithResource;
-import static io.sapl.util.SaplTesting.assertPureEvaluatesToWithResource;
-import static io.sapl.util.SaplTesting.assertPureEvaluatesToWithSubject;
-import static io.sapl.util.SaplTesting.compileExpression;
-import static io.sapl.util.SaplTesting.evaluateWithResource;
-import static io.sapl.util.SaplTesting.obj;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -204,6 +196,14 @@ class StepCompilerTests {
                     arguments("{\"items\": [10, 20, 30]}.items[2]", Value.of(30)),
                     arguments("[[1, 2], [3, 4], [5, 6]][1][0]", Value.of(3)),
                     arguments("{\"a\": [{\"b\": [1, 2, 3]}]}.a[0].b[-1]", Value.of(3)));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = { "[10, 20, 30][(4294967296)]", "[10, 20, 30][(2.5)]", "[10, 20, 30][(4294967297)]" })
+        @DisplayName("a dynamic index that is not an exact int returns an error instead of wrapping to an element")
+        void nonIntegerExpressionIndexReturnsError(String expr) {
+            var result = compileExpression(expr);
+            assertThat(result).isInstanceOf(ErrorValue.class);
         }
     }
 

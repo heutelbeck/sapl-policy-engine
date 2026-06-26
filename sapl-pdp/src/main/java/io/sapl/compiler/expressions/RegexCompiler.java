@@ -17,26 +17,20 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.Predicate;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegex.RegexBudgetExceededException;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
 
 /**
  * Compiler for REGEX binary operations with pre-compilation optimization.
@@ -49,8 +43,10 @@ import java.util.regex.PatternSyntaxException;
 @UtilityClass
 public class RegexCompiler {
 
-    private static final String ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
-    private static final String ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
+    private static final String          ERROR_REGEX_INVALID        = "Invalid regular expression '%s': %s.";
+    private static final String          ERROR_REGEX_MUST_BE_STRING = "Regular expression must be a string, but got: %s.";
+    private static final String          ERROR_REGEX_TIMEOUT        = "Regular expression evaluation exceeded its time budget.";
+    private static final BinaryOperation MATCHER                    = RegexCompiler::matchRegex;
 
     public static CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
         val left  = ExpressionCompiler.compile(binaryOperation.left(), ctx);
@@ -64,51 +60,43 @@ public class RegexCompiler {
             return right;
         }
 
-        // Pre-compile regex when pattern is a literal string
+        // Pre-compile regex when pattern is a literal string.
         if (right instanceof TextValue(String value)) {
-            Predicate<String> matcher;
+            final Pattern compiled;
             try {
-                matcher = Pattern.compile(value).asMatchPredicate();
+                compiled = Pattern.compile(value);
             } catch (PatternSyntaxException e) {
                 throw new SaplCompilerException(ERROR_REGEX_INVALID.formatted(value, e.getMessage()), e,
                         binaryOperation);
             }
-            return switch (left) {
-            case Value lv         -> matchRegex(lv, matcher);
-            case PureOperator lp  -> new RegexPrecompiledPure(lp, value, matcher, loc);
-            case StreamOperator s -> new RegexPrecompiledStream(s, matcher, loc);
-            };
+            if (left instanceof Value lv) {
+                return matchRegex(lv, compiled, loc);
+            }
+            if (left instanceof StreamOperator ls) {
+                return new RegexPrecompiledStream(ls, compiled, loc);
+            }
+            return new RegexPrecompiledPure((PureOperator) left, value, compiled, loc);
         }
 
-        // Runtime regex compilation when pattern is not a literal
+        // Runtime path: pattern is not a literal. Reject non-Pure/non-Stream.
         if (!(right instanceof PureOperator) && !(right instanceof StreamOperator)) {
             return Value.errorAt(loc, ERROR_REGEX_MUST_BE_STRING, right);
         }
-
-        return switch (left) {
-        case Value lv         -> switch (right) {
-                          case PureOperator rp       -> new RegexValuePure(lv, rp, loc);
-                          case StreamOperator rs     -> new RegexValueStream(lv, rs, loc);
-                          default                    -> throw new IllegalStateException();
-                          };
-        case PureOperator lp  -> switch (right) {
-                          case PureOperator rp       -> new RegexPurePure(lp, rp, loc);
-                          case StreamOperator rs     -> new RegexPureStream(lp, rs, loc);
-                          default                    -> throw new IllegalStateException();
-                          };
-        case StreamOperator s -> switch (right) {
-                          case PureOperator rp       -> new RegexStreamPure(s, rp, loc);
-                          case StreamOperator rs     -> new RegexStreamStream(s, rs, loc);
-                          default                    -> throw new IllegalStateException();
-                          };
-        };
+        if (left instanceof StreamOperator || right instanceof StreamOperator) {
+            return new RegexStream(left, right, loc);
+        }
+        return new RegexPure(left, right, loc);
     }
 
-    static Value matchRegex(Value input, Predicate<String> matcher) {
+    static Value matchRegex(Value input, Pattern pattern, SourceLocation loc) {
         if (!(input instanceof TextValue(String value))) {
             return Value.FALSE; // Non-text doesn't match
         }
-        return matcher.test(value) ? Value.TRUE : Value.FALSE;
+        try {
+            return BoundedRegex.matches(pattern, value) ? Value.TRUE : Value.FALSE;
+        } catch (RegexBudgetExceededException | StackOverflowError e) {
+            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
+        }
     }
 
     static Value matchRegex(Value input, Value pattern, SourceLocation loc) {
@@ -118,18 +106,26 @@ public class RegexCompiler {
         if (!(input instanceof TextValue(String inputText))) {
             return Value.FALSE; // Non-text doesn't match
         }
+        final Pattern compiled;
         try {
-            return Pattern.matches(patternText, inputText) ? Value.TRUE : Value.FALSE;
+            compiled = Pattern.compile(patternText);
         } catch (PatternSyntaxException e) {
             return Value.errorAt(loc, ERROR_REGEX_INVALID, patternText, e.getMessage());
         }
+        try {
+            return BoundedRegex.matches(compiled, inputText) ? Value.TRUE : Value.FALSE;
+        } catch (RegexBudgetExceededException | StackOverflowError e) {
+            return Value.errorAt(loc, ERROR_REGEX_TIMEOUT);
+        }
     }
 
-    record RegexPrecompiledPure(
-            PureOperator input,
-            String patternSource,
-            Predicate<String> matcher,
-            SourceLocation location) implements PureOperator {
+    /**
+     * Pre-compiled regex against a {@link PureOperator} input. The
+     * {@link Predicate} cached at compile time bypasses per-evaluation
+     * pattern compilation.
+     */
+    record RegexPrecompiledPure(PureOperator input, String patternSource, Pattern pattern, SourceLocation location)
+            implements PureOperator {
         private static final long KIND = SemanticHashing.kindHash(RegexPrecompiledPure.class);
 
         @Override
@@ -138,7 +134,7 @@ public class RegexCompiler {
             if (v instanceof ErrorValue) {
                 return v;
             }
-            return matchRegex(v, matcher);
+            return matchRegex(v, pattern, location);
         }
 
         @Override
@@ -153,62 +149,51 @@ public class RegexCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, input.semanticHash(), patternSource.hashCode());
+            return SemanticHashing.ordered(KIND, input.semanticHash(), SemanticHashing.textHash(patternSource));
         }
     }
 
-    record RegexPrecompiledStream(StreamOperator input, Predicate<String> matcher, SourceLocation location)
+    /**
+     * Pre-compiled regex against a {@link StreamOperator} input.
+     */
+    record RegexPrecompiledStream(StreamOperator input, Pattern pattern, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return input.stream().map(tv -> {
-                val v = tv.value();
-                if (v instanceof ErrorValue) {
-                    return tv;
-                }
-                return new TracedValue(matchRegex(v, matcher), tv.contributingAttributes());
-            });
-        }
-    }
-
-    record RegexValuePure(Value input, PureOperator pattern, SourceLocation location) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(RegexValuePure.class);
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            val p = pattern.evaluate(ctx);
-            if (p instanceof ErrorValue) {
-                return p;
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(1);
+            val v    = evalChild(input, ctx, deps);
+            if (v == null || v instanceof ErrorValue) {
+                return new ExpressionResult(v, deps);
             }
-            return matchRegex(input, p, location);
-        }
-
-        @Override
-        public boolean isDependingOnSubscription() {
-            return pattern.isDependingOnSubscription();
-        }
-
-        @Override
-        public boolean isRelativeExpression() {
-            return pattern.isRelativeExpression();
-        }
-
-        @Override
-        public long semanticHash() {
-            return SemanticHashing.ordered(KIND, input.hashCode(), pattern.semanticHash());
+            return new ExpressionResult(matchRegex(v, pattern, location), deps);
         }
     }
 
-    record RegexPurePure(PureOperator input, PureOperator pattern, SourceLocation location) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(RegexPurePure.class);
+    /**
+     * Runtime-compiled regex; both {@code input} and {@code pattern} are
+     * {@link Value} or {@link PureOperator}. The {@link StreamOperator}
+     * branch is unreachable by construction and folds to an
+     * {@link ErrorValue} defensively.
+     */
+    record RegexPure(CompiledExpression input, CompiledExpression pattern, SourceLocation location)
+            implements PureOperator {
+        private static final long KIND = SemanticHashing.kindHash(RegexPure.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            val i = input.evaluate(ctx);
+            val i = switch (input) {
+            case Value v                -> v;
+            case PureOperator p         -> p.evaluate(ctx);
+            case StreamOperator ignored -> Value.errorAt(location, ERROR_REGEX_MUST_BE_STRING, input);
+            };
             if (i instanceof ErrorValue) {
                 return i;
             }
-            val p = pattern.evaluate(ctx);
+            val p = switch (pattern) {
+            case Value v                -> v;
+            case PureOperator po        -> po.evaluate(ctx);
+            case StreamOperator ignored -> Value.errorAt(location, ERROR_REGEX_MUST_BE_STRING, pattern);
+            };
             if (p instanceof ErrorValue) {
                 return p;
             }
@@ -217,90 +202,36 @@ public class RegexCompiler {
 
         @Override
         public boolean isDependingOnSubscription() {
-            return input.isDependingOnSubscription() || pattern.isDependingOnSubscription();
+            return (input instanceof PureOperator ip && ip.isDependingOnSubscription())
+                    || (pattern instanceof PureOperator pp && pp.isDependingOnSubscription());
         }
 
         @Override
         public boolean isRelativeExpression() {
-            return input.isRelativeExpression() || pattern.isRelativeExpression();
+            return (input instanceof PureOperator ip && ip.isRelativeExpression())
+                    || (pattern instanceof PureOperator pp && pp.isRelativeExpression());
         }
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, input.semanticHash(), pattern.semanticHash());
+            val ih = input instanceof Value v ? SemanticHashing.valueHash(v) : ((PureOperator) input).semanticHash();
+            val ph = pattern instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) pattern).semanticHash();
+            return SemanticHashing.ordered(KIND, ih, ph);
         }
     }
 
-    record RegexValueStream(Value input, StreamOperator pattern, SourceLocation location) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return pattern.stream().map(tv -> {
-                val p = tv.value();
-                if (p instanceof ErrorValue) {
-                    return tv;
-                }
-                return new TracedValue(matchRegex(input, p, location), tv.contributingAttributes());
-            });
-        }
-    }
-
-    record RegexPureStream(PureOperator input, StreamOperator pattern, SourceLocation location)
+    /**
+     * Runtime-compiled regex with at least one of {@code input} or
+     * {@code pattern} being a {@link StreamOperator}. Delegates to the
+     * binary-op eager evaluator which walks both children to accumulate
+     * the maximum subscription set.
+     */
+    record RegexStream(CompiledExpression input, CompiledExpression pattern, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val i = input.evaluate(ctx.get(EvaluationContext.class));
-                if (i instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(i, List.of()));
-                }
-                return pattern.stream().map(tv -> {
-                    val p = tv.value();
-                    if (p instanceof ErrorValue) {
-                        return tv;
-                    }
-                    return new TracedValue(matchRegex(i, p, location), tv.contributingAttributes());
-                });
-            });
-        }
-    }
-
-    record RegexStreamPure(StreamOperator input, PureOperator pattern, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val p = pattern.evaluate(ctx.get(EvaluationContext.class));
-                if (p instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(p, List.of()));
-                }
-                return input.stream().map(tv -> {
-                    val i = tv.value();
-                    if (i instanceof ErrorValue) {
-                        return tv;
-                    }
-                    return new TracedValue(matchRegex(i, p, location), tv.contributingAttributes());
-                });
-            });
-        }
-    }
-
-    record RegexStreamStream(StreamOperator input, StreamOperator pattern, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.combineLatest(input.stream(), pattern.stream(), (ti, tp) -> {
-                var combined = new ArrayList<>(ti.contributingAttributes());
-                combined.addAll(tp.contributingAttributes());
-                val i = ti.value();
-                if (i instanceof ErrorValue) {
-                    return new TracedValue(i, combined);
-                }
-                val p = tp.value();
-                if (p instanceof ErrorValue) {
-                    return new TracedValue(p, combined);
-                }
-                return new TracedValue(matchRegex(i, p, location), combined);
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return MATCHER.evalEager(input, pattern, location, ctx);
         }
     }
 

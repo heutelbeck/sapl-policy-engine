@@ -17,15 +17,10 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.sapl.api.model.IndexPredicate;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Variable order for the binary (non-equality) predicates in the SMTDD.

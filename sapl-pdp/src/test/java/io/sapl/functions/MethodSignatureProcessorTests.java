@@ -19,12 +19,7 @@ package io.sapl.functions;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionInvocation;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,10 +39,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("MethodSignatureProcessor")
 class MethodSignatureProcessorTests {
-
-    // ========================================================================
-    // Static/Instance Method Handling
-    // ========================================================================
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("staticInstanceMethodCases")
@@ -97,10 +88,6 @@ class MethodSignatureProcessorTests {
         assertThat(instanceResult).isEqualTo(Value.of("Soul of Victim drained"));
     }
 
-    // ========================================================================
-    // Function Name Resolution
-    // ========================================================================
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("functionNameResolutionCases")
     void whenResolvingFunctionNameThenCorrectNameUsed(String description, String methodName, Class<?>[] paramTypes,
@@ -129,10 +116,6 @@ class MethodSignatureProcessorTests {
 
         assertThat(spec).isNull();
     }
-
-    // ========================================================================
-    // Signature Validation
-    // ========================================================================
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("validSignatureCases")
@@ -181,10 +164,6 @@ class MethodSignatureProcessorTests {
                 arguments("varargs not as last parameter rejected", BrokenLibrary.class, "varArgsNotLast",
                         new Class<?>[] { TextValue[].class, TextValue.class }, IllegalStateException.class, ""));
     }
-
-    // ========================================================================
-    // Method Execution
-    // ========================================================================
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("methodExecutionCases")
@@ -244,10 +223,6 @@ class MethodSignatureProcessorTests {
                         "Elric awakens 3 towers in the Dreaming City"));
     }
 
-    // ========================================================================
-    // Argument Validation Errors
-    // ========================================================================
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("argumentValidationErrorCases")
     void whenInvalidArgumentsThenReturnsError(String description, MethodReference methodRef, List<Value> arguments,
@@ -290,10 +265,6 @@ class MethodSignatureProcessorTests {
                         List.of(Value.of("Elric"), Value.of("Bronze"), Value.of(42)), "varargs argument 1"));
     }
 
-    // ========================================================================
-    // Exception Handling
-    // ========================================================================
-
     @Test
     void whenMethodThrowsExceptionThenCapturedAsError() throws Exception {
         val method = StormbringerLibrary.class.getMethod("throwsException", TextValue.class);
@@ -304,10 +275,6 @@ class MethodSignatureProcessorTests {
         assertThat(result).isInstanceOf(ErrorValue.class);
         assertThat(((ErrorValue) result).message()).contains("execution failed").contains("Stormbringer rebels");
     }
-
-    // ========================================================================
-    // Helper Methods and Records
-    // ========================================================================
 
     private static FunctionInvocation invocation(String name, Value... args) {
         return new FunctionInvocation(name, List.of(args));
@@ -327,10 +294,6 @@ class MethodSignatureProcessorTests {
             return clazz.getMethod(methodName, paramTypes);
         }
     }
-
-    // ========================================================================
-    // Test Library Classes (Elric Universe Themes)
-    // ========================================================================
 
     static class StormbringerLibrary {
 

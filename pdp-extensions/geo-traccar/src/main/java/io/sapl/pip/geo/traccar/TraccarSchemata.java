@@ -83,7 +83,7 @@ public class TraccarSchemata {
                "type": "object",
                "properties": {
                  "id":               { "type": "integer" },
-                 "attributes ":      { "type": "object" },
+                 "attributes":       { "type": "object" },
                  "registration":     { "type": "boolean" },
                  "readonly":         { "type": "boolean" },
                  "deviceReadonly":   { "type": "boolean" },
@@ -125,7 +125,7 @@ public class TraccarSchemata {
                      "model":       { "type": "string" },
                      "contact":     { "type": "string" },
                      "category":    { "type": "string" },
-                     "attributes ": { "type": "object" }
+                     "attributes":  { "type": "object" }
                    }
                }
              }
@@ -150,7 +150,7 @@ public class TraccarSchemata {
                  "model":       { "type": "string" },
                  "contact":     { "type": "string" },
                  "category":    { "type": "string" },
-                 "attributes ": { "type": "object" }
+                 "attributes":  { "type": "object" }
                }
              }
              """;
@@ -177,10 +177,9 @@ public class TraccarSchemata {
                  "course":      { "type": "number" },
                  "address":     { "type": "string" },
                  "accuracy":    { "type": "number" },
-                 "address":     { "type": "string" },
                  "network":     { "type": "object" },
                  "geofenceIds": { "type": "array", "items": { "type" : "integer" } },
-                 "attributes ": { "type": "object" }
+                 "attributes":  { "type": "object" }
                }
              }
              """;

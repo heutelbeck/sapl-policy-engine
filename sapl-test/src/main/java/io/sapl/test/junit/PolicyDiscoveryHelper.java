@@ -131,7 +131,7 @@ class PolicyDiscoveryHelper {
      * @param useFilenameOnly if true, returns just the filename without prefix
      * @return the policy name
      */
-    private static String extractPolicyName(String subdirectory, String relativePath, boolean useFilenameOnly) {
+    static String extractPolicyName(String subdirectory, String relativePath, boolean useFilenameOnly) {
         // Remove .sapl extension
         var name = relativePath;
         if (name.endsWith(".sapl")) {

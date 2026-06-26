@@ -19,6 +19,7 @@ package io.sapl.benchmark.sapl4;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import io.sapl.api.model.BooleanExpression;
 import io.sapl.api.model.BooleanExpression.And;
@@ -30,7 +31,7 @@ import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.document.DocumentCompiler;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -39,16 +40,22 @@ import io.sapl.compiler.index.smtdd.SmtddBuilder;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @DisplayName("Semantic analysis diagnostic for hospital scenarios")
 class SemanticAnalysisDiagnosticTests {
 
     private static final boolean PRINT_RESULTS = false;
 
-    @ValueSource(ints = { 1, 5, 50, 300 })
-    @DisplayName("analyze predicate grouping in hospital scenario")
+    private static final int[] HOSPITAL_SCALES = { 1, 5, 50, 300 };
+
+    // Smoke runs keep only small scales (<= this). The full scaled range runs
+    // under the it profile (-Dsapl.fullTests=true).
+    private static final int SMOKE_MAX_SCALE = 10;
+
+    @MethodSource("hospitalScales")
     @ParameterizedTest(name = "hospital-{0}")
+    @DisplayName("analyze predicate grouping in hospital scenario")
     void whenHospitalThenAnalyzeGrouping(int departments) {
         val scenario = ScenarioFactory.create("hospital-" + departments, 42L);
         val flags    = ObjectValue.builder().put("indexing", Value.of("NAIVE")).build();
@@ -57,7 +64,7 @@ class SemanticAnalysisDiagnosticTests {
         // ourselves
         val components = scenario.buildPdp(flags);
         val pdpData    = new PdpData(scenario.variables(), Value.EMPTY_OBJECT);
-        val ctx        = new CompilationContext(pdpData, components.functionBroker(), components.attributeBroker());
+        val ctx        = new CompilationContext(pdpData, components.functionBroker());
         ctx.setCompilerOptions(flags);
 
         val policies  = scenario.policies().get();
@@ -65,7 +72,7 @@ class SemanticAnalysisDiagnosticTests {
         for (val source : policies) {
             documents.add(DocumentCompiler.compileDocument(source, ctx));
         }
-        components.dispose();
+        components.close();
 
         val allPredicatesPerFormula = new ArrayList<List<IndexPredicate>>();
         var formulaCount            = 0;
@@ -101,6 +108,11 @@ class SemanticAnalysisDiagnosticTests {
 
         // Build the SMTDD - validates it completes without blowup
         SmtddBuilder.build(result, booleanExpressions, 0);
+    }
+
+    static IntStream hospitalScales() {
+        val full = Boolean.getBoolean("sapl.fullTests");
+        return IntStream.of(HOSPITAL_SCALES).filter(scale -> full || scale <= SMOKE_MAX_SCALE);
     }
 
     private static void collectPredicates(BooleanExpression expression, List<IndexPredicate> result) {

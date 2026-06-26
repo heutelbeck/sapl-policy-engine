@@ -18,7 +18,6 @@
 package io.sapl.pdp.configuration.source;
 
 import io.sapl.pdp.configuration.PDPConfigurationException;
-import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
 import io.sapl.pdp.configuration.bundle.BundleSignatureException;
@@ -28,22 +27,23 @@ import lombok.val;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
-import reactor.core.Disposable;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * PDP configuration source that loads configurations from .saplbundle files in
- * a directory with file watching for
- * hot-reload.
+ * a directory with file watching for hot-reload.
  * <p>
  * Each bundle file represents a single PDP configuration. The PDP ID is derived
- * from the filename (minus the
- * .saplbundle extension). Bundle parsing is delegated to {@link BundleParser}.
+ * from the filename (minus the .saplbundle extension). Bundle parsing is
+ * delegated to {@link BundleParser}.
  * </p>
  * <h2>Directory Layout</h2>
  *
@@ -62,14 +62,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <h2>Thread Safety</h2>
  * <p>
  * This class is thread-safe. The file monitoring thread runs independently and
- * loads configurations directly into the voter source.
+ * emits events to subscribed listeners.
  * </p>
  *
  * @see BundleParser
  * @see BundleSecurityPolicy
  */
 @Slf4j
-public final class BundlePDPConfigurationSource implements Disposable {
+public final class BundlePDPConfigurationSource implements PDPConfigurationSource {
 
     private static final String BUNDLE_EXTENSION = ".saplbundle";
 
@@ -98,56 +98,84 @@ public final class BundlePDPConfigurationSource implements Disposable {
             sapl-node bundle create -i <policy-dir> -o {}/default.saplbundle \
             Signature verification is disabled. \
             For production, enable signing with: sapl-node bundle keygen -o signing""";
+    private static final String WARN_SUBSCRIBER_THREW    = "Configuration subscriber threw on event {}: {}.";
 
-    private final Path                  directoryPath;
-    private final BundleSecurityPolicy  securityPolicy;
-    private final PdpVoterSource        pdpVoterSource;
-    private final FileAlterationMonitor monitor;
-    private final AtomicBoolean         disposed = new AtomicBoolean(false);
+    private final Path                              directoryPath;
+    private final BundleSecurityPolicy              securityPolicy;
+    private final FileAlterationMonitor             monitor;
+    private final Set<Consumer<ConfigurationEvent>> subscribers = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean                     activated   = new AtomicBoolean(false);
+    private final AtomicBoolean                     closed      = new AtomicBoolean(false);
 
     /**
-     * Creates a source loading bundles from the specified directory.
+     * Creates a source for the specified bundle directory.
      *
-     * @param directoryPath
-     * the filesystem directory containing .saplbundle files
-     * @param securityPolicy
-     * the security policy for bundle signature verification
-     * @param pdpVoterSource
-     * the voter source to load configurations into
-     *
-     * @throws NullPointerException
-     * if any parameter is null
-     * @throws BundleSignatureException
-     * if the security policy is invalid
+     * @param directoryPath the filesystem directory containing .saplbundle
+     * files
+     * @param securityPolicy the security policy for bundle signature
+     * verification
+     * @throws NullPointerException if any parameter is null
+     * @throws BundleSignatureException if the security policy is invalid
      */
-    public BundlePDPConfigurationSource(@NonNull Path directoryPath,
-            @NonNull BundleSecurityPolicy securityPolicy,
-            @NonNull PdpVoterSource pdpVoterSource) {
+    public BundlePDPConfigurationSource(@NonNull Path directoryPath, @NonNull BundleSecurityPolicy securityPolicy) {
         Objects.requireNonNull(securityPolicy, ERROR_SECURITY_POLICY_NULL);
         securityPolicy.validate();
 
         this.directoryPath  = PdpIdValidator.resolveHomeFolderIfPresent(directoryPath).toAbsolutePath().normalize();
         this.securityPolicy = securityPolicy;
-        this.pdpVoterSource = pdpVoterSource;
         this.monitor        = new FileAlterationMonitor(POLL_INTERVAL_MS);
+    }
 
-        log.info("Loading PDP configurations from bundle directory: '{}'.", this.directoryPath);
+    @Override
+    public void subscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        if (closed.get()) {
+            return;
+        }
+        subscribers.add(listener);
+        if (activated.compareAndSet(false, true)) {
+            activate();
+        }
+    }
+
+    @Override
+    public void unsubscribe(@NonNull Consumer<ConfigurationEvent> listener) {
+        subscribers.remove(listener);
+    }
+
+    @Override
+    public void close() {
+        if (closed.compareAndSet(false, true)) {
+            stopMonitorSafely();
+            subscribers.clear();
+            log.debug("Closed bundle configuration source.");
+        }
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+    private void activate() {
+        log.info("Loading PDP configurations from bundle directory: '{}'.", directoryPath);
         validateDirectory();
         loadInitialBundles();
         startFileMonitor();
     }
 
-    @Override
-    public void dispose() {
-        if (disposed.compareAndSet(false, true)) {
-            stopMonitorSafely();
-            log.debug("Disposed bundle configuration source.");
+    private void emit(ConfigurationEvent event) {
+        if (closed.get()) {
+            return;
         }
-    }
-
-    @Override
-    public boolean isDisposed() {
-        return disposed.get();
+        for (val subscriber : subscribers) {
+            try {
+                subscriber.accept(event);
+            } catch (Exception e) {
+                // One misbehaving subscriber must not abort delivery to the
+                // others or kill the file-watch thread driving hot reload.
+                log.warn(WARN_SUBSCRIBER_THREW, event, e.getMessage());
+            }
+        }
     }
 
     private void validateDirectory() {
@@ -190,7 +218,7 @@ public final class BundlePDPConfigurationSource implements Disposable {
 
         try {
             val config = BundleParser.parse(bundlePath, pdpId, securityPolicy);
-            pdpVoterSource.loadConfiguration(config, true);
+            emit(new ConfigurationEvent.Load(config, true));
             log.debug("Loaded bundle '{}' with {} SAPL documents.", pdpId, config.saplDocuments().size());
         } catch (Exception e) {
             log.error("Failed to load bundle '{}': {}.", pdpId, e.getMessage(), e);
@@ -263,18 +291,18 @@ public final class BundlePDPConfigurationSource implements Disposable {
 
         @Override
         public void onFileDelete(File file) {
-            if (disposed.get()) {
+            if (closed.get()) {
                 return;
             }
             val pdpId = derivePdpIdFromBundleName(file.toPath());
-            if (pdpId != null) {
-                pdpVoterSource.removeConfigurationForPdp(pdpId);
+            if (pdpId != null && PdpIdValidator.isValidPdpId(pdpId)) {
+                emit(new ConfigurationEvent.Remove(pdpId));
                 log.info("Removed configuration for deleted bundle '{}'.", pdpId);
             }
         }
 
         private void handleBundleChange(File file) {
-            if (disposed.get()) {
+            if (closed.get()) {
                 return;
             }
             val bundlePath = file.toPath();

@@ -22,8 +22,9 @@ package io.sapl.ast;
  * <p>
  * Lazy ({@code &&}, {@code ||}) and eager ({@code &}, {@code |}) boolean
  * operators behave identically on the value and pure strata. On the streaming
- * stratum, lazy operators use switchMap (short-circuit), while eager operators
- * use combineLatest (both subscriptions always active).
+ * stratum, lazy operators short-circuit on the snapshot value of the left
+ * operand and skip the right subtree. Eager operators walk every operand to
+ * accumulate all dependencies.
  */
 public enum BinaryOperatorType {
     // Logical (all use cost-stratified short-circuit evaluation)

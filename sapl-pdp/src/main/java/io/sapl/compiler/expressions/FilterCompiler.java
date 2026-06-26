@@ -17,32 +17,28 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.Expression;
 import io.sapl.ast.RelativeReference;
 import io.sapl.ast.RelativeType;
 import io.sapl.ast.SimpleFilter;
 import io.sapl.compiler.index.SemanticHashing;
-import io.sapl.compiler.operators.SimpleStreamOperator;
 import io.sapl.compiler.util.DummyEvaluationContextFactory;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static io.sapl.api.model.StreamOperator.evalChild;
+import static io.sapl.api.model.StreamOperator.mergeDependencies;
 
 @UtilityClass
 public class FilterCompiler {
+
+    private static final String ERROR_PURE_FILTER_RECEIVED_STREAM_OPERATOR = "EachPure cannot contain StreamOperator. Indicates an implementation bug.";
 
     public static CompiledExpression compileSimple(SimpleFilter sf, CompilationContext ctx) {
         return ctx.foldCacheDedupe(compileSimpleUnfolded(sf, ctx));
@@ -72,143 +68,181 @@ public class FilterCompiler {
         arguments.add(new RelativeReference(RelativeType.VALUE, sf.base().location()));
         val location = sf.location();
         arguments.addAll(sf.arguments());
-        val function = FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx);
-        return switch (base) {
-        case Value vb           -> switch (function) {
-                            case Value vf                                                  ->
-                                evaluateEachValueValue(vb, vf);
-                            case PureOperator pof when pof.isDependingOnSubscription()     ->
-                                new SimpleFilterEachValuePure(vb, pof, location, true, false);
-                            case PureOperator pof                                          ->
-                                compileEachValuePureFold(vb, pof, ctx);
-                            case StreamOperator sof                                        ->
-                                new SimpleFilterEachValueStream(vb, sof, location);
-                            };
-        case PureOperator pob   -> switch (function) {
-                            case Value vf               -> new SimpleFilterEachPureValue(pob, vf, location,
-                                    pob.isDependingOnSubscription(), pob.isRelativeExpression());
-                            case PureOperator pof       -> new SimpleFilterEachPurePure(pob, pof, location,
-                                    pob.isDependingOnSubscription() || pof.isDependingOnSubscription(),
-                                    pob.isRelativeExpression());
-                            case StreamOperator sof     -> new SimpleFilterEachPureStream(pob, sof, location);
-                            };
-        case StreamOperator sob -> switch (function) {
-                            case Value vf               -> new SimpleFilterEachStreamValue(sob, vf);
-                            case PureOperator pof       -> new SimpleFilterEachStreamPure(sob, pof);
-                            case StreamOperator sof     -> new SimpleFilterEachStreamStream(sob, sof, location);
-                            };
-        };
+        val filter = FunctionCallCompiler.compile(sf.name().full(), arguments, location, ctx);
+
+        if (base instanceof Value vb && filter instanceof Value vf) {
+            return evaluateEachValueValue(vb, vf);
+        }
+        if (base instanceof Value vb && filter instanceof PureOperator pof && !pof.isDependingOnSubscription()) {
+            return compileEachValuePureFold(vb, pof, ctx);
+        }
+        if (base instanceof StreamOperator || filter instanceof StreamOperator) {
+            return new EachStream(base, filter, location);
+        }
+        val baseDep   = base instanceof PureOperator pob && pob.isDependingOnSubscription();
+        val filterDep = filter instanceof PureOperator pof && pof.isDependingOnSubscription();
+        val baseRel   = base instanceof PureOperator pob && pob.isRelativeExpression();
+        return new EachPure(base, filter, location, baseDep || filterDep, baseRel);
     }
 
-    record SimpleFilterEachValuePure(
-            Value base,
-            PureOperator filterOperator,
+    /**
+     * Pure-stratum each-filter. Both {@code base} and {@code filter} are
+     * {@link Value} or {@link PureOperator}; the {@link StreamOperator}
+     * branch in element dispatch is unreachable by construction and folds
+     * to an {@link ErrorValue} defensively.
+     */
+    record EachPure(
+            CompiledExpression base,
+            CompiledExpression filter,
             SourceLocation location,
             boolean isDependingOnSubscription,
             boolean isRelativeExpression) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachValuePure.class);
+        private static final long KIND = SemanticHashing.kindHash(EachPure.class);
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
-            return evaluateEachValuePure(base, filterOperator, ctx);
+            val baseValue = switch (base) {
+            case Value v                -> v;
+            case PureOperator p         -> p.evaluate(ctx);
+            case StreamOperator ignored -> Value.error(ERROR_PURE_FILTER_RECEIVED_STREAM_OPERATOR);
+            };
+            if (baseValue instanceof ErrorValue) {
+                return baseValue;
+            }
+            return switch (filter) {
+            case Value vf               -> evaluateEachValueValue(baseValue, vf);
+            case PureOperator pf        -> evaluateEachValuePure(baseValue, pf, ctx);
+            case StreamOperator ignored -> Value.error(ERROR_PURE_FILTER_RECEIVED_STREAM_OPERATOR);
+            };
         }
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, base.hashCode(), filterOperator.semanticHash());
+            val baseHash   = base instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) base).semanticHash();
+            val filterHash = filter instanceof Value v ? SemanticHashing.valueHash(v)
+                    : ((PureOperator) filter).semanticHash();
+            return SemanticHashing.ordered(KIND, baseHash, filterHash);
         }
     }
 
-    record SimpleFilterEachValueStream(Value base, StreamOperator filterOperator, SourceLocation location)
+    /**
+     * Stream-stratum each-filter. At least one of {@code base} or
+     * {@code filter} is a {@link StreamOperator}; {@link #evaluate}
+     * walks every child via {@link StreamOperator#evalChild} to
+     * accumulate the maximum subscription set, holds the first
+     * {@link ErrorValue} from any per-element evaluation, returns it
+     * after the full walk. {@code null} from a child sets the
+     * incomplete flag. {@link UndefinedValue} elements are dropped per
+     * filter semantics.
+     */
+    record EachStream(CompiledExpression base, CompiledExpression filter, SourceLocation location)
             implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(contextView -> evaluateEachValueStream(base, filterOperator, location,
-                    contextView.get(EvaluationContext.class)));
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            val deps      = HashMap.<SubscriptionKey, List<Occurrence>>newHashMap(2);
+            val baseValue = evalChild(base, ctx, deps);
+            if (baseValue == null || baseValue instanceof ErrorValue) {
+                return new ExpressionResult(baseValue, deps);
+            }
+            return switch (filter) {
+            case Value vf          -> new ExpressionResult(evaluateEachValueValue(baseValue, vf), deps);
+            case PureOperator pf   -> new ExpressionResult(evaluateEachValuePure(baseValue, pf, ctx), deps);
+            case StreamOperator sf -> evaluateEachStreamFilter(baseValue, sf, ctx, deps);
+            };
         }
     }
 
-    record SimpleFilterEachPureValue(
-            PureOperator baseOperator,
-            Value filterResult,
-            SourceLocation location,
-            boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachPureValue.class);
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            return evaluateEachValueValue(baseOperator.evaluate(ctx), filterResult);
+    /**
+     * Per-element evaluation of a stream filter against a base value.
+     * Dispatches on base shape (Array, Object, scalar, ErrorValue), walks
+     * every element to accumulate the maximum subscription set, holds the
+     * first {@link ErrorValue} from any per-element evaluation, returns it
+     * after the full walk. {@code null} from a per-element evaluation sets
+     * the incomplete flag. {@link UndefinedValue} elements are dropped per
+     * filter semantics. Precedence at the end:
+     * error &gt; null &gt; assembled result.
+     */
+    private static ExpressionResult evaluateEachStreamFilter(Value base, StreamOperator filterOperator,
+            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+        if (base instanceof ErrorValue) {
+            return new ExpressionResult(base, deps);
         }
-
-        @Override
-        public long semanticHash() {
-            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterResult.hashCode());
+        if (base instanceof ArrayValue av) {
+            return evaluateEachStreamFilterArray(av, filterOperator, ctx, deps);
         }
+        if (base instanceof ObjectValue ov) {
+            return evaluateEachStreamFilterObject(ov, filterOperator, ctx, deps);
+        }
+        val r = filterOperator.evaluate(ctx.withRelativeValue(base));
+        mergeDependencies(deps, r.dependencies());
+        return new ExpressionResult(r.result(), deps);
     }
 
-    record SimpleFilterEachPurePure(
-            PureOperator baseOperator,
-            PureOperator filterOperator,
-            SourceLocation location,
-            boolean isDependingOnSubscription,
-            boolean isRelativeExpression) implements PureOperator {
-        private static final long KIND = SemanticHashing.kindHash(SimpleFilterEachPurePure.class);
-
-        @Override
-        public Value evaluate(EvaluationContext ctx) {
-            return evaluateEachValuePure(baseOperator.evaluate(ctx), filterOperator, ctx);
+    private static ExpressionResult evaluateEachStreamFilterArray(ArrayValue av, StreamOperator filterOperator,
+            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+        val     builder    = new ArrayValue.Builder();
+        boolean seenNull   = false;
+        Value   firstError = null;
+        for (int i = 0; i < av.size(); i++) {
+            val perElementCtx = ctx.withRelativeValue(av.get(i), Value.of(i));
+            val r             = filterOperator.evaluate(perElementCtx);
+            mergeDependencies(deps, r.dependencies());
+            val v = r.result();
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                if (firstError == null) {
+                    firstError = v;
+                }
+                continue;
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.add(v);
+            }
         }
-
-        @Override
-        public long semanticHash() {
-            return SemanticHashing.ordered(KIND, baseOperator.semanticHash(), filterOperator.semanticHash());
+        if (firstError != null) {
+            return new ExpressionResult(firstError, deps);
         }
+        if (seenNull) {
+            return new ExpressionResult(null, deps);
+        }
+        return new ExpressionResult(builder.build(), deps);
     }
 
-    record SimpleFilterEachPureStream(PureOperator baseOperator, StreamOperator filterOperator, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(contextView -> {
-                val evalCtx = contextView.get(EvaluationContext.class);
-                val base    = baseOperator.evaluate(evalCtx);
-                return evaluateEachValueStream(base, filterOperator, location, evalCtx);
-            });
+    private static ExpressionResult evaluateEachStreamFilterObject(ObjectValue ov, StreamOperator filterOperator,
+            EvaluationContext ctx, Map<SubscriptionKey, List<Occurrence>> deps) {
+        val     builder    = new ObjectValue.Builder();
+        boolean seenNull   = false;
+        Value   firstError = null;
+        for (val entry : ov.entrySet()) {
+            val perElementCtx = ctx.withRelativeValue(entry.getValue(), Value.of(entry.getKey()));
+            val r             = filterOperator.evaluate(perElementCtx);
+            mergeDependencies(deps, r.dependencies());
+            val v = r.result();
+            if (v == null) {
+                seenNull = true;
+                continue;
+            }
+            if (v instanceof ErrorValue) {
+                if (firstError == null) {
+                    firstError = v;
+                }
+                continue;
+            }
+            if (!(v instanceof UndefinedValue)) {
+                builder.put(entry.getKey(), v);
+            }
         }
-    }
-
-    record SimpleFilterEachStreamValue(StreamOperator baseStream, Value filterValue) implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return baseStream.stream().map(vb -> new TracedValue(evaluateEachValueValue(vb.value(), filterValue),
-                    vb.contributingAttributes()));
+        if (firstError != null) {
+            return new ExpressionResult(firstError, deps);
         }
-    }
-
-    record SimpleFilterEachStreamPure(StreamOperator baseStream, PureOperator filterOperator)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(contextView -> {
-                val evalCtx = contextView.get(EvaluationContext.class);
-                return baseStream.stream()
-                        .map(vb -> new TracedValue(evaluateEachValuePure(vb.value(), filterOperator, evalCtx),
-                                vb.contributingAttributes()));
-            });
+        if (seenNull) {
+            return new ExpressionResult(null, deps);
         }
-    }
-
-    record SimpleFilterEachStreamStream(StreamOperator baseStream, StreamOperator filterStream, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return baseStream.stream().switchMap(tracedBase -> Flux.deferContextual(contextView -> {
-                val evalCtx = contextView.get(EvaluationContext.class);
-                return evaluateEachValueStream(tracedBase.value(), filterStream, location, evalCtx)
-                        .map(t -> t.with(tracedBase.contributingAttributes()));
-            }));
-        }
+        return new ExpressionResult(builder.build(), deps);
     }
 
     private static CompiledExpression compileEachValuePureFold(Value vb, PureOperator pof, CompilationContext ctx) {
@@ -282,58 +316,6 @@ public class FilterCompiler {
             }
         }
         return builder.build();
-    }
-
-    private static Flux<TracedValue> evaluateEachValueStream(Value base, StreamOperator sof, SourceLocation location,
-            EvaluationContext evalCtx) {
-        if (base instanceof ErrorValue) {
-            return Flux.just(TracedValue.of(base));
-        }
-        if (base instanceof ArrayValue av) {
-            return evaluateEachArrayStream(av, sof, location, evalCtx);
-        }
-        if (base instanceof ObjectValue ov) {
-            return evaluateEachObjectStream(ov, sof, location, evalCtx);
-        }
-        return sof.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, evalCtx.withRelativeValue(base)));
-    }
-
-    private static Flux<TracedValue> evaluateEachArrayStream(ArrayValue av, StreamOperator sof, SourceLocation location,
-            EvaluationContext evalCtx) {
-        val elements = new ArrayList<CompiledExpression>(av.size());
-        for (int i = 0; i < av.size(); i++) {
-            val localCtx = evalCtx.withRelativeValue(av.get(i), Value.of(i));
-            val element  = new SimpleStreamOperator(
-                    sof.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, localCtx)));
-            elements.add(element);
-        }
-        return toTracedStream(ArrayCompiler.buildFromCompiled(elements, location));
-    }
-
-    private static Flux<TracedValue> evaluateEachObjectStream(ObjectValue ov, StreamOperator sof,
-            SourceLocation location, EvaluationContext evalCtx) {
-        val keys     = new ArrayList<String>(ov.size());
-        val elements = new ArrayList<CompiledExpression>(ov.size());
-        for (val entry : ov.entrySet()) {
-            val key      = entry.getKey();
-            val value    = entry.getValue();
-            val localCtx = evalCtx.withRelativeValue(value, Value.of(key));
-            val element  = new SimpleStreamOperator(
-                    sof.stream().contextWrite(ctx -> ctx.put(EvaluationContext.class, localCtx)));
-            keys.add(key);
-            elements.add(element);
-        }
-        return toTracedStream(ObjectCompiler.buildFromCompiled(keys, elements, location));
-    }
-
-    private static Flux<TracedValue> toTracedStream(CompiledExpression e) {
-        return switch (e) {
-        case Value v           -> Flux.just(TracedValue.of(v));
-        case PureOperator po   ->
-            Flux.deferContextual(contextView -> Flux.just(po.evaluate(contextView.get(EvaluationContext.class))))
-                    .map(TracedValue::of);
-        case StreamOperator so -> so.stream();
-        };
     }
 
 }

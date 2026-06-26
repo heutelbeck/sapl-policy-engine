@@ -109,7 +109,7 @@ class ValueConverter {
      * Converts a number literal to a SAPL Value.
      */
     static Value convertNumber(NumberLiteralContext ctx) {
-        val text = ctx.NUMBER().getText();
+        val text = ctx.getText();
         return Value.of(new BigDecimal(text));
     }
 

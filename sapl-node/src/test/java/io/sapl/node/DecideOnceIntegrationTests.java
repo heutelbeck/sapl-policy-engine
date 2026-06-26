@@ -47,7 +47,7 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("permit-all policy outputs PERMIT JSON")
-        void whenPermitPolicy_thenPermitJson() throws IOException {
+        void whenPermitPolicyThenPermitJson() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
 
             val exitCode = SaplNodeApplication.run(new String[] { "decide-once", "--dir", policyDir.toString(), "-s",
@@ -59,7 +59,7 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("non-matching policy produces decision output")
-        void whenNoPolicyMatches_thenOutputContainsDecision() throws IOException {
+        void whenNoPolicyMatchesThenOutputContainsDecision() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"restricted\" permit subject == \"admin\";");
 
             val exitCode = SaplNodeApplication.run(new String[] { "decide-once", "--dir", policyDir.toString(), "-s",
@@ -71,7 +71,7 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("JSON object subject is accessible in policy conditions")
-        void whenJsonObjectSubject_thenPolicyMatchesFields() throws IOException {
+        void whenJsonObjectSubjectThenPolicyMatchesFields() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"by-name\" permit subject.name == \"alice\";");
 
             val exitCode = SaplNodeApplication.run(new String[] { "decide-once", "--dir", policyDir.toString(), "-s",
@@ -91,7 +91,7 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("subscription from JSON file produces correct decision")
-        void whenSubscriptionFile_thenCorrectDecision() throws IOException {
+        void whenSubscriptionFileThenCorrectDecision() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
             val subscriptionFile = policyDir.resolve("request.json");
             Files.writeString(subscriptionFile, SUBSCRIPTION_JSON);
@@ -125,7 +125,7 @@ class DecideOnceIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("-f - reads subscription from stdin")
-        void whenStdinInput_thenCorrectDecision() throws IOException {
+        void whenStdinInputThenCorrectDecision() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
             System.setIn(new ByteArrayInputStream(SUBSCRIPTION_JSON.getBytes(StandardCharsets.UTF_8)));
 

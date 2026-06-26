@@ -17,31 +17,25 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.Predicate;
-
-import io.sapl.api.model.BooleanExpression;
-import io.sapl.api.model.BooleanExpression.And;
-import io.sapl.api.model.BooleanExpression.Atom;
-import io.sapl.api.model.BooleanExpression.Constant;
-import io.sapl.api.model.BooleanExpression.Not;
-import io.sapl.api.model.BooleanExpression.Or;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.compiler.expressions.SaplCompilerException;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.IndexPredicate;
-import io.sapl.api.model.PureOperator;
+import io.sapl.api.model.*;
+import io.sapl.api.model.BooleanExpression.*;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
+import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.compiler.index.IndexReclassification;
 import io.sapl.compiler.index.PolicyIndex;
-import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Policy index based on a Semantic Multi-Terminal BDD (SMTDD).
@@ -57,11 +51,11 @@ public class SmtddPolicyIndex implements PolicyIndex {
 
     private static final String ERROR_UNEXPECTED_APPLICABILITY_TYPE = "Unexpected applicability expression type (streaming operators cannot be indexed): %s";
 
-    private final SmtddNode                    root;
-    private final BinaryVariableOrder          binaryOrder;
-    private final List<List<CompiledDocument>> formulaDocuments;
-    private final List<CompiledDocument>       alwaysApplicable;
-    private final List<Vote>                   alwaysErrorVotes;
+    private final SmtddNode                      root;
+    private final BinaryVariableOrder            binaryOrder;
+    private final List<List<CompiledDocument>>   formulaDocuments;
+    private final List<CompiledDocument>         alwaysApplicable;
+    private final List<PolicyMatches.ErrorMatch> alwaysErrorMatches;
 
     /**
      * Creates an SMTDD index from compiled documents.
@@ -75,13 +69,18 @@ public class SmtddPolicyIndex implements PolicyIndex {
     public static SmtddPolicyIndex create(List<CompiledDocument> documents, int maxIndexNodes) {
         log.debug("SMTDD index: partitioning {} documents", documents.size());
         // Predetermined results due to constant applicability
-        val alwaysApplicable = new ArrayList<CompiledDocument>();
-        val alwaysErrorVotes = new ArrayList<Vote>();
+        val alwaysApplicable   = new ArrayList<CompiledDocument>();
+        val alwaysErrorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
 
         // Formula lookup tables
         val formulas          = new ArrayList<BooleanExpression>();
         val formulaDocuments  = new ArrayList<List<CompiledDocument>>();
         val formulaPredicates = new ArrayList<List<IndexPredicate>>();
+
+        // Predicates that occur under a disjunction or negation in some formula and
+        // therefore cannot be grouped (grouping treats a predicate as a conjunctive
+        // constraint, which only holds for predicates in pure conjunctive position).
+        val nonGroupablePredicates = new HashSet<IndexPredicate>();
 
         // Deduplicate formulas and collect predicates
         val alreadySeenFormulas = new HashMap<BooleanExpression, Integer>();
@@ -90,7 +89,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
             switch (applicability) {
             case BooleanValue(var b) when b -> alwaysApplicable.add(document);
             case BooleanValue ignored       -> { /* constant false, drop */ }
-            case ErrorValue error           -> alwaysErrorVotes.add(Vote.error(error, document.metadata()));
+            case ErrorValue error           -> alwaysErrorMatches.add(new PolicyMatches.ErrorMatch(document, error));
             case PureOperator pureOp        -> {
                 val formula            = pureOp.booleanExpression();
                 val alreadySeenAtIndex = alreadySeenFormulas.get(formula);
@@ -104,6 +103,7 @@ public class SmtddPolicyIndex implements PolicyIndex {
                     formulas.add(formula);
                     formulaDocuments.add(new ArrayList<>(List.of(document)));
                     formulaPredicates.add(collectPredicates(formula));
+                    collectNonGroupablePredicates(formula, true, nonGroupablePredicates);
                 }
             }
             default                         ->
@@ -112,21 +112,21 @@ public class SmtddPolicyIndex implements PolicyIndex {
         }
 
         log.debug("SMTDD index: {} always-applicable, {} always-error, {} unique formulas", alwaysApplicable.size(),
-                alwaysErrorVotes.size(), formulas.size());
+                alwaysErrorMatches.size(), formulas.size());
 
         // Short circuit if there are no formulas
         if (formulas.isEmpty()) {
-            return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorVotes);
+            return new SmtddPolicyIndex(SmtddUniqueTable.EMPTY, null, List.of(), alwaysApplicable, alwaysErrorMatches);
         }
 
-        val analysis = SemanticVariableOrder.analyze(formulaPredicates);
+        val analysis = SemanticVariableOrder.analyze(formulaPredicates, nonGroupablePredicates);
         log.debug("SMTDD index analysis:\n{}", analysis.toAnalysisReport());
 
         val root        = SmtddBuilder.build(analysis, formulas, maxIndexNodes);
         val binaryOrder = new BinaryVariableOrder(analysis.remainingPredicates(),
                 analysis.formulasPerRemainingPredicate());
 
-        return new SmtddPolicyIndex(root, binaryOrder, formulaDocuments, alwaysApplicable, alwaysErrorVotes);
+        return new SmtddPolicyIndex(root, binaryOrder, formulaDocuments, alwaysApplicable, alwaysErrorMatches);
     }
 
     private static List<IndexPredicate> collectPredicates(BooleanExpression expression) {
@@ -148,43 +148,60 @@ public class SmtddPolicyIndex implements PolicyIndex {
         }
     }
 
-    /** {@inheritDoc} */
+    private static void collectNonGroupablePredicates(BooleanExpression node, boolean conjunctive,
+            Set<IndexPredicate> nonGroupable) {
+        switch (node) {
+        case Constant ignored                      -> { /* no predicate */ }
+        case Atom(var predicate) when !conjunctive -> nonGroupable.add(predicate);
+        case Atom ignored                          -> { /* conjunctive, groupable */ }
+        case Not(var operand)                      -> collectNonGroupablePredicates(operand, false, nonGroupable);
+        case Or(var operands)                      ->
+            operands.forEach(op -> collectNonGroupablePredicates(op, false, nonGroupable));
+        case And(var operands)                     ->
+            operands.forEach(op -> collectNonGroupablePredicates(op, conjunctive, nonGroupable));
+        }
+    }
+
+    private List<CompiledDocument> suspectDocuments(BitSet errored) {
+        val suspects = new ArrayList<CompiledDocument>();
+        for (var formulaIndex = errored.nextSetBit(0); formulaIndex >= 0; formulaIndex = errored
+                .nextSetBit(formulaIndex + 1)) {
+            suspects.addAll(formulaDocuments.get(formulaIndex));
+        }
+        return suspects;
+    }
+
     @Override
-    public PolicyIndexResult match(EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<CompiledDocument>(alwaysApplicable);
-        val errorVotes        = new ArrayList<>(alwaysErrorVotes);
+    public PolicyMatches matchKleene(EvaluationContext ctx) {
+        val trueMatches  = new ArrayList<CompiledDocument>(alwaysApplicable);
+        val errorMatches = new ArrayList<>(alwaysErrorMatches);
 
         if (binaryOrder != null) {
-            val result = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+            val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+            val errored = result.errored();
 
             for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
                     .nextSetBit(formulaIndex + 1)) {
-                matchingDocuments.addAll(formulaDocuments.get(formulaIndex));
-            }
-
-            if (result.firstError() != null) {
-                for (var formulaIndex = result.errored().nextSetBit(0); formulaIndex >= 0; formulaIndex = result
-                        .errored().nextSetBit(formulaIndex + 1)) {
-                    for (val doc : formulaDocuments.get(formulaIndex)) {
-                        errorVotes.add(Vote.error(result.firstError(), doc.metadata()));
-                    }
+                if (!errored.get(formulaIndex)) {
+                    trueMatches.addAll(formulaDocuments.get(formulaIndex));
                 }
             }
+
+            IndexReclassification.reclassifySuspectsKleene(suspectDocuments(errored), ctx, trueMatches, errorMatches);
         }
 
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
+        return new PolicyMatches(trueMatches, errorMatches);
     }
 
-    /** {@inheritDoc} */
     @Override
-    public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
-        for (val errorVote : alwaysErrorVotes) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(), List.of(errorVote)))) {
+    public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
+        for (val errorMatch : alwaysErrorMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(), List.of(errorMatch)))) {
                 return;
             }
         }
         for (val document : alwaysApplicable) {
-            if (!shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
                 return;
             }
         }
@@ -193,25 +210,32 @@ public class SmtddPolicyIndex implements PolicyIndex {
             return;
         }
 
-        val result = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+        val result  = SmtddEvaluator.evaluate(root, binaryOrder, ctx);
+        val errored = result.errored();
 
         for (var formulaIndex = result.matched().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.matched()
                 .nextSetBit(formulaIndex + 1)) {
-            if (!shouldContinue.test(new PolicyIndexResult(formulaDocuments.get(formulaIndex), List.of()))) {
+            if (!errored.get(formulaIndex)
+                    && !shouldContinue.test(new PolicyMatches(formulaDocuments.get(formulaIndex), List.of()))) {
                 return;
             }
         }
 
-        if (result.firstError() != null) {
-            for (var formulaIndex = result.errored().nextSetBit(0); formulaIndex >= 0; formulaIndex = result.errored()
-                    .nextSetBit(formulaIndex + 1)) {
-                val votes = new ArrayList<Vote>();
-                for (val doc : formulaDocuments.get(formulaIndex)) {
-                    votes.add(Vote.error(result.firstError(), doc.metadata()));
-                }
-                if (!shouldContinue.test(new PolicyIndexResult(List.of(), votes))) {
-                    return;
-                }
+        val suspects = suspectDocuments(errored);
+        if (suspects.isEmpty()) {
+            return;
+        }
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        IndexReclassification.reclassifySuspectsKleene(suspects, ctx, trueMatches, errorMatches);
+        for (val errorMatch : errorMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(), List.of(errorMatch)))) {
+                return;
+            }
+        }
+        for (val document : trueMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
+                return;
             }
         }
     }

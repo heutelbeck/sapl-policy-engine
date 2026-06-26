@@ -17,8 +17,9 @@
  */
 package io.sapl.spring.method.metadata;
 
-import lombok.NonNull;
 import org.springframework.expression.Expression;
+
+import lombok.NonNull;
 
 /**
  * Holds parsed SpEL expressions from SAPL security annotations.
@@ -26,13 +27,29 @@ import org.springframework.expression.Expression;
  * Used internally to cache and pass annotation metadata to the authorization
  * subscription builder.
  *
- * @param annotationType the annotation class (e.g., PreEnforce.class)
- * @param subjectExpression SpEL expression for the subject, or null
- * @param actionExpression SpEL expression for the action, or null
- * @param resourceExpression SpEL expression for the resource, or null
- * @param environmentExpression SpEL expression for the environment, or null
- * @param secretsExpression SpEL expression for secrets, or null
- * @param genericsType the generic type for collection returns
+ * @param annotationType
+ * the annotation class (e.g., PreEnforce.class)
+ * @param subjectExpression
+ * SpEL expression for the subject, or null
+ * @param actionExpression
+ * SpEL expression for the action, or null
+ * @param resourceExpression
+ * SpEL expression for the resource, or null
+ * @param environmentExpression
+ * SpEL expression for the environment, or null
+ * @param secretsExpression
+ * SpEL expression for secrets, or null
+ * @param signalTransitions
+ * whether suspend/resume boundary crossings surface to the subscriber as
+ * non-terminal exceptions on the
+ * error channel. Effective for {@link StreamEnforce}-derived attributes; always
+ * {@code false} for
+ * {@link PreEnforce} / {@link PostEnforce}.
+ * @param pauseRapDuringSuspend
+ * whether the RAP subscription is disposed while the PEP is in suspended state.
+ * Effective for
+ * {@link StreamEnforce}-derived attributes; always {@code false} for one-shot
+ * PEPs.
  */
 public record SaplAttribute(
         Class<?> annotationType,
@@ -41,20 +58,23 @@ public record SaplAttribute(
         Expression resourceExpression,
         Expression environmentExpression,
         Expression secretsExpression,
-        Class<?> genericsType) {
+        boolean signalTransitions,
+        boolean pauseRapDuringSuspend) {
 
     private static final String NO_SECRETS = "NO SECRETS";
     private static final String SECRETS_REDACTED = "SECRETS REDACTED";
 
-    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, null);
+    public static final SaplAttribute NULL_ATTRIBUTE = new SaplAttribute(null, null, null, null, null, null, false,
+            false);
 
     @Override
     public @NonNull String toString() {
         return "@" + (annotationType() == null ? "null" : annotationType().getSimpleName()) + "(subject="
                 + expressionStringOrNull(subjectExpression()) + ", action=" + expressionStringOrNull(actionExpression())
                 + ", resource=" + expressionStringOrNull(resourceExpression()) + ", environment="
-                + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets() + ", genericsType="
-                + (genericsType() == null ? "null" : genericsType().getName()) + ")";
+                + expressionStringOrNull(environmentExpression()) + ", secrets=" + maskSecrets()
+                + (signalTransitions() ? ", signalTransitions=true" : "")
+                + (pauseRapDuringSuspend() ? ", pauseRapDuringSuspend=true" : "") + ")";
     }
 
     private String maskSecrets() {

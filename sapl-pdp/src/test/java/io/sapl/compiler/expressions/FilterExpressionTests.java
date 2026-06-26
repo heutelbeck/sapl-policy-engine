@@ -161,6 +161,13 @@ class FilterExpressionTests {
                     Value.ofArray(Value.of(1), Value.of(4), Value.of(6), Value.of(4), Value.of(5))));
         }
         // @formatter:on
+
+        @Test
+        @DisplayName("a dynamic index that is not an exact int is out of bounds and leaves the array unchanged")
+        void whenDynamicFilterIndexNotIntegerThenArrayUnchanged() {
+            assertEvaluatesTo("[10, 20, 30] |- { @[(4294967296)] : filter.remove }",
+                    Value.ofArray(Value.of(10), Value.of(20), Value.of(30)));
+        }
     }
 
     @Nested
@@ -372,6 +379,27 @@ class FilterExpressionTests {
             val result = evaluate("[[1,2], \"hello\", 42, [3,4]] |- each simple.length");
             assertThat(result).isInstanceOf(ErrorValue.class);
             assertThat(((ErrorValue) result).message()).contains("text or array");
+        }
+    }
+
+    @Nested
+    @DisplayName("Condition filter on a non-boolean condition")
+    class NonBooleanConditionFilter {
+
+        @Test
+        @DisplayName("an array filter condition that is non-boolean fails closed instead of keeping the element")
+        void whenArrayConditionNonBooleanThenError() {
+            val result = evaluate("[1, 2, 3] |- { @[?(@)] : simple.doubleValue }");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("boolean");
+        }
+
+        @Test
+        @DisplayName("an object filter condition that is non-boolean fails closed instead of keeping the entry")
+        void whenObjectConditionNonBooleanThenError() {
+            val result = evaluate("{\"a\": 1, \"b\": 2} |- { @[?(@)] : simple.doubleValue }");
+            assertThat(result).isInstanceOf(ErrorValue.class);
+            assertThat(((ErrorValue) result).message()).contains("boolean");
         }
     }
 

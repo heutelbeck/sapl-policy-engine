@@ -17,15 +17,7 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.StreamOperator;
-import io.sapl.api.model.TracedValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.ast.ArrayExpression;
 import io.sapl.ast.BinaryOperator;
 import io.sapl.ast.BinaryOperatorType;
@@ -36,32 +28,10 @@ import io.sapl.compiler.operators.ComparisonOperators;
 import io.sapl.compiler.operators.HasOperators;
 import lombok.experimental.UtilityClass;
 import lombok.val;
-import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
-import static io.sapl.ast.BinaryOperatorType.ADD;
-import static io.sapl.ast.BinaryOperatorType.DIV;
-import static io.sapl.ast.BinaryOperatorType.EQ;
-import static io.sapl.ast.BinaryOperatorType.GE;
-import static io.sapl.ast.BinaryOperatorType.GT;
-import static io.sapl.ast.BinaryOperatorType.HAS_ALL;
-import static io.sapl.ast.BinaryOperatorType.HAS_ANY;
-import static io.sapl.ast.BinaryOperatorType.HAS_ONE;
-import static io.sapl.ast.BinaryOperatorType.ALL_IN;
-import static io.sapl.ast.BinaryOperatorType.ANY_IN;
-import static io.sapl.ast.BinaryOperatorType.IN;
-import static io.sapl.ast.BinaryOperatorType.LE;
-import static io.sapl.ast.BinaryOperatorType.LT;
-import static io.sapl.ast.BinaryOperatorType.MOD;
-import static io.sapl.ast.BinaryOperatorType.MUL;
-import static io.sapl.ast.BinaryOperatorType.NE;
-import static io.sapl.ast.BinaryOperatorType.REGEX;
-import static io.sapl.ast.BinaryOperatorType.SUB;
-import static io.sapl.ast.BinaryOperatorType.SUBTEMPLATE;
-import static io.sapl.ast.BinaryOperatorType.XOR;
+import static io.sapl.ast.BinaryOperatorType.*;
 
 @UtilityClass
 public class BinaryOperationCompiler {
@@ -89,34 +59,13 @@ public class BinaryOperationCompiler {
             Map.entry(XOR, BooleanOperators::xor));
 
     public CompiledExpression compile(BinaryOperator binaryOperation, CompilationContext ctx) {
+        val special = tryCompileSpecialCase(binaryOperation, ctx);
+        if (special != null) {
+            return special;
+        }
+
         val operatorType = binaryOperation.op();
-        if (operatorType == REGEX) {
-            return RegexCompiler.compile(binaryOperation, ctx);
-        }
-
-        if (operatorType == SUBTEMPLATE) {
-            return SubtemplateCompiler.compile(binaryOperation, ctx);
-        }
-
-        if (ctx.getCompilerOptions().getOrDefault("unrollInOperator", Value.FALSE) instanceof BooleanValue(var unroll)
-                && unroll && operatorType == IN) {
-            val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
-            if (unrolled != null) {
-                return unrolled;
-            }
-        }
-
-        if ((operatorType == ANY_IN || operatorType == ALL_IN) && binaryOperation.left() instanceof ArrayExpression arr
-                && arr.elements().size() == 1) {
-            return compile(new BinaryOperator(IN, arr.elements().getFirst(), binaryOperation.right(),
-                    binaryOperation.location()), ctx);
-        }
-
-        if (operatorType.isBooleanAndOr()) {
-            return StratifiedBooleanOperationCompiler.compile(binaryOperation, ctx);
-        }
-
-        val op = BINARY_OPERATIONS.get(operatorType);
+        val op           = BINARY_OPERATIONS.get(operatorType);
         if (op == null) {
             throw new SaplCompilerException(ERROR_UNIMPLEMENTED_BINARY_OPERATOR.formatted(operatorType),
                     binaryOperation);
@@ -129,28 +78,61 @@ public class BinaryOperationCompiler {
         if (right instanceof ErrorValue) {
             return right;
         }
-        val loc = binaryOperation.location();
-        return switch (left) {
-        case Value lv          -> switch (right) {
-                           case Value rv              -> op.apply(lv, rv, loc);
-                           case PureOperator rp       -> new BinaryValuePure(operatorType, op, lv, rp, loc,
-                                   rp.isDependingOnSubscription(), rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryValueStream(op, lv, rs, loc);
-                           };
-        case PureOperator lp   -> switch (right) {
-                           case Value rv              -> new BinaryPureValue(operatorType, op, lp, rv, loc,
-                                   lp.isDependingOnSubscription(), lp.isRelativeExpression());
-                           case PureOperator rp       -> new BinaryPurePure(operatorType, op, lp, rp, loc,
-                                   lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
-                                   lp.isRelativeExpression() || rp.isRelativeExpression());
-                           case StreamOperator rs     -> new BinaryPureStream(op, lp, rs, loc);
-                           };
-        case StreamOperator ls -> switch (right) {
-                           case Value rv              -> new BinaryStreamValue(op, ls, rv, loc);
-                           case PureOperator rp       -> new BinaryStreamPure(op, ls, rp, loc);
-                           case StreamOperator rs     -> new BinaryStreamStream(op, ls, rs, loc);
-                           };
-        };
+        return dispatchToShape(operatorType, op, left, right, binaryOperation.location());
+    }
+
+    private CompiledExpression tryCompileSpecialCase(BinaryOperator binaryOperation, CompilationContext ctx) {
+        val operatorType = binaryOperation.op();
+        if (operatorType == REGEX) {
+            return RegexCompiler.compile(binaryOperation, ctx);
+        }
+        if (operatorType == SUBTEMPLATE) {
+            return SubtemplateCompiler.compile(binaryOperation, ctx);
+        }
+        if (ctx.unrollInOperator() && operatorType == IN) {
+            val unrolled = InArrayUnrollingCompiler.tryCompile(binaryOperation, ctx);
+            if (unrolled != null) {
+                return unrolled;
+            }
+        }
+        if ((operatorType == ANY_IN || operatorType == ALL_IN) && binaryOperation.left() instanceof ArrayExpression arr
+                && arr.elements().size() == 1) {
+            return compile(new BinaryOperator(IN, arr.elements().getFirst(), binaryOperation.right(),
+                    binaryOperation.location()), ctx);
+        }
+        if (operatorType.isBooleanAndOr()) {
+            return StratifiedBooleanOperationCompiler.compile(binaryOperation, ctx);
+        }
+        return null;
+    }
+
+    private static CompiledExpression dispatchToShape(BinaryOperatorType operatorType, BinaryOperation op,
+            CompiledExpression left, CompiledExpression right, SourceLocation loc) {
+        if (left instanceof Value lv && right instanceof Value rv) {
+            return op.apply(lv, rv, loc);
+        }
+        if (left instanceof StreamOperator || right instanceof StreamOperator) {
+            return new BinaryStream(op, left, right, loc);
+        }
+        return buildPureBinary(operatorType, op, left, right, loc);
+    }
+
+    private static PureOperator buildPureBinary(BinaryOperatorType operatorType, BinaryOperation op,
+            CompiledExpression left, CompiledExpression right, SourceLocation loc) {
+        if (left instanceof Value lv) {
+            val rp = (PureOperator) right;
+            return new BinaryValuePure(operatorType, op, lv, rp, loc, rp.isDependingOnSubscription(),
+                    rp.isRelativeExpression());
+        }
+        val lp = (PureOperator) left;
+        if (right instanceof Value rv) {
+            return new BinaryPureValue(operatorType, op, lp, rv, loc, lp.isDependingOnSubscription(),
+                    lp.isRelativeExpression());
+        }
+        val rp = (PureOperator) right;
+        return new BinaryPurePure(operatorType, op, lp, rp, loc,
+                lp.isDependingOnSubscription() || rp.isDependingOnSubscription(),
+                lp.isRelativeExpression() || rp.isRelativeExpression());
     }
 
     public record BinaryPurePure(
@@ -199,7 +181,7 @@ public class BinaryOperationCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.binaryOp(opType, lv.hashCode(), rp.semanticHash());
+            return SemanticHashing.binaryOp(opType, SemanticHashing.valueHash(lv), rp.semanticHash());
         }
     }
 
@@ -222,95 +204,25 @@ public class BinaryOperationCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.binaryOp(opType, lp.semanticHash(), rv.hashCode());
+            return SemanticHashing.binaryOp(opType, lp.semanticHash(), SemanticHashing.valueHash(rv));
         }
     }
 
-    record BinaryValueStream(BinaryOperation op, Value lv, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
+    /**
+     * Stream-stratum binary operation. At least one of {@code left} or
+     * {@code right} is a {@link StreamOperator}; {@link #evaluate}
+     * delegates to {@link BinaryOperation#evalEager} which walks both
+     * children to accumulate the maximum subscription set, holds the
+     * first error from either side, and returns it after the full walk.
+     */
+    public record BinaryStream(
+            BinaryOperation op,
+            CompiledExpression left,
+            CompiledExpression right,
+            SourceLocation location) implements StreamOperator {
         @Override
-        public Flux<TracedValue> stream() {
-            return rs.stream().map(trv -> {
-                val rv = trv.value();
-                if (rv instanceof ErrorValue) {
-                    return trv;
-                }
-                return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
-            });
-        }
-    }
-
-    public record BinaryStreamValue(BinaryOperation op, StreamOperator ls, Value rv, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return ls.stream().map(tlv -> {
-                val lv = tlv.value();
-                if (lv instanceof ErrorValue) {
-                    return tlv;
-                }
-                return new TracedValue(op.apply(lv, rv, location), tlv.contributingAttributes());
-            });
-        }
-    }
-
-    record BinaryPureStream(BinaryOperation op, PureOperator lp, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val lv = lp.evaluate(ctx.get(EvaluationContext.class));
-                if (lv instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(lv, List.of()));
-                }
-                return rs.stream().map(trv -> {
-                    val rv = trv.value();
-                    if (rv instanceof ErrorValue) {
-                        return trv;
-                    }
-                    return new TracedValue(op.apply(lv, rv, location), trv.contributingAttributes());
-                });
-            });
-        }
-    }
-
-    record BinaryStreamPure(BinaryOperation op, StreamOperator ls, PureOperator rp, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.deferContextual(ctx -> {
-                val rv = rp.evaluate(ctx.get(EvaluationContext.class));
-                if (rv instanceof ErrorValue) {
-                    return Flux.just(new TracedValue(rv, List.of()));
-                }
-                return ls.stream().map(tlv -> {
-                    val lv = tlv.value();
-                    if (lv instanceof ErrorValue) {
-                        return tlv;
-                    }
-                    return new TracedValue(op.apply(lv, rv, location), tlv.contributingAttributes());
-                });
-            });
-        }
-    }
-
-    record BinaryStreamStream(BinaryOperation op, StreamOperator ls, StreamOperator rs, SourceLocation location)
-            implements StreamOperator {
-        @Override
-        public Flux<TracedValue> stream() {
-            return Flux.combineLatest(ls.stream(), rs.stream(), (tlv, trv) -> {
-                val combined = new ArrayList<>(trv.contributingAttributes());
-                combined.addAll(tlv.contributingAttributes());
-                val lv = tlv.value();
-                if (lv instanceof ErrorValue) {
-                    return new TracedValue(lv, combined);
-                }
-                val rv = trv.value();
-                if (rv instanceof ErrorValue) {
-                    return new TracedValue(rv, combined);
-                }
-                return new TracedValue(op.apply(lv, rv, location), combined);
-            });
+        public ExpressionResult evaluate(EvaluationContext ctx) {
+            return op.evalEager(left, right, location, ctx);
         }
     }
 

@@ -28,7 +28,7 @@ import io.sapl.api.model.StreamOperator;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.ast.Expression;
 import io.sapl.compiler.document.AstTransformer;
 import io.sapl.compiler.expressions.CompilationContext;
@@ -62,33 +62,35 @@ public class ExpressionEvaluator {
             return Optional.empty();
         }
 
-        // Convert ANTLR context to AST Expression
-        var expression = (Expression) AST_TRANSFORMER.visit(expressionCtx);
-        if (expression == null) {
-            return Optional.empty();
-        }
-
-        var pdpData            = new PdpData(Value.ofObject(config.variables()), Value.EMPTY_OBJECT);
-        var compilationContext = new CompilationContext(pdpData, config.functionBroker(), config.attributeBroker());
-
-        var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
-
-        if (compiledExpression == null || compiledExpression instanceof StreamOperator) {
-            return Optional.empty();
-        }
-
-        if (compiledExpression instanceof PureOperator pureOperator) {
-            var evaluationContext = createEvaluationContext(config);
-            compiledExpression = pureOperator.evaluate(evaluationContext);
-        }
-
-        if (!(compiledExpression instanceof ObjectValue schemaObject)) {
-            return Optional.empty();
-        }
-
         try {
+            // Convert ANTLR context to AST Expression
+            if (!(AST_TRANSFORMER.visit(expressionCtx) instanceof Expression expression)) {
+                return Optional.empty();
+            }
+
+            var pdpData            = new PdpData(Value.ofObject(config.variables()), Value.EMPTY_OBJECT);
+            var compilationContext = new CompilationContext(pdpData, config.functionBroker());
+
+            var compiledExpression = ExpressionCompiler.compile(expression, compilationContext);
+
+            if (compiledExpression == null || compiledExpression instanceof StreamOperator) {
+                return Optional.empty();
+            }
+
+            if (compiledExpression instanceof PureOperator pureOperator) {
+                var evaluationContext = createEvaluationContext(config);
+                compiledExpression = pureOperator.evaluate(evaluationContext);
+            }
+
+            if (!(compiledExpression instanceof ObjectValue schemaObject)) {
+                return Optional.empty();
+            }
+
             return Optional.of(ValueJsonMarshaller.toJsonNode(schemaObject));
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
+            // Content-assist compiles and evaluates attacker-influenced schema expressions.
+            // Any failure (compile, evaluation, marshalling, or an unexpected node type)
+            // must degrade to no proposal, never escape to the dispatch layer.
             return Optional.empty();
         }
     }
@@ -96,7 +98,7 @@ public class ExpressionEvaluator {
     private static EvaluationContext createEvaluationContext(LSPConfiguration config) {
         return new EvaluationContext(config.configurationId(), config.configurationId(), CONTENT_ASSIST_ID,
                 AuthorizationSubscription.of("subject", "action", "resource", "environment"), config.functionBroker(),
-                config.attributeBroker(), Value.UNDEFINED, Value.UNDEFINED);
+                Value.UNDEFINED, Value.UNDEFINED);
     }
 
 }

@@ -41,6 +41,7 @@ public class AuthorizationSubscriptionDeserializer extends StdDeserializer<Autho
 
     private static final String ERROR_EXPECTED_START_OBJECT  = "Expected START_OBJECT for AuthorizationSubscription.";
     private static final String ERROR_MISSING_REQUIRED_FIELD = "AuthorizationSubscription requires subject, action, and resource fields.";
+    private static final String ERROR_SECRETS_NOT_OBJECT     = "AuthorizationSubscription secrets must be a JSON object.";
 
     private final ValueDeserializer valueDeserializer = new ValueDeserializer();
 
@@ -65,7 +66,13 @@ public class AuthorizationSubscriptionDeserializer extends StdDeserializer<Autho
             case "action"      -> action = valueDeserializer.deserialize(parser, context);
             case "resource"    -> resource = valueDeserializer.deserialize(parser, context);
             case "environment" -> environment = valueDeserializer.deserialize(parser, context);
-            case "secrets"     -> secrets = toObjectValue(valueDeserializer.deserialize(parser, context));
+            case "secrets"     -> {
+                val secretsValue = valueDeserializer.deserialize(parser, context);
+                if (!(secretsValue instanceof ObjectValue secretsObject)) {
+                    return context.reportInputMismatch(AuthorizationSubscription.class, ERROR_SECRETS_NOT_OBJECT);
+                }
+                secrets = secretsObject;
+            }
             default            -> parser.skipChildren();
             }
         }
@@ -75,12 +82,5 @@ public class AuthorizationSubscriptionDeserializer extends StdDeserializer<Autho
         }
 
         return new AuthorizationSubscription(subject, action, resource, environment, secrets);
-    }
-
-    private static ObjectValue toObjectValue(Value value) {
-        if (value instanceof ObjectValue ov) {
-            return ov;
-        }
-        return Value.EMPTY_OBJECT;
     }
 }

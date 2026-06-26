@@ -17,20 +17,15 @@
  */
 package io.sapl.compiler.index.naive;
 
+import io.sapl.api.model.*;
+import io.sapl.compiler.document.CompiledDocument;
+import io.sapl.compiler.index.PolicyIndex;
+import io.sapl.compiler.index.PolicyMatches;
+import lombok.val;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-
-import io.sapl.compiler.index.PolicyIndex;
-import io.sapl.compiler.index.PolicyIndexResult;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
-import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
-import lombok.val;
 
 /**
  * Baseline policy index that evaluates each document's applicability linearly.
@@ -58,29 +53,29 @@ public class NaivePolicyIndex implements PolicyIndex {
     }
 
     @Override
-    public PolicyIndexResult match(EvaluationContext ctx) {
-        val matchingDocuments = new ArrayList<CompiledDocument>();
-        val errorVotes        = new ArrayList<Vote>();
+    public PolicyMatches matchKleene(EvaluationContext ctx) {
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
         for (val document : documents) {
-            val isApplicable = evaluateApplicability(document, ctx);
-            if (isApplicable instanceof ErrorValue error) {
-                errorVotes.add(Vote.error(error, document.metadata()));
-            } else if (isApplicable instanceof BooleanValue(var b) && b) {
-                matchingDocuments.add(document);
+            val applicability = evaluateApplicability(document, ctx);
+            if (applicability instanceof ErrorValue error) {
+                errorMatches.add(new PolicyMatches.ErrorMatch(document, error));
+            } else if (applicability instanceof BooleanValue(var b) && b) {
+                trueMatches.add(document);
             }
         }
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
+        return new PolicyMatches(trueMatches, errorMatches);
     }
 
     @Override
-    public void matchWhile(EvaluationContext ctx, Predicate<PolicyIndexResult> shouldContinue) {
+    public void matchKleeneWhile(EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
         for (val document : documents) {
-            val isApplicable = evaluateApplicability(document, ctx);
-            if (isApplicable instanceof ErrorValue error && !shouldContinue
-                    .test(new PolicyIndexResult(List.of(), List.of(Vote.error(error, document.metadata()))))) {
+            val applicability = evaluateApplicability(document, ctx);
+            if (applicability instanceof ErrorValue error && !shouldContinue
+                    .test(new PolicyMatches(List.of(), List.of(new PolicyMatches.ErrorMatch(document, error))))) {
                 return;
-            } else if (isApplicable instanceof BooleanValue(var b) && b
-                    && !shouldContinue.test(new PolicyIndexResult(List.of(document), List.of()))) {
+            } else if (applicability instanceof BooleanValue(var b) && b
+                    && !shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
                 return;
             }
         }

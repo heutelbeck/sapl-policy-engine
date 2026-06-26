@@ -181,26 +181,24 @@ class ValueTests {
         }
 
         @Test
-        @DisplayName("of(NaN) throws IllegalArgumentException")
-        void when_ofNaN_then_throws() {
-            assertThatThrownBy(() -> Value.of(Double.NaN)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Cannot create Value from NaN").hasMessageContaining("Use Value.error()");
+        @DisplayName("of(NaN) returns an ErrorValue")
+        void when_ofNaN_then_errorValue() {
+            assertThat(Value.of(Double.NaN)).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).contains("NaN"));
         }
 
         @Test
-        @DisplayName("of(POSITIVE_INFINITY) throws IllegalArgumentException")
-        void when_ofPositiveInfinity_then_throws() {
-            assertThatThrownBy(() -> Value.of(Double.POSITIVE_INFINITY)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Cannot create Value from infinite double")
-                    .hasMessageContaining("Use Value.error()");
+        @DisplayName("of(POSITIVE_INFINITY) returns an ErrorValue")
+        void when_ofPositiveInfinity_then_errorValue() {
+            assertThat(Value.of(Double.POSITIVE_INFINITY)).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).contains("infinite"));
         }
 
         @Test
-        @DisplayName("of(NEGATIVE_INFINITY) throws IllegalArgumentException")
-        void when_ofNegativeInfinity_then_throws() {
-            assertThatThrownBy(() -> Value.of(Double.NEGATIVE_INFINITY)).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Cannot create Value from infinite double")
-                    .hasMessageContaining("Use Value.error()");
+        @DisplayName("of(NEGATIVE_INFINITY) returns an ErrorValue")
+        void when_ofNegativeInfinity_then_errorValue() {
+            assertThat(Value.of(Double.NEGATIVE_INFINITY)).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).contains("infinite"));
         }
     }
 

@@ -33,6 +33,7 @@ import io.sapl.grammar.antlr.SAPLParser;
 import io.sapl.grammar.antlr.SAPLParser.SaplContext;
 import io.sapl.grammar.antlr.validation.SAPLValidator;
 import io.sapl.lsp.core.ParsedDocument;
+import io.sapl.lsp.core.ParsedDocumentGuards;
 import lombok.Getter;
 
 /**
@@ -58,10 +59,15 @@ public final class SAPLParsedDocument implements ParsedDocument {
         this.uri     = uri;
         this.content = content;
 
-        var errors = new ArrayList<ParseError>();
+        // The editor parses untrusted text on every keystroke, so the compile-path
+        // guards
+        // apply here: oversized documents are skipped, and trojan-source characters and
+        // excessive nesting become error diagnostics.
+        var errors  = new ArrayList<>(ParsedDocumentGuards.preParseDiagnostics(content));
+        var toParse = ParsedDocumentGuards.exceedsMaxLength(content) ? "" : content;
 
         // Create lexer
-        var charStream = CharStreams.fromString(content);
+        var charStream = CharStreams.fromString(toParse);
         var lexer      = new SAPLLexer(charStream);
         lexer.removeErrorListeners();
         lexer.addErrorListener(new ErrorCollector(errors));
@@ -73,7 +79,7 @@ public final class SAPLParsedDocument implements ParsedDocument {
         parser.addErrorListener(new ErrorCollector(errors));
 
         // Parse
-        this.saplParseTree = parser.sapl();
+        this.saplParseTree = parseWithNestingGuard(parser, errors);
         this.parseErrors   = List.copyOf(errors);
 
         // Semantic validation
@@ -84,6 +90,17 @@ public final class SAPLParsedDocument implements ParsedDocument {
         this.validationErrors = saplValidationErrors.stream()
                 .map(e -> new ValidationError(e.line(), e.charPositionInLine(), e.message(), e.offendingText()))
                 .toList();
+    }
+
+    private static SaplContext parseWithNestingGuard(SAPLParser parser, List<ParseError> errors) {
+        try {
+            return parser.sapl();
+        } catch (StackOverflowError e) {
+            errors.add(ParsedDocumentGuards.nestingTooDeep());
+            var emptyParser = new SAPLParser(new CommonTokenStream(new SAPLLexer(CharStreams.fromString(""))));
+            emptyParser.removeErrorListeners();
+            return emptyParser.sapl();
+        }
     }
 
     @Override
@@ -97,7 +114,9 @@ public final class SAPLParsedDocument implements ParsedDocument {
     }
 
     @Override
-    public List<Token> getTokens() {
+    public synchronized List<Token> getTokens() {
+        // The shared CommonTokenStream is filled lazily and mutably. Serialize so
+        // concurrent provider requests cannot fill it at the same time.
         tokenStream.fill();
         return tokenStream.getTokens();
     }

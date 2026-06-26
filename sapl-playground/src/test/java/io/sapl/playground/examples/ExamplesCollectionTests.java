@@ -59,9 +59,9 @@ class ExamplesCollectionTests {
             Decision expectedDecision) throws Exception {
         val subscription = parseSubscription(example.subscription());
         val fixture      = SaplTestFixture.createIntegrationTest().withCombiningAlgorithm(example.combiningAlgorithm())
-                .withCoverageFileWriteDisabled().withFunctionLibrary(StandardFunctionLibrary.class)
-                .withFunctionLibrary(ArrayFunctionLibrary.class).withFunctionLibrary(FilterFunctionLibrary.class)
-                .withFunctionLibrary(GraphFunctionLibrary.class).withFunctionLibrary(GeographicFunctionLibrary.class);
+                .withCoverageFileWriteDisabled().withFunctionLibrary(new StandardFunctionLibrary())
+                .withFunctionLibrary(new ArrayFunctionLibrary()).withFunctionLibrary(new FilterFunctionLibrary())
+                .withFunctionLibrary(new GraphFunctionLibrary()).withFunctionLibrary(new GeographicFunctionLibrary());
 
         for (var policy : example.policies()) {
             fixture.withPolicy(policy);
@@ -122,7 +122,7 @@ class ExamplesCollectionTests {
         val example      = ExamplesCollection.DEFAULT_SETTINGS;
         val subscription = parseSubscription(example.subscription());
         val fixture      = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled()
-                .withFunctionLibrary(TemporalFunctionLibrary.class)
+                .withFunctionLibrary(new TemporalFunctionLibrary())
                 .givenEnvironmentAttribute("timeMock", "time.now", args(), Value.of("2025-01-06T10:00:00Z"))
                 .withPolicy(example.policies().getFirst());
 
@@ -137,7 +137,7 @@ class ExamplesCollectionTests {
         val example      = ExamplesCollection.DEFAULT_SETTINGS;
         val subscription = parseSubscription(example.subscription());
         val fixture      = SaplTestFixture.createSingleTest().withCoverageFileWriteDisabled()
-                .withFunctionLibrary(TemporalFunctionLibrary.class)
+                .withFunctionLibrary(new TemporalFunctionLibrary())
                 .givenEnvironmentAttribute("timeMock", "time.now", args(), Value.of("2025-01-06T20:00:00Z"))
                 .withPolicy(example.policies().getFirst());
 

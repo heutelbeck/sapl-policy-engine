@@ -1,3 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE xml>
-<configuration/>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Forward container stdout (Slf4jLogConsumer on the test class logger). -->
+    <logger name="io.sapl.pdp.remote.RemoteHttpDecisionPointServerIT" level="INFO"/>
+
+    <!-- Tests deliberately drive these into error/retry paths and assert on
+         captured events via a ListAppender. Kept off the console. -->
+    <logger name="io.sapl.pdp.remote.RemoteHttpReactivePolicyDecisionPoint" level="WARN" additivity="false"/>
+    <logger name="io.sapl.pdp.remote.RemotePdpRetry" level="WARN" additivity="false"/>
+
+    <!-- A test deliberately presents an untrusted self-signed certificate to a
+         strict-trust client and asserts it fails closed. The expected handshake
+         failure is reported here at WARN with a full stack trace. -->
+    <logger name="reactor.netty.http.client.HttpClientConnect" level="OFF"/>
+
+    <!-- Late buffer-release noise on stream cancel during MockWebServer teardown. -->
+    <logger name="reactor.netty.channel.FluxReceive" level="OFF"/>
+    <logger name="io.netty.channel.DefaultChannelPipeline" level="OFF"/>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

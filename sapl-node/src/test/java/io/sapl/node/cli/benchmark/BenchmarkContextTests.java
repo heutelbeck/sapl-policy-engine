@@ -35,7 +35,7 @@ class BenchmarkContextTests {
 
         @Test
         @DisplayName("preserves all fields through JSON serialization")
-        void whenRoundTrip_thenAllFieldsPreserved() {
+        void whenRoundTripThenAllFieldsPreserved() {
             val original     = new BenchmarkContext("{\"subject\":\"alice\"}", null, "/tmp/policies", "DIRECTORY");
             val deserialized = BenchmarkContext.fromJson(original.toJson());
             assertThat(deserialized).satisfies(ctx -> {
@@ -47,7 +47,7 @@ class BenchmarkContextTests {
 
         @Test
         @DisplayName("preserves BUNDLES config type")
-        void whenBundlesType_thenPreservedInRoundTrip() {
+        void whenBundlesTypeThenPreservedInRoundTrip() {
             val original     = new BenchmarkContext("{}", null, "/bundles", "BUNDLES");
             val deserialized = BenchmarkContext.fromJson(original.toJson());
             assertThat(deserialized.configType()).isEqualTo("BUNDLES");
@@ -60,7 +60,7 @@ class BenchmarkContextTests {
 
         @Test
         @DisplayName("fromJson rejects malformed JSON")
-        void whenMalformedJson_thenThrows() {
+        void whenMalformedJsonThenThrows() {
             assertThatThrownBy(() -> BenchmarkContext.fromJson("not valid json")).isInstanceOf(RuntimeException.class);
         }
     }

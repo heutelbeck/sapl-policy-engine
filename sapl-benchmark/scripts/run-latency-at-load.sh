@@ -141,6 +141,7 @@ for runtime in "${RUNTIMES[@]}"; do
                 -XX:ActiveProcessorCount=$((pcores * 2)) \
                 -jar "$SAPL_NODE_JAR" server \
                 --io.sapl.node.allow-no-auth=true \
+                --io.sapl.pdp.embedded.metrics-enabled=false \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
                 --sapl.pdp.rsocket.enabled=true \
@@ -150,6 +151,7 @@ for runtime in "${RUNTIMES[@]}"; do
         else
             taskset -c "$cpu_range" "$SAPL_NATIVE" server \
                 --io.sapl.node.allow-no-auth=true \
+                --io.sapl.pdp.embedded.metrics-enabled=false \
                 --io.sapl.pdp.embedded.policies-path="$SCENARIO_DIR/$scenario" \
                 --io.sapl.pdp.embedded.config-path="$SCENARIO_DIR/$scenario" \
                 --sapl.pdp.rsocket.enabled=true \
@@ -163,7 +165,7 @@ for runtime in "${RUNTIMES[@]}"; do
         max_wait=60
         started=false
         for i in $(seq 1 $max_wait); do
-            if curl -sf http://127.0.0.1:8443/actuator/health >/dev/null 2>&1; then
+            if curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; then
                 if ss -tln | grep -q ":7000 " 2>/dev/null; then
                     echo "  Server started (PID $SERVER_PID, HTTP + RSocket)"
                     started=true

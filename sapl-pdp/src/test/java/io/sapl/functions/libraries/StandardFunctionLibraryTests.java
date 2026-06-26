@@ -39,8 +39,7 @@ class StandardFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(StandardFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new StandardFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @ParameterizedTest(name = "{0}")

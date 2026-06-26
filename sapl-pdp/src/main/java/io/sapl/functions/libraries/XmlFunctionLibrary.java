@@ -17,20 +17,21 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.dataformat.xml.XmlMapper;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.model.ValueJsonMarshaller;
-import lombok.experimental.UtilityClass;
 import lombok.val;
+import tools.jackson.core.JacksonException;
+import tools.jackson.dataformat.xml.XmlFactory;
+import tools.jackson.dataformat.xml.XmlMapper;
+
+import javax.xml.stream.XMLInputFactory;
 
 /**
  * Function library providing XML marshalling and unmarshalling operations.
  */
-@UtilityClass
 @FunctionLibrary(name = XmlFunctionLibrary.NAME, description = XmlFunctionLibrary.DESCRIPTION, libraryDocumentation = XmlFunctionLibrary.DOCUMENTATION)
 public class XmlFunctionLibrary {
 
@@ -43,6 +44,17 @@ public class XmlFunctionLibrary {
             Enables XML processing in SAPL policies for systems that exchange authorization-relevant
             data in XML format. Parse XML from external systems into SAPL values for policy evaluation,
             or serialize policy decisions and context into XML for logging or integration.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - The input is limited to 1 MB.
+            - Parsing is bounded to a maximum nesting depth of 500 and a maximum number length of 1000 characters.
+
+            DTD processing and external entity resolution are disabled, so XXE and entity-expansion payloads are rejected with an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     private static final String ERROR_FAILED_TO_CONVERT = "Failed to convert value to XML: %s.";
@@ -54,7 +66,21 @@ public class XmlFunctionLibrary {
             }
             """;
 
-    private static final XmlMapper XML_MAPPER = XmlMapper.builder().build();
+    private static final XmlMapper XML_MAPPER = hardenedXmlMapper();
+
+    /**
+     * Builds an XmlMapper on an explicitly hardened StAX input factory. DTDs and
+     * external entities are disabled on the parser the engine owns, so XXE,
+     * external-entity SSRF, and entity-expansion payloads fail closed regardless
+     * of third-party default changes.
+     */
+    private static XmlMapper hardenedXmlMapper() {
+        val inputFactory = XMLInputFactory.newFactory();
+        inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+        inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+        return new XmlMapper(XmlFactory.builder().xmlInputFactory(inputFactory)
+                .streamReadConstraints(TextParseLimits.STREAM_READ_CONSTRAINTS).build());
+    }
 
     /**
      * Converts a well-formed XML document into a SAPL value.
@@ -68,6 +94,10 @@ public class XmlFunctionLibrary {
             ```xmlToVal(TEXT xml)```: Converts a well-formed XML document into a SAPL value
             representing the content of the XML document.
 
+            DTD processing and external entity resolution are disabled. Documents that declare
+            or reference entities, such as XXE or entity-expansion payloads, are rejected with
+            an error. Plain data XML without a document type definition is supported.
+
             **Example:**
             ```sapl
             policy "permit_with_resource_attributes"
@@ -78,6 +108,9 @@ public class XmlFunctionLibrary {
             ```
             """)
     public static Value xmlToVal(TextValue xml) {
+        if (TextParseLimits.exceedsMaxInput(xml.value())) {
+            return Value.error(TextParseLimits.ERROR_INPUT_TOO_LARGE, TextParseLimits.MAX_INPUT_CHARS);
+        }
         try {
             val jsonNode = XML_MAPPER.readTree(xml.value());
             return ValueJsonMarshaller.fromJsonNode(jsonNode);
@@ -108,6 +141,9 @@ public class XmlFunctionLibrary {
             ```
             """, schema = SCHEMA_RETURNS_TEXT)
     public static Value valToXml(Value value) {
+        if (!ValueJsonMarshaller.isJsonCompatible(value)) {
+            return Value.error(ERROR_FAILED_TO_CONVERT, value);
+        }
         try {
             val jsonNode  = ValueJsonMarshaller.toJsonNode(value);
             val xmlString = XML_MAPPER.writeValueAsString(jsonNode);

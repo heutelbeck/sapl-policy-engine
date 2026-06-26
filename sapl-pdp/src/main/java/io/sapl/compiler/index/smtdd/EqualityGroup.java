@@ -17,18 +17,14 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import io.sapl.api.model.IndexPredicate;
 import io.sapl.api.model.PureOperator;
 import io.sapl.api.model.Value;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Accumulates equality/inequality predicates sharing the same PureOperator
@@ -60,8 +56,16 @@ public class EqualityGroup {
     }
 
     /**
-     * Compacts the equality/inequality constraints for a specific formula bucket.
-     * Resolves NE formulas into concrete branch memberships.
+     * Compacts the equality/inequality constraints for a specific formula bucket
+     * into the concrete branch-to-formulas mapping the builder needs.
+     * <p>
+     * A formula's equality ({@code ==}, {@code in}) and inequality ({@code !=})
+     * constraints on this operand are intersected: a formula belongs in the branch
+     * for value {@code v} only when {@code v} satisfies its equality constraint (it
+     * has none, or {@code v} is one of its equality constants) and {@code v} is not
+     * one of its excluded constants. A formula carrying any equality constraint can
+     * never reach the default branch, since the default stands for an operand value
+     * distinct from every named constant.
      *
      * @param formulasInBucket the formulas currently in scope at this equality
      * level
@@ -69,100 +73,75 @@ public class EqualityGroup {
      * affected set
      */
     CompactedBranches compact(BitSet formulasInBucket) {
-        val branchFormulas        = collectEqBranches(formulasInBucket);
-        val allExcludeInBucket    = collectExcludesInBucket(formulasInBucket);
-        val unconstrainedFormulas = computeUnconstrained(formulasInBucket, branchFormulas, allExcludeInBucket);
+        val equalsInBucket  = intersectWithBucket(equalsFormulas, formulasInBucket);
+        val excludeInBucket = intersectWithBucket(excludeFormulas, formulasInBucket);
 
-        addExcludesToEqBranches(branchFormulas, formulasInBucket, unconstrainedFormulas);
-        addExplicitExcludeBranches(branchFormulas, formulasInBucket, unconstrainedFormulas);
+        val equalityConstrained = union(equalsInBucket.values());
+        val excludeConstrained  = union(excludeInBucket.values());
 
-        val allConstrained = new BitSet();
-        for (val bits : branchFormulas.values()) {
-            allConstrained.or(bits);
-        }
+        // Formulas with no equality constraint on this operand satisfy the equality
+        // test for any value, including a default value distinct from every constant.
+        val equalityUnconstrained = (BitSet) formulasInBucket.clone();
+        equalityUnconstrained.andNot(equalityConstrained);
 
-        // Default: unconstrained + all NE formulas (unknown value satisfies all !=)
-        val defaultFormulas = (BitSet) unconstrainedFormulas.clone();
-        defaultFormulas.or(allExcludeInBucket);
+        val branchValues = new HashSet<Value>();
+        branchValues.addAll(equalsInBucket.keySet());
+        branchValues.addAll(excludeInBucket.keySet());
 
-        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, allConstrained);
-    }
-
-    private HashMap<Value, BitSet> collectEqBranches(BitSet formulasInBucket) {
         val branchFormulas = new HashMap<Value, BitSet>();
-        for (val entry : equalsFormulas.entrySet()) {
-            val inBucket = (BitSet) entry.getValue().clone();
-            inBucket.and(formulasInBucket);
-            if (!inBucket.isEmpty()) {
-                branchFormulas.put(entry.getKey(), inBucket);
+        for (val value : branchValues) {
+            val members    = (BitSet) equalityUnconstrained.clone();
+            val equalsHere = equalsInBucket.get(value);
+            if (equalsHere != null) {
+                members.or(equalsHere);
+            }
+            val excludedHere = excludeInBucket.get(value);
+            if (excludedHere != null) {
+                members.andNot(excludedHere);
+            }
+            // An exclusion-key value must own a branch even when empty, so the operand
+            // routes there instead of falling through to default where its != formula
+            // would wrongly count as matching.
+            if (!members.isEmpty() || excludeInBucket.containsKey(value)) {
+                branchFormulas.put(value, members);
             }
         }
-        return branchFormulas;
+
+        // Default branch: only equality-unconstrained formulas can match. Their
+        // exclusions are trivially satisfied by a value that is no named constant.
+        val defaultFormulas = (BitSet) equalityUnconstrained.clone();
+
+        // doesNotSplit treats a formula as unconstrained only when this operand
+        // neither equals nor excludes anything for it.
+        val unconstrainedFormulas = (BitSet) formulasInBucket.clone();
+        unconstrainedFormulas.andNot(equalityConstrained);
+        unconstrainedFormulas.andNot(excludeConstrained);
+
+        // Every formula referencing this operand errors when the operand errors.
+        val affectedFormulas = (BitSet) equalityConstrained.clone();
+        affectedFormulas.or(excludeConstrained);
+
+        return new CompactedBranches(branchFormulas, defaultFormulas, unconstrainedFormulas, affectedFormulas);
     }
 
-    private BitSet collectExcludesInBucket(BitSet formulasInBucket) {
-        val allExcludeInBucket = new BitSet();
-        for (val entry : excludeFormulas.entrySet()) {
-            val inBucket = (BitSet) entry.getValue().clone();
-            inBucket.and(formulasInBucket);
-            allExcludeInBucket.or(inBucket);
-        }
-        return allExcludeInBucket;
-    }
-
-    private static BitSet computeUnconstrained(BitSet formulasInBucket, Map<Value, BitSet> branchFormulas,
-            BitSet allExcludeInBucket) {
-        val allConstrained = new BitSet();
-        for (val bits : branchFormulas.values()) {
-            allConstrained.or(bits);
-        }
-        allConstrained.or(allExcludeInBucket);
-        val unconstrained = (BitSet) formulasInBucket.clone();
-        unconstrained.andNot(allConstrained);
-        return unconstrained;
-    }
-
-    private void addExcludesToEqBranches(Map<Value, BitSet> branchFormulas, BitSet formulasInBucket,
-            BitSet unconstrainedFormulas) {
-        for (val entry : branchFormulas.entrySet()) {
-            val branchValue = entry.getKey();
-            val branchBits  = entry.getValue();
-            for (val excludeEntry : excludeFormulas.entrySet()) {
-                if (!excludeEntry.getKey().equals(branchValue)) {
-                    val excludeInBucket = (BitSet) excludeEntry.getValue().clone();
-                    excludeInBucket.and(formulasInBucket);
-                    branchBits.or(excludeInBucket);
-                }
-            }
-            branchBits.or(unconstrainedFormulas);
-        }
-    }
-
-    private void addExplicitExcludeBranches(Map<Value, BitSet> branchFormulas, BitSet formulasInBucket,
-            BitSet unconstrainedFormulas) {
-        for (val excludeEntry : excludeFormulas.entrySet()) {
-            val excludedValue = excludeEntry.getKey();
-            if (!branchFormulas.containsKey(excludedValue)) {
-                val emptyBranchBits = buildExcludeBranchBits(excludedValue, formulasInBucket, unconstrainedFormulas);
-                if (!emptyBranchBits.isEmpty()) {
-                    branchFormulas.put(excludedValue, emptyBranchBits);
-                }
+    private static Map<Value, BitSet> intersectWithBucket(Map<Value, BitSet> source, BitSet formulasInBucket) {
+        val inBucket = new HashMap<Value, BitSet>();
+        for (val entry : source.entrySet()) {
+            val bits = (BitSet) entry.getValue().clone();
+            bits.and(formulasInBucket);
+            if (!bits.isEmpty()) {
+                inBucket.put(entry.getKey(), bits);
             }
         }
+        return inBucket;
     }
 
-    private BitSet buildExcludeBranchBits(Value excludedValue, BitSet formulasInBucket, BitSet unconstrainedFormulas) {
-        // Value matches excludedValue: != excludedValue is FALSE.
-        // But != otherValue IS satisfied, so add those formulas.
-        val bits = (BitSet) unconstrainedFormulas.clone();
-        for (val otherExclude : excludeFormulas.entrySet()) {
-            if (!otherExclude.getKey().equals(excludedValue)) {
-                val inBucket = (BitSet) otherExclude.getValue().clone();
-                inBucket.and(formulasInBucket);
-                bits.or(inBucket);
-            }
+    private static BitSet union(Collection<BitSet> sets) {
+        val result = new BitSet();
+        for (val bits : sets) {
+            result.or(bits);
         }
-        return bits;
+        return result;
     }
 
     /**

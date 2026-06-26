@@ -17,9 +17,11 @@
  */
 package io.sapl.spring.config;
 
-import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.DEFAULT_PDP_ID;
-import static io.sapl.api.pdp.MultiTenantPolicyDecisionPoint.REACTOR_CONTEXT_PDP_ID_KEY;
+import static io.sapl.spring.tenant.DefaultReactiveTenantResolver.REACTOR_CONTEXT_PDP_ID_KEY;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.spring.tenant.DefaultReactiveTenantResolver;
+import io.sapl.reactive.api.tenant.ReactiveTenantResolver;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.server.ServerWebExchange;
@@ -31,15 +33,20 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 /**
- * WebFilter that propagates the authenticated user's PDP ID into the Reactor
- * Context for multi-tenant routing.
+ * WebFilter that resolves the authenticated user's PDP id once per request and
+ * propagates it through the Reactor
+ * Context. Cooperates with {@link DefaultReactiveTenantResolver}, which reads
+ * the same key on the consumer side. The
+ * PDP itself never reads the Reactor Context. Tenant resolution happens here,
+ * in application infrastructure.
  * <p>
- * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the PDP
- * ID from the current authentication. The extracted ID is written to the
- * Reactor Context under
- * {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint#REACTOR_CONTEXT_PDP_ID_KEY},
- * where the {@link io.sapl.api.pdp.MultiTenantPolicyDecisionPoint} default
- * methods read it automatically.
+ * Uses the provided {@link PdpIdAuthenticationExtractor} to extract the id from
+ * the current authentication. The
+ * extracted id is written under
+ * {@link DefaultReactiveTenantResolver#REACTOR_CONTEXT_PDP_ID_KEY}; a missing
+ * authentication or empty extraction falls back to
+ * {@link StreamingPolicyDecisionPoint#DEFAULT_PDP_ID}.
+ * {@link ReactiveTenantResolver} implementations downstream consume the value.
  */
 @RequiredArgsConstructor
 public class PdpIdWebFilter implements WebFilter {
@@ -51,10 +58,10 @@ public class PdpIdWebFilter implements WebFilter {
         return ReactiveSecurityContextHolder.getContext().flatMap(securityContext -> {
             var authentication = securityContext.getAuthentication();
             if (authentication == null) {
-                return Mono.just(DEFAULT_PDP_ID);
+                return Mono.just(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
             }
-            return extractor.extractPdpId(authentication).defaultIfEmpty(DEFAULT_PDP_ID);
-        }).defaultIfEmpty(DEFAULT_PDP_ID)
+            return extractor.extractPdpId(authentication).defaultIfEmpty(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID);
+        }).defaultIfEmpty(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)
                 .flatMap(pdpId -> chain.filter(exchange).contextWrite(Context.of(REACTOR_CONTEXT_PDP_ID_KEY, pdpId)));
     }
 

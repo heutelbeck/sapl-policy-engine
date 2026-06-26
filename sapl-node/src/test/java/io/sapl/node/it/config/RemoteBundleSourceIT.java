@@ -17,6 +17,8 @@
  */
 package io.sapl.node.it.config;
 
+import static io.sapl.api.pdp.StreamingPolicyDecisionPoint.DEFAULT_PDP_ID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -39,7 +41,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import io.sapl.node.it.BaseIntegrationTest;
 import io.sapl.pdp.configuration.bundle.BundleBuilder;
 import io.sapl.pdp.remote.RemotePolicyDecisionPoint;
@@ -63,7 +65,6 @@ class RemoteBundleSourceIT extends BaseIntegrationTest {
     private static final String WIREMOCK_IMAGE      = "wiremock/wiremock:3.12.0";
     private static final int    WIREMOCK_PORT       = 8080;
     private static final String BUNDLE_SERVER_ALIAS = "bundle-server";
-    private static final String DEFAULT_PDP_ID      = "default";
 
     private static final String PERMIT_POLICY = """
             policy "permit-all"

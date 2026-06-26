@@ -17,7 +17,6 @@
  */
 package io.sapl.compiler.document;
 
-import io.sapl.api.attributes.AttributeBroker;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.SaplCompilerException;
@@ -31,11 +30,14 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 
@@ -46,9 +48,8 @@ class DocumentCompilerTests {
 
     @BeforeEach
     void setUp() {
-        val functionBroker  = mock(FunctionBroker.class);
-        val attributeBroker = mock(AttributeBroker.class);
-        ctx = new CompilationContext(functionBroker, attributeBroker);
+        val functionBroker = mock(FunctionBroker.class);
+        ctx = new CompilationContext(functionBroker);
     }
 
     @Nested
@@ -195,6 +196,69 @@ class DocumentCompilerTests {
     }
 
     @Nested
+    @DisplayName("concurrent compilation")
+    class ConcurrentCompilationTests {
+
+        // Single-part attribute name shared by both documents. Document A imports it
+        // (so it resolves). Document B does not import it (so it must stay
+        // unresolved). If two parseDocument calls share mutable transformer state,
+        // B can pick up A's import map and resolve a name the author never imported,
+        // or A can lose its import map and fail a valid policy.
+        private static final String IMPORTING_DOCUMENT = """
+                import library.clash
+                policy "importing" permit "x".<clash> == "x";
+                """;
+
+        private static final String NON_IMPORTING_DOCUMENT = """
+                policy "non-importing" permit "x".<clash> == "x";
+                """;
+
+        private static final int ROUNDS  = 2000;
+        private static final int THREADS = 8;
+
+        @Test
+        @DisplayName("each document resolves single-part names only against its own imports under concurrency")
+        void whenTwoDocumentsWithCollidingShortNameCompiledInParallelThenEachResolvesAgainstOwnImports()
+                throws Exception {
+            val executor = Executors.newFixedThreadPool(THREADS);
+            try {
+                val tasks   = buildTasks();
+                val futures = executor.invokeAll(tasks);
+                assertThat(futures).allSatisfy(DocumentCompilerTests::assertSucceeded);
+            } finally {
+                executor.shutdownNow();
+            }
+        }
+
+        private List<Callable<Void>> buildTasks() {
+            return IntStream.range(0, ROUNDS).mapToObj(this::alternatingTask).toList();
+        }
+
+        private Callable<Void> alternatingTask(int round) {
+            if (round % 2 == 0) {
+                return () -> {
+                    val document = DocumentCompiler.parseDocument(IMPORTING_DOCUMENT);
+                    assertThat(document.isInvalid())
+                            .as("imported short name 'clash' must resolve in the importing document").isFalse();
+                    return null;
+                };
+            }
+            return () -> {
+                val document = DocumentCompiler.parseDocument(NON_IMPORTING_DOCUMENT);
+                assertThat(document.isInvalid())
+                        .as("un-imported short name 'clash' must stay unresolved in the non-importing document")
+                        .isTrue();
+                assertThat(document.errorMessage()).contains("clash");
+                return null;
+            };
+        }
+    }
+
+    private static void assertSucceeded(Future<Void> future) {
+        assertThatCode(future::get).doesNotThrowAnyException();
+    }
+
+    @Nested
     @DisplayName("trojan source protection")
     class TrojanSourceProtectionTests {
 
@@ -221,6 +285,62 @@ class DocumentCompilerTests {
 
             assertThatThrownBy(() -> DocumentCompiler.compileDocument(malicious, ctx))
                     .isInstanceOf(SaplCompilerException.class).hasMessageContaining("trojan source");
+        }
+    }
+
+    @Nested
+    @DisplayName("resource limits")
+    class ResourceLimitTests {
+
+        private static final int OVER_SIZE_LIMIT = 2 * 1024 * 1024 + 1;
+        private static final int DEEP_NESTING    = 50_000;
+
+        private static String deeplyNestedPolicy() {
+            return "policy \"x\" permit " + "(".repeat(DEEP_NESTING) + "true" + ")".repeat(DEEP_NESTING);
+        }
+
+        @Test
+        @DisplayName("parseDocument rejects an oversized document instead of parsing it")
+        void whenDocumentExceedsSizeLimitThenDocumentIsInvalid() {
+            val oversized = "a".repeat(OVER_SIZE_LIMIT);
+
+            val document = DocumentCompiler.parseDocument(oversized);
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).isTrue();
+                assertThat(d.errorMessage()).contains("maximum size");
+            });
+        }
+
+        @Test
+        @DisplayName("compileDocument throws on an oversized document")
+        void whenDocumentExceedsSizeLimitThenCompileThrows() {
+            val oversized = "a".repeat(OVER_SIZE_LIMIT);
+
+            assertThatThrownBy(() -> DocumentCompiler.compileDocument(oversized, ctx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("maximum size");
+        }
+
+        @Test
+        @DisplayName("parseDocument rejects deeply nested input instead of overflowing the stack")
+        void whenDeeplyNestedThenDocumentIsInvalid() {
+            val nested = deeplyNestedPolicy();
+
+            val document = DocumentCompiler.parseDocument(nested);
+
+            assertThat(document).satisfies(d -> {
+                assertThat(d.isInvalid()).isTrue();
+                assertThat(d.errorMessage()).contains("nesting");
+            });
+        }
+
+        @Test
+        @DisplayName("compileDocument throws on deeply nested input instead of overflowing the stack")
+        void whenDeeplyNestedThenCompileThrows() {
+            val nested = deeplyNestedPolicy();
+
+            assertThatThrownBy(() -> DocumentCompiler.compileDocument(nested, ctx))
+                    .isInstanceOf(SaplCompilerException.class).hasMessageContaining("nesting");
         }
     }
 }

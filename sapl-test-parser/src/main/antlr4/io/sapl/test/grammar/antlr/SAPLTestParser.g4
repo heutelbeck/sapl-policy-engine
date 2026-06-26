@@ -64,6 +64,16 @@ givenItem
     | DASH mockDefinition                # mockGivenItem
     | DASH configurationSpecification    # configurationGivenItem
     | DASH pdpConfigurationSpecification # pdpConfigurationGivenItem
+    | DASH lowLatencyModeSpecification   # lowLatencyModeGivenItem
+    ;
+
+// low-latency-mode true|false
+// Default (omitted): true (matches the production PDP default).
+// Set false to compile against the Lazy coverage voter, where body
+// conditions short-circuit in source order and unused attribute
+// dependencies are not subscribed.
+lowLatencyModeSpecification
+    : LOW_LATENCY_MODE flag=(TRUE | FALSE)
     ;
 
 // Document specification
@@ -85,6 +95,7 @@ votingMode
     : FIRST            # first
     | PRIORITY DENY    # priorityDeny
     | PRIORITY PERMIT  # priorityPermit
+    | PRIORITY SUSPEND # prioritySuspend
     | UNANIMOUS STRICT # unanimousStrict
     | UNANIMOUS        # unanimous
     | UNIQUE           # unique
@@ -94,6 +105,7 @@ defaultDecision
     : DENY    # denyDefault
     | ABSTAIN # abstainDefault
     | PERMIT  # permitDefault
+    | SUSPEND # suspendDefault
     ;
 
 errorHandling
@@ -162,8 +174,16 @@ attributeParameters
     ;
 
 numericAmount
-    : ONCE                # onceAmount
-    | amount=NUMBER TIMES # multipleAmount
+    : ONCE             # onceAmount
+    | amount=INT TIMES # multipleAmount
+    ;
+
+// Verification counts may also assert a mock was never invoked. Zero and one
+// remain expressible as 0/1 times, so the keywords never and once do not
+// replace the numeric form.
+verificationAmount
+    : NEVER CALLED         # neverAmount
+    | CALLED numericAmount # countedAmount
     ;
 
 // Verify block - post-test assertions on call counts
@@ -177,8 +197,8 @@ verifyBlock
 
 verifyStep
     : FUNCTION functionFullName=functionName functionParameters?
-      IS CALLED timesCalled=numericAmount                            # functionVerification
-    | ATTRIBUTE attributeReference IS CALLED timesCalled=numericAmount  # attributeVerification
+      IS timesCalled=verificationAmount                            # functionVerification
+    | ATTRIBUTE attributeReference IS timesCalled=verificationAmount  # attributeVerification
     ;
 
 // When step
@@ -216,9 +236,10 @@ authorizationDecision
     ;
 
 authorizationDecisionType
-    : PERMIT        # permitDecision
-    | DENY          # denyDecision
-    | INDETERMINATE # indeterminateDecision
+    : PERMIT         # permitDecision
+    | DENY           # denyDecision
+    | SUSPEND        # suspendDecision
+    | INDETERMINATE  # indeterminateDecision
     | NOT_APPLICABLE # notApplicableDecision
     ;
 
@@ -251,7 +272,7 @@ extendedObjectMatcher
 nodeMatcher
     : NULL_KEYWORD                                                                  # nullMatcher
     | TEXT stringOrStringMatcher?                                                   # textMatcher
-    | NUMBER_KEYWORD number=NUMBER?                                                 # numberMatcher
+    | NUMBER_KEYWORD number=numberLiteral?                                          # numberMatcher
     | BOOLEAN_KEYWORD booleanLiteral?                                               # booleanMatcher
     | ARRAY (WHERE arrayMatcherBody)?                                               # arrayMatcher
     | OBJECT (WHERE objectMatcherBody)?                                             # objectMatcher
@@ -275,7 +296,7 @@ stringMatcher
     | ENDING WITH postfix=STRING caseInsensitive=CASE_INSENSITIVE?                  # stringEndsWith
     | CONTAINING text=STRING caseInsensitive=CASE_INSENSITIVE?                      # stringContains
     | CONTAINING STREAM substrings+=STRING (COMMA substrings+=STRING)* IN ORDER     # stringContainsInOrder
-    | WITH LENGTH length=NUMBER                                                     # stringWithLength
+    | WITH LENGTH length=INT                                                        # stringWithLength
     ;
 
 arrayMatcherBody
@@ -340,7 +361,8 @@ stringLiteral
     ;
 
 numberLiteral
-    : NUMBER
+    : INT
+    | NUMBER
     ;
 
 // Identifiers - allows combining algorithm keywords to be used as identifiers

@@ -49,8 +49,8 @@ public class RemotePolicyDecisionPoint {
      *
      * @return an HTTP-specific builder for further configuration
      */
-    public RemoteHttpPolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
-        return RemoteHttpPolicyDecisionPoint.builder();
+    public RemoteHttpReactivePolicyDecisionPoint.RemoteHttpPolicyDecisionPointBuilder http() {
+        return RemoteHttpReactivePolicyDecisionPoint.builder();
     }
 
     /**
@@ -60,8 +60,8 @@ public class RemotePolicyDecisionPoint {
      *
      * @return an RSocket-specific builder for further configuration
      */
-    public ProtobufRemotePolicyDecisionPoint.Builder rsocket() {
-        return ProtobufRemotePolicyDecisionPoint.builder();
+    public ProtobufRemoteReactivePolicyDecisionPoint.Builder rsocket() {
+        return ProtobufRemoteReactivePolicyDecisionPoint.builder();
     }
 
 }

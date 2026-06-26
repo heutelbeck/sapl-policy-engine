@@ -18,6 +18,7 @@
 package io.sapl.lsp.sapl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.eclipse.lsp4j.SymbolKind;
 import org.junit.jupiter.api.DisplayName;
@@ -142,6 +143,42 @@ class SAPLDocumentSymbolProviderTests {
                 assertThat(selectionRange.getStart().getCharacter()).isEqualTo(7);
                 assertThat(selectionRange.getEnd().getCharacter()).isEqualTo(13);
             });
+        }
+
+        @Test
+        @DisplayName("full range end follows a policy whose last token spans multiple lines")
+        void whenPolicyEndsWithMultiLineStringThenFullRangeEndsAtTokenEnd() {
+            var document = new SAPLParsedDocument("test.sapl", "policy \"p\" permit transform \"line1\nline2\"");
+
+            var symbols = provider.provideDocumentSymbols(document);
+
+            assertThat(symbols).hasSize(1).first().satisfies(symbol -> {
+                var fullRange = symbol.getRange();
+                assertThat(fullRange.getEnd().getLine()).isEqualTo(1);
+                assertThat(fullRange.getEnd().getCharacter()).isEqualTo(6);
+            });
+        }
+
+    }
+
+    @Nested
+    @DisplayName("partial trees (error recovery while editing)")
+    class PartialTrees {
+
+        @Test
+        @DisplayName("a half-typed policy with no name does not crash")
+        void whenPolicyHasNoNameThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "policy ");
+
+            assertThatCode(() -> provider.provideDocumentSymbols(document)).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("a half-typed policy set with no name does not crash")
+        void whenPolicySetHasNoNameThenNoCrash() {
+            var document = new SAPLParsedDocument("test.sapl", "set ");
+
+            assertThatCode(() -> provider.provideDocumentSymbols(document)).doesNotThrowAnyException();
         }
 
     }

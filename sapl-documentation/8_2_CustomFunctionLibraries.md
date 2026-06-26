@@ -20,7 +20,6 @@ A class annotated with `@FunctionLibrary` is recognized as a function library:
 | `libraryDocumentation` | Detailed documentation (supports Markdown)               | `""`             |
 
 ```java
-@UtilityClass
 @FunctionLibrary(name = "sample.functions", description = "A sample function library")
 public class SampleFunctionLibrary {
     ...
@@ -141,19 +140,17 @@ An error value propagates through the policy evaluation and causes the enclosing
 
 ### Registering Custom Libraries
 
-Custom function libraries are registered with the PDP through the builder API:
+Custom function libraries are registered with the PDP by passing an instance to the builder. The `@Function` methods are static, but the builder holds an instance, so the library class needs an accessible constructor:
 
 ```java
-// Static library (utility class with static methods)
-var pdp = PolicyDecisionPointBuilder.builder()
-    .withDefaults()
-    .withFunctionLibrary(SampleFunctionLibrary.class)
+// Library with a default constructor
+var pdpComponents = PolicyDecisionPointBuilder.withDefaults()
+    .withFunctionLibrary(new SampleFunctionLibrary())
     .build();
 
-// Instantiated library (when the library needs constructor dependencies)
-var pdp = PolicyDecisionPointBuilder.builder()
-    .withDefaults()
-    .withFunctionLibraryInstance(new SampleFunctionLibrary(dependency))
+// Library that needs constructor dependencies
+var pdpComponents = PolicyDecisionPointBuilder.withDefaults()
+    .withFunctionLibrary(new SampleFunctionLibrary(dependency))
     .build();
 ```
 

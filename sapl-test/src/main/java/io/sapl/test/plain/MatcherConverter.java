@@ -24,6 +24,7 @@ import io.sapl.test.MockingFunctionBroker.ArgumentMatcher;
 import io.sapl.test.grammar.antlr.SAPLTestParser.*;
 import lombok.experimental.UtilityClass;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -154,7 +155,7 @@ class MatcherConverter {
             // Just "number" - matches any number
             return anyNumber();
         }
-        var expected = Double.parseDouble(ctx.number.getText());
+        var expected = new BigDecimal(ctx.number.getText());
         return numberEqualTo(expected);
     }
 

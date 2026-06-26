@@ -17,9 +17,6 @@
  */
 package io.sapl.functions.libraries;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
@@ -27,6 +24,7 @@ import io.sapl.api.model.ValueJsonMarshaller;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,10 +32,16 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,8 +54,7 @@ class GraphQLFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(GraphQLFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new GraphQLFunctionLibrary())).doesNotThrowAnyException();
     }
 
     public static final String  MULTI_QUERY  = """
@@ -142,8 +145,6 @@ class GraphQLFunctionLibraryTests {
             }
             """;
 
-    /* Basic Parsing Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideBasicParsingTestCases")
     void whenParseQueryThenReturnsExpectedResult(String query, String schema, boolean useSchema, boolean expectedValid,
@@ -196,8 +197,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(result).isNotNull();
         assertThat(parsed.get("ast").get("operationName").asString()).isEqualTo(expectedName);
     }
-
-    /* Field Analysis Tests */
 
     @Test
     void whenParseNestedFieldsThenExtractsAllFields() {
@@ -265,7 +264,18 @@ class GraphQLFunctionLibraryTests {
                         "security.aliasCount", 3, "multiple aliases"));
     }
 
-    /* Depth Analysis Tests */
+    @ParameterizedTest(name = "pagination first:{0} reported as {1}")
+    @MethodSource("providePaginationOverflowCases")
+    void whenPaginationLimitExceedsIntRangeThenReportedFaithfullyNotTruncated(String literal, long expected) {
+        val result = GraphQLFunctionLibrary.analyzeQuery(Value.of("{ users(first: " + literal + ") { id } }"));
+        val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+        assertThat(parsed.get("security").get("maxPaginationLimit").asLong()).isEqualTo(expected);
+    }
+
+    static Stream<Arguments> providePaginationOverflowCases() {
+        return Stream.of(arguments("4294967297", 4294967297L), arguments("2147483648", 2147483648L));
+    }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideDepthTestCases")
@@ -297,8 +307,6 @@ class GraphQLFunctionLibraryTests {
                 + " }".repeat(nestingLevel) + " } }";
     }
 
-    /* Introspection Detection Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideIntrospectionTestCases")
     void whenParseQueryThenDetectsIntrospectionCorrectly(String query, boolean expectedIntrospection, String scenario) {
@@ -314,8 +322,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { __typename name } }", true, "typename introspection"),
                 arguments("query { investigator(id: \"1\") { name } }", false, "no introspection"));
     }
-
-    /* Complexity Tests */
 
     @Test
     void whenParseQueryThenCalculatesBasicComplexity() {
@@ -399,8 +405,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("{\"fields\": [\"name\", 42, \"sanity\", null], \"depth\": 2}", "{}", 6));
     }
 
-    /* Alias and Batching Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideAliasBatchingTestCases")
     void whenParseQueryWithAliasesThenCalculatesBatchingMetrics(String query, int expectedAliasCount,
@@ -428,8 +432,6 @@ class GraphQLFunctionLibraryTests {
                         }
                         """, 0, 2, "no aliases"));
     }
-
-    /* Argument Analysis Tests */
 
     @Test
     void whenParseQueryWithArgumentsThenExtractsArguments() {
@@ -534,8 +536,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("valid").asBoolean()).isTrue();
     }
 
-    /* Fragment Analysis Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideFragmentCircularityTestCases")
     void whenParseQueryWithFragmentsThenDetectsCircularityCorrectly(String query, boolean expectedCircular,
@@ -626,8 +626,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(fragments.get("InvestigatorDetails").get("fields")).hasSize(2);
     }
 
-    /* Directive Analysis Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideDirectiveTestCases")
     void whenParseQueryWithDirectivesThenAnalyzesCorrectly(String query, int expectedCount, double minRatio,
@@ -671,8 +669,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { " + "name " + "@include(if: true) ".repeat(50) + "} }", 50,
                         10.0, "directive abuse attack"));
     }
-
-    /* Variable Tests */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideVariableTestCases")
@@ -723,8 +719,6 @@ class GraphQLFunctionLibraryTests {
                 arguments("query { investigator(id: \"1\") { name } }", Map.of(), "no variables"));
     }
 
-    /* Type Information Tests */
-
     @Test
     void whenParseQueryWithInlineFragmentsThenExtractsTypes() {
         val query  = """
@@ -744,8 +738,6 @@ class GraphQLFunctionLibraryTests {
         val types = parsed.get("ast").get("types");
         assertThat(types.size()).isGreaterThan(0);
     }
-
-    /* Realistic Use Case Tests */
 
     @Test
     void whenParseTypicalInvestigationQueryThenAnalyzesCorrectly() {
@@ -824,8 +816,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(complexity).isNotNull();
         assertThat(((NumberValue) complexity).value().intValue()).isGreaterThan(50);
     }
-
-    /* Security Tests - Malicious Queries */
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideMaliciousQueryTestCases")
@@ -915,8 +905,6 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("security").get("maxPaginationLimit").asInt()).isGreaterThan(800000);
     }
 
-    /* Edge Case Tests */
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideEdgeCaseTestCases")
     void whenParseEdgeCasesThenHandlesCorrectly(String query, boolean shouldBeValid, String scenario) {
@@ -972,8 +960,6 @@ class GraphQLFunctionLibraryTests {
         return Stream.of(arguments("query { investigator(id: \"1\") { name } }", ""),
                 arguments("query { investigator(id: \"1\") { name } }", "type Query { investigator(id: ID! }"));
     }
-
-    /* Schema Parsing Tests */
 
     @Test
     void whenParseValidSchemaThenReturnsValidResult() {
@@ -1053,7 +1039,17 @@ class GraphQLFunctionLibraryTests {
         assertThat(parsed.get("valid").asBoolean()).isTrue();
     }
 
-    /* Performance Tests */
+    @Test
+    void whenParseSchemaExceedsMaximumSizeThenReturnsError() {
+        val oversizedSchema = "type Query { investigator(id: ID!): String }\n" + "# padding comment\n".repeat(40000);
+        val result          = GraphQLFunctionLibrary.parseSchema(Value.of(oversizedSchema));
+        val parsed          = ValueJsonMarshaller.toJsonNode(result);
+
+        assertThat(oversizedSchema.length()).isGreaterThan(512 * 1024);
+        assertThat(parsed.get("valid").asBoolean()).isFalse();
+        assertThat(parsed.get("errors").size()).isGreaterThan(0);
+        assertThat(parsed.get("errors").get(0).asString()).contains("maximum size");
+    }
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
@@ -1103,5 +1099,185 @@ class GraphQLFunctionLibraryTests {
             assertThat(result).isNotNull();
             assertThat(ValueJsonMarshaller.isJsonCompatible(result)).isTrue();
         }
+    }
+
+    @Nested
+    @DisplayName("Multi-operation documents reflect worst-case security metrics")
+    class MultiOperationAggregation {
+
+        @Test
+        @DisplayName("depth reflects the deepest operation, not the first")
+        void whenDocumentHasMultipleOperationsThenDepthIsWorstCase() {
+            val query  = """
+                    query Safe {
+                      investigator(id: "1") {
+                        name
+                      }
+                    }
+
+                    query Attack {
+                      investigator(id: "1") {
+                        tomes {
+                          rituals {
+                            investigator {
+                              tomes {
+                                title
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """;
+            val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
+            val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+            assertThat(parsed.get("depth").asInt()).isGreaterThanOrEqualTo(6);
+        }
+
+        @Test
+        @DisplayName("fields are the union across all operations")
+        void whenDocumentHasMultipleOperationsThenFieldsAreUnion() {
+            val query  = """
+                    query Safe {
+                      investigator(id: "1") {
+                        name
+                      }
+                    }
+
+                    query Attack {
+                      investigator(id: "1") {
+                        ssn
+                      }
+                    }
+                    """;
+            val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
+            val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+            val fieldNames = new ArrayList<String>();
+            parsed.get("fields").forEach(node -> fieldNames.add(node.asString()));
+            assertThat(fieldNames).contains("name", "ssn");
+        }
+
+        @Test
+        @DisplayName("introspection is flagged when any operation is introspective")
+        void whenAnyOperationIsIntrospectionThenFlagged() {
+            val query  = """
+                    query Safe {
+                      investigator(id: "1") {
+                        name
+                      }
+                    }
+
+                    query Probe {
+                      __schema {
+                        types {
+                          name
+                        }
+                      }
+                    }
+                    """;
+            val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
+            val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+            assertThat(parsed.get("security").get("isIntrospection").asBoolean()).isTrue();
+        }
+
+        @Test
+        @DisplayName("pagination limit reflects the largest across all operations")
+        void whenOperationsHaveDifferentPaginationThenMaxIsWorstCase() {
+            val query  = """
+                    query Safe {
+                      investigator(id: "1") {
+                        tomes(first: 5) {
+                          title
+                        }
+                      }
+                    }
+
+                    query Attack {
+                      investigator(id: "1") {
+                        tomes(first: 9999) {
+                          title
+                        }
+                      }
+                    }
+                    """;
+            val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
+            val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+            assertThat(parsed.get("security").get("maxPaginationLimit").asInt()).isEqualTo(9999);
+        }
+
+        @Test
+        @DisplayName("circular fragments are flagged when any operation reaches them")
+        void whenCircularFragmentReachableFromAnyOperationThenFlagged() {
+            val query  = """
+                    fragment Loop on Investigator {
+                      name
+                      ...Loop
+                    }
+
+                    query Safe {
+                      investigator(id: "1") {
+                        name
+                      }
+                    }
+
+                    query Attack {
+                      investigator(id: "1") {
+                        ...Loop
+                      }
+                    }
+                    """;
+            val result = GraphQLFunctionLibrary.analyzeQuery(Value.of(query));
+            val parsed = ValueJsonMarshaller.toJsonNode(result);
+
+            assertThat(parsed.get("security").get("hasCircularFragments").asBoolean()).isTrue();
+        }
+    }
+
+    @Test
+    @DisplayName("Wide acyclic fragment lattice does not cause exponential blow-up")
+    void whenWideAcyclicFragmentLatticeThenCompletesInLinearTime() throws InterruptedException {
+        val query    = buildDiamondFragmentLattice(120);
+        val executor = Executors.newSingleThreadExecutor(runnable -> {
+                         val thread = new Thread(runnable, "graphql-lattice-analysis");
+                         thread.setDaemon(true);
+                         return thread;
+                     });
+        try {
+            val         future = executor.submit(() -> GraphQLFunctionLibrary.analyzeQuery(Value.of(query)));
+            final Value result;
+            try {
+                result = future.get(5, TimeUnit.SECONDS);
+            } catch (TimeoutException timeout) {
+                future.cancel(true);
+                throw new AssertionError(
+                        "Circular-fragment detection did not complete in 5s on a wide acyclic lattice; "
+                                + "the algorithm scales exponentially.",
+                        timeout);
+            } catch (ExecutionException execution) {
+                throw new AssertionError("Analysis failed unexpectedly.", execution.getCause());
+            }
+            val parsed = ValueJsonMarshaller.toJsonNode(result);
+            assertThat(parsed.get("valid").asBoolean()).isTrue();
+            assertThat(parsed.get("security").get("hasCircularFragments").asBoolean()).isFalse();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static String buildDiamondFragmentLattice(int levels) {
+        val builder = new StringBuilder("query { investigator(id: \"1\") { ...A0 ...B0 } }\n");
+        for (int i = 0; i < levels; i++) {
+            builder.append("fragment A").append(i).append(" on Investigator { name ...A").append(i + 1).append(" ...B")
+                    .append(i + 1).append(" }\n");
+            builder.append("fragment B").append(i).append(" on Investigator { name ...A").append(i + 1).append(" ...B")
+                    .append(i + 1).append(" }\n");
+        }
+        builder.append("fragment A").append(levels).append(" on Investigator { name }\n");
+        builder.append("fragment B").append(levels).append(" on Investigator { name }\n");
+        return builder.toString();
     }
 }

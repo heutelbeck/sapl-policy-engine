@@ -17,21 +17,14 @@
  */
 package io.sapl.compiler.index.canonical;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import io.sapl.api.model.IndexPredicate;
 import io.sapl.compiler.document.CompiledDocument;
 import io.sapl.compiler.index.dnf.ConjunctiveClause;
 import io.sapl.compiler.index.dnf.DisjunctiveFormula;
-import io.sapl.api.model.IndexPredicate;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.*;
 
 /**
  * Builds the {@link CanonicalIndexData} structures from a set of DNF formulas

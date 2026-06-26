@@ -7,7 +7,7 @@ nav_order: 106
 
 ## SAPL Policy Set
 
-While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. For evaluating an authorization subscription, the PDP evaluates existing policy sets. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable, evaluating their policies, and combining multiple votes according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets vote either `PERMIT`, `DENY`, `NOT_APPLICABLE` or `INDETERMINATE`.
+While a policy can either be a top-level SAPL document or be contained in a policy set, policy sets are always top-level documents. For evaluating an authorization subscription, the PDP evaluates existing policy sets. Policy sets are evaluated against an authorization subscription by checking their target expression, if applicable, evaluating their policies, and combining multiple votes according to a combining algorithm specified in the policy set. Finally, similarly to policies, policy sets vote `PERMIT`, `DENY`, `SUSPEND`, `NOT_APPLICABLE`, or `INDETERMINATE`.
 
 Policy sets are used to structure multiple policies and provide an order for the policies they contain. Hence, their policies can be evaluated one after another.
 
@@ -92,5 +92,7 @@ Evaluating a policy set against an authorization subscription means assigning a 
 | `false` (not matching) | don't care        | `NOT_APPLICABLE`                                              |
 | `true` (matching)      | care              | Result of the **Combining Algorithm** applied to the Policies |
 | *Error*                | don't care        | `INDETERMINATE`                                               |
+
+An error in the target expression always makes the whole set `INDETERMINATE`, regardless of the combining algorithm and its error handling. The combining algorithm's error handling governs errors raised *inside* the policies, not a failure of the set's own target. This separation is deliberate: the target is evaluated independently of, and ahead of, the policies, which is what allows a policy set to participate in the compile-time policy index. Routing a target error through the combining algorithm instead would couple target and body evaluation and remove that ability.
 
 For how combining algorithms resolve multiple votes into a single decision, see [Combining Algorithms](../2_5_CombiningAlgorithms/).

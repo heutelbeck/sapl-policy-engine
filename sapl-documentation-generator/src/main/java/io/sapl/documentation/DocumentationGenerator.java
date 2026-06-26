@@ -85,8 +85,10 @@ public class DocumentationGenerator {
         log.info("SAPL Version: {}", version);
 
         createTargetDirectoryIfNotExisting();
-        // LibraryDocumentationExtractor
-        val libraries = new ArrayList<Class<?>>(DefaultLibraries.STATIC_LIBRARIES);
+        val libraries = new ArrayList<Class<?>>();
+        for (val library : DefaultLibraries.defaults()) {
+            libraries.add(library.getClass());
+        }
         libraries.add(GeographicFunctionLibrary.class);
         libraries.add(MqttFunctionLibrary.class);
         val libDocs = sortDocs(libraries.stream().map(LibraryDocumentationExtractor::extractFunctionLibrary).toList());

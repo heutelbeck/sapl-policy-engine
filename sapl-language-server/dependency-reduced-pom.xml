@@ -3,7 +3,7 @@
   <parent>
     <artifactId>sapl-policy-engine</artifactId>
     <groupId>io.sapl</groupId>
-    <version>4.0.0</version>
+    <version>4.1.0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>sapl-language-server</artifactId>
@@ -228,7 +228,7 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.44</version>
+      <version>1.18.46</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -266,7 +266,7 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>5.20.0</version>
+      <version>5.23.0</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>

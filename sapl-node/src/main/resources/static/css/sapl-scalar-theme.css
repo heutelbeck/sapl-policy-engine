@@ -1,0 +1,96 @@
+/*
+ * SAPL theme for the Scalar API reference, mirroring sapl.io.
+ * Hide the residual "Powered by Scalar" link as before.
+ */
+
+a[href*="scalar.com"][target="_blank"] { display: none !important; }
+
+/* Suppress the "Open MCP / Generate MCP server" affordance. */
+.scalar-mcp-layer { display: none !important; }
+
+:root {
+    --scalar-font:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    --scalar-font-code:
+        "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+/* Light theme. sapl.io light palette. */
+.light-mode,
+:root:not(.dark-mode) {
+    --scalar-color-1: #1a1a2e;
+    --scalar-color-2: #4a5568;
+    --scalar-color-3: #4a5568;
+    --scalar-color-accent: #027080;
+    --scalar-background-1: #edf2f7;
+    --scalar-background-2: #e2e8f0;
+    --scalar-background-3: #cbd5e1;
+    --scalar-background-accent: #027080;
+    --scalar-border-color: #cbd5e1;
+
+    --scalar-button-1: #027080;
+    --scalar-button-1-color: #ffffff;
+    --scalar-button-1-hover: #025d6b;
+
+    --scalar-color-green: #027080;
+    --scalar-color-blue: #027080;
+    --scalar-color-purple: #8f9cc1;
+
+    --scalar-sidebar-background-1: #edf2f7;
+    --scalar-sidebar-color-1: #1a1a2e;
+    --scalar-sidebar-color-2: #4a5568;
+    --scalar-sidebar-border-color: #cbd5e1;
+    --scalar-sidebar-color-active: #027080;
+    --scalar-sidebar-item-hover-background: #e2e8f0;
+    --scalar-sidebar-item-hover-color: #027080;
+    --scalar-sidebar-item-active-background: #e2e8f0;
+    --scalar-sidebar-search-background: #ffffff;
+    --scalar-sidebar-search-color: #1a1a2e;
+    --scalar-sidebar-search-border-color: #cbd5e1;
+
+    --scalar-header-background-1: #edf2f7;
+    --scalar-header-color-1: #1a1a2e;
+    --scalar-header-color-2: #4a5568;
+    --scalar-header-border-color: #cbd5e1;
+    --scalar-header-call-to-action-color: #027080;
+}
+
+/* Dark theme. sapl.io dark palette, aligned with the Vaadin Aura tokens. */
+.dark-mode {
+    --scalar-color-1: hsl(210, 10%, 90%);
+    --scalar-color-2: hsl(210, 10%, 60%);
+    --scalar-color-3: hsl(210, 10%, 60%);
+    --scalar-color-accent: hsl(179, 43%, 52%);
+    --scalar-background-1: hsl(210, 10%, 12%);
+    --scalar-background-2: hsl(210, 10%, 15%);
+    --scalar-background-3: hsl(210, 10%, 18%);
+    --scalar-background-accent: hsl(179, 43%, 44%);
+    --scalar-border-color: rgba(255, 255, 255, 0.10);
+
+    --scalar-button-1: hsl(179, 43%, 44%);
+    --scalar-button-1-color: hsl(210, 10%, 12%);
+    --scalar-button-1-hover: hsl(179, 43%, 52%);
+
+    --scalar-color-green: hsl(179, 43%, 52%);
+    --scalar-color-blue: hsl(179, 43%, 52%);
+    --scalar-color-purple: #8f9cc1;
+
+    --scalar-sidebar-background-1: hsl(210, 10%, 15%);
+    --scalar-sidebar-color-1: hsl(210, 10%, 90%);
+    --scalar-sidebar-color-2: hsl(210, 10%, 60%);
+    --scalar-sidebar-border-color: rgba(255, 255, 255, 0.10);
+    --scalar-sidebar-color-active: hsl(179, 43%, 52%);
+    --scalar-sidebar-item-hover-background: hsl(210, 10%, 18%);
+    --scalar-sidebar-item-hover-color: hsl(179, 43%, 52%);
+    --scalar-sidebar-item-active-background: hsl(210, 10%, 18%);
+    --scalar-sidebar-search-background: hsl(210, 10%, 15%);
+    --scalar-sidebar-search-color: hsl(210, 10%, 90%);
+    --scalar-sidebar-search-border-color: rgba(255, 255, 255, 0.10);
+
+    --scalar-header-background-1: hsl(210, 10%, 15%);
+    --scalar-header-color-1: hsl(210, 10%, 90%);
+    --scalar-header-color-2: hsl(210, 10%, 60%);
+    --scalar-header-border-color: rgba(255, 255, 255, 0.10);
+    --scalar-header-call-to-action-color: hsl(179, 43%, 52%);
+}

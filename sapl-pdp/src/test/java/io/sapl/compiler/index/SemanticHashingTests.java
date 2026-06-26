@@ -17,16 +17,16 @@
  */
 package io.sapl.compiler.index;
 
+import io.sapl.api.model.Value;
+import io.sapl.ast.BinaryOperatorType;
+import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import io.sapl.ast.BinaryOperatorType;
+import java.math.BigDecimal;
 
-import static io.sapl.compiler.index.SemanticHashing.binaryOp;
-import static io.sapl.compiler.index.SemanticHashing.commutative;
-import static io.sapl.compiler.index.SemanticHashing.kindHash;
-import static io.sapl.compiler.index.SemanticHashing.ordered;
+import static io.sapl.compiler.index.SemanticHashing.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("SemanticHashing")
@@ -157,6 +157,89 @@ class SemanticHashingTests {
         void whenReorderedThenCommutativeMatchesButOrderedDoesNot() {
             assertThat(commutative(1L, 2L, 3L)).isEqualTo(commutative(1L, 3L, 2L));
             assertThat(ordered(1L, 2L, 3L)).isNotEqualTo(ordered(1L, 3L, 2L));
+        }
+    }
+
+    @Nested
+    @DisplayName("textHash")
+    class TextHashTests {
+
+        @Test
+        @DisplayName("strings colliding under String.hashCode do not collide")
+        void whenStringsCollideUnderJavaHashCodeThenTextHashDiffers() {
+            // "Aa" and "BB" share the same String.hashCode, yet their semantic text hashes
+            // must differ.
+            assertThat(textHash("Aa")).isNotEqualTo(textHash("BB"));
+        }
+
+        @Test
+        @DisplayName("equal strings produce equal hash")
+        void whenEqualStringsThenEqualHash() {
+            assertThat(textHash("alice")).isEqualTo(textHash("alice"));
+        }
+
+        @Test
+        @DisplayName("null hashes to a fixed constant")
+        void whenNullThenFixedConstant() {
+            assertThat(textHash(null)).isEqualTo(textHash(null));
+        }
+    }
+
+    @Nested
+    @DisplayName("valueHash - consistency with value equality")
+    class ValueHashConsistencyTests {
+
+        @Test
+        @DisplayName("numerically equal numbers of different scale produce equal hash")
+        void whenNumbersNumericallyEqualThenEqualHash() {
+            val oneTenth     = Value.of(new BigDecimal("1.0"));
+            val oneHundredth = Value.of(new BigDecimal("1.00"));
+            assertThat(oneTenth).isEqualTo(oneHundredth);
+            assertThat(valueHash(oneTenth)).isEqualTo(valueHash(oneHundredth));
+        }
+
+        @Test
+        @DisplayName("equal text values produce equal hash")
+        void whenEqualTextThenEqualHash() {
+            assertThat(valueHash(Value.of("alice"))).isEqualTo(valueHash(Value.of("alice")));
+        }
+
+        @Test
+        @DisplayName("equal objects with different key order produce equal hash")
+        void whenObjectsDifferByKeyOrderThenEqualHash() {
+            val first  = Value.ofJson("{\"a\":1,\"b\":2}");
+            val second = Value.ofJson("{\"b\":2,\"a\":1}");
+            assertThat(first).isEqualTo(second);
+            assertThat(valueHash(first)).isEqualTo(valueHash(second));
+        }
+    }
+
+    @Nested
+    @DisplayName("valueHash - sensitivity to differences")
+    class ValueHashSensitivityTests {
+
+        @Test
+        @DisplayName("text values colliding under String.hashCode do not collide")
+        void whenTextValuesCollideUnderJavaHashCodeThenValueHashDiffers() {
+            assertThat(valueHash(Value.of("Aa"))).isNotEqualTo(valueHash(Value.of("BB")));
+        }
+
+        @Test
+        @DisplayName("distinct numbers produce distinct hash")
+        void whenDistinctNumbersThenDistinctHash() {
+            assertThat(valueHash(Value.of(1L))).isNotEqualTo(valueHash(Value.of(2L)));
+        }
+
+        @Test
+        @DisplayName("a text value and a number with the same lexical form do not collide")
+        void whenTextAndNumberShareLexicalFormThenDistinctHash() {
+            assertThat(valueHash(Value.of("1"))).isNotEqualTo(valueHash(Value.of(1L)));
+        }
+
+        @Test
+        @DisplayName("array element order changes hash")
+        void whenArrayOrderDiffersThenDistinctHash() {
+            assertThat(valueHash(Value.ofJson("[1,2]"))).isNotEqualTo(valueHash(Value.ofJson("[2,1]")));
         }
     }
 

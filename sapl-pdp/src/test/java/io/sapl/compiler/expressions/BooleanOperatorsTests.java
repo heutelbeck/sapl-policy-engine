@@ -21,6 +21,7 @@ import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
 import io.sapl.compiler.operators.BooleanOperators;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,8 +30,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("BooleanOperators")
 class BooleanOperatorsTests {

@@ -18,17 +18,23 @@
 package io.sapl.compiler.policyset;
 
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Outcome;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import static io.sapl.util.SaplTesting.compilePolicySet;
-import static io.sapl.util.SaplTesting.evaluatePolicySet;
-import static io.sapl.util.SaplTesting.subscriptionContext;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for PolicySetCompiler covering variable compilation and combining
@@ -82,6 +88,69 @@ class PolicySetCompilerTests {
             val result   = evaluatePolicySet(compiled, ctx);
 
             assertThat(result.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
+        }
+    }
+
+    @Nested
+    @DisplayName("Set outcome metadata")
+    class SetOutcomeMetadata {
+
+        static Stream<Arguments> outcomeUnionCases() {
+            return Stream.of(arguments("priority deny or abstain", List.of("permit", "permit"), Outcome.PERMIT),
+                    arguments("priority deny or abstain", List.of("permit", "deny"), Outcome.PERMIT_OR_DENY),
+                    arguments("priority deny or abstain", List.of("deny", "suspend"), Outcome.DENY_OR_SUSPEND),
+                    arguments("priority deny or abstain", List.of("permit", "suspend"), Outcome.PERMIT_OR_SUSPEND),
+                    arguments("priority deny or abstain", List.of("permit", "deny", "suspend"),
+                            Outcome.PERMIT_OR_DENY_OR_SUSPEND),
+                    arguments("priority permit or deny", List.of("permit"), Outcome.PERMIT_OR_DENY),
+                    arguments("priority deny or suspend", List.of("deny"), Outcome.DENY_OR_SUSPEND));
+        }
+
+        @ParameterizedTest(name = "{0} with member effects {1} yields {2}")
+        @MethodSource("outcomeUnionCases")
+        void whenCompilingSetThenOutcomeIsUnionOfMemberEffectsAndDefaultDecision(String algorithm, List<String> effects,
+                Outcome expected) {
+            val source = new StringBuilder("set \"test\"\n").append(algorithm).append('\n');
+            for (var i = 0; i < effects.size(); i++) {
+                source.append("policy \"p").append(i).append("\" ").append(effects.get(i)).append('\n');
+            }
+
+            val compiled = compilePolicySet(source.toString());
+
+            assertThat(compiled.metadata().outcome()).isEqualTo(expected);
+        }
+    }
+
+    @Nested
+    @DisplayName("Target relative-accessor guard")
+    class TargetRelativeAccessorGuard {
+
+        @Test
+        @DisplayName("a top-level relative accessor combined with a subscription reference is rejected")
+        void whenTargetCombinesRelativeAccessorWithSubscriptionReferenceThenRejected() {
+            assertThatThrownBy(() -> compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+                    for @ == subject
+
+                    policy "p"
+                    permit
+                    """)).isInstanceOf(SaplCompilerException.class).hasMessageContaining("@ or #");
+        }
+
+        @Test
+        @DisplayName("a relative accessor bound inside a condition step is allowed")
+        void whenTargetHasRelativeAccessorBoundInConditionStepThenCompiles() {
+            val compiled = compilePolicySet("""
+                    set "test"
+                    first or abstain errors propagate
+                    for subject.items[?(@ > 1)] != []
+
+                    policy "p"
+                    permit
+                    """);
+
+            assertThat(compiled).isNotNull();
         }
     }
 }

@@ -31,7 +31,8 @@ import io.sapl.spring.serialization.SaplServletJacksonModule;
  * serialization.
  * <p>
  * Spring Boot automatically discovers JacksonModule beans and registers them
- * with all ObjectMapper instances, including user-provided ones.
+ * with all ObjectMapper instances, including
+ * user-provided ones.
  */
 @AutoConfiguration
 public class ObjectMapperAutoConfiguration {

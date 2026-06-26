@@ -17,19 +17,20 @@
  */
 package io.sapl.compiler.index.canonical;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.function.Predicate;
-
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
 import io.sapl.compiler.document.CompiledDocument;
-import io.sapl.compiler.document.Vote;
-import io.sapl.compiler.index.PolicyIndexResult;
+import io.sapl.compiler.index.IndexReclassification;
+import io.sapl.compiler.index.PolicyMatches;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+import org.jspecify.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Implements the count-and-eliminate search algorithm (Algorithm 1) from the
@@ -39,9 +40,9 @@ import lombok.val;
  * <ol>
  * <li>Skip if no remaining candidate conjunctions reference it</li>
  * <li>Evaluate the predicate once against the context</li>
- * <li>Increment true-literal counts for satisfied literals; mark conjunctions
+ * <li>Increment true-literal counts for satisfied literals. Mark conjunctions
  * as satisfied when all literals are true</li>
- * <li>Mark formulas of satisfied conjunctions as matched; decrement remaining
+ * <li>Mark formulas of satisfied conjunctions as matched. Decrement remaining
  * formula counts for sibling conjunctions (orphan detection)</li>
  * <li>Identify unsatisfiable conjunctions from bitmasks</li>
  * <li>Remove satisfied, unsatisfied, and orphaned conjunctions from
@@ -52,13 +53,22 @@ import lombok.val;
 class CanonicalIndexSearch {
 
     /**
-     * Executes the count-and-eliminate algorithm on the precomputed index data.
+     * Executes the count-and-eliminate algorithm on the precomputed index data,
+     * building the result as true matches plus error matches (each carrying its
+     * document and error).
      *
      * @param data the precomputed index data structures
      * @param ctx the evaluation context for predicate evaluation
-     * @return matching documents and error votes
+     * @return true matches and error matches
      */
-    static PolicyIndexResult search(CanonicalIndexData data, EvaluationContext ctx) {
+    static PolicyMatches searchKleene(CanonicalIndexData data, EvaluationContext ctx) {
+        val classification = traverse(data, ctx);
+        return buildKleeneResult(classification.matchedFormulas(), classification.errorFormulas(), data, ctx);
+    }
+
+    private record FormulaClassification(BitSet matchedFormulas, BitSet errorFormulas) {}
+
+    private static FormulaClassification traverse(CanonicalIndexData data, EvaluationContext ctx) {
         val numberOfConjunctions = data.numberOfConjunctions();
         val numberOfFormulas     = data.formulas().size();
 
@@ -69,11 +79,11 @@ class CanonicalIndexSearch {
 
         val remainingFormulasWithConjunction = data.numberOfFormulasWithConjunction().clone();
 
-        val matchedFormulas = new BitSet(numberOfFormulas);
-        val errorFormulas   = new BitSet(numberOfFormulas);
-        val errorVotes      = new ArrayList<Vote>();
-        val predicates      = data.predicateOrder();
-        val originalIndices = data.predicateOriginalIndices();
+        val matchedFormulas  = new BitSet(numberOfFormulas);
+        val errorFormulas    = new BitSet(numberOfFormulas);
+        val orphanedFormulas = new BitSet(numberOfFormulas);
+        val predicates       = data.predicateOrder();
+        val originalIndices  = data.predicateOriginalIndices();
 
         for (var i = 0; i < predicates.size(); i++) {
             if (candidateConjunctions.isEmpty()) {
@@ -88,14 +98,16 @@ class CanonicalIndexSearch {
 
             val evaluationResult = predicates.get(i).operator().evaluate(ctx);
 
-            if (evaluationResult instanceof ErrorValue error) {
-                handlePredicateError(error, p, data, matchedFormulas, errorFormulas, errorVotes);
+            // A non-boolean predicate result (error, or any non-boolean now that the
+            // body type-check is gone) is treated as a type error: route the formula to
+            // the suspect path and reconcile it through Kleene naive.
+            if (!(evaluationResult instanceof BooleanValue(var b))) {
                 eliminateAllPredicateConjunctions(p, data, candidateConjunctions, remainingFormulasWithConjunction,
-                        matchedFormulas, scratch);
+                        matchedFormulas, errorFormulas, orphanedFormulas, scratch);
                 continue;
             }
 
-            val predicateTrue = evaluationResult instanceof BooleanValue(var b) && b;
+            val predicateTrue = b;
 
             findAndMarkSatisfied(p, predicateTrue, data, candidateConjunctions, trueLiteralCount, matchedFormulas,
                     remainingFormulasWithConjunction, scratch);
@@ -103,20 +115,37 @@ class CanonicalIndexSearch {
             eliminateUnsatisfied(p, predicateTrue, data, candidateConjunctions, scratch);
         }
 
-        return buildResult(matchedFormulas, errorFormulas, data, errorVotes);
+        return new FormulaClassification(matchedFormulas, errorFormulas);
     }
 
     /**
-     * Incremental search: yields matches and errors to the callback after each
-     * predicate evaluation. Stops when the callback returns false.
+     * Incremental search: yields true matches as {@link PolicyMatches} after each
+     * predicate evaluation and reconciles error-suspects into error matches once
+     * the walk completes. Stops when the callback returns false.
      *
      * @param data the precomputed index data structures
      * @param ctx the evaluation context for predicate evaluation
-     * @param shouldContinue called with incremental results after each predicate
-     * step; returns false to stop
+     * @param shouldContinue called with incremental matches after each step.
+     * Returns false to stop
      */
-    static void searchWhile(CanonicalIndexData data, EvaluationContext ctx,
-            Predicate<PolicyIndexResult> shouldContinue) {
+    static void searchKleeneWhile(CanonicalIndexData data, EvaluationContext ctx,
+            Predicate<PolicyMatches> shouldContinue) {
+        val errorFormulas = traverseWhile(data, ctx,
+                documents -> shouldContinue.test(new PolicyMatches(documents, List.of())));
+        if (errorFormulas != null) {
+            yieldReclassifiedSuspectsKleene(errorFormulas, data, ctx, shouldContinue);
+        }
+    }
+
+    /**
+     * Runs the incremental count-and-eliminate walk, yielding the documents of each
+     * formula as it becomes matched through {@code yieldMatched}. Returns the
+     * error-suspect formulas after a full walk, or {@code null} if
+     * {@code yieldMatched}
+     * requested a stop.
+     */
+    private static @Nullable BitSet traverseWhile(CanonicalIndexData data, EvaluationContext ctx,
+            Predicate<List<CompiledDocument>> yieldMatched) {
         val numberOfConjunctions = data.numberOfConjunctions();
         val numberOfFormulas     = data.formulas().size();
 
@@ -127,10 +156,11 @@ class CanonicalIndexSearch {
 
         val remainingFormulasWithConjunction = data.numberOfFormulasWithConjunction().clone();
 
-        val matchedFormulas = new BitSet(numberOfFormulas);
-        val errorFormulas   = new BitSet(numberOfFormulas);
-        val predicates      = data.predicateOrder();
-        val originalIndices = data.predicateOriginalIndices();
+        val matchedFormulas  = new BitSet(numberOfFormulas);
+        val errorFormulas    = new BitSet(numberOfFormulas);
+        val orphanedFormulas = new BitSet(numberOfFormulas);
+        val predicates       = data.predicateOrder();
+        val originalIndices  = data.predicateOriginalIndices();
 
         for (var i = 0; i < predicates.size(); i++) {
             if (candidateConjunctions.isEmpty()) {
@@ -145,24 +175,26 @@ class CanonicalIndexSearch {
 
             val evaluationResult = predicates.get(i).operator().evaluate(ctx);
 
-            if (evaluationResult instanceof ErrorValue error) {
-                if (!yieldErrors(error, p, data, matchedFormulas, errorFormulas, shouldContinue)) {
-                    return;
-                }
+            // A non-boolean predicate result (error, or any non-boolean now that the
+            // body type-check is gone) is treated as a type error: route the formula to
+            // the suspect path and reconcile it through Kleene naive.
+            if (!(evaluationResult instanceof BooleanValue(var b))) {
                 eliminateAllPredicateConjunctions(p, data, candidateConjunctions, remainingFormulasWithConjunction,
-                        matchedFormulas, scratch);
+                        matchedFormulas, errorFormulas, orphanedFormulas, scratch);
                 continue;
             }
 
-            val predicateTrue = evaluationResult instanceof BooleanValue(var b) && b;
+            val predicateTrue = b;
 
             if (!yieldAndMarkSatisfied(p, predicateTrue, data, candidateConjunctions, trueLiteralCount, matchedFormulas,
-                    errorFormulas, remainingFormulasWithConjunction, scratch, shouldContinue)) {
-                return;
+                    errorFormulas, remainingFormulasWithConjunction, scratch, yieldMatched)) {
+                return null;
             }
 
             eliminateUnsatisfied(p, predicateTrue, data, candidateConjunctions, scratch);
         }
+
+        return errorFormulas;
     }
 
     private static boolean intersects(BitSet a, BitSet b) {
@@ -197,7 +229,7 @@ class CanonicalIndexSearch {
 
     private static boolean yieldAndMarkSatisfied(int p, boolean predicateTrue, CanonicalIndexData data,
             BitSet candidateConjunctions, int[] trueLiteralCount, BitSet matchedFormulas, BitSet errorFormulas,
-            int[] remainingFormulasWithConjunction, BitSet scratch, Predicate<PolicyIndexResult> shouldContinue) {
+            int[] remainingFormulasWithConjunction, BitSet scratch, Predicate<List<CompiledDocument>> yieldMatched) {
         val trueLiterals = predicateTrue ? data.falseForFalsePredicate()[p] : data.falseForTruePredicate()[p];
         andInto(scratch, trueLiterals, candidateConjunctions);
 
@@ -209,8 +241,7 @@ class CanonicalIndexSearch {
                     if (!errorFormulas.get(f) && !matchedFormulas.get(f)) {
                         matchedFormulas.set(f);
                         orphanSiblingConjunctions(f, data, candidateConjunctions, remainingFormulasWithConjunction);
-                        val documents = data.formulaDocuments().get(f);
-                        if (!shouldContinue.test(new PolicyIndexResult(documents, List.of()))) {
+                        if (!yieldMatched.test(data.formulaDocuments().get(f))) {
                             return false;
                         }
                     }
@@ -237,53 +268,55 @@ class CanonicalIndexSearch {
         }
     }
 
-    private static boolean yieldErrors(ErrorValue error, int p, CanonicalIndexData data, BitSet matchedFormulas,
-            BitSet errorFormulas, Predicate<PolicyIndexResult> shouldContinue) {
-        for (val formulaIndex : data.relatedFormulas()[p]) {
-            if (!matchedFormulas.get(formulaIndex) && !errorFormulas.get(formulaIndex)) {
-                errorFormulas.set(formulaIndex);
-                val documents = data.formulaDocuments().get(formulaIndex);
-                if (!documents.isEmpty()) {
-                    val errorVotes = new ArrayList<Vote>(documents.size());
-                    for (val doc : documents) {
-                        errorVotes.add(Vote.error(error, doc.metadata()));
-                    }
-                    if (!shouldContinue.test(new PolicyIndexResult(List.of(), errorVotes))) {
-                        return false;
-                    }
-                }
+    private static void yieldReclassifiedSuspectsKleene(BitSet errorFormulas, CanonicalIndexData data,
+            EvaluationContext ctx, Predicate<PolicyMatches> shouldContinue) {
+        val suspects = suspectDocuments(errorFormulas, data);
+        if (suspects.isEmpty()) {
+            return;
+        }
+        val trueMatches  = new ArrayList<CompiledDocument>();
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        IndexReclassification.reclassifySuspectsKleene(suspects, ctx, trueMatches, errorMatches);
+        for (val errorMatch : errorMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(), List.of(errorMatch)))) {
+                return;
             }
         }
-        return true;
+        for (val document : trueMatches) {
+            if (!shouldContinue.test(new PolicyMatches(List.of(document), List.of()))) {
+                return;
+            }
+        }
     }
 
-    private static void handlePredicateError(ErrorValue error, int p, CanonicalIndexData data, BitSet matchedFormulas,
-            BitSet errorFormulas, List<Vote> errorVotes) {
-        for (val formulaIndex : data.relatedFormulas()[p]) {
-            if (!matchedFormulas.get(formulaIndex) && !errorFormulas.get(formulaIndex)) {
-                errorFormulas.set(formulaIndex);
-                val documents = data.formulaDocuments().get(formulaIndex);
-                if (!documents.isEmpty()) {
-                    for (val document : documents) {
-                        errorVotes.add(Vote.error(error, document.metadata()));
-                    }
-                }
-            }
+    private static List<CompiledDocument> suspectDocuments(BitSet errorFormulas, CanonicalIndexData data) {
+        val suspects = new ArrayList<CompiledDocument>();
+        for (var f = errorFormulas.nextSetBit(0); f >= 0; f = errorFormulas.nextSetBit(f + 1)) {
+            suspects.addAll(data.formulaDocuments().get(f));
         }
+        return suspects;
     }
 
     private static void eliminateAllPredicateConjunctions(int p, CanonicalIndexData data, BitSet candidateConjunctions,
-            int[] remainingFormulasWithConjunction, BitSet matchedFormulas, BitSet scratch) {
+            int[] remainingFormulasWithConjunction, BitSet matchedFormulas, BitSet errorFormulas,
+            BitSet orphanedFormulas, BitSet scratch) {
         andInto(scratch, data.conjunctionsWithPredicate()[p], candidateConjunctions);
         candidateConjunctions.andNot(scratch);
 
         for (var c = scratch.nextSetBit(0); c >= 0; c = scratch.nextSetBit(c + 1)) {
+            markConjunctionFormulas(c, data, matchedFormulas, errorFormulas);
             for (val f : data.conjunctionToFormulaIndices()[c]) {
-                if (!matchedFormulas.get(f)) {
+                // A formula referencing the errored predicate in more than one conjunction
+                // resolves once, so its siblings are decremented once. Decrementing per
+                // errored conjunction drives a shared conjunction's count below its true
+                // users and silently drops a sibling policy.
+                if (!matchedFormulas.get(f) && !orphanedFormulas.get(f)) {
+                    orphanedFormulas.set(f);
                     for (val sibling : data.formulaConjunctionIndices()[f]) {
                         remainingFormulasWithConjunction[sibling]--;
                         if (remainingFormulasWithConjunction[sibling] <= 0) {
                             candidateConjunctions.clear(sibling);
+                            markConjunctionFormulas(sibling, data, matchedFormulas, errorFormulas);
                         }
                     }
                 }
@@ -291,19 +324,35 @@ class CanonicalIndexSearch {
         }
     }
 
-    private static PolicyIndexResult buildResult(BitSet matchedFormulas, BitSet errorFormulas, CanonicalIndexData data,
-            List<Vote> errorVotes) {
-        val matchingDocuments = new ArrayList<CompiledDocument>();
+    /**
+     * Flags every unmatched formula that contains the given conjunction as an
+     * error-suspect. A conjunction cleared on the error path (the errored
+     * predicate's own conjunctions and any orphaned siblings) leaves the
+     * affected formulas unresolved by the index, so they are reconciled through
+     * Kleene naive evaluation rather than silently dropped.
+     */
+    private static void markConjunctionFormulas(int conjunction, CanonicalIndexData data, BitSet matchedFormulas,
+            BitSet errorFormulas) {
+        for (val formulaIndex : data.conjunctionToFormulaIndices()[conjunction]) {
+            if (!matchedFormulas.get(formulaIndex)) {
+                errorFormulas.set(formulaIndex);
+            }
+        }
+    }
+
+    private static PolicyMatches buildKleeneResult(BitSet matchedFormulas, BitSet errorFormulas,
+            CanonicalIndexData data, EvaluationContext ctx) {
+        val trueMatches = new ArrayList<CompiledDocument>();
         for (var f = matchedFormulas.nextSetBit(0); f >= 0; f = matchedFormulas.nextSetBit(f + 1)) {
             if (errorFormulas.get(f)) {
                 continue;
             }
-            val documents = data.formulaDocuments().get(f);
-            if (!documents.isEmpty()) {
-                matchingDocuments.addAll(documents);
-            }
+            trueMatches.addAll(data.formulaDocuments().get(f));
         }
-        return new PolicyIndexResult(matchingDocuments, errorVotes);
+        val errorMatches = new ArrayList<PolicyMatches.ErrorMatch>();
+        IndexReclassification.reclassifySuspectsKleene(suspectDocuments(errorFormulas, data), ctx, trueMatches,
+                errorMatches);
+        return new PolicyMatches(trueMatches, errorMatches);
     }
 
 }

@@ -17,16 +17,8 @@
  */
 package io.sapl.compiler.policy;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
-import io.sapl.ast.Identifier;
-import io.sapl.ast.Literal;
-import io.sapl.ast.SchemaCondition;
-import io.sapl.ast.SchemaStatement;
-import io.sapl.ast.SubscriptionElement;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.CombinedElementValidator;
 import io.sapl.compiler.policy.SchemaValidatorCompiler.PrecompiledSchemaValidator;
@@ -34,6 +26,7 @@ import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -43,11 +36,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.sapl.compiler.policy.SchemaValidatorCompiler.compileValidator;
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.array;
-import static io.sapl.util.SaplTesting.compilationContext;
-import static io.sapl.util.SaplTesting.obj;
-import static io.sapl.util.SaplTesting.subscriptionContext;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -302,6 +291,45 @@ class SchemaValidatorCompilerTests {
     }
 
     @Nested
+    @DisplayName("Aggregate ReDoS budget")
+    class AggregateRegexBudgetTests {
+
+        /**
+         * A schema {@code pattern} keyword is matched once per element of the
+         * validated collection. With a backtracking pattern and an
+         * attacker-sized array, each individual element match stays under the
+         * single-match budget while the aggregate of all element matches would
+         * run far past it. A correct bound is per {@code schema.validate()} call,
+         * so the whole validation aborts once the shared budget is exhausted,
+         * rather than letting CPU cost scale linearly with the element count.
+         */
+        @Test
+        @Timeout(30)
+        @DisplayName("when many array elements each match a backtracking pattern then the aggregate validation is bounded and aborts")
+        void whenManyElementsMatchBacktrackingPatternThenAggregateIsBounded() {
+            val arraySchema = (ObjectValue) obj("type", Value.of("array"), "items",
+                    obj("type", Value.of("string"), "pattern", Value.of("(.*a){30}$")));
+            val validator   = compileValidator(List.of(enforcedSchema(SubscriptionElement.SUBJECT, arraySchema)),
+                    compilationContext());
+            assertThat(validator).isNotNull();
+            val hostileElement = "a".repeat(24);
+            val hostileArray   = ("\"" + hostileElement + "\",").repeat(8);
+            val ctx            = subscriptionContext("""
+                    {
+                        "subject": [%s"%s"],
+                        "action": "read",
+                        "resource": "data"
+                    }
+                    """.formatted(hostileArray, hostileElement));
+
+            val result = evaluate(validator, ctx);
+
+            assertThat(result).isInstanceOfSatisfying(ErrorValue.class,
+                    e -> assertThat(e.message()).contains("time budget"));
+        }
+    }
+
+    @Nested
     @DisplayName("CombinedElementValidator")
     class CombinedElementValidatorTests {
 
@@ -535,8 +563,8 @@ class SchemaValidatorCompilerTests {
         }
 
         @Test
-        @DisplayName("when invalid JSON Schema then throws at compile time")
-        void whenInvalidJsonSchemaThenThrowsAtCompileTime() {
+        @DisplayName("when schema type is unknown then it compiles and never matches at runtime")
+        void whenSchemaTypeIsUnknownThenCompilesAndNeverMatches() {
             // "type" must be a valid JSON Schema type
             val invalidSchema = (ObjectValue) obj("type", Value.of("not-a-valid-type"));
             val schemas       = List.of(enforcedSchema(SubscriptionElement.SUBJECT, invalidSchema));
@@ -553,6 +581,25 @@ class SchemaValidatorCompilerTests {
                     }
                     """);
             assertThat(evaluate(validator, ctx)).isEqualTo(Value.FALSE);
+        }
+
+        @Test
+        @DisplayName("a validator that throws at evaluation time yields ErrorValue, not a thrown exception")
+        void whenValidateThrowsAtEvalTimeThenReturnsErrorValue() {
+            // A networknt throw on adversarial input must surface as an ErrorValue, not
+            // crash the eval path.
+            val throwingSchema = org.mockito.Mockito.mock(com.networknt.schema.Schema.class);
+            org.mockito.Mockito
+                    .when(throwingSchema
+                            .validate(org.mockito.ArgumentMatchers.any(tools.jackson.databind.JsonNode.class)))
+                    .thenThrow(new RuntimeException("boom"));
+            val validator = new PrecompiledSchemaValidator(SubscriptionElement.SUBJECT, STRING_SCHEMA, throwingSchema,
+                    TEST_LOCATION);
+            val ctx       = subscriptionContext("""
+                    { "subject": "anything", "action": "read", "resource": "data" }
+                    """);
+
+            assertThat(validator.evaluate(ctx)).isInstanceOf(ErrorValue.class);
         }
     }
 }

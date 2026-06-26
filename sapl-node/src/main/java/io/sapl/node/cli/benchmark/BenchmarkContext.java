@@ -25,15 +25,18 @@ import org.jspecify.annotations.Nullable;
 
 import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.node.cli.support.PolicySourceResolver.SourceKind;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.PDPComponents;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -46,11 +49,14 @@ import tools.jackson.databind.json.JsonMapper;
  * for built-in RBAC preset)
  * @param configType DIRECTORY, BUNDLES, or RBAC
  */
+@Slf4j
 public record BenchmarkContext(
         String subscriptionJson,
         @Nullable String subscriptionsJson,
         @Nullable String policiesPath,
         String configType) {
+
+    private static final String WARN_SIGNATURE_VERIFICATION_DISABLED = "Benchmark loads bundles with signature verification disabled. Measurements reflect an unauthenticated bundle source and must not be read as a security baseline.";
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
@@ -88,13 +94,20 @@ public record BenchmarkContext(
         if (RBAC_CONFIG_TYPE.equals(configType)) {
             return buildRbacPdp();
         }
-        val builder       = PolicyDecisionPointBuilder.withDefaults();
-        val directoryPath = Path.of(policiesPath);
-        if ("BUNDLES".equals(configType)) {
-            val securityPolicy = BundleSecurityPolicy.builder().disableSignatureVerification().build();
-            builder.withBundleDirectorySource(directoryPath, securityPolicy);
-        } else {
-            builder.withDirectorySource(directoryPath);
+        val builder    = PolicyDecisionPointBuilder.withDefaults();
+        val sourcePath = Path.of(policiesPath);
+        switch (SourceKind.valueOf(configType)) {
+        case DIRECTORY        -> builder.withDirectorySource(sourcePath);
+        case SINGLE_BUNDLE    -> {
+            log.warn(WARN_SIGNATURE_VERIFICATION_DISABLED);
+            builder.withBundle(sourcePath, StreamingPolicyDecisionPoint.DEFAULT_PDP_ID,
+                    BundleSecurityPolicy.builder().disableSignatureVerification().build());
+        }
+        case BUNDLE_DIRECTORY -> {
+            log.warn(WARN_SIGNATURE_VERIFICATION_DISABLED);
+            builder.withBundleDirectorySource(sourcePath,
+                    BundleSecurityPolicy.builder().disableSignatureVerification().build());
+        }
         }
         return builder.build();
     }

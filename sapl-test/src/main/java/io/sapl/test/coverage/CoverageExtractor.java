@@ -21,12 +21,14 @@ import io.sapl.api.coverage.PolicyCoverageData;
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.Decision;
+import io.sapl.ast.Effect;
 import io.sapl.ast.Outcome;
 import io.sapl.ast.VoterMetadata;
 import io.sapl.compiler.model.Coverage;
 import io.sapl.compiler.model.Coverage.BodyCoverage;
 import io.sapl.compiler.model.Coverage.ConditionHit;
 import io.sapl.compiler.model.Coverage.DocumentCoverage;
+import io.sapl.compiler.model.Coverage.PdpCoverage;
 import io.sapl.compiler.model.Coverage.PolicyCoverage;
 import io.sapl.compiler.model.Coverage.PolicySetCoverage;
 import io.sapl.compiler.model.Coverage.TargetResult;
@@ -65,21 +67,30 @@ public class CoverageExtractor {
         val docCoverage = voteWithCoverage.coverage();
         val vote        = voteWithCoverage.vote();
 
-        // If the top-level coverage is from the PDP, descend into nested policy
-        // coverages
+        if (docCoverage instanceof PdpCoverage pdpCoverage) {
+            return extractFromContainedDocuments(pdpCoverage.documentCoverages(), vote, policySources);
+        }
+
+        // Legacy shape: PDP-level coverage encoded as a PolicySetCoverage with
+        // PdpVoterMetadata. Retained until every producer emits PdpCoverage.
         if (docCoverage instanceof PolicySetCoverage psc && psc.voter() instanceof PdpVoterMetadata) {
-            val results = new ArrayList<PolicyCoverageData>();
-            for (val nestedCoverage : psc.policyCoverages()) {
-                val extracted = extractDocumentCoverage(nestedCoverage, vote, policySources);
-                if (extracted != null) {
-                    results.add(extracted);
-                }
-            }
-            return results;
+            return extractFromContainedDocuments(psc.policyCoverages(), vote, policySources);
         }
 
         val coverage = extractDocumentCoverage(docCoverage, vote, policySources);
         return coverage != null ? List.of(coverage) : List.of();
+    }
+
+    private static List<PolicyCoverageData> extractFromContainedDocuments(List<DocumentCoverage> documents, Vote vote,
+            Map<String, String> policySources) {
+        val results = new ArrayList<PolicyCoverageData>(documents.size());
+        for (val nestedCoverage : documents) {
+            val extracted = extractDocumentCoverage(nestedCoverage, vote, policySources);
+            if (extracted != null) {
+                results.add(extracted);
+            }
+        }
+        return results;
     }
 
     /**
@@ -97,6 +108,8 @@ public class CoverageExtractor {
         return switch (docCoverage) {
         case PolicyCoverage pc     -> extractPolicyCoverage(pc, vote, policySources);
         case PolicySetCoverage psc -> extractPolicySetCoverage(psc, vote, policySources);
+        case PdpCoverage pdpc      -> throw new IllegalStateException(
+                "PdpCoverage is the top-level wrapper and cannot appear as a contained document; got " + pdpc);
         };
     }
 
@@ -162,6 +175,8 @@ public class CoverageExtractor {
                 extractNestedDocumentCoverage(innerDoc, vote, setCoverage);
             }
         }
+        case PdpCoverage pdpc                            -> throw new IllegalStateException(
+                "PdpCoverage is the top-level wrapper and cannot appear nested in a PolicySetCoverage; got " + pdpc);
         }
     }
 
@@ -225,7 +240,7 @@ public class CoverageExtractor {
     /**
      * Records policy outcome for coverage tracking.
      * <p>
-     * Determines whether the policy returned its entitlement (PERMIT/DENY) or
+     * Determines whether the policy returned its effect (PERMIT/DENY/SUSPEND) or
      * NOT_APPLICABLE, and records this for branch coverage.
      */
     private static void recordPolicyOutcome(VoterMetadata voter, Vote vote, BodyCoverage bodyCoverage,
@@ -234,13 +249,13 @@ public class CoverageExtractor {
         val decision      = vote.authorizationDecision().decision();
         val hasConditions = bodyCoverage != null && bodyCoverage.numberOfConditions() > 0;
 
-        // entitlementReturned: true if the actual decision matches the policy's
+        // effectReturned: true if the actual decision matches the policy's
         // declared outcome
-        val entitlementReturned = isEntitlementReturned(outcome, decision);
+        val effectReturned = isEffectReturned(outcome, decision);
 
         // Use line 1 as default location for policy outcome (represents the policy as a
         // whole)
-        coverage.recordPolicyOutcome(1, 1, 0, 0, entitlementReturned, hasConditions);
+        coverage.recordPolicyOutcome(1, 1, 0, 0, effectReturned, hasConditions);
     }
 
     /**
@@ -252,20 +267,24 @@ public class CoverageExtractor {
 
         // Policy sets don't have conditions in the same sense, but we track their
         // outcome
-        val entitlementReturned = isEntitlementReturned(outcome, decision);
+        val effectReturned = isEffectReturned(outcome, decision);
 
         // Use line 1 as default location
-        coverage.recordPolicyOutcome(1, 1, 0, 0, entitlementReturned, false);
+        coverage.recordPolicyOutcome(1, 1, 0, 0, effectReturned, false);
     }
 
     /**
-     * Determines if the actual decision matches the expected outcome (entitlement).
+     * Determines if the actual decision matches the expected outcome (effect).
+     * The outcome carries the effect set the policy was configured for; the
+     * decision is what actually came out. They match iff the outcome's effect
+     * set contains the decision-as-effect (and the decision is concrete).
      */
-    private static boolean isEntitlementReturned(Outcome outcome, Decision decision) {
-        return switch (outcome) {
-        case PERMIT         -> decision == Decision.PERMIT;
-        case DENY           -> decision == Decision.DENY;
-        case PERMIT_OR_DENY -> decision == Decision.PERMIT || decision == Decision.DENY;
+    private static boolean isEffectReturned(Outcome outcome, Decision decision) {
+        return switch (decision) {
+        case PERMIT                        -> outcome.contains(Effect.PERMIT);
+        case DENY                          -> outcome.contains(Effect.DENY);
+        case SUSPEND                       -> outcome.contains(Effect.SUSPEND);
+        case INDETERMINATE, NOT_APPLICABLE -> false;
         };
     }
 }

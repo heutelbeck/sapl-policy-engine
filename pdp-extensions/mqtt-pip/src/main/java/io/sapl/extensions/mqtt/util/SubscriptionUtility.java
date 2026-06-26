@@ -17,73 +17,46 @@
  */
 package io.sapl.extensions.mqtt.util;
 
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscription;
-import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
+import com.hivemq.client.mqtt.datatypes.MqttTopicFilter;
 import io.sapl.api.model.ArrayValue;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
-import static io.sapl.extensions.mqtt.util.ConfigUtility.getQos;
-
 /**
- * This utility class provides functions to build mqtt subscriptions.
+ * Extracts MQTT topic filters from a SAPL value carrying a single
+ * topic string or an array of topic strings.
  */
 @UtilityClass
 public class SubscriptionUtility {
 
+    private static final String ERROR_TOPIC_NOT_TEXT = "An mqtt topic must be a text value.";
+
     /**
-     * Builds a mqtt topic subscription containing one or multiple topics.
-     *
-     * @param topic a {@link Value} of one or multiple topics
-     * @param qos the qos level for the mqtt topic subscription
-     * @return returns the build mqtt topic subscription
+     * Returns the list of topic filters expressed by {@code topic}. A
+     * {@link TextValue} yields a single-element list; an
+     * {@link ArrayValue} yields one filter per element.
      */
-    public static Mqtt5Subscribe buildTopicSubscription(Value topic, Value qos) {
+    public static List<MqttTopicFilter> topicFilters(Value topic) {
+        val out = new ArrayList<MqttTopicFilter>();
         if (topic instanceof ArrayValue arrayTopics) {
-            return buildTopicSubscriptionOfArray(arrayTopics, qos);
-        } else {
-            return buildTopicSubscriptionOfString((TextValue) topic, qos);
-        }
-    }
-
-    private static Mqtt5Subscribe buildTopicSubscriptionOfArray(ArrayValue topics, Value qos) {
-        List<Mqtt5Subscription> topicSubscriptionList = new LinkedList<>();
-        for (Value topicValue : topics) {
-            var topicString = ((TextValue) topicValue).value();
-            topicSubscriptionList.add(Mqtt5Subscription.builder().topicFilter(topicString).qos(getQos(qos)).build());
-        }
-        return Mqtt5Subscribe.builder().addSubscriptions(topicSubscriptionList).build();
-    }
-
-    private static Mqtt5Subscribe buildTopicSubscriptionOfString(TextValue topic, Value qos) {
-        return Mqtt5Subscribe.builder().topicFilter(topic.value()).qos(getQos(qos)).build();
-    }
-
-    /**
-     * Adds the count of the topics contained in the subscription to the count of
-     * the topic subscription list.
-     *
-     * @param clientValues the object containing the topic subscription list
-     * @param mqtt5SubAck the acknowledgement message specifying whether a
-     * subscription of a topic was successfully established or not
-     * @param topicSubscription the topic subscription containing the topics which
-     * count is to add
-     */
-    public static void addSubscriptionsCountToSubscriptionList(MqttClientValues clientValues, Mqtt5SubAck mqtt5SubAck,
-            Mqtt5Subscribe topicSubscription) {
-        val subscriptions = topicSubscription.getSubscriptions();
-        val reasonCodes   = mqtt5SubAck.getReasonCodes();
-        for (var i = 0; i < subscriptions.size(); i++) {
-            if (!reasonCodes.get(i).isError()) {
-                String subscription = subscriptions.get(i).getTopicFilter().toString();
-                clientValues.countTopicSubscriptionsCountMapUp(subscription);
+            for (val element : arrayTopics) {
+                out.add(topicFilter(element));
             }
+        } else {
+            out.add(topicFilter(topic));
         }
+        return out;
+    }
+
+    private static MqttTopicFilter topicFilter(Value topic) {
+        if (topic instanceof TextValue text) {
+            return MqttTopicFilter.of(text.value());
+        }
+        throw new IllegalArgumentException(ERROR_TOPIC_NOT_TEXT);
     }
 }

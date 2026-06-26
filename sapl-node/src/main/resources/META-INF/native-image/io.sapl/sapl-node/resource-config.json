@@ -21,6 +21,9 @@
       },
       {
         "pattern": "META-INF/resources/webjars/codemirror/.*"
+      },
+      {
+        "pattern": "META-INF/resources/webjars/scalar/.*"
       }
     ]
   }

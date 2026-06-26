@@ -21,11 +21,11 @@ import io.sapl.api.model.ObjectValue;
 import io.sapl.api.model.Value;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
 import io.sapl.pdp.PolicyDecisionPointBuilder;
-import io.sapl.pdp.PolicyDecisionPointBuilder.PDPComponents;
+import io.sapl.pdp.PDPComponents;
 import lombok.val;
 
 import java.util.List;
@@ -40,7 +40,7 @@ import java.util.function.Supplier;
  * @param variables PDP variables
  * @param algorithm combining algorithm
  * @param subscriptions authorization subscriptions to cycle through during
- * benchmarking; the first is used for sanity checking
+ * benchmarking. The first is used for sanity checking
  * @param expectedDecision expected result of the first subscription for sanity
  * checking
  */

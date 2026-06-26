@@ -26,7 +26,7 @@
     <parent>
         <groupId>io.sapl</groupId>
         <artifactId>sapl-policy-engine</artifactId>
-        <version>4.0.0</version>
+        <version>4.1.0</version>
     </parent>
 
     <artifactId>sapl-playground</artifactId>
@@ -62,6 +62,11 @@
         <dependency>
             <groupId>io.sapl</groupId>
             <artifactId>sapl-pdp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>sapl-pdp-reactive</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

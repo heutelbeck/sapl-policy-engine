@@ -1,3 +1,23 @@
+# Docker profile defaults. Activated via SPRING_PROFILES_ACTIVE=docker.
+#
+# server.address and sapl.pdp.rsocket.address are set to 0.0.0.0 so the
+# container is reachable from outside on both the HTTP and RSocket transports
+# (the base profile defaults to 127.0.0.1 for safer local runs).
+#
+# pdp-config-type=BUNDLES expects signed bundle files at /pdp/data and is
+# fail-closed by design: bundles must carry a valid signature accepted by
+# the configured public key. Operators relying on unsigned bundles for
+# local development must set io.sapl.pdp.embedded.bundle-security.allow-unsigned=true
+# explicitly; the docker profile does not weaken this.
+
+server:
+  address: 0.0.0.0
+
+sapl:
+  pdp:
+    rsocket:
+      address: 0.0.0.0
+
 io.sapl:
   pdp.embedded:
     pdp-config-type: BUNDLES

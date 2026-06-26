@@ -20,7 +20,7 @@ package io.sapl.playground.domain;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 import io.sapl.api.SaplVersion;
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.StandardException;
 import lombok.extern.slf4j.Slf4j;

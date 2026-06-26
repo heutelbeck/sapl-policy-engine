@@ -52,6 +52,7 @@ votingMode
     : FIRST            # first
     | PRIORITY DENY    # priorityDeny
     | PRIORITY PERMIT  # priorityPermit
+    | PRIORITY SUSPEND # prioritySuspend
     | UNANIMOUS STRICT # unanimousStrict
     | UNANIMOUS        # unanimous
     | UNIQUE           # unique
@@ -61,6 +62,7 @@ defaultDecision
     : DENY    # denyDefault
     | ABSTAIN # abstainDefault
     | PERMIT  # permitDefault
+    | SUSPEND # suspendDefault
     ;
 
 errorHandling
@@ -69,16 +71,17 @@ errorHandling
     ;
 
 policy
-    : POLICY saplName=STRING entitlement
+    : POLICY saplName=STRING effect
       policyBody?
       (OBLIGATION obligations+=expression)*
       (ADVICE adviceExpressions+=expression)*
       (TRANSFORM transformation=expression)?
     ;
 
-entitlement
-    : PERMIT  # permitEntitlement
-    | DENY    # denyEntitlement
+effect
+    : PERMIT   # permitEffect
+    | DENY     # denyEffect
+    | SUSPEND  # suspendEffect
     ;
 
 policyBody
@@ -98,6 +101,7 @@ valueDefinition
 // Variable names: IDs plus combining algorithm keywords (but NOT subscription element keywords)
 varName
     : ID
+    | BACKTICK_ID
     | ABSTAIN
     | ERRORS
     | FIRST
@@ -245,6 +249,7 @@ keyStep
 
 escapedKeyStep
     : STRING
+    | BACKTICK_ID
     ;
 
 wildcardStep
@@ -363,8 +368,9 @@ signedNumber
 
 // Identifiers - labeled alternatives
 saplId
-    : ID         # plainId
-    | reservedId # reservedIdentifier
+    : ID          # plainId
+    | BACKTICK_ID # escapedId
+    | reservedId  # reservedIdentifier
     ;
 
 // Keywords that can also be used as identifiers in expression contexts

@@ -29,17 +29,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SaplJwtProperties {
 
     /**
-     * Whether to automatically inject the bearer token from
-     * JwtAuthenticationToken into authorization subscription secrets. Defaults
-     * to false. Requires explicit opt-in because passing a bearer token across
-     * the PEP/PDP boundary is a security trade-off.
+     * Whether to automatically inject the bearer token from JwtAuthenticationToken
+     * into authorization subscription
+     * secrets. Defaults to false. Requires explicit opt-in because passing a bearer
+     * token across the PEP/PDP boundary
+     * is a security trade-off.
      */
     private boolean injectToken = false;
 
     /**
      * The key name under which the JWT token is stored in subscription secrets.
-     * Must match the secretsKey configured in the JWT PIP configuration in
-     * pdp.json. Defaults to "jwt".
+     * Must match the secretsKey configured in
+     * the JWT PIP configuration in pdp.json. Defaults to "jwt".
      */
     private String secretsKey = "jwt";
 

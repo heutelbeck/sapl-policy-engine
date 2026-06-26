@@ -17,26 +17,9 @@
  */
 package io.sapl.functions.libraries;
 
-import graphql.language.Argument;
+import graphql.language.*;
 import graphql.language.BooleanValue;
-import graphql.language.Definition;
-import graphql.language.Directive;
-import graphql.language.DirectivesContainer;
-import graphql.language.Document;
-import graphql.language.EnumValue;
-import graphql.language.Field;
-import graphql.language.FloatValue;
-import graphql.language.FragmentDefinition;
-import graphql.language.FragmentSpread;
-import graphql.language.InlineFragment;
-import graphql.language.IntValue;
 import graphql.language.NullValue;
-import graphql.language.OperationDefinition;
-import graphql.language.Selection;
-import graphql.language.SelectionSet;
-import graphql.language.StringValue;
-import graphql.language.VariableDefinition;
-import graphql.language.VariableReference;
 import graphql.parser.InvalidSyntaxException;
 import graphql.parser.Parser;
 import graphql.schema.GraphQLSchema;
@@ -47,28 +30,18 @@ import graphql.schema.idl.errors.SchemaProblem;
 import graphql.validation.Validator;
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
+import io.sapl.api.model.*;
 import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.NumberValue;
 import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * GraphQL query parsing and analysis for authorization policies.
@@ -77,7 +50,6 @@ import java.util.Set;
  * calculation, and security metrics for
  * authorization decisions based on GraphQL query characteristics.
  */
-@UtilityClass
 @FunctionLibrary(name = GraphQLFunctionLibrary.NAME, description = GraphQLFunctionLibrary.DESCRIPTION, libraryDocumentation = GraphQLFunctionLibrary.DOCUMENTATION)
 public class GraphQLFunctionLibrary {
 
@@ -232,12 +204,34 @@ public class GraphQLFunctionLibrary {
               !("ssn" in gql.fields);
             ```
 
+            ## Multiple operations
+
+            A document may declare several named operations; the one executed is chosen at request time by the
+            `operationName` parameter, which this analysis does not observe. The security metrics (`depth`, `fields`,
+            `complexity`, `security.*`) therefore describe the worst case across every operation in the document: the
+            maximum depth and pagination limit, the union of all field names, and the logical OR of the introspection
+            and circular-fragment flags. The descriptive `operation`, `ast.operationName` and `ast.variables` fields
+            reflect the first operation in source order. When a document may carry more than one operation, gate on the
+            aggregate security metrics rather than on the descriptive operation fields.
+
             ## Error Handling
 
             Invalid queries set `valid` to false with errors in `errors` array. Check `valid` before using other metrics.
+
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - Reported query depth is capped at 100. The `depth` metric never exceeds this value regardless of how
+              deeply the query or its operations nest, so depth comparisons in policies saturate at 100.
+            - A schema passed to `validateQuery` or `parseSchema` may be at most 512 KB (524288 bytes). A larger schema
+              is rejected with an error.
+
+            These limits apply because this input may originate from the authorization subscription or from policy
+            information points, which are not vetted to the same degree as the policies and variables shipped with the
+            PDP configuration.
             """;
 
-    // GraphQL operation types
     private static final String OPERATION_QUERY        = "query";
     private static final String OPERATION_MUTATION     = "mutation";
     private static final String OPERATION_SUBSCRIPTION = "subscription";
@@ -247,7 +241,9 @@ public class GraphQLFunctionLibrary {
     private static final String      VARIABLE_MARKER       = "$variable";
     private static final Set<String> PAGINATION_ARGS_LOWER = Set.of("first", "last", "limit", "offset", "skip", "take");
 
-    // Complexity calculation
+    private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+    private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
+
     private static final int BATCHING_SCORE_MULTIPLIER = 5;
     private static final int DEFAULT_FIELD_WEIGHT      = 1;
     private static final int DEFAULT_MAX_DEPTH         = 100;
@@ -260,7 +256,6 @@ public class GraphQLFunctionLibrary {
      */
     public static final int DEPTH_COMPLEXITY_FACTOR = 2;
 
-    // Schema cache configuration
     private static final int     MAX_SCHEMA_CACHE_SIZE = 20;
     private static final int     MAX_SCHEMA_SIZE_BYTES = 512 * 1024;
     private static final float   CACHE_LOAD_FACTOR     = 0.75f;
@@ -316,7 +311,6 @@ public class GraphQLFunctionLibrary {
                 }
             });
 
-    // Return type schema for IDE support
     private static final String RETURNS_PARSED_QUERY = """
             {
               "type": "object",
@@ -408,8 +402,7 @@ public class GraphQLFunctionLibrary {
                 return result.build();
             }
 
-            val operation = extractOperation(document);
-            val metrics   = analyzeQueryInSinglePass(document, operation);
+            val metrics = analyzeQueryInSinglePass(document);
             metrics.populateResult(result);
 
             return result.build();
@@ -450,13 +443,12 @@ public class GraphQLFunctionLibrary {
             """, schema = RETURNS_PARSED_QUERY)
     public static Value analyzeQuery(TextValue query) {
         try {
-            val document  = new Parser().parseDocument(query.value());
-            val result    = ObjectValue.builder();
-            val operation = extractOperation(document);
+            val document = new Parser().parseDocument(query.value());
+            val result   = ObjectValue.builder();
 
             result.put(FIELD_VALID, Value.of(true));
 
-            val metrics = analyzeQueryInSinglePass(document, operation);
+            val metrics = analyzeQueryInSinglePass(document);
             metrics.populateResult(result);
 
             return result.build();
@@ -560,8 +552,12 @@ public class GraphQLFunctionLibrary {
             """)
     public static Value parseSchema(TextValue schema) {
         try {
+            val schemaString = schema.value();
+            if (schemaString.length() > MAX_SCHEMA_SIZE_BYTES) {
+                throw new IllegalArgumentException(ERROR_SCHEMA_TOO_LARGE.formatted(MAX_SCHEMA_SIZE_BYTES));
+            }
             val schemaParser           = new SchemaParser();
-            val typeDefinitionRegistry = schemaParser.parse(schema.value());
+            val typeDefinitionRegistry = schemaParser.parse(schemaString);
 
             val result = ObjectValue.builder();
             result.put(FIELD_VALID, Value.of(true));
@@ -594,7 +590,6 @@ public class GraphQLFunctionLibrary {
         val astNode    = ObjectValue.builder();
         val typesArray = ArrayValue.builder();
 
-        // Add regular types
         typeDefinitionRegistry.types().values().forEach(typeDef -> {
             val typeNode = ObjectValue.builder();
             typeNode.put(FIELD_KIND, Value.of(typeDef.getClass().getSimpleName()));
@@ -602,7 +597,6 @@ public class GraphQLFunctionLibrary {
             typesArray.add(typeNode.build());
         });
 
-        // Add scalar types
         typeDefinitionRegistry.scalars().values().forEach(scalarDef -> {
             val typeNode = ObjectValue.builder();
             typeNode.put(FIELD_KIND, Value.of(scalarDef.getClass().getSimpleName()));
@@ -624,43 +618,60 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Extracts the operation definition from a parsed document.
+     * Collects all operation definitions from a parsed document.
+     * <p/>
+     * A GraphQL document may contain several named operations. The one actually
+     * executed is chosen at request time by the {@code operationName} parameter,
+     * which an authorization gate does not observe. All operations are therefore
+     * analyzed and the security metrics aggregate the worst case across them.
      *
      * @param document
      * the parsed GraphQL document
      *
-     * @return the operation definition
+     * @return the operation definitions in source order
      *
      * @throws IllegalArgumentException
      * if no operation definition is found
      */
-    private static OperationDefinition extractOperation(Document document) {
-        return (OperationDefinition) document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException(ERROR_NO_OPERATION_FOUND));
+    private static List<OperationDefinition> extractOperations(Document document) {
+        val operations = document.getDefinitions().stream().filter(OperationDefinition.class::isInstance)
+                .map(OperationDefinition.class::cast).toList();
+        if (operations.isEmpty()) {
+            throw new IllegalArgumentException(ERROR_NO_OPERATION_FOUND);
+        }
+        return operations;
     }
 
     /**
      * Analyzes a GraphQL query in a single pass, collecting all metrics at once.
+     * <p/>
+     * Every operation definition in the document is traversed and the metrics
+     * aggregate the worst case (maximum depth and pagination limit, union of
+     * fields, logical OR of introspection and circular-fragment flags). The
+     * descriptive {@code operation}, {@code operationName} and {@code variables}
+     * fields reflect the first operation in source order.
      *
      * @param document
      * the parsed document
-     * @param operation
-     * the operation definition
      *
      * @return QueryMetrics containing all collected metrics
      */
-    private static QueryMetrics analyzeQueryInSinglePass(Document document, OperationDefinition operation) {
-        val metrics = new QueryMetrics();
+    private static QueryMetrics analyzeQueryInSinglePass(Document document) {
+        val metrics    = new QueryMetrics();
+        val operations = extractOperations(document);
 
-        metrics.operation     = switch (operation.getOperation()) {
+        val firstOperation = operations.get(0);
+        metrics.operation     = switch (firstOperation.getOperation()) {
                               case QUERY        -> OPERATION_QUERY;
                               case MUTATION     -> OPERATION_MUTATION;
                               case SUBSCRIPTION -> OPERATION_SUBSCRIPTION;
                               };
-        metrics.operationName = Objects.requireNonNullElse(operation.getName(), "");
-        metrics.variables     = extractVariablesFromOperation(operation);
+        metrics.operationName = Objects.requireNonNullElse(firstOperation.getName(), "");
+        metrics.variables     = extractVariablesFromOperation(firstOperation);
 
-        analyzeSelectionSet(operation.getSelectionSet(), 0, metrics, true);
+        for (OperationDefinition operation : operations) {
+            analyzeSelectionSet(operation.getSelectionSet(), 0, metrics, true);
+        }
         processFragments(document, metrics);
 
         return metrics;
@@ -741,7 +752,7 @@ public class GraphQLFunctionLibrary {
             fieldArgs.put(argName, convertGraphQLValueToValue(argValue));
 
             if (PAGINATION_ARGS_LOWER.contains(argName.toLowerCase()) && argValue instanceof IntValue intValue) {
-                metrics.updateMaxPaginationLimit(intValue.getValue().intValue());
+                metrics.updateMaxPaginationLimit(saturatedLong(intValue.getValue()));
             }
         }
 
@@ -858,8 +869,25 @@ public class GraphQLFunctionLibrary {
         }
     }
 
+    // Fragment colours for cycle detection. GRAY marks a fragment on the current
+    // depth-first path. Revisiting a GRAY fragment is a back edge and therefore a
+    // cycle. BLACK marks a fully explored fragment with no cycle below it, so it is
+    // never re-explored. Absence from the map is the implicit WHITE (unvisited).
+    private enum FragmentColour {
+        GRAY,
+        BLACK
+    }
+
     /**
-     * Detects circular references in fragment definitions.
+     * Detects circular references in fragment definitions in a single linear pass.
+     * <p/>
+     * Performs an iterative depth-first search with WHITE/GRAY/BLACK colouring over
+     * the fragment-spread graph. A fully explored fragment is marked BLACK and
+     * never
+     * re-explored, so the search visits every fragment and every spread at most
+     * once,
+     * giving O(V+E) running time even on a wide acyclic lattice of shared
+     * fragments.
      *
      * @param fragments
      * map of fragment names to definitions
@@ -867,8 +895,12 @@ public class GraphQLFunctionLibrary {
      * @return true if circular references detected
      */
     private static boolean detectCircularFragments(Map<String, FragmentDefinition> fragments) {
-        for (Map.Entry<String, FragmentDefinition> entry : fragments.entrySet()) {
-            if (hasCircularReference(entry.getKey(), entry.getValue(), fragments, new HashSet<>())) {
+        val colours = new HashMap<String, FragmentColour>();
+        for (String startName : fragments.keySet()) {
+            if (colours.containsKey(startName)) {
+                continue;
+            }
+            if (hasCircularReference(startName, fragments, colours)) {
                 return true;
             }
         }
@@ -876,52 +908,56 @@ public class GraphQLFunctionLibrary {
     }
 
     /**
-     * Checks for circular references in a fragment using depth-first search.
-     * <p/>
-     * Uses backtracking DFS with a visited set to detect cycles. The algorithm: 1.
-     * Marks current fragment as visited 2.
-     * Recursively checks all fragment spreads 3. Backtracks by removing from
-     * visited set
-     * <p/>
-     * If a fragment is encountered while already in the visited set, a cycle
-     * exists.
+     * Explores one fragment and its transitive spreads with colouring-based cycle
+     * detection, using an explicit work stack to avoid deep recursion.
      *
-     * @param fragmentName
-     * the fragment name being checked
-     * @param fragment
-     * the fragment definition
+     * @param startName
+     * the fragment name to start exploration from
      * @param allFragments
-     * map of all fragments
-     * @param visited
-     * set of already visited fragment names in current path
+     * map of all fragment definitions
+     * @param colours
+     * the GRAY/BLACK colour map, shared and mutated across calls
      *
-     * @return true if circular reference found
+     * @return true if a back edge (cycle) is found
      */
-    private static boolean hasCircularReference(String fragmentName, FragmentDefinition fragment,
-            Map<String, FragmentDefinition> allFragments, Set<String> visited) {
-        // Cycle detected: fragment references itself through a chain
-        if (visited.contains(fragmentName)) {
-            return true;
-        }
+    private static boolean hasCircularReference(String startName, Map<String, FragmentDefinition> allFragments,
+            Map<String, FragmentColour> colours) {
+        val stack = new ArrayDeque<FragmentFrame>();
+        stack.push(new FragmentFrame(startName, frameSpreads(startName, allFragments)));
+        colours.put(startName, FragmentColour.GRAY);
 
-        // Mark as visited for this path
-        visited.add(fragmentName);
-
-        // Find all fragments this fragment references
-        val referencedFragments = findFragmentSpreads(fragment.getSelectionSet());
-        for (String refName : referencedFragments) {
-            // Recursively check each referenced fragment for cycles
-            val referencedFragment = allFragments.get(refName);
-            if (referencedFragment != null
-                    && hasCircularReference(refName, referencedFragment, allFragments, visited)) {
-                return true;
+        while (!stack.isEmpty()) {
+            val frame = stack.peek();
+            if (frame.spreads.hasNext()) {
+                val refName = frame.spreads.next();
+                if (!allFragments.containsKey(refName)) {
+                    continue;
+                }
+                val colour = colours.get(refName);
+                if (colour == FragmentColour.GRAY) {
+                    return true;
+                }
+                if (colour == null) {
+                    colours.put(refName, FragmentColour.GRAY);
+                    stack.push(new FragmentFrame(refName, frameSpreads(refName, allFragments)));
+                }
+            } else {
+                colours.put(frame.name, FragmentColour.BLACK);
+                stack.pop();
             }
         }
-
-        // Backtrack: remove from visited to allow other paths to use this fragment
-        visited.remove(fragmentName);
         return false;
     }
+
+    private static Iterator<String> frameSpreads(String fragmentName, Map<String, FragmentDefinition> allFragments) {
+        return findFragmentSpreads(allFragments.get(fragmentName).getSelectionSet()).iterator();
+    }
+
+    /**
+     * Work-stack frame for the iterative fragment cycle search. Holds the fragment
+     * currently being explored and an iterator over its outgoing spreads.
+     */
+    private record FragmentFrame(String name, Iterator<String> spreads) {}
 
     /**
      * Finds fragment spreads in a selection set.
@@ -950,6 +986,18 @@ public class GraphQLFunctionLibrary {
         return spreads;
     }
 
+    // Pagination literals are unbounded BigIntegers. Clamp to long so an oversized
+    // value cannot wrap and bypass a gate.
+    private static long saturatedLong(BigInteger value) {
+        if (value.compareTo(LONG_MAX) > 0) {
+            return Long.MAX_VALUE;
+        }
+        if (value.compareTo(LONG_MIN) < 0) {
+            return Long.MIN_VALUE;
+        }
+        return value.longValue();
+    }
+
     /**
      * Converts a GraphQL AST Value to a SAPL Value.
      *
@@ -960,7 +1008,7 @@ public class GraphQLFunctionLibrary {
      */
     private static Value convertGraphQLValueToValue(graphql.language.Value<?> value) {
         return switch (value) {
-        case IntValue intValue                        -> Value.of(intValue.getValue().intValue());
+        case IntValue intValue                        -> Value.of(new BigDecimal(intValue.getValue()));
         case FloatValue floatValue                    -> Value.of(floatValue.getValue().doubleValue());
         case StringValue stringValue                  -> Value.of(stringValue.getValue());
         case BooleanValue booleanValue                -> Value.of(booleanValue.isValue());
@@ -1155,7 +1203,7 @@ public class GraphQLFunctionLibrary {
         ObjectValue.Builder fragments            = ObjectValue.builder();
         int                 aliasCount           = 0;
         int                 rootFieldCount       = 0;
-        int                 maxPaginationLimit   = 0;
+        long                maxPaginationLimit   = 0;
         ObjectValue.Builder arguments            = ObjectValue.builder();
         int                 fragmentCount        = 0;
         boolean             hasCircularFragments = false;
@@ -1190,7 +1238,7 @@ public class GraphQLFunctionLibrary {
          * @param limit
          * the pagination limit value
          */
-        void updateMaxPaginationLimit(int limit) {
+        void updateMaxPaginationLimit(long limit) {
             maxPaginationLimit = Math.max(maxPaginationLimit, limit);
         }
 

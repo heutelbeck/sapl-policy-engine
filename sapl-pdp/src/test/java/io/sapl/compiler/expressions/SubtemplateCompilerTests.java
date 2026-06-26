@@ -17,12 +17,9 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,17 +27,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-import static io.sapl.util.SaplTesting.TEST_LOCATION;
-import static io.sapl.util.SaplTesting.TestPureOperator;
-import static io.sapl.util.SaplTesting.assertCompilesTo;
-import static io.sapl.util.SaplTesting.assertCompilesToError;
-import static io.sapl.util.SaplTesting.evaluateExpression;
-import static io.sapl.util.SaplTesting.evaluationContext;
-import static io.sapl.util.SaplTesting.obj;
+import static io.sapl.util.SaplTesting.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("SubtemplateCompiler")
 class SubtemplateCompilerTests {
@@ -63,6 +52,9 @@ class SubtemplateCompilerTests {
             arguments("scalar with #", "5 :: #", Value.of(0)),
             arguments("scalar string with @", "\"hello\" :: @", Value.of("hello")),
             arguments("constant template on array", "[1, 2, 3] :: 99", Value.ofArray(Value.of(99), Value.of(99), Value.of(99))),
+            arguments("constant template on object", "{\"a\": 1, \"b\": 2} :: 99", Value.ofArray(Value.of(99), Value.of(99))),
+            arguments("null constant template on object", "{\"role\": \"x\"} :: null", Value.ofArray(Value.NULL)),
+            arguments("constant template on empty object", "{} :: 99", Value.EMPTY_ARRAY),
             arguments("constant template on scalar", "5 :: 99", Value.of(99)),
             arguments("string array identity", "[\"a\", \"b\"] :: @", Value.ofArray(Value.of("a"), Value.of("b"))),
             arguments("null template", "[1, 2] :: null", Value.ofArray(Value.NULL, Value.NULL)),

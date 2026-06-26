@@ -49,7 +49,7 @@ spring:
 
 server:
   address: 127.0.0.1
-  port: 8443
+  port: 8080
   ssl:
     enabled: false
     # Uncomment and configure to enable TLS.
@@ -124,6 +124,7 @@ io.sapl:
     #
     #   - id: "my-apikey-client"
     #     pdp-id: "default"
+    #     api-key-id: "<10-char-id-from-generator>"
     #     api-key: "$argon2id$..."
 
   # --- PDP Policy Source ---
@@ -213,9 +214,11 @@ io.sapl:
 
 # --- Keep-Alive ---
 #
-# Interval in seconds between keep-alive frames on idle connections.
-# Prevents firewalls from dropping inactive TCP connections.
-# Default 0 disables keep-alive.
+# Interval in seconds between keep-alive frames on idle SSE streaming
+# connections. Prevents proxies and firewalls from dropping inactive
+# connections and lets the server detect clients that drop without closing.
+# Always on; default 15 seconds. Values below 1 are raised to 1; it cannot
+# be disabled. Keep it below the smallest proxy idle timeout on the path.
 #
 # io.sapl.node.keep-alive: 15
 

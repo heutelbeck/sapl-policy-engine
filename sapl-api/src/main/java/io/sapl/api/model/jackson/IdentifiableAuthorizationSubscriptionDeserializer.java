@@ -58,7 +58,8 @@ public class IdentifiableAuthorizationSubscriptionDeserializer
             parser.nextToken();
 
             switch (fieldName) {
-            case "subscriptionId" -> subscriptionId = parser.getString();
+            case "subscriptionId" ->
+                subscriptionId = parser.currentToken() == JsonToken.VALUE_NULL ? null : parser.getString();
             case "subscription"   -> subscription = subscriptionDeserializer.deserialize(parser, context);
             default               -> parser.skipChildren();
             }

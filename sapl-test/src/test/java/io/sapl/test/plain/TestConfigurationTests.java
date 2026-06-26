@@ -18,13 +18,13 @@
 package io.sapl.test.plain;
 
 import io.sapl.api.model.Value;
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.UNIQUE;
 
-import io.sapl.api.pdp.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -151,19 +151,23 @@ class TestConfigurationTests {
     @Test
     @DisplayName("builder with single function library")
     void whenAddingSingleFunctionLibrary_thenConfigurationContainsIt() {
-        var config = TestConfiguration.builder().withFunctionLibrary(Object.class).build();
+        var library = new Object();
 
-        assertThat(config.functionLibraries()).containsExactly(Object.class);
+        var config = TestConfiguration.builder().withFunctionLibrary(library).build();
+
+        assertThat(config.functionLibraries()).containsExactly(library);
     }
 
     @Test
     @DisplayName("builder with multiple function libraries via list")
     void whenAddingMultipleFunctionLibraries_thenConfigurationContainsAll() {
-        var libraries = List.<Class<?>>of(Object.class, String.class);
+        var libraryA  = new Object();
+        var libraryB  = new Object();
+        var libraries = List.of(libraryA, libraryB);
 
         var config = TestConfiguration.builder().withFunctionLibraries(libraries).build();
 
-        assertThat(config.functionLibraries()).containsExactly(Object.class, String.class);
+        assertThat(config.functionLibraries()).containsExactly(libraryA, libraryB);
     }
 
     @Test
@@ -212,12 +216,13 @@ class TestConfigurationTests {
         var document = new SaplDocument("policy", "policy", "policy \"test\" permit", null);
         var testDoc  = new SaplTestDocument("test", "test", "test content");
         var pip      = new Object();
+        var library  = new Object();
         var timeout  = Duration.ofSeconds(5);
 
         var config = TestConfiguration.builder().withSaplDocument(document).withSaplTestDocument(testDoc)
                 .withDefaultAlgorithm(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE))
                 .withVariable("key", Value.of("value")).withSecret("apiKey", Value.of("secret"))
-                .withFunctionLibrary(Object.class).withPolicyInformationPoint(pip).withFailFast(true)
+                .withFunctionLibrary(library).withPolicyInformationPoint(pip).withFailFast(true)
                 .withVerificationTimeout(timeout).build();
 
         assertThat(config).satisfies(c -> {
@@ -226,7 +231,7 @@ class TestConfigurationTests {
             assertThat(c.defaultAlgorithm()).isEqualTo(new CombiningAlgorithm(UNIQUE, ABSTAIN, PROPAGATE));
             assertThat(c.pdpVariables()).containsEntry("key", Value.of("value"));
             assertThat(c.pdpSecrets()).containsEntry("apiKey", Value.of("secret"));
-            assertThat(c.functionLibraries()).containsExactly(Object.class);
+            assertThat(c.functionLibraries()).containsExactly(library);
             assertThat(c.policyInformationPoints()).containsExactly(pip);
             assertThat(c.failFast()).isTrue();
             assertThat(c.verificationTimeout()).isEqualTo(timeout);

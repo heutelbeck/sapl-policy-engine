@@ -17,21 +17,8 @@
  */
 package io.sapl.compiler.policy;
 
-import com.networknt.schema.Schema;
-import com.networknt.schema.SchemaException;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SchemaRegistry;
-import com.networknt.schema.SpecificationVersion;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
-import io.sapl.api.model.ValueJsonMarshaller;
+import com.networknt.schema.*;
+import io.sapl.api.model.*;
 import io.sapl.ast.SchemaCondition;
 import io.sapl.ast.SchemaStatement;
 import io.sapl.ast.SubscriptionElement;
@@ -39,6 +26,8 @@ import io.sapl.compiler.expressions.CompilationContext;
 import io.sapl.compiler.expressions.ExpressionCompiler;
 import io.sapl.compiler.expressions.SaplCompilerException;
 import io.sapl.compiler.index.SemanticHashing;
+import io.sapl.compiler.util.BoundedRegex;
+import io.sapl.compiler.util.BoundedRegularExpressionFactory;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -77,6 +66,7 @@ public class SchemaValidatorCompiler {
     private static final String ERROR_SCHEMA_MUST_BE_CONSTANT    = "Schema must be a constant object literal, not a runtime expression. "
             + "Variable references and function calls are not allowed in schema definitions.";
     private static final String ERROR_SCHEMA_MUST_BE_OBJECT      = "Schema must be an object, got: %s";
+    private static final String ERROR_SCHEMA_VALIDATION_FAILED   = "Schema validation failed: %s";
 
     private static final String SCHEMA_ID_FIELD = "$id";
 
@@ -139,23 +129,27 @@ public class SchemaValidatorCompiler {
     private static SchemaRegistry buildSchemaRegistry(CompilationContext ctx) {
         val schemasValue = ctx.getData().variables().get("schemas");
         if (!(schemasValue instanceof ArrayValue schemas)) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+                    BoundedRegularExpressionFactory::applyTo);
         }
         val schemaMap = new HashMap<String, String>();
         for (val schema : schemas) {
             if (schema instanceof ObjectValue obj && obj.containsKey(SCHEMA_ID_FIELD)) {
                 val id = obj.get(SCHEMA_ID_FIELD);
-                if (id instanceof TextValue text) {
+                if (id instanceof TextValue(String value)) {
                     val schemaNode = ValueJsonMarshaller.toJsonNode(obj);
-                    schemaMap.put(text.value(), schemaNode.toString());
+                    schemaMap.put(value, schemaNode.toString());
                 }
             }
         }
         if (schemaMap.isEmpty()) {
-            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
+            return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
+                    BoundedRegularExpressionFactory::applyTo);
         }
-        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12,
-                builder -> builder.schemas(schemaMap));
+        return SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12, builder -> {
+            builder.schemas(schemaMap);
+            BoundedRegularExpressionFactory.applyTo(builder);
+        });
     }
 
     record PrecompiledSchemaValidator(
@@ -171,9 +165,15 @@ public class SchemaValidatorCompiler {
             if (elementValue instanceof ErrorValue) {
                 return elementValue;
             }
-            val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
-            val messages    = schema.validate(subjectNode);
-            return messages.isEmpty() ? Value.TRUE : Value.FALSE;
+            try {
+                val subjectNode = ValueJsonMarshaller.toJsonNode(elementValue);
+                val messages    = BoundedRegex.runWithSharedMatchBudget(() -> schema.validate(subjectNode));
+                return messages.isEmpty() ? Value.TRUE : Value.FALSE;
+            } catch (Throwable e) {
+                // Third-party validation on hostile input must never crash evaluation. Surface
+                // an ErrorValue.
+                return Value.errorAt(location, ERROR_SCHEMA_VALIDATION_FAILED, e.getMessage());
+            }
         }
 
         private Value getSubscriptionElement(EvaluationContext ctx) {
@@ -205,16 +205,19 @@ public class SchemaValidatorCompiler {
 
         @Override
         public Value evaluate(EvaluationContext ctx) {
+            // Kleene OR: a TRUE from any schema wins even if another errors. Surface an
+            // error only if none pass.
+            ErrorValue firstError = null;
             for (val validator : validators) {
                 val result = validator.evaluate(ctx);
-                if (result instanceof ErrorValue) {
-                    return result;
-                }
                 if (Value.TRUE.equals(result)) {
                     return Value.TRUE;
                 }
+                if (result instanceof ErrorValue error && firstError == null) {
+                    firstError = error;
+                }
             }
-            return Value.FALSE;
+            return firstError != null ? firstError : Value.FALSE;
         }
 
         @Override

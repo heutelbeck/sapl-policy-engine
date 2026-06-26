@@ -47,7 +47,7 @@ class CheckIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("permit-all policy exits with code 0")
-        void whenPermitPolicy_thenExitZero() throws IOException {
+        void whenPermitPolicyThenExitZero() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
 
             val exitCode = SaplNodeApplication.run(new String[] { "check", "--dir", policyDir.toString(), "-s",
@@ -58,7 +58,7 @@ class CheckIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("non-matching policy exits with non-zero code")
-        void whenNoPolicyMatches_thenNonZeroExit() throws IOException {
+        void whenNoPolicyMatchesThenNonZeroExit() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"restricted\" permit subject == \"admin\";");
 
             val exitCode = SaplNodeApplication.run(new String[] { "check", "--dir", policyDir.toString(), "-s",
@@ -69,7 +69,7 @@ class CheckIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("policy with obligation exits with code 4")
-        void whenPolicyWithObligation_thenExitCode4() throws IOException {
+        void whenPolicyWithObligationThenExitCode4() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"),
                     "policy \"with-obligation\" permit obligation \"log-access\"");
 
@@ -90,7 +90,7 @@ class CheckIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("subscription from JSON file produces correct exit code")
-        void whenSubscriptionFile_thenCorrectExitCode() throws IOException {
+        void whenSubscriptionFileThenCorrectExitCode() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
             val subscriptionFile = policyDir.resolve("request.json");
             Files.writeString(subscriptionFile, SUBSCRIPTION_JSON);
@@ -124,7 +124,7 @@ class CheckIntegrationTests extends AbstractCliIntegrationTests {
 
         @Test
         @DisplayName("-f - reads subscription from stdin")
-        void whenStdinInput_thenCorrectExitCode() throws IOException {
+        void whenStdinInputThenCorrectExitCode() throws IOException {
             Files.writeString(policyDir.resolve("test.sapl"), "policy \"test\" permit");
             System.setIn(new ByteArrayInputStream(SUBSCRIPTION_JSON.getBytes(StandardCharsets.UTF_8)));
 

@@ -24,11 +24,13 @@ import lombok.val;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 import javax.net.ssl.SSLException;
 import java.util.concurrent.Callable;
 
+import static io.sapl.node.cli.support.PdpSetup.ERROR_EVALUATION_FAILED;
 import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 
 /**
@@ -43,8 +45,9 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
     description = { """
         Evaluates the authorization subscription against policies once and
         prints the full decision to stdout as a JSON object containing the
-        decision (PERMIT, DENY, NOT_APPLICABLE, INDETERMINATE), any
-        obligations, advice, and resource transformations.
+        decision (PERMIT, DENY, SUSPEND, NOT_APPLICABLE, INDETERMINATE), any
+        obligations, advice, and resource transformations. The JSON is compact
+        by default; pass --pretty for an indented, human-readable form.
 
         By default, policies are loaded from ~/.sapl/. Use
         --dir for a different directory, --bundle for a bundle file, or
@@ -75,13 +78,14 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 // @formatter:on
 public class DecideOnceCommand implements Callable<Integer> {
 
-    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
-
     @Spec
     CommandSpec spec;
 
     @Mixin
     PdpOptions pdpOptions;
+
+    @Option(names = "--pretty", description = "Indent the decision JSON for readability instead of compact single-line output.")
+    boolean pretty;
 
     @Override
     public Integer call() {
@@ -93,8 +97,10 @@ public class DecideOnceCommand implements Callable<Integer> {
             if (setup == null)
                 return 1;
             val subscription = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
-            val decision     = setup.pdp().decideOnceBlocking(subscription);
-            out.println(setup.mapper().writeValueAsString(decision));
+            val decision     = setup.blocking().decideOnce(subscription);
+            val json         = pretty ? setup.mapper().writerWithDefaultPrettyPrinter().writeValueAsString(decision)
+                    : setup.mapper().writeValueAsString(decision);
+            out.println(json);
             return 0;
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());

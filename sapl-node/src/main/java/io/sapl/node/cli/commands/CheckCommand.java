@@ -31,6 +31,7 @@ import picocli.CommandLine.Spec;
 import javax.net.ssl.SSLException;
 import java.util.concurrent.Callable;
 
+import static io.sapl.node.cli.support.PdpSetup.ERROR_EVALUATION_FAILED;
 import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 
 /**
@@ -45,6 +46,7 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
  * <li>3 - NOT_APPLICABLE</li>
  * <li>4 - INDETERMINATE, or PERMIT with obligations/resource
  * transformation</li>
+ * <li>5 - SUSPEND</li>
  * </ul>
  */
 // @formatter:off
@@ -68,7 +70,8 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
         " 1:Error during evaluation",
         " 2:DENY",
         " 3:NOT_APPLICABLE (no matching policy)",
-        " 4:INDETERMINATE, or PERMIT with obligations/resource transformation"
+        " 4:INDETERMINATE, or PERMIT with obligations/resource transformation",
+        " 5:SUSPEND"
     },
     footerHeading = "%nExamples:%n",
     footer = { """
@@ -90,8 +93,6 @@ import static io.sapl.node.cli.support.PdpSetup.ERROR_REMOTE_CONNECTION;
 // @formatter:on
 public class CheckCommand implements Callable<Integer> {
 
-    static final String ERROR_EVALUATION_FAILED = "Error: Evaluation failed: %s.";
-
     @Spec
     CommandSpec spec;
 
@@ -107,7 +108,7 @@ public class CheckCommand implements Callable<Integer> {
             if (setup == null)
                 return 1;
             val sub      = SubscriptionResolver.resolve(pdpOptions.subscriptionInput, setup.mapper());
-            val decision = setup.pdp().decideOnceBlocking(sub);
+            val decision = setup.blocking().decideOnce(sub);
             return toExitCode(decision);
         } catch (IllegalArgumentException e) {
             err.println(e.getMessage());
@@ -130,6 +131,7 @@ public class CheckCommand implements Callable<Integer> {
         case DENY           -> 2;
         case NOT_APPLICABLE -> 3;
         case INDETERMINATE  -> 4;
+        case SUSPEND        -> 5;
         };
     }
 

@@ -12,17 +12,32 @@ requirement "Environment Attribute Verification" {
 
 }
 
-requirement "Environment Attribute Not Called" {
+requirement "Eager Mode Short-Circuits On A Pure FALSE Before The Stream" {
 
     given
         - documents "location-policy", "bypass-policy"
         - attribute "loc-bypass" <geo.location> emits { "country": "DE" }
 
-    scenario "environment attribute called zero times when not needed"
+    scenario "eager mode still short-circuits on the pure condition before subscribing the stream"
         when "user" attempts "bypass" on "data"
         expect permit
         verify
-            - attribute <geo.location> is called 0 times;
+            - attribute <geo.location> is never called;
+
+}
+
+requirement "Environment Attribute Not Called Under Lazy Mode" {
+
+    given
+        - documents "location-policy", "bypass-policy"
+        - low-latency-mode false
+        - attribute "loc-bypass-lazy" <geo.location> emits { "country": "DE" }
+
+    scenario "lazy coverage voter short-circuits before unused attribute"
+        when "user" attempts "bypass" on "data"
+        expect permit
+        verify
+            - attribute <geo.location> is never called;
 
 }
 
@@ -37,5 +52,36 @@ requirement "Entity Attribute Verification" {
         expect permit
         verify
             - attribute any.<user.role> is called once;
+
+}
+
+requirement "Eager Mode Subscribes A Stream Dominated By An Earlier Stream" {
+
+    given
+        - documents "two-stream-policy", "bypass-policy"
+        - attribute "first-eager" <first.attr> emits { "ok": true }
+        - attribute "second-eager" <second.attr> emits { "ok": true }
+
+    scenario "eager subscribes the dominated second stream up front"
+        when "user" attempts "bypass" on "data"
+        expect permit
+        verify
+            - attribute <second.attr> is called once;
+
+}
+
+requirement "Lazy Mode Short-Circuits Before A Stream Dominated By An Earlier Stream" {
+
+    given
+        - documents "two-stream-policy", "bypass-policy"
+        - low-latency-mode false
+        - attribute "first-lazy" <first.attr> emits { "ok": true }
+        - attribute "second-lazy" <second.attr> emits { "ok": true }
+
+    scenario "lazy stops at the dominating first stream and never subscribes the second"
+        when "user" attempts "bypass" on "data"
+        expect permit
+        verify
+            - attribute <second.attr> is never called;
 
 }

@@ -17,42 +17,50 @@
  */
 package io.sapl.pdp;
 
-import io.sapl.api.pdp.*;
-import io.sapl.pdp.configuration.PdpState;
-import io.sapl.pdp.configuration.PdpVoterSource;
-import io.sapl.pdp.configuration.source.*;
-import reactor.core.Disposable;
-import tools.jackson.databind.json.JsonMapper;
-import io.sapl.api.attributes.AttributeBroker;
-import io.sapl.api.attributes.AttributeBrokerException;
-import io.sapl.api.attributes.AttributeStorage;
 import io.sapl.api.functions.FunctionBroker;
 import io.sapl.api.model.Value;
-import io.sapl.attributes.CachingAttributeBroker;
-import io.sapl.attributes.HeapAttributeStorage;
-import io.sapl.attributes.InMemoryAttributeRepository;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.attributes.http.BlockingWebClient;
+import io.sapl.api.stream.RealTimeScheduler;
+import io.sapl.api.stream.TimeScheduler;
 import io.sapl.attributes.libraries.HttpPolicyInformationPoint;
 import io.sapl.attributes.libraries.JWTKeyProvider;
 import io.sapl.attributes.libraries.JWTPolicyInformationPoint;
-import io.sapl.attributes.libraries.ReactiveWebClient;
 import io.sapl.attributes.libraries.TimePolicyInformationPoint;
 import io.sapl.attributes.libraries.X509PolicyInformationPoint;
+import io.sapl.attributes.broker.AttributeBroker;
+import io.sapl.attributes.broker.AttributeRepository;
+import org.jspecify.annotations.Nullable;
+import io.sapl.attributes.broker.pip.PolicyInformationPointAttributeBroker;
+import io.sapl.attributes.broker.pip.PipLoadException;
+import io.sapl.attributes.broker.repository.InMemoryAttributeRepository;
+import io.sapl.api.pdp.DecisionInterceptor;
+import io.sapl.api.pdp.SubscriptionLifecycleListener;
 import io.sapl.functions.DefaultFunctionBroker;
 import io.sapl.functions.DefaultLibraries;
+import io.sapl.pdp.configuration.ConfigurationIds;
+import io.sapl.pdp.configuration.PdpVoterSource;
 import io.sapl.pdp.configuration.bundle.BundleParser;
 import io.sapl.pdp.configuration.bundle.BundleSecurityPolicy;
+import io.sapl.pdp.configuration.source.*;
+import io.sapl.pdp.plugins.PluginsBundle;
+import io.sapl.pdp.plugins.PluginsSource;
+import io.sapl.pdp.plugins.StaticPluginsSource;
 import lombok.val;
-import org.jspecify.annotations.Nullable;
-import org.springframework.web.reactive.function.client.WebClient;
+import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.InstantSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * Fluent builder for creating a Policy Decision Point with configurable
@@ -61,7 +69,7 @@ import java.util.function.Function;
  * <h2>Basic Usage</h2>
  *
  * <pre>{@code
- * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withFunctionLibrary(MyCustomLibrary.class)
+ * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withFunctionLibrary(new MyCustomLibrary())
  *         .withPolicyInformationPoint(new MyCustomPIP()).build();
  *
  * var pdp = pdpComponents.pdp();
@@ -83,154 +91,116 @@ import java.util.function.Function;
  * var pdpComponents = PolicyDecisionPointBuilder.withDefaults().withResourcesSource("/policies").build();
  * }</pre>
  *
- * <h2>Spring Integration</h2>
+ * <h2>Lifecycle</h2>
  * <p>
- * When using a configuration source that monitors directories for changes,
- * ensure the source is disposed when the
- * application shuts down. The {@link PDPComponents#source()} method returns the
- * source (if any) which can be disposed
- * directly.
+ * The returned {@link PDPComponents} is an {@link AutoCloseable}. Call
+ * {@link PDPComponents#close()} (or use a try-with-resources block) on
+ * shutdown to release every component held by the builder.
  * </p>
- * <p>
- * Spring does not automatically call {@code dispose()} on Reactor's
- * {@link reactor.core.Disposable} interface. When
- * exposing a configuration source as a Spring bean, explicitly specify the
- * destroy method:
- * </p>
- *
- * <pre>
- * {
- *     &#64;code
- *     &#64;Configuration
- *     public class PdpConfiguration {
- *
- *         &#64;Bean
- *         public PDPComponents pdpComponents() {
- *             return PolicyDecisionPointBuilder.withDefaults().build();
- *         }
- *
- *         &#64;Bean(destroyMethod = "dispose")
- *         public Disposable policySource(PdpVoterSource voterSource) {
- *             return new DirectoryPDPConfigurationSource(Path.of("/policies"), voterSource);
- *         }
- *     }
- * }
- * </pre>
- * <p>
- * Alternatively, use {@code @PreDestroy} to dispose the source:
- * </p>
- *
- * <pre>
- * {@code
- * &#64;Component
- * public class PdpLifecycle {
- *
- *     private final PDPComponents components;
- *
- *     public PdpLifecycle() {
- *         this.components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies"))
- *                 .build();
- *     }
- *
- *     @PreDestroy
- *     public void cleanup() {
- *         var source = components.source();
- *         if (source != null) {
- *             source.dispose();
- *         }
- *     }
- * }
- * }
- * </pre>
  *
  * @see PDPComponents
  */
+@Slf4j
 public class PolicyDecisionPointBuilder {
 
     private final JsonMapper mapper;
-    private final Clock      clock;
+    private Clock            clock;
+
+    // Observability timestamp source (decision trace, attribute freshness),
+    // distinct from the temporal
+    // clock. Null defaults to the temporal clock. ownsTimestampSource gates
+    // closing.
+    private InstantSource timestampSource;
+    private boolean       ownsTimestampSource = false;
 
     private boolean includeDefaultFunctionLibraries       = true;
     private boolean includeDefaultPolicyInformationPoints = true;
 
-    private final List<Class<?>> staticFunctionLibraries       = new ArrayList<>();
-    private final List<Object>   instantiatedFunctionLibraries = new ArrayList<>();
-    private final List<Object>   policyInformationPoints       = new ArrayList<>();
+    private final List<Object> functionLibraries       = new ArrayList<>();
+    private final List<Object> policyInformationPoints = new ArrayList<>();
 
-    private AttributeStorage  attributeStorage;
-    private IdFactory         idFactory;
-    private WebClient.Builder webClientBuilder;
+    private IdFactory idFactory;
 
-    private int             functionCacheSize = -1;
-    private FunctionBroker  externalFunctionBroker;
-    private AttributeBroker externalAttributeBroker;
+    private int                 functionCacheSize = -1;
+    private FunctionBroker      externalFunctionBroker;
+    private PluginsSource       externalPluginsSource;
+    private AttributeBroker     externalAttributeBroker;
+    private AttributeRepository externalRepository;
 
-    private final List<VoteInterceptor> interceptors = new ArrayList<>();
+    private final List<DecisionInterceptor>           decisionInterceptors = new ArrayList<>();
+    private final List<SubscriptionLifecycleListener> lifecycleListeners   = new ArrayList<>();
 
-    private Function<PdpVoterSource, Disposable> sourceFactory;
-    private final List<PDPConfiguration>         initialConfigurations = new ArrayList<>();
+    private PDPConfigurationSource       configurationSource;
+    private final List<PDPConfiguration> initialConfigurations = new ArrayList<>();
 
     private CombiningAlgorithm combiningAlgorithm;
     private final List<String> policyDocuments = new ArrayList<>();
 
-    private static final String ERROR_INITIAL_CONFIG_FAILED     = "Initial PDP configuration failed for '%s': %s";
+    private static final String ERROR_NO_PLUGINS_AVAILABLE      = "Cannot build the PDP: no plugins bundle is available from the plugins source.";
     private static final String ERROR_SOURCE_ALREADY_REGISTERED = "A configuration source has already been registered. Only one source is allowed.";
+    private static final String WARN_ERROR_CLOSING_RESOURCE     = "Error closing {} during failed PDP build: {}.";
 
-    private PolicyDecisionPointBuilder(JsonMapper mapper, Clock clock) {
+    private PolicyDecisionPointBuilder(JsonMapper mapper) {
         this.mapper = mapper;
-        this.clock  = clock;
+        this.clock  = Clock.systemUTC();
     }
 
     /**
      * Creates a builder with default function libraries and policy information
-     * points enabled, using a new ObjectMapper
-     * and system UTC clock.
+     * points enabled, using a new ObjectMapper.
      *
      * @return a new builder instance
      */
     public static PolicyDecisionPointBuilder withDefaults() {
-        return new PolicyDecisionPointBuilder(JsonMapper.builder().build(), Clock.systemUTC());
+        return new PolicyDecisionPointBuilder(JsonMapper.builder().build());
     }
 
     /**
      * Creates a builder with default function libraries and policy information
      * points enabled.
      *
-     * @param mapper
-     * the JsonMapper for JSON processing
-     * @param clock
-     * the clock for time-based operations
-     *
+     * @param mapper the JsonMapper for JSON processing
      * @return a new builder instance
      */
-    public static PolicyDecisionPointBuilder withDefaults(JsonMapper mapper, Clock clock) {
-        return new PolicyDecisionPointBuilder(mapper, clock);
+    public static PolicyDecisionPointBuilder withDefaults(JsonMapper mapper) {
+        return new PolicyDecisionPointBuilder(mapper);
     }
 
     /**
      * Creates a builder without any default libraries or PIPs, using a new
-     * ObjectMapper and system UTC clock.
+     * ObjectMapper.
      *
      * @return a new builder instance with defaults disabled
      */
     public static PolicyDecisionPointBuilder withoutDefaults() {
-        return withoutDefaults(JsonMapper.builder().build(), Clock.systemUTC());
+        return withoutDefaults(JsonMapper.builder().build());
     }
 
     /**
      * Creates a builder without any default libraries or PIPs. Use this for minimal
      * configurations or testing.
      *
-     * @param mapper
-     * the JsonMapper for JSON processing
-     * @param clock
-     * the clock for time-based operations
-     *
+     * @param mapper the JsonMapper for JSON processing
      * @return a new builder instance with defaults disabled
      */
-    public static PolicyDecisionPointBuilder withoutDefaults(JsonMapper mapper, Clock clock) {
-        return new PolicyDecisionPointBuilder(mapper, clock).withoutDefaultFunctionLibraries()
+    public static PolicyDecisionPointBuilder withoutDefaults(JsonMapper mapper) {
+        return new PolicyDecisionPointBuilder(mapper).withoutDefaultFunctionLibraries()
                 .withoutDefaultPolicyInformationPoints();
+    }
+
+    /**
+     * Sets the clock that drives time-based policy reasoning: the time PIP,
+     * certificate validity, JWT expiry, and scheduling. Defaults to
+     * {@link Clock#systemUTC()}. This is independent of the timestamp source for
+     * observability stamps (see {@link #withTimestampSource} and
+     * {@link #withCoarseTimestamps}).
+     *
+     * @param clock the temporal-reasoning clock
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withClock(Clock clock) {
+        this.clock = clock;
+        return this;
     }
 
     /**
@@ -254,62 +224,57 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Adds a static function library class. The library will be instantiated using
-     * its no-arg constructor.
+     * Sets the source used for observability timestamps (decision-trace
+     * timestamps and attribute value freshness). This is independent of the
+     * temporal-reasoning clock, which keeps driving time-based policy logic
+     * (JWT expiry, certificate validity, the time PIP, scheduling). The caller
+     * retains ownership: the source is not closed when the PDP is closed.
      *
-     * @param libraryClass
-     * the function library class
-     *
+     * @param source the timestamp source
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withFunctionLibrary(Class<?> libraryClass) {
-        this.staticFunctionLibraries.add(libraryClass);
+    public PolicyDecisionPointBuilder withTimestampSource(InstantSource source) {
+        this.timestampSource     = source;
+        this.ownsTimestampSource = false;
         return this;
     }
 
     /**
-     * Adds an already instantiated function library. Use this for libraries that
-     * require constructor dependencies.
-     *
-     * @param libraryInstance
-     * the function library instance
+     * Uses a coarse-resolution cached clock ({@link CoarseClock}) for
+     * observability timestamps. The clock is created and owned by the resulting
+     * PDP and is closed when the PDP is closed. The cached read is far cheaper
+     * than {@link java.time.Clock#instant()} on high-throughput timestamping
+     * paths, at the cost of coarser (interval-bounded) timestamp precision.
+     * Temporal reasoning is unaffected and stays on the accurate clock.
      *
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withFunctionLibraryInstance(Object libraryInstance) {
-        this.instantiatedFunctionLibraries.add(libraryInstance);
+    public PolicyDecisionPointBuilder withCoarseTimestamps() {
+        this.timestampSource     = new CoarseClock();
+        this.ownsTimestampSource = true;
         return this;
     }
 
     /**
-     * Adds multiple static function library classes. Each library will be
-     * instantiated using its no-arg constructor.
-     * This is useful for Spring integration where libraries are collected
-     * automatically.
+     * Adds a function library instance.
      *
-     * @param libraryClasses
-     * the function library classes
-     *
+     * @param libraryInstance the function library instance
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withFunctionLibraries(Collection<Class<?>> libraryClasses) {
-        this.staticFunctionLibraries.addAll(libraryClasses);
+    public PolicyDecisionPointBuilder withFunctionLibrary(Object libraryInstance) {
+        this.functionLibraries.add(libraryInstance);
         return this;
     }
 
     /**
-     * Adds multiple already instantiated function libraries. Use this for libraries
-     * that require constructor
-     * dependencies. This is useful for Spring integration where library beans are
-     * collected automatically.
+     * Adds multiple function library instances. Useful for Spring integration
+     * where library beans are collected automatically.
      *
-     * @param libraryInstances
-     * the function library instances
-     *
+     * @param libraryInstances the function library instances
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withFunctionLibraryInstances(Collection<?> libraryInstances) {
-        this.instantiatedFunctionLibraries.addAll(libraryInstances);
+    public PolicyDecisionPointBuilder withFunctionLibraries(Collection<?> libraryInstances) {
+        this.functionLibraries.addAll(libraryInstances);
         return this;
     }
 
@@ -347,11 +312,9 @@ public class PolicyDecisionPointBuilder {
      * is useful for Spring integration where the broker is managed as a bean with
      * its own dependencies.
      * <p>
-     * When an external broker is provided, the {@code withFunctionLibrary},
-     * {@code withFunctionLibraryInstance},
-     * {@code withFunctionLibraries}, and {@code withFunctionLibraryInstances}
-     * methods have no effect - configure
-     * libraries directly on the provided broker instead.
+     * When an external broker is provided, the {@code withFunctionLibrary} and
+     * {@code withFunctionLibraries} methods have no effect - configure libraries
+     * directly on the provided broker instead.
      *
      * @param functionBroker
      * the pre-configured function broker
@@ -360,6 +323,21 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withFunctionBroker(FunctionBroker functionBroker) {
         this.externalFunctionBroker = functionBroker;
+        return this;
+    }
+
+    /**
+     * Sets a {@link PluginsSource}. When set the source overrides every
+     * other plugin-side configuration on the builder (function libraries,
+     * decision interceptors, lifecycle listeners). The voter source
+     * subscribes to it for snapshots. Emissions after build time trigger
+     * recompile of every retained PDP configuration.
+     *
+     * @param source the plugins source
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withPluginsSource(PluginsSource source) {
+        this.externalPluginsSource = source;
         return this;
     }
 
@@ -378,20 +356,12 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a pre-built attribute broker. When set, the builder will use this broker
-     * instead of creating a new one. This
-     * is useful for Spring integration where the broker is managed as a bean with
-     * its own dependencies.
-     * <p>
-     * When an external broker is provided, the {@code withPolicyInformationPoint},
-     * {@code withPolicyInformationPoints},
-     * and {@code withAttributeStorage} methods have no effect - configure PIPs and
-     * storage directly on the provided
-     * broker instead.
+     * Sets a custom {@link AttributeBroker}. When set, this broker is
+     * used as-is and the builder's catalog and fallback wiring are
+     * bypassed. Use {@link #withRepository(AttributeRepository)}
+     * instead if the goal is only to swap the fallback repository.
      *
-     * @param attributeBroker
-     * the pre-configured attribute broker
-     *
+     * @param attributeBroker the pre-configured attribute broker
      * @return this builder
      */
     public PolicyDecisionPointBuilder withAttributeBroker(AttributeBroker attributeBroker) {
@@ -400,16 +370,21 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets the attribute storage implementation. If not set, a heap-based in-memory
-     * storage will be used.
+     * Sets the fallback repository for invocations that have no
+     * matching PIP. The PIP broker routes catalog-matched invocations
+     * through the loaded PIPs and routes the rest through this
+     * repository. If not set, a default {@link InMemoryAttributeRepository}
+     * is used.
+     * <p>
+     * This setter has no effect when
+     * {@link #withAttributeBroker(AttributeBroker)} supplies a fully
+     * custom top-level broker.
      *
-     * @param attributeStorage
-     * the attribute storage
-     *
+     * @param repository the fallback {@link AttributeRepository}
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withAttributeStorage(AttributeStorage attributeStorage) {
-        this.attributeStorage = attributeStorage;
+    public PolicyDecisionPointBuilder withRepository(AttributeRepository repository) {
+        this.externalRepository = repository;
         return this;
     }
 
@@ -428,45 +403,54 @@ public class PolicyDecisionPointBuilder {
     }
 
     /**
-     * Sets a custom WebClient builder for HTTP-based PIPs. If not set, the default
-     * WebClient.builder() will be used.
+     * Adds a decision interceptor that observes every
+     * {@link io.sapl.api.pdp.TracedDecision}
+     * produced by the PDP.
      *
-     * @param webClientBuilder
-     * the WebClient builder
-     *
+     * @param interceptor the decision interceptor to add
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withWebClientBuilder(WebClient.Builder webClientBuilder) {
-        this.webClientBuilder = webClientBuilder;
+    public PolicyDecisionPointBuilder withDecisionInterceptor(DecisionInterceptor interceptor) {
+        this.decisionInterceptors.add(interceptor);
         return this;
     }
 
     /**
-     * Adds a vote interceptor.
+     * Adds a collection of decision interceptors. Useful for Spring
+     * integration where interceptor beans are collected automatically.
      *
-     * @param interceptor the interceptor to add
+     * @param interceptors the decision interceptors to add
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withInterceptor(VoteInterceptor interceptor) {
-        this.interceptors.add(interceptor);
+    public PolicyDecisionPointBuilder withDecisionInterceptors(Collection<? extends DecisionInterceptor> interceptors) {
+        this.decisionInterceptors.addAll(interceptors);
         return this;
     }
 
     /**
-     * Adds multiple traced decision interceptors. Interceptors are applied to every
-     * authorization decision in priority
-     * order (lower values execute first).
-     * <p>
-     * This is useful for Spring integration where interceptors are collected as
-     * beans.
+     * Adds a subscription lifecycle listener that receives one
+     * {@code onSubscribe} call when an authorization subscription stream
+     * begins and one {@code onUnsubscribe} call when it ends.
      *
-     * @param interceptors
-     * the interceptors to add
-     *
+     * @param listener the lifecycle listener to add
      * @return this builder
      */
-    public PolicyDecisionPointBuilder withInterceptors(Collection<? extends VoteInterceptor> interceptors) {
-        this.interceptors.addAll(interceptors);
+    public PolicyDecisionPointBuilder withSubscriptionLifecycleListener(SubscriptionLifecycleListener listener) {
+        this.lifecycleListeners.add(listener);
+        return this;
+    }
+
+    /**
+     * Adds a collection of subscription lifecycle listeners. Useful for
+     * Spring integration where listener beans are collected
+     * automatically.
+     *
+     * @param listeners the lifecycle listeners to add
+     * @return this builder
+     */
+    public PolicyDecisionPointBuilder withSubscriptionLifecycleListeners(
+            Collection<? extends SubscriptionLifecycleListener> listeners) {
+        this.lifecycleListeners.addAll(listeners);
         return this;
     }
 
@@ -482,19 +466,19 @@ public class PolicyDecisionPointBuilder {
      * Only one configuration source can be registered. Attempting to register
      * multiple sources will throw an exception.
      *
-     * @param sourceFactory
-     * factory that creates the configuration source given a consumer
+     * @param configurationSource
+     * the configuration source to register
      *
      * @return this builder
      *
      * @throws IllegalStateException
      * if a configuration source has already been registered
      */
-    public PolicyDecisionPointBuilder withConfigurationSource(Function<PdpVoterSource, Disposable> sourceFactory) {
-        if (this.sourceFactory != null) {
+    public PolicyDecisionPointBuilder withConfigurationSource(PDPConfigurationSource configurationSource) {
+        if (this.configurationSource != null) {
             throw new IllegalStateException(ERROR_SOURCE_ALREADY_REGISTERED);
         }
-        this.sourceFactory = sourceFactory;
+        this.configurationSource = configurationSource;
         return this;
     }
 
@@ -509,7 +493,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withDirectorySource(Path directoryPath) {
-        return withConfigurationSource(voterSource -> new DirectoryPDPConfigurationSource(directoryPath, voterSource));
+        return withConfigurationSource(new DirectoryPDPConfigurationSource(directoryPath));
     }
 
     /**
@@ -517,7 +501,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * The configuration ID is determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code dir:<path>@<timestamp>@sha256:<hash>}
+     * {@code dir:<path>@<timestamp>}
      * </p>
      *
      * @param directoryPath
@@ -528,8 +512,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withDirectorySource(Path directoryPath, String pdpId) {
-        return withConfigurationSource(
-                voterSource -> new DirectoryPDPConfigurationSource(directoryPath, pdpId, voterSource));
+        return withConfigurationSource(new DirectoryPDPConfigurationSource(directoryPath, pdpId));
     }
 
     /**
@@ -547,8 +530,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath) {
-        return withConfigurationSource(
-                voterSource -> new MultiDirectoryPDPConfigurationSource(directoryPath, voterSource));
+        return withConfigurationSource(new MultiDirectoryPDPConfigurationSource(directoryPath));
     }
 
     /**
@@ -567,8 +549,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withMultiDirectorySource(Path directoryPath, boolean includeRootFiles) {
-        return withConfigurationSource(
-                voterSource -> new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles, voterSource));
+        return withConfigurationSource(new MultiDirectoryPDPConfigurationSource(directoryPath, includeRootFiles));
     }
 
     /**
@@ -595,8 +576,7 @@ public class PolicyDecisionPointBuilder {
      */
     public PolicyDecisionPointBuilder withBundleDirectorySource(Path bundleDirectoryPath,
             BundleSecurityPolicy securityPolicy) {
-        return withConfigurationSource(
-                voterSource -> new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy, voterSource));
+        return withConfigurationSource(new BundlePDPConfigurationSource(bundleDirectoryPath, securityPolicy));
     }
 
     /**
@@ -610,7 +590,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withRemoteBundleSource(RemoteBundleSourceConfig config) {
-        return withConfigurationSource(voterSource -> new RemoteBundlePDPConfigurationSource(config, voterSource));
+        return withConfigurationSource(new RemoteBundlePDPConfigurationSource(config));
     }
 
     /**
@@ -621,7 +601,7 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @param resourcePath
@@ -630,7 +610,7 @@ public class PolicyDecisionPointBuilder {
      * @return this builder
      */
     public PolicyDecisionPointBuilder withResourcesSource(String resourcePath) {
-        return withConfigurationSource(voterSource -> new ResourcesPDPConfigurationSource(resourcePath, voterSource));
+        return withConfigurationSource(new ResourcesPDPConfigurationSource(resourcePath));
     }
 
     /**
@@ -638,13 +618,13 @@ public class PolicyDecisionPointBuilder {
      * <p>
      * Configuration IDs are determined from pdp.json if present, otherwise
      * auto-generated in the format:
-     * {@code res:<path>@sha256:<hash>}
+     * {@code res:<path>}
      * </p>
      *
      * @return this builder
      */
     public PolicyDecisionPointBuilder withResourcesSource() {
-        return withConfigurationSource(ResourcesPDPConfigurationSource::new);
+        return withConfigurationSource(new ResourcesPDPConfigurationSource());
     }
 
     /**
@@ -780,158 +760,235 @@ public class PolicyDecisionPointBuilder {
      * Builds the PDP and all related components.
      *
      * @return the PDP components including the PDP and configuration register
-     *
-     * @throws IllegalStateException
-     * if function library initialization fails
-     * @throws AttributeBrokerException
-     * if PIP initialization fails
+     * @throws IllegalStateException if function library initialization fails
+     * @throws PipLoadException if PIP loading into the attribute broker
+     * fails
      */
-    public PDPComponents build() throws AttributeBrokerException {
-        val functionBroker        = resolveFunctionBroker();
-        val attributeBroker       = resolveAttributeBroker();
-        val configurationRegister = new PdpVoterSource(functionBroker, attributeBroker, clock);
-        val timestampClock        = new LazyFastClock();
-        val sortedInterceptors    = List.copyOf(interceptors);
-        val pdp                   = new DynamicPolicyDecisionPoint(configurationRegister, resolveIdFactory(),
-                sortedInterceptors);
+    public PDPComponents build() {
+        // Default the timestamp source to the temporal clock unless the caller opted
+        // into a separate one.
+        val resolvedTimestampSource = timestampSource != null ? timestampSource : clock;
+        val ownsResolvedSource      = ownsTimestampSource;
+        val resolvedBroker          = resolveAttributeBroker(resolvedTimestampSource);
+        val attributeBroker         = resolvedBroker.broker();
+        val pluginsSource           = resolvePluginsSource();
+        val ownsPluginsSource       = externalPluginsSource == null;
+        val voterSource             = new PdpVoterSource(pluginsSource, clock);
+        val blockingPdp             = new BlockingPolicyDecisionPoint(voterSource, attributeBroker, resolveIdFactory(),
+                resolvedTimestampSource);
 
-        // Create default configuration from collected policies
-        if (!policyDocuments.isEmpty()) {
-            val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
-            val config    = new PDPConfiguration("default", "config-" + System.currentTimeMillis(), algorithm,
-                    List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
-            initialConfigurations.add(config);
-        }
-
-        // Load initial configurations
-        for (val config : initialConfigurations) {
-            configurationRegister.loadConfiguration(config, false);
-        }
-
-        for (val entry : configurationRegister.getAllPdpStatuses().entrySet()) {
-            if (entry.getValue().state() == PdpState.ERROR) {
-                throw new IllegalStateException(
-                        ERROR_INITIAL_CONFIG_FAILED.formatted(entry.getKey(), entry.getValue().lastError()));
+        try {
+            // Create default configuration from collected policies
+            if (!policyDocuments.isEmpty()) {
+                val algorithm = combiningAlgorithm != null ? combiningAlgorithm : CombiningAlgorithm.DEFAULT;
+                val config    = new PDPConfiguration("default", ConfigurationIds.generate("config"), algorithm,
+                        List.copyOf(policyDocuments), new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+                initialConfigurations.add(config);
             }
-        }
 
-        Disposable source = null;
-        if (sourceFactory != null) {
-            source = sourceFactory.apply(configurationRegister);
-        }
+            // Load initial configurations: false signals fail-fast on compile error,
+            // propagating PDPConfigurationException to the build() caller.
+            for (val config : initialConfigurations) {
+                voterSource.loadConfiguration(config, false);
+            }
 
-        return new PDPComponents(pdp, configurationRegister, functionBroker, attributeBroker, source, timestampClock,
-                sortedInterceptors);
+            if (configurationSource != null) {
+                // Subscribe propagates source-side compile errors via the same
+                // fail-fast path when the source emits Load with keepOldOnError=false.
+                configurationSource.subscribe(voterSource::handle);
+            }
+
+            val plugins = voterSource.getPlugins();
+            if (plugins == null) {
+                throw new IllegalStateException(ERROR_NO_PLUGINS_AVAILABLE);
+            }
+            return new PDPComponents(blockingPdp, voterSource, plugins.functionBroker(), attributeBroker,
+                    configurationSource, resolvedTimestampSource, ownsResolvedSource, plugins.decisionInterceptors(),
+                    plugins.lifecycleListeners(), pluginsSource, ownsPluginsSource, resolvedBroker.ownedRepository());
+        } catch (RuntimeException e) {
+            // A failed build never transfers ownership to PDPComponents, so close what this
+            // builder created.
+            closeQuietly(voterSource);
+            if (configurationSource != null) {
+                closeQuietly(configurationSource);
+            }
+            if (ownsPluginsSource) {
+                closeQuietly(pluginsSource);
+            }
+            if (ownsResolvedSource && resolvedTimestampSource instanceof AutoCloseable closeableSource) {
+                closeQuietly(closeableSource);
+            }
+            if (externalAttributeBroker == null) {
+                closeQuietly(attributeBroker);
+            }
+            if (resolvedBroker.ownedRepository() != null) {
+                closeQuietly(resolvedBroker.ownedRepository());
+            }
+            throw e;
+        }
     }
 
-    private FunctionBroker resolveFunctionBroker() {
-        return Objects.requireNonNullElseGet(externalFunctionBroker, this::buildFunctionBroker);
+    private void closeQuietly(AutoCloseable resource) {
+        try {
+            resource.close();
+        } catch (Exception e) {
+            log.warn(WARN_ERROR_CLOSING_RESOURCE, resource.getClass().getSimpleName(), e.getMessage());
+        }
     }
 
-    private FunctionBroker buildFunctionBroker() {
+    private PluginsSource resolvePluginsSource() {
+        if (externalPluginsSource != null) {
+            return externalPluginsSource;
+        }
+        val broker = externalFunctionBroker != null ? externalFunctionBroker
+                : buildFunctionBroker(functionCacheSize, includeDefaultFunctionLibraries, functionLibraries);
+        val bundle = new PluginsBundle(broker, List.copyOf(decisionInterceptors), List.copyOf(lifecycleListeners));
+        return new StaticPluginsSource(bundle);
+    }
+
+    /**
+     * Builds a {@link FunctionBroker} with the given configuration. Shared
+     * by both this builder and external assemblers (for example the Spring
+     * Boot auto-configuration) so the construction logic stays in a single
+     * place.
+     *
+     * @param functionCacheSize maximum function result cache entries. Values
+     * less than or equal to zero use the broker's default.
+     * @param includeDefaultFunctionLibraries whether to load the SAPL
+     * default libraries
+     * @param additionalFunctionLibraries additional library instances to load
+     * @return a fully configured function broker
+     */
+    public static FunctionBroker buildFunctionBroker(int functionCacheSize, boolean includeDefaultFunctionLibraries,
+            List<?> additionalFunctionLibraries) {
         val functionBroker = functionCacheSize > 0 ? new DefaultFunctionBroker(functionCacheSize)
                 : new DefaultFunctionBroker();
 
         if (includeDefaultFunctionLibraries) {
-            for (val lib : DefaultLibraries.STATIC_LIBRARIES) {
-                functionBroker.loadStaticFunctionLibrary(lib);
+            for (val lib : DefaultLibraries.defaults()) {
+                functionBroker.load(lib);
             }
         }
 
-        for (val lib : staticFunctionLibraries) {
-            functionBroker.loadStaticFunctionLibrary(lib);
-        }
-
-        for (val lib : instantiatedFunctionLibraries) {
-            functionBroker.loadInstantiatedFunctionLibrary(lib);
+        for (val lib : additionalFunctionLibraries) {
+            functionBroker.load(lib);
         }
 
         return functionBroker;
     }
 
-    private AttributeBroker resolveAttributeBroker() throws AttributeBrokerException {
-        return Objects.requireNonNullElseGet(externalAttributeBroker, this::buildAttributeBroker);
+    /**
+     * The resolved attribute broker plus, when the builder created the default
+     * fallback repository, that repository so {@link PDPComponents} can close it.
+     * {@code ownedRepository} is null when the broker or repository was supplied
+     * by the caller (those stay caller-owned).
+     */
+    private record ResolvedBroker(AttributeBroker broker, @Nullable AttributeRepository ownedRepository) {}
+
+    private ResolvedBroker resolveAttributeBroker(InstantSource timestampSource) {
+        if (externalAttributeBroker != null) {
+            return new ResolvedBroker(externalAttributeBroker, null);
+        }
+        val ownedRepository = externalRepository != null ? null : new InMemoryAttributeRepository();
+        val repository      = externalRepository != null ? externalRepository : ownedRepository;
+        val broker          = buildPolicyInformationPointAttributeBroker(clock, timestampSource, mapper,
+                includeDefaultPolicyInformationPoints, policyInformationPoints, repository);
+        return new ResolvedBroker(broker, ownedRepository);
     }
 
-    private AttributeBroker buildAttributeBroker() throws AttributeBrokerException {
-        val storage             = attributeStorage != null ? attributeStorage : new HeapAttributeStorage();
-        val attributeRepository = new InMemoryAttributeRepository(clock, storage);
-        val attributeBroker     = new CachingAttributeBroker(attributeRepository);
+    /**
+     * Builds an {@link PolicyInformationPointAttributeBroker} configured with the
+     * SAPL default PIPs (when {@code includeDefaults} is true) and any
+     * additional PIPs passed in. Shared by this builder and external
+     * assemblers (for example the Spring Boot auto-configuration) so
+     * the construction logic stays in a single place.
+     *
+     * @param clock clock used by the time-based PIPs and the
+     * {@link TimeScheduler}
+     * @param mapper JSON mapper used by the {@link BlockingWebClient}
+     * for HTTP-based PIPs
+     * @param includeDefaults whether to load the SAPL default PIPs
+     * (HTTP, JWT, time, X.509)
+     * @param additionalPips additional PIP instances to load on top of
+     * the defaults
+     * @return a fully configured attribute broker
+     * @throws PipLoadException if a PIP fails to load
+     */
+    public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
+            JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips) {
+        return buildPolicyInformationPointAttributeBroker(clock, mapper, includeDefaults, additionalPips, null);
+    }
 
-        if (includeDefaultPolicyInformationPoints) {
-            val reactiveWebClient = new ReactiveWebClient(mapper);
-            val httpPip           = new HttpPolicyInformationPoint(reactiveWebClient);
-            attributeBroker.loadPolicyInformationPointLibrary(httpPip);
+    /**
+     * Same as the 4-arg overload, with an explicit fallback
+     * repository for invocations that have no matching PIP. A
+     * {@code null} fallback yields a broker that surfaces
+     * {@link Value#UNDEFINED} for unmatched invocations.
+     *
+     * @param clock clock used by the time-based PIPs and the
+     * {@link TimeScheduler}
+     * @param mapper JSON mapper used by the {@link BlockingWebClient}
+     * for HTTP-based PIPs
+     * @param includeDefaults whether to load the SAPL default PIPs
+     * (HTTP, JWT, time, X.509)
+     * @param additionalPips additional PIP instances to load on top of
+     * the defaults
+     * @param fallback fallback repository for unmatched invocations
+     * @return a fully configured attribute broker
+     * @throws PipLoadException if a PIP fails to load
+     */
+    public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
+            JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips, AttributeRepository fallback) {
+        return buildPolicyInformationPointAttributeBroker(clock, clock, mapper, includeDefaults, additionalPips,
+                fallback);
+    }
 
-            val webClient      = webClientBuilder != null ? webClientBuilder : WebClient.builder();
-            val jwtKeyProvider = new JWTKeyProvider(webClient);
-            val jwtPip         = new JWTPolicyInformationPoint(jwtKeyProvider);
-            attributeBroker.loadPolicyInformationPointLibrary(jwtPip);
+    /**
+     * Same as the 5-arg overload, but with an explicit timestamp source for the
+     * broker's attribute value-arrival stamps, kept separate from the temporal
+     * {@code clock} that drives the time-based PIPs.
+     *
+     * @param clock clock used by the time-based PIPs and the
+     * {@link TimeScheduler}
+     * @param timestampSource source for attribute value-arrival timestamps
+     * @param mapper JSON mapper used by the {@link BlockingWebClient} for
+     * HTTP-based PIPs
+     * @param includeDefaults whether to load the SAPL default PIPs (HTTP, JWT,
+     * time, X.509)
+     * @param additionalPips additional PIP instances to load on top of the
+     * defaults
+     * @param fallback fallback repository for unmatched invocations
+     * @return a fully configured attribute broker
+     * @throws PipLoadException if a PIP fails to load
+     */
+    public static PolicyInformationPointAttributeBroker buildPolicyInformationPointAttributeBroker(Clock clock,
+            InstantSource timestampSource, JsonMapper mapper, boolean includeDefaults, List<Object> additionalPips,
+            AttributeRepository fallback) {
+        val broker    = new PolicyInformationPointAttributeBroker(Duration.ZERO, fallback, timestampSource);
+        val scheduler = new RealTimeScheduler(clock);
 
-            val timePip = new TimePolicyInformationPoint(clock);
-            attributeBroker.loadPolicyInformationPointLibrary(timePip);
+        if (includeDefaults) {
+            // 5 second TCP connect cap so a stalled remote PIP host does not
+            // hang the calling decision indefinitely.
+            val httpClient  = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+            val webClient   = new BlockingWebClient(mapper, httpClient);
+            val keyProvider = new JWTKeyProvider(httpClient, clock);
 
-            val x509Pip = new X509PolicyInformationPoint(clock);
-            attributeBroker.loadPolicyInformationPointLibrary(x509Pip);
+            broker.load(new TimePolicyInformationPoint(clock, scheduler));
+            broker.load(new X509PolicyInformationPoint(clock, scheduler));
+            broker.load(new HttpPolicyInformationPoint(webClient));
+            broker.load(new JWTPolicyInformationPoint(keyProvider, clock, scheduler));
         }
 
-        for (val pip : policyInformationPoints) {
-            attributeBroker.loadPolicyInformationPointLibrary(pip);
+        for (val pip : additionalPips) {
+            broker.load(pip);
         }
 
-        return attributeBroker;
+        return broker;
     }
 
     private IdFactory resolveIdFactory() {
         return idFactory != null ? idFactory : new ThreadLocalRandomIdFactory();
     }
 
-    /**
-     * Contains all components created by the PDP builder.
-     * <p>
-     * This is a simple data carrier (tuple) providing access to the built
-     * components. Resources that require cleanup
-     * (configuration source and timestamp clock) should be disposed when the PDP is
-     * no longer needed.
-     * </p>
-     * <h2>Resource Management</h2>
-     * <p>
-     * Use the {@link #dispose()} method to clean up all disposable resources:
-     * </p>
-     *
-     * <pre>{@code
-     * var components = PolicyDecisionPointBuilder.withDefaults().withDirectorySource(Path.of("/policies")).build();
-     *
-     * // ... use the PDP ...
-     *
-     * // Cleanup all resources
-     * components.dispose();
-     * }</pre>
-     */
-    public record PDPComponents(
-            PolicyDecisionPoint pdp,
-            PdpVoterSource pdpVoterSource,
-            FunctionBroker functionBroker,
-            AttributeBroker attributeBroker,
-            @Nullable Disposable source,
-            LazyFastClock timestampClock,
-            List<VoteInterceptor> sortedInterceptors) {
-
-        /**
-         * Disposes all resources held by this PDP instance.
-         * <p>
-         * This method should be called when the PDP is no longer needed to ensure clean
-         * application shutdown. It closes
-         * the timestamp clock's background thread and disposes any configuration source
-         * file watchers.
-         */
-        public void dispose() {
-            if (timestampClock != null) {
-                timestampClock.close();
-            }
-            if (source != null) {
-                source.dispose();
-            }
-        }
-    }
 }

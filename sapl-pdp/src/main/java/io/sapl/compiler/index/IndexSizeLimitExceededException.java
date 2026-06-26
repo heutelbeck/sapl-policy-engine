@@ -17,9 +17,9 @@
  */
 package io.sapl.compiler.index;
 
-import java.io.Serial;
-
 import io.sapl.api.SaplVersion;
+
+import java.io.Serial;
 
 /**
  * Thrown when a decision diagram index exceeds the configured maximum

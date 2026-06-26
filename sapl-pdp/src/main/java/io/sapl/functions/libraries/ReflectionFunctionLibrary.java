@@ -19,23 +19,13 @@ package io.sapl.functions.libraries;
 
 import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
-import io.sapl.api.model.ArrayValue;
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NullValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.ObjectValue;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.UndefinedValue;
-import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
+import io.sapl.api.model.*;
 
 import java.math.BigDecimal;
 
 /**
  * Functions for runtime type inspection and reflection on Value objects.
  */
-@UtilityClass
 @FunctionLibrary(name = ReflectionFunctionLibrary.NAME, description = ReflectionFunctionLibrary.DESCRIPTION, libraryDocumentation = ReflectionFunctionLibrary.DOCUMENTATION)
 public class ReflectionFunctionLibrary {
 
@@ -398,9 +388,6 @@ public class ReflectionFunctionLibrary {
         return switch (value) {
         case ArrayValue array   -> Value.of(array.isEmpty());
         case ObjectValue object -> Value.of(object.isEmpty());
-        case TextValue text     -> Value.of(text.value().isEmpty());
-        case NullValue ignored  -> Value.TRUE;
-        case NumberValue number -> Value.of(number.equals(Value.ZERO));
         default                 -> Value.FALSE;
         };
     }

@@ -22,12 +22,11 @@ import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
 import io.sapl.functions.DefaultFunctionBroker;
 import lombok.val;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-
-import org.junit.jupiter.api.DisplayName;
 
 @DisplayName("SaplFunctionLibrary")
 class SaplFunctionLibraryTests {
@@ -35,8 +34,7 @@ class SaplFunctionLibraryTests {
     @Test
     void whenLoadedIntoBrokerThenNoError() {
         val functionBroker = new DefaultFunctionBroker();
-        assertThatCode(() -> functionBroker.loadStaticFunctionLibrary(SaplFunctionLibrary.class))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> functionBroker.load(new SaplFunctionLibrary())).doesNotThrowAnyException();
     }
 
     @Test

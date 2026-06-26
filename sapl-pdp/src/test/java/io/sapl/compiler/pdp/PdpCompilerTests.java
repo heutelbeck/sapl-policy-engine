@@ -17,16 +17,20 @@
  */
 package io.sapl.compiler.pdp;
 
+import io.sapl.api.model.EvaluationContext;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.CombiningAlgorithm;
-import io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision;
-import io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling;
-import io.sapl.api.pdp.CombiningAlgorithm.VotingMode;
+import io.sapl.api.pdp.AuthorizationSubscription;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling;
+import io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode;
 import io.sapl.api.pdp.Decision;
-import io.sapl.api.pdp.PDPConfiguration;
-import io.sapl.api.pdp.PdpData;
+import io.sapl.api.pdp.configuration.PDPConfiguration;
+import io.sapl.api.pdp.configuration.PdpData;
+import io.sapl.ast.Outcome;
 import io.sapl.compiler.document.Vote;
 import io.sapl.compiler.expressions.SaplCompilerException;
+import io.sapl.util.SaplTesting;
 import lombok.val;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,17 +38,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.stream.Stream;
 
-import static io.sapl.api.pdp.CombiningAlgorithm.DefaultDecision.ABSTAIN;
-import static io.sapl.api.pdp.CombiningAlgorithm.ErrorHandling.PROPAGATE;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.FIRST;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_DENY;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.PRIORITY_PERMIT;
-import static io.sapl.api.pdp.CombiningAlgorithm.VotingMode.UNIQUE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.DefaultDecision.ABSTAIN;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.ErrorHandling.PROPAGATE;
+import static io.sapl.api.pdp.configuration.CombiningAlgorithm.VotingMode.*;
 import static io.sapl.util.SaplTesting.compilationContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,6 +52,12 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @DisplayName("PdpCompiler")
 class PdpCompilerTests {
+
+    private static Vote evaluate(CompiledPdp compiledPdp, AuthorizationSubscription subscription) {
+        val ctx = EvaluationContext.of(compiledPdp.metadata().pdpId(), compiledPdp.metadata().configurationId(),
+                "test-sub", subscription, SaplTesting.FUNCTION_BROKER);
+        return compiledPdp.voter().evaluate(ctx).vote();
+    }
 
     private static final String VALID_POLICY = """
             policy "test-policy"
@@ -74,6 +80,9 @@ class PdpCompilerTests {
             """;
 
     private static final String INVALID_POLICY = "this is not valid SAPL syntax!!!";
+
+    private static final AuthorizationSubscription DEFAULT_SUBSCRIPTION = AuthorizationSubscription.of(Value.NULL,
+            Value.NULL, Value.NULL, Value.NULL);
 
     @Nested
     @DisplayName("error handling")
@@ -136,7 +145,7 @@ class PdpCompilerTests {
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
 
-            assertThat(compiledVoter.pdpVoter()).satisfies(voter -> {
+            assertThat(compiledVoter.voter()).satisfies(voter -> {
                 assertThat(voter).isInstanceOf(Vote.class);
                 assertThat(((Vote) voter).authorizationDecision().decision()).isEqualTo(expected);
             });
@@ -154,10 +163,9 @@ class PdpCompilerTests {
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            StepVerifier.create(compiledVoter.coverageStream())
-                    .assertNext(vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(expected))
-                    .verifyComplete();
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(expected);
         }
 
         @Test
@@ -168,11 +176,9 @@ class PdpCompilerTests {
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            StepVerifier.create(compiledVoter.coverageStream())
-                    .assertNext(
-                            vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.PERMIT))
-                    .verifyComplete();
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
 
         @Test
@@ -183,10 +189,91 @@ class PdpCompilerTests {
                     new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
 
             val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, DEFAULT_SUBSCRIPTION);
 
-            StepVerifier.create(compiledVoter.coverageStream()).assertNext(
-                    vwc -> assertThat(vwc.vote().authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE))
-                    .verifyComplete();
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+    }
+
+    @Nested
+    @DisplayName("PDP voter metadata outcome")
+    class PdpVoterMetadataOutcomeTests {
+
+        private static final String POLICY_SUSPEND = """
+                policy "policy-s"
+                suspend
+                """;
+
+        static Stream<Arguments> pdpOutcomeCases() {
+            return Stream.of(arguments(ABSTAIN, List.of(POLICY_A, POLICY_B), Outcome.PERMIT_OR_DENY),
+                    arguments(ABSTAIN, List.of(POLICY_A, POLICY_SUSPEND), Outcome.PERMIT_OR_SUSPEND),
+                    arguments(DefaultDecision.SUSPEND, List.of(POLICY_B), Outcome.DENY_OR_SUSPEND),
+                    arguments(ABSTAIN, List.<String>of(), Outcome.PERMIT_OR_DENY_OR_SUSPEND));
+        }
+
+        @ParameterizedTest(name = "default {0} with documents {1} yields {2}")
+        @MethodSource("pdpOutcomeCases")
+        void whenCompilingPdpThenMetadataOutcomeIsUnionOfDocumentOutcomesAndDefault(DefaultDecision defaultDecision,
+                List<String> documents, Outcome expected) {
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, defaultDecision, PROPAGATE), documents,
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+
+            assertThat(compiledVoter.metadata().outcome()).isEqualTo(expected);
+        }
+    }
+
+    @Nested
+    @DisplayName("policy set would-have-been outcome on target errors")
+    class PolicySetWouldHaveBeenOutcomeTests {
+
+        private static final String ERRORING_DENY_SUSPEND_SET = """
+                set "erroring-set"
+                priority deny or abstain
+                for subject.missing.field
+                policy "set-deny" deny
+                policy "set-suspend" suspend
+                """;
+
+        private static final String ERRORING_PERMIT_SUSPEND_SET = """
+                set "erroring-set"
+                priority permit or abstain
+                for subject.missing.field
+                policy "set-permit" permit
+                policy "set-suspend" suspend
+                """;
+
+        private static final AuthorizationSubscription TEXT_SUBJECT_SUBSCRIPTION = AuthorizationSubscription
+                .of(Value.of("alice"), Value.NULL, Value.NULL, Value.NULL);
+
+        @Test
+        @DisplayName("erroring deny/suspend set blocks concrete PERMIT under priority suspend")
+        void whenSetWithDenyAndSuspendPoliciesErrorsUnderPrioritySuspendThenIndeterminate() {
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_SUSPEND, ABSTAIN, PROPAGATE),
+                    List.of(ERRORING_DENY_SUSPEND_SET, VALID_POLICY),
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, TEXT_SUBJECT_SUBSCRIPTION);
+
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.INDETERMINATE);
+        }
+
+        @Test
+        @DisplayName("erroring permit/suspend set does not block concrete PERMIT under priority deny")
+        void whenSetWithPermitAndSuspendPoliciesErrorsUnderPriorityDenyThenConcretePermitWins() {
+            val config = new PDPConfiguration("test-pdp", "config-1",
+                    new CombiningAlgorithm(PRIORITY_DENY, ABSTAIN, PROPAGATE),
+                    List.of(ERRORING_PERMIT_SUSPEND_SET, VALID_POLICY),
+                    new PdpData(Value.EMPTY_OBJECT, Value.EMPTY_OBJECT));
+
+            val compiledVoter = PdpCompiler.compilePDPConfiguration(config, compilationContext());
+            val vote          = evaluate(compiledVoter, TEXT_SUBJECT_SUBSCRIPTION);
+
+            assertThat(vote.authorizationDecision().decision()).isEqualTo(Decision.PERMIT);
         }
     }
 

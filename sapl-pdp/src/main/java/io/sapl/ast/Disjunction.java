@@ -28,9 +28,9 @@ import java.util.List;
  * Enables pure-first evaluation and error absorption optimizations.
  *
  * @param operands list of operands (at least 3)
- * @param isEager if true, uses combineLatest on the streaming stratum instead
- * of
- * short-circuit switchMap
+ * @param isEager if true, walks every operand against the snapshot to
+ * accumulate all dependencies. If false, short-circuits on the first TRUE and
+ * skips remaining operands
  * @param location source location spanning all operands
  */
 public record Disjunction(@NonNull List<Expression> operands, boolean isEager, @NonNull SourceLocation location)

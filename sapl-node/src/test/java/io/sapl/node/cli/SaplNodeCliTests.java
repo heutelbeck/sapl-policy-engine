@@ -49,7 +49,7 @@ class SaplNodeCliTests {
 
         @Test
         @DisplayName("--version outputs SAPL version, build info, Java, and OS details")
-        void whenVersionFlag_thenSucceedsWithVersionInfo() {
+        void whenVersionFlagThenSucceedsWithVersionInfo() {
             val exitCode = cmd.execute("--version");
 
             assertThat(exitCode).isZero();
@@ -63,7 +63,7 @@ class SaplNodeCliTests {
 
         @Test
         @DisplayName("--help lists available subcommands")
-        void whenHelpFlag_thenSucceedsWithSubcommands() {
+        void whenHelpFlagThenSucceedsWithSubcommands() {
             val exitCode = cmd.execute("--help");
 
             assertThat(exitCode).isZero();
@@ -84,7 +84,7 @@ class SaplNodeCliTests {
 
         @Test
         @DisplayName("generate basic outputs credentials with config and usage examples")
-        void whenGenerateBasic_thenSucceedsWithCredentials() {
+        void whenGenerateBasicThenSucceedsWithCredentials() {
             val exitCode = cmd.execute("generate", "basic");
 
             assertThat(exitCode).isZero();
@@ -102,7 +102,7 @@ class SaplNodeCliTests {
 
         @Test
         @DisplayName("generate apikey outputs API key with config and usage examples")
-        void whenGenerateApiKey_thenSucceedsWithApiKey() {
+        void whenGenerateApiKeyThenSucceedsWithApiKey() {
             val exitCode = cmd.execute("generate", "apikey");
 
             assertThat(exitCode).isZero();

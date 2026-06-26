@@ -49,9 +49,97 @@ Both `@Attribute` and `@EnvironmentAttribute` support the same annotation attrib
 
 ### Return Types
 
-Attribute methods must return `Flux<Value>` or `Mono<Value>`. A `Mono<Value>` return is automatically converted to a `Flux<Value>` by the PDP.
+Attribute methods return either `io.sapl.api.stream.Stream<Value>` (for attributes that emit a sequence of values) or a `Value` subtype (for one-shot attributes that resolve to a single value). The PDP wraps a one-shot `Value` return as `Streams.just(value)` internally.
 
-Use `Flux<Value>` when the attribute value can change over time (e.g., periodic sensor readings, message streams). Use `Mono<Value>` when the attribute is fetched once (e.g., a database lookup).
+Use `Stream<Value>` for attributes whose value changes over time (periodic sensor readings, message streams, certificate expiry watchers). Use a `Value` return when the attribute resolves once per invocation (database lookup, deterministic computation, single-shot HTTP GET).
+
+`Stream<Value>` here is the SAPL stream primitive in `io.sapl.api.stream`, not `java.util.stream.Stream`. See [Working with Streams](#working-with-streams) below for how to build one.
+
+### Working with Streams
+
+`Stream<Value>` is a push-based, latest-wins value source. It is not a Reactor `Flux` and it is not `java.util.stream.Stream`. A PIP author rarely implements the interface directly. You build a stream with one of the `io.sapl.api.stream.Streams` factory methods and return it.
+
+A stream holds only its most recent value. A consumer that falls behind a fast producer observes the latest value rather than every intermediate one. This conflation lets a high-frequency source coexist with a slower policy evaluation without unbounded buffering.
+
+**Lifecycle.** The producer-driven factories (`poll`, `scheduledPoll`, `concat`, `repeat`, `map`, `distinctUntilChanged`, `fromBlockingSource`) are hot. They start a virtual thread the moment the stream is constructed, before any consumer reads from it. In a running PDP the attribute broker owns the stream and closes it when the consuming subscription releases, so a PIP author does not call `close()`. Outside the broker, in unit tests or ad-hoc code, wrap the stream in try-with-resources so the producer thread is released.
+
+**Threading.** Blocking work inside a stream, such as an HTTP call, an MQTT receive, or an `awaitNext()`, runs on a virtual thread supplied by these helpers. Do not run it on a Reactor scheduler thread or a Netty event loop. A PIP that returns a `Streams.*` construction gets this for free.
+
+#### Choosing a Factory
+
+One value, then completion.
+
+| Factory | Emits |
+|---------|-------|
+| `Streams.just(value)` | the value once, then completes |
+| `Streams.error(message)` | a single error value carrying `message`, then completes |
+| `Streams.empty()` | nothing, completes immediately (absence, surfaces to the policy as `UNDEFINED`) |
+| `Streams.scheduledAt(value, instant, scheduler)` | the value once at `instant`, then completes |
+
+A value recomputed on a schedule.
+
+| Factory | Behaviour |
+|---------|-----------|
+| `Streams.poll(interval, supplier)` | calls `supplier` now and every `interval`, using real-time sleep |
+| `Streams.scheduledPoll(interval, supplier, clock, scheduler)` | the same, but each tick is scheduled via `scheduler` |
+
+Prefer `scheduledPoll` when the attribute must be deterministically testable, because `poll` uses wall-clock sleep and cannot be advanced by a test clock. If the supplier throws, both convert the exception to an error value, emit it, and continue at the next tick.
+
+A value driven by an external source.
+
+| Factory | Use when |
+|---------|----------|
+| `Streams.fromBlockingSource(callable)` | a blocking pull loop. `callable` returns the next value, or `null` to complete |
+| `Streams.fromCallback(producer)` | a push source such as a subscription or listener. `producer` receives an `emit` and a `complete` consumer and returns a cleanup `Runnable` that runs on close |
+
+Composition.
+
+| Factory | Behaviour |
+|---------|-----------|
+| `Streams.concat(a, b, ...)` | emits each source in order, completes when all have completed |
+| `Streams.repeat(sourceFactory)` | recreates a fresh source each time the previous one completes |
+| `Streams.map(source, mapper)` | transforms each value. A throwing mapper emits an error value and terminates |
+| `Streams.distinctUntilChanged(source)` | drops a value equal to its predecessor. The first value always passes |
+
+#### Stream Examples
+
+A push source bridged with `fromCallback`, here an MQTT subscription.
+
+```java
+@Attribute(name = "messages", docs = "Streams MQTT messages on a topic.")
+public Stream<Value> messages(TextValue topic) {
+    return Streams.fromCallback((emit, complete) -> {
+        var subscription = mqttClient.subscribe(topic.value(),
+            message -> emit.accept(Value.of(message.payload())));
+        return subscription::unsubscribe;
+    });
+}
+```
+
+A blocking pull loop with `fromBlockingSource`. Returning `null` completes the stream.
+
+```java
+@EnvironmentAttribute(docs = "Streams records from a blocking queue.")
+public Stream<Value> events() {
+    return Streams.fromBlockingSource(() -> {
+        var record = queue.take();
+        return record.isPoison() ? null : Value.of(record.toJson());
+    });
+}
+```
+
+Deduplicate a noisy poll so the policy re-evaluates only on a real change.
+
+```java
+@EnvironmentAttribute(docs = "Emits the sensor reading, updating only when it changes.")
+public Stream<Value> reading() {
+    var raw = Streams.scheduledPoll(Duration.ofSeconds(1),
+        () -> Value.of(sensor.read()), clock, scheduler);
+    return Streams.distinctUntilChanged(raw);
+}
+```
+
+Reactor types (`Flux<Value>`, `Mono<Value>`) are no longer accepted from PIP methods. The 4.1 attribute broker contract drops Reactor at the boundary. To expose an existing reactive source, bridge it onto a virtual thread inside `fromCallback` or `fromBlockingSource`.
 
 ### Parameter Order
 
@@ -83,9 +171,10 @@ Policy parameters use concrete `Value` subtypes for type safety, following the s
 ```java
 /* <time.now> */
 @EnvironmentAttribute(docs = "Returns the current UTC time, updating periodically.")
-public Flux<Value> now() {
-    return Flux.interval(Duration.ofSeconds(1))
-        .map(i -> Value.of(Instant.now(clock).toString()));
+public Stream<Value> now() {
+    return Streams.scheduledPoll(Duration.ofSeconds(1),
+        () -> Value.of(Instant.now(clock).toString()),
+        clock, scheduler);
 }
 ```
 
@@ -94,7 +183,7 @@ public Flux<Value> now() {
 ```java
 /* <jwt.token> */
 @EnvironmentAttribute(docs = "Extracts a JWT from the subscription secrets.")
-public Flux<Value> token(AttributeAccessContext ctx) {
+public Stream<Value> token(AttributeAccessContext ctx) {
     var secretsKey = resolveSecretsKey(ctx);
     return tokenFromSecrets(secretsKey, ctx);
 }
@@ -115,16 +204,17 @@ The context is injected automatically by the PDP and is invisible to policy auth
 ```java
 /* subject.clientCertificate.<x509.isCurrentlyValid> */
 @Attribute(docs = "Checks if the certificate is currently valid.")
-public Flux<Value> isCurrentlyValid(TextValue certPem) {
+public Stream<Value> isCurrentlyValid(TextValue certPem) {
     try {
         var certificate = CertificateUtils.parseCertificate(certPem.value());
         var notBefore   = certificate.getNotBefore().toInstant();
         var notAfter    = certificate.getNotAfter().toInstant();
-        return Flux.interval(Duration.ofMinutes(1))
-            .map(i -> Value.of(clock.instant().isAfter(notBefore)
-                            && clock.instant().isBefore(notAfter)));
+        return Streams.scheduledPoll(Duration.ofMinutes(1),
+            () -> Value.of(clock.instant().isAfter(notBefore)
+                        && clock.instant().isBefore(notAfter)),
+            clock, scheduler);
     } catch (CertificateException e) {
-        return Flux.just(Value.error("Invalid certificate.", e));
+        return Streams.just(Value.error("Invalid certificate."));
     }
 }
 ```
@@ -136,7 +226,7 @@ The first parameter (`TextValue certPem`) receives the left-hand value from the 
 ```java
 /* "sensors/#".<mqtt.messages(1)> */
 @Attribute(name = "messages", docs = "Subscribes to MQTT messages on a topic.")
-public Flux<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
+public Stream<Value> messages(Value topic, AttributeAccessContext ctx, Value qos) {
     return mqttClient.subscribe(topic, ctx, qos);
 }
 ```
@@ -150,7 +240,7 @@ The entity (`topic`) is the left-hand value, `ctx` is injected, and `qos` is the
 /* Entity:      "https://api.example.com".<http.get(requestSettings)> */
 @Attribute
 @EnvironmentAttribute(docs = "Performs an HTTP GET request.")
-public Flux<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
+public Stream<Value> get(AttributeAccessContext ctx, ObjectValue requestSettings) {
     return webClient.httpRequest(HttpMethod.GET, mergeHeaders(ctx, requestSettings));
 }
 ```
@@ -162,10 +252,26 @@ When both annotations are present, the method is registered for both calling con
 ```java
 /* subject.<user.attribute("AA", "BB", "CC")> */
 @Attribute(name = "attribute", docs = "Accepts a variable number of arguments.")
-public Flux<Value> attribute(Value leftHand, AttributeAccessContext ctx, TextValue... params) {
+public Stream<Value> attribute(Value leftHand, AttributeAccessContext ctx, TextValue... params) {
     ...
 }
 ```
+
+**One-shot attribute (single `Value` return):**
+
+```java
+/* <user.lookup(id)> */
+@EnvironmentAttribute(docs = "Looks up a user record by id; returns once per invocation.")
+public Value lookup(TextValue id) {
+    var record = userRepository.findById(id.value());
+    if (record == null) {
+        return Value.error("User not found.");
+    }
+    return Value.of(record.toJson());
+}
+```
+
+The PDP wraps a `Value` return as a single-element stream automatically. Use this shape for deterministic, side-effect-free attribute resolutions.
 
 If an attribute is overloaded, an implementation with an exact match of the number of arguments takes precedence over a variable arguments implementation.
 
@@ -182,18 +288,21 @@ The PDP disambiguates at runtime based on the calling convention and argument co
 
 ### Error Handling
 
-Attribute methods must never throw exceptions. Return error values using `Value.error()`:
+Attribute methods should not throw checked exceptions and should treat thrown `RuntimeException`s as a last resort. Prefer publishing an `ErrorValue` into the stream so the PDP and the consuming policy can handle it deterministically. Use `Value.error("...")` (or `Streams.error("...")` for a one-shot error stream).
 
 ```java
 @EnvironmentAttribute(docs = "Fetches data from an external API.")
-public Mono<Value> fetchData(AttributeAccessContext ctx, TextValue endpoint) {
-    return webClient.get(endpoint.value())
-        .map(Value::of)
-        .onErrorResume(e -> Mono.just(Value.error("API request failed.", e)));
+public Stream<Value> fetchData(AttributeAccessContext ctx, TextValue endpoint) {
+    try {
+        var body = webClient.get(endpoint.value()).bodyAsString();
+        return Streams.just(Value.of(body));
+    } catch (Exception e) {
+        return Streams.error("API request failed: " + e.getMessage());
+    }
 }
 ```
 
-An error value propagates through the policy evaluation and causes the enclosing condition to evaluate to `INDETERMINATE`.
+A `RuntimeException` thrown by the attribute method is not silently captured: the attribute broker treats it as a failed attempt and drives the retry burst (jittered exponential backoff up to the policy-configured retry count). Transient connect-time or send-time failures recover on the same schedule as transient mid-stream errors. After retries are exhausted, the broker publishes a transient `ErrorValue` summarising the last cause and waits one `pollInterval` before the next cycle. An error value reaching a policy condition causes the enclosing condition to evaluate to `INDETERMINATE`.
 
 ### Credential Management
 
@@ -212,8 +321,7 @@ See [Authorization Subscriptions](../2_1_AuthorizationSubscriptions/) for detail
 Custom PIPs are registered with the PDP through the builder API:
 
 ```java
-var pdp = PolicyDecisionPointBuilder.builder()
-    .withDefaults()
+var pdpComponents = PolicyDecisionPointBuilder.withDefaults()
     .withPolicyInformationPoint(new UserPIP(userService))
     .build();
 ```

@@ -45,11 +45,11 @@ For example, `object.subject` uses `subject` as a key step, and `{priority: 5}` 
 
 #### Variable Names
 
-Variable names (after the `var` keyword) accept plain identifiers and the combining algorithm keywords listed above. All other keywords (including the subscription attribute keywords `subject`, `action`, `resource`, `environment` and hard keywords like `permit`, `true`, `in`) require the caret escape to be used as variable names (e.g., `var ^subject = ...`).
+Variable names (after the `var` keyword) accept plain identifiers, the subscription attribute keywords (`subject`, `action`, `resource`, `environment`), and the combining algorithm keywords listed above, all without escaping. Hard keywords (such as `permit`, `deny`, `var`, `in`, `true`) must use the backtick escape to be used as variable names (e.g., `` var `permit` = ... ``).
 
-#### Caret Escape
+#### Backtick Escape
 
-A caret `^` before an identifier forces it to be treated as a plain identifier, even if it would otherwise match a keyword. This is needed for keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. For reserved identifiers, the caret is unnecessary in expression contexts but required when using subscription attribute keywords as variable names (see [Variable Names](#variable-names)).
+A backtick-quoted identifier (e.g. `` `permit` ``) is treated as a plain identifier even when it spells a keyword. Use it for hard keywords that are not [reserved identifiers](#reserved-identifiers): `as`, `advice`, `deny`, `each`, `enforced`, `for`, `import`, `in`, `obligation`, `permit`, `policy`, `schema`, `set`, `transform`, `true`, `false`, `null`, `undefined`, `var`. The escape works for variable names, expression identifiers, and object keys (e.g. `` object.`in` `` or `` object[`in`] ``). Reserved identifiers never need escaping. The `^` character is exclusively the bitwise-XOR operator, so `a^b` parses as XOR with no whitespace required.
 
 ### Strings
 
@@ -258,7 +258,7 @@ Except for the unary operators, multiple operators with the same precedence (e.g
 
 The `has` operator checks whether an object contains a key or keys.
 
-1. `exp1 has exp2` evaluates to `true` if the object `exp1` contains the string key `exp2`. Non-object left-hand sides (arrays, strings, numbers, booleans, null, undefined) return `false`. The right-hand side must be a string; non-string values produce an error. If either side is `undefined`, the result is `false`.
+1. `exp1 has exp2` evaluates to `true` if the object `exp1` contains the string key `exp2`. Non-object left-hand sides (arrays, strings, numbers, booleans, null, undefined) return `false`. The right-hand side must be a string. Non-string values produce an error. If either side is `undefined`, the result is `false`.
 
 2. `exp1 has any exp2` evaluates to `true` if the object `exp1` contains at least one key from the string array `exp2`. Returns `false` for an empty array.
 
@@ -323,6 +323,8 @@ false & <pip.a> & <pip.b>
 ```
 
 Neither PIP is ever contacted. The constant `false` short-circuits the AND across strata, regardless of whether `&` or `&&` is used.
+
+Only the dominating value short-circuits: `false` for AND, `true` for OR. An operand that is not `true` or `false`, an error, `undefined`, or any other non-boolean value, does not short-circuit. AND and OR follow Kleene strong three-valued logic, in which errors and undefined are treated alike as a third value, *unknown*. A dominating `false` (AND) or `true` (OR) in any operand wins regardless of position or stratum, so `(1/0 > 0) || true` is `true`, not an error. The result is an error only when no operand carries the dominating value.
 
 For the full evaluation rules, examples, and implications for attribute finder subscriptions, see [Evaluation Semantics](../2_11_EvaluationSemantics/).
 

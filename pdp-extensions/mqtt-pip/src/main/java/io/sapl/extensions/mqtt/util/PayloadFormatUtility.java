@@ -42,6 +42,8 @@ public class PayloadFormatUtility {
 
     private static final String ERROR_MQTT_MESSAGE_JSON_CONVERSION_FAILED = "The mqtt message couldn't be converted to json.";
 
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
+
     /**
      * Looks up the payload format indicator from the mqtt publish message. By
      * default, it will be 0.
@@ -53,7 +55,6 @@ public class PayloadFormatUtility {
         val payloadFormatIndicatorOptional = publishMessage.getPayloadFormatIndicator();
         var payloadFormatIndicator         = 0;
         if (payloadFormatIndicatorOptional.isPresent()) {
-            // specified whether the payload is utf-8 encoded
             payloadFormatIndicator = payloadFormatIndicatorOptional.get().getCode();
         }
         return payloadFormatIndicator;
@@ -67,8 +68,7 @@ public class PayloadFormatUtility {
      * specified
      */
     public static String getContentType(Mqtt5Publish publishMessage) {
-        Optional<MqttUtf8String> contentTypeOptional = publishMessage.getContentType(); // specifies kind of utf-8
-                                                                                        // encoded payload
+        Optional<MqttUtf8String> contentTypeOptional = publishMessage.getContentType();
         return contentTypeOptional.map(Object::toString).orElse(null);
     }
 
@@ -105,7 +105,7 @@ public class PayloadFormatUtility {
     }
 
     private static JsonNode convertBytesToJson(byte[] bytes) {
-        return JsonMapper.builder().build().readTree(bytes);
+        return MAPPER.readTree(bytes);
     }
 
     /**
@@ -118,7 +118,7 @@ public class PayloadFormatUtility {
     public static Value convertBytesToArrayValue(byte[] bytes) {
         var values = new Value[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
-            values[i] = Value.of(bytes[i]);
+            values[i] = Value.of(bytes[i] & 0xFF);
         }
         return Value.ofArray(values);
     }

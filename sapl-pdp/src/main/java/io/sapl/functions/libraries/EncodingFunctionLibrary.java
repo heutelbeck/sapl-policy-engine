@@ -21,7 +21,6 @@ import io.sapl.api.functions.Function;
 import io.sapl.api.functions.FunctionLibrary;
 import io.sapl.api.model.TextValue;
 import io.sapl.api.model.Value;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 
 import java.nio.ByteBuffer;
@@ -58,7 +57,6 @@ import java.util.HexFormat;
  * prevent timing attacks
  * </ul>
  */
-@UtilityClass
 @FunctionLibrary(name = EncodingFunctionLibrary.NAME, description = EncodingFunctionLibrary.DESCRIPTION, libraryDocumentation = EncodingFunctionLibrary.DOCUMENTATION)
 public class EncodingFunctionLibrary {
 
@@ -103,7 +101,13 @@ public class EncodingFunctionLibrary {
                 standard.length(sig) > 0;
             ```
 
-            **Security:** Input limited to 10MB to prevent resource exhaustion.
+            ## Limits
+
+            To bound memory and computation on untrusted input, the following limits apply:
+
+            - Input length is capped at 10000000 characters (10 MB). This applies to every encode and decode function, base64Encode, base64Decode, base64DecodeStrict, base64UrlEncode, base64UrlDecode, base64UrlDecodeStrict, and hexEncode, hexDecode, as well as the validation functions isValidBase64, isValidBase64Strict, isValidBase64Url, isValidBase64UrlStrict, and isValidHex. Encode and decode functions return an error when the input exceeds this length. The validation functions return false.
+
+            These limits apply because this input may originate from the authorization subscription or from policy information points, which are not vetted to the same degree as the policies and variables shipped with the PDP configuration.
             """;
 
     /**

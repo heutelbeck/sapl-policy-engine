@@ -19,15 +19,13 @@ package io.sapl.extensions.mqtt;
 
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.Value;
-import io.sapl.api.pdp.AuthorizationSubscription;
-import io.sapl.api.pdp.Decision;
-import io.sapl.pdp.PolicyDecisionPointBuilder;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.test.StepVerifier;
 
 import java.util.stream.Stream;
 
@@ -35,8 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class MqttFunctionLibraryTests {
-
-    private static final String ACTION = "actionName";
 
     @ParameterizedTest
     @ValueSource(strings = { "first/second/#", "first/+/third", "first/second/third" })
@@ -160,29 +156,52 @@ class MqttFunctionLibraryTests {
         assertThat(result).isEqualTo(Value.TRUE);
     }
 
-    @Test
-    void when_allTopicsShouldMatchWithMultiLevelWildcardAndSingleTopicMatchesWildcard_then_returnTrue() {
-        var components        = PolicyDecisionPointBuilder.withoutDefaults()
-                .withFunctionLibrary(MqttFunctionLibrary.class).withResourcesSource("/functionsPolicies").build();
-        var pdp               = components.pdp();
-        var authzSubscription = AuthorizationSubscription.of("firstSubject", ACTION, "first/second/#");
+    @Nested
+    @DisplayName("Malformed topic strings yield a domain error rather than throwing")
+    class MalformedTopicHandling {
 
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
+        private static final String EMPTY = "";
+        // NUL is the U+0000 character, written as an escape to keep the source
+        // ASCII-clean.
+        private static final String EMBED_NUL = "first/second\u0000/third";
 
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
-    }
+        @ParameterizedTest(name = "wildcard \"{0}\" yields an error value")
+        @ValueSource(strings = { EMPTY, EMBED_NUL })
+        void when_wildcardTopicIsMalformed_then_returnError(String malformedWildcard) {
+            var wildcardTopic = Value.of(malformedWildcard);
+            var topic         = Value.of("first/second/third");
 
-    @Test
-    void when_atLeastOneTopicShouldMatchWithSingleLevelWildcardAndSingleTopicDoesNotMatchWildcard_then_returnTrue() {
-        var components        = PolicyDecisionPointBuilder.withoutDefaults()
-                .withFunctionLibrary(MqttFunctionLibrary.class).withResourcesSource("/functionsPolicies").build();
-        var pdp               = components.pdp();
-        var authzSubscription = AuthorizationSubscription.of("secondSubject", ACTION, "first/+/third");
+            var resultAll        = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, topic);
+            var resultAtLeastOne = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, topic);
 
-        var pdpDecisionFlux = pdp.decide(authzSubscription);
+            assertThat(resultAll).isInstanceOf(ErrorValue.class);
+            assertThat(resultAtLeastOne).isInstanceOf(ErrorValue.class);
+        }
 
-        StepVerifier.create(pdpDecisionFlux)
-                .expectNextMatches(authzDecision -> authzDecision.decision() == Decision.PERMIT).thenCancel().verify();
+        @ParameterizedTest(name = "single topic \"{0}\" yields an error value")
+        @ValueSource(strings = { EMPTY, EMBED_NUL })
+        void when_singleTopicIsMalformed_then_returnError(String malformedTopic) {
+            var wildcardTopic = Value.of("first/#");
+            var topic         = Value.of(malformedTopic);
+
+            var resultAll        = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, topic);
+            var resultAtLeastOne = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, topic);
+
+            assertThat(resultAll).isInstanceOf(ErrorValue.class);
+            assertThat(resultAtLeastOne).isInstanceOf(ErrorValue.class);
+        }
+
+        @ParameterizedTest(name = "array topic \"{0}\" yields an error value")
+        @ValueSource(strings = { EMPTY, EMBED_NUL })
+        void when_topicInArrayIsMalformed_then_returnError(String malformedTopic) {
+            var wildcardTopic = Value.of("first/#");
+            var topics        = Value.ofArray(Value.of(malformedTopic), Value.of("first/second"));
+
+            var resultAll        = MqttFunctionLibrary.isMatchingAllTopics(wildcardTopic, topics);
+            var resultAtLeastOne = MqttFunctionLibrary.isMatchingAtLeastOneTopic(wildcardTopic, topics);
+
+            assertThat(resultAll).isInstanceOf(ErrorValue.class);
+            assertThat(resultAtLeastOne).isInstanceOf(ErrorValue.class);
+        }
     }
 }

@@ -17,11 +17,7 @@
  */
 package io.sapl.compiler.operators;
 
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.NumberValue;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.TextValue;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import lombok.experimental.UtilityClass;
 
 import java.math.BigDecimal;
@@ -37,7 +33,14 @@ import java.math.MathContext;
 public class ArithmeticOperators {
 
     private static final String ERROR_DIVISION_BY_ZERO = "Division by zero.";
+    private static final String ERROR_NUMERIC_OVERFLOW = "Numeric operation exceeded the supported range.";
     private static final String ERROR_TYPE_MISMATCH    = "Numeric operation requires number values, but found: %s.";
+
+    /** Maximum operand significant digits. */
+    private static final int MAX_PRECISION = 1000;
+
+    /** Maximum absolute operand scale. */
+    private static final int MAX_SCALE = 1000;
 
     /**
      * Adds two values.
@@ -50,7 +53,14 @@ public class ArithmeticOperators {
             return b instanceof TextValue(var vb) ? new TextValue(va + vb) : new TextValue(va + b.toString());
         }
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
-            return new NumberValue(va.add(vb));
+            if (isPathological(va) || isPathological(vb)) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
+            try {
+                return new NumberValue(va.add(vb, MathContext.DECIMAL128));
+            } catch (ArithmeticException ignored) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
         }
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
     }
@@ -60,7 +70,14 @@ public class ArithmeticOperators {
      */
     public static Value subtract(Value a, Value b, SourceLocation location) {
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
-            return new NumberValue(va.subtract(vb));
+            if (isPathological(va) || isPathological(vb)) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
+            try {
+                return new NumberValue(va.subtract(vb, MathContext.DECIMAL128));
+            } catch (ArithmeticException ignored) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
         }
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
     }
@@ -70,7 +87,14 @@ public class ArithmeticOperators {
      */
     public static Value multiply(Value a, Value b, SourceLocation location) {
         if (a instanceof NumberValue(var va) && b instanceof NumberValue(var vb)) {
-            return new NumberValue(va.multiply(vb));
+            if (isPathological(va) || isPathological(vb)) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
+            try {
+                return new NumberValue(va.multiply(vb, MathContext.DECIMAL128));
+            } catch (ArithmeticException ignored) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
         }
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
     }
@@ -88,7 +112,14 @@ public class ArithmeticOperators {
             if (vb.signum() == 0) {
                 return Value.errorAt(location, ERROR_DIVISION_BY_ZERO);
             }
-            return new NumberValue(va.divide(vb, MathContext.DECIMAL128));
+            if (isPathological(va) || isPathological(vb)) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
+            try {
+                return new NumberValue(va.divide(vb, MathContext.DECIMAL128));
+            } catch (ArithmeticException ignored) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
         }
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
     }
@@ -105,13 +136,25 @@ public class ArithmeticOperators {
             if (vb.signum() == 0) {
                 return Value.errorAt(location, ERROR_DIVISION_BY_ZERO);
             }
-            var result = va.remainder(vb);
-            if (result.signum() < 0 && vb.signum() > 0) {
-                result = result.add(vb);
+            if (isPathological(va) || isPathological(vb)) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
             }
-            return new NumberValue(result);
+            try {
+                var result = va.remainder(vb, MathContext.DECIMAL128);
+                if (result.signum() < 0 && vb.signum() > 0) {
+                    result = result.add(vb, MathContext.DECIMAL128);
+                }
+                return new NumberValue(result);
+            } catch (ArithmeticException ignored) {
+                return Value.errorAt(location, ERROR_NUMERIC_OVERFLOW);
+            }
         }
         return Value.errorAt(location, ERROR_TYPE_MISMATCH, !(a instanceof NumberValue) ? a : b);
+    }
+
+    /** True if precision or scale exceeds the supported bounds. */
+    private static boolean isPathological(BigDecimal value) {
+        return value.precision() > MAX_PRECISION || Math.abs((long) value.scale()) > MAX_SCALE;
     }
 
     /**

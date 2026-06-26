@@ -17,31 +17,8 @@
  */
 package io.sapl.compiler.expressions;
 
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.ReservedIdentifiers;
-import io.sapl.api.model.SourceLocation;
-import io.sapl.api.model.Value;
-import io.sapl.ast.ArrayExpression;
-import io.sapl.ast.BinaryOperator;
-import io.sapl.ast.Conjunction;
-import io.sapl.ast.Disjunction;
-import io.sapl.ast.EnvironmentAttribute;
-import io.sapl.ast.ExclusiveDisjunction;
-import io.sapl.ast.Expression;
-import io.sapl.ast.ExtendedFilter;
-import io.sapl.ast.FunctionCall;
-import io.sapl.ast.Identifier;
-import io.sapl.ast.Literal;
-import io.sapl.ast.ObjectExpression;
-
-import io.sapl.ast.Product;
-import io.sapl.ast.RelativeReference;
-import io.sapl.ast.SimpleFilter;
-import io.sapl.ast.Step;
-import io.sapl.ast.Sum;
-import io.sapl.ast.UnaryOperator;
+import io.sapl.api.model.*;
+import io.sapl.ast.*;
 import io.sapl.compiler.index.SemanticHashing;
 import lombok.experimental.UtilityClass;
 import lombok.val;
@@ -107,7 +84,7 @@ public class ExpressionCompiler {
 
         @Override
         public long semanticHash() {
-            return SemanticHashing.ordered(KIND, name.hashCode());
+            return SemanticHashing.ordered(KIND, SemanticHashing.textHash(name));
         }
     }
 

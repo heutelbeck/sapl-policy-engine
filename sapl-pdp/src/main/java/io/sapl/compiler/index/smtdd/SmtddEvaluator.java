@@ -17,8 +17,6 @@
  */
 package io.sapl.compiler.index.smtdd;
 
-import java.util.BitSet;
-
 import io.sapl.api.model.BooleanValue;
 import io.sapl.api.model.ErrorValue;
 import io.sapl.api.model.EvaluationContext;
@@ -27,6 +25,8 @@ import io.sapl.compiler.index.smtdd.SmtddNode.EqualityBranch;
 import io.sapl.compiler.index.smtdd.SmtddNode.Terminal;
 import lombok.experimental.UtilityClass;
 import lombok.val;
+
+import java.util.BitSet;
 
 /**
  * Evaluates an SMTDD against a request context.
@@ -88,7 +88,13 @@ class SmtddEvaluator {
                     node = errorChild;
                 }
                 case BooleanValue(var b) when b -> node = trueChild;
-                default                         -> node = falseChild;
+                case BooleanValue ignored       -> node = falseChild;
+                default                         -> {
+                    // Non-boolean (type error now that the body type-check is gone):
+                    // route to the error branch and reconcile through Kleene naive.
+                    accumulatedErrors.or(binaryOrder.erroredFormulas(level));
+                    node = errorChild;
+                }
                 }
             }
             case Terminal ignored                                                                          ->

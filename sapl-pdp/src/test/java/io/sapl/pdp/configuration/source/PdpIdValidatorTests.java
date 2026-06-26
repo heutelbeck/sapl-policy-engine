@@ -17,6 +17,7 @@
  */
 package io.sapl.pdp.configuration.source;
 
+import io.sapl.api.pdp.StreamingPolicyDecisionPoint;
 import io.sapl.pdp.configuration.PDPConfigurationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,9 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
-import static io.sapl.pdp.configuration.source.PdpIdValidator.isValidPdpId;
-import static io.sapl.pdp.configuration.source.PdpIdValidator.resolveHomeFolderIfPresent;
-import static io.sapl.pdp.configuration.source.PdpIdValidator.validatePdpId;
+import static io.sapl.pdp.configuration.source.PdpIdValidator.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -127,7 +126,7 @@ class PdpIdValidatorTests {
 
     @Test
     void whenDefaultPdpIdConstantThenIsValid() {
-        assertThat(isValidPdpId(PdpIdValidator.DEFAULT_PDP_ID)).isTrue();
+        assertThat(isValidPdpId(StreamingPolicyDecisionPoint.DEFAULT_PDP_ID)).isTrue();
     }
 
     @Test

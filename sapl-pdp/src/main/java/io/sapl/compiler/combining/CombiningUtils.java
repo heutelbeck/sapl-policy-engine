@@ -17,12 +17,7 @@
  */
 package io.sapl.compiler.combining;
 
-import io.sapl.api.model.BooleanValue;
-import io.sapl.api.model.CompiledExpression;
-import io.sapl.api.model.ErrorValue;
-import io.sapl.api.model.EvaluationContext;
-import io.sapl.api.model.PureOperator;
-import io.sapl.api.model.Value;
+import io.sapl.api.model.*;
 import io.sapl.api.pdp.AuthorizationDecision;
 import io.sapl.api.pdp.Decision;
 import io.sapl.ast.Outcome;
@@ -118,19 +113,31 @@ public class CombiningUtils {
         return (List<T>) (List<?>) Arrays.asList(array);
     }
 
+    private static final String ERROR_NON_CONCRETE_DECISION = "Cannot map non-concrete decision %s to an outcome.";
+
     /**
-     * Converts a concrete decision (PERMIT or DENY) to its corresponding outcome.
+     * Converts a concrete decision (PERMIT, DENY, or SUSPEND) to its corresponding
+     * outcome.
      *
-     * @param decision the decision to convert (must be PERMIT or DENY)
-     * @return Outcome.PERMIT for PERMIT, Outcome.DENY for DENY
+     * @param decision the decision to convert (must be PERMIT, DENY, or SUSPEND)
+     * @return Outcome.PERMIT for PERMIT, Outcome.DENY for DENY, Outcome.SUSPEND
+     * for SUSPEND
+     * @throws IllegalArgumentException if the decision is INDETERMINATE or
+     * NOT_APPLICABLE
      */
     public static Outcome decisionToOutcome(Decision decision) {
-        return decision == Decision.PERMIT ? Outcome.PERMIT : Outcome.DENY;
+        return switch (decision) {
+        case PERMIT                        -> Outcome.PERMIT;
+        case DENY                          -> Outcome.DENY;
+        case SUSPEND                       -> Outcome.SUSPEND;
+        case INDETERMINATE, NOT_APPLICABLE ->
+            throw new IllegalArgumentException(ERROR_NON_CONCRETE_DECISION.formatted(decision));
+        };
     }
 
     /**
      * Merges constraints from two authorization decisions with the same
-     * entitlement.
+     * effect.
      * <p>
      * Assumes transformation uncertainty has been checked before calling.
      *
@@ -158,28 +165,77 @@ public class CombiningUtils {
      */
     public static Vote indeterminateResult(Outcome outcome, List<ErrorValue> errors, List<Vote> contributingVotes,
             VoterMetadata voterMetadata) {
-        return new Vote(AuthorizationDecision.INDETERMINATE, errors, List.of(), contributingVotes, voterMetadata,
-                outcome);
+        return new Vote(AuthorizationDecision.INDETERMINATE, errors, contributingVotes, voterMetadata, outcome);
     }
 
     /**
-     * Combines two outcomes into a single outcome.
-     * <p>
-     * If both are the same, returns that outcome. If different, returns
-     * PERMIT_OR_DENY.
+     * Combines two outcomes into the union of their effect sets, tolerating null
+     * inputs by treating null as "no contribution".
      *
      * @param a first outcome (may be null)
      * @param b second outcome (may be null)
-     * @return combined outcome
+     * @return the union outcome, or whichever input is non-null when one is null
      */
     public static Outcome combineOutcomes(Outcome a, Outcome b) {
         if (a == null)
             return b;
         if (b == null)
             return a;
-        if (a == b)
-            return a;
-        return Outcome.PERMIT_OR_DENY;
+        return Outcome.combine(a, b);
+    }
+
+    /**
+     * Completes the could-have-been outcome of a short-circuited INDETERMINATE
+     * set vote. When a set-level combiner (UNANIMOUS, UNIQUE) settles its
+     * decision before folding every child, the un-folded children are still
+     * reachable effects, so the partial outcome under-reports the set
+     * potential. This broadens the outcome by the un-folded children's
+     * compile-time metadata potential without evaluating them, so an enclosing
+     * priority combiner does not under-judge the error's criticality (a
+     * fail-open). Only INDETERMINATE results are affected, and only at the set
+     * level. The terminal PDP vote's outcome has no consumer, so the PDP keeps
+     * its hard short-circuit.
+     *
+     * @param vote the short-circuited combined vote
+     * @param unfolded the children not folded into the decision
+     * @return the vote with its outcome broadened, or unchanged when not
+     * INDETERMINATE or nothing remains
+     */
+    public static Vote completeSetOutcome(Vote vote, List<? extends CompiledDocument> unfolded) {
+        if (vote.authorizationDecision().decision() != Decision.INDETERMINATE || unfolded.isEmpty()) {
+            return vote;
+        }
+        var outcome = vote.outcome();
+        for (val document : unfolded) {
+            outcome = Outcome.combine(outcome, document.metadata().outcome());
+        }
+        return vote.withOutcome(outcome);
+    }
+
+    /**
+     * Completes the could-have-been outcome of a short-circuited INDETERMINATE
+     * set vote built from already-evaluated constant child votes (the all-static
+     * fold). The applicable children's potential is the union of the non
+     * NOT_APPLICABLE votes' outcomes. Folding all of them is idempotent for the
+     * children already incorporated and adds those the short-circuit skipped.
+     * Mirrors {@link #completeSetOutcome(Vote, List)} for the static path.
+     *
+     * @param vote the short-circuited combined vote
+     * @param childVotes the constant child votes of the set
+     * @return the vote with its outcome broadened, or unchanged when not
+     * INDETERMINATE
+     */
+    public static Vote completeSetOutcomeFromVotes(Vote vote, List<Vote> childVotes) {
+        if (vote.authorizationDecision().decision() != Decision.INDETERMINATE) {
+            return vote;
+        }
+        var outcome = vote.outcome();
+        for (val childVote : childVotes) {
+            if (childVote.authorizationDecision().decision() != Decision.NOT_APPLICABLE) {
+                outcome = Outcome.combine(outcome, childVote.outcome());
+            }
+        }
+        return vote.withOutcome(outcome);
     }
 
 }

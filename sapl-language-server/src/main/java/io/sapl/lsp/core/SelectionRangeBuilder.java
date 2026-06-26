@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
@@ -52,7 +53,9 @@ public class SelectionRangeBuilder {
             return null;
         }
         SelectionRange current = null;
-        for (var i = chain.size() - 1; i >= 0; i--) {
+        // Outermost first: each node becomes the parent of the next-inner, so the
+        // returned head is the innermost range with its ancestors as parents.
+        for (var i = 0; i < chain.size(); i++) {
             val ctx            = chain.get(i);
             val range          = rangeOf(ctx);
             val selectionRange = new SelectionRange(range, current);
@@ -69,8 +72,14 @@ public class SelectionRangeBuilder {
             return;
         }
         chain.add(ctx);
+        // Recurse into the first containing child only, keeping the chain a strict
+        // ancestor path.
         for (var i = 0; i < ctx.getChildCount(); i++) {
+            val before = chain.size();
             collectEnclosingNodes(ctx.getChild(i), position, chain);
+            if (chain.size() > before) {
+                return;
+            }
         }
     }
 
@@ -80,8 +89,9 @@ public class SelectionRangeBuilder {
         }
         val startLine = ctx.getStart().getLine() - 1;
         val startChar = ctx.getStart().getCharPositionInLine();
-        val stopLine  = ctx.getStop().getLine() - 1;
-        val stopChar  = ctx.getStop().getCharPositionInLine() + ctx.getStop().getText().length();
+        val end       = endPositionOf(ctx.getStop());
+        val stopLine  = end.getLine();
+        val stopChar  = end.getCharacter();
 
         val line      = position.getLine();
         val character = position.getCharacter();
@@ -97,9 +107,20 @@ public class SelectionRangeBuilder {
 
     private static Range rangeOf(ParserRuleContext ctx) {
         val start = new Position(ctx.getStart().getLine() - 1, ctx.getStart().getCharPositionInLine());
-        val stop  = ctx.getStop();
-        val end   = new Position(stop.getLine() - 1, stop.getCharPositionInLine() + stop.getText().length());
-        return new Range(start, end);
+        return new Range(start, endPositionOf(ctx.getStop()));
+    }
+
+    private static Position endPositionOf(Token stop) {
+        val text        = stop.getText();
+        val startLine   = stop.getLine() - 1;
+        val lastNewline = text.lastIndexOf('\n');
+        // Token columns refer to the token start, so a stop token spanning multiple
+        // physical lines ends on a later line at the column after its last newline.
+        if (lastNewline < 0) {
+            return new Position(startLine, stop.getCharPositionInLine() + text.length());
+        }
+        val newlineCount = (int) text.chars().filter(c -> c == '\n').count();
+        return new Position(startLine + newlineCount, text.length() - lastNewline - 1);
     }
 
 }
